@@ -14,6 +14,6 @@ public class FfvbProxyProperties {
 
     @NotBlank
     private String host;
-    
+
     private int port = 8888;
 }

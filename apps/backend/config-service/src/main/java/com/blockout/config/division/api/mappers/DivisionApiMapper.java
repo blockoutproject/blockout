@@ -12,30 +12,40 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
-/** Maps Division HTTP models to and from application models. */
+/**
+ * Maps Division HTTP models to and from application models.
+ */
 @Component
 public class DivisionApiMapper {
 
-    /** Maps a create request and optional upload to a command. */
+    /**
+     * Maps a create request and optional upload to a command.
+     */
     public CreateDivisionCommand toCommand(CreateDivisionInternalRequest request, MultipartFile image) throws IOException {
         return new CreateDivisionCommand(request.name(), request.mainColor(), request.firstGradientColor(),
-                request.secondGradientColor(), request.thirdGradientColor(), toImageCommand(image));
+            request.secondGradientColor(), request.thirdGradientColor(), toImageCommand(image));
     }
 
-    /** Maps an update request and optional upload to a command. */
+    /**
+     * Maps an update request and optional upload to a command.
+     */
     public UpdateDivisionCommand toCommand(UpdateDivisionInternalRequest request, MultipartFile image) throws IOException {
         return new UpdateDivisionCommand(request.name(), request.mainColor(), request.firstGradientColor(),
-                request.secondGradientColor(), request.thirdGradientColor(), toImageCommand(image));
+            request.secondGradientColor(), request.thirdGradientColor(), toImageCommand(image));
     }
 
-    /** Maps an application view to the complete V1 response. */
+    /**
+     * Maps an application view to the complete V1 response.
+     */
     public DivisionInternalResponse toInternalResponse(DivisionView view) {
         return new DivisionInternalResponse(view.id(), view.name(), view.mainColor(), view.firstGradientColor(),
-                view.secondGradientColor(), view.thirdGradientColor(), view.logoUrl(), view.active(), view.createdAt(),
-                view.lastUpdate());
+            view.secondGradientColor(), view.thirdGradientColor(), view.logoUrl(), view.active(), view.createdAt(),
+            view.lastUpdate());
     }
 
-    /** Copies multipart data into the framework-independent application command. */
+    /**
+     * Copies multipart data into the framework-independent application command.
+     */
     private DivisionImageCommand toImageCommand(MultipartFile image) throws IOException {
         if (image == null) return null;
         return new DivisionImageCommand(image.getOriginalFilename(), image.getContentType(), image.getBytes());

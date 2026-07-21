@@ -22,12 +22,12 @@ public class UserApiMapper {
 
     public UserInternalResponse toInternalResponse(UserView view) {
         return new UserInternalResponse(
-                view.id(), view.auth0Id(), view.email(), view.pseudo(), view.firstName(), view.lastName(),
-                view.pictureUrl(), view.phoneNumber(), view.active(), view.createdAt(), view.lastUpdate(),
-                view.favorites() == null ? null : view.favorites().stream()
-                        .map(favorite -> new UserFavoriteSummaryInternalResponse(
-                                favorite.entityType(), favorite.entityId()))
-                        .toList());
+            view.id(), view.auth0Id(), view.email(), view.pseudo(), view.firstName(), view.lastName(),
+            view.pictureUrl(), view.phoneNumber(), view.active(), view.createdAt(), view.lastUpdate(),
+            view.favorites() == null ? null : view.favorites().stream()
+                .map(favorite -> new UserFavoriteSummaryInternalResponse(
+                    favorite.entityType(), favorite.entityId()))
+                .toList());
     }
 
     public UserFavoriteInternalResponse toInternalResponse(UserFavoriteView view) {

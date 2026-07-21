@@ -12,7 +12,9 @@ import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Verifies the explicit Team transport-to-application mapping boundary. */
+/**
+ * Verifies the explicit Team transport-to-application mapping boundary.
+ */
 @DisplayName("Team API mapper")
 class TeamApiMapperUnitTest {
 
@@ -22,7 +24,7 @@ class TeamApiMapperUnitTest {
     @DisplayName("copies multipart bytes into an application command")
     void copiesMultipartBytesIntoAnApplicationCommand() throws Exception {
         UpdateTeamInternalRequest request = new UpdateTeamInternalRequest(
-                null, null, "Team", null, null, null, null, null, null, null, null);
+            null, null, "Team", null, null, null, null, null, null, null, null);
         MockMultipartFile image = new MockMultipartFile("image", "team.png", "image/png", new byte[]{1, 2});
 
         var command = mapper.toCommand(request, image);
@@ -37,7 +39,7 @@ class TeamApiMapperUnitTest {
     void mapsEveryTeamViewFieldToTheResponse() {
         LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
         TeamView view = new TeamView(1L, "club-1", "RAW", "Team", "BO", "LNV", 2L,
-                "2026/2027", Format.SIX, Gender.F, 3L, "logo", true, now, now);
+            "2026/2027", Format.SIX, Gender.F, 3L, "logo", true, now, now);
 
         var response = mapper.toInternalResponse(view);
 

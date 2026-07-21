@@ -13,12 +13,13 @@ import com.blockout.search.search.application.views.TeamSearchResult;
 import com.blockout.search.search.infrastructure.elasticsearch.documents.ClubSearchDocument;
 import com.blockout.search.search.infrastructure.elasticsearch.documents.PoolSearchDocument;
 import com.blockout.search.search.infrastructure.elasticsearch.documents.TeamSearchDocument;
-import java.util.Collections;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.Collections;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -32,11 +33,11 @@ public class ElasticsearchSearchReader implements SearchReader {
     private static final String TIMEOUT = "150ms";
     private static final List<String> CLUB_SOURCE_FIELDS = List.of("id", "name", "city", "logoUrl");
     private static final List<String> TEAM_SOURCE_FIELDS = List.of(
-            "id", "name", "shortName", "clubId", "clubName", "clubCity", "logoUrl",
-            "divisionId", "divisionName", "format", "gender", "season");
+        "id", "name", "shortName", "clubId", "clubName", "clubCity", "logoUrl",
+        "divisionId", "divisionName", "format", "gender", "season");
     private static final List<String> POOL_SOURCE_FIELDS = List.of(
-            "id", "name", "shortName", "divisionId", "divisionName", "leagueCode", "leagueName",
-            "season", "gender", "logoUrl", "format");
+        "id", "name", "shortName", "divisionId", "divisionName", "leagueCode", "leagueName",
+        "season", "gender", "logoUrl", "format");
 
     private final ElasticsearchClient elasticsearchClient;
 
@@ -46,20 +47,20 @@ public class ElasticsearchSearchReader implements SearchReader {
             boolean emptyQuery = isBlank(text);
             Query query = emptyQuery ? randomQuery() : clubTextQuery(text);
             var response = elasticsearchClient.search(
-                    search -> search.index("clubs")
-                            .trackTotalHits(total -> total.enabled(false))
-                            .size(size(emptyQuery))
-                            .terminateAfter(terminateAfter(emptyQuery))
-                            .timeout(TIMEOUT)
-                            .query(query)
-                            .source(source -> source.filter(filter -> filter.includes(CLUB_SOURCE_FIELDS))),
-                    ClubSearchDocument.class);
+                search -> search.index("clubs")
+                    .trackTotalHits(total -> total.enabled(false))
+                    .size(size(emptyQuery))
+                    .terminateAfter(terminateAfter(emptyQuery))
+                    .timeout(TIMEOUT)
+                    .query(query)
+                    .source(source -> source.filter(filter -> filter.includes(CLUB_SOURCE_FIELDS))),
+                ClubSearchDocument.class);
             return response.hits().hits().stream()
-                    .map(hit -> hit.source())
-                    .filter(document -> document != null)
-                    .map(document -> new ClubSearchResult(
-                            document.id(), document.name(), document.logoUrl(), document.city()))
-                    .toList();
+                .map(hit -> hit.source())
+                .filter(document -> document != null)
+                .map(document -> new ClubSearchResult(
+                    document.id(), document.name(), document.logoUrl(), document.city()))
+                .toList();
         } catch (Exception exception) {
             LOGGER.error("Error searching clubs", exception);
             return Collections.emptyList();
@@ -71,24 +72,24 @@ public class ElasticsearchSearchReader implements SearchReader {
         try {
             boolean emptyQuery = isBlank(searchQuery.text());
             Query query = applyFilters(
-                    emptyQuery ? randomQuery() : teamTextQuery(searchQuery.text()), searchQuery);
+                emptyQuery ? randomQuery() : teamTextQuery(searchQuery.text()), searchQuery);
             var response = elasticsearchClient.search(
-                    search -> search.index("teams")
-                            .trackTotalHits(total -> total.enabled(false))
-                            .size(size(emptyQuery))
-                            .terminateAfter(terminateAfter(emptyQuery))
-                            .timeout(TIMEOUT)
-                            .query(query)
-                            .source(source -> source.filter(filter -> filter.includes(TEAM_SOURCE_FIELDS))),
-                    TeamSearchDocument.class);
+                search -> search.index("teams")
+                    .trackTotalHits(total -> total.enabled(false))
+                    .size(size(emptyQuery))
+                    .terminateAfter(terminateAfter(emptyQuery))
+                    .timeout(TIMEOUT)
+                    .query(query)
+                    .source(source -> source.filter(filter -> filter.includes(TEAM_SOURCE_FIELDS))),
+                TeamSearchDocument.class);
             return response.hits().hits().stream()
-                    .map(hit -> hit.source())
-                    .filter(document -> document != null)
-                    .map(document -> new TeamSearchResult(
-                            document.id(), document.name(), document.shortName(), document.clubId(),
-                            document.clubName(), document.clubCity(), document.logoUrl(), document.divisionName(),
-                            document.format(), document.gender(), document.season()))
-                    .toList();
+                .map(hit -> hit.source())
+                .filter(document -> document != null)
+                .map(document -> new TeamSearchResult(
+                    document.id(), document.name(), document.shortName(), document.clubId(),
+                    document.clubName(), document.clubCity(), document.logoUrl(), document.divisionName(),
+                    document.format(), document.gender(), document.season()))
+                .toList();
         } catch (Exception exception) {
             LOGGER.error("Error searching teams", exception);
             return Collections.emptyList();
@@ -100,24 +101,24 @@ public class ElasticsearchSearchReader implements SearchReader {
         try {
             boolean emptyQuery = isBlank(searchQuery.text());
             Query query = applyFilters(
-                    emptyQuery ? randomQuery() : poolTextQuery(searchQuery.text()), searchQuery);
+                emptyQuery ? randomQuery() : poolTextQuery(searchQuery.text()), searchQuery);
             var response = elasticsearchClient.search(
-                    search -> search.index("pools")
-                            .trackTotalHits(total -> total.enabled(false))
-                            .size(size(emptyQuery))
-                            .terminateAfter(terminateAfter(emptyQuery))
-                            .timeout(TIMEOUT)
-                            .query(query)
-                            .source(source -> source.filter(filter -> filter.includes(POOL_SOURCE_FIELDS))),
-                    PoolSearchDocument.class);
+                search -> search.index("pools")
+                    .trackTotalHits(total -> total.enabled(false))
+                    .size(size(emptyQuery))
+                    .terminateAfter(terminateAfter(emptyQuery))
+                    .timeout(TIMEOUT)
+                    .query(query)
+                    .source(source -> source.filter(filter -> filter.includes(POOL_SOURCE_FIELDS))),
+                PoolSearchDocument.class);
             return response.hits().hits().stream()
-                    .map(hit -> hit.source())
-                    .filter(document -> document != null)
-                    .map(document -> new PoolSearchResult(
-                            document.id(), document.name(), document.shortName(), document.divisionName(),
-                            document.leagueCode(), document.leagueName(), document.season(), document.format(),
-                            document.gender(), document.logoUrl()))
-                    .toList();
+                .map(hit -> hit.source())
+                .filter(document -> document != null)
+                .map(document -> new PoolSearchResult(
+                    document.id(), document.name(), document.shortName(), document.divisionName(),
+                    document.leagueCode(), document.leagueName(), document.season(), document.format(),
+                    document.gender(), document.logoUrl()))
+                .toList();
         } catch (Exception exception) {
             LOGGER.error("Error searching pools", exception);
             return Collections.emptyList();
@@ -126,42 +127,42 @@ public class ElasticsearchSearchReader implements SearchReader {
 
     private Query randomQuery() {
         return Query.of(query -> query.functionScore(score -> score
-                .query(inner -> inner.matchAll(matchAll -> matchAll))
-                .functions(function -> function.randomScore(random -> random))));
+            .query(inner -> inner.matchAll(matchAll -> matchAll))
+            .functions(function -> function.randomScore(random -> random))));
     }
 
     private Query clubTextQuery(String text) {
         return textQuery(text, List.of(
-                "name^4", "name._2gram^4", "name._3gram^4",
-                "city^2", "city._2gram^2", "city._3gram^2",
-                "all"));
+            "name^4", "name._2gram^4", "name._3gram^4",
+            "city^2", "city._2gram^2", "city._3gram^2",
+            "all"));
     }
 
     private Query teamTextQuery(String text) {
         return textQuery(text, List.of(
-                "shortName^4", "shortName._2gram^4", "shortName._3gram^4",
-                "name^3", "name._2gram^3", "name._3gram^3",
-                "clubName^2", "clubName._2gram^2", "clubName._3gram^2",
-                "clubCity^2", "clubCity._2gram^2", "clubCity._3gram^2",
-                "divisionName^2", "divisionName._2gram^2", "divisionName._3gram^2",
-                "all"));
+            "shortName^4", "shortName._2gram^4", "shortName._3gram^4",
+            "name^3", "name._2gram^3", "name._3gram^3",
+            "clubName^2", "clubName._2gram^2", "clubName._3gram^2",
+            "clubCity^2", "clubCity._2gram^2", "clubCity._3gram^2",
+            "divisionName^2", "divisionName._2gram^2", "divisionName._3gram^2",
+            "all"));
     }
 
     private Query poolTextQuery(String text) {
         return textQuery(text, List.of(
-                "shortName^4", "shortName._2gram^4", "shortName._3gram^4",
-                "name^3", "name._2gram^3", "name._3gram^3",
-                "divisionName^2", "divisionName._2gram^2", "divisionName._3gram^2",
-                "leagueName^2", "leagueName._2gram^2", "leagueName._3gram^2",
-                "all"));
+            "shortName^4", "shortName._2gram^4", "shortName._3gram^4",
+            "name^3", "name._2gram^3", "name._3gram^3",
+            "divisionName^2", "divisionName._2gram^2", "divisionName._3gram^2",
+            "leagueName^2", "leagueName._2gram^2", "leagueName._3gram^2",
+            "all"));
     }
 
     private Query textQuery(String text, List<String> fields) {
         return Query.of(query -> query.multiMatch(multiMatch -> multiMatch
-                .query(text)
-                .type(TextQueryType.BoolPrefix)
-                .fields(fields)
-                .operator(Operator.And)));
+            .query(text)
+            .type(TextQueryType.BoolPrefix)
+            .fields(fields)
+            .operator(Operator.And)));
     }
 
     private Query applyFilters(Query baseQuery, FilteredSearchQuery searchQuery) {

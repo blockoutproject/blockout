@@ -6,21 +6,33 @@ import com.blockout.config.division.application.views.DivisionView;
 
 import java.util.List;
 
-/** Defines Division use cases independently of transport and persistence. */
+/**
+ * Defines Division use cases independently of transport and persistence.
+ */
 public interface DivisionService {
 
-    /** Lists every persisted division. */
+    /**
+     * Lists every persisted division.
+     */
     List<DivisionView> findAll();
 
-    /** Returns one division by identifier. */
+    /**
+     * Returns one division by identifier.
+     */
     DivisionView getById(Long id);
 
-    /** Creates one division. */
+    /**
+     * Creates one division.
+     */
     DivisionView create(CreateDivisionCommand command);
 
-    /** Applies a partial update and reactivates the division. */
+    /**
+     * Applies a partial update and reactivates the division.
+     */
     DivisionView update(Long id, UpdateDivisionCommand command);
 
-    /** Soft-deletes one division. */
+    /**
+     * Soft-deletes one division.
+     */
     void deactivate(Long id);
 }

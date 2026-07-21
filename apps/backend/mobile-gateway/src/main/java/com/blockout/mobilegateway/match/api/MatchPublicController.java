@@ -24,11 +24,11 @@ public class MatchPublicController {
 
     @GetMapping
     public ResponseEntity<DayPageResponse> getMatchList(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "4") int size,
-            @RequestParam(required = false, name = "poolIds") List<Long> poolIds,
-            @RequestParam(required = false, name = "teamIds") List<Long> teamIds,
-            @RequestParam String status) {
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "4") int size,
+        @RequestParam(required = false, name = "poolIds") List<Long> poolIds,
+        @RequestParam(required = false, name = "teamIds") List<Long> teamIds,
+        @RequestParam String status) {
         var matches = matchService.getMatchList(status, page, size, poolIds, teamIds);
         return ResponseEntity.ok(matches);
     }

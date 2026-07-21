@@ -13,7 +13,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -29,14 +32,14 @@ public class ReportController {
 
     @Operation(summary = "Créer un report", description = "Crée une issue GitHub à partir d’un JSON et d’images optionnelles (multipart).")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Issue créée")
+        @ApiResponse(responseCode = "201", description = "Issue créée")
     })
     @PreAuthorize("hasAuthority('SCOPE_create:reports')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ReportInternalResponse> createReport(
-            @RequestPart("data") String json,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images)
-            throws JsonProcessingException {
+        @RequestPart("data") String json,
+        @RequestPart(value = "images", required = false) List<MultipartFile> images)
+        throws JsonProcessingException {
 
         CreateReportInternalRequest request = objectMapper.readValue(json, CreateReportInternalRequest.class);
         return ResponseEntity.status(201).body(mapper.toResponse(reportService.createReport(mapper.toCommand(request, images))));

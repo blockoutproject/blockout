@@ -1,6 +1,5 @@
-from pathlib import Path
-
 import pytest
+from pathlib import Path
 from scraper.infrastructure.ffvb.parser import parse_club_page
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "ffvb"
@@ -156,13 +155,13 @@ def _fixture(name: str) -> str:
 
 @pytest.mark.parametrize(
     (
-        "fixture_name",
-        "expected_name",
-        "expected_address",
-        "expected_city",
-        "expected_postal_code",
-        "expected_phone_number",
-        "expected_website",
+            "fixture_name",
+            "expected_name",
+            "expected_address",
+            "expected_city",
+            "expected_postal_code",
+            "expected_phone_number",
+            "expected_website",
     ),
     REAL_FFVB_CASES,
 )

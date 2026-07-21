@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 public class ClubsApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ClubsApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ClubsApplication.class, args);
+    }
 }

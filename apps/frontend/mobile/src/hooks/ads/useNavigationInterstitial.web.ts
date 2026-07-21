@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import {useCallback} from "react";
 
 /**
  * Preserve navigation semantics on the local web characterization surface
@@ -9,5 +9,5 @@ export const useNavigationInterstitial = () => {
     navigate();
   }, []);
 
-  return { handleNavigationWithAd };
+  return {handleNavigationWithAd};
 };

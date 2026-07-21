@@ -1,19 +1,20 @@
 package com.blockout.notifications.notification.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.blockout.notifications.notification.application.commands.RegisterPushTokenCommand;
 import com.blockout.notifications.notification.application.models.DevicePlatform;
 import com.blockout.notifications.notification.infrastructure.persistence.entities.PushTokenEntity;
 import com.blockout.notifications.notification.infrastructure.persistence.repositories.PushTokenRepository;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PushTokenApplicationServiceTest {
@@ -28,7 +29,7 @@ class PushTokenApplicationServiceTest {
         PushTokenApplicationService service = new PushTokenApplicationService(repository);
 
         service.register(7L, new RegisterPushTokenCommand(
-                "ExponentPushToken[test]", DevicePlatform.ANDROID, "device-1"));
+            "ExponentPushToken[test]", DevicePlatform.ANDROID, "device-1"));
 
         ArgumentCaptor<PushTokenEntity> saved = ArgumentCaptor.forClass(PushTokenEntity.class);
         verify(repository).save(saved.capture());

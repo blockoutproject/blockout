@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import {fireEvent, render, waitFor} from "@testing-library/react-native";
 import * as Haptics from "expo-haptics";
 
 import StateCard from "@/src/components/common/feedback/StateCard";
@@ -23,11 +23,11 @@ describe("StateCard", () => {
       <StateCard
         title="Aucun résultat"
         subtitle="Réessaie dans quelques instants."
-        action={{ label: "Réessayer", onPress, testID: "retry" }}
+        action={{label: "Réessayer", onPress, testID: "retry"}}
       />,
     );
 
-    expect(screen.getByRole("header", { name: "Aucun résultat" })).toBeTruthy();
+    expect(screen.getByRole("header", {name: "Aucun résultat"})).toBeTruthy();
     expect(screen.getByText("Réessaie dans quelques instants.")).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("retry"));

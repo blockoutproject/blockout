@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
-/** Consumes deactivation commands handled by teams-service. */
+/**
+ * Consumes deactivation commands handled by teams-service.
+ */
 @Component
 @RequiredArgsConstructor
 public class TeamCommandListener {

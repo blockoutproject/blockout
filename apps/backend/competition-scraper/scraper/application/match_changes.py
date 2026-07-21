@@ -1,8 +1,7 @@
 """Match change tracking across multiple provider inputs."""
 
-from dataclasses import replace
-
 import aiohttp
+from dataclasses import replace
 
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.infrastructure.blockout.match import MatchInternalResponse
@@ -125,10 +124,10 @@ class MatchChangeSet:
     async def flush(self) -> None:
         """Create or update each changed match and isolate individual failures."""
         for (league_code, _match_code), (
-            existing,
-            updated,
-            changes,
-            _priority,
+                existing,
+                updated,
+                changes,
+                _priority,
         ) in self.entries.items():
             try:
                 if existing is None:

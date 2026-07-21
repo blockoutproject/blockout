@@ -1,9 +1,9 @@
 package com.blockout.mobilegateway.shared.api.errors;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Map;
 
 public class ApiErrorUtils {
 

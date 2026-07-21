@@ -11,9 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ClubApplicationServiceTest {
@@ -27,10 +25,10 @@ class ClubApplicationServiceTest {
     @Test
     void hidesThePhoneNumberFromThePublicMobileView() {
         ClubResponse club = ClubResponse.builder()
-                .id("club-1")
-                .name("Blockout")
-                .phoneNumber("0102030405")
-                .build();
+            .id("club-1")
+            .name("Blockout")
+            .phoneNumber("0102030405")
+            .build();
         when(clubInternalClient.getClubById("club-1")).thenReturn(club);
 
         ClubResponse response = clubService.getClubById("club-1");

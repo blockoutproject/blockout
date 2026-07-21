@@ -17,7 +17,8 @@ checks.
 
 ## Containers
 
-- Keep Dockerfiles simple and application-owned. Use a builder/runtime split only when it removes build tools or artifacts
+- Keep Dockerfiles simple and application-owned. Use a builder/runtime split only when it removes build tools or
+  artifacts
   from the final image without obscuring the build.
 - Do not install Nx in application images. Nx and verification belong to the workspace and CI/local orchestration.
 - Preserve runtime command, workdir, port, environment semantics, health behavior, and required files unless the active

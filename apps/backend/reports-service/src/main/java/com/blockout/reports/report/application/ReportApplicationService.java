@@ -45,10 +45,10 @@ public class ReportApplicationService {
                     uploadedUrls.add(url);
                 } catch (Exception e) {
                     logger.error("Image upload failed",
-                            keyValue("action", "upload_report_image"),
-                            keyValue("reportKey", reportKey),
-                            keyValue("fileName", image.originalFilename()),
-                            keyValue("message", e.getMessage()), e);
+                        keyValue("action", "upload_report_image"),
+                        keyValue("reportKey", reportKey),
+                        keyValue("fileName", image.originalFilename()),
+                        keyValue("message", e.getMessage()), e);
                     throw new RuntimeException("Échec de l’upload de l’image");
                 }
             }
@@ -62,18 +62,18 @@ public class ReportApplicationService {
         }
 
         logger.info("Report created",
-                keyValue("action", "create_report"),
-                keyValue("issueNumber", issueNumber),
-                keyValue("issueUrl", response.htmlUrl()),
-                keyValue("reportKey", reportKey));
+            keyValue("action", "create_report"),
+            keyValue("issueNumber", issueNumber),
+            keyValue("issueUrl", response.htmlUrl()),
+            keyValue("reportKey", reportKey));
 
         try {
             notifier.notifyCreated(response);
         } catch (Exception e) {
             logger.warn("Discord notification failed",
-                    keyValue("action", "discord_notify"),
-                    keyValue("issueNumber", issueNumber),
-                    keyValue("message", e.getMessage()));
+                keyValue("action", "discord_notify"),
+                keyValue("issueNumber", issueNumber),
+                keyValue("message", e.getMessage()));
         }
 
         return response;

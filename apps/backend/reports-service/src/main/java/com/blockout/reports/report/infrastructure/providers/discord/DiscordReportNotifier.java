@@ -29,13 +29,13 @@ public class DiscordReportNotifier implements ReportNotifier {
 
         if (webhook == null || webhook.isBlank()) {
             logger.info("Discord webhook disabled or empty",
-                    keyValue("action", "discord_webhook_skip"));
+                keyValue("action", "discord_webhook_skip"));
             return;
         }
 
         logger.info("Posting to Discord webhook",
-                keyValue("action", "discord_webhook_post"),
-                keyValue("url", webhook));
+            keyValue("action", "discord_webhook_post"),
+            keyValue("url", webhook));
 
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -45,24 +45,25 @@ public class DiscordReportNotifier implements ReportNotifier {
             HttpEntity<DiscordWebhookMessage> request = new HttpEntity<>(new DiscordWebhookMessage(content), headers);
 
             ResponseEntity<Void> response =
-                    restTemplate.exchange(webhook, HttpMethod.POST, request, Void.class);
+                restTemplate.exchange(webhook, HttpMethod.POST, request, Void.class);
 
             logger.info("Discord webhook sent",
-                    keyValue("status", response.getStatusCode()));
+                keyValue("status", response.getStatusCode()));
 
         } catch (HttpClientErrorException e) {
             logger.warn("Discord client error",
-                    keyValue("status", e.getStatusCode()),
-                    keyValue("url", webhook),
-                    keyValue("responseBody", e.getResponseBodyAsString()));
+                keyValue("status", e.getStatusCode()),
+                keyValue("url", webhook),
+                keyValue("responseBody", e.getResponseBodyAsString()));
             throw e;
         } catch (Exception e) {
             logger.error("Discord webhook failed",
-                    keyValue("url", webhook),
-                    keyValue("message", e.getMessage()), e);
+                keyValue("url", webhook),
+                keyValue("message", e.getMessage()), e);
             throw new RuntimeException("Discord webhook failed for " + webhook, e);
         }
     }
 
-    private record DiscordWebhookMessage(String content) {}
+    private record DiscordWebhookMessage(String content) {
+    }
 }

@@ -1,10 +1,6 @@
 package com.blockout.competitions.association.api;
 
-import com.blockout.competitions.association.api.models.BulkDeactivateClubsInternalRequest;
-import com.blockout.competitions.association.api.models.BulkDeactivatePoolsInternalRequest;
-import com.blockout.competitions.association.api.models.BulkDeactivateTeamsInternalRequest;
-import com.blockout.competitions.association.api.models.CompetitionAssociationInternalResponse;
-import com.blockout.competitions.association.api.models.UpdateAssociationStatsInternalRequest;
+import com.blockout.competitions.association.api.models.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -19,10 +15,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CompetitionAssociationApiContractUnitTest {
 
     private static final Set<String> COMPLETE_ASSOCIATION_FIELDS = Set.of(
-            "id", "poolId", "teamId", "clubId", "active", "points", "played", "wins", "losses",
-            "winsThreeToZero", "winsThreeToOne", "winsThreeToTwo", "lossesZeroToThree", "lossesOneToThree",
-            "lossesTwoToThree", "wonSets", "lostSets", "wonPoints", "lostPoints", "pointsPenalty",
-            "coefSets", "coefPoints", "createdAt", "lastUpdate");
+        "id", "poolId", "teamId", "clubId", "active", "points", "played", "wins", "losses",
+        "winsThreeToZero", "winsThreeToOne", "winsThreeToTwo", "lossesZeroToThree", "lossesOneToThree",
+        "lossesTwoToThree", "wonSets", "lostSets", "wonPoints", "lostPoints", "pointsPenalty",
+        "coefSets", "coefPoints", "createdAt", "lastUpdate");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -30,8 +26,8 @@ class CompetitionAssociationApiContractUnitTest {
     @DisplayName("exposes the complete association shape in native camelCase")
     void exposesCompleteAssociationShapeInNativeCamelCase() {
         CompetitionAssociationInternalResponse response = new CompetitionAssociationInternalResponse(
-                1L, 2L, 3L, "club-1", true, 9, 3, 3, 0, 1, 1, 1, 0, 0, 0,
-                9, 3, 250, 210, 0, 3.0, 1.19, null, null);
+            1L, 2L, 3L, "club-1", true, 9, 3, 3, 0, 1, 1, 1, 0, 0, 0,
+            9, 3, 250, 210, 0, 3.0, 1.19, null, null);
 
         JsonNode json = objectMapper.valueToTree(response);
 
@@ -44,16 +40,16 @@ class CompetitionAssociationApiContractUnitTest {
     @DisplayName("keeps stats and bulk deactivation request boundaries explicit")
     void keepsRequestBoundariesExplicit() throws Exception {
         UpdateAssociationStatsInternalRequest stats = objectMapper.readValue("""
-                {"played":3,"wins":2,"losses":1,"points":7,"winsThreeToZero":1,"winsThreeToOne":1,
-                 "winsThreeToTwo":0,"lossesZeroToThree":0,"lossesOneToThree":1,"lossesTwoToThree":0,
-                 "wonSets":7,"lostSets":4,"wonPoints":240,"lostPoints":220,"pointsPenalty":0,
-                 "coefSets":1.75,"coefPoints":1.09}
-                """, UpdateAssociationStatsInternalRequest.class);
+            {"played":3,"wins":2,"losses":1,"points":7,"winsThreeToZero":1,"winsThreeToOne":1,
+             "winsThreeToTwo":0,"lossesZeroToThree":0,"lossesOneToThree":1,"lossesTwoToThree":0,
+             "wonSets":7,"lostSets":4,"wonPoints":240,"lostPoints":220,"pointsPenalty":0,
+             "coefSets":1.75,"coefPoints":1.09}
+            """, UpdateAssociationStatsInternalRequest.class);
 
         assertThat(stats.winsThreeToZero()).isEqualTo(1);
         assertThat(new BulkDeactivateTeamsInternalRequest(List.of(1L)).missingTeamIds()).containsExactly(1L);
         assertThat(new BulkDeactivatePoolsInternalRequest(List.of(2L)).missingPoolIds()).containsExactly(2L);
         assertThat(new BulkDeactivateClubsInternalRequest(List.of("club-1")).missingClubIds())
-                .containsExactly("club-1");
+            .containsExactly("club-1");
     }
 }

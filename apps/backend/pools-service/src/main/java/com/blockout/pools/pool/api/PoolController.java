@@ -1,7 +1,9 @@
 package com.blockout.pools.pool.api;
 
 import com.blockout.pools.pool.api.mappers.PoolApiMapper;
-import com.blockout.pools.pool.api.models.*;
+import com.blockout.pools.pool.api.models.CreatePoolInternalRequest;
+import com.blockout.pools.pool.api.models.PoolInternalResponse;
+import com.blockout.pools.pool.api.models.UpdatePoolInternalRequest;
 import com.blockout.pools.pool.application.PoolService;
 import com.blockout.pools.pool.application.views.PoolView;
 import lombok.RequiredArgsConstructor;
@@ -9,10 +11,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 import java.net.URI;
 import java.util.List;
 
-/** Exposes the handwritten V1 internal Pool API. */
+/**
+ * Exposes the handwritten V1 internal Pool API.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/pools")
@@ -22,10 +27,10 @@ public class PoolController {
 
     @GetMapping
     public ResponseEntity<List<PoolInternalResponse>> listPools(
-            @RequestParam(required = false) String leagueCode, @RequestParam(required = false) String season,
-            @RequestParam(required = false) Boolean active, @RequestParam(required = false) List<Long> ids) {
+        @RequestParam(required = false) String leagueCode, @RequestParam(required = false) String season,
+        @RequestParam(required = false) Boolean active, @RequestParam(required = false) List<Long> ids) {
         return ResponseEntity.ok(poolService.findPools(leagueCode, season, active, ids).stream()
-                .map(mapper::toInternalResponse).toList());
+            .map(mapper::toInternalResponse).toList());
     }
 
     @GetMapping("/{id}")
@@ -44,14 +49,15 @@ public class PoolController {
     @PreAuthorize("hasAuthority('SCOPE_update:pools')")
     @PutMapping("/{id}")
     public ResponseEntity<PoolInternalResponse> updatePool(
-            @PathVariable Long id, @RequestBody UpdatePoolInternalRequest request) {
+        @PathVariable Long id, @RequestBody UpdatePoolInternalRequest request) {
         return ResponseEntity.ok(mapper.toInternalResponse(poolService.updatePool(id, mapper.toCommand(request))));
     }
 
     @PreAuthorize("hasAuthority('SCOPE_delete:pools')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivatePool(@PathVariable Long id) {
-        poolService.deactivatePool(id); return ResponseEntity.noContent().build();
+        poolService.deactivatePool(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PreAuthorize("hasAuthority('SCOPE_follow:pools')")

@@ -14,7 +14,7 @@ public interface MatchService {
     List<MatchView> findMatches(Long poolId, List<Long> teamIds, MatchStatus status, Boolean active);
 
     DayPageView getMatchesByDay(List<Long> poolIds, List<Long> teamIds, MatchStatus status,
-            int page, int size, Boolean active);
+                                int page, int size, Boolean active);
 
     MatchView getMatchById(Long id);
 

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from scraper.observability.logging import log_event
 

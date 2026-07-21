@@ -22,33 +22,33 @@ public class SearchApplicationService {
 
     public List<ClubSearchResponse> searchClubs(String query) {
         logger.info("Searching clubs",
-                keyValue("action", "search_clubs"),
-                keyValue("query", query));
+            keyValue("action", "search_clubs"),
+            keyValue("query", query));
         List<ClubSearchResponse> results = searchInternalClient.searchClubs(query);
         return results;
     }
 
     public List<PoolSearchResponse> searchPools(String query, String season, Long divisionId, String format,
-            String gender) {
+                                                String gender) {
         logger.info("Searching pools",
-                keyValue("action", "search_pools"),
-                keyValue("query", query),
-                keyValue("season", season),
-                keyValue("divisionId", divisionId),
-                keyValue("format", format),
-                keyValue("gender", gender));
+            keyValue("action", "search_pools"),
+            keyValue("query", query),
+            keyValue("season", season),
+            keyValue("divisionId", divisionId),
+            keyValue("format", format),
+            keyValue("gender", gender));
         return searchInternalClient.searchPools(query, season, divisionId, format, gender);
     }
 
     public List<TeamSearchResponse> searchTeams(String query, String season, Long divisionId, String format,
-            String gender) {
+                                                String gender) {
         logger.info("Searching teams",
-                keyValue("action", "search_teams"),
-                keyValue("query", query),
-                keyValue("season", season),
-                keyValue("divisionId", divisionId),
-                keyValue("format", format),
-                keyValue("gender", gender));
+            keyValue("action", "search_teams"),
+            keyValue("query", query),
+            keyValue("season", season),
+            keyValue("divisionId", divisionId),
+            keyValue("format", format),
+            keyValue("gender", gender));
         return searchInternalClient.searchTeams(query, season, divisionId, format, gender);
     }
 }

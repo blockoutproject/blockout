@@ -16,6 +16,8 @@ public class ExpoMessage {
     private String title;
     private String body;
     private Map<String, Object> data;
-    @JsonIgnore private Long userId;
-    @JsonIgnore private Long matchId;
+    @JsonIgnore
+    private Long userId;
+    @JsonIgnore
+    private Long matchId;
 }

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import aiohttp
 import asyncio
 from collections.abc import Mapping
 from typing import Any
-
-import aiohttp
 
 from scraper.observability.logging import log_event
 

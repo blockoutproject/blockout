@@ -19,39 +19,45 @@ import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Protects the complete native-camelCase configuration response models. */
+/**
+ * Protects the complete native-camelCase configuration response models.
+ */
 @DisplayName("Configuration API contract")
 class ConfigApiContractUnitTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper()
-            .findAndRegisterModules()
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        .findAndRegisterModules()
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    /** Verifies the exact authoritative field set and enum values for every configuration resource. */
+    /**
+     * Verifies the exact authoritative field set and enum values for every configuration resource.
+     */
     @Test
     @DisplayName("serializes every authoritative configuration response in native camelCase")
     void serializesAuthoritativeConfigurationResponses() {
         LocalDateTime timestamp = LocalDateTime.of(2026, 7, 19, 12, 30);
 
         assertFields(new AppStatusInternalResponse(false, "ready", null, "1.0", "1.0", null, null, null,
-                        Instant.parse("2026-07-19T10:30:00Z")),
-                "maintenance", "message", "imageUrl", "minVersionIos", "minVersionAndroid", "storeUrlIos",
-                "storeUrlAndroid", "forceUpdateMessage", "lastUpdate");
+                Instant.parse("2026-07-19T10:30:00Z")),
+            "maintenance", "message", "imageUrl", "minVersionIos", "minVersionAndroid", "storeUrlIos",
+            "storeUrlAndroid", "forceUpdateMessage", "lastUpdate");
         assertFields(new DivisionInternalResponse(1L, "National", "#1", "#2", "#3", "#4", null, true,
-                        timestamp, timestamp),
-                "id", "name", "mainColor", "firstGradientColor", "secondGradientColor", "thirdGradientColor",
-                "logoUrl", "active", "createdAt", "lastUpdate");
+                timestamp, timestamp),
+            "id", "name", "mainColor", "firstGradientColor", "secondGradientColor", "thirdGradientColor",
+            "logoUrl", "active", "createdAt", "lastUpdate");
         assertFields(new LegalDocumentInternalResponse(1L, "terms", "Terms", "1", "content", timestamp, timestamp),
-                "id", "type", "title", "version", "content", "createdAt", "lastUpdate");
+            "id", "type", "title", "version", "content", "createdAt", "lastUpdate");
         assertFields(new RawDivisionMappingInternalResponse(1L, "N3", 4L, Format.SIX, Gender.F, "LNV", "2026",
-                        timestamp, timestamp, true),
-                "id", "rawDivisionName", "divisionId", "format", "gender", "leagueCode", "season", "createdAt",
-                "lastUpdate", "mapped");
+                timestamp, timestamp, true),
+            "id", "rawDivisionName", "divisionId", "format", "gender", "leagueCode", "season", "createdAt",
+            "lastUpdate", "mapped");
         assertFields(new ScraperStatusInternalResponse(1L, ScraperName.SCRAPER_CLUBS, true, timestamp),
-                "id", "name", "enabled", "lastUpdate");
+            "id", "name", "enabled", "lastUpdate");
     }
 
-    /** Serializes one response and verifies its complete top-level field set. */
+    /**
+     * Serializes one response and verifies its complete top-level field set.
+     */
     private void assertFields(Object response, String... fields) {
         JsonNode json = objectMapper.valueToTree(response);
         assertThat(json.fieldNames()).toIterable().containsExactly(fields);

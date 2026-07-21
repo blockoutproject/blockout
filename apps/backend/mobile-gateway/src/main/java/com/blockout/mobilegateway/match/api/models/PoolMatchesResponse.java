@@ -1,13 +1,12 @@
 package com.blockout.mobilegateway.match.api.models;
 
-import java.util.List;
-
 import com.blockout.mobilegateway.pool.api.models.PoolResponse;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Builder

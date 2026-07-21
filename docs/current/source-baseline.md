@@ -2,10 +2,11 @@
 
 ## Purpose
 
-`BOOT-001` imports application code from the following standalone commits. These commits remain the behavioral authority for the initial monorepo baseline.
+`BOOT-001` imports application code from the following standalone commits. These commits remain the behavioral authority
+for the initial monorepo baseline.
 
 | Standalone repository        | Commit                                     | Monorepo destination                |
-| ---------------------------- | ------------------------------------------ | ----------------------------------- |
+|------------------------------|--------------------------------------------|-------------------------------------|
 | `blockout-api-clubs`         | `4655f7de69df9854a35a7062cb60b65293e5ce42` | `apps/backend/clubs-service`        |
 | `blockout-api-competition`   | `7e88fd34f0270dbbfc5a9f0be5d7bc295df9746c` | `apps/backend/competition-service`  |
 | `blockout-api-config`        | `e2cfcf383cdc59c8466850518438c834a7b7c244` | `apps/backend/config-service`       |
@@ -23,21 +24,29 @@
 | `blockout-mobile-app`        | `cfff3d7b9ade0e89f21af12cb21e4f0ba2902119` | `apps/frontend/mobile`              |
 | `blockout-pgadmin`           | `1e62dc36c1a11b66edd7e448a96ed1db5315120e` | Compose reference only              |
 
-Application sources were imported from Git objects. Standalone CI files, per-repository Compose files, and two workstation-only scraper `cmd.txt` notes were not imported. Monorepo project metadata, the Maven aggregators, the Expo Metro wrapper, and the root JavaScript lockfile are bootstrap-owned files.
+Application sources were imported from Git objects. Standalone CI files, per-repository Compose files, and two
+workstation-only scraper `cmd.txt` notes were not imported. Monorepo project metadata, the Maven aggregators, the Expo
+Metro wrapper, and the root JavaScript lockfile are bootstrap-owned files.
 
-The mobile root lock preserves every direct dependency version recorded by the standalone mobile lock. The two standalone TypeScript failures are retained as source limitations:
+The mobile root lock preserves every direct dependency version recorded by the standalone mobile lock. The two
+standalone TypeScript failures are retained as source limitations:
 
 - `ApiErrorToast.tsx`: Node timeout type is not assignable to `number`;
 - `useDeleteNotification.ts`: `MobileGatewayApi.deleteNotification` is missing.
 
-The current dependency audit also contains inherited advisories in the imported Expo 54 baseline, including Axios and the Markdown renderer chain. Resolving them requires dependency or application changes and is outside the behavioral-freeze scope.
+The current dependency audit also contains inherited advisories in the imported Expo 54 baseline, including Axios and
+the Markdown renderer chain. Resolving them requires dependency or application changes and is outside the
+behavioral-freeze scope.
 
-The complete Maven reactor packages successfully. Its inherited application-context test requires the external `AUTH0_ISSUER` environment value and therefore cannot start in an unconfigured checkout. This is a standalone source configuration limitation, not a compilation or monorepo integration failure; changing the test or application configuration is outside the behavioral-freeze scope.
+The complete Maven reactor packages successfully. Its inherited application-context test requires the external
+`AUTH0_ISSUER` environment value and therefore cannot start in an unconfigured checkout. This is a standalone source
+configuration limitation, not a compilation or monorepo integration failure; changing the test or application
+configuration is outside the behavioral-freeze scope.
 
 ## Runtime ports
 
 | Application                 | Port |
-| --------------------------- | ---: |
+|-----------------------------|-----:|
 | pools service               | 8081 |
 | teams service               | 8082 |
 | matches service             | 8083 |
@@ -56,7 +65,7 @@ The complete Maven reactor packages successfully. Its inherited application-cont
 ## Local infrastructure ports
 
 | Dependency              |  Port |
-| ----------------------- | ----: |
+|-------------------------|------:|
 | pools PostgreSQL        |  5432 |
 | teams PostgreSQL        |  5433 |
 | matches PostgreSQL      |  5434 |

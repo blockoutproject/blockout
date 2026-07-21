@@ -20,23 +20,26 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class MatchLiveLinkReportApplicationServiceUnitTest {
 
-    @Mock MatchLiveLinkRepository liveLinkRepository;
-    @Mock MatchLiveLinkReportRepository reportRepository;
-    @Mock MatchLiveLinkModerationPolicy moderationPolicy;
+    @Mock
+    MatchLiveLinkRepository liveLinkRepository;
+    @Mock
+    MatchLiveLinkReportRepository reportRepository;
+    @Mock
+    MatchLiveLinkModerationPolicy moderationPolicy;
 
     @Test
     void bansTheActiveLinkWhenTheExistingThresholdIsReached() {
         MatchLiveLinkEntity link = MatchLiveLinkEntity.builder()
-                .id(9L).match(MatchEntity.builder().id(7L).build())
-                .status(LiveLinkStatus.ACTIVE).reportCount(2).build();
+            .id(9L).match(MatchEntity.builder().id(7L).build())
+            .status(LiveLinkStatus.ACTIVE).reportCount(2).build();
         when(liveLinkRepository.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(7L, LiveLinkStatus.ACTIVE))
-                .thenReturn(Optional.of(link));
+            .thenReturn(Optional.of(link));
         when(reportRepository.existsByLiveLink_IdAndReporterAuth0Id(9L, "auth0|2")).thenReturn(false);
         when(reportRepository.countByLiveLink_Id(9L)).thenReturn(3L);
         when(moderationPolicy.determineAutoHideThreshold(link.getMatch())).thenReturn(3);
 
         new MatchLiveLinkReportApplicationService(liveLinkRepository, reportRepository, moderationPolicy)
-                .reportLiveLink(7L, "incorrect", "auth0|2");
+            .reportLiveLink(7L, "incorrect", "auth0|2");
 
         assertThat(link.getReportCount()).isEqualTo(3);
         assertThat(link.getStatus()).isEqualTo(LiveLinkStatus.BANNED);

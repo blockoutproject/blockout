@@ -1,106 +1,106 @@
 {
-    "cli": {
-        "version": ">= 14.2.0",
-        "appVersionSource": "remote"
+  "cli": {
+    "version": ">= 14.2.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "autoIncrement": true,
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "dev",
+      "env": {
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
+        "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
+        "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
+        "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
+        "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
+        "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject",
+        "EXPO_PUBLIC_ENTITLEMENT_BLOCKOUT_PRO": "Blockout Pro",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN"
+      }
     },
-    "build": {
-        "development": {
-            "autoIncrement": true,
-            "developmentClient": true,
-            "distribution": "internal",
-            "channel": "dev",
-            "env": {
-                "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
-                "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
-                "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
-                "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
-                "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
-                "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
-                "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
-                "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
-                "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject",
-                "EXPO_PUBLIC_ENTITLEMENT_BLOCKOUT_PRO": "Blockout Pro",
-                "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN",
-                "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN"
-            }
-        },
-        "preview": {
-            "autoIncrement": true,
-            "channel": "preview",
-            "env": {
-                "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
-                "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
-                "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
-                "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
-                "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
-                "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
-                "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
-                "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
-                "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject",
-                "EXPO_PUBLIC_ENTITLEMENT_BLOCKOUT_PRO": "Blockout Pro",
-                "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN",
-                "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN"
-            }
-        },
-        "development-simulator": {
-            "developmentClient": true,
-            "distribution": "internal",
-            "ios": {
-                "simulator": true
-            },
-            "environment": "development",
-            "channel": "development-simulator",
-            "env": {
-                "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
-                "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
-                "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
-                "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
-                "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
-                "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
-                "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
-                "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
-                "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject",
-                "EXPO_PUBLIC_ENTITLEMENT_BLOCKOUT_PRO": "Blockout Pro",
-                "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN",
-                "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN"
-            }
-        },
-        "production": {
-            "autoIncrement": true,
-            "channel": "production",
-            "env": {
-                "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
-                "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
-                "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
-                "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
-                "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
-                "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
-                "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
-                "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
-                "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
-                "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject",
-                "EXPO_PUBLIC_ENTITLEMENT_BLOCKOUT_PRO": "Blockout Pro",
-                "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_DqLsVYqiiWJYEIJIreqYFfIxDSK",
-                "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_AJyeCHtvpuEcIBqQDiAeohHMZWv"
-            }
-        }
+    "preview": {
+      "autoIncrement": true,
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
+        "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
+        "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
+        "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
+        "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
+        "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject",
+        "EXPO_PUBLIC_ENTITLEMENT_BLOCKOUT_PRO": "Blockout Pro",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN"
+      }
     },
-    "submit": {
-        "production": {}
+    "development-simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "environment": "development",
+      "channel": "development-simulator",
+      "env": {
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
+        "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
+        "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
+        "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
+        "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
+        "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject",
+        "EXPO_PUBLIC_ENTITLEMENT_BLOCKOUT_PRO": "Blockout Pro",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "test_niXBiTaYWJohuNrEeSIMNrbTrNN"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_AUTH0_DOMAIN": "login.blockoutproject.com",
+        "EXPO_PUBLIC_AUTH0_CLIENT_ID": "L3AotVuEqikyNrCQexkf6S3D1LZjk69E",
+        "EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID": "ca-app-pub-9785209593244084/7526785502",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID": "ca-app-pub-9785209593244084/1539961651",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID": "ca-app-pub-9785209593244084/4270066771",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID": "ca-app-pub-9785209593244084/4003307610",
+        "EXPO_PUBLIC_ADS_BANNER_HOME_IOS": "ca-app-pub-9785209593244084/5283765548",
+        "EXPO_PUBLIC_ADS_BANNER_MATCH_IOS": "ca-app-pub-9785209593244084/7087801806",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS": "ca-app-pub-9785209593244084/4357696684",
+        "EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS": "ca-app-pub-9785209593244084/7998392946",
+        "EXPO_PUBLIC_API_GATEWAY_BASE_URL": "https://api.blockoutproject.com/api/v1/mobile",
+        "EXPO_PUBLIC_MAP_URL": "https://openmaptiles.geo.data.gouv.fr/styles/dark-matter/style.json",
+        "EXPO_PUBLIC_INSTAGRAM_URL": "https://www.instagram.com/blockoutproject",
+        "EXPO_PUBLIC_ENTITLEMENT_BLOCKOUT_PRO": "Blockout Pro",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_DqLsVYqiiWJYEIJIreqYFfIxDSK",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_AJyeCHtvpuEcIBqQDiAeohHMZWv"
+      }
     }
+  },
+  "submit": {
+    "production": {}
+  }
 }

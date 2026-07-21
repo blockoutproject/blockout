@@ -77,9 +77,9 @@ async def handle_csv_download_and_parse(
             row
             for row in snapshot.matches
             if row.match_code
-            and row.home_club_id
-            and row.away_club_id
-            and parse_date(row.match_date, row.match_time)
+               and row.home_club_id
+               and row.away_club_id
+               and parse_date(row.match_date, row.match_time)
         ]
         observation_complete = snapshot.complete and len(valid_rows) == len(
             snapshot.matches
@@ -291,9 +291,9 @@ async def handle_csv_download_and_parse(
                 *_,
             ) in scraper._matches_cache.items()
             if existing_match
-            and existing_match.poolId == new_pool.id
-            and match_code not in scraped_match_codes
-            and existing_match.active
+               and existing_match.poolId == new_pool.id
+               and match_code not in scraped_match_codes
+               and existing_match.active
         }
         if observation_complete and missing_matches:
             await bulk_deactivate_matches(scraper.session, new_pool.id, missing_matches)

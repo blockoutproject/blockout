@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Keyboard, KeyboardEventName, Platform, type EmitterSubscription } from "react-native";
+import {useEffect, useState} from "react";
+import {type EmitterSubscription, Keyboard, KeyboardEventName, Platform} from "react-native";
 
 /**
  * useKeyboardIsVisible
@@ -7,29 +7,29 @@ import { Keyboard, KeyboardEventName, Platform, type EmitterSubscription } from 
  * Compatible iOS/Android (Expo SDK 54 / RN 0.81).
  */
 export function useKeyboardVisible(): boolean {
-    const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(false);
 
-    useEffect(() => {
-        const onShow = () => setVisible(true);
-        const onHide = () => setVisible(false);
+  useEffect(() => {
+    const onShow = () => setVisible(true);
+    const onHide = () => setVisible(false);
 
-        // Sur iOS, on écoute will+did pour une UX plus réactive.
-        const showEvents: KeyboardEventName[] =
-            Platform.OS === "ios"
-                ? ["keyboardWillShow", "keyboardDidShow"]
-                : ["keyboardDidShow"];
+    // Sur iOS, on écoute will+did pour une UX plus réactive.
+    const showEvents: KeyboardEventName[] =
+      Platform.OS === "ios"
+        ? ["keyboardWillShow", "keyboardDidShow"]
+        : ["keyboardDidShow"];
 
-        const hideEvents: KeyboardEventName[] =
-            Platform.OS === "ios"
-                ? ["keyboardWillHide", "keyboardDidHide"]
-                : ["keyboardDidHide"];
+    const hideEvents: KeyboardEventName[] =
+      Platform.OS === "ios"
+        ? ["keyboardWillHide", "keyboardDidHide"]
+        : ["keyboardDidHide"];
 
-        const subs: EmitterSubscription[] = [];
-        showEvents.forEach((evt) => subs.push(Keyboard.addListener(evt, onShow)));
-        hideEvents.forEach((evt) => subs.push(Keyboard.addListener(evt, onHide)));
+    const subs: EmitterSubscription[] = [];
+    showEvents.forEach((evt) => subs.push(Keyboard.addListener(evt, onShow)));
+    hideEvents.forEach((evt) => subs.push(Keyboard.addListener(evt, onHide)));
 
-        return () => subs.forEach((s) => s.remove());
-    }, []);
+    return () => subs.forEach((s) => s.remove());
+  }, []);
 
-    return visible;
+  return visible;
 }

@@ -37,4 +37,6 @@ docker compose \
   up -d
 ```
 
-Application processes run outside Compose through their native commands or Nx targets. See [local development](docs/runbooks/local-development.md), the [source baseline](docs/current/source-baseline.md), and the [roadmap](docs/current/roadmap.md).
+Application processes run outside Compose through their native commands or Nx targets.
+See [local development](docs/runbooks/local-development.md), the [source baseline](docs/current/source-baseline.md), and
+the [roadmap](docs/current/roadmap.md).

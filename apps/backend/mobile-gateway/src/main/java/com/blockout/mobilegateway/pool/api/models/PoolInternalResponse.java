@@ -2,10 +2,10 @@ package com.blockout.mobilegateway.pool.api.models;
 
 import com.blockout.mobilegateway.shared.application.models.Format;
 import com.blockout.mobilegateway.shared.application.models.Gender;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 

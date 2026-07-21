@@ -1,16 +1,17 @@
 package com.blockout.workersearch.projection.infrastructure.http.auth;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
 import com.auth0.client.auth.AuthAPI;
 import com.blockout.workersearch.config.Auth0Properties;
 import jakarta.annotation.PostConstruct;
-import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Component
 @RequiredArgsConstructor
@@ -37,17 +38,17 @@ public class Auth0ServiceTokenProvider {
     public void refreshToken() {
         try {
             var auth = AuthAPI.newBuilder(
-                            auth0Properties.getDomain(),
-                            auth0Properties.getClientId(),
-                            auth0Properties.getClientSecret())
-                    .build();
+                    auth0Properties.getDomain(),
+                    auth0Properties.getClientId(),
+                    auth0Properties.getClientSecret())
+                .build();
             var holder = auth.requestToken(auth0Properties.getAudience()).execute().getBody();
             accessToken = holder.getAccessToken();
             tokenExpiry = LocalDateTime.now().plusSeconds(holder.getExpiresIn());
             LOGGER.info(
-                    "Auth0 token refreshed",
-                    keyValue("action", "refresh_token_success"),
-                    keyValue("expires_at", tokenExpiry));
+                "Auth0 token refreshed",
+                keyValue("action", "refresh_token_success"),
+                keyValue("expires_at", tokenExpiry));
         } catch (Exception exception) {
             LOGGER.error("Error refreshing Auth0 token", keyValue("action", "refresh_token_error"), exception);
         }

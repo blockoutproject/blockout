@@ -1,13 +1,13 @@
 package com.blockout.notifications.notification.infrastructure.persistence.entities;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.blockout.notifications.notification.application.models.EntityType;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import com.blockout.notifications.notification.application.models.EntityType;
+import java.time.LocalDateTime;
 
 @Data
 @Builder(toBuilder = true)
@@ -15,14 +15,14 @@ import com.blockout.notifications.notification.application.models.EntityType;
 @AllArgsConstructor
 @Entity
 @Table(name = "followers_projection",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"entity_type", "entity_id", "user_id"},
-                        name = "uix_followers_projection_entity_user")
-        },
-        indexes = {
-                @Index(name = "idx_followers_projection_entity", columnList = "entity_type, entity_id"),
-                @Index(name = "idx_followers_projection_user", columnList = "user_id")
-        })
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"entity_type", "entity_id", "user_id"},
+            name = "uix_followers_projection_entity_user")
+    },
+    indexes = {
+        @Index(name = "idx_followers_projection_entity", columnList = "entity_type, entity_id"),
+        @Index(name = "idx_followers_projection_user", columnList = "user_id")
+    })
 public class FollowersProjectionEntity {
 
     @Id

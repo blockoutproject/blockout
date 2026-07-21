@@ -1,6 +1,9 @@
 package com.blockout.pools.config;
 
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -14,6 +17,8 @@ public class RabbitMQConfig {
     public static final String ENTITY_LIFECYCLE_EXCHANGE = "entity.lifecycle.exchange";
 
     public static final String POOL_DEACTIVATION_QUEUE_POOLS = "pool.deactivation.queue.pools";
+    public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
+    public static final String POOL_FOLLOW_QUEUE = "pool.follow.queue.pools";
 
     @Bean
     public TopicExchange entityLifecycleExchange() {
@@ -27,15 +32,12 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding bindPoolDeactivationQueuePools(
-            TopicExchange entityLifecycleExchange,
-            Queue poolDeactivationQueuePools) {
+        TopicExchange entityLifecycleExchange,
+        Queue poolDeactivationQueuePools) {
         return BindingBuilder.bind(poolDeactivationQueuePools)
-                .to(entityLifecycleExchange)
-                .with("pool.deactivation");
+            .to(entityLifecycleExchange)
+            .with("pool.deactivation");
     }
-
-    public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
-    public static final String POOL_FOLLOW_QUEUE = "pool.follow.queue.pools";
 
     @Bean
     public TopicExchange userFollowExchange() {
@@ -49,11 +51,11 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding bindUserFollowQueuePools(
-            Queue userFollowQueuePools,
-            TopicExchange userFollowExchange) {
+        Queue userFollowQueuePools,
+        TopicExchange userFollowExchange) {
         return BindingBuilder.bind(userFollowQueuePools)
-                .to(userFollowExchange)
-                .with("pool.follow");
+            .to(userFollowExchange)
+            .with("pool.follow");
     }
 
     @Bean

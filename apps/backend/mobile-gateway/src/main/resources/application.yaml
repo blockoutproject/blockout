@@ -54,7 +54,7 @@ api:
     url: ${SEARCH_API_URL}
   report:
     url: ${REPORT_API_URL}
-    
+
 proxy:
   host: ${FFVB_PROXY_HOST}
   port: ${FFVB_PROXY_PORT}

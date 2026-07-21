@@ -125,7 +125,7 @@ async def extract_club_stats_list(
 
 def _contains_headers(header: tuple[str, ...], expected: tuple[str, ...]) -> bool:
     return any(
-        header[index : index + len(expected)] == expected
+        header[index: index + len(expected)] == expected
         for index in range(len(header) - len(expected) + 1)
     )
 

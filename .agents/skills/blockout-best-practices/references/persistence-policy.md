@@ -8,7 +8,8 @@ Read this before changing JPA entities, repositories, database constraints, or F
 - Put an entity under its owning service feature and suffix it `Entity`.
 - Declare `@Table` and mirror schema nullability, lengths, identifiers, relations, unique constraints, and types.
 - Never expose an entity from a controller.
-- Prefer lazy, unidirectional relationships. Add cascade, orphan removal, or bidirectional navigation only when lifecycle
+- Prefer lazy, unidirectional relationships. Add cascade, orphan removal, or bidirectional navigation only when
+  lifecycle
   ownership requires it.
 - Use `@Version` only for an explicitly designed optimistic-locking column.
 - Keep timestamps explicit. Do not introduce automatic auditing without scope.

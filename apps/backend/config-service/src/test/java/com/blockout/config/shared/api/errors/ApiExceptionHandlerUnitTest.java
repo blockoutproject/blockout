@@ -9,25 +9,31 @@ import org.springframework.http.ResponseEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Verifies stable and non-sensitive config-service errors. */
+/**
+ * Verifies stable and non-sensitive config-service errors.
+ */
 @DisplayName("Config API exception handler")
 class ApiExceptionHandlerUnitTest {
 
     private final ApiExceptionHandler handler = new ApiExceptionHandler(new ApiProblemFactory());
 
-    /** Preserves the resource-specific code in a not-found problem. */
+    /**
+     * Preserves the resource-specific code in a not-found problem.
+     */
     @Test
     @DisplayName("maps a missing configuration resource to its stable problem code")
     void mapsNotFoundProblem() {
         ResponseEntity<ProblemDetail> response = handler.handleNotFound(
-                new ConfigResourceNotFoundException("division_not_found", "Division not found."));
+            new ConfigResourceNotFoundException("division_not_found", "Division not found."));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getProperties()).containsEntry("code", "division_not_found");
     }
 
-    /** Hides the original failure detail from the public server-error response. */
+    /**
+     * Hides the original failure detail from the public server-error response.
+     */
     @Test
     @DisplayName("hides unexpected exception details")
     void hidesUnexpectedDetails() {

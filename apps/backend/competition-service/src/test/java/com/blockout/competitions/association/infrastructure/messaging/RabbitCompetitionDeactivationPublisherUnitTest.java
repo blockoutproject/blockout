@@ -32,14 +32,14 @@ class RabbitCompetitionDeactivationPublisherUnitTest {
         publisher.publishClubDeactivation("club-1");
 
         verify(rabbitTemplate).convertAndSend(
-                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE, "team.deactivation", new TeamDeactivationEvent(1L));
+            RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE, "team.deactivation", new TeamDeactivationEvent(1L));
         verify(rabbitTemplate).convertAndSend(
-                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE, "pool.deactivation", new PoolDeactivationEvent(2L));
+            RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE, "pool.deactivation", new PoolDeactivationEvent(2L));
         verify(rabbitTemplate).convertAndSend(
-                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
-                "teambypool.deactivation",
-                new TeamDeactivationByPoolEvent(3L, 4L));
+            RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+            "teambypool.deactivation",
+            new TeamDeactivationByPoolEvent(3L, 4L));
         verify(rabbitTemplate).convertAndSend(
-                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE, "club.deactivation", new ClubDeactivationEvent("club-1"));
+            RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE, "club.deactivation", new ClubDeactivationEvent("club-1"));
     }
 }

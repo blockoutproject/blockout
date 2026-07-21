@@ -1,28 +1,20 @@
 package com.blockout.workersearch.projection.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.blockout.workersearch.projection.application.models.ClubProjectionSource;
-import com.blockout.workersearch.projection.application.models.DivisionProjectionSource;
-import com.blockout.workersearch.projection.application.models.Format;
-import com.blockout.workersearch.projection.application.models.Gender;
-import com.blockout.workersearch.projection.application.models.PoolProjectionSource;
-import com.blockout.workersearch.projection.application.models.PoolSearchProjection;
-import com.blockout.workersearch.projection.application.models.TeamProjectionSource;
-import com.blockout.workersearch.projection.application.models.TeamSearchProjection;
+import com.blockout.workersearch.projection.application.models.*;
 import com.blockout.workersearch.projection.application.ports.ProjectionCache;
 import com.blockout.workersearch.projection.application.ports.ProjectionIndex;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SearchProjectionServiceUnitTest {
@@ -43,11 +35,11 @@ class SearchProjectionServiceUnitTest {
     @Test
     void enrichesATeamFromClubAndDivisionCaches() {
         var team = new TeamProjectionSource(
-                10L, "Team", "T", "club-1", 20L, Format.SIX, Gender.F, "2026/2027", "");
+            10L, "Team", "T", "club-1", 20L, Format.SIX, Gender.F, "2026/2027", "");
         when(projectionCache.findClub("club-1"))
-                .thenReturn(new ClubProjectionSource("club-1", "Club", "club.png", "Paris"));
+            .thenReturn(new ClubProjectionSource("club-1", "Club", "club.png", "Paris"));
         when(projectionCache.findDivision(20L))
-                .thenReturn(new DivisionProjectionSource(20L, "National 1", "division.png"));
+            .thenReturn(new DivisionProjectionSource(20L, "National 1", "division.png"));
 
         service.upsertTeams(List.of(team));
 
@@ -65,7 +57,7 @@ class SearchProjectionServiceUnitTest {
     @Test
     void keepsTheExistingUnknownDivisionFallbackForPools() {
         var pool = new PoolProjectionSource(
-                1L, "Pool", "P", 99L, "LNV", "League", "2026/2027", Format.SIX, Gender.M);
+            1L, "Pool", "P", 99L, "LNV", "League", "2026/2027", Format.SIX, Gender.M);
 
         service.upsertPools(List.of(pool));
 
@@ -81,7 +73,7 @@ class SearchProjectionServiceUnitTest {
     void refreshesCachedTeamsAfterAClubUpsert() {
         var club = new ClubProjectionSource("club-1", "Club", "club.png", "Paris");
         var team = new TeamProjectionSource(
-                10L, "Team", "T", "club-1", 20L, Format.SIX, Gender.F, "2026/2027", null);
+            10L, "Team", "T", "club-1", 20L, Format.SIX, Gender.F, "2026/2027", null);
         when(projectionCache.findTeamsByClub("club-1")).thenReturn(List.of(team));
 
         service.upsertClubs(List.of(club));

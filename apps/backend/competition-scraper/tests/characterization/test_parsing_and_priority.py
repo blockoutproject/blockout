@@ -1,10 +1,10 @@
 import asyncio
+from bs4 import BeautifulSoup
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 import scraper.application.association_changes as association_changes
-from bs4 import BeautifulSoup
 from scraper.application.source import Scraper
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.domain.match import (
@@ -66,11 +66,11 @@ def test_csv_parser_protects_headers_and_normalized_rows() -> None:
     assert len(snapshot.matches) == 1
     match = snapshot.matches[0]
     assert (
-        match.league_code,
-        match.match_code,
-        match.home_club_id,
-        match.away_club_id,
-    ) == ("ABCCS", "3MA001", "0837251", "0060007")
+               match.league_code,
+               match.match_code,
+               match.home_club_id,
+               match.away_club_id,
+           ) == ("ABCCS", "3MA001", "0837251", "0060007")
     assert (match.home_team_name, match.away_team_name) == (
         "VOLLEY BALL OLLIOULAIS",
         "AS CANNES VOLLEY-BALL 3",

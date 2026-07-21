@@ -56,47 +56,47 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding bindTeamDeactivationQueueMatches(
-            TopicExchange entityLifecycleExchange,
-            Queue teamDeactivationQueueMatches) {
+        TopicExchange entityLifecycleExchange,
+        Queue teamDeactivationQueueMatches) {
         return BindingBuilder.bind(teamDeactivationQueueMatches)
-                .to(entityLifecycleExchange)
-                .with("team.deactivation");
+            .to(entityLifecycleExchange)
+            .with("team.deactivation");
     }
 
     @Bean
     public Binding bindPoolDeactivationQueueMatches(
-            TopicExchange entityLifecycleExchange,
-            Queue poolDeactivationQueueMatches) {
+        TopicExchange entityLifecycleExchange,
+        Queue poolDeactivationQueueMatches) {
         return BindingBuilder.bind(poolDeactivationQueueMatches)
-                .to(entityLifecycleExchange)
-                .with("pool.deactivation");
+            .to(entityLifecycleExchange)
+            .with("pool.deactivation");
     }
 
     @Bean
     public Binding bindTeamByPoolDeactivationQueueMatches(
-            TopicExchange entityLifecycleExchange,
-            Queue teamByPoolDeactivationQueueMatches) {
+        TopicExchange entityLifecycleExchange,
+        Queue teamByPoolDeactivationQueueMatches) {
         return BindingBuilder.bind(teamByPoolDeactivationQueueMatches)
-                .to(entityLifecycleExchange)
-                .with("teambypool.deactivation");
+            .to(entityLifecycleExchange)
+            .with("teambypool.deactivation");
     }
 
     @Bean
     public Binding bindMatchFinishedQueue(
-            TopicExchange entityLifecycleExchange,
-            Queue matchFinishedQueue) {
+        TopicExchange entityLifecycleExchange,
+        Queue matchFinishedQueue) {
         return BindingBuilder.bind(matchFinishedQueue)
-                .to(entityLifecycleExchange)
-                .with(RK_MATCH_FINISHED);
+            .to(entityLifecycleExchange)
+            .with(RK_MATCH_FINISHED);
     }
 
     @Bean
     public Binding bindMatchLiveLinkCreatedQueue(
-            TopicExchange entityLifecycleExchange,
-            Queue matchLiveLinkCreatedQueue) {
+        TopicExchange entityLifecycleExchange,
+        Queue matchLiveLinkCreatedQueue) {
         return BindingBuilder.bind(matchLiveLinkCreatedQueue)
-                .to(entityLifecycleExchange)
-                .with(RK_MATCH_LIVE_LINK_CREATED);
+            .to(entityLifecycleExchange)
+            .with(RK_MATCH_LIVE_LINK_CREATED);
     }
 
     @Bean

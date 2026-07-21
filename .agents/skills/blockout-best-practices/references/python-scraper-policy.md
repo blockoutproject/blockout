@@ -30,12 +30,14 @@ scraper-root/
 ```
 
 Create only directories that own real code. The club scraper may omit LNV and other unused boundaries. Do not create
-generic `utils`, `helpers`, `common`, `manager`, `processor`, or `services` packages. Name reusable behavior by its role:
+generic `utils`, `helpers`, `common`, `manager`, `processor`, or `services` packages. Name reusable behavior by its
+role:
 parser, normalizer, policy, client, source, writer, scheduler, or use case.
 
 Each application uses the succinct local package name `scraper`. The owning application directory already supplies the
 necessary context: both `club-scraper` and `competition-scraper` therefore contain their own sibling `scraper` and
-`tests` directories. Run and test each application from its own root; do not combine both local `scraper` packages on one
+`tests` directories. Run and test each application from its own root; do not combine both local `scraper` packages on
+one
 Python import path.
 
 ## Roles
@@ -84,7 +86,8 @@ Contract-owned enums such as Format, Gender, and MatchStatus follow the owner se
 - A parser accepts controlled text, bytes, or a parsed document and returns typed provider records without network I/O.
 - Preserve provider encodings, identifiers, missing-value rules, and malformed-record behavior unless a task explicitly
   authorizes a correction.
-- Make name aliases, division mappings, source priority, score interpretation, date parsing, and matching fallbacks named
+- Make name aliases, division mappings, source priority, score interpretation, date parsing, and matching fallbacks
+  named
   policies with focused tests.
 - Do not pass BeautifulSoup nodes, XML elements, CSV rows, or provider dictionaries into application or Blockout client
   code.
@@ -122,9 +125,11 @@ Contract-owned enums such as Format, Gender, and MatchStatus follow the owner se
 
 - Target Python 3.12 and use modern built-in generics, `X | None`, dataclasses or focused value objects, enums, pathlib,
   context managers, and explicit return types where they improve the boundary.
-- Type every public function, method, protocol, dataclass field, and I/O boundary. Avoid `Any` and untyped dictionaries at
+- Type every public function, method, protocol, dataclass field, and I/O boundary. Avoid `Any` and untyped dictionaries
+  at
   stable boundaries; allow provider-local dynamic data only while parsing it immediately into typed records.
-- Prefer focused functions and immutable values. Avoid hidden globals, mutable module state, boolean mode parameters, and
+- Prefer focused functions and immutable values. Avoid hidden globals, mutable module state, boolean mode parameters,
+  and
   inheritance used only for code reuse.
 - Use a concise PEP 257 docstring on every touched public module boundary, class, function, method, protocol, and
   non-obvious algorithm. Document intent, invariant, provider quirk, or failure semantics, not syntax. Trivial private
@@ -153,11 +158,14 @@ Contract-owned enums such as Format, Gender, and MatchStatus follow the owner se
   retries, failure outcome, and observable lifecycle behavior.
 - Run legacy and replacement logic on the same controlled inputs and compare semantic outputs before switching the path.
 - Keep only one production path active. Differential execution belongs to tests or a no-write local harness.
-- Move one behavioral seam at a time. Do not mix provider parsing, write semantics, scheduling, and packaging in one task.
-- Delete legacy code only after focused parity, the scraper suite, import/startup checks, and the required local smoke pass.
+- Move one behavioral seam at a time. Do not mix provider parsing, write semantics, scheduling, and packaging in one
+  task.
+- Delete legacy code only after focused parity, the scraper suite, import/startup checks, and the required local smoke
+  pass.
 
 ## Verification
 
-Follow `python-scraper-testing-policy.md`. At minimum run syntax checks, the owning scraper suite, exact internal-request
+Follow `python-scraper-testing-policy.md`. At minimum run syntax checks, the owning scraper suite, exact
+internal-request
 serialization, offline fixtures, import/startup behavior, relevant Nx targets, and `git diff --check`. Run controlled
 local API smokes when production code changes; never call production services or write to external providers.

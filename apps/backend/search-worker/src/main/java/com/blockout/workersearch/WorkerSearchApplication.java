@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 })
 public class WorkerSearchApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(WorkerSearchApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(WorkerSearchApplication.class, args);
+    }
 }

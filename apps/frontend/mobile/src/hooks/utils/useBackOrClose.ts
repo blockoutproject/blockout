@@ -1,18 +1,18 @@
-import { useCallback } from "react";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
+import {useCallback} from "react";
+import {NavigationProp, useNavigation} from "@react-navigation/native";
 
 export function useBackOrClose(onCloseSheet?: () => void) {
-    const navigation = useNavigation<NavigationProp<Record<string, object | undefined>>>();
+  const navigation = useNavigation<NavigationProp<Record<string, object | undefined>>>();
 
-    const handleBack = useCallback(() => {
-        if (navigation.canGoBack()) {
-            navigation.goBack();
-        } else {
-            onCloseSheet?.();
-        }
-    }, [navigation]);
+  const handleBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      onCloseSheet?.();
+    }
+  }, [navigation]);
 
-    const canGoBack = navigation.canGoBack();
+  const canGoBack = navigation.canGoBack();
 
-    return { handleBack, canGoBack };
+  return {handleBack, canGoBack};
 }

@@ -1,7 +1,6 @@
 package com.blockout.mobilegateway.config;
 
-import java.time.Duration;
-
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCache;
@@ -9,7 +8,7 @@ import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
+import java.time.Duration;
 
 @Configuration
 @EnableCaching
@@ -19,62 +18,62 @@ public class CacheConfig {
     public CacheManager cacheManager() {
 
         CaffeineCache divisionsCache = new CaffeineCache(
-                "divisions",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(Duration.ofDays(1))
-                        .build());
+            "divisions",
+            Caffeine.newBuilder()
+                .expireAfterWrite(Duration.ofDays(1))
+                .build());
 
         CaffeineCache divisionByIdCache = new CaffeineCache(
-                "divisionById",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(Duration.ofDays(1))
-                        .maximumSize(1000)
-                        .build());
+            "divisionById",
+            Caffeine.newBuilder()
+                .expireAfterWrite(Duration.ofDays(1))
+                .maximumSize(1000)
+                .build());
 
         CaffeineCache teamByIdCache = new CaffeineCache(
-                "teamById",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(Duration.ofHours(4))
-                        .maximumSize(1000)
-                        .build());
+            "teamById",
+            Caffeine.newBuilder()
+                .expireAfterWrite(Duration.ofHours(4))
+                .maximumSize(1000)
+                .build());
 
         CaffeineCache teamsByClubIdCache = new CaffeineCache(
-                "teamsByClubId",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(Duration.ofHours(4))
-                        .maximumSize(1000)
-                        .build());
+            "teamsByClubId",
+            Caffeine.newBuilder()
+                .expireAfterWrite(Duration.ofHours(4))
+                .maximumSize(1000)
+                .build());
 
         CaffeineCache poolByIdCache = new CaffeineCache(
-                "poolById",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(Duration.ofHours(4))
-                        .maximumSize(1000)
-                        .build());
+            "poolById",
+            Caffeine.newBuilder()
+                .expireAfterWrite(Duration.ofHours(4))
+                .maximumSize(1000)
+                .build());
 
         CaffeineCache clubByIdCache = new CaffeineCache(
-                "clubById",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(Duration.ofHours(4))
-                        .maximumSize(1000)
-                        .build());
+            "clubById",
+            Caffeine.newBuilder()
+                .expireAfterWrite(Duration.ofHours(4))
+                .maximumSize(1000)
+                .build());
 
         CaffeineCache clubLogoByIdCache = new CaffeineCache(
-                "clubLogoById",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(Duration.ofHours(4))
-                        .maximumSize(1000)
-                        .build());
+            "clubLogoById",
+            Caffeine.newBuilder()
+                .expireAfterWrite(Duration.ofHours(4))
+                .maximumSize(1000)
+                .build());
 
         SimpleCacheManager manager = new SimpleCacheManager();
         manager.setCaches(java.util.Arrays.asList(
-                divisionsCache,
-                divisionByIdCache,
-                teamByIdCache,
-                poolByIdCache,
-                teamsByClubIdCache,
-                clubByIdCache,
-                clubLogoByIdCache));
+            divisionsCache,
+            divisionByIdCache,
+            teamByIdCache,
+            poolByIdCache,
+            teamsByClubIdCache,
+            clubByIdCache,
+            clubLogoByIdCache));
 
         return manager;
     }

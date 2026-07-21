@@ -1,42 +1,31 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-    View,
-    ActivityIndicator,
-    Animated,
-    StyleSheet,
-    StyleProp,
-    ViewStyle,
-} from "react-native";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {ActivityIndicator, Animated, StyleProp, StyleSheet, View, ViewStyle,} from "react-native";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
-import { FlashList, FlashListRef, ListRenderItemInfo } from "@shopify/flash-list";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {useRouter} from "expo-router";
+import {FlashList, FlashListRef, ListRenderItemInfo} from "@shopify/flash-list";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {
-    MatchStatus,
-    EnrichedDayMatchesDTO,
-    EnrichedPoolMatchesDTO,
-} from "@/src/types/Match";
-import { useAppTheme } from "@/src/context/ThemeProvider";
-import { useMatchList } from "@/src/hooks/match/useMatchList";
-import { formatDateFrenchLocale } from "@/src/utils/utils";
+import {EnrichedDayMatchesDTO, EnrichedPoolMatchesDTO, MatchStatus,} from "@/src/types/Match";
+import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useMatchList} from "@/src/hooks/match/useMatchList";
+import {formatDateFrenchLocale} from "@/src/utils/utils";
 import SectionDateHeader from "./SectionDateHeader";
 import PoolItem from "./PoolItem";
 import EmptyState from "../common/feedback/EmptyState";
 import ErrorState from "../common/feedback/ErrorState";
-import { BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT } from "@/src/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/theme/globals";
 // import MatchListAdItem from "./MatchListAdItem";
-import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 
 export type MatchListProps = {
-    poolIds?: number[];
-    teamIds?: number[];
-    status: MatchStatus;
-    scrollY: Animated.Value;
-    contentContainerStyle?: StyleProp<ViewStyle>;
-    headerOffset: number;
-    showPoolHeader?: boolean;
-    home?: boolean;
+  poolIds?: number[];
+  teamIds?: number[];
+  status: MatchStatus;
+  scrollY: Animated.Value;
+  contentContainerStyle?: StyleProp<ViewStyle>;
+  headerOffset: number;
+  showPoolHeader?: boolean;
+  home?: boolean;
 };
 
 type HeaderRow = { type: "sectionHeader"; title: string; sectionKey: string };
@@ -48,242 +37,243 @@ type Row = HeaderRow | PoolRow | AdRow;
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<Row>);
 
 const MatchList: React.FC<MatchListProps> = ({
-    poolIds,
-    teamIds,
-    status,
-    scrollY,
-    contentContainerStyle,
-    headerOffset,
-    showPoolHeader = true,
-    home = false,
-}) => {
-    const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
-    const router = useRouter();
-    const listRef = useRef<FlashListRef<Row>>(null);
+                                               poolIds,
+                                               teamIds,
+                                               status,
+                                               scrollY,
+                                               contentContainerStyle,
+                                               headerOffset,
+                                               showPoolHeader = true,
+                                               home = false,
+                                             }) => {
+  const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const listRef = useRef<FlashListRef<Row>>(null);
 
-    const {
-        dayMatches,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
-        isLoading,
-        isError,
-        refetch,
-    } = useMatchList(status, poolIds, teamIds);
+  const {
+    dayMatches,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    refetch,
+  } = useMatchList(status, poolIds, teamIds);
 
-    const { handleNavigationWithAd } = useNavigationInterstitial();
+  const {handleNavigationWithAd} = useNavigationInterstitial();
 
-    const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const handleRefresh = useCallback(async () => {
-        setIsRefreshing(true);
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => { });
-        try {
-            await refetch();
-        } finally {
-            setIsRefreshing(false);
-        }
-    }, [refetch]);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {
+    });
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refetch]);
 
-    const handleLoadMore = useCallback(() => {
-        if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    const handleMatchPress = useCallback(
-        async (matchId: number) => {
-            await Haptics.selectionAsync();
+  const handleMatchPress = useCallback(
+    async (matchId: number) => {
+      await Haptics.selectionAsync();
 
-            handleNavigationWithAd(() => {
-                router.push(`/match/${matchId}`);
-            });
-        },
-        [router, handleNavigationWithAd],
-    );
+      handleNavigationWithAd(() => {
+        router.push(`/match/${matchId}`);
+      });
+    },
+    [router, handleNavigationWithAd],
+  );
 
-    /**
-     * - 1 SectionDateHeader par jour
-     * - N PoolItem par jour
-     * - si home === true : on insère UNE annonce à la fin
-     *   des jours 1, 4, 7, ... (dayIndex = 0, 3, 6, ...)
-     */
-    const { flatData, stickyHeaderIndices } = useMemo(() => {
-        const rows: Row[] = [];
-        const sticky: number[] = [];
+  /**
+   * - 1 SectionDateHeader par jour
+   * - N PoolItem par jour
+   * - si home === true : on insère UNE annonce à la fin
+   *   des jours 1, 4, 7, ... (dayIndex = 0, 3, 6, ...)
+   */
+  const {flatData, stickyHeaderIndices} = useMemo(() => {
+    const rows: Row[] = [];
+    const sticky: number[] = [];
 
-        dayMatches.forEach((d: EnrichedDayMatchesDTO, dayIndex: number) => {
-            const sectionKey = String(d.date);
-            const headerIndex = rows.length;
+    dayMatches.forEach((d: EnrichedDayMatchesDTO, dayIndex: number) => {
+      const sectionKey = String(d.date);
+      const headerIndex = rows.length;
 
-            rows.push({
-                type: "sectionHeader",
-                title: formatDateFrenchLocale(d.date),
-                sectionKey,
-            });
-            sticky.push(headerIndex);
+      rows.push({
+        type: "sectionHeader",
+        title: formatDateFrenchLocale(d.date),
+        sectionKey,
+      });
+      sticky.push(headerIndex);
 
-            d.pools.forEach((p) => {
-                rows.push({
-                    type: "pool",
-                    pool: p,
-                    sectionKey,
-                });
-            });
-
-            // const shouldInsertAdForThisDay = home && dayIndex % 4 === 1;
-
-            // if (shouldInsertAdForThisDay) {
-            //     const adId = `ad-${sectionKey}`;
-
-            //     rows.push({
-            //         type: "ad",
-            //         id: adId,
-            //         sectionKey,
-            //     });
-            // }
+      d.pools.forEach((p) => {
+        rows.push({
+          type: "pool",
+          pool: p,
+          sectionKey,
         });
+      });
 
-        return { flatData: rows, stickyHeaderIndices: sticky };
-    }, [dayMatches, home]);
+      // const shouldInsertAdForThisDay = home && dayIndex % 4 === 1;
 
-    useEffect(() => {
-        scrollY.setValue(0);
-    }, [scrollY, poolIds, teamIds]);
+      // if (shouldInsertAdForThisDay) {
+      //     const adId = `ad-${sectionKey}`;
 
-    const onRetry = useCallback(() => {
-        scrollY.setValue(0);
-        refetch();
-    }, [scrollY, refetch]);
+      //     rows.push({
+      //         type: "ad",
+      //         id: adId,
+      //         sectionKey,
+      //     });
+      // }
+    });
 
-    const getItemType = useCallback((item: Row) => item.type, []);
+    return {flatData: rows, stickyHeaderIndices: sticky};
+  }, [dayMatches, home]);
 
-    const keyExtractor = useCallback((item: Row) => {
-        switch (item.type) {
-            case "sectionHeader":
-                return `h-${item.sectionKey}`;
-            case "pool":
-                return `p-${item.pool.pool.id}-${item.sectionKey}`;
-            case "ad":
-                return `ad-${item.id}-${item.sectionKey}`;
-            default:
-                return "unknown";
-        }
-    }, []);
+  useEffect(() => {
+    scrollY.setValue(0);
+  }, [scrollY, poolIds, teamIds]);
 
-    const renderItem = useCallback(
-        ({ item }: ListRenderItemInfo<Row>) => {
-            switch (item.type) {
-                case "sectionHeader":
-                    return <SectionDateHeader title={item.title} />;
-                case "pool":
-                    return (
-                        <PoolItem
-                            enrichedPoolMatches={item.pool}
-                            handleMatchPress={handleMatchPress}
-                            showHeader={showPoolHeader}
-                        />
-                    );
-                // case "ad":
-                //     return <MatchListAdItem />;
-                default:
-                    return null;
-            }
-        },
-        [handleMatchPress, showPoolHeader],
+  const onRetry = useCallback(() => {
+    scrollY.setValue(0);
+    refetch();
+  }, [scrollY, refetch]);
+
+  const getItemType = useCallback((item: Row) => item.type, []);
+
+  const keyExtractor = useCallback((item: Row) => {
+    switch (item.type) {
+      case "sectionHeader":
+        return `h-${item.sectionKey}`;
+      case "pool":
+        return `p-${item.pool.pool.id}-${item.sectionKey}`;
+      case "ad":
+        return `ad-${item.id}-${item.sectionKey}`;
+      default:
+        return "unknown";
+    }
+  }, []);
+
+  const renderItem = useCallback(
+    ({item}: ListRenderItemInfo<Row>) => {
+      switch (item.type) {
+        case "sectionHeader":
+          return <SectionDateHeader title={item.title}/>;
+        case "pool":
+          return (
+            <PoolItem
+              enrichedPoolMatches={item.pool}
+              handleMatchPress={handleMatchPress}
+              showHeader={showPoolHeader}
+            />
+          );
+        // case "ad":
+        //     return <MatchListAdItem />;
+        default:
+          return null;
+      }
+    },
+    [handleMatchPress, showPoolHeader],
+  );
+
+  const header = useMemo(
+    () => <View style={{height: headerOffset + 4}}/>,
+    [headerOffset],
+  );
+
+  const footer = useMemo(() => {
+    const footerBase = (
+      <View style={{height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4}}/>
     );
 
-    const header = useMemo(
-        () => <View style={{ height: headerOffset + 4 }} />,
-        [headerOffset],
-    );
-
-    const footer = useMemo(() => {
-        const footerBase = (
-            <View style={{ height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4 }} />
-        );
-
-        if (isFetchingNextPage && hasNextPage) {
-            return (
-                <View>
-                    <ActivityIndicator style={{ marginBottom: SECTION_SEPARATOR_HEIGHT }} />
-                    {footerBase}
-                </View>
-            );
-        }
-
-        return footerBase;
-    }, [isFetchingNextPage, hasNextPage, insets]);
-
-    let body: React.ReactNode;
-
-    if (isLoading) {
-        body = (
-            <View style={[styles.center, { backgroundColor: theme.background }]}>
-                <ActivityIndicator size="large" color={theme.text} />
-            </View>
-        );
-    } else if (isError) {
-        body = (
-            <ErrorState
-                subtitle="Impossible de charger les matchs."
-                onRetry={onRetry}
-                paddingTop={home ? "60%" : "30%"}
-            />
-        );
-    } else {
-        body = (
-            <AnimatedFlashList
-                ref={listRef}
-                data={flatData}
-                // stickyHeaderIndices={stickyHeaderIndices}
-                renderItem={renderItem}
-                getItemType={getItemType}
-                keyExtractor={keyExtractor}
-                onEndReached={handleLoadMore}
-                showsVerticalScrollIndicator={false}
-                ListHeaderComponent={header}
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-                progressViewOffset={headerOffset}
-                contentContainerStyle={contentContainerStyle}
-                alwaysBounceVertical
-                bounces
-                onScroll={
-                    scrollY
-                        ? Animated.event(
-                            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                            {
-                                useNativeDriver: true,
-                            },
-                        )
-                        : undefined
-                }
-                scrollEventThrottle={16}
-                ListEmptyComponent={() => (
-                    <EmptyState
-                        title="Aucun match trouvé"
-                        onRetry={poolIds?.length || teamIds?.length ? refetch : undefined}
-                        retryLabel={poolIds?.length || teamIds?.length ? "Réessayer" : undefined}
-                        subtitle={
-                            poolIds?.length || teamIds?.length
-                                ? "Aucun match trouvé pour les équipes ou poules sélectionnées."
-                                : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
-                        }
-                        paddingTop={home ? "30%" : "10%"}
-                    />
-                )}
-                ListFooterComponent={footer}
-                testID="matchlist-flashlist"
-            />
-        );
+    if (isFetchingNextPage && hasNextPage) {
+      return (
+        <View>
+          <ActivityIndicator style={{marginBottom: SECTION_SEPARATOR_HEIGHT}}/>
+          {footerBase}
+        </View>
+      );
     }
 
-    return body;
+    return footerBase;
+  }, [isFetchingNextPage, hasNextPage, insets]);
+
+  let body: React.ReactNode;
+
+  if (isLoading) {
+    body = (
+      <View style={[styles.center, {backgroundColor: theme.background}]}>
+        <ActivityIndicator size="large" color={theme.text}/>
+      </View>
+    );
+  } else if (isError) {
+    body = (
+      <ErrorState
+        subtitle="Impossible de charger les matchs."
+        onRetry={onRetry}
+        paddingTop={home ? "60%" : "30%"}
+      />
+    );
+  } else {
+    body = (
+      <AnimatedFlashList
+        ref={listRef}
+        data={flatData}
+        // stickyHeaderIndices={stickyHeaderIndices}
+        renderItem={renderItem}
+        getItemType={getItemType}
+        keyExtractor={keyExtractor}
+        onEndReached={handleLoadMore}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={header}
+        refreshing={isRefreshing}
+        onRefresh={handleRefresh}
+        progressViewOffset={headerOffset}
+        contentContainerStyle={contentContainerStyle}
+        alwaysBounceVertical
+        bounces
+        onScroll={
+          scrollY
+            ? Animated.event(
+              [{nativeEvent: {contentOffset: {y: scrollY}}}],
+              {
+                useNativeDriver: true,
+              },
+            )
+            : undefined
+        }
+        scrollEventThrottle={16}
+        ListEmptyComponent={() => (
+          <EmptyState
+            title="Aucun match trouvé"
+            onRetry={poolIds?.length || teamIds?.length ? refetch : undefined}
+            retryLabel={poolIds?.length || teamIds?.length ? "Réessayer" : undefined}
+            subtitle={
+              poolIds?.length || teamIds?.length
+                ? "Aucun match trouvé pour les équipes ou poules sélectionnées."
+                : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
+            }
+            paddingTop={home ? "30%" : "10%"}
+          />
+        )}
+        ListFooterComponent={footer}
+        testID="matchlist-flashlist"
+      />
+    );
+  }
+
+  return body;
 };
 
 export default MatchList;
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: {flex: 1},
+  center: {flex: 1, justifyContent: "center", alignItems: "center"},
 });

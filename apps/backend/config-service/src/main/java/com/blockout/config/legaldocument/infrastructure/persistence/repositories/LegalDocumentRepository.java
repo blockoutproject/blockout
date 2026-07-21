@@ -5,9 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-/** Persists legal documents. */
+/**
+ * Persists legal documents.
+ */
 public interface LegalDocumentRepository extends JpaRepository<LegalDocumentEntity, Long> {
 
-    /** Finds one document by its stable type. */
+    /**
+     * Finds one document by its stable type.
+     */
     Optional<LegalDocumentEntity> findByType(String type);
 }

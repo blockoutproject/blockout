@@ -1,11 +1,10 @@
 package com.blockout.notifications.notification.infrastructure.http;
 
+import com.blockout.notifications.config.ApiClientProperties;
+import com.blockout.notifications.notification.infrastructure.http.models.UserInternalResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import com.blockout.notifications.config.ApiClientProperties;
-import com.blockout.notifications.notification.infrastructure.http.models.UserInternalResponse;
 
 @Service
 @RequiredArgsConstructor

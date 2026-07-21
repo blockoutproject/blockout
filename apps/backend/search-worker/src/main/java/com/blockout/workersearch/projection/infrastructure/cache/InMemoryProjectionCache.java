@@ -4,12 +4,13 @@ import com.blockout.workersearch.projection.application.models.ClubProjectionSou
 import com.blockout.workersearch.projection.application.models.DivisionProjectionSource;
 import com.blockout.workersearch.projection.application.models.TeamProjectionSource;
 import com.blockout.workersearch.projection.application.ports.ProjectionCache;
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.stereotype.Component;
 
 @Component
 public class InMemoryProjectionCache implements ProjectionCache {

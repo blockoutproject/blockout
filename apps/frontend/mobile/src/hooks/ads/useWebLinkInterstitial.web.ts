@@ -1,5 +1,5 @@
-import { useCallback } from "react";
-import { Linking } from "react-native";
+import {useCallback} from "react";
+import {Linking} from "react-native";
 
 /**
  * Open links directly on the local web characterization surface without
@@ -7,8 +7,9 @@ import { Linking } from "react-native";
  */
 export const useWebLinkInterstitial = () => {
   const openLinkWithInterstitial = useCallback((url: string) => {
-    Linking.openURL(url).catch(() => {});
+    Linking.openURL(url).catch(() => {
+    });
   }, []);
 
-  return { openLinkWithInterstitial };
+  return {openLinkWithInterstitial};
 };

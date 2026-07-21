@@ -1,19 +1,20 @@
 package com.blockout.workersearch.projection.infrastructure.elasticsearch;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.DeleteIndexRequest;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 import jakarta.annotation.PostConstruct;
-import java.io.InputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+
+import java.io.InputStream;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Component
 @RequiredArgsConstructor
@@ -45,17 +46,17 @@ public class ElasticsearchIndexInitializer {
         var exists = elasticsearchClient.indices().exists(ExistsRequest.of(request -> request.index(indexName)));
         if (exists.value()) {
             LOGGER.info(
-                    "Deleting existing search index",
-                    keyValue("action", "delete_search_index"),
-                    keyValue("index", indexName));
+                "Deleting existing search index",
+                keyValue("action", "delete_search_index"),
+                keyValue("index", indexName));
             elasticsearchClient.indices().delete(DeleteIndexRequest.of(request -> request.index(indexName)));
         }
 
         LOGGER.info(
-                "Creating search index from JSON config",
-                keyValue("action", "create_search_index"),
-                keyValue("index", indexName),
-                keyValue("source", jsonPath));
+            "Creating search index from JSON config",
+            keyValue("action", "create_search_index"),
+            keyValue("index", indexName),
+            keyValue("source", jsonPath));
 
         try (InputStream jsonStream = new ClassPathResource(jsonPath).getInputStream()) {
             var request = CreateIndexRequest.of(builder -> builder.index(indexName).withJson(jsonStream));

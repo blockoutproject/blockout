@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class MatchesApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(MatchesApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(MatchesApplication.class, args);
+    }
 }

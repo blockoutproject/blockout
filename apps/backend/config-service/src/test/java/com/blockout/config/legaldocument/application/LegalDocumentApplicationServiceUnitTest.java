@@ -18,21 +18,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-/** Verifies legal-document normalization and partial updates. */
+/**
+ * Verifies legal-document normalization and partial updates.
+ */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Legal-document application service")
 class LegalDocumentApplicationServiceUnitTest {
 
-    @Mock private LegalDocumentRepository repository;
-    @InjectMocks private LegalDocumentApplicationService service;
+    @Mock
+    private LegalDocumentRepository repository;
+    @InjectMocks
+    private LegalDocumentApplicationService service;
 
-    /** Normalizes the route type and preserves omitted document fields. */
+    /**
+     * Normalizes the route type and preserves omitted document fields.
+     */
     @Test
     @DisplayName("normalizes document type and applies supplied fields")
     void normalizesTypeAndAppliesSuppliedFields() {
         LocalDateTime timestamp = LocalDateTime.of(2026, 7, 19, 12, 30);
         LegalDocumentEntity entity = LegalDocumentEntity.builder().id(1L).type("terms").title("Old")
-                .version("1").content("content").createdAt(timestamp).lastUpdate(timestamp).build();
+            .version("1").content("content").createdAt(timestamp).lastUpdate(timestamp).build();
         when(repository.findByType("terms")).thenReturn(Optional.of(entity));
         when(repository.saveAndFlush(any(LegalDocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

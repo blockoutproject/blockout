@@ -26,10 +26,10 @@ class ClubApiMapperUnitTest {
     @Test
     void mapsTheApiBoundaryWithoutLeakingMultipartIntoTheApplication() throws Exception {
         CreateClubInternalRequest request = new CreateClubInternalRequest(
-                "club-1", "RAW", "Club", "Address", "Paris", "75001",
-                "mail", "phone", "website", "logo");
+            "club-1", "RAW", "Club", "Address", "Paris", "75001",
+            "mail", "phone", "website", "logo");
         MockMultipartFile image = new MockMultipartFile(
-                "image", "club.png", "image/png", new byte[]{1, 2, 3});
+            "image", "club.png", "image/png", new byte[]{1, 2, 3});
 
         CreateClubCommand command = mapper.toCommand(request, image);
 
@@ -46,8 +46,8 @@ class ClubApiMapperUnitTest {
     void mapsEveryClubViewFieldToTheInternalResponse() {
         LocalDateTime now = LocalDateTime.of(2026, 7, 19, 12, 0);
         ClubView view = new ClubView(
-                "club-1", "RAW", "Club", "Address", "Paris", "75001",
-                "mail", "phone", "website", "logo", true, 48.0, 2.0, now, now);
+            "club-1", "RAW", "Club", "Address", "Paris", "75001",
+            "mail", "phone", "website", "logo", true, 48.0, 2.0, now, now);
 
         var response = mapper.toInternalResponse(view);
 

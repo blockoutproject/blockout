@@ -14,8 +14,8 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
     @Override
     public ClientConfiguration clientConfiguration() {
         return ClientConfiguration.builder()
-                .connectedTo(properties.getHost())
-                .withBasicAuth(properties.getUsername(), properties.getPassword())
-                .build();
+            .connectedTo(properties.getHost())
+            .withBasicAuth(properties.getUsername(), properties.getPassword())
+            .build();
     }
 }

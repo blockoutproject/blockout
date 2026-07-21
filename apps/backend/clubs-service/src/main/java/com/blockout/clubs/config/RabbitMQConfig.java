@@ -1,6 +1,9 @@
 package com.blockout.clubs.config;
 
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -27,11 +30,11 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding bindClubDeactivationQueueClubs(
-            TopicExchange entityLifecycleExchange,
-            Queue clubDeactivationQueueClubs) {
+        TopicExchange entityLifecycleExchange,
+        Queue clubDeactivationQueueClubs) {
         return BindingBuilder.bind(clubDeactivationQueueClubs)
-                .to(entityLifecycleExchange)
-                .with("club.deactivation");
+            .to(entityLifecycleExchange)
+            .with("club.deactivation");
     }
 
     @Bean

@@ -13,9 +13,9 @@ public class NotificationApiMapper {
 
     public NotificationPageInternalResponse toResponse(NotificationPageView page) {
         return new NotificationPageInternalResponse(
-                page.notifications().stream().map(this::toResponse).toList(),
-                page.hasNext(),
-                page.nextPage());
+            page.notifications().stream().map(this::toResponse).toList(),
+            page.hasNext(),
+            page.nextPage());
     }
 
     public RegisterPushTokenCommand toCommand(RegisterPushTokenInternalRequest request) {
@@ -24,19 +24,19 @@ public class NotificationApiMapper {
 
     private NotificationInternalResponse toResponse(NotificationView notification) {
         return new NotificationInternalResponse(
-                notification.id(),
-                notification.userId(),
-                notification.type(),
-                notification.title(),
-                notification.body(),
-                notification.deepLink(),
-                notification.targetType(),
-                notification.targetId(),
-                notification.metadata(),
-                notification.isRead(),
-                notification.isOpened(),
-                notification.createdAt(),
-                notification.readAt(),
-                notification.openedAt());
+            notification.id(),
+            notification.userId(),
+            notification.type(),
+            notification.title(),
+            notification.body(),
+            notification.deepLink(),
+            notification.targetType(),
+            notification.targetId(),
+            notification.metadata(),
+            notification.isRead(),
+            notification.isOpened(),
+            notification.createdAt(),
+            notification.readAt(),
+            notification.openedAt());
     }
 }

@@ -19,8 +19,8 @@ public class NotificationSecureController {
 
     @GetMapping
     public ResponseEntity<NotificationPageResponse> getEnrichedNotifications(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
         var dto = notificationService.getNotifications(page, size);
         return ResponseEntity.ok(dto);
     }
@@ -51,8 +51,8 @@ public class NotificationSecureController {
 
     @PostMapping("/users/{userId}/push-tokens")
     public ResponseEntity<Void> registerPushToken(
-            @PathVariable Long userId,
-            @Valid @RequestBody RegisterPushTokenRequest req) {
+        @PathVariable Long userId,
+        @Valid @RequestBody RegisterPushTokenRequest req) {
         notificationService.registerPushToken(userId, req);
         return ResponseEntity.accepted().build();
     }

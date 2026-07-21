@@ -1,49 +1,49 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { PoolSummaryDTO } from "@/src/types/Pool";
-import { useApis } from "@/src/context/ApiProvider";
+import {useMemo} from "react";
+import {useQuery} from "@tanstack/react-query";
+import {PoolSummaryDTO} from "@/src/types/Pool";
+import {useApis} from "@/src/context/ApiProvider";
 
 /**
  * Hook pour récupérer les équipes suivies par l'utilisateur.
  */
 export const useFollowedPoolList = (followedPoolIds?: number[]) => {
-    const { mobile } = useApis()
-    
-    const idsKey = useMemo(
-        () =>
-            followedPoolIds?.length
-                ? [...followedPoolIds].sort((a, b) => a - b).join(",")
-                : "none",
-        [followedPoolIds]
-    );
+  const {mobile} = useApis()
 
-    const queryKey = useMemo(
-        () => ["followed-pools", `ids:${idsKey}`],
-        [idsKey]
-    );
+  const idsKey = useMemo(
+    () =>
+      followedPoolIds?.length
+        ? [...followedPoolIds].sort((a, b) => a - b).join(",")
+        : "none",
+    [followedPoolIds]
+  );
 
-    const query = useQuery({
-        queryKey,
-        enabled: Boolean(followedPoolIds && followedPoolIds.length > 0),
-        queryFn: async () => {
-            if (!followedPoolIds?.length) return [];
+  const queryKey = useMemo(
+    () => ["followed-pools", `ids:${idsKey}`],
+    [idsKey]
+  );
 
-            const pools = await mobile.pools.getPoolListByIds(followedPoolIds);
-            return pools ?? [];
-        },
-        staleTime: 5 * 60 * 1000,
-        retry: false,
-    });
+  const query = useQuery({
+    queryKey,
+    enabled: Boolean(followedPoolIds && followedPoolIds.length > 0),
+    queryFn: async () => {
+      if (!followedPoolIds?.length) return [];
 
-    const pools: PoolSummaryDTO[] = query.data ?? [];
-    const hasLoadedOnce = query.isSuccess || query.isError;
-    const isBackgroundRefetching =
-        query.isFetching && !query.isLoading;
+      const pools = await mobile.pools.getPoolListByIds(followedPoolIds);
+      return pools ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 
-    return {
-        ...query,
-        pools,
-        hasLoadedOnce,
-        isBackgroundRefetching,
-    };
+  const pools: PoolSummaryDTO[] = query.data ?? [];
+  const hasLoadedOnce = query.isSuccess || query.isError;
+  const isBackgroundRefetching =
+    query.isFetching && !query.isLoading;
+
+  return {
+    ...query,
+    pools,
+    hasLoadedOnce,
+    isBackgroundRefetching,
+  };
 };

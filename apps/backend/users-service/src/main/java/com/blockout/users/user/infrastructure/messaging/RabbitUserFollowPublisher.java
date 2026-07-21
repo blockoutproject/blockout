@@ -18,8 +18,8 @@ public class RabbitUserFollowPublisher implements UserFollowPublisher {
     @Override
     public void publish(Long userId, EntityType entityType, Long entityId, FollowEventType eventType) {
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.USER_FOLLOW_EXCHANGE,
-                entityType.name().toLowerCase() + ".follow",
-                new UserFollowEvent(userId, entityType, entityId, eventType));
+            RabbitMQConfig.USER_FOLLOW_EXCHANGE,
+            entityType.name().toLowerCase() + ".follow",
+            new UserFollowEvent(userId, entityType, entityId, eventType));
     }
 }

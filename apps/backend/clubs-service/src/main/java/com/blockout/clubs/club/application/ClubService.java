@@ -14,7 +14,7 @@ public interface ClubService {
     /**
      * Lists clubs matching the optional identifiers and active-state filter.
      *
-     * @param ids optional identifiers; {@code null} or empty selects every identifier.
+     * @param ids    optional identifiers; {@code null} or empty selects every identifier.
      * @param active optional active-state filter.
      * @return matching clubs ordered by name.
      */
@@ -40,7 +40,7 @@ public interface ClubService {
     /**
      * Updates and reactivates a Club, then publishes its lifecycle projection.
      *
-     * @param id Club identifier.
+     * @param id      Club identifier.
      * @param command partial update input.
      * @return persisted Club view.
      */

@@ -1,16 +1,17 @@
 package com.blockout.notifications.notification.infrastructure.persistence.entities;
 
-import jakarta.persistence.*;
-import lombok.*;
-
-import java.time.Instant;
-
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import com.blockout.notifications.notification.application.models.NotificationTargetType;
 import com.blockout.notifications.notification.application.models.NotificationType;
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.time.Instant;
 
 @Data
 @Builder(toBuilder = true)
@@ -18,9 +19,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 @AllArgsConstructor
 @Entity
 @Table(name = "user_notifications", indexes = {
-        @Index(name = "idx_user_notifications_user_created", columnList = "user_id, created_at DESC"),
-        @Index(name = "idx_user_notifications_user_is_read", columnList = "user_id, is_read"),
-        @Index(name = "idx_user_notifications_target", columnList = "target_type, target_id")
+    @Index(name = "idx_user_notifications_user_created", columnList = "user_id, created_at DESC"),
+    @Index(name = "idx_user_notifications_user_is_read", columnList = "user_id, is_read"),
+    @Index(name = "idx_user_notifications_target", columnList = "target_type, target_id")
 })
 public class UserNotificationEntity {
 

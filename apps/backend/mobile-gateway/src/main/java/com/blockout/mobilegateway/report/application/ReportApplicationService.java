@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.report.application;
 
-import com.blockout.mobilegateway.report.api.models.ReportResponse;
 import com.blockout.mobilegateway.report.api.models.CreateReportRequest;
+import com.blockout.mobilegateway.report.api.models.ReportResponse;
 import com.blockout.mobilegateway.report.infrastructure.ReportInternalClient;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -24,27 +24,27 @@ public class ReportApplicationService {
         long t0 = System.nanoTime();
         int count = images != null ? images.size() : 0;
         logger.info("Create report request",
-                keyValue("action", "create_report"),
-                keyValue("type", dto != null ? dto.getType() : null),
-                keyValue("has_description", dto != null && dto.getDescription() != null),
-                keyValue("images_count", count));
+            keyValue("action", "create_report"),
+            keyValue("type", dto != null ? dto.getType() : null),
+            keyValue("has_description", dto != null && dto.getDescription() != null),
+            keyValue("images_count", count));
 
         try {
             ReportResponse res = reportInternalClient.createReport(dto, images);
             long t1 = System.nanoTime();
             logger.info("Report created",
-                    keyValue("action", "create_report_done"),
-                    keyValue("issue_number", res != null ? res.getNumber() : null),
-                    keyValue("images_count", count),
-                    keyValue("duration_ms", (t1 - t0) / 1_000_000));
+                keyValue("action", "create_report_done"),
+                keyValue("issue_number", res != null ? res.getNumber() : null),
+                keyValue("images_count", count),
+                keyValue("duration_ms", (t1 - t0) / 1_000_000));
             return res;
         } catch (RuntimeException e) {
             long t1 = System.nanoTime();
             logger.error("Report creation failed",
-                    keyValue("action", "create_report_failed"),
-                    keyValue("images_count", count),
-                    keyValue("duration_ms", (t1 - t0) / 1_000_000),
-                    e);
+                keyValue("action", "create_report_failed"),
+                keyValue("images_count", count),
+                keyValue("duration_ms", (t1 - t0) / 1_000_000),
+                e);
             throw e;
         }
     }

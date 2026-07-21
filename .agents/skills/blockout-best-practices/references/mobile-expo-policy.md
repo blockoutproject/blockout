@@ -17,7 +17,8 @@ mobile transport models.
 ## React Native Rules
 
 - Prefer focused components and hooks with explicit inputs over global mutable state or generic helper layers.
-- Do not add `useEffect` to derive renderable state; compute it during render or in the event that changes it. Use effects
+- Do not add `useEffect` to derive renderable state; compute it during render or in the event that changes it. Use
+  effects
   only to synchronize with an external system and keep dependencies honest.
 - Keep Formik/Yup validation aligned with the submitted request without duplicating unrelated backend rules.
 - Preserve platform behavior, navigation, accessibility labels, loading states, and error handling when refactoring.

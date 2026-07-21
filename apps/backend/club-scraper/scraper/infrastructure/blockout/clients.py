@@ -1,12 +1,8 @@
 from __future__ import annotations
 
+import aiohttp
 import json
 from collections.abc import Iterable
-
-import aiohttp
-
-from scraper.config.settings import Settings
-from scraper.infrastructure.blockout.auth import TokenStore
 from scraper.infrastructure.blockout.contracts import (
     BulkDeactivateClubsInternalRequest,
     ClubInternalResponse,
@@ -14,6 +10,9 @@ from scraper.infrastructure.blockout.contracts import (
     ScraperStatusInternalResponse,
     UpdateClubInternalRequest,
 )
+
+from scraper.config.settings import Settings
+from scraper.infrastructure.blockout.auth import TokenStore
 from scraper.infrastructure.blockout.response import read_json
 
 

@@ -19,21 +19,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ClubApiContractUnitTest {
 
     private static final Set<String> COMPLETE_CLUB_FIELDS = Set.of(
-            "id",
-            "rawName",
-            "name",
-            "address",
-            "city",
-            "postalCode",
-            "email",
-            "phoneNumber",
-            "website",
-            "logoUrl",
-            "active",
-            "latitude",
-            "longitude",
-            "createdAt",
-            "lastUpdate");
+        "id",
+        "rawName",
+        "name",
+        "address",
+        "city",
+        "postalCode",
+        "email",
+        "phoneNumber",
+        "website",
+        "logoUrl",
+        "active",
+        "latitude",
+        "longitude",
+        "createdAt",
+        "lastUpdate");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -44,21 +44,21 @@ class ClubApiContractUnitTest {
     @Test
     void exposesTheCompleteAuthoritativeClubShapeInNativeCamelCase() {
         ClubInternalResponse response = new ClubInternalResponse(
-                "club-1",
-                "RAW CLUB",
-                "Blockout Club",
-                "1 Club Street",
-                "Paris",
-                "75001",
-                "club@example.invalid",
-                "0102030405",
-                "https://example.invalid",
-                "https://example.invalid/logo.png",
-                true,
-                48.8566,
-                2.3522,
-                null,
-                null);
+            "club-1",
+            "RAW CLUB",
+            "Blockout Club",
+            "1 Club Street",
+            "Paris",
+            "75001",
+            "club@example.invalid",
+            "0102030405",
+            "https://example.invalid",
+            "https://example.invalid/logo.png",
+            true,
+            48.8566,
+            2.3522,
+            null,
+            null);
 
         JsonNode json = objectMapper.valueToTree(response);
         assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrderElementsOf(COMPLETE_CLUB_FIELDS);
@@ -73,22 +73,22 @@ class ClubApiContractUnitTest {
     @Test
     void keepsCreationAndUpdateRequestsExplicit() throws Exception {
         CreateClubInternalRequest create = objectMapper.readValue("""
-                {
-                  "id": "club-1",
-                  "rawName": "RAW CLUB",
-                  "name": "Blockout Club",
-                  "address": "1 Club Street",
-                  "city": "Paris",
-                  "postalCode": "75001",
-                  "email": null,
-                  "phoneNumber": null,
-                  "website": null,
-                  "logoUrl": "https://example.invalid/logo.png"
-                }
-                """, CreateClubInternalRequest.class);
+            {
+              "id": "club-1",
+              "rawName": "RAW CLUB",
+              "name": "Blockout Club",
+              "address": "1 Club Street",
+              "city": "Paris",
+              "postalCode": "75001",
+              "email": null,
+              "phoneNumber": null,
+              "website": null,
+              "logoUrl": "https://example.invalid/logo.png"
+            }
+            """, CreateClubInternalRequest.class);
         UpdateClubInternalRequest update = objectMapper.readValue("""
-                {"name":"New name","address":"2 Club Street","logoUrl":null}
-                """, UpdateClubInternalRequest.class);
+            {"name":"New name","address":"2 Club Street","logoUrl":null}
+            """, UpdateClubInternalRequest.class);
 
         assertThat(create.address()).isEqualTo("1 Club Street");
         assertThat(create.logoUrl()).isEqualTo("https://example.invalid/logo.png");

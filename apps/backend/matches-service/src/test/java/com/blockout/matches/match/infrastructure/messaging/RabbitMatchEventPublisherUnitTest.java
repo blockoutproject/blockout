@@ -19,22 +19,23 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class RabbitMatchEventPublisherUnitTest {
 
-    @Mock RabbitTemplate rabbitTemplate;
+    @Mock
+    RabbitTemplate rabbitTemplate;
 
     @Test
     void preservesTheMatchFinishedRoutingAndPayload() {
         RabbitMatchEventPublisher publisher = new RabbitMatchEventPublisher(rabbitTemplate);
         Instant now = Instant.parse("2026-07-19T12:00:00Z");
         MatchView match = new MatchView(
-                1L, "M1", "L1", 2L, null, 3L, 4L, now, "2026", "3-0", "75-60",
-                MatchStatus.FINISHED, null, null, null, true, now, now, null, null, null);
+            1L, "M1", "L1", 2L, null, 3L, 4L, now, "2026", "3-0", "75-60",
+            MatchStatus.FINISHED, null, null, null, true, now, now, null, null, null);
         ArgumentCaptor<Object> event = ArgumentCaptor.forClass(Object.class);
 
         publisher.publishMatchFinished(match);
 
         verify(rabbitTemplate).convertAndSend(
-                org.mockito.ArgumentMatchers.eq(RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE),
-                org.mockito.ArgumentMatchers.eq(RabbitMQConfig.RK_MATCH_FINISHED), event.capture());
+            org.mockito.ArgumentMatchers.eq(RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE),
+            org.mockito.ArgumentMatchers.eq(RabbitMQConfig.RK_MATCH_FINISHED), event.capture());
         assertThat(event.getValue()).isEqualTo(new MatchFinishedEvent(1L, 3L, 4L, 2L, "3-0"));
     }
 }

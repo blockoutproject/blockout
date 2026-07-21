@@ -5,9 +5,10 @@ import com.blockout.search.search.application.queries.FilteredSearchQuery;
 import com.blockout.search.search.application.views.ClubSearchResult;
 import com.blockout.search.search.application.views.PoolSearchResult;
 import com.blockout.search.search.application.views.TeamSearchResult;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor

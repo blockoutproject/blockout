@@ -1,13 +1,13 @@
 package com.blockout.notifications.notification.infrastructure.persistence.entities;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.blockout.notifications.notification.application.models.NotificationStatus;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import com.blockout.notifications.notification.application.models.NotificationStatus;
+import java.time.LocalDateTime;
 
 @Data
 @Builder(toBuilder = true)
@@ -15,11 +15,11 @@ import com.blockout.notifications.notification.application.models.NotificationSt
 @AllArgsConstructor
 @Entity
 @Table(name = "notification_send", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "user_id", "match_id" }, name = "uix_notification_send_user_match")
+    @UniqueConstraint(columnNames = {"user_id", "match_id"}, name = "uix_notification_send_user_match")
 }, indexes = {
-        @Index(name = "idx_notification_send_match", columnList = "match_id"),
-        @Index(name = "idx_notification_send_status", columnList = "status"),
-        @Index(name = "idx_notification_send_user", columnList = "user_id")
+    @Index(name = "idx_notification_send_match", columnList = "match_id"),
+    @Index(name = "idx_notification_send_status", columnList = "status"),
+    @Index(name = "idx_notification_send_user", columnList = "user_id")
 })
 public class NotificationSendEntity {
 

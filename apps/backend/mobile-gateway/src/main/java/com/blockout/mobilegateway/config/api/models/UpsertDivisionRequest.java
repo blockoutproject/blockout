@@ -11,7 +11,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpsertDivisionRequest {
-    
+
     private String name;
 
     private String mainColor;

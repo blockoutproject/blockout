@@ -16,7 +16,8 @@ semantics while allowing implementation structure to change substantially.
   native camelCase bodies, response decoding, timeout, and error translation.
 - Lifecycle tests cover enabled/disabled status, overlap prevention, scheduler registration, token refresh ownership,
   cancellation, and graceful shutdown where those behaviors are touched.
-- A controlled local smoke exercises real local Blockout APIs and disposable data only after source changes pass offline.
+- A controlled local smoke exercises real local Blockout APIs and disposable data only after source changes pass
+  offline.
 
 Do not replace a narrow test with an end-to-end test. Each layer proves a different boundary.
 
@@ -24,7 +25,8 @@ Do not replace a narrow test with an end-to-end test. Each layer proves a differ
 
 - Store sanitized, deterministic fixtures derived from real provider responses under the owning scraper's
   `tests/fixtures` directory.
-- Parser tests must not invent provider HTML, XML, CSV, or JSON. Preserve the smallest source-derived response that keeps
+- Parser tests must not invent provider HTML, XML, CSV, or JSON. Preserve the smallest source-derived response that
+  keeps
   the real structure under test; retain a complete page when malformed or cross-table markup affects parsing.
 - Remove tokens, cookies, personal data, private URLs, request identifiers, and unrelated content.
 - Record the provider family, encoding, and scenario in the filename or adjacent test documentation.
@@ -77,7 +79,8 @@ compatibility, but they do not create a second source of truth.
 
 - Prefer small handwritten fakes that record semantic operations for application scenarios.
 - Use mocks only when call isolation is the behavior under test. Do not mock dataclasses, enums, or pure value objects.
-- Avoid snapshots of large raw payloads. Snapshot or compare a compact normalized trace when it is more readable than many
+- Avoid snapshots of large raw payloads. Snapshot or compare a compact normalized trace when it is more readable than
+  many
   disconnected assertions.
 - Assert logs only when the log is an operational contract. Otherwise assert the state, result, or adapter operation.
 - Seed randomness and freeze or inject time when those values influence output.
@@ -87,7 +90,8 @@ compatibility, but they do not create a second source of truth.
 - Name test files `test_<boundary>.py` and tests `test_<observable_behavior>`.
 - Organize characterization, unit, and integration directories by production feature or provider, not by implementation
   class name alone.
-- Give each touched test a concise docstring when the protected invariant, legacy quirk, or regression is not obvious from
+- Give each touched test a concise docstring when the protected invariant, legacy quirk, or regression is not obvious
+  from
   its name. Do not add docstrings that merely repeat the assertion.
 
 ## Completion Gate

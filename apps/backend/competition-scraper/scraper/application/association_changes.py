@@ -1,8 +1,7 @@
 """Competition-association statistic change tracking."""
 
-import asyncio
-
 import aiohttp
+import asyncio
 
 from scraper.infrastructure.blockout.association_stats import (
     UpdateAssociationStatsInternalRequest,

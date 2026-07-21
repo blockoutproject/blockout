@@ -7,13 +7,14 @@ import com.blockout.search.search.application.queries.FilteredSearchQuery;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,15 +30,15 @@ public class PoolSearchController {
     })
     @GetMapping
     public ResponseEntity<List<PoolSearchInternalResponse>> search(
-            @RequestParam String query,
-            @RequestParam(required = false) String season,
-            @RequestParam(required = false, name = "divisionId") Long divisionId,
-            @RequestParam(required = false) String format,
-            @RequestParam(required = false) String gender) {
+        @RequestParam String query,
+        @RequestParam(required = false) String season,
+        @RequestParam(required = false, name = "divisionId") Long divisionId,
+        @RequestParam(required = false) String format,
+        @RequestParam(required = false) String gender) {
         var searchQuery = new FilteredSearchQuery(query, season, divisionId, format, gender);
         return ResponseEntity.ok(
-                searchApplicationService.searchPools(searchQuery).stream()
-                        .map(SearchApiMapper::toInternalResponse)
-                        .toList());
+            searchApplicationService.searchPools(searchQuery).stream()
+                .map(SearchApiMapper::toInternalResponse)
+                .toList());
     }
 }

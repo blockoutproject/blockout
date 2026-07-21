@@ -27,7 +27,9 @@ public class GitHubIssueProvider implements IssueProvider {
     private final GitHub gitHub;
     private final GitHubProperties props;
 
-    /** Crée une issue GitHub (sans modifier le titre). */
+    /**
+     * Crée une issue GitHub (sans modifier le titre).
+     */
     @Override
     public ReportView create(IssueDraft request) {
         String fullRepo = props.getOwner() + "/" + props.getRepo();
@@ -47,18 +49,18 @@ public class GitHubIssueProvider implements IssueProvider {
 
             GHIssue issue = builder.create();
             ReportView result = new ReportView(
-                    issue.getId(), issue.getNumber(), issue.getHtmlUrl().toString(), issue.getTitle(), issue.getState().name());
+                issue.getId(), issue.getNumber(), issue.getHtmlUrl().toString(), issue.getTitle(), issue.getState().name());
 
             logger.info("GitHub issue created",
-                    keyValue("issueNumber", result.number()),
-                    keyValue("url", result.htmlUrl()));
+                keyValue("issueNumber", result.number()),
+                keyValue("url", result.htmlUrl()));
             return result;
 
         } catch (Exception e) {
             logger.error("GitHub issue creation failed",
-                    keyValue("owner", props.getOwner()),
-                    keyValue("repo", props.getRepo()),
-                    keyValue("message", e.getMessage()), e);
+                keyValue("owner", props.getOwner()),
+                keyValue("repo", props.getRepo()),
+                keyValue("message", e.getMessage()), e);
             throw new RuntimeException("GitHub create issue failed", e);
         }
     }
@@ -90,12 +92,12 @@ public class GitHubIssueProvider implements IssueProvider {
 
             issue.setBody(sb.toString());
             logger.info("Issue body updated with image attachments",
-                    keyValue("issueNumber", issueNumber));
+                keyValue("issueNumber", issueNumber));
 
         } catch (Exception e) {
             logger.warn("Failed to append images to issue body",
-                    keyValue("issueNumber", issueNumber),
-                    keyValue("message", e.getMessage()));
+                keyValue("issueNumber", issueNumber),
+                keyValue("message", e.getMessage()));
         }
     }
 }

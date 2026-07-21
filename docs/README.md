@@ -8,4 +8,5 @@
 - [Roadmap](current/roadmap.md)
 - [Local development](runbooks/local-development.md)
 
-The bootstrap documents remain the historical baseline. The refactor direction and roadmap describe the current work. Contract generation, CI, deployment, and public-repository publication remain separate future decisions.
+The bootstrap documents remain the historical baseline. The refactor direction and roadmap describe the current work.
+Contract generation, CI, deployment, and public-repository publication remain separate future decisions.

@@ -27,8 +27,8 @@ public class ConfigApplicationService {
 
     public AppStatusResponse updateAppStatus(UpdateAppStatusRequest dto) {
         logger.info("Updating app status",
-                keyValue("action", "update_app_status"),
-                keyValue("maintenance", dto.getMaintenance()));
+            keyValue("action", "update_app_status"),
+            keyValue("maintenance", dto.getMaintenance()));
         AppStatusResponse updated = configInternalClient.updateAppStatus(dto);
         return updated;
     }
@@ -46,18 +46,18 @@ public class ConfigApplicationService {
 
     public DivisionResponse createDivision(UpsertDivisionRequest dto, MultipartFile image) {
         logger.info("Creating division",
-                keyValue("action", "create_division"),
-                keyValue("has_image", image != null),
-                keyValue("name", dto.getName()));
+            keyValue("action", "create_division"),
+            keyValue("has_image", image != null),
+            keyValue("name", dto.getName()));
         return configInternalClient.createDivision(dto, image);
     }
 
     public DivisionResponse updateDivision(Long id, UpsertDivisionRequest dto, MultipartFile image) {
         logger.info("Updating division",
-                keyValue("action", "update_division"),
-                keyValue("division_id", id),
-                keyValue("has_image", image != null),
-                keyValue("name", dto.getName()));
+            keyValue("action", "update_division"),
+            keyValue("division_id", id),
+            keyValue("has_image", image != null),
+            keyValue("name", dto.getName()));
         return configInternalClient.updateDivision(id, dto, image);
     }
 
@@ -73,8 +73,8 @@ public class ConfigApplicationService {
 
     public LegalDocumentResponse updateLegalDocument(String type, UpdateLegalDocumentRequest dto) {
         logger.info("Updating legal document",
-                keyValue("action", "update_legal_document"),
-                keyValue("type", type));
+            keyValue("action", "update_legal_document"),
+            keyValue("type", type));
         return configInternalClient.updateLegalDocument(type, dto);
     }
 
@@ -85,31 +85,31 @@ public class ConfigApplicationService {
 
     public List<RawDivisionMappingResponse> listRawDivisionMappings(String leagueCode, String season) {
         logger.info("Listing raw division mappings",
-                keyValue("action", "list_raw_division_mappings"),
-                keyValue("league_code", leagueCode),
-                keyValue("season", season));
+            keyValue("action", "list_raw_division_mappings"),
+            keyValue("league_code", leagueCode),
+            keyValue("season", season));
         return configInternalClient.listRawDivisionMappings(leagueCode, season);
     }
 
     public RawDivisionMappingResponse getRawDivisionMappingById(Long id) {
         logger.info("Fetching raw division mapping",
-                keyValue("action", "get_raw_division_mapping_by_id"),
-                keyValue("mapping_id", id));
+            keyValue("action", "get_raw_division_mapping_by_id"),
+            keyValue("mapping_id", id));
         return configInternalClient.getRawDivisionMappingById(id);
     }
 
     public RawDivisionMappingResponse updateRawDivisionMapping(Long id, UpdateRawDivisionMappingRequest dto) {
         logger.info("Updating raw division mapping",
-                keyValue("action", "update_raw_division_mapping"),
-                keyValue("mapping_id", id));
+            keyValue("action", "update_raw_division_mapping"),
+            keyValue("mapping_id", id));
         return configInternalClient.updateRawDivisionMapping(id, dto);
     }
 
     public ScraperStatusResponse updateScraperStatus(String name, boolean enabled) {
         logger.info("Updating scraper status",
-                keyValue("action", "update_scraper_status"),
-                keyValue("scraper_name", name),
-                keyValue("enabled", enabled));
+            keyValue("action", "update_scraper_status"),
+            keyValue("scraper_name", name),
+            keyValue("enabled", enabled));
         return configInternalClient.updateScraperStatus(name, enabled);
     }
 

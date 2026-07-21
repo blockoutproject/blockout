@@ -41,7 +41,7 @@ public class IssueDraftFactory {
         if (command.attachmentImageUrls() != null && !command.attachmentImageUrls().isEmpty()) {
             body.append("## Pièces jointes\n");
             command.attachmentImageUrls().stream().filter(this::notBlank)
-                    .forEach(url -> body.append("![screenshot](").append(url).append(")\n"));
+                .forEach(url -> body.append("![screenshot](").append(url).append(")\n"));
         }
 
         return new IssueDraft(command.title(), body.toString(), labels);

@@ -8,13 +8,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
-/** RabbitMQ adapter for Pool lifecycle messages. */
-@Component @RequiredArgsConstructor
+/**
+ * RabbitMQ adapter for Pool lifecycle messages.
+ */
+@Component
+@RequiredArgsConstructor
 public class RabbitPoolEventPublisher implements PoolEventPublisher {
     private final RabbitTemplate rabbitTemplate;
-    @Override public void publishPoolUpsert(PoolView pool) {
+
+    @Override
+    public void publishPoolUpsert(PoolView pool) {
         rabbitTemplate.convertAndSend(RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE, "pool.upsert",
-                new PoolUpsertEvent(pool.id(), pool.name(), pool.shortName(), pool.divisionId(), pool.leagueCode(),
-                        pool.leagueName(), pool.season(), pool.format(), pool.gender()));
+            new PoolUpsertEvent(pool.id(), pool.name(), pool.shortName(), pool.divisionId(), pool.leagueCode(),
+                pool.leagueName(), pool.season(), pool.format(), pool.gender()));
     }
 }

@@ -1,18 +1,19 @@
 package com.blockout.notifications.notification.application;
 
+import com.blockout.notifications.notification.application.commands.RegisterPushTokenCommand;
+import com.blockout.notifications.notification.application.views.ResolvedPushTokensPage;
+import com.blockout.notifications.notification.infrastructure.persistence.entities.PushTokenEntity;
+import com.blockout.notifications.notification.infrastructure.persistence.repositories.PushTokenRepository;
 import lombok.RequiredArgsConstructor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.blockout.notifications.notification.application.commands.RegisterPushTokenCommand;
-import com.blockout.notifications.notification.application.views.ResolvedPushTokensPage;
-import com.blockout.notifications.notification.infrastructure.persistence.entities.PushTokenEntity;
-import com.blockout.notifications.notification.infrastructure.persistence.repositories.PushTokenRepository;
-
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
@@ -59,12 +60,12 @@ public class PushTokenApplicationService {
             }
 
             logger.info("Push token reattached",
-                    keyValue("action", "register_push_token"),
-                    keyValue("token", mask(newToken)),
-                    keyValue("fromUserId", prevUser),
-                    keyValue("toUserId", userId),
-                    keyValue("platform", request.platform().name()),
-                    keyValue("deviceId", deviceId));
+                keyValue("action", "register_push_token"),
+                keyValue("token", mask(newToken)),
+                keyValue("fromUserId", prevUser),
+                keyValue("toUserId", userId),
+                keyValue("platform", request.platform().name()),
+                keyValue("deviceId", deviceId));
             return;
         }
 
@@ -82,29 +83,29 @@ public class PushTokenApplicationService {
                 tokenRepository.deleteOthersByUserAndDevice(userId, deviceId, row.getId());
 
                 logger.info("Push token rotated (by deviceId)",
-                        keyValue("action", "register_push_token"),
-                        keyValue("userId", userId),
-                        keyValue("platform", request.platform().name()),
-                        keyValue("deviceId", deviceId));
+                    keyValue("action", "register_push_token"),
+                    keyValue("userId", userId),
+                    keyValue("platform", request.platform().name()),
+                    keyValue("deviceId", deviceId));
                 return;
             }
         }
 
         // 3) Nouveau device
         var entity = PushTokenEntity.builder()
-                .userId(userId)
-                .expoPushToken(newToken)
-                .platform(request.platform())
-                .deviceId(deviceId)
-                .active(true)
-                .build();
+            .userId(userId)
+            .expoPushToken(newToken)
+            .platform(request.platform())
+            .deviceId(deviceId)
+            .active(true)
+            .build();
         tokenRepository.save(entity);
 
         logger.info("Push token registered",
-                keyValue("action", "register_push_token"),
-                keyValue("userId", userId),
-                keyValue("platform", request.platform().name()),
-                keyValue("deviceId", deviceId));
+            keyValue("action", "register_push_token"),
+            keyValue("userId", userId),
+            keyValue("platform", request.platform().name()),
+            keyValue("deviceId", deviceId));
     }
 
     /**
@@ -120,22 +121,22 @@ public class PushTokenApplicationService {
         var rows = tokenRepository.findAllByUserIdInAndActiveTrue(userIds);
 
         Map<Long, List<String>> tokensByUser = rows.stream()
-                .collect(Collectors.groupingBy(
-                        PushTokenEntity::getUserId,
-                        Collectors.mapping(PushTokenEntity::getExpoPushToken, Collectors.toList())));
+            .collect(Collectors.groupingBy(
+                PushTokenEntity::getUserId,
+                Collectors.mapping(PushTokenEntity::getExpoPushToken, Collectors.toList())));
 
         Set<Long> noTokenUserIds = userIds.stream()
-                .filter(id -> {
-                    List<String> tokens = tokensByUser.get(id);
-                    return tokens == null || tokens.isEmpty();
-                })
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+            .filter(id -> {
+                List<String> tokens = tokensByUser.get(id);
+                return tokens == null || tokens.isEmpty();
+            })
+            .collect(Collectors.toCollection(LinkedHashSet::new));
 
         logger.info("Resolved tokens (page)",
-                keyValue("action", "resolve_tokens_page"),
-                keyValue("userCount", userIds.size()),
-                keyValue("resolvedUserCount", tokensByUser.size()),
-                keyValue("noTokenUsers", noTokenUserIds.size()));
+            keyValue("action", "resolve_tokens_page"),
+            keyValue("userCount", userIds.size()),
+            keyValue("resolvedUserCount", tokensByUser.size()),
+            keyValue("noTokenUsers", noTokenUserIds.size()));
 
         return new ResolvedPushTokensPage(tokensByUser, noTokenUserIds);
     }
@@ -150,9 +151,9 @@ public class PushTokenApplicationService {
         }
 
         List<String> distinct = tokens.stream()
-                .filter(t -> t != null && !t.isBlank())
-                .distinct()
-                .toList();
+            .filter(t -> t != null && !t.isBlank())
+            .distinct()
+            .toList();
 
         if (distinct.isEmpty()) {
             return;
@@ -161,10 +162,10 @@ public class PushTokenApplicationService {
         int updated = tokenRepository.deactivateByTokens(distinct);
 
         logger.info("Push token batch deactivated",
-                keyValue("action", "deactivate_push_token_batch"),
-                keyValue("requested", tokens.size()),
-                keyValue("distinct", distinct.size()),
-                keyValue("deactivated", updated));
+            keyValue("action", "deactivate_push_token_batch"),
+            keyValue("requested", tokens.size()),
+            keyValue("distinct", distinct.size()),
+            keyValue("deactivated", updated));
     }
 
     private String mask(String token) {

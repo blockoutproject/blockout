@@ -17,7 +17,7 @@ class FfvbPublicControllerTest {
 
     @Test
     void streamsSuccessfulDownloadsWithTheExistingMobileHeaders() throws Exception {
-        byte[] pdf = new byte[] { 1, 2, 3 };
+        byte[] pdf = new byte[]{1, 2, 3};
         when(pdfService.download("signed-token")).thenReturn(new FfvbPdfDownload(200, pdf, false));
         MockHttpServletResponse response = new MockHttpServletResponse();
 

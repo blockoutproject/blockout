@@ -9,7 +9,8 @@ import com.blockout.search.search.application.views.TeamSearchResult;
 
 public final class SearchApiMapper {
 
-    private SearchApiMapper() {}
+    private SearchApiMapper() {
+    }
 
     public static ClubSearchInternalResponse toInternalResponse(ClubSearchResult result) {
         return new ClubSearchInternalResponse(result.id(), result.name(), result.logoUrl(), result.city());
@@ -17,30 +18,30 @@ public final class SearchApiMapper {
 
     public static TeamSearchInternalResponse toInternalResponse(TeamSearchResult result) {
         return new TeamSearchInternalResponse(
-                result.id(),
-                result.name(),
-                result.shortName(),
-                result.clubId(),
-                result.clubName(),
-                result.clubCity(),
-                result.logoUrl(),
-                result.divisionName(),
-                result.format(),
-                result.gender(),
-                result.season());
+            result.id(),
+            result.name(),
+            result.shortName(),
+            result.clubId(),
+            result.clubName(),
+            result.clubCity(),
+            result.logoUrl(),
+            result.divisionName(),
+            result.format(),
+            result.gender(),
+            result.season());
     }
 
     public static PoolSearchInternalResponse toInternalResponse(PoolSearchResult result) {
         return new PoolSearchInternalResponse(
-                result.id(),
-                result.name(),
-                result.shortName(),
-                result.divisionName(),
-                result.leagueCode(),
-                result.leagueName(),
-                result.season(),
-                result.format(),
-                result.gender(),
-                result.logoUrl());
+            result.id(),
+            result.name(),
+            result.shortName(),
+            result.divisionName(),
+            result.leagueCode(),
+            result.leagueName(),
+            result.season(),
+            result.format(),
+            result.gender(),
+            result.logoUrl());
     }
 }

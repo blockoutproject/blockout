@@ -21,7 +21,7 @@ public interface CompetitionAssociationService {
     void bulkDeactivateClubs(List<String> clubIdsToDeactivate);
 
     CompetitionAssociationView updateTeamAssociationStats(
-            Long poolId, Long teamId, UpdateAssociationStatsCommand command);
+        Long poolId, Long teamId, UpdateAssociationStatsCommand command);
 
     List<PoolWithRankingView> getPoolsAndRankingsByTeam(Long teamId);
 }

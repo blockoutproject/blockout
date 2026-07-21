@@ -17,15 +17,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-/** Verifies scraper-status creation and update behavior. */
+/**
+ * Verifies scraper-status creation and update behavior.
+ */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Scraper-status application service")
 class ScraperStatusApplicationServiceUnitTest {
 
-    @Mock private ScraperStatusRepository repository;
-    @InjectMocks private ScraperStatusApplicationService service;
+    @Mock
+    private ScraperStatusRepository repository;
+    @InjectMocks
+    private ScraperStatusApplicationService service;
 
-    /** Creates a missing scraper status with the requested state. */
+    /**
+     * Creates a missing scraper status with the requested state.
+     */
     @Test
     @DisplayName("creates a missing scraper status")
     void createsMissingScraperStatus() {

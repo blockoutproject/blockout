@@ -17,8 +17,8 @@ public class PoolSecureController {
 
     @PutMapping("/{id}")
     public ResponseEntity<PoolInternalResponse> updatePool(
-            @PathVariable Long id,
-            @RequestBody UpdatePoolRequest dto) {
+        @PathVariable Long id,
+        @RequestBody UpdatePoolRequest dto) {
 
         PoolInternalResponse updated = poolService.updatePool(id, dto);
         return ResponseEntity.ok(updated);

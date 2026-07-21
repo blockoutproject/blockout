@@ -1,7 +1,7 @@
 import json
-import logging
 from contextvars import ContextVar
 
+import logging
 from scraper.config.settings import LOG_LEVEL
 
 log_level = getattr(logging, LOG_LEVEL, logging.INFO)

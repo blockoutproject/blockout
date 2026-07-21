@@ -24,14 +24,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** Verifies Team use cases with persistence and outbound adapters isolated. */
+/**
+ * Verifies Team use cases with persistence and outbound adapters isolated.
+ */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Team application service")
 class TeamApplicationServiceUnitTest {
 
-    @Mock private TeamRepository teamRepository;
-    @Mock private TeamEventPublisher eventPublisher;
-    @Mock private TeamImageStorage imageStorage;
+    @Mock
+    private TeamRepository teamRepository;
+    @Mock
+    private TeamEventPublisher eventPublisher;
+    @Mock
+    private TeamImageStorage imageStorage;
     private TeamApplicationService service;
 
     @BeforeEach
@@ -44,8 +49,8 @@ class TeamApplicationServiceUnitTest {
     @DisplayName("creates defaults and publishes the Team search projection")
     void createsDefaultsAndPublishesTheTeamSearchProjection() {
         CreateTeamCommand command = new CreateTeamCommand(
-                "club-1", "RAW", "Team", "BO", "LNV", 2L, "2026/2027",
-                Format.SIX, Gender.F, null, null, null);
+            "club-1", "RAW", "Team", "BO", "LNV", 2L, "2026/2027",
+            Format.SIX, Gender.F, null, null, null);
 
         var created = service.createTeam(command);
 
@@ -62,7 +67,7 @@ class TeamApplicationServiceUnitTest {
         TeamImageCommand image = new TeamImageCommand(new byte[]{1}, "team.png", "image/png");
         when(imageStorage.uploadTeamImage(image)).thenReturn("new-logo");
         UpdateTeamCommand command = new UpdateTeamCommand(
-                null, null, "New Team", null, null, null, null, null, null, null, false, image);
+            null, null, "New Team", null, null, null, null, null, null, null, false, image);
 
         var updated = service.updateTeam(3L, command);
 
@@ -92,7 +97,7 @@ class TeamApplicationServiceUnitTest {
 
     private TeamEntity team(Long id, boolean active, String logoUrl) {
         return TeamEntity.builder().id(id).clubId("club-1").rawName("RAW").name("Team").shortName("BO")
-                .leagueCode("LNV").divisionId(2L).season("2026/2027").format(Format.SIX).gender(Gender.F)
-                .followersCount(0L).logoUrl(logoUrl).active(active).build();
+            .leagueCode("LNV").divisionId(2L).season("2026/2027").format(Format.SIX).gender(Gender.F)
+            .followersCount(0L).logoUrl(logoUrl).active(active).build();
     }
 }

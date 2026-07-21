@@ -8,9 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class FfvbPdfApplicationServiceTest {
@@ -27,7 +25,7 @@ class FfvbPdfApplicationServiceTest {
     @Test
     void routesSheetTokensToTheSheetSource() {
         PdfLinkTokenService.Payload payload = new PdfLinkTokenService.Payload("sheet", "2026", "LNV", "M1");
-        FfvbPdfDownload expected = new FfvbPdfDownload(200, new byte[] { 1, 2 }, false);
+        FfvbPdfDownload expected = new FfvbPdfDownload(200, new byte[]{1, 2}, false);
         when(tokenService.validate("signed-token")).thenReturn(payload);
         when(pdfSource.downloadSheet(payload)).thenReturn(expected);
 
@@ -40,7 +38,7 @@ class FfvbPdfApplicationServiceTest {
     @Test
     void routesAddressTokensToTheAddressSource() {
         PdfLinkTokenService.Payload payload = new PdfLinkTokenService.Payload("address", "2026", "LNV", "M1");
-        FfvbPdfDownload expected = new FfvbPdfDownload(200, new byte[] { 3 }, false);
+        FfvbPdfDownload expected = new FfvbPdfDownload(200, new byte[]{3}, false);
         when(tokenService.validate("signed-token")).thenReturn(payload);
         when(pdfSource.downloadAddress(payload)).thenReturn(expected);
 
@@ -54,8 +52,8 @@ class FfvbPdfApplicationServiceTest {
         when(tokenService.validate("signed-token")).thenReturn(payload);
 
         assertThatThrownBy(() -> pdfService.download("signed-token"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Invalid PDF kind");
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid PDF kind");
         verifyNoInteractions(pdfSource);
     }
 }

@@ -6,11 +6,7 @@ import com.blockout.mobilegateway.ffvb.application.PdfLinkTokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -37,18 +33,18 @@ public class HttpFfvbPdfSource implements FfvbPdfSource {
         if ("AALNV".equals(payload.codent())) {
             String genderFolder = payload.codmatch().startsWith("SPS") ? "Women" : "Men";
             url = UriComponentsBuilder
-                    .fromUriString(String.format(
-                            "https://www.lnv.fr/pdf/2025/DataVolley/%s/%s-2027.pdf",
-                            genderFolder,
-                            payload.codmatch()))
-                    .toUriString();
+                .fromUriString(String.format(
+                    "https://www.lnv.fr/pdf/2025/DataVolley/%s/%s-2027.pdf",
+                    genderFolder,
+                    payload.codmatch()))
+                .toUriString();
         } else {
             url = UriComponentsBuilder
-                    .fromUriString("https://www.ffvbbeach.org/ffvbapp/resu/ffvolley_fdme.php")
-                    .queryParam("saison", payload.saison())
-                    .queryParam("codent", payload.codent())
-                    .queryParam("codmatch", payload.codmatch())
-                    .toUriString();
+                .fromUriString("https://www.ffvbbeach.org/ffvbapp/resu/ffvolley_fdme.php")
+                .queryParam("saison", payload.saison())
+                .queryParam("codent", payload.codent())
+                .queryParam("codmatch", payload.codmatch())
+                .toUriString();
         }
 
         HttpHeaders headers = new HttpHeaders();
@@ -81,10 +77,10 @@ public class HttpFfvbPdfSource implements FfvbPdfSource {
             return new FfvbPdfDownload(response.getStatusCode().value(), response.getBody(), false);
         } catch (HttpStatusCodeException exception) {
             logger.error(
-                    "FFVB PDF source returned an HTTP error",
-                    keyValue("status", exception.getStatusCode().value()),
-                    keyValue("body", exception.getResponseBodyAsString()),
-                    exception);
+                "FFVB PDF source returned an HTTP error",
+                keyValue("status", exception.getStatusCode().value()),
+                keyValue("body", exception.getResponseBodyAsString()),
+                exception);
             return new FfvbPdfDownload(exception.getStatusCode().value(), null, true);
         }
     }

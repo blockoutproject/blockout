@@ -1,9 +1,9 @@
 import asyncio
+import pytest
 from datetime import datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-import pytest
 import scraper.bootstrap as competition_main
 import scraper.infrastructure.blockout.auth as auth0
 import scraper.infrastructure.provider_http as provider_http

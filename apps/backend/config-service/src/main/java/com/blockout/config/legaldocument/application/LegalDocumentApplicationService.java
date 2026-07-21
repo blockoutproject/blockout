@@ -13,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-/** Transactional application service for legal documents. */
+/**
+ * Transactional application service for legal documents.
+ */
 @Service
 @RequiredArgsConstructor
 public class LegalDocumentApplicationService implements LegalDocumentService {
@@ -21,14 +23,18 @@ public class LegalDocumentApplicationService implements LegalDocumentService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LegalDocumentApplicationService.class);
     private final LegalDocumentRepository repository;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public LegalDocumentView getByType(String type) {
         return toView(loadByType(type));
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public LegalDocumentView update(String type, UpdateLegalDocumentCommand command) {
@@ -41,20 +47,26 @@ public class LegalDocumentApplicationService implements LegalDocumentService {
         return updated;
     }
 
-    /** Loads a document or raises the stable not-found error. */
+    /**
+     * Loads a document or raises the stable not-found error.
+     */
     private LegalDocumentEntity loadByType(String type) {
         return repository.findByType(type).orElseThrow(() -> new ConfigResourceNotFoundException(
-                "legal_document_not_found", "Legal document not found with type: " + type));
+            "legal_document_not_found", "Legal document not found with type: " + type));
     }
 
-    /** Normalizes mutable route input exactly as the legacy update did. */
+    /**
+     * Normalizes mutable route input exactly as the legacy update did.
+     */
     private String normalize(String type) {
         return type.toLowerCase().trim();
     }
 
-    /** Maps persisted state to the authoritative application view. */
+    /**
+     * Maps persisted state to the authoritative application view.
+     */
     private LegalDocumentView toView(LegalDocumentEntity document) {
         return new LegalDocumentView(document.getId(), document.getType(), document.getTitle(), document.getVersion(),
-                document.getContent(), document.getCreatedAt(), document.getLastUpdate());
+            document.getContent(), document.getCreatedAt(), document.getLastUpdate());
     }
 }

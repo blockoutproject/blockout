@@ -8,11 +8,13 @@ import com.blockout.teams.team.application.views.TeamView;
 
 import java.util.List;
 
-/** Application use cases exposed by teams-service. */
+/**
+ * Application use cases exposed by teams-service.
+ */
 public interface TeamService {
 
     List<TeamView> findTeams(Long divisionId, Format format, Gender gender, String season,
-            String clubId, List<Long> ids, Boolean active);
+                             String clubId, List<Long> ids, Boolean active);
 
     TeamView getTeamById(Long id);
 

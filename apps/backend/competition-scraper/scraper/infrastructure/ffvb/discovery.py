@@ -1,8 +1,7 @@
 """Pure discovery parsers for public FFVB navigation pages."""
 
-from urllib.parse import parse_qs, urljoin, urlparse, urlunparse
-
 from bs4 import BeautifulSoup, Tag
+from urllib.parse import parse_qs, urljoin, urlparse, urlunparse
 
 from scraper.domain.normalization import (
     capitalize_words,

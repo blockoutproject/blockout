@@ -7,7 +7,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -55,13 +58,13 @@ public class FfvbPublicController {
 
             if (!HttpStatus.valueOf(download.statusCode()).is2xxSuccessful() || download.content() == null) {
                 logger.error("Upstream non-success response",
-                        keyValue("status", download.statusCode()));
+                    keyValue("status", download.statusCode()));
 
                 resp.setStatus(download.statusCode());
                 resp.setContentType("text/plain; charset=utf-8");
                 resp.getOutputStream()
-                        .write(("Upstream error: " + download.statusCode())
-                                .getBytes(StandardCharsets.UTF_8));
+                    .write(("Upstream error: " + download.statusCode())
+                        .getBytes(StandardCharsets.UTF_8));
                 return;
             }
 
@@ -72,8 +75,8 @@ public class FfvbPublicController {
             resp.getOutputStream().write(download.content());
 
             logger.info("FFVB PDF success",
-                    keyValue("size", download.content().length),
-                    keyValue("ms", Duration.between(start, Instant.now()).toMillis()));
+                keyValue("size", download.content().length),
+                keyValue("ms", Duration.between(start, Instant.now()).toMillis()));
 
         } catch (Exception e) {
             logger.error("Unhandled exception in proxySigned", e);
@@ -83,7 +86,7 @@ public class FfvbPublicController {
             }
 
             logger.error("Request failed",
-                    keyValue("ms", Duration.between(start, Instant.now()).toMillis()));
+                keyValue("ms", Duration.between(start, Instant.now()).toMillis()));
         }
     }
 }

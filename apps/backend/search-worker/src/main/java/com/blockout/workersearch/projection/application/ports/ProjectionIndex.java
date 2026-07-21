@@ -3,6 +3,7 @@ package com.blockout.workersearch.projection.application.ports;
 import com.blockout.workersearch.projection.application.models.ClubSearchProjection;
 import com.blockout.workersearch.projection.application.models.PoolSearchProjection;
 import com.blockout.workersearch.projection.application.models.TeamSearchProjection;
+
 import java.util.List;
 
 public interface ProjectionIndex {

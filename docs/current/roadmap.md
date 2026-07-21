@@ -11,25 +11,31 @@
   - Exclude database, configuration, protocol, and provider-owned names.
 
 - [x] **REF-002 — Characterize the JSON flows before changing them**
-  - Add focused serialization and client-boundary tests for representative backend, gateway, worker, scraper, and mobile flows.
+  - Add focused serialization and client-boundary tests for representative backend, gateway, worker, scraper, and mobile
+    flows.
   - Cover the scraper status check and one write payload for each scraper without calling production systems.
   - Preserve current behavior so the camelCase migration has an executable baseline.
 
 - [x] **REF-003 — Migrate Blockout-owned JSON fields to camelCase**
-  - Change all in-repository producers and consumers together: Java services, gateway, worker, Python scrapers, and Expo mobile.
-  - Keep the existing V1 routes and controllers; do not create V2 endpoints, aliases, contract sources, or generated code.
+  - Change all in-repository producers and consumers together: Java services, gateway, worker, Python scrapers, and Expo
+    mobile.
+  - Keep the existing V1 routes and controllers; do not create V2 endpoints, aliases, contract sources, or generated
+    code.
   - Leave external provider payloads and non-JSON infrastructure names unchanged.
-  - Remove the global snake_case serialization settings and explicit application-owned snake_case mappings once no longer needed.
+  - Remove the global snake_case serialization settings and explicit application-owned snake_case mappings once no
+    longer needed.
 
 - [x] **REF-004 — Validate both scrapers against the local application stack**
   - Start the required infrastructure and APIs with local configuration.
-  - Exercise each scraper through status retrieval, representative parsing, and application API writes using controlled non-production inputs.
+  - Exercise each scraper through status retrieval, representative parsing, and application API writes using controlled
+    non-production inputs.
   - Verify persisted results, service health, logs, metrics, and the absence of unintended external writes.
   - Record missing credentials or unavailable external fixtures honestly; do not weaken the functional gate.
 
 - [x] **REF-005 — Make the Blockout HTTP contract natively camelCase**
   - Use camelCase directly in Java, Python, and TypeScript transport models and query parameters.
-  - Remove generic case-conversion utilities and retain only type serialization required for values such as dates and enums.
+  - Remove generic case-conversion utilities and retain only type serialization required for values such as dates and
+    enums.
   - Preserve provider-owned payloads and non-HTTP infrastructure names.
 
 - [x] **REF-006 — Establish a green local verification baseline**
@@ -38,10 +44,14 @@
   - Validate the complete Maven reactor, mobile typecheck, and a gateway-to-service local smoke.
 
 - [x] **REF-007 — Refactor clubs-service and establish authoritative Club ownership**
-  - Separate handwritten Club HTTP models, API mapping, application commands and views, persistence, messaging, storage, and geocoding using the Maaatch naming approach.
-  - Make `clubs-service` the owner of the complete Club representation and align its complete mirrors in the gateway, search worker, club scraper, and mobile application.
-  - Keep lifecycle events and search documents as explicit purpose-specific projections rather than expanding them into duplicate Club resources.
-  - Protect create, update, image, deactivation, camelCase, consumer deserialization, and scraper write behavior with focused tests and a local authenticated smoke.
+  - Separate handwritten Club HTTP models, API mapping, application commands and views, persistence, messaging, storage,
+    and geocoding using the Maaatch naming approach.
+  - Make `clubs-service` the owner of the complete Club representation and align its complete mirrors in the gateway,
+    search worker, club scraper, and mobile application.
+  - Keep lifecycle events and search documents as explicit purpose-specific projections rather than expanding them into
+    duplicate Club resources.
+  - Protect create, update, image, deactivation, camelCase, consumer deserialization, and scraper write behavior with
+    focused tests and a local authenticated smoke.
 
 - [x] **REF-008 — Establish Blockout repository agent skills**
   - Add the repository-local agent entrypoints and applicable Maaatch-derived engineering policies for the current Nx,
@@ -86,7 +96,8 @@
 
 - [x] **REF-016 — Refactor notification-service and establish authoritative Notification ownership**
   - Separate notification transport, application, persistence, event-consumer, Auth0, and Expo boundaries.
-  - Align complete notification mirrors while preserving V1 routes, schema, queues, provider behavior, and runtime behavior.
+  - Align complete notification mirrors while preserving V1 routes, schema, queues, provider behavior, and runtime
+    behavior.
 
 - [x] **REF-017 — Refactor reports-service and isolate report providers**
   - Separate report transport, application assembly, GitHub, and Discord boundaries.
@@ -102,7 +113,8 @@
 
 - [x] **REF-020 — Refactor mobile-gateway as the final handwritten BFF boundary**
   - Separate mobile-facing APIs, orchestration, internal clients, provider adapters, security, and transport mirrors.
-  - Align every complete owner mirror while preserving V1 mobile routes, caching, provider behavior, and runtime behavior.
+  - Align every complete owner mirror while preserving V1 mobile routes, caching, provider behavior, and runtime
+    behavior.
 
 - [x] **REF-021 — Establish Python scraper architecture and testing policies**
   - Define a simple typed application/domain/infrastructure structure, async ownership, error discipline, provider
@@ -122,7 +134,8 @@
 
 - [x] **REF-024 — Characterize the complete competition scraper**
   - Protect departmental, regional, national, and professional provider flows; HTML, XML, and CSV parsing; aliases,
-    source priority, statistics, retries, concurrency, scheduling, authentication, internal writes, and failure isolation.
+    source priority, statistics, retries, concurrency, scheduling, authentication, internal writes, and failure
+    isolation.
   - Do not restructure production code or activate contract generation in this task.
 
 - [x] **REF-025 — Refactor the competition scraper with differential parity**
@@ -130,14 +143,18 @@
     explicit application, provider, Blockout, configuration, scheduling, and observability boundaries.
   - Preserve REF-024 behavior and exact handwritten Java-owner internal mirrors; use only authentic source-derived
     provider fixtures and remove the legacy path only after complete offline parity and controlled startup evidence.
-  - Evidence: all 55 offline characterization and contract tests pass; Ruff, compileall, Nx targets, the production image
-    build, runtime imports, and an isolated no-network startup smoke pass. The legacy paths and unused local contract enum
+  - Evidence: all 55 offline characterization and contract tests pass; Ruff, compileall, Nx targets, the production
+    image
+    build, runtime imports, and an isolated no-network startup smoke pass. The legacy paths and unused local contract
+    enum
     copies are removed, and the authentic fixture provenance is recorded beside the test corpus.
 
 - [x] **REF-026 — Harden competition provider parsing and ingestion**
-  - Replace ASP.NET index traversal with one-pass typed LNV parsing and pool-local owner indexes, while preserving source
+  - Replace ASP.NET index traversal with one-pass typed LNV parsing and pool-local owner indexes, while preserving
+    source
     priority and write semantics.
-  - Introduce typed FFVB discovery, calendar, and ranking records; share league ingestion without hiding provider-specific
+  - Introduce typed FFVB discovery, calendar, and ranking records; share league ingestion without hiding
+    provider-specific
     discovery rules.
   - Honor provider encodings and HTTPS, distinguish complete snapshots from unavailable or invalid responses, and allow
     destructive cleanup only after a complete source observation.
@@ -145,18 +162,22 @@
     systems. Keep the temporarily unavailable LNV XML path unchanged.
   - Evidence: 69 offline tests pass over five departmental, five regional, five national, and three professional real
     source-derived cases. Current read-only provider smoke returns 13/67/29 FFVB discoveries, 132 complete 3MA rows, and
-    4/4/165 LNV HTML matches. Nx, Ruff, compileall, image build, imports, and no-network image smoke pass. Local owner API
+    4/4/165 LNV HTML matches. Nx, Ruff, compileall, image build, imports, and no-network image smoke pass. Local owner
+    API
     reads pass, including the authenticated `SCRAPER` status request used by the competition scraper.
 
 - [x] **REF-027 — Certify competition scraper persistence end to end**
   - Exercise one authentic departmental, regional, and national FFVB source plus the three professional LNV HTML pages
     against the local owner APIs and disposable local records.
-  - Verify persisted pools, teams, associations, and matches, then repeat identical input to prove idempotence and use an
+  - Verify persisted pools, teams, associations, and matches, then repeat identical input to prove idempotence and use
+    an
     incomplete observation to prove destructive reconciliation remains disabled.
   - Keep the unavailable LNV XML path unchanged and uncalled, restore the local scraper status, and remove only the
     records created by this validation.
-  - Evidence: six real-source flows persisted 6 pools, 63 teams and associations, and 477 matches through the local APIs.
-    The three Data Project pages added 4/165/4 live codes; repeated input produced an identical state; the incomplete EFA
+  - Evidence: six real-source flows persisted 6 pools, 63 teams and associations, and 477 matches through the local
+    APIs.
+    The three Data Project pages added 4/165/4 live codes; repeated input produced an identical state; the incomplete
+    EFA
     export preserved disposable sentinels. Two discovered defects are covered by authentic regression tests: nested
     FFVB calendar rows cannot become rankings, and absent rankings cannot overwrite association statistics. All 71
     scraper tests, Ruff, compileall, Nx targets, image build/import, cleanup, and status-preservation checks pass.
@@ -168,9 +189,11 @@
     supported product platform and no web deployment is introduced.
   - Add focused Jest/React Native Testing Library coverage for stable behavior, then verify the available iOS simulator
     and Android emulator surfaces. Record unavailable native infrastructure honestly instead of weakening the gate.
-  - Preserve the current routes, UI, APIs, native behavior, and handwritten models. Keep contract-first, code generation,
+  - Preserve the current routes, UI, APIs, native behavior, and handwritten models. Keep contract-first, code
+    generation,
     GitFlow, CI, deployment, and production changes deferred.
-  - Evidence: clean npm installation and a deduplicated native dependency tree pass; Nx typecheck, 10 focused Jest tests,
+  - Evidence: clean npm installation and a deduplicated native dependency tree pass; Nx typecheck, 10 focused Jest
+    tests,
     and the Expo Web export pass. Chrome renders and navigates the guest/search/profile flow at 390 x 844. Fresh iOS
     and Android debug builds install and launch on their simulators, with Android remaining alive after startup. Native
     boundaries, browser CORS, provider credentials, physical-device gaps, and the inherited audit findings are recorded

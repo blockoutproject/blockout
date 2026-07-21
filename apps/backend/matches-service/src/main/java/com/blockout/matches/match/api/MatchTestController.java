@@ -7,11 +7,7 @@ import com.blockout.matches.match.application.views.MatchView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -32,8 +28,8 @@ public class MatchTestController {
     @PostMapping("/emit-finished")
     public ResponseEntity<Void> emitFinishedCustom(@RequestBody MatchFinishedTestRequest request) {
         eventPublisher.publishMatchFinished(new MatchView(
-                request.id(), null, null, request.poolId(), null, request.teamIdA(), request.teamIdB(), null,
-                null, request.set(), null, null, null, null, null, null, null, null, null, null, null));
+            request.id(), null, null, request.poolId(), null, request.teamIdA(), request.teamIdB(), null,
+            null, request.set(), null, null, null, null, null, null, null, null, null, null, null));
         return ResponseEntity.accepted().build();
     }
 }

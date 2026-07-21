@@ -23,17 +23,17 @@ public class ClubApiMapper {
      */
     public CreateClubCommand toCommand(CreateClubInternalRequest request, MultipartFile image) throws IOException {
         return new CreateClubCommand(
-                request.id(),
-                request.rawName(),
-                request.name(),
-                request.address(),
-                request.city(),
-                request.postalCode(),
-                request.email(),
-                request.phoneNumber(),
-                request.website(),
-                request.logoUrl(),
-                toImageCommand(image));
+            request.id(),
+            request.rawName(),
+            request.name(),
+            request.address(),
+            request.city(),
+            request.postalCode(),
+            request.email(),
+            request.phoneNumber(),
+            request.website(),
+            request.logoUrl(),
+            toImageCommand(image));
     }
 
     /**
@@ -41,16 +41,16 @@ public class ClubApiMapper {
      */
     public UpdateClubCommand toCommand(UpdateClubInternalRequest request, MultipartFile image) throws IOException {
         return new UpdateClubCommand(
-                request.rawName(),
-                request.name(),
-                request.address(),
-                request.city(),
-                request.postalCode(),
-                request.email(),
-                request.phoneNumber(),
-                request.website(),
-                request.logoUrl(),
-                toImageCommand(image));
+            request.rawName(),
+            request.name(),
+            request.address(),
+            request.city(),
+            request.postalCode(),
+            request.email(),
+            request.phoneNumber(),
+            request.website(),
+            request.logoUrl(),
+            toImageCommand(image));
     }
 
     /**
@@ -58,21 +58,21 @@ public class ClubApiMapper {
      */
     public ClubInternalResponse toInternalResponse(ClubView view) {
         return new ClubInternalResponse(
-                view.id(),
-                view.rawName(),
-                view.name(),
-                view.address(),
-                view.city(),
-                view.postalCode(),
-                view.email(),
-                view.phoneNumber(),
-                view.website(),
-                view.logoUrl(),
-                view.active(),
-                view.latitude(),
-                view.longitude(),
-                view.createdAt(),
-                view.lastUpdate());
+            view.id(),
+            view.rawName(),
+            view.name(),
+            view.address(),
+            view.city(),
+            view.postalCode(),
+            view.email(),
+            view.phoneNumber(),
+            view.website(),
+            view.logoUrl(),
+            view.active(),
+            view.latitude(),
+            view.longitude(),
+            view.createdAt(),
+            view.lastUpdate());
     }
 
     /**

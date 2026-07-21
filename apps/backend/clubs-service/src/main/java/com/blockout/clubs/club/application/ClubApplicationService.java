@@ -42,12 +42,12 @@ public class ClubApplicationService implements ClubService {
     public List<ClubView> findClubs(List<String> ids, Boolean active) {
         List<String> safeIds = ids == null ? Collections.emptyList() : ids;
         List<ClubView> clubs = clubRepository.findFiltered(safeIds, safeIds.size(), active).stream()
-                .map(this::toView)
-                .toList();
+            .map(this::toView)
+            .toList();
         LOGGER.debug("Filtered clubs",
-                keyValue("action", "list_clubs"),
-                keyValue("ids", safeIds),
-                keyValue("count", clubs.size()));
+            keyValue("action", "list_clubs"),
+            keyValue("ids", safeIds),
+            keyValue("count", clubs.size()));
         return clubs;
     }
 
@@ -67,18 +67,18 @@ public class ClubApplicationService implements ClubService {
     @Transactional
     public ClubView createClub(CreateClubCommand command) {
         ClubEntity club = ClubEntity.builder()
-                .id(command.id())
-                .rawName(command.rawName())
-                .name(command.name())
-                .address(command.address())
-                .city(command.city())
-                .postalCode(command.postalCode())
-                .email(command.email())
-                .phoneNumber(command.phoneNumber())
-                .website(command.website())
-                .logoUrl(command.logoUrl())
-                .active(true)
-                .build();
+            .id(command.id())
+            .rawName(command.rawName())
+            .name(command.name())
+            .address(command.address())
+            .city(command.city())
+            .postalCode(command.postalCode())
+            .email(command.email())
+            .phoneNumber(command.phoneNumber())
+            .website(command.website())
+            .logoUrl(command.logoUrl())
+            .active(true)
+            .build();
 
         if (hasImage(command.image())) {
             validateImage(command.image());
@@ -88,8 +88,8 @@ public class ClubApplicationService implements ClubService {
         ClubView saved = toView(clubRepository.saveAndFlush(club));
         eventPublisher.publishClubUpsert(saved);
         LOGGER.info("Created club",
-                keyValue("action", "create_club"),
-                keyValue("clubId", saved.id()));
+            keyValue("action", "create_club"),
+            keyValue("clubId", saved.id()));
         return saved;
     }
 
@@ -114,15 +114,15 @@ public class ClubApplicationService implements ClubService {
         if (!club.isActive()) {
             club.setActive(true);
             LOGGER.info("Reactivated club",
-                    keyValue("action", "reactivate_club"),
-                    keyValue("clubId", id));
+                keyValue("action", "reactivate_club"),
+                keyValue("clubId", id));
         }
 
         ClubView updated = toView(clubRepository.saveAndFlush(club));
         eventPublisher.publishClubUpsert(updated);
         LOGGER.info("Updated club",
-                keyValue("action", "update_club"),
-                keyValue("clubId", updated.id()));
+            keyValue("action", "update_club"),
+            keyValue("clubId", updated.id()));
         return updated;
     }
 
@@ -136,8 +136,8 @@ public class ClubApplicationService implements ClubService {
         club.setActive(false);
         clubRepository.saveAndFlush(club);
         LOGGER.info("Deactivated club",
-                keyValue("action", "deactivate_club"),
-                keyValue("clubId", id));
+            keyValue("action", "deactivate_club"),
+            keyValue("clubId", id));
     }
 
     /**
@@ -146,8 +146,8 @@ public class ClubApplicationService implements ClubService {
     private ClubEntity loadClub(String id) {
         return clubRepository.findById(id).orElseThrow(() -> {
             LOGGER.warn("Club not found",
-                    keyValue("action", "get_club_by_id"),
-                    keyValue("clubId", id));
+                keyValue("action", "get_club_by_id"),
+                keyValue("clubId", id));
             return new ClubNotFoundException(id);
         });
     }
@@ -215,20 +215,20 @@ public class ClubApplicationService implements ClubService {
      */
     private ClubView toView(ClubEntity club) {
         return new ClubView(
-                club.getId(),
-                club.getRawName(),
-                club.getName(),
-                club.getAddress(),
-                club.getCity(),
-                club.getPostalCode(),
-                club.getEmail(),
-                club.getPhoneNumber(),
-                club.getWebsite(),
-                club.getLogoUrl(),
-                club.isActive(),
-                club.getLatitude(),
-                club.getLongitude(),
-                club.getCreatedAt(),
-                club.getLastUpdate());
+            club.getId(),
+            club.getRawName(),
+            club.getName(),
+            club.getAddress(),
+            club.getCity(),
+            club.getPostalCode(),
+            club.getEmail(),
+            club.getPhoneNumber(),
+            club.getWebsite(),
+            club.getLogoUrl(),
+            club.isActive(),
+            club.getLatitude(),
+            club.getLongitude(),
+            club.getCreatedAt(),
+            club.getLastUpdate());
     }
 }

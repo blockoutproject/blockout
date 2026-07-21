@@ -1,4 +1,4 @@
 export type Filter = {
-    name: string;
-    isActive: boolean;
+  name: string;
+  isActive: boolean;
 };

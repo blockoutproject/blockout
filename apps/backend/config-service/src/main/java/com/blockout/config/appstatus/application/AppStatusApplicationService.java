@@ -13,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-/** Transactional application service for the app-status singleton. */
+/**
+ * Transactional application service for the app-status singleton.
+ */
 @Service
 @RequiredArgsConstructor
 public class AppStatusApplicationService implements AppStatusService {
@@ -21,14 +23,18 @@ public class AppStatusApplicationService implements AppStatusService {
     private static final Logger LOGGER = LoggerFactory.getLogger(AppStatusApplicationService.class);
     private final AppStatusRepository repository;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public AppStatusView getStatus() {
         return toView(loadStatus());
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public AppStatusView updateStatus(UpdateAppStatusCommand command) {
@@ -46,16 +52,20 @@ public class AppStatusApplicationService implements AppStatusService {
         return updated;
     }
 
-    /** Loads the singleton or raises the stable application error. */
+    /**
+     * Loads the singleton or raises the stable application error.
+     */
     private AppStatusEntity loadStatus() {
         return repository.findFirstByOrderByIdAsc().orElseThrow(() ->
-                new ConfigResourceNotFoundException("app_status_not_found", "App status not found."));
+            new ConfigResourceNotFoundException("app_status_not_found", "App status not found."));
     }
 
-    /** Maps persisted state to the application view. */
+    /**
+     * Maps persisted state to the application view.
+     */
     private AppStatusView toView(AppStatusEntity status) {
         return new AppStatusView(status.isMaintenance(), status.getMessage(), status.getImageUrl(),
-                status.getMinVersionIos(), status.getMinVersionAndroid(), status.getStoreUrlIos(),
-                status.getStoreUrlAndroid(), status.getForceUpdateMessage(), status.getLastUpdate());
+            status.getMinVersionIos(), status.getMinVersionAndroid(), status.getStoreUrlIos(),
+            status.getStoreUrlAndroid(), status.getForceUpdateMessage(), status.getLastUpdate());
     }
 }

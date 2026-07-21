@@ -19,8 +19,8 @@ public class InternalApiClient {
     private final RestTemplate serviceRt;
 
     public InternalApiClient(
-            @Qualifier("forwardRestTemplate") RestTemplate forwardRt,
-            @Qualifier("serviceRestTemplate") RestTemplate serviceRt) {
+        @Qualifier("forwardRestTemplate") RestTemplate forwardRt,
+        @Qualifier("serviceRestTemplate") RestTemplate serviceRt) {
         this.forwardRt = forwardRt;
         this.serviceRt = serviceRt;
     }
@@ -43,40 +43,40 @@ public class InternalApiClient {
 
     private <T> ResponseEntity<T> doGet(String url, Class<T> responseType, RestTemplate rt, String mode) {
         logger.info("Performing external GET request",
-                keyValue("action", "external_api_get"),
-                keyValue("mode", mode),
-                keyValue("url", url),
-                keyValue("responseType", responseType.getSimpleName()));
+            keyValue("action", "external_api_get"),
+            keyValue("mode", mode),
+            keyValue("url", url),
+            keyValue("responseType", responseType.getSimpleName()));
         try {
             ResponseEntity<T> response = rt.exchange(url, HttpMethod.GET, null, responseType);
             logger.info("GET request successful",
-                    keyValue("status", response.getStatusCode()),
-                    keyValue("mode", mode),
-                    keyValue("url", url));
+                keyValue("status", response.getStatusCode()),
+                keyValue("mode", mode),
+                keyValue("url", url));
             return response;
         } catch (HttpClientErrorException e) {
             logger.warn("Client error during GET request",
-                    keyValue("url", url),
-                    keyValue("mode", mode),
-                    keyValue("status", e.getStatusCode()),
-                    keyValue("message", e.getMessage()));
+                keyValue("url", url),
+                keyValue("mode", mode),
+                keyValue("status", e.getStatusCode()),
+                keyValue("message", e.getMessage()));
             throw e;
         } catch (Exception e) {
             logger.error("GET request failed",
-                    keyValue("url", url),
-                    keyValue("mode", mode),
-                    keyValue("message", e.getMessage()), e);
+                keyValue("url", url),
+                keyValue("mode", mode),
+                keyValue("message", e.getMessage()), e);
             throw new RuntimeException("GET request failed for " + url, e);
         }
     }
 
     private <T, B> ResponseEntity<T> doPost(String url, B body, Class<T> responseType, RestTemplate rt, String mode) {
         logger.info("Performing external POST request",
-                keyValue("action", "external_api_post"),
-                keyValue("mode", mode),
-                keyValue("url", url),
-                keyValue("bodyType", body != null ? body.getClass().getSimpleName() : "null"),
-                keyValue("responseType", responseType.getSimpleName()));
+            keyValue("action", "external_api_post"),
+            keyValue("mode", mode),
+            keyValue("url", url),
+            keyValue("bodyType", body != null ? body.getClass().getSimpleName() : "null"),
+            keyValue("responseType", responseType.getSimpleName()));
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -84,23 +84,23 @@ public class InternalApiClient {
 
             ResponseEntity<T> response = rt.exchange(url, HttpMethod.POST, request, responseType);
             logger.info("POST request successful",
-                    keyValue("status", response.getStatusCode()),
-                    keyValue("mode", mode),
-                    keyValue("url", url));
+                keyValue("status", response.getStatusCode()),
+                keyValue("mode", mode),
+                keyValue("url", url));
             return response;
 
         } catch (HttpClientErrorException e) {
             logger.warn("Client error during POST request",
-                    keyValue("url", url),
-                    keyValue("mode", mode),
-                    keyValue("status", e.getStatusCode()),
-                    keyValue("message", e.getMessage()));
+                keyValue("url", url),
+                keyValue("mode", mode),
+                keyValue("status", e.getStatusCode()),
+                keyValue("message", e.getMessage()));
             throw e;
         } catch (Exception e) {
             logger.error("POST request failed",
-                    keyValue("url", url),
-                    keyValue("mode", mode),
-                    keyValue("message", e.getMessage()), e);
+                keyValue("url", url),
+                keyValue("mode", mode),
+                keyValue("message", e.getMessage()), e);
             throw new RuntimeException("POST request failed for " + url, e);
         }
     }

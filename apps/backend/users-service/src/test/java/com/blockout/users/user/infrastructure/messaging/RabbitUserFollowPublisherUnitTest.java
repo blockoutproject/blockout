@@ -28,8 +28,8 @@ class RabbitUserFollowPublisherUnitTest {
         publisher.publish(1L, EntityType.TEAM, 2L, FollowEventType.CREATED);
 
         verify(rabbitTemplate).convertAndSend(
-                RabbitMQConfig.USER_FOLLOW_EXCHANGE,
-                "team.follow",
-                new UserFollowEvent(1L, EntityType.TEAM, 2L, FollowEventType.CREATED));
+            RabbitMQConfig.USER_FOLLOW_EXCHANGE,
+            "team.follow",
+            new UserFollowEvent(1L, EntityType.TEAM, 2L, FollowEventType.CREATED));
     }
 }

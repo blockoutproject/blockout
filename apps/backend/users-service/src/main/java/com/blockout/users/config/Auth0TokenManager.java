@@ -29,14 +29,14 @@ public class Auth0TokenManager {
     public void init() {
         try {
             logger.info("Initializing Auth0 token manager for Management API",
-                    keyValue("action", "init_management_token"),
-                    keyValue("auth0.domain", properties.getDomain()));
+                keyValue("action", "init_management_token"),
+                keyValue("auth0.domain", properties.getDomain()));
             refreshToken();
         } catch (Exception e) {
             logger.error("Failed to initialize Auth0 Management token",
-                    keyValue("action", "init_management_token_failed"),
-                    keyValue("auth0.domain", properties.getDomain()),
-                    e);
+                keyValue("action", "init_management_token_failed"),
+                keyValue("auth0.domain", properties.getDomain()),
+                e);
             throw new RuntimeException("Unable to initialize Auth0 Management token", e);
         }
     }
@@ -44,13 +44,13 @@ public class Auth0TokenManager {
     @Scheduled(fixedDelayString = "#{@auth0Properties.tokenRefreshDelay.toMillis()}")
     public void refreshToken() {
         logger.info("Refreshing Auth0 Management token",
-                keyValue("action", "refresh_management_token"));
+            keyValue("action", "refresh_management_token"));
 
         try {
             AuthAPI auth = AuthAPI.newBuilder(
-                    properties.getDomain(),
-                    properties.getClientId(),
-                    properties.getClientSecret()).build();
+                properties.getDomain(),
+                properties.getClientId(),
+                properties.getClientSecret()).build();
 
             TokenRequest tokenRequest = auth.requestToken(properties.getAudience());
             TokenHolder holder = tokenRequest.execute().getBody();
@@ -60,12 +60,12 @@ public class Auth0TokenManager {
             this.managementAPI = ManagementAPI.newBuilder(properties.getDomain(), accessToken).build();
 
             logger.info("Auth0 Management token refreshed successfully",
-                    keyValue("action", "refresh_management_token_success"),
-                    keyValue("expires_at", tokenExpiry));
+                keyValue("action", "refresh_management_token_success"),
+                keyValue("expires_at", tokenExpiry));
         } catch (Exception e) {
             logger.error("Error refreshing Auth0 Management token",
-                    keyValue("action", "refresh_management_token_error"),
-                    e);
+                keyValue("action", "refresh_management_token_error"),
+                e);
         }
     }
 

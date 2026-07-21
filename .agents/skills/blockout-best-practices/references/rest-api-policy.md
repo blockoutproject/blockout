@@ -11,7 +11,8 @@ collection, or service-to-service HTTP boundary.
 - Do not add Jackson naming strategies, `@JsonProperty` aliases, or generic case-conversion helpers for Blockout-owned
   fields.
 - External provider payloads retain the provider's names and are isolated in provider-specific models.
-- Use explicit `InternalRequest` and `InternalResponse` names for service-to-service transport models while contracts are
+- Use explicit `InternalRequest` and `InternalResponse` names for service-to-service transport models while contracts
+  are
   handwritten.
 - Keep application commands and views independent from HTTP and persistence types.
 

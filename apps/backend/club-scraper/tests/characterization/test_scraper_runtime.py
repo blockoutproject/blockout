@@ -1,6 +1,7 @@
 import asyncio
-
 import pytest
+from scraper.infrastructure.ffvb.client import FfvbClubClient
+
 from scraper import bootstrap
 from scraper.bootstrap import ClubScraperRuntime
 from scraper.config.settings import Settings
@@ -9,7 +10,6 @@ from scraper.infrastructure.blockout.auth import (
     TokenStore,
 )
 from scraper.infrastructure.ffvb import client as ffvb_module
-from scraper.infrastructure.ffvb.client import FfvbClubClient
 from scraper.infrastructure.scheduling import (
     scheduler as scheduler_module,
 )

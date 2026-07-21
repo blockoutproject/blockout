@@ -1,20 +1,20 @@
 {
-    "extends": "expo/tsconfig.base",
-    "compilerOptions": {
-        "strict": true,
-        "allowImportingTsExtensions": true,
-        "paths": {
-            "@/*": [
-                "./*"
-            ]
-        }
-    },
-    "include": [
-        "**/*.ts",
-        "**/*.tsx",
-        ".expo/types/**/*.ts",
-        "expo-env.d.ts",
-        "docs/contents/audio-waveform.mdx", 
-        "plugins/withGoogleMobileAdsMediationFacebook.js"    
-    ]
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "docs/contents/audio-waveform.mdx",
+    "plugins/withGoogleMobileAdsMediationFacebook.js"
+  ]
 }

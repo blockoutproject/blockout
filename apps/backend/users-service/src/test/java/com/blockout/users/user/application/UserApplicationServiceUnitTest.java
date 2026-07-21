@@ -21,9 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("User application service")
@@ -50,7 +48,7 @@ class UserApplicationServiceUnitTest {
     void returnsCompleteUserView() {
         UserEntity user = user();
         user.setFavorites(List.of(UserFavoriteEntity.builder()
-                .id(2L).user(user).entityType(EntityType.TEAM).entityId(3L).build()));
+            .id(2L).user(user).entityType(EntityType.TEAM).entityId(3L).build()));
         when(repository.findByAuth0IdWithFavorites("auth0|1")).thenReturn(Optional.of(user));
 
         var result = service.getUserByAuth0Id("auth0|1");
@@ -64,7 +62,7 @@ class UserApplicationServiceUnitTest {
     @DisplayName("creates a local User from the provider-neutral identity profile")
     void createsUserFromExternalProfile() {
         ExternalUserProfile profile = new ExternalUserProfile(
-                "auth0|1", "user@example.com", "First", "Last", "picture", "phone");
+            "auth0|1", "user@example.com", "First", "Last", "picture", "phone");
         when(identityProvider.getUser("auth0|1")).thenReturn(profile);
         when(repository.findByAuth0Id("auth0|1")).thenReturn(Optional.empty());
         when(repository.findByEmailIgnoreCase("user@example.com")).thenReturn(Optional.empty());
@@ -102,8 +100,8 @@ class UserApplicationServiceUnitTest {
     private UserEntity user() {
         Instant now = Instant.parse("2026-07-19T12:00:00Z");
         return UserEntity.builder()
-                .id(1L).auth0Id("auth0|1").email("user@example.com").pseudo("user")
-                .firstName("First").lastName("Last").pictureUrl("picture").phoneNumber("phone")
-                .active(true).createdAt(now).lastUpdate(now).build();
+            .id(1L).auth0Id("auth0|1").email("user@example.com").pseudo("user")
+            .firstName("First").lastName("Last").pictureUrl("picture").phoneNumber("phone")
+            .active(true).createdAt(now).lastUpdate(now).build();
     }
 }

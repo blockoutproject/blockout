@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class MobileGatewayApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(MobileGatewayApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(MobileGatewayApplication.class, args);
+    }
 }

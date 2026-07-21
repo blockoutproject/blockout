@@ -18,16 +18,16 @@ public interface ClubRepository extends JpaRepository<ClubEntity, String> {
      * Applies the existing optional identifier and active-state filters in name order.
      */
     @Query("""
-            SELECT c
-            FROM ClubEntity c
-            WHERE (
-                (:idsSize = 0 OR c.id IN :ids)
-                AND (:active IS NULL OR c.active = :active)
-            )
-            ORDER BY c.name ASC
-            """)
+        SELECT c
+        FROM ClubEntity c
+        WHERE (
+            (:idsSize = 0 OR c.id IN :ids)
+            AND (:active IS NULL OR c.active = :active)
+        )
+        ORDER BY c.name ASC
+        """)
     List<ClubEntity> findFiltered(
-            @Param("ids") List<String> ids,
-            @Param("idsSize") int idsSize,
-            @Param("active") Boolean active);
+        @Param("ids") List<String> ids,
+        @Param("idsSize") int idsSize,
+        @Param("active") Boolean active);
 }

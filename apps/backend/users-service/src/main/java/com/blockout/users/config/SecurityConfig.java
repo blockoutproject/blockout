@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -15,8 +17,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -32,24 +33,24 @@ public class SecurityConfig {
     @Order(1)
     public SecurityFilterChain internalChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/api/v1/users/internal/**")
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                .addFilterBefore(new ApiKeyFilter(authProperties), UsernamePasswordAuthenticationFilter.class)
-                .csrf(csrf -> csrf.disable())
-                .cors(withDefaults())
-                .build();
+            .securityMatcher("/api/v1/users/internal/**")
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .addFilterBefore(new ApiKeyFilter(authProperties), UsernamePasswordAuthenticationFilter.class)
+            .csrf(csrf -> csrf.disable())
+            .cors(withDefaults())
+            .build();
     }
 
     @Bean
     @Order(2)
     public SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
         return http
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
-                .csrf(csrf -> csrf.disable())
-                .cors(withDefaults())
-                .build();
+            .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+            .csrf(csrf -> csrf.disable())
+            .cors(withDefaults())
+            .build();
     }
 
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
@@ -73,16 +74,16 @@ public class SecurityConfig {
 
         @Override
         protected void doFilterInternal(HttpServletRequest request,
-                HttpServletResponse response,
-                FilterChain chain) throws ServletException, IOException {
+                                        HttpServletResponse response,
+                                        FilterChain chain) throws ServletException, IOException {
 
             String path = request.getRequestURI();
             String apiKey = request.getHeader("X-API-KEY");
 
             // Logs pour debug
             logger.info("🔑 Incoming request to [{}] with X-API-KEY: {}",
-                    path,
-                    apiKey != null ? mask(apiKey) : "<none>");
+                path,
+                apiKey != null ? mask(apiKey) : "<none>");
 
             if (apiKey == null) {
                 logger.warn("❌ Missing X-API-KEY header for path {}", path);
@@ -93,7 +94,7 @@ public class SecurityConfig {
 
             if (!apiKey.equals(props.getApiKey())) {
                 logger.warn("🚫 Invalid API Key for path {} — received: {} expected: {}",
-                        path, mask(apiKey), mask(props.getApiKey()));
+                    path, mask(apiKey), mask(props.getApiKey()));
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("Invalid API Key");
                 return;

@@ -15,7 +15,9 @@ import java.util.List;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-/** Transactional application service for scraper statuses. */
+/**
+ * Transactional application service for scraper statuses.
+ */
 @Service
 @RequiredArgsConstructor
 public class ScraperStatusApplicationService implements ScraperStatusService {
@@ -23,35 +25,43 @@ public class ScraperStatusApplicationService implements ScraperStatusService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ScraperStatusApplicationService.class);
     private final ScraperStatusRepository repository;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public ScraperStatusView getStatus(ScraperName name) {
         return toView(repository.findByName(name).orElseThrow(() -> new ConfigResourceNotFoundException(
-                "scraper_status_not_found", "Scraper not found with name: " + name)));
+            "scraper_status_not_found", "Scraper not found with name: " + name)));
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public ScraperStatusView updateStatus(ScraperName name, boolean enabled) {
         ScraperStatusEntity status = repository.findByName(name)
-                .orElseGet(() -> ScraperStatusEntity.builder().name(name).enabled(false).build());
+            .orElseGet(() -> ScraperStatusEntity.builder().name(name).enabled(false).build());
         status.setEnabled(enabled);
         ScraperStatusView updated = toView(repository.saveAndFlush(status));
         LOGGER.info("Updated scraper status", keyValue("action", "update_scraper_status"),
-                keyValue("scraperName", name), keyValue("enabled", enabled));
+            keyValue("scraperName", name), keyValue("enabled", enabled));
         return updated;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public List<ScraperStatusView> findAll() {
         return repository.findAll().stream().map(this::toView).toList();
     }
 
-    /** Maps persisted state to the authoritative application view. */
+    /**
+     * Maps persisted state to the authoritative application view.
+     */
     private ScraperStatusView toView(ScraperStatusEntity status) {
         return new ScraperStatusView(status.getId(), status.getName(), status.isEnabled(), status.getLastUpdate());
     }

@@ -54,7 +54,8 @@ interfaces to simple internal collaborators without a real boundary.
 - Persistence: `ClubEntity`.
 - Explicit collaborators: `ClubImageStorage`, `ClubEventPublisher`, `ClubGeocodingJob`.
 
-Avoid `*Impl` and weak `Default`, `Jpa`, or `Transactional` prefixes for primary application services. Put records in the
+Avoid `*Impl` and weak `Default`, `Jpa`, or `Transactional` prefixes for primary application services. Put records in
+the
 package that owns their role; never create a generic `records` package.
 
 ## Transport Boundary

@@ -1,8 +1,8 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import {StyleSheet, Text, View} from "react-native";
 
-import { useAppTheme } from "@/src/context/ThemeProvider";
-import type { EnrichedPoolDTO } from "@/src/types/Pool";
+import {useAppTheme} from "@/src/context/ThemeProvider";
+import type {EnrichedPoolDTO} from "@/src/types/Pool";
 
 type Props = {
   enrichedPool: EnrichedPoolDTO;
@@ -12,7 +12,7 @@ type Props = {
  * Keep pool details renderable on the local web characterization surface.
  * Interactive maps remain a native iOS and Android capability.
  */
-const PoolMapCard: React.FC<Props> = ({ enrichedPool }) => {
+const PoolMapCard: React.FC<Props> = ({enrichedPool}) => {
   const theme = useAppTheme();
   const locatedTeams = enrichedPool.ranking.filter(
     (team) =>
@@ -29,8 +29,8 @@ const PoolMapCard: React.FC<Props> = ({ enrichedPool }) => {
         },
       ]}
     >
-      <Text style={[styles.title, { color: theme.text }]}>Carte native</Text>
-      <Text style={[styles.message, { color: theme.textInactive }]}>
+      <Text style={[styles.title, {color: theme.text}]}>Carte native</Text>
+      <Text style={[styles.message, {color: theme.textInactive}]}>
         {locatedTeams} équipe{locatedTeams > 1 ? "s" : ""} localisée
         {locatedTeams > 1 ? "s" : ""} sur iOS et Android.
       </Text>

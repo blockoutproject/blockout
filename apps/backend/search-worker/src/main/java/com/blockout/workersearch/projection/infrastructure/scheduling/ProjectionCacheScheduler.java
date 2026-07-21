@@ -1,13 +1,13 @@
 package com.blockout.workersearch.projection.infrastructure.scheduling;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
 import com.blockout.workersearch.projection.application.ProjectionRefreshService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Component
 @RequiredArgsConstructor

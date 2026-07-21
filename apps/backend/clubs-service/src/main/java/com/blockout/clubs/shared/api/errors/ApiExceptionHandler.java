@@ -40,10 +40,10 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ClubNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleNotFound(ClubNotFoundException exception) {
         return problemFactory.response(
-                HttpStatus.NOT_FOUND,
-                "club_not_found",
-                exception.getMessage(),
-                "Club not found.");
+            HttpStatus.NOT_FOUND,
+            "club_not_found",
+            exception.getMessage(),
+            "Club not found.");
     }
 
     /**
@@ -52,10 +52,10 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException exception) {
         return problemFactory.response(
-                HttpStatus.FORBIDDEN,
-                "access_denied",
-                "Access denied.",
-                "Access denied.");
+            HttpStatus.FORBIDDEN,
+            "access_denied",
+            "Access denied.",
+            "Access denied.");
     }
 
     /**
@@ -64,10 +64,10 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ProblemDetail> handleAuthentication(AuthenticationException exception) {
         return problemFactory.response(
-                HttpStatus.UNAUTHORIZED,
-                "authentication_required",
-                "Authentication is required or invalid.",
-                "Authentication is required or invalid.");
+            HttpStatus.UNAUTHORIZED,
+            "authentication_required",
+            "Authentication is required or invalid.",
+            "Authentication is required or invalid.");
     }
 
     /**
@@ -76,10 +76,10 @@ public class ApiExceptionHandler {
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class, ServletRequestBindingException.class})
     public ResponseEntity<ProblemDetail> handleBadRequest(Exception exception) {
         return problemFactory.response(
-                HttpStatus.BAD_REQUEST,
-                "invalid_request",
-                exception.getMessage(),
-                "The request is invalid.");
+            HttpStatus.BAD_REQUEST,
+            "invalid_request",
+            exception.getMessage(),
+            "The request is invalid.");
     }
 
     /**
@@ -88,10 +88,10 @@ public class ApiExceptionHandler {
     @ExceptionHandler({MaxUploadSizeExceededException.class, SizeLimitExceededException.class})
     public ResponseEntity<ProblemDetail> handleFileTooLarge(Exception exception) {
         return problemFactory.response(
-                HttpStatus.PAYLOAD_TOO_LARGE,
-                "image_too_large",
-                "The maximum image size is 5 MB.",
-                "The maximum image size is 5 MB.");
+            HttpStatus.PAYLOAD_TOO_LARGE,
+            "image_too_large",
+            "The maximum image size is 5 MB.",
+            "The maximum image size is 5 MB.");
     }
 
     /**
@@ -101,9 +101,9 @@ public class ApiExceptionHandler {
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception exception) {
         LOGGER.error("Unhandled clubs-service exception", exception);
         return problemFactory.response(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "internal_server_error",
-                INTERNAL_ERROR_DETAIL,
-                INTERNAL_ERROR_DETAIL);
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "internal_server_error",
+            INTERNAL_ERROR_DETAIL,
+            INTERNAL_ERROR_DETAIL);
     }
 }

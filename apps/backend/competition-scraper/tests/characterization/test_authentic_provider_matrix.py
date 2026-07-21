@@ -1,8 +1,8 @@
 """Offline matrix built exclusively from authentic public provider responses."""
 
+import pytest
 from pathlib import Path
 
-import pytest
 from scraper.infrastructure.ffvb.calendar import parse_csv_from_content
 from scraper.infrastructure.ffvb.ranking import parse_rankings
 from scraper.infrastructure.lnv.parsers import parse_live_matches

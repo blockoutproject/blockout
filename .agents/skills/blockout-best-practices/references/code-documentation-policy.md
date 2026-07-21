@@ -11,7 +11,8 @@ state the invariant, intent, provider quirk, or failure semantics rather than na
 - In Java, add class-level documentation to each touched class, interface, enum, record, annotation, and exception. Put
   contract documentation on an interface method and use `{@inheritDoc}` on the implementation rather than duplicating
   it. Document public or package-private boundary methods and give non-obvious private algorithms a concise explanation.
-- In Python, follow PEP 257 with concise docstrings on touched public modules, classes, functions, methods, protocols, and
+- In Python, follow PEP 257 with concise docstrings on touched public modules, classes, functions, methods, protocols,
+  and
   non-obvious algorithms. Trivial private helpers do not need ceremonial docstrings.
 - In TypeScript, document exported boundaries and non-obvious local algorithms; avoid comments that duplicate types.
 - Add `@param`, `@return`/`@returns`, and `@throws` when they clarify the contract.

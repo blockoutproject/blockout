@@ -1,13 +1,13 @@
 package com.blockout.workersearch.projection.application;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
 import com.blockout.workersearch.projection.application.ports.ProjectionCache;
 import com.blockout.workersearch.projection.application.ports.ProjectionSource;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
@@ -35,19 +35,19 @@ public class ProjectionRefreshService {
         var teams = projectionSource.listActiveTeams();
         projectionCache.replaceTeams(teams);
         LOGGER.info(
-                "Team cache refreshed",
-                keyValue("action", "refresh_team_cache_done"),
-                keyValue("teamCount", teams.size()),
-                keyValue("clubCount", projectionCache.teamClubCount()));
+            "Team cache refreshed",
+            keyValue("action", "refresh_team_cache_done"),
+            keyValue("teamCount", teams.size()),
+            keyValue("clubCount", projectionCache.teamClubCount()));
     }
 
     public void refreshDivisionCache() {
         var divisions = projectionSource.listDivisions();
         projectionCache.replaceDivisions(divisions);
         LOGGER.info(
-                "Division cache refreshed",
-                keyValue("action", "refresh_division_cache"),
-                keyValue("count", divisions.size()));
+            "Division cache refreshed",
+            keyValue("action", "refresh_division_cache"),
+            keyValue("count", divisions.size()));
     }
 
     public void rebuildAll() {

@@ -1,23 +1,17 @@
 package com.blockout.workersearch.projection.application;
 
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.blockout.workersearch.projection.application.models.ClubProjectionSource;
-import com.blockout.workersearch.projection.application.models.DivisionProjectionSource;
-import com.blockout.workersearch.projection.application.models.Format;
-import com.blockout.workersearch.projection.application.models.Gender;
-import com.blockout.workersearch.projection.application.models.PoolProjectionSource;
-import com.blockout.workersearch.projection.application.models.TeamProjectionSource;
+import com.blockout.workersearch.projection.application.models.*;
 import com.blockout.workersearch.projection.application.ports.ProjectionCache;
 import com.blockout.workersearch.projection.application.ports.ProjectionSource;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectionRefreshServiceUnitTest {
@@ -42,7 +36,7 @@ class ProjectionRefreshServiceUnitTest {
     void initializesTheThreeCachesFromTheirAuthoritativeInternalApis() {
         var clubs = List.of(new ClubProjectionSource("club-1", "Club", null, "Paris"));
         var teams = List.of(new TeamProjectionSource(
-                1L, "Team", "T", "club-1", 2L, Format.SIX, Gender.F, "2026/2027", null));
+            1L, "Team", "T", "club-1", 2L, Format.SIX, Gender.F, "2026/2027", null));
         var divisions = List.of(new DivisionProjectionSource(2L, "Division", null));
         when(projectionSource.listActiveClubs()).thenReturn(clubs);
         when(projectionSource.listActiveTeams()).thenReturn(teams);
@@ -59,9 +53,9 @@ class ProjectionRefreshServiceUnitTest {
     void rebuildsClubTeamAndPoolIndexesInTheExistingOrder() {
         var clubs = List.of(new ClubProjectionSource("club-1", "Club", null, "Paris"));
         var teams = List.of(new TeamProjectionSource(
-                1L, "Team", "T", "club-1", 2L, Format.SIX, Gender.F, "2026/2027", null));
+            1L, "Team", "T", "club-1", 2L, Format.SIX, Gender.F, "2026/2027", null));
         var pools = List.of(new PoolProjectionSource(
-                3L, "Pool", "P", 2L, "LNV", "League", "2026/2027", Format.SIX, Gender.F));
+            3L, "Pool", "P", 2L, "LNV", "League", "2026/2027", Format.SIX, Gender.F));
         when(projectionSource.listActiveClubs()).thenReturn(clubs);
         when(projectionSource.listActiveTeams()).thenReturn(teams);
         when(projectionSource.listActivePools()).thenReturn(pools);

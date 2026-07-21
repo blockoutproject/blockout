@@ -29,18 +29,18 @@ public class RabbitClubEventPublisher implements ClubEventPublisher {
     @Override
     public void publishClubUpsert(ClubView club) {
         ClubUpsertEvent event = ClubUpsertEvent.builder()
-                .id(club.id())
-                .name(club.name())
-                .logoUrl(club.logoUrl())
-                .city(club.city())
-                .build();
+            .id(club.id())
+            .name(club.name())
+            .logoUrl(club.logoUrl())
+            .city(club.city())
+            .build();
 
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
-                "club.upsert",
-                event);
+            RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+            "club.upsert",
+            event);
         LOGGER.info("Published club upsert event",
-                keyValue("action", "publish_club_upsert"),
-                keyValue("clubId", club.id()));
+            keyValue("action", "publish_club_upsert"),
+            keyValue("clubId", club.id()));
     }
 }

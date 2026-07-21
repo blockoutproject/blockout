@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-/** Converts teams-service failures to stable ProblemDetail responses. */
+/**
+ * Converts teams-service failures to stable ProblemDetail responses.
+ */
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
@@ -38,25 +40,25 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ProblemDetail> handleAuthentication(AuthenticationException exception) {
         return problemFactory.response(HttpStatus.UNAUTHORIZED, "authentication_required",
-                "Authentication is required or invalid.", "Authentication is required or invalid.");
+            "Authentication is required or invalid.", "Authentication is required or invalid.");
     }
 
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class, ServletRequestBindingException.class})
     public ResponseEntity<ProblemDetail> handleBadRequest(Exception exception) {
         return problemFactory.response(HttpStatus.BAD_REQUEST, "invalid_request", exception.getMessage(),
-                "The request is invalid.");
+            "The request is invalid.");
     }
 
     @ExceptionHandler({MaxUploadSizeExceededException.class, SizeLimitExceededException.class})
     public ResponseEntity<ProblemDetail> handleFileTooLarge(Exception exception) {
         return problemFactory.response(HttpStatus.PAYLOAD_TOO_LARGE, "image_too_large",
-                "The maximum image size is 5 MB.", "The maximum image size is 5 MB.");
+            "The maximum image size is 5 MB.", "The maximum image size is 5 MB.");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception exception) {
         LOGGER.error("Unhandled teams-service exception", exception);
         return problemFactory.response(HttpStatus.INTERNAL_SERVER_ERROR, "internal_server_error",
-                "An internal error occurred.", "An internal error occurred.");
+            "An internal error occurred.", "An internal error occurred.");
     }
 }

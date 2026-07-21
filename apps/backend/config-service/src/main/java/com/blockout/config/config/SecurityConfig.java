@@ -18,16 +18,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests(authz -> authz
-                        .requestMatchers(HttpMethod.GET, "/api/v1/config/legal/**").permitAll()
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/config/legal/**").hasAuthority("SCOPE_update:legal")
-                        .anyRequest().authenticated()
-                )
-                .csrf(csrf -> csrf.disable())
-                .cors(withDefaults())
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter())));
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers(HttpMethod.GET, "/api/v1/config/legal/**").permitAll()
+                .requestMatchers(HttpMethod.PUT, "/api/v1/config/legal/**").hasAuthority("SCOPE_update:legal")
+                .anyRequest().authenticated()
+            )
+            .csrf(csrf -> csrf.disable())
+            .cors(withDefaults())
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt
+                    .jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
     }
 

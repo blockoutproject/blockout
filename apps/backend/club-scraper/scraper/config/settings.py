@@ -4,9 +4,8 @@ import os
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
-
 from dotenv import load_dotenv
+from pathlib import Path
 
 
 @dataclass(frozen=True, slots=True)

@@ -48,7 +48,7 @@ public class ApiExceptionHandler {
     @ExceptionHandler({MaxUploadSizeExceededException.class, SizeLimitExceededException.class})
     ResponseEntity<ProblemDetail> handleFileTooLarge(Exception exception) {
         return problemFactory.response(
-                HttpStatus.PAYLOAD_TOO_LARGE, "image_too_large", "The maximum image size is 5 MB.");
+            HttpStatus.PAYLOAD_TOO_LARGE, "image_too_large", "The maximum image size is 5 MB.");
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -59,13 +59,13 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     ResponseEntity<ProblemDetail> handleAuthentication(AuthenticationException exception) {
         return problemFactory.response(
-                HttpStatus.UNAUTHORIZED, "authentication_required", "Authentication is required or invalid.");
+            HttpStatus.UNAUTHORIZED, "authentication_required", "Authentication is required or invalid.");
     }
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> handleUnexpected(Exception exception) {
         LOGGER.error("Unhandled users-service exception", exception);
         return problemFactory.response(
-                HttpStatus.INTERNAL_SERVER_ERROR, "internal_server_error", "An internal error occurred.");
+            HttpStatus.INTERNAL_SERVER_ERROR, "internal_server_error", "An internal error occurred.");
     }
 }

@@ -18,7 +18,8 @@ Expo Router currently owns:
 - sign-in, onboarding, maintenance, mandatory-update, PDF viewer, and native-intent routes.
 
 The application calls the mobile gateway through the existing `ClubApi`, `ConfigApi`, `MatchApi`, `MobileGatewayApi`,
-`NotificationApi`, `PoolApi`, `ReportApi`, `SearchApi`, `TeamApi`, and `UserApi` clients. Local persisted state is limited
+`NotificationApi`, `PoolApi`, `ReportApi`, `SearchApi`, `TeamApi`, and `UserApi` clients. Local persisted state is
+limited
 to the guest session, onboarding completion, and the cached purchase entitlement.
 
 Native boundaries include Auth0, RevenueCat, Google Mobile Ads consent and interstitials, Expo notifications, secure

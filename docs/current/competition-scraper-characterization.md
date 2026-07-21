@@ -32,7 +32,8 @@ another external system during execution.
   normalize discovered FFVB links to HTTPS.
 - Regional and departmental league pages derive the season and pool code from `saison` and `poule`. National discovery
   uses league `ABCCS`, derives `YYYY/YYYY` from `.htm` links, and derives the pool code from the filename suffix.
-- A raw division must already exist and be fully mapped before its pool is ingested. A missing mapping is created without
+- A raw division must already exist and be fully mapped before its pool is ingested. A missing mapping is created
+  without
   processing that pool in the same run; an incomplete mapping is skipped.
 - FFVB discovery, calendar exports, and ranking rows become immutable provider records before reaching application
   orchestration. Calendar exports are semicolon-delimited and require the twelve protected columns. Rows require a match
@@ -48,7 +49,8 @@ another external system during execution.
 
 - Professional ingestion is fixed to season `2026/2027`, league `AALNV`, and pools `MSL`, `PAZ`, `LBM`, `SPS`, and
   `FAZ`. Each pool runs FFVB CSV first, LNV match/rank XML second, and DataProject live HTML last.
-- FFVB owns pool/team identifiers, venue, and referees. LNV XML owns match date, set result, and detailed score. LNV HTML
+- FFVB owns pool/team identifiers, venue, and referees. LNV XML owns match date, set result, and detailed score. LNV
+  HTML
   owns only `liveCode`. `DataSourcePriority` is the local application policy `DB=0`, `FFVB=1`, `LNV_XML=2`,
   `LNV_HTML=3`.
 - LNV local datetimes are interpreted in Europe/Paris and converted to UTC. Invalid set results become `0-0`; zero set
@@ -72,7 +74,8 @@ another external system during execution.
 - Match finalization creates new entries, updates only entries with scheduled changes, skips unchanged entries, isolates
   each owner failure, then clears the cache. Association finalization writes only entries touched by an observed ranking
   row, computes their coefficients, and leaves loaded but unobserved owner statistics unchanged.
-- Cleanup routes use `missingPoolIds`, `missingTeamIds`, and `missingMatchCodes`. Professional ingestion does not perform
+- Cleanup routes use `missingPoolIds`, `missingTeamIds`, and `missingMatchCodes`. Professional ingestion does not
+  perform
   the regional/national missing-pool cleanup.
 - Handwritten transport mirrors now use their exact owner-facing `*InternalRequest` and `*InternalResponse` names.
   Purpose-specific create, update, and bulk request classes prevent response-only fields from leaking into writes. They
@@ -83,7 +86,8 @@ from shared owner contracts, while the application policy `DataSourcePriority` r
 
 ## REF-025 structure and evidence
 
-- `main.py` delegates to `scraper.bootstrap`; orchestration lives under `scraper/application`, provider-independent rules
+- `main.py` delegates to `scraper.bootstrap`; orchestration lives under `scraper/application`, provider-independent
+  rules
   under `scraper/domain`, and FFVB, LNV, Blockout, and scheduling adapters under `scraper/infrastructure`.
 - Provider HTTP access, match change tracking, association statistics, and pure LNV parsing are explicit seams. The old
   top-level `api`, `models`, `scrapers`, `services`, and `utils` import paths are no longer used.

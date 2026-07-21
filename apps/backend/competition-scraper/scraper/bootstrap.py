@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import aiohttp
 import asyncio
 from contextvars import ContextVar
 from datetime import UTC, datetime
-
-import aiohttp
 from prometheus_client import Gauge, start_http_server
 
 from scraper.application.factory import ScraperFactory

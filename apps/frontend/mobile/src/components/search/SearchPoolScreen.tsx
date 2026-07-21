@@ -1,14 +1,14 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { useSearchPools } from "@/src/hooks/search/useSearchPools";
+import React, {useCallback, useMemo, useState} from "react";
+import {useSearchPools} from "@/src/hooks/search/useSearchPools";
 import PoolCard from "@/src/components/search/PoolCard";
-import { useRouter } from "expo-router";
+import {useRouter} from "expo-router";
 import * as Haptics from "expo-haptics";
-import { GenericSearchScreen } from "./GenericSearchScreen";
-import { SelectOption } from "@/src/components/common/form/SelectSheet";
-import { useDivisions } from "@/src/hooks/config/division/useDivisions";
-import { EnumFormat } from "@/src/types/enums/Format";
-import { EnumGender } from "@/src/types/enums/Gender";
-import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import {GenericSearchScreen} from "./GenericSearchScreen";
+import {SelectOption} from "@/src/components/common/form/SelectSheet";
+import {useDivisions} from "@/src/hooks/config/division/useDivisions";
+import {EnumFormat} from "@/src/types/enums/Format";
+import {EnumGender} from "@/src/types/enums/Gender";
+import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 
 export type SearchPoolScreenProps = {
   search: string;
@@ -19,12 +19,12 @@ export type SearchPoolScreenProps = {
 const SEASONS: string[] = ["2026/2027", "2025/2026", "2024/2025"];
 
 const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
-  search,
-  debouncedQuery,
-  setSearch,
-}) => {
-  const { handleNavigationWithAd } = useNavigationInterstitial();
-  const { data: divisions } = useDivisions();
+                                                             search,
+                                                             debouncedQuery,
+                                                             setSearch,
+                                                           }) => {
+  const {handleNavigationWithAd} = useNavigationInterstitial();
+  const {data: divisions} = useDivisions();
 
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
   const [selectedDivisionId, setSelectedDivisionId] = useState<number | null>(
@@ -34,7 +34,7 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
   const [selectedGender, setSelectedGender] = useState<EnumGender | null>(null);
 
   const seasonOptions: SelectOption[] = useMemo(
-    () => SEASONS.map((s) => ({ value: s, label: s })),
+    () => SEASONS.map((s) => ({value: s, label: s})),
     [],
   );
 
@@ -49,7 +49,7 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
     [divisions],
   );
 
-  const { data, isLoading, isError, refetch } = useSearchPools(
+  const {data, isLoading, isError, refetch} = useSearchPools(
     debouncedQuery,
     selectedSeason ?? undefined,
     selectedDivisionId ?? undefined,
@@ -110,8 +110,8 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
       placeholder="Rechercher une poule..."
       exampleLabel="Exemples de poules"
       emptyMessage="Aucune poule trouvée pour cette recherche."
-      renderItem={({ item }) => (
-        <PoolCard pool={item} onPress={() => handlePoolPress(item.id)} />
+      renderItem={({item}) => (
+        <PoolCard pool={item} onPress={() => handlePoolPress(item.id)}/>
       )}
       seasonOptions={seasonOptions}
       selectedSeason={selectedSeason}

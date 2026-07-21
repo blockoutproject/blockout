@@ -16,7 +16,9 @@ npm ci
 
 ## Application environments
 
-Every application owns a committed `.env.example`. The examples use the ports, database names, and local credentials declared by the monorepo Compose files. Values containing `replace-me` require a development credential or an environment-specific endpoint before the related integration can work.
+Every application owns a committed `.env.example`. The examples use the ports, database names, and local credentials
+declared by the monorepo Compose files. Values containing `replace-me` require a development credential or an
+environment-specific endpoint before the related integration can work.
 
 Java applications already import `.env.local` from their application directory. For example:
 
@@ -45,7 +47,10 @@ cp .env.example .env.local
 python3.12 main.py local
 ```
 
-The templates intentionally omit stale standalone variables that the imported applications no longer read, including `DATASOURCE_NAME`, the old guest issuer settings, and the competition scraper's unused proxy-account variables. External Auth0, AWS, Mapbox, RevenueCat, GitHub, Discord, Expo push, and FFVB proxy integrations still require valid development values where used.
+The templates intentionally omit stale standalone variables that the imported applications no longer read, including
+`DATASOURCE_NAME`, the old guest issuer settings, and the competition scraper's unused proxy-account variables. External
+Auth0, AWS, Mapbox, RevenueCat, GitHub, Discord, Expo push, and FFVB proxy integrations still require valid development
+values where used.
 
 List every project and inspect one project's native targets:
 
@@ -75,7 +80,9 @@ docker compose \
   down
 ```
 
-The local database username, password, and database name all match the bounded context name. RabbitMQ uses `blockout` for both the local username and password. pgAdmin uses `admin@blockout.com` and `admin`. These values are local development defaults only.
+The local database username, password, and database name all match the bounded context name. RabbitMQ uses `blockout`
+for both the local username and password. pgAdmin uses `admin@blockout.com` and `admin`. These values are local
+development defaults only.
 
 ## Java applications
 
@@ -104,7 +111,8 @@ export RABBITMQ_PASSWORD=blockout
 export AUTH0_ISSUER=https://example.invalid/
 ```
 
-Replace authentication placeholders with valid development tenant values before starting an application that validates tokens or requests machine credentials. Internal API URLs use the application ports recorded in the source baseline.
+Replace authentication placeholders with valid development tenant values before starting an application that validates
+tokens or requests machine credentials. Internal API URLs use the application ports recorded in the source baseline.
 
 ## Mobile application
 
@@ -147,7 +155,8 @@ can use `localhost`; a physical device requires the host machine address in its 
 
 ## Python scrapers
 
-The scrapers intentionally keep their standalone `requirements.txt` files and Dockerfiles. Nx only invokes native commands.
+The scrapers intentionally keep their standalone `requirements.txt` files and Dockerfiles. Nx only invokes native
+commands.
 
 ```bash
 npm exec nx run @blockout/club-scraper:syntax-check
@@ -156,4 +165,6 @@ npm exec nx run @blockout/club-scraper:docker-build
 npm exec nx run @blockout/competition-scraper:docker-build
 ```
 
-Running a scraper outside Docker requires installing its declared requirements in a local Python 3.12 environment. Use non-secret development values for `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_AUDIENCE`, and the required `*_API_URL` variables.
+Running a scraper outside Docker requires installing its declared requirements in a local Python 3.12 environment. Use
+non-secret development values for `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_AUDIENCE`, and the
+required `*_API_URL` variables.

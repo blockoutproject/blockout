@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.config;
 
+import com.blockout.mobilegateway.shared.infrastructure.security.Auth0ServiceTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -11,8 +12,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.client.RestTemplate;
-
-import com.blockout.mobilegateway.shared.infrastructure.security.Auth0ServiceTokenProvider;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -51,7 +50,7 @@ public class RestTemplateConfig {
             .readTimeout(Duration.ofSeconds(15))
             .build();
     }
-    
+
     @Bean
     @Qualifier("externalRestTemplate")
     public RestTemplate externalRestTemplate(RestTemplateBuilder builder) {

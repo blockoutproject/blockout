@@ -11,7 +11,7 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 })
 public class SearchApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SearchApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(SearchApplication.class, args);
+    }
 }

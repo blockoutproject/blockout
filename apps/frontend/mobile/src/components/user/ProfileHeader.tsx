@@ -1,155 +1,155 @@
-import React, { useCallback, useRef } from "react";
-import { TouchableOpacity, View, StyleSheet, Text } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAppTheme } from "@/src/context/ThemeProvider";
-import { HEADER_HEIGHT } from "@/src/theme/globals";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import React, {useCallback, useRef} from "react";
+import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {useAppTheme} from "@/src/context/ThemeProvider";
+import {HEADER_HEIGHT} from "@/src/theme/globals";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "../common/bottomSheet/BottomSheetCustomPage";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import MatchLiveModerationScreen from "../match/moderation/MatchLiveModerationScreen";
 import RawDivisionMappingScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
 import DivisionScreen from "../division/DivisionScreen";
 import AdminScreen from "../appStatus/AdminScreen";
-import { useSession } from "@/src/context/SessionProvider";
+import {useSession} from "@/src/context/SessionProvider";
 
 export type UserHeaderProps = {
-    title: string;
-    onOpenReport: () => void;
+  title: string;
+  onOpenReport: () => void;
 };
 
-const ProfileHeader: React.FC<UserHeaderProps> = ({ title, onOpenReport }) => {
-    const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
-    const { isMaintenance } = useSession();
+const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
+  const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const {isMaintenance} = useSession();
 
-    const liveLinkModerationSheetRef = useRef<BottomSheetModal>(null);
-    const mappingSheetRef = useRef<BottomSheetModal>(null);
-    const divisionSheetRef = useRef<BottomSheetModal>(null);
-    const scraperSheetRef = useRef<BottomSheetModal>(null);
+  const liveLinkModerationSheetRef = useRef<BottomSheetModal>(null);
+  const mappingSheetRef = useRef<BottomSheetModal>(null);
+  const divisionSheetRef = useRef<BottomSheetModal>(null);
+  const scraperSheetRef = useRef<BottomSheetModal>(null);
 
-    const { allowed: canAccessLiveLinkModeration } = useHasScopes([
-        "moderate:match_live_link",
-    ]);
+  const {allowed: canAccessLiveLinkModeration} = useHasScopes([
+    "moderate:match_live_link",
+  ]);
 
-    const { allowed: canAccessRawDivisionMappings } = useHasScopes([
-        "read:raw_division_mapping",
-        "update:raw_division_mapping",
-    ]);
+  const {allowed: canAccessRawDivisionMappings} = useHasScopes([
+    "read:raw_division_mapping",
+    "update:raw_division_mapping",
+  ]);
 
-    const { allowed: canAccessDivisions } = useHasScopes([
-        "read:divisions",
-        "update:divisions",
-        "create:divisions",
-    ]);
+  const {allowed: canAccessDivisions} = useHasScopes([
+    "read:divisions",
+    "update:divisions",
+    "create:divisions",
+  ]);
 
-    const { allowed: canAdminManagement } = useHasScopes([
-        "read:scrapers",
-        "update:scrapers",
-        "update:maintenance",
-    ]);
+  const {allowed: canAdminManagement} = useHasScopes([
+    "read:scrapers",
+    "update:scrapers",
+    "update:maintenance",
+  ]);
 
-    const openSheet = useCallback(
-        (ref: React.RefObject<BottomSheetModal | null>) => () => {
-            ref.current?.present();
-        },
-        []
-    );
+  const openSheet = useCallback(
+    (ref: React.RefObject<BottomSheetModal | null>) => () => {
+      ref.current?.present();
+    },
+    []
+  );
 
-    const hasAnyAdmin =
-        canAccessRawDivisionMappings ||
-        canAccessDivisions ||
-        canAccessLiveLinkModeration ||
-        canAdminManagement;
+  const hasAnyAdmin =
+    canAccessRawDivisionMappings ||
+    canAccessDivisions ||
+    canAccessLiveLinkModeration ||
+    canAdminManagement;
 
-    return (
-        <>
-            <View style={[{ paddingTop: insets.top }]} testID="profile-header">
-                <View style={styles.header}>
-                    <Text
-                        style={[styles.title, { color: theme.text }]}
-                        numberOfLines={1}
-                    >
-                        {title}
-                    </Text>
+  return (
+    <>
+      <View style={[{paddingTop: insets.top}]} testID="profile-header">
+        <View style={styles.header}>
+          <Text
+            style={[styles.title, {color: theme.text}]}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
 
-                    <View style={styles.actions}>
-                        {hasAnyAdmin && (
-                            <>
-                                {canAccessRawDivisionMappings && (
-                                    <TouchableOpacity onPress={openSheet(mappingSheetRef)} hitSlop={HIT_SLOP}>
-                                        <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text} />
-                                    </TouchableOpacity>
-                                )}
-                                {canAccessDivisions && (
-                                    <TouchableOpacity onPress={openSheet(divisionSheetRef)} hitSlop={HIT_SLOP}>
-                                        <MaterialCommunityIcons name="alpha-d-circle" size={28} color={theme.text} />
-                                    </TouchableOpacity>
-                                )}
-                                {canAccessLiveLinkModeration && (
-                                    <TouchableOpacity onPress={openSheet(liveLinkModerationSheetRef)} hitSlop={HIT_SLOP}>
-                                        <MaterialCommunityIcons name="video-check-outline" size={28} color={theme.text} />
-                                    </TouchableOpacity>
-                                )}
-                                {canAdminManagement && (
-                                    <TouchableOpacity onPress={openSheet(scraperSheetRef)} hitSlop={HIT_SLOP}>
-                                        <MaterialCommunityIcons
-                                            name="power-standby"
-                                            size={28}
-                                            color={isMaintenance ? theme.error : theme.text}
-                                        />
-                                    </TouchableOpacity>
-                                )}
-                            </>
-                        )}
+          <View style={styles.actions}>
+            {hasAnyAdmin && (
+              <>
+                {canAccessRawDivisionMappings && (
+                  <TouchableOpacity onPress={openSheet(mappingSheetRef)} hitSlop={HIT_SLOP}>
+                    <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text}/>
+                  </TouchableOpacity>
+                )}
+                {canAccessDivisions && (
+                  <TouchableOpacity onPress={openSheet(divisionSheetRef)} hitSlop={HIT_SLOP}>
+                    <MaterialCommunityIcons name="alpha-d-circle" size={28} color={theme.text}/>
+                  </TouchableOpacity>
+                )}
+                {canAccessLiveLinkModeration && (
+                  <TouchableOpacity onPress={openSheet(liveLinkModerationSheetRef)} hitSlop={HIT_SLOP}>
+                    <MaterialCommunityIcons name="video-check-outline" size={28} color={theme.text}/>
+                  </TouchableOpacity>
+                )}
+                {canAdminManagement && (
+                  <TouchableOpacity onPress={openSheet(scraperSheetRef)} hitSlop={HIT_SLOP}>
+                    <MaterialCommunityIcons
+                      name="power-standby"
+                      size={28}
+                      color={isMaintenance ? theme.error : theme.text}
+                    />
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
 
-                        <TouchableOpacity onPress={onOpenReport} hitSlop={HIT_SLOP}>
-                            <MaterialCommunityIcons name="flag-outline" size={28} color={theme.text} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
+            <TouchableOpacity onPress={onOpenReport} hitSlop={HIT_SLOP}>
+              <MaterialCommunityIcons name="flag-outline" size={28} color={theme.text}/>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
 
-            <BottomSheetCustomPage ref={liveLinkModerationSheetRef}>
-                <MatchLiveModerationScreen />
-            </BottomSheetCustomPage>
+      <BottomSheetCustomPage ref={liveLinkModerationSheetRef}>
+        <MatchLiveModerationScreen/>
+      </BottomSheetCustomPage>
 
-            <BottomSheetCustomPage ref={mappingSheetRef}>
-                <RawDivisionMappingScreen />
-            </BottomSheetCustomPage>
+      <BottomSheetCustomPage ref={mappingSheetRef}>
+        <RawDivisionMappingScreen/>
+      </BottomSheetCustomPage>
 
-            <BottomSheetCustomPage ref={divisionSheetRef}>
-                <DivisionScreen />
-            </BottomSheetCustomPage>
+      <BottomSheetCustomPage ref={divisionSheetRef}>
+        <DivisionScreen/>
+      </BottomSheetCustomPage>
 
-            <BottomSheetCustomPage ref={scraperSheetRef}>
-                <AdminScreen />
-            </BottomSheetCustomPage>
-        </>
-    );
+      <BottomSheetCustomPage ref={scraperSheetRef}>
+        <AdminScreen/>
+      </BottomSheetCustomPage>
+    </>
+  );
 };
 
-const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
+const HIT_SLOP = {top: 8, bottom: 8, left: 8, right: 8};
 
 const styles = StyleSheet.create({
-    header: {
-        height: HEADER_HEIGHT,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 12,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: "900",
-        flex: 1,
-        marginRight: 10,
-    },
-    actions: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-    },
+  header: {
+    height: HEADER_HEIGHT,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "900",
+    flex: 1,
+    marginRight: 10,
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
 });
 
 export default ProfileHeader;

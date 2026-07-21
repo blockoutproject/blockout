@@ -14,14 +14,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                .authorizeHttpRequests((authorize) -> authorize
-                    .anyRequest().authenticated()
-                )
-                .csrf(csrf -> csrf.disable())
-                .cors(withDefaults())
-                .oauth2ResourceServer(oauth2 -> oauth2
-                    .jwt(withDefaults())
-                )
-                .build();
+            .authorizeHttpRequests((authorize) -> authorize
+                .anyRequest().authenticated()
+            )
+            .csrf(csrf -> csrf.disable())
+            .cors(withDefaults())
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(withDefaults())
+            )
+            .build();
     }
 }

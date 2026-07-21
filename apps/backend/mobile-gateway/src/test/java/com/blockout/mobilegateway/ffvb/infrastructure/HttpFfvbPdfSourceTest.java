@@ -13,12 +13,8 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class HttpFfvbPdfSourceTest {
 
@@ -27,12 +23,12 @@ class HttpFfvbPdfSourceTest {
 
     @Test
     void downloadsLnvSheetsFromTheExistingGenderSpecificPath() {
-        byte[] pdf = new byte[] { 1 };
+        byte[] pdf = new byte[]{1};
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(byte[].class)))
-                .thenReturn(ResponseEntity.ok(pdf));
+            .thenReturn(ResponseEntity.ok(pdf));
 
         FfvbPdfDownload result = pdfSource.downloadSheet(
-                new PdfLinkTokenService.Payload("sheet", "2026", "AALNV", "SPS123"));
+            new PdfLinkTokenService.Payload("sheet", "2026", "AALNV", "SPS123"));
 
         ArgumentCaptor<String> url = ArgumentCaptor.forClass(String.class);
         verify(restTemplate).exchange(url.capture(), eq(HttpMethod.GET), any(HttpEntity.class), eq(byte[].class));
@@ -44,17 +40,17 @@ class HttpFfvbPdfSourceTest {
     @Test
     void postsTheExistingFfvbAddressForm() {
         when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(byte[].class)))
-                .thenReturn(ResponseEntity.ok(new byte[] { 2 }));
+            .thenReturn(ResponseEntity.ok(new byte[]{2}));
 
         pdfSource.downloadAddress(new PdfLinkTokenService.Payload("address", "2026", "LNV", "M1"));
 
         @SuppressWarnings("rawtypes")
         ArgumentCaptor<HttpEntity> request = ArgumentCaptor.forClass(HttpEntity.class);
         verify(restTemplate).exchange(
-                eq("https://www.ffvbbeach.org/ffvbapp/adressier/fiche_match_ffvb.php"),
-                eq(HttpMethod.POST),
-                request.capture(),
-                eq(byte[].class));
+            eq("https://www.ffvbbeach.org/ffvbapp/adressier/fiche_match_ffvb.php"),
+            eq(HttpMethod.POST),
+            request.capture(),
+            eq(byte[].class));
         assertThat(request.getValue().getBody()).isInstanceOf(MultiValueMap.class);
         @SuppressWarnings("unchecked")
         MultiValueMap<String, String> form = (MultiValueMap<String, String>) request.getValue().getBody();
@@ -66,10 +62,10 @@ class HttpFfvbPdfSourceTest {
     @Test
     void exposesProviderHttpFailuresAsTransportErrors() {
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(byte[].class)))
-                .thenThrow(new HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE));
+            .thenThrow(new HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE));
 
         FfvbPdfDownload result = pdfSource.downloadSheet(
-                new PdfLinkTokenService.Payload("sheet", "2026", "LNV", "M1"));
+            new PdfLinkTokenService.Payload("sheet", "2026", "LNV", "M1"));
 
         assertThat(result.statusCode()).isEqualTo(503);
         assertThat(result.content()).isNull();

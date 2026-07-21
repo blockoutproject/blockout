@@ -1,9 +1,8 @@
 """Bounded HTTP access shared by FFVB and LNV sources."""
 
+import aiohttp
 import asyncio
 import re
-
-import aiohttp
 
 from scraper.observability.logging import log_event
 

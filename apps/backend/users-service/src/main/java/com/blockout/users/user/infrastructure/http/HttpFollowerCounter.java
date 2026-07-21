@@ -33,16 +33,16 @@ public class HttpFollowerCounter implements FollowerCounter {
 
     private void post(EntityType entityType, Long entityId, Long userId, String operation) {
         String baseUrl = entityType == EntityType.TEAM
-                ? properties.getTeam().getUrl()
-                : properties.getPool().getUrl();
+            ? properties.getTeam().getUrl()
+            : properties.getPool().getUrl();
         String url = UriComponentsBuilder.fromUriString(baseUrl)
-                .pathSegment(entityId.toString(), "followers", operation)
-                .queryParam("userId", userId)
-                .build()
-                .toUriString();
+            .pathSegment(entityId.toString(), "followers", operation)
+            .queryParam("userId", userId)
+            .build()
+            .toUriString();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         forwardRestTemplate.exchange(
-                url, HttpMethod.POST, new HttpEntity<>(Collections.emptyMap(), headers), Void.class);
+            url, HttpMethod.POST, new HttpEntity<>(Collections.emptyMap(), headers), Void.class);
     }
 }

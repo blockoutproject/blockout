@@ -27,7 +27,7 @@ class SearchApplicationServiceTest {
     void forwardsEveryPoolFilterToTheInternalSearchBoundary() {
         List<PoolSearchResponse> expected = List.of(PoolSearchResponse.builder().id(10L).name("Elite").build());
         when(searchInternalClient.searchPools("paris", "2026/2027", 3L, "SIX", "F"))
-                .thenReturn(expected);
+            .thenReturn(expected);
 
         List<PoolSearchResponse> result = searchService.searchPools("paris", "2026/2027", 3L, "SIX", "F");
 
@@ -38,7 +38,7 @@ class SearchApplicationServiceTest {
     void forwardsEveryTeamFilterToTheInternalSearchBoundary() {
         List<TeamSearchResponse> expected = List.of(TeamSearchResponse.builder().id(20L).name("Blockout").build());
         when(searchInternalClient.searchTeams("blockout", "2026/2027", 3L, "SIX", "M"))
-                .thenReturn(expected);
+            .thenReturn(expected);
 
         List<TeamSearchResponse> result = searchService.searchTeams("blockout", "2026/2027", 3L, "SIX", "M");
 

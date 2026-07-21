@@ -17,7 +17,9 @@ import java.util.List;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-/** Auth0 adapter for the provider-neutral User identity boundary. */
+/**
+ * Auth0 adapter for the provider-neutral User identity boundary.
+ */
 @Component
 @RequiredArgsConstructor
 public class Auth0UserIdentityProvider implements UserIdentityProvider {
@@ -32,8 +34,8 @@ public class Auth0UserIdentityProvider implements UserIdentityProvider {
         try {
             User user = managementApi().users().get(externalId, null).execute().getBody();
             return new ExternalUserProfile(
-                    user.getId(), user.getEmail(), user.getGivenName(), user.getFamilyName(),
-                    user.getPicture(), user.getPhoneNumber());
+                user.getId(), user.getEmail(), user.getGivenName(), user.getFamilyName(),
+                user.getPicture(), user.getPhoneNumber());
         } catch (Auth0Exception exception) {
             throw new IdentityProviderException("Unable to retrieve the Auth0 user.", exception);
         }
@@ -61,15 +63,15 @@ public class Auth0UserIdentityProvider implements UserIdentityProvider {
     public boolean linkIdentity(String primaryExternalId, String secondaryExternalId, String provider) {
         try {
             managementApi().users()
-                    .linkIdentity(primaryExternalId, secondaryExternalId, provider, null)
-                    .execute();
+                .linkIdentity(primaryExternalId, secondaryExternalId, provider, null)
+                .execute();
             return true;
         } catch (Auth0Exception | RuntimeException exception) {
             LOGGER.warn("Unable to link Auth0 identities",
-                    keyValue("action", "link_accounts_failed"),
-                    keyValue("primaryAuth0Id", primaryExternalId),
-                    keyValue("secondaryAuth0Id", secondaryExternalId),
-                    exception);
+                keyValue("action", "link_accounts_failed"),
+                keyValue("primaryAuth0Id", primaryExternalId),
+                keyValue("secondaryAuth0Id", secondaryExternalId),
+                exception);
             return false;
         }
     }

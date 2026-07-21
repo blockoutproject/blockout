@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-
 from auth0.authentication import GetToken
 
 from scraper.config.settings import Settings

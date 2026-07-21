@@ -42,15 +42,15 @@ public class UserApplicationService implements UserService {
     @Transactional(readOnly = true)
     public UserView getUserByAuth0Id(String auth0Id) {
         return userRepository.findByAuth0IdWithFavorites(auth0Id)
-                .map(this::toView)
-                .orElseThrow(() -> new UserNotFoundException(auth0Id));
+            .map(this::toView)
+            .orElseThrow(() -> new UserNotFoundException(auth0Id));
     }
 
     @Override
     @Transactional
     public UserView updateUser(String auth0Id, UpdateUserCommand command) {
         UserEntity user = userRepository.findByAuth0Id(auth0Id)
-                .orElseThrow(() -> new UserNotFoundException(auth0Id));
+            .orElseThrow(() -> new UserNotFoundException(auth0Id));
         updatePseudo(user, command.pseudo());
         updatePicture(user, command);
         if (!Boolean.TRUE.equals(user.getActive())) user.setActive(true);
@@ -69,8 +69,8 @@ public class UserApplicationService implements UserService {
     public UserView ensureCurrentUser(String auth0Id) {
         ExternalUserProfile externalUser = identityProvider.getUser(auth0Id);
         UserEntity user = userRepository.findByAuth0Id(auth0Id)
-                .map(existing -> synchronize(existing, externalUser))
-                .orElseGet(() -> createOrLinkUser(externalUser, auth0Id));
+            .map(existing -> synchronize(existing, externalUser))
+            .orElseGet(() -> createOrLinkUser(externalUser, auth0Id));
         return toView(user);
     }
 
@@ -78,11 +78,11 @@ public class UserApplicationService implements UserService {
     @Transactional
     public void deleteUser(String auth0Id) {
         UserEntity user = userRepository.findByAuth0Id(auth0Id)
-                .orElseThrow(() -> new UserNotFoundException(auth0Id));
+            .orElseThrow(() -> new UserNotFoundException(auth0Id));
         identityProvider.deleteUser(auth0Id);
         if (user.getFavorites() != null) {
             user.getFavorites().forEach(favorite -> followPublisher.publish(
-                    user.getId(), favorite.getEntityType(), favorite.getEntityId(), FollowEventType.DELETED));
+                user.getId(), favorite.getEntityType(), favorite.getEntityId(), FollowEventType.DELETED));
         }
         userRepository.delete(user);
         LOGGER.info("Deleted user", keyValue("action", "delete_user"), keyValue("userId", user.getId()));
@@ -92,7 +92,7 @@ public class UserApplicationService implements UserService {
     public void assignDefaultRole(String auth0Id) {
         identityProvider.assignDefaultRole(auth0Id);
         LOGGER.info("Assigned default user role", keyValue("action", "assign_default_role"),
-                keyValue("auth0Id", auth0Id));
+            keyValue("auth0Id", auth0Id));
     }
 
     private void updatePseudo(UserEntity user, String pseudo) {
@@ -155,15 +155,15 @@ public class UserApplicationService implements UserService {
         }
 
         UserEntity user = UserEntity.builder()
-                .auth0Id(externalUser.id())
-                .email(externalUser.email())
-                .pseudo(generatePseudo(externalUser.email()))
-                .firstName(externalUser.firstName())
-                .lastName(externalUser.lastName())
-                .pictureUrl(externalUser.pictureUrl())
-                .phoneNumber(externalUser.phoneNumber())
-                .active(true)
-                .build();
+            .auth0Id(externalUser.id())
+            .email(externalUser.email())
+            .pseudo(generatePseudo(externalUser.email()))
+            .firstName(externalUser.firstName())
+            .lastName(externalUser.lastName())
+            .pictureUrl(externalUser.pictureUrl())
+            .phoneNumber(externalUser.phoneNumber())
+            .active(true)
+            .build();
         try {
             UserEntity created = userRepository.saveAndFlush(user);
             LOGGER.info("Created user", keyValue("action", "create_user"), keyValue("userId", created.getId()));
@@ -174,7 +174,7 @@ public class UserApplicationService implements UserService {
     }
 
     private UserEntity linkOrReject(
-            UserEntity existing, ExternalUserProfile externalUser, String secondaryAuth0Id) {
+        UserEntity existing, ExternalUserProfile externalUser, String secondaryAuth0Id) {
         String primaryAuth0Id = existing.getAuth0Id();
         if (Objects.equals(primaryAuth0Id, secondaryAuth0Id)) return existing;
         int separator = secondaryAuth0Id.indexOf('|');
@@ -189,8 +189,8 @@ public class UserApplicationService implements UserService {
             return synchronize(existing, identityProvider.getUser(primaryAuth0Id));
         } catch (com.blockout.users.user.application.exceptions.IdentityProviderException exception) {
             LOGGER.warn("Linked identities but could not refresh the primary profile",
-                    keyValue("action", "update_user_after_linking_failed"),
-                    keyValue("primaryAuth0Id", primaryAuth0Id));
+                keyValue("action", "update_user_after_linking_failed"),
+                keyValue("primaryAuth0Id", primaryAuth0Id));
             return existing;
         }
     }
@@ -209,10 +209,10 @@ public class UserApplicationService implements UserService {
     private String normalizePseudo(String raw) {
         if (raw == null || raw.isBlank()) return "user";
         String normalized = raw.trim().toLowerCase()
-                .replaceAll("\\s+", "-")
-                .replaceAll("[^a-z0-9._-]", "-")
-                .replaceAll("-{2,}", "-")
-                .replaceAll("(^-+)|(-+$)", "");
+            .replaceAll("\\s+", "-")
+            .replaceAll("[^a-z0-9._-]", "-")
+            .replaceAll("-{2,}", "-")
+            .replaceAll("(^-+)|(-+$)", "");
         if (normalized.isBlank()) normalized = "user";
         if (normalized.length() > 30) normalized = normalized.substring(0, 30).replaceAll("(-+$)", "");
         return normalized;
@@ -220,11 +220,11 @@ public class UserApplicationService implements UserService {
 
     private UserView toView(UserEntity user) {
         List<UserFavoriteSummaryView> favorites = user.getFavorites() == null ? null : user.getFavorites().stream()
-                .map(favorite -> new UserFavoriteSummaryView(favorite.getEntityType(), favorite.getEntityId()))
-                .toList();
+            .map(favorite -> new UserFavoriteSummaryView(favorite.getEntityType(), favorite.getEntityId()))
+            .toList();
         return new UserView(
-                user.getId(), user.getAuth0Id(), user.getEmail(), user.getPseudo(), user.getFirstName(),
-                user.getLastName(), user.getPictureUrl(), user.getPhoneNumber(), user.getActive(),
-                user.getCreatedAt(), user.getLastUpdate(), favorites);
+            user.getId(), user.getAuth0Id(), user.getEmail(), user.getPseudo(), user.getFirstName(),
+            user.getLastName(), user.getPictureUrl(), user.getPhoneNumber(), user.getActive(),
+            user.getCreatedAt(), user.getLastUpdate(), favorites);
     }
 }

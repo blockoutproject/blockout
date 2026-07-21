@@ -1,13 +1,11 @@
 package com.blockout.notifications.notification.infrastructure.http;
 
-import com.blockout.notifications.config.Auth0Properties;
-
 import com.auth0.client.auth.AuthAPI;
 import com.auth0.json.auth.TokenHolder;
 import com.auth0.net.TokenRequest;
+import com.blockout.notifications.config.Auth0Properties;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,7 +32,7 @@ public class Auth0ServiceTokenProvider {
     public void init() {
         if (!M2M_ENABLED) {
             logger.warn("Auth0 M2M bypass enabled",
-                    keyValue("action", "auth0_bypass_enabled"));
+                keyValue("action", "auth0_bypass_enabled"));
             return;
         }
 
@@ -42,8 +40,8 @@ public class Auth0ServiceTokenProvider {
             refreshToken();
         } catch (Exception e) {
             logger.error("Failed to initialize Auth0 token",
-                    keyValue("action", "init_token_failed"),
-                    e);
+                keyValue("action", "init_token_failed"),
+                e);
             throw new RuntimeException("Unable to initialize Auth0 token", e);
         }
     }
@@ -57,9 +55,9 @@ public class Auth0ServiceTokenProvider {
 
         try {
             AuthAPI auth = AuthAPI.newBuilder(
-                    auth0Properties.getDomain(),
-                    auth0Properties.getClientId(),
-                    auth0Properties.getClientSecret()
+                auth0Properties.getDomain(),
+                auth0Properties.getClientId(),
+                auth0Properties.getClientSecret()
             ).build();
 
             TokenRequest tokenRequest = auth.requestToken(auth0Properties.getAudience());
@@ -69,13 +67,13 @@ public class Auth0ServiceTokenProvider {
             this.tokenExpiry = LocalDateTime.now().plusSeconds(holder.getExpiresIn());
 
             logger.info("Auth0 token refreshed",
-                    keyValue("action", "refresh_token_success"),
-                    keyValue("expires_at", tokenExpiry));
+                keyValue("action", "refresh_token_success"),
+                keyValue("expires_at", tokenExpiry));
 
         } catch (Exception e) {
             logger.error("Error refreshing Auth0 token",
-                    keyValue("action", "refresh_token_error"),
-                    e);
+                keyValue("action", "refresh_token_error"),
+                e);
         }
     }
 

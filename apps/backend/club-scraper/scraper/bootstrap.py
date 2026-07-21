@@ -1,26 +1,25 @@
 from __future__ import annotations
 
+import aiohttp
 import asyncio
 from datetime import UTC, datetime
-
-import aiohttp
 from prometheus_client import start_http_server
-
 from scraper.application.club_ingestion import ClubIngestion
+from scraper.infrastructure.blockout.clients import BlockoutClients
+from scraper.infrastructure.ffvb.client import FfvbClubClient
+from scraper.observability.metrics import (
+    club_scraping_duration,
+    execution_duration,
+)
+
 from scraper.config.settings import Settings, load_settings
 from scraper.infrastructure.blockout.auth import (
     Auth0TokenRefresher,
     TokenStore,
     token_store,
 )
-from scraper.infrastructure.blockout.clients import BlockoutClients
-from scraper.infrastructure.ffvb.client import FfvbClubClient
 from scraper.infrastructure.scheduling.scheduler import run_hourly
 from scraper.observability.logging import configure_logging, log_event
-from scraper.observability.metrics import (
-    club_scraping_duration,
-    execution_duration,
-)
 
 SCRAPER_NAME = "SCRAPER_CLUBS"
 

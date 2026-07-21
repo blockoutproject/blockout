@@ -17,6 +17,6 @@
     </appender>
 
     <root level="INFO">
-        <appender-ref ref="JSON" />
+        <appender-ref ref="JSON"/>
     </root>
 </configuration>

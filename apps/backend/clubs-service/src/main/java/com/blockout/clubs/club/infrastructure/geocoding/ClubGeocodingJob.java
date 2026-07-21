@@ -29,16 +29,16 @@ public class ClubGeocodingJob {
      * Geocodes eligible Clubs while isolating a provider failure to the affected Club.
      */
     @Scheduled(
-            initialDelayString = "${clubs.geocoding.initial-delay:0}",
-            fixedDelayString = "${clubs.geocoding.fixed-delay:604800000}")
+        initialDelayString = "${clubs.geocoding.initial-delay:0}",
+        fixedDelayString = "${clubs.geocoding.fixed-delay:604800000}")
     @Transactional
     public void geocodeClubs() {
         List<ClubEntity> clubs = clubRepository.findAll().stream()
-                .filter(club -> club.isActive()
-                        && (club.getLatitude() == null || club.getLongitude() == null)
-                        && club.getCity() != null
-                        && club.getPostalCode() != null)
-                .toList();
+            .filter(club -> club.isActive()
+                && (club.getLatitude() == null || club.getLongitude() == null)
+                && club.getCity() != null
+                && club.getPostalCode() != null)
+            .toList();
         int processed = 0;
         int ambiguous = 0;
 
@@ -46,9 +46,9 @@ public class ClubGeocodingJob {
             processed++;
             try {
                 MapboxClient.GeocodingResult result = mapboxClient.geocode(
-                        club.getCity(),
-                        club.getPostalCode(),
-                        club.getAddress());
+                    club.getCity(),
+                    club.getPostalCode(),
+                    club.getAddress());
                 if (result == null) {
                     ambiguous++;
                     continue;
@@ -58,15 +58,15 @@ public class ClubGeocodingJob {
                 clubRepository.save(club);
             } catch (Exception exception) {
                 LOGGER.error("Failed to geocode club",
-                        keyValue("action", "club_geocoding"),
-                        keyValue("clubId", club.getId()),
-                        exception);
+                    keyValue("action", "club_geocoding"),
+                    keyValue("clubId", club.getId()),
+                    exception);
             }
         }
 
         LOGGER.info("Completed club geocoding",
-                keyValue("action", "club_geocoding_done"),
-                keyValue("processed", processed),
-                keyValue("ambiguous", ambiguous));
+            keyValue("action", "club_geocoding_done"),
+            keyValue("processed", processed),
+            keyValue("ambiguous", ambiguous));
     }
 }

@@ -17,8 +17,8 @@ public class HttpCurrentUserProvider implements CurrentUserProvider {
     private final RestTemplate restTemplate;
 
     public HttpCurrentUserProvider(
-            ApiClientProperties properties,
-            @Qualifier("forwardRestTemplate") RestTemplate restTemplate) {
+        ApiClientProperties properties,
+        @Qualifier("forwardRestTemplate") RestTemplate restTemplate) {
         this.properties = properties;
         this.restTemplate = restTemplate;
     }
@@ -27,7 +27,7 @@ public class HttpCurrentUserProvider implements CurrentUserProvider {
     public CurrentUserView getCurrentUser() {
         String url = properties.getUser().getUrl() + "/me";
         ResponseEntity<UserInternalResponse> response = restTemplate.exchange(
-                url, HttpMethod.GET, null, UserInternalResponse.class);
+            url, HttpMethod.GET, null, UserInternalResponse.class);
         UserInternalResponse user = response.getBody();
         return user == null ? null : new CurrentUserView(user.id(), user.auth0Id(), user.createdAt());
     }

@@ -1,17 +1,16 @@
 package com.blockout.mobilegateway.match.api.models;
 
-import java.time.Instant;
-
 import com.blockout.mobilegateway.pool.api.models.PoolResponse;
-import com.blockout.mobilegateway.team.api.models.TeamInternalResponse;
 import com.blockout.mobilegateway.shared.application.models.LiveProvider;
 import com.blockout.mobilegateway.shared.application.models.MatchStatus;
+import com.blockout.mobilegateway.team.api.models.TeamInternalResponse;
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.Instant;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data

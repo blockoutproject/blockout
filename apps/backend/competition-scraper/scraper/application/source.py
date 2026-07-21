@@ -1,9 +1,8 @@
 """Shared lifecycle for competition provider sources."""
 
+import aiohttp
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
-
-import aiohttp
 from prometheus_client import Gauge
 
 from scraper.application.association_changes import AssociationChangeSet

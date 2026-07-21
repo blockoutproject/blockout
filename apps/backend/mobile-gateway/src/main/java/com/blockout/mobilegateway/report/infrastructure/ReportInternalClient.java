@@ -1,13 +1,16 @@
 package com.blockout.mobilegateway.report.infrastructure;
 
-import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.report.api.models.ReportResponse;
 import com.blockout.mobilegateway.report.api.models.CreateReportRequest;
+import com.blockout.mobilegateway.report.api.models.ReportResponse;
+import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -55,7 +58,7 @@ public class ReportInternalClient {
                     };
                     HttpHeaders imgHeaders = new HttpHeaders();
                     imgHeaders.setContentType(MediaType.parseMediaType(
-                            image.getContentType() != null ? image.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE));
+                        image.getContentType() != null ? image.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE));
                     HttpEntity<ByteArrayResource> imagePart = new HttpEntity<>(resource, imgHeaders);
                     body.add("images", imagePart);
                 } catch (Exception e) {
@@ -65,7 +68,7 @@ public class ReportInternalClient {
         }
 
         ResponseEntity<ReportResponse> response =
-                internalApiClient.postMultipart(url, body, ReportResponse.class);
+            internalApiClient.postMultipart(url, body, ReportResponse.class);
         return response.getBody();
     }
 }

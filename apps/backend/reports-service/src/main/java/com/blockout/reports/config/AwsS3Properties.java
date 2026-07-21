@@ -12,11 +12,10 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "aws")
 public class AwsS3Properties {
 
-    @NotBlank
-    private String region;
-
     private final Credentials credentials = new Credentials();
     private final S3 s3 = new S3();
+    @NotBlank
+    private String region;
 
     @Data
     public static class Credentials {

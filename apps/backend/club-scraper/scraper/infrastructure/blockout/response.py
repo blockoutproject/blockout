@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
-
 import aiohttp
+from typing import Any
 
 from scraper.observability.logging import log_event
 

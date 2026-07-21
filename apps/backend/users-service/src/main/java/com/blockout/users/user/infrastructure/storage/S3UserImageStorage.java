@@ -25,20 +25,20 @@ public class S3UserImageStorage implements UserImageStorage {
     @PostConstruct
     void initialize() {
         s3Client = S3Client.builder()
-                .region(Region.of(properties.getRegion()))
-                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(
-                        properties.getCredentials().getAccessKey(), properties.getCredentials().getSecretKey())))
-                .build();
+            .region(Region.of(properties.getRegion()))
+            .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(
+                properties.getCredentials().getAccessKey(), properties.getCredentials().getSecretKey())))
+            .build();
     }
 
     @Override
     public String uploadProfileImage(UserImageCommand image) {
         String key = "users/" + UUID.randomUUID() + "-" + image.fileName();
         PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(properties.getS3().getBucket())
-                .key(key)
-                .contentType(image.contentType())
-                .build();
+            .bucket(properties.getS3().getBucket())
+            .key(key)
+            .contentType(image.contentType())
+            .build();
         s3Client.putObject(request, RequestBody.fromBytes(image.content()));
         return baseUrl() + key;
     }
@@ -47,8 +47,8 @@ public class S3UserImageStorage implements UserImageStorage {
     public void deleteProfileImage(String imageUrl) {
         if (!imageUrl.startsWith(baseUrl())) return;
         s3Client.deleteObject(builder -> builder
-                .bucket(properties.getS3().getBucket())
-                .key(imageUrl.substring(baseUrl().length())));
+            .bucket(properties.getS3().getBucket())
+            .key(imageUrl.substring(baseUrl().length())));
     }
 
     private String baseUrl() {

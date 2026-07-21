@@ -23,7 +23,7 @@ the current task. Detailed rules live in the references rather than in this entr
 ## Source Router
 
 | Task signal                                                                   | Read                                                                                    |
-| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+|-------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
 | Java package structure, Spring service, Maven module, or application boundary | `references/backend-java-policy.md`                                                     |
 | Javadoc, source comments, or a handwritten public/local contract              | `references/code-documentation-policy.md`                                               |
 | Backend Java tests                                                            | `references/java-testing-policy.md`                                                     |
@@ -50,7 +50,8 @@ decision. Historical code and deferred plans do not activate work by continuity.
   and read projections may remain smaller when their names and consumers make that role explicit.
 - Blockout-owned HTTP bodies, responses, and query parameters use native camelCase. Database columns, environment
   variables, protocol fields, and provider-owned payloads retain their own naming.
-- Use Nx targets for JavaScript/TypeScript and scraper task orchestration. Use the backend Maven reactor for cross-module
+- Use Nx targets for JavaScript/TypeScript and scraper task orchestration. Use the backend Maven reactor for
+  cross-module
   Java validation.
 - Keep generated output, build artifacts, local environments, caches, logs, and secrets out of Git.
 - Preserve existing runtime behavior unless the active roadmap task explicitly authorizes a behavior correction.

@@ -1,9 +1,8 @@
+import aiohttp
 import asyncio
 import xml.etree.ElementTree as ET
 from dataclasses import replace
 from datetime import date
-
-import aiohttp
 
 from scraper.application.calendar_ingestion import handle_csv_download_and_parse
 from scraper.application.source import Scraper

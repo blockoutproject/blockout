@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-
 from bs4 import BeautifulSoup
 
 from scraper.infrastructure.ffvb.models import FfvbClubRecord

@@ -13,13 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -36,22 +30,22 @@ public class MatchLiveLinkController {
     @GetMapping("/{matchId}/live-links")
     public ResponseEntity<List<MatchLiveLinkInternalResponse>> getLiveLinksHistory(@PathVariable Long matchId) {
         return ResponseEntity.ok(liveLinkService.getLiveLinksHistoryForMatch(matchId).stream()
-                .map(mapper::toInternalResponse)
-                .toList());
+            .map(mapper::toInternalResponse)
+            .toList());
     }
 
     @PreAuthorize("hasAuthority('SCOPE_create:match_live_link')")
     @PostMapping("/{matchId}/live-link")
     public ResponseEntity<MatchLiveLinkResultInternalResponse> upsertLiveLink(
-            @PathVariable Long matchId, @RequestBody SetMatchLiveLinkInternalRequest request) {
+        @PathVariable Long matchId, @RequestBody SetMatchLiveLinkInternalRequest request) {
         return ResponseEntity.ok(mapper.toInternalResponse(
-                liveLinkService.upsertLiveLink(matchId, new SetMatchLiveLinkCommand(request.url()))));
+            liveLinkService.upsertLiveLink(matchId, new SetMatchLiveLinkCommand(request.url()))));
     }
 
     @PreAuthorize("hasAuthority('SCOPE_delete:match_live_link')")
     @DeleteMapping("/{matchId}/live-link")
     public ResponseEntity<Void> deleteLiveLink(
-            @PathVariable Long matchId, @AuthenticationPrincipal Jwt jwt) {
+        @PathVariable Long matchId, @AuthenticationPrincipal Jwt jwt) {
         liveLinkService.deleteLiveLink(matchId, jwt.getSubject());
         return ResponseEntity.noContent().build();
     }
@@ -59,9 +53,9 @@ public class MatchLiveLinkController {
     @PreAuthorize("hasAuthority('SCOPE_report:match_live_link')")
     @PostMapping("/{matchId}/live-link/report")
     public ResponseEntity<Void> reportLiveLink(
-            @PathVariable Long matchId,
-            @RequestBody ReportMatchLiveLinkInternalRequest request,
-            @AuthenticationPrincipal Jwt jwt) {
+        @PathVariable Long matchId,
+        @RequestBody ReportMatchLiveLinkInternalRequest request,
+        @AuthenticationPrincipal Jwt jwt) {
         reportService.reportLiveLink(matchId, request.reason(), jwt.getSubject());
         return ResponseEntity.noContent().build();
     }

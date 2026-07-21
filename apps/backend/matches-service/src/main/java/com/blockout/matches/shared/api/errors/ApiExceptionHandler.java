@@ -25,7 +25,7 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MatchNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleNotFound(MatchNotFoundException exception) {
         return problemFactory.response(HttpStatus.NOT_FOUND, "match_not_found", exception.getMessage(),
-                "Match not found.");
+            "Match not found.");
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -36,19 +36,19 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ProblemDetail> handleAuthentication(AuthenticationException exception) {
         return problemFactory.response(HttpStatus.UNAUTHORIZED, "authentication_required",
-                "Authentication is required or invalid.", "Authentication is required or invalid.");
+            "Authentication is required or invalid.", "Authentication is required or invalid.");
     }
 
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class, ServletRequestBindingException.class})
     public ResponseEntity<ProblemDetail> handleBadRequest(Exception exception) {
         return problemFactory.response(HttpStatus.BAD_REQUEST, "invalid_request", exception.getMessage(),
-                "The request is invalid.");
+            "The request is invalid.");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception exception) {
         LOGGER.error("Unhandled matches-service exception", exception);
         return problemFactory.response(HttpStatus.INTERNAL_SERVER_ERROR, "internal_server_error",
-                "An internal error occurred.", "An internal error occurred.");
+            "An internal error occurred.", "An internal error occurred.");
     }
 }

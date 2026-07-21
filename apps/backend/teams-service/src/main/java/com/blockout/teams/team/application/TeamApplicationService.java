@@ -22,7 +22,9 @@ import java.util.List;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-/** Transactional application service for V1 teams. */
+/**
+ * Transactional application service for V1 teams.
+ */
 @Service
 @RequiredArgsConstructor
 public class TeamApplicationService implements TeamService {
@@ -37,12 +39,12 @@ public class TeamApplicationService implements TeamService {
     @Override
     @Transactional(readOnly = true)
     public List<TeamView> findTeams(Long divisionId, Format format, Gender gender, String season,
-            String clubId, List<Long> ids, Boolean active) {
+                                    String clubId, List<Long> ids, Boolean active) {
         List<Long> safeIds = ids == null ? Collections.emptyList() : ids;
         List<TeamView> teams = teamRepository.findFiltered(
                 divisionId, format, gender, season, clubId, safeIds, safeIds.size(), active).stream()
-                .map(this::toView)
-                .toList();
+            .map(this::toView)
+            .toList();
         LOGGER.debug("Filtered teams", keyValue("action", "list_teams"), keyValue("count", teams.size()));
         return teams;
     }
@@ -57,19 +59,19 @@ public class TeamApplicationService implements TeamService {
     @Transactional
     public TeamView createTeam(CreateTeamCommand command) {
         TeamEntity team = TeamEntity.builder()
-                .clubId(command.clubId())
-                .rawName(command.rawName())
-                .name(command.name())
-                .shortName(command.shortName())
-                .leagueCode(command.leagueCode())
-                .divisionId(command.divisionId())
-                .season(command.season())
-                .format(command.format())
-                .gender(command.gender())
-                .followersCount(command.followersCount() == null ? 0L : command.followersCount())
-                .logoUrl(command.logoUrl())
-                .active(command.active() == null ? true : command.active())
-                .build();
+            .clubId(command.clubId())
+            .rawName(command.rawName())
+            .name(command.name())
+            .shortName(command.shortName())
+            .leagueCode(command.leagueCode())
+            .divisionId(command.divisionId())
+            .season(command.season())
+            .format(command.format())
+            .gender(command.gender())
+            .followersCount(command.followersCount() == null ? 0L : command.followersCount())
+            .logoUrl(command.logoUrl())
+            .active(command.active() == null ? true : command.active())
+            .build();
         TeamView created = toView(teamRepository.saveAndFlush(team));
         eventPublisher.publishTeamUpsert(created);
         LOGGER.info("Created team", keyValue("action", "create_team"), keyValue("teamId", created.id()));
@@ -110,7 +112,7 @@ public class TeamApplicationService implements TeamService {
         team.setFollowersCount(team.getFollowersCount() + 1L);
         TeamView updated = toView(teamRepository.saveAndFlush(team));
         LOGGER.info("Incremented Team followers", keyValue("action", "increment_followers_count"),
-                keyValue("teamId", teamId), keyValue("userId", userId));
+            keyValue("teamId", teamId), keyValue("userId", userId));
         return updated;
     }
 
@@ -121,7 +123,7 @@ public class TeamApplicationService implements TeamService {
         team.setFollowersCount(Math.max(0L, team.getFollowersCount() - 1L));
         TeamView updated = toView(teamRepository.saveAndFlush(team));
         LOGGER.info("Decremented Team followers", keyValue("action", "decrement_followers_count"),
-                keyValue("teamId", teamId), keyValue("userId", userId));
+            keyValue("teamId", teamId), keyValue("userId", userId));
         return updated;
     }
 
@@ -132,7 +134,7 @@ public class TeamApplicationService implements TeamService {
         teams.forEach(team -> team.setActive(false));
         teamRepository.saveAllAndFlush(teams);
         LOGGER.info("Deactivated teams for Club", keyValue("action", "deactivate_teams_by_club"),
-                keyValue("clubId", clubId), keyValue("count", teams.size()));
+            keyValue("clubId", clubId), keyValue("count", teams.size()));
     }
 
     private TeamEntity loadTeam(Long id) {
@@ -182,7 +184,7 @@ public class TeamApplicationService implements TeamService {
 
     private TeamView toView(TeamEntity team) {
         return new TeamView(team.getId(), team.getClubId(), team.getRawName(), team.getName(), team.getShortName(),
-                team.getLeagueCode(), team.getDivisionId(), team.getSeason(), team.getFormat(), team.getGender(),
-                team.getFollowersCount(), team.getLogoUrl(), team.getActive(), team.getCreatedAt(), team.getLastUpdate());
+            team.getLeagueCode(), team.getDivisionId(), team.getSeason(), team.getFormat(), team.getGender(),
+            team.getFollowersCount(), team.getLogoUrl(), team.getActive(), team.getCreatedAt(), team.getLastUpdate());
     }
 }

@@ -1,16 +1,18 @@
 package com.blockout.mobilegateway.notification.api.models;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.blockout.mobilegateway.shared.application.models.NotificationTargetType;
 import com.blockout.mobilegateway.shared.application.models.NotificationType;
-import java.time.Instant;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** Mobile notification view enriched with division data resolved by the gateway. */
+import java.time.Instant;
+
+/**
+ * Mobile notification view enriched with division data resolved by the gateway.
+ */
 @Data
 @Builder
 @NoArgsConstructor

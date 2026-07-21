@@ -1,9 +1,9 @@
 package com.blockout.notifications.shared.api.errors;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Map;
 
 public class ApiErrorUtils {
 
@@ -11,7 +11,8 @@ public class ApiErrorUtils {
 
     public static String extractMessage(String responseBody) {
         try {
-            Map<String, Object> json = objectMapper.readValue(responseBody, new TypeReference<>() {});
+            Map<String, Object> json = objectMapper.readValue(responseBody, new TypeReference<>() {
+            });
             Object message = json.get("message");
             return message != null ? message.toString() : null;
         } catch (Exception e) {

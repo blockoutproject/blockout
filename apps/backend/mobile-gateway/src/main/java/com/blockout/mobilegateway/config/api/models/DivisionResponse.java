@@ -1,12 +1,11 @@
 package com.blockout.mobilegateway.config.api.models;
 
-import java.time.LocalDateTime;
-
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder

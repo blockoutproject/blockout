@@ -1,8 +1,8 @@
 package com.blockout.workersearch.config;
 
 import org.springframework.amqp.core.*;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
@@ -161,8 +161,8 @@ public class RabbitMQConfig {
 
     @Bean(name = "rabbitBatchFactory")
     public SimpleRabbitListenerContainerFactory rabbitBatchFactory(ConnectionFactory connectionFactory,
-            MessageConverter messageConverter,
-            @Value("${spring.rabbitmq.listener.simple.auto-startup:true}") boolean autoStartup) {
+                                                                   MessageConverter messageConverter,
+                                                                   @Value("${spring.rabbitmq.listener.simple.auto-startup:true}") boolean autoStartup) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setAutoStartup(autoStartup);
@@ -183,9 +183,9 @@ public class RabbitMQConfig {
 
     private Queue durableQueue(String name, String dlqRoutingKey) {
         return QueueBuilder.durable(name)
-                .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_DLQ_EXCHANGE)
-                .withArgument("x-dead-letter-routing-key", dlqRoutingKey)
-                .build();
+            .withArgument("x-dead-letter-exchange", ENTITY_LIFECYCLE_DLQ_EXCHANGE)
+            .withArgument("x-dead-letter-routing-key", dlqRoutingKey)
+            .build();
     }
 
     private Binding bindQueue(Queue queue, String routingKey) {

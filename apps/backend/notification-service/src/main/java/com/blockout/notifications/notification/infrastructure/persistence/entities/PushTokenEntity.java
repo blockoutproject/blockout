@@ -1,14 +1,13 @@
 package com.blockout.notifications.notification.infrastructure.persistence.entities;
 
-import java.time.LocalDateTime;
-
 import com.blockout.notifications.notification.application.models.DevicePlatform;
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder(toBuilder = true)
@@ -16,7 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Table(name = "push_tokens", uniqueConstraints = {
-        @UniqueConstraint(name = "uix_push_tokens_token", columnNames = { "expo_push_token" })
+    @UniqueConstraint(name = "uix_push_tokens_token", columnNames = {"expo_push_token"})
 })
 public class PushTokenEntity {
 

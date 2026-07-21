@@ -3,4 +3,5 @@ package com.blockout.workersearch.projection.infrastructure.elasticsearch.reposi
 import com.blockout.workersearch.projection.infrastructure.elasticsearch.documents.PoolSearchDocument;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 
-public interface PoolSearchRepository extends ElasticsearchRepository<PoolSearchDocument, Long> {}
+public interface PoolSearchRepository extends ElasticsearchRepository<PoolSearchDocument, Long> {
+}

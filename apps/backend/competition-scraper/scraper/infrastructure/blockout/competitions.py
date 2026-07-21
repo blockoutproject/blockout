@@ -1,6 +1,5 @@
-from dataclasses import asdict
-
 import aiohttp
+from dataclasses import asdict
 
 from scraper.config.settings import COMPETITION_API_URL
 from scraper.infrastructure.blockout.association_stats import (

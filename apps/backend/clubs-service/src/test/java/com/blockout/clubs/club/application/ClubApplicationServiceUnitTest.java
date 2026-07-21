@@ -47,7 +47,7 @@ class ClubApplicationServiceUnitTest {
     void setUp() {
         service = new ClubApplicationService(clubRepository, eventPublisher, imageStorage);
         when(clubRepository.saveAndFlush(any(ClubEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+            .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     /**
@@ -57,8 +57,8 @@ class ClubApplicationServiceUnitTest {
     @Test
     void createsTheCompleteClubAndPublishesItsLifecycleProjection() {
         CreateClubCommand command = new CreateClubCommand(
-                "club-1", "RAW", "Club", "1 Club Street", "Paris", "75001",
-                "mail", "phone", "website", "existing-logo", null);
+            "club-1", "RAW", "Club", "1 Club Street", "Paris", "75001",
+            "mail", "phone", "website", "existing-logo", null);
 
         ClubView created = service.createClub(command);
 
@@ -77,19 +77,19 @@ class ClubApplicationServiceUnitTest {
     @Test
     void replacesTheLogoUpdatesAllMutableFieldsAndReactivatesTheClub() {
         ClubEntity existing = ClubEntity.builder()
-                .id("club-1")
-                .rawName("OLD RAW")
-                .name("Old")
-                .address("Old address")
-                .logoUrl("https://bucket.s3.eu-west-3.amazonaws.com/clubs/old.png")
-                .active(false)
-                .build();
+            .id("club-1")
+            .rawName("OLD RAW")
+            .name("Old")
+            .address("Old address")
+            .logoUrl("https://bucket.s3.eu-west-3.amazonaws.com/clubs/old.png")
+            .active(false)
+            .build();
         when(clubRepository.findById("club-1")).thenReturn(Optional.of(existing));
         ClubImageCommand image = new ClubImageCommand(new byte[]{1}, "new.png", "image/png");
         when(imageStorage.uploadClubImage(image)).thenReturn("new-logo");
         UpdateClubCommand command = new UpdateClubCommand(
-                "NEW RAW", "New", "New address", "Lyon", "69001",
-                "new-mail", "new-phone", "new-website", null, image);
+            "NEW RAW", "New", "New address", "Lyon", "69001",
+            "new-mail", "new-phone", "new-website", null, image);
 
         ClubView updated = service.updateClub("club-1", command);
 

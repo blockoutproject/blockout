@@ -155,14 +155,14 @@ def test_complete_league_observation_dispatches_without_deactivation(
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
 
         assert (
-            dispatched[0].divisionId,
-            dispatched[0].format,
-            dispatched[0].gender,
-        ) == (
-            7,
-            "SIX",
-            "M",
-        )
+                   dispatched[0].divisionId,
+                   dispatched[0].format,
+                   dispatched[0].gender,
+               ) == (
+                   7,
+                   "SIX",
+                   "M",
+               )
 
     asyncio.run(scenario())
 

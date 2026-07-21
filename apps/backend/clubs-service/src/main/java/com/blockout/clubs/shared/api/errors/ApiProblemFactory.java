@@ -14,17 +14,17 @@ public class ApiProblemFactory {
     /**
      * Creates a ProblemDetail response with a stable machine-readable code.
      *
-     * @param status HTTP status to expose.
-     * @param code stable machine-readable code.
-     * @param detail human-readable detail.
+     * @param status         HTTP status to expose.
+     * @param code           stable machine-readable code.
+     * @param detail         human-readable detail.
      * @param fallbackDetail detail used when the provided value is blank.
      * @return response carrying the normalized problem.
      */
     public ResponseEntity<ProblemDetail> response(
-            HttpStatus status,
-            String code,
-            String detail,
-            String fallbackDetail) {
+        HttpStatus status,
+        String code,
+        String detail,
+        String fallbackDetail) {
         ProblemDetail problem = ProblemDetail.forStatus(status);
         problem.setTitle(status.getReasonPhrase());
         problem.setDetail(resolveDetail(detail, fallbackDetail));

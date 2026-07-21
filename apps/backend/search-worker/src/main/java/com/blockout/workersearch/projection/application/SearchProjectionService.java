@@ -1,22 +1,17 @@
 package com.blockout.workersearch.projection.application;
 
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
-import com.blockout.workersearch.projection.application.models.ClubProjectionSource;
-import com.blockout.workersearch.projection.application.models.ClubSearchProjection;
-import com.blockout.workersearch.projection.application.models.DivisionProjectionSource;
-import com.blockout.workersearch.projection.application.models.PoolProjectionSource;
-import com.blockout.workersearch.projection.application.models.PoolSearchProjection;
-import com.blockout.workersearch.projection.application.models.TeamProjectionSource;
-import com.blockout.workersearch.projection.application.models.TeamSearchProjection;
+import com.blockout.workersearch.projection.application.models.*;
 import com.blockout.workersearch.projection.application.ports.ProjectionCache;
 import com.blockout.workersearch.projection.application.ports.ProjectionIndex;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @Service
 @RequiredArgsConstructor
@@ -30,9 +25,9 @@ public class SearchProjectionService {
 
     public void upsertClubs(List<ClubProjectionSource> clubs) {
         LOGGER.info(
-                "Upserting batch of clubs",
-                keyValue("action", "upsert_club_batch"),
-                keyValue("count", clubs.size()));
+            "Upserting batch of clubs",
+            keyValue("action", "upsert_club_batch"),
+            keyValue("count", clubs.size()));
         projectionIndex.saveClubs(clubs.stream().map(this::toClubProjection).toList());
         clubs.forEach(projectionCache::putClub);
         clubs.forEach(club -> upsertTeams(projectionCache.findTeamsByClub(club.id())));
@@ -40,18 +35,18 @@ public class SearchProjectionService {
 
     public void upsertTeams(List<TeamProjectionSource> teams) {
         LOGGER.info(
-                "Upserting batch of teams",
-                keyValue("action", "upsert_team_batch"),
-                keyValue("count", teams.size()));
+            "Upserting batch of teams",
+            keyValue("action", "upsert_team_batch"),
+            keyValue("count", teams.size()));
         projectionIndex.saveTeams(teams.stream().map(this::toTeamProjection).toList());
         teams.forEach(projectionCache::putTeam);
     }
 
     public void upsertPools(List<PoolProjectionSource> pools) {
         LOGGER.info(
-                "Upserting batch of pools",
-                keyValue("action", "upsert_pool_batch"),
-                keyValue("count", pools.size()));
+            "Upserting batch of pools",
+            keyValue("action", "upsert_pool_batch"),
+            keyValue("count", pools.size()));
         projectionIndex.savePools(pools.stream().map(this::toPoolProjection).toList());
     }
 
@@ -95,37 +90,37 @@ public class SearchProjectionService {
         ClubProjectionSource club = projectionCache.findClub(team.clubId());
         DivisionProjectionSource division = projectionCache.findDivision(team.divisionId());
         String logoUrl = StringUtils.isNotBlank(team.logoUrl())
-                ? team.logoUrl()
-                : club == null ? null : club.logoUrl();
+            ? team.logoUrl()
+            : club == null ? null : club.logoUrl();
 
         return new TeamSearchProjection(
-                team.id(),
-                team.name(),
-                team.shortName(),
-                team.clubId(),
-                club == null ? null : club.name(),
-                club == null ? null : club.city(),
-                logoUrl,
-                division == null ? null : division.id(),
-                division == null ? UNKNOWN_DIVISION : division.name(),
-                team.format().name(),
-                team.gender().name(),
-                team.season());
+            team.id(),
+            team.name(),
+            team.shortName(),
+            team.clubId(),
+            club == null ? null : club.name(),
+            club == null ? null : club.city(),
+            logoUrl,
+            division == null ? null : division.id(),
+            division == null ? UNKNOWN_DIVISION : division.name(),
+            team.format().name(),
+            team.gender().name(),
+            team.season());
     }
 
     private PoolSearchProjection toPoolProjection(PoolProjectionSource pool) {
         DivisionProjectionSource division = projectionCache.findDivision(pool.divisionId());
         return new PoolSearchProjection(
-                pool.id(),
-                pool.name(),
-                pool.shortName(),
-                division == null ? null : division.id(),
-                division == null ? UNKNOWN_DIVISION : division.name(),
-                pool.leagueCode(),
-                pool.leagueName(),
-                pool.season(),
-                division == null ? null : division.logoUrl(),
-                pool.format().name(),
-                pool.gender().name());
+            pool.id(),
+            pool.name(),
+            pool.shortName(),
+            division == null ? null : division.id(),
+            division == null ? UNKNOWN_DIVISION : division.name(),
+            pool.leagueCode(),
+            pool.leagueName(),
+            pool.season(),
+            division == null ? null : division.logoUrl(),
+            pool.format().name(),
+            pool.gender().name());
     }
 }

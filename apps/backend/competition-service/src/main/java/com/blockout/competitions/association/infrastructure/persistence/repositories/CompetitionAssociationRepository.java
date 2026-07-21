@@ -30,10 +30,10 @@ public interface CompetitionAssociationRepository extends JpaRepository<Competit
     List<CompetitionAssociationEntity> findByActiveTrueAndClubIdIn(Set<String> clubIds);
 
     @Query("SELECT DISTINCT association.teamId FROM CompetitionAssociationEntity association "
-            + "WHERE association.poolId IN :poolIds")
+        + "WHERE association.poolId IN :poolIds")
     List<Long> findDistinctTeamIdsByPoolIds(@Param("poolIds") Set<Long> poolIds);
 
     @Query("SELECT DISTINCT association.clubId FROM CompetitionAssociationEntity association "
-            + "WHERE association.teamId IN :teamIds")
+        + "WHERE association.teamId IN :teamIds")
     List<String> findDistinctClubIdsByTeamIds(@Param("teamIds") Set<Long> teamIds);
 }

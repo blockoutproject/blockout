@@ -1,10 +1,10 @@
 package com.blockout.notifications.shared.api.errors;
 
 import jakarta.servlet.http.HttpServletRequest;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.Instant;
@@ -15,7 +15,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpClientErrorException.class)
     public ResponseEntity<Map<String, Object>> handleHttpClientError(
-            HttpClientErrorException ex, HttpServletRequest request) {
+        HttpClientErrorException ex, HttpServletRequest request) {
 
         HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
         if (status == null)
@@ -37,32 +37,32 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(
-            IllegalStateException ex, HttpServletRequest request) {
+        IllegalStateException ex, HttpServletRequest request) {
         return buildErrorResponse(
-                ex.getMessage(),
-                HttpStatus.BAD_REQUEST,
-                request.getRequestURI());
+            ex.getMessage(),
+            HttpStatus.BAD_REQUEST,
+            request.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(
-            Exception ex, HttpServletRequest request) {
+        Exception ex, HttpServletRequest request) {
         return buildErrorResponse(
-                "An internal server error occurred.",
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                request.getRequestURI());
+            "An internal server error occurred.",
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            request.getRequestURI());
     }
 
     private ResponseEntity<Map<String, Object>> buildErrorResponse(
-            String message,
-            HttpStatus status,
-            String path) {
+        String message,
+        HttpStatus status,
+        String path) {
 
         return ResponseEntity.status(status).body(Map.of(
-                "timestamp", Instant.now().toString(),
-                "status", status.value(),
-                "error", status.getReasonPhrase(),
-                "message", message,
-                "path", path));
+            "timestamp", Instant.now().toString(),
+            "status", status.value(),
+            "error", status.getReasonPhrase(),
+            "message", message,
+            "path", path));
     }
 }

@@ -1,6 +1,9 @@
 package com.blockout.teams.config;
 
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -15,6 +18,8 @@ public class RabbitMQConfig {
 
     public static final String TEAM_DEACTIVATION_QUEUE_TEAMS = "team.deactivation.queue.teams";
     public static final String CLUB_DEACTIVATION_QUEUE_TEAMS = "club.deactivation.queue.teams";
+    public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
+    public static final String TEAM_FOLLOW_QUEUE = "team.follow.queue.teams";
 
     @Bean
     public TopicExchange entityLifecycleExchange() {
@@ -33,24 +38,21 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding bindTeamDeactivationQueueTeams(
-            TopicExchange entityLifecycleExchange,
-            Queue teamDeactivationQueueTeams) {
+        TopicExchange entityLifecycleExchange,
+        Queue teamDeactivationQueueTeams) {
         return BindingBuilder.bind(teamDeactivationQueueTeams)
-                .to(entityLifecycleExchange)
-                .with("team.deactivation");
+            .to(entityLifecycleExchange)
+            .with("team.deactivation");
     }
 
     @Bean
     public Binding bindClubDeactivationQueueTeams(
-            TopicExchange entityLifecycleExchange,
-            Queue clubDeactivationQueueTeams) {
+        TopicExchange entityLifecycleExchange,
+        Queue clubDeactivationQueueTeams) {
         return BindingBuilder.bind(clubDeactivationQueueTeams)
-                .to(entityLifecycleExchange)
-                .with("club.deactivation");
+            .to(entityLifecycleExchange)
+            .with("club.deactivation");
     }
-
-    public static final String USER_FOLLOW_EXCHANGE = "user.follow.exchange";
-    public static final String TEAM_FOLLOW_QUEUE = "team.follow.queue.teams";
 
     @Bean
     public TopicExchange userFollowExchange() {
@@ -64,11 +66,11 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding bindUserFollowQueueTeams(
-            Queue userFollowQueueTeams,
-            TopicExchange userFollowExchange) {
+        Queue userFollowQueueTeams,
+        TopicExchange userFollowExchange) {
         return BindingBuilder.bind(userFollowQueueTeams)
-                .to(userFollowExchange)
-                .with("team.follow");
+            .to(userFollowExchange)
+            .with("team.follow");
     }
 
     @Bean

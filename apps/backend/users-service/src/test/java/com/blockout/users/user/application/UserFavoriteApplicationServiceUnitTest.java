@@ -17,9 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("User favorite application service")
@@ -40,7 +38,7 @@ class UserFavoriteApplicationServiceUnitTest {
     @BeforeEach
     void setUp() {
         service = new UserFavoriteApplicationService(
-                favoriteRepository, userRepository, publisher, followerCounter);
+            favoriteRepository, userRepository, publisher, followerCounter);
         user = UserEntity.builder().id(1L).auth0Id("auth0|1").build();
     }
 

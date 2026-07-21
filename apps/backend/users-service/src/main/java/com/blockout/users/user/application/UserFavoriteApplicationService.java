@@ -38,18 +38,18 @@ public class UserFavoriteApplicationService implements UserFavoriteService {
         if (favoriteRepository.existsByUserAndEntityTypeAndEntityId(user, entityType, entityId)) return;
 
         UserFavoriteEntity favorite = favoriteRepository.save(UserFavoriteEntity.builder()
-                .user(user)
-                .entityType(entityType)
-                .entityId(entityId)
-                .build());
+            .user(user)
+            .entityType(entityType)
+            .entityId(entityId)
+            .build());
         followerCounter.increment(entityType, entityId, user.getId());
         followPublisher.publish(user.getId(), entityType, entityId, FollowEventType.CREATED);
         LOGGER.info("Created user favorite",
-                keyValue("action", "follow_entity"),
-                keyValue("favoriteId", favorite.getId()),
-                keyValue("userId", user.getId()),
-                keyValue("entityType", entityType),
-                keyValue("entityId", entityId));
+            keyValue("action", "follow_entity"),
+            keyValue("favoriteId", favorite.getId()),
+            keyValue("userId", user.getId()),
+            keyValue("entityType", entityType),
+            keyValue("entityId", entityId));
     }
 
     @Override
@@ -61,10 +61,10 @@ public class UserFavoriteApplicationService implements UserFavoriteService {
         followerCounter.decrement(entityType, entityId, user.getId());
         followPublisher.publish(user.getId(), entityType, entityId, FollowEventType.DELETED);
         LOGGER.info("Deleted user favorite",
-                keyValue("action", "unfollow_entity"),
-                keyValue("userId", user.getId()),
-                keyValue("entityType", entityType),
-                keyValue("entityId", entityId));
+            keyValue("action", "unfollow_entity"),
+            keyValue("userId", user.getId()),
+            keyValue("entityType", entityType),
+            keyValue("entityId", entityId));
     }
 
     @Override
@@ -91,6 +91,6 @@ public class UserFavoriteApplicationService implements UserFavoriteService {
 
     private UserFavoriteView toView(UserFavoriteEntity favorite) {
         return new UserFavoriteView(
-                favorite.getId(), favorite.getEntityType(), favorite.getEntityId(), favorite.getCreatedAt());
+            favorite.getId(), favorite.getEntityType(), favorite.getEntityId(), favorite.getCreatedAt());
     }
 }

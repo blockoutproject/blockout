@@ -1,10 +1,10 @@
 package com.blockout.mobilegateway.user.infrastructure;
 
-import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.user.api.models.UserResponse;
-import com.blockout.mobilegateway.user.api.models.UpdateUserRequest;
+import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.shared.infrastructure.http.MultipartBodyBuilder;
+import com.blockout.mobilegateway.user.api.models.UpdateUserRequest;
+import com.blockout.mobilegateway.user.api.models.UserResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -29,9 +29,9 @@ public class UserInternalClient {
 
     public UserResponse updateUser(String auth0Id, UpdateUserRequest dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment(auth0Id)
-                .build()
-                .toUriString();
+            .pathSegment(auth0Id)
+            .build()
+            .toUriString();
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
 
@@ -41,9 +41,9 @@ public class UserInternalClient {
 
     public UserResponse ensureCurrentUser() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("me")
-                .build()
-                .toUriString();
+            .pathSegment("me")
+            .build()
+            .toUriString();
 
         ResponseEntity<UserResponse> response = internalApiClient.put(url, null, UserResponse.class);
         return response.getBody();
@@ -51,39 +51,39 @@ public class UserInternalClient {
 
     public void deleteCurrentUser() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("me")
-                .build()
-                .toUriString();
+            .pathSegment("me")
+            .build()
+            .toUriString();
 
         internalApiClient.delete(url, Void.class);
     }
 
     @Caching(evict = {
-            @CacheEvict(value = "teamById", key = "#entityId", condition = "#entityType == 'TEAM'"),
-            @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType == 'POOL'")
+        @CacheEvict(value = "teamById", key = "#entityId", condition = "#entityType == 'TEAM'"),
+        @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType == 'POOL'")
     })
     public void follow(String auth0Id, String entityType, Long entityId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("favorites", "follow")
-                .queryParam("entityType", entityType)
-                .queryParam("entityId", entityId)
-                .build()
-                .toUriString();
+            .pathSegment("favorites", "follow")
+            .queryParam("entityType", entityType)
+            .queryParam("entityId", entityId)
+            .build()
+            .toUriString();
 
         internalApiClient.post(url, null, Void.class);
     }
 
     @Caching(evict = {
-            @CacheEvict(value = "teamById", key = "#entityId", condition = "#entityType == 'TEAM'"),
-            @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType == 'POOL'")
+        @CacheEvict(value = "teamById", key = "#entityId", condition = "#entityType == 'TEAM'"),
+        @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType == 'POOL'")
     })
     public void unfollow(String auth0Id, String entityType, Long entityId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("favorites", "follow")
-                .queryParam("entityType", entityType)
-                .queryParam("entityId", entityId)
-                .build()
-                .toUriString();
+            .pathSegment("favorites", "follow")
+            .queryParam("entityType", entityType)
+            .queryParam("entityId", entityId)
+            .build()
+            .toUriString();
 
         internalApiClient.delete(url, Void.class);
     }

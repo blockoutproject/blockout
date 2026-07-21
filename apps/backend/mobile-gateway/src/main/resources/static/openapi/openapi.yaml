@@ -194,7 +194,7 @@ paths:
       summary: List enriched notifications
       description: Returns user notifications.
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - name: page
           in: query

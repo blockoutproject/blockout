@@ -8,24 +8,32 @@ import com.blockout.config.rawdivisionmapping.application.commands.UpdateRawDivi
 import com.blockout.config.rawdivisionmapping.application.views.RawDivisionMappingView;
 import org.springframework.stereotype.Component;
 
-/** Maps RawDivisionMapping HTTP and application models. */
+/**
+ * Maps RawDivisionMapping HTTP and application models.
+ */
 @Component
 public class RawDivisionMappingApiMapper {
 
-    /** Maps a create request to its application command. */
+    /**
+     * Maps a create request to its application command.
+     */
     public CreateRawDivisionMappingCommand toCommand(CreateRawDivisionMappingInternalRequest request) {
         return new CreateRawDivisionMappingCommand(request.rawDivisionName(), request.divisionId(), request.format(),
-                request.gender(), request.leagueCode(), request.season());
+            request.gender(), request.leagueCode(), request.season());
     }
 
-    /** Maps an update request to its application command. */
+    /**
+     * Maps an update request to its application command.
+     */
     public UpdateRawDivisionMappingCommand toCommand(UpdateRawDivisionMappingInternalRequest request) {
         return new UpdateRawDivisionMappingCommand(request.divisionId(), request.format(), request.gender());
     }
 
-    /** Maps the authoritative view to the complete V1 response. */
+    /**
+     * Maps the authoritative view to the complete V1 response.
+     */
     public RawDivisionMappingInternalResponse toInternalResponse(RawDivisionMappingView view) {
         return new RawDivisionMappingInternalResponse(view.id(), view.rawDivisionName(), view.divisionId(), view.format(),
-                view.gender(), view.leagueCode(), view.season(), view.createdAt(), view.lastUpdate(), view.mapped());
+            view.gender(), view.leagueCode(), view.season(), view.createdAt(), view.lastUpdate(), view.mapped());
     }
 }

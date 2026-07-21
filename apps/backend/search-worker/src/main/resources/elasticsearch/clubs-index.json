@@ -1,72 +1,72 @@
 {
-    "settings": {
-        "analysis": {
-            "filter": {
-                "french_elision": {
-                    "type": "elision",
-                    "articles_case": true,
-                    "articles": [
-                        "l",
-                        "m",
-                        "t",
-                        "qu",
-                        "n",
-                        "s",
-                        "j",
-                        "d",
-                        "c",
-                        "jusqu",
-                        "quoiqu",
-                        "lorsqu",
-                        "puisqu"
-                    ]
-                }
-            },
-            "analyzer": {
-                "folded_autocomplete": {
-                    "type": "custom",
-                    "tokenizer": "standard",
-                    "filter": [
-                        "lowercase",
-                        "asciifolding",
-                        "french_elision"
-                    ]
-                }
-            }
+  "settings": {
+    "analysis": {
+      "filter": {
+        "french_elision": {
+          "type": "elision",
+          "articles_case": true,
+          "articles": [
+            "l",
+            "m",
+            "t",
+            "qu",
+            "n",
+            "s",
+            "j",
+            "d",
+            "c",
+            "jusqu",
+            "quoiqu",
+            "lorsqu",
+            "puisqu"
+          ]
         }
-    },
-    "mappings": {
-        "properties": {
-            "id": {
-                "type": "keyword"
-            },
-            "name": {
-                "type": "search_as_you_type",
-                "analyzer": "folded_autocomplete",
-                "copy_to": [
-                    "all"
-                ]
-            },
-            "city": {
-                "type": "search_as_you_type",
-                "analyzer": "folded_autocomplete",
-                "copy_to": [
-                    "all"
-                ]
-            },
-            "logoUrl": {
-                "type": "keyword"
-            },
-            "all": {
-                "type": "text",
-                "analyzer": "folded_autocomplete"
-            },
-            "name_suggest": {
-                "type": "completion",
-                "analyzer": "folded_autocomplete",
-                "preserve_separators": true,
-                "preserve_position_increments": true
-            }
+      },
+      "analyzer": {
+        "folded_autocomplete": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "asciifolding",
+            "french_elision"
+          ]
         }
+      }
     }
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "name": {
+        "type": "search_as_you_type",
+        "analyzer": "folded_autocomplete",
+        "copy_to": [
+          "all"
+        ]
+      },
+      "city": {
+        "type": "search_as_you_type",
+        "analyzer": "folded_autocomplete",
+        "copy_to": [
+          "all"
+        ]
+      },
+      "logoUrl": {
+        "type": "keyword"
+      },
+      "all": {
+        "type": "text",
+        "analyzer": "folded_autocomplete"
+      },
+      "name_suggest": {
+        "type": "completion",
+        "analyzer": "folded_autocomplete",
+        "preserve_separators": true,
+        "preserve_position_increments": true
+      }
+    }
+  }
 }

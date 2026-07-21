@@ -15,7 +15,7 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${AUTH0_ISSUER}
-  
+
   config:
     import: optional:file:.env.local[.properties]
     on-missing-location: fail
@@ -25,7 +25,7 @@ spring:
     port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
-  
+
   jpa:
     hibernate:
       ddl-auto: none
@@ -53,7 +53,7 @@ auth0:
   audience: ${AUTH0_AUDIENCE}
   default-user-role-id: ${AUTH0_DEFAULT_ROLE_ID}
   token-refresh-delay: 24h
-  
+
 api:
   user:
     url: ${USER_API_URL}

@@ -1,4 +1,4 @@
 export enum EnumScraperName {
-    SCRAPER = "SCRAPER",
-    SCRAPER_CLUBS = "SCRAPER_CLUBS"
+  SCRAPER = "SCRAPER",
+  SCRAPER_CLUBS = "SCRAPER_CLUBS"
 };

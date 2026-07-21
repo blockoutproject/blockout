@@ -1,11 +1,10 @@
 package com.blockout.mobilegateway.search.infrastructure;
 
-import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.search.api.models.ClubSearchResponse;
 import com.blockout.mobilegateway.search.api.models.PoolSearchResponse;
 import com.blockout.mobilegateway.search.api.models.TeamSearchResponse;
-
+import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -28,10 +27,10 @@ public class SearchInternalClient {
 
     public List<ClubSearchResponse> searchClubs(String query) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("clubs")
-                .queryParam("query", query)
-                .build()
-                .toUriString();
+            .pathSegment("clubs")
+            .queryParam("query", query)
+            .build()
+            .toUriString();
 
         ResponseEntity<ClubSearchResponse[]> response = internalApiClient.get(url, ClubSearchResponse[].class);
 
@@ -40,10 +39,10 @@ public class SearchInternalClient {
     }
 
     public List<PoolSearchResponse> searchPools(String query, String season, Long divisionId, String format,
-            String gender) {
+                                                String gender) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("pools")
-                .queryParam("query", query);
+            .pathSegment("pools")
+            .queryParam("query", query);
 
         if (season != null && !season.isBlank()) {
             builder.queryParam("season", season);
@@ -67,10 +66,10 @@ public class SearchInternalClient {
     }
 
     public List<TeamSearchResponse> searchTeams(String query, String season, Long divisionId, String format,
-            String gender) {
+                                                String gender) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("teams")
-                .queryParam("query", query);
+            .pathSegment("teams")
+            .queryParam("query", query);
 
         if (season != null && !season.isBlank()) {
             builder.queryParam("season", season);

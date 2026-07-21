@@ -18,7 +18,9 @@ import java.util.List;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-/** Transactional application service for divisions. */
+/**
+ * Transactional application service for divisions.
+ */
 @Service
 @RequiredArgsConstructor
 public class DivisionApplicationService implements DivisionService {
@@ -28,21 +30,27 @@ public class DivisionApplicationService implements DivisionService {
     private final DivisionRepository repository;
     private final DivisionImageStorage imageStorage;
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public List<DivisionView> findAll() {
         return repository.findAll().stream().map(this::toView).toList();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public DivisionView getById(Long id) {
         return toView(loadDivision(id));
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public DivisionView create(CreateDivisionCommand command) {
@@ -50,10 +58,10 @@ public class DivisionApplicationService implements DivisionService {
             throw new IllegalStateException("A division with this name already exists.");
         });
         DivisionEntity division = DivisionEntity.builder()
-                .name(command.name()).mainColor(command.mainColor())
-                .firstGradientColor(command.firstGradientColor())
-                .secondGradientColor(command.secondGradientColor())
-                .thirdGradientColor(command.thirdGradientColor()).active(true).build();
+            .name(command.name()).mainColor(command.mainColor())
+            .firstGradientColor(command.firstGradientColor())
+            .secondGradientColor(command.secondGradientColor())
+            .thirdGradientColor(command.thirdGradientColor()).active(true).build();
         if (hasImage(command.image())) {
             validateImage(command.image());
             division.setLogoUrl(imageStorage.uploadDivisionImage(command.image()));
@@ -63,7 +71,9 @@ public class DivisionApplicationService implements DivisionService {
         return created;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public DivisionView update(Long id, UpdateDivisionCommand command) {
@@ -84,7 +94,9 @@ public class DivisionApplicationService implements DivisionService {
         return updated;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public void deactivate(Long id) {
@@ -94,18 +106,24 @@ public class DivisionApplicationService implements DivisionService {
         LOGGER.info("Deactivated division", keyValue("action", "deactivate_division"), keyValue("divisionId", id));
     }
 
-    /** Loads one division or raises a stable application error. */
+    /**
+     * Loads one division or raises a stable application error.
+     */
     private DivisionEntity loadDivision(Long id) {
         return repository.findById(id).orElseThrow(() ->
-                new ConfigResourceNotFoundException("division_not_found", "Division not found with ID: " + id));
+            new ConfigResourceNotFoundException("division_not_found", "Division not found with ID: " + id));
     }
 
-    /** Checks whether an upload contains bytes. */
+    /**
+     * Checks whether an upload contains bytes.
+     */
     private boolean hasImage(DivisionImageCommand image) {
         return image != null && !image.isEmpty();
     }
 
-    /** Enforces the existing PNG/JPEG and five-megabyte constraints. */
+    /**
+     * Enforces the existing PNG/JPEG and five-megabyte constraints.
+     */
     private void validateImage(DivisionImageCommand image) {
         if (!"image/png".equals(image.contentType()) && !"image/jpeg".equals(image.contentType())) {
             throw new IllegalArgumentException("Only PNG and JPEG images are allowed.");
@@ -115,10 +133,12 @@ public class DivisionApplicationService implements DivisionService {
         }
     }
 
-    /** Maps persisted state to the authoritative application view. */
+    /**
+     * Maps persisted state to the authoritative application view.
+     */
     private DivisionView toView(DivisionEntity division) {
         return new DivisionView(division.getId(), division.getName(), division.getMainColor(),
-                division.getFirstGradientColor(), division.getSecondGradientColor(), division.getThirdGradientColor(),
-                division.getLogoUrl(), division.getActive(), division.getCreatedAt(), division.getLastUpdate());
+            division.getFirstGradientColor(), division.getSecondGradientColor(), division.getThirdGradientColor(),
+            division.getLogoUrl(), division.getActive(), division.getCreatedAt(), division.getLastUpdate());
     }
 }

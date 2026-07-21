@@ -1,13 +1,13 @@
-import { useApis } from "@/src/context/ApiProvider";
-import { useEntityById } from "../utils/useEntityById";
-import { EnrichedMatchDTO } from "@/src/types/Match";
+import {useApis} from "@/src/context/ApiProvider";
+import {useEntityById} from "../utils/useEntityById";
+import {EnrichedMatchDTO} from "@/src/types/Match";
 
 export const useEnrichedMatchById = (id?: number) => {
-    const { mobile } = useApis();
+  const {mobile} = useApis();
 
-    return useEntityById<EnrichedMatchDTO>(
-        "enrichedMatches",
-        (matchId: number) => mobile.matches.getEnrichedMatchById(matchId),
-        id
-    );
+  return useEntityById<EnrichedMatchDTO>(
+    "enrichedMatches",
+    (matchId: number) => mobile.matches.getEnrichedMatchById(matchId),
+    id
+  );
 };

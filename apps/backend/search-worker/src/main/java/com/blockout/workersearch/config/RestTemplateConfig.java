@@ -1,11 +1,11 @@
 package com.blockout.workersearch.config;
 
+import com.blockout.workersearch.projection.infrastructure.http.auth.Auth0ServiceTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.web.client.RestTemplate;
 
-import com.blockout.workersearch.projection.infrastructure.http.auth.Auth0ServiceTokenProvider;
 import java.util.Collections;
 
 @Configuration

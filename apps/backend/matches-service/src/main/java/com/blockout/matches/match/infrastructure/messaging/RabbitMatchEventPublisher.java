@@ -24,20 +24,20 @@ public class RabbitMatchEventPublisher implements MatchEventPublisher {
     @Override
     public void publishMatchFinished(MatchView match) {
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
-                RabbitMQConfig.RK_MATCH_FINISHED,
-                new MatchFinishedEvent(match.id(), match.teamIdA(), match.teamIdB(), match.poolId(), match.set()));
+            RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+            RabbitMQConfig.RK_MATCH_FINISHED,
+            new MatchFinishedEvent(match.id(), match.teamIdA(), match.teamIdB(), match.poolId(), match.set()));
         LOGGER.info("Published match finished event", keyValue("action", "publish_match_finished"),
-                keyValue("matchId", match.id()));
+            keyValue("matchId", match.id()));
     }
 
     @Override
     public void publishMatchLiveLinkCreated(MatchView match) {
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
-                RabbitMQConfig.RK_MATCH_LIVE_LINK_CREATED,
-                new MatchLiveLinkCreatedEvent(match.id(), match.teamIdA(), match.teamIdB(), match.poolId()));
+            RabbitMQConfig.ENTITY_LIFECYCLE_EXCHANGE,
+            RabbitMQConfig.RK_MATCH_LIVE_LINK_CREATED,
+            new MatchLiveLinkCreatedEvent(match.id(), match.teamIdA(), match.teamIdB(), match.poolId()));
         LOGGER.info("Published match live link event", keyValue("action", "publish_match_live_link_created"),
-                keyValue("matchId", match.id()));
+            keyValue("matchId", match.id()));
     }
 }

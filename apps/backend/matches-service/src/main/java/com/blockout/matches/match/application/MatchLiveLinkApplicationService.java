@@ -65,8 +65,8 @@ public class MatchLiveLinkApplicationService implements MatchLiveLinkService {
 
         boolean finished = match.getStatus() == MatchStatus.FINISHED;
         MatchLiveLinkEntity active = liveLinkRepository
-                .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
-                .orElse(null);
+            .findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
+            .orElse(null);
         if (finished && !moderator) {
             moderationPolicy.validatePostMatchLinkRules(active, auth0Id, matchId);
             return handlePostMatchUpsert(match, active, provider, command.url(), auth0Id, now);
@@ -86,7 +86,7 @@ public class MatchLiveLinkApplicationService implements MatchLiveLinkService {
         Instant endOfDay = startOfDay.plus(1, ChronoUnit.DAYS).minusNanos(1);
         long matchesToday = liveLinkRepository.countDistinctMatchesByOwnerAndDay(auth0Id, startOfDay, endOfDay);
         moderationPolicy.validateLinkQuotas(
-                matchId, auth0Id, linksForMatchAndOwner, matchesToday, linksForMatchAndOwner > 0);
+            matchId, auth0Id, linksForMatchAndOwner, matchesToday, linksForMatchAndOwner > 0);
 
         if (active != null) {
             active.setStatus(LiveLinkStatus.EXPIRED);
@@ -94,20 +94,20 @@ public class MatchLiveLinkApplicationService implements MatchLiveLinkService {
             liveLinkRepository.save(active);
         }
         MatchLiveLinkEntity saved = liveLinkRepository.saveAndFlush(MatchLiveLinkEntity.builder()
-                .match(match)
-                .ownerAuth0Id(auth0Id)
-                .provider(provider)
-                .url(command.url())
-                .status(LiveLinkStatus.ACTIVE)
-                .reportCount(0)
-                .createdAt(now)
-                .lastUpdate(now)
-                .build());
+            .match(match)
+            .ownerAuth0Id(auth0Id)
+            .provider(provider)
+            .url(command.url())
+            .status(LiveLinkStatus.ACTIVE)
+            .reportCount(0)
+            .createdAt(now)
+            .lastUpdate(now)
+            .build());
         if (!finished) {
             eventPublisher.publishMatchLiveLinkCreated(toMatchView(match, saved));
         }
         LOGGER.info("Created live link version", keyValue("action", "set_live_link"),
-                keyValue("matchId", matchId), keyValue("liveLinkId", saved.getId()));
+            keyValue("matchId", matchId), keyValue("liveLinkId", saved.getId()));
         return toResult(saved);
     }
 
@@ -115,22 +115,22 @@ public class MatchLiveLinkApplicationService implements MatchLiveLinkService {
     @Transactional
     public void deleteLiveLink(Long matchId, String auth0Id) {
         liveLinkRepository.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
-                .ifPresent(link -> {
-                    moderationPolicy.validateDeletePermission(link, auth0Id, matchId);
-                    link.setStatus(LiveLinkStatus.DEACTIVATED);
-                    liveLinkRepository.saveAndFlush(link);
-                    LOGGER.info("Deactivated live link", keyValue("action", "delete_live_link"),
-                            keyValue("matchId", matchId), keyValue("liveLinkId", link.getId()));
-                });
+            .ifPresent(link -> {
+                moderationPolicy.validateDeletePermission(link, auth0Id, matchId);
+                link.setStatus(LiveLinkStatus.DEACTIVATED);
+                liveLinkRepository.saveAndFlush(link);
+                LOGGER.info("Deactivated live link", keyValue("action", "delete_live_link"),
+                    keyValue("matchId", matchId), keyValue("liveLinkId", link.getId()));
+            });
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<MatchLiveLinkView> getLiveLinksHistoryForMatch(Long matchId) {
         return liveLinkRepository.findByMatch_Id(matchId).stream()
-                .sorted((left, right) -> right.getCreatedAt().compareTo(left.getCreatedAt()))
-                .map(this::toView)
-                .toList();
+            .sorted((left, right) -> right.getCreatedAt().compareTo(left.getCreatedAt()))
+            .map(this::toView)
+            .toList();
     }
 
     @Override
@@ -162,9 +162,9 @@ public class MatchLiveLinkApplicationService implements MatchLiveLinkService {
     public void reactivateLiveLink(Long liveLinkId) {
         MatchLiveLinkEntity link = loadLiveLink(liveLinkId);
         if (link.getStatus() != LiveLinkStatus.REJECTED
-                && link.getStatus() != LiveLinkStatus.EXPIRED
-                && link.getStatus() != LiveLinkStatus.DEACTIVATED
-                && link.getStatus() != LiveLinkStatus.BANNED) {
+            && link.getStatus() != LiveLinkStatus.EXPIRED
+            && link.getStatus() != LiveLinkStatus.DEACTIVATED
+            && link.getStatus() != LiveLinkStatus.BANNED) {
             throw new IllegalStateException("Ce lien ne peut pas être réactivé dans son état actuel.");
         }
         MatchEntity match = requireMatch(link);
@@ -178,12 +178,12 @@ public class MatchLiveLinkApplicationService implements MatchLiveLinkService {
     }
 
     private MatchLiveLinkResult handlePostMatchUpsert(MatchEntity match, MatchLiveLinkEntity active,
-            LiveProvider provider, String url, String auth0Id, Instant now) {
+                                                      LiveProvider provider, String url, String auth0Id, Instant now) {
         MatchLiveLinkEntity last = liveLinkRepository
-                .findFirstByMatch_IdAndOwnerAuth0IdOrderByCreatedAtDesc(match.getId(), auth0Id)
-                .orElse(null);
+            .findFirstByMatch_IdAndOwnerAuth0IdOrderByCreatedAtDesc(match.getId(), auth0Id)
+            .orElse(null);
         if (last != null && last.getProvider() == provider && url.equals(last.getUrl())
-                && (last.getStatus() == LiveLinkStatus.ACTIVE || last.getStatus() == LiveLinkStatus.PENDING)) {
+            && (last.getStatus() == LiveLinkStatus.ACTIVE || last.getStatus() == LiveLinkStatus.PENDING)) {
             return toResult(last);
         }
         if (active != null) {
@@ -192,22 +192,22 @@ public class MatchLiveLinkApplicationService implements MatchLiveLinkService {
             liveLinkRepository.save(active);
         }
         List<MatchLiveLinkEntity> pending = liveLinkRepository.findByMatch_IdAndOwnerAuth0IdAndStatus(
-                match.getId(), auth0Id, LiveLinkStatus.PENDING);
+            match.getId(), auth0Id, LiveLinkStatus.PENDING);
         pending.forEach(link -> {
             link.setStatus(LiveLinkStatus.EXPIRED);
             link.setLastUpdate(now);
         });
         liveLinkRepository.saveAll(pending);
         MatchLiveLinkEntity saved = liveLinkRepository.save(MatchLiveLinkEntity.builder()
-                .match(match)
-                .ownerAuth0Id(auth0Id)
-                .provider(provider)
-                .url(url)
-                .status(LiveLinkStatus.PENDING)
-                .reportCount(0)
-                .createdAt(now)
-                .lastUpdate(now)
-                .build());
+            .match(match)
+            .ownerAuth0Id(auth0Id)
+            .provider(provider)
+            .url(url)
+            .status(LiveLinkStatus.PENDING)
+            .reportCount(0)
+            .createdAt(now)
+            .lastUpdate(now)
+            .build());
         match.setLastUpdate(now);
         matchRepository.saveAndFlush(match);
         return toResult(saved);
@@ -215,12 +215,12 @@ public class MatchLiveLinkApplicationService implements MatchLiveLinkService {
 
     private void expireCurrentActive(Long matchId, Long replacementId, Instant now, LiveLinkStatus status) {
         liveLinkRepository.findFirstByMatch_IdAndStatusOrderByCreatedAtDesc(matchId, LiveLinkStatus.ACTIVE)
-                .filter(active -> !active.getId().equals(replacementId))
-                .ifPresent(active -> {
-                    active.setStatus(status);
-                    active.setLastUpdate(now);
-                    liveLinkRepository.save(active);
-                });
+            .filter(active -> !active.getId().equals(replacementId))
+            .ifPresent(active -> {
+                active.setStatus(status);
+                active.setLastUpdate(now);
+                liveLinkRepository.save(active);
+            });
     }
 
     private MatchEntity loadMatch(Long matchId) {
@@ -229,7 +229,7 @@ public class MatchLiveLinkApplicationService implements MatchLiveLinkService {
 
     private MatchLiveLinkEntity loadLiveLink(Long liveLinkId) {
         return liveLinkRepository.findById(liveLinkId)
-                .orElseThrow(() -> new IllegalStateException("Lien introuvable."));
+            .orElseThrow(() -> new IllegalStateException("Lien introuvable."));
     }
 
     private MatchEntity requireMatch(MatchLiveLinkEntity link) {
@@ -275,19 +275,19 @@ public class MatchLiveLinkApplicationService implements MatchLiveLinkService {
 
     private MatchLiveLinkView toView(MatchLiveLinkEntity link) {
         return new MatchLiveLinkView(link.getId(), link.getMatch().getId(), link.getProvider(), link.getUrl(),
-                link.getStatus(), link.getReportCount(), link.getOwnerAuth0Id(), link.getCreatedAt(), link.getLastUpdate());
+            link.getStatus(), link.getReportCount(), link.getOwnerAuth0Id(), link.getCreatedAt(), link.getLastUpdate());
     }
 
     private MatchLiveLinkResult toResult(MatchLiveLinkEntity link) {
         return new MatchLiveLinkResult(link.getMatch().getId(), link.getProvider(), link.getUrl(), link.getStatus(),
-                link.getReportCount(), link.getOwnerAuth0Id());
+            link.getReportCount(), link.getOwnerAuth0Id());
     }
 
     private MatchView toMatchView(MatchEntity match, MatchLiveLinkEntity link) {
         return new MatchView(match.getId(), match.getMatchCode(), match.getLeagueCode(), match.getPoolId(),
-                match.getLiveCode(), match.getTeamIdA(), match.getTeamIdB(), match.getMatchDate(), match.getSeason(),
-                match.getSet(), match.getScore(), match.getStatus(), match.getVenue(), match.getFirstReferee(),
-                match.getSecondReferee(), match.getActive(), match.getCreatedAt(), match.getLastUpdate(),
-                link.getUrl(), link.getProvider(), link.getOwnerAuth0Id());
+            match.getLiveCode(), match.getTeamIdA(), match.getTeamIdB(), match.getMatchDate(), match.getSeason(),
+            match.getSet(), match.getScore(), match.getStatus(), match.getVenue(), match.getFirstReferee(),
+            match.getSecondReferee(), match.getActive(), match.getCreatedAt(), match.getLastUpdate(),
+            link.getUrl(), link.getProvider(), link.getOwnerAuth0Id());
     }
 }

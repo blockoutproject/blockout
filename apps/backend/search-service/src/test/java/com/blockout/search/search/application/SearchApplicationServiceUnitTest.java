@@ -1,20 +1,21 @@
 package com.blockout.search.search.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.blockout.search.search.application.ports.SearchReader;
 import com.blockout.search.search.application.queries.FilteredSearchQuery;
 import com.blockout.search.search.application.views.ClubSearchResult;
 import com.blockout.search.search.application.views.PoolSearchResult;
 import com.blockout.search.search.application.views.TeamSearchResult;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SearchApplicationServiceUnitTest {
@@ -42,9 +43,9 @@ class SearchApplicationServiceUnitTest {
     void delegatesTheSameFilteredQueryToTeamAndPoolBoundaries() {
         var query = new FilteredSearchQuery("paris", "2026/2027", 7L, "SIX", "F");
         var teams = List.of(new TeamSearchResult(
-                1L, "Team", "T", "club-1", "Club", "Paris", null, "Division", "SIX", "F", "2026/2027"));
+            1L, "Team", "T", "club-1", "Club", "Paris", null, "Division", "SIX", "F", "2026/2027"));
         var pools = List.of(new PoolSearchResult(
-                2L, "Pool", "P", "Division", "LNV", "League", "2026/2027", "SIX", "F", null));
+            2L, "Pool", "P", "Division", "LNV", "League", "2026/2027", "SIX", "F", null));
         when(searchReader.searchTeams(query)).thenReturn(teams);
         when(searchReader.searchPools(query)).thenReturn(pools);
 

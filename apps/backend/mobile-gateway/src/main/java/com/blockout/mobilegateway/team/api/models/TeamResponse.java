@@ -5,7 +5,10 @@ import com.blockout.mobilegateway.config.api.models.DivisionResponse;
 import com.blockout.mobilegateway.pool.api.models.PoolResponse;
 import com.blockout.mobilegateway.shared.application.models.Format;
 import com.blockout.mobilegateway.shared.application.models.Gender;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 

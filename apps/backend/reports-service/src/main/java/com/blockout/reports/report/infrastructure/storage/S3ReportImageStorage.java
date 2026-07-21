@@ -1,13 +1,11 @@
 package com.blockout.reports.report.infrastructure.storage;
 
+import com.blockout.reports.config.AwsS3Properties;
+import com.blockout.reports.report.application.models.ReportAttachment;
+import com.blockout.reports.report.application.ports.ReportImageStorage;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.blockout.reports.report.application.models.ReportAttachment;
-import com.blockout.reports.report.application.ports.ReportImageStorage;
-
-import com.blockout.reports.config.AwsS3Properties;
-
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -28,13 +26,13 @@ public class S3ReportImageStorage implements ReportImageStorage {
     @PostConstruct
     public void init() {
         this.s3Client = S3Client.builder()
-                .region(Region.of(s3Properties.getRegion()))
-                .credentialsProvider(
-                        StaticCredentialsProvider.create(
-                                AwsBasicCredentials.create(
-                                        s3Properties.getCredentials().getAccessKey(),
-                                        s3Properties.getCredentials().getSecretKey())))
-                .build();
+            .region(Region.of(s3Properties.getRegion()))
+            .credentialsProvider(
+                StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(
+                        s3Properties.getCredentials().getAccessKey(),
+                        s3Properties.getCredentials().getSecretKey())))
+            .build();
     }
 
     /**
@@ -48,33 +46,35 @@ public class S3ReportImageStorage implements ReportImageStorage {
         String key = String.format("reports/%s/%d.%s", reportKey, index, ext);
 
         PutObjectRequest putRequest = PutObjectRequest.builder()
-                .bucket(s3Properties.getS3().getBucket())
-                .key(key)
-                .contentType(file.contentType())
-                .build();
+            .bucket(s3Properties.getS3().getBucket())
+            .key(key)
+            .contentType(file.contentType())
+            .build();
 
         s3Client.putObject(putRequest, RequestBody.fromBytes(file.content()));
         return buildPublicUrl(key);
     }
 
-    /** Option simple pour supprimer un objet via son URL publique. */
+    /**
+     * Option simple pour supprimer un objet via son URL publique.
+     */
     public void deleteObjectByUrl(String url) {
         String baseUrl = "https://" + s3Properties.getS3().getBucket() +
-                ".s3." + s3Properties.getRegion() + ".amazonaws.com/";
+            ".s3." + s3Properties.getRegion() + ".amazonaws.com/";
         if (!url.startsWith(baseUrl))
             return;
 
         String key = url.substring(baseUrl.length());
         s3Client.deleteObject(DeleteObjectRequest.builder()
-                .bucket(s3Properties.getS3().getBucket())
-                .key(key)
-                .build());
+            .bucket(s3Properties.getS3().getBucket())
+            .key(key)
+            .build());
     }
 
     private String buildPublicUrl(String key) {
         return "https://" + s3Properties.getS3().getBucket() +
-                ".s3." + s3Properties.getRegion() +
-                ".amazonaws.com/" + key;
+            ".s3." + s3Properties.getRegion() +
+            ".amazonaws.com/" + key;
     }
 
     /**

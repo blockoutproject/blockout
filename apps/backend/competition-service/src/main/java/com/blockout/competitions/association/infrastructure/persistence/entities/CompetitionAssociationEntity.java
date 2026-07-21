@@ -1,14 +1,6 @@
 package com.blockout.competitions.association.infrastructure.persistence.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "competition_association", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"pool_id", "team_id"}, name = "uix_pool_team")
+    @UniqueConstraint(columnNames = {"pool_id", "team_id"}, name = "uix_pool_team")
 })
 @Data
 @Builder

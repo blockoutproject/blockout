@@ -22,7 +22,7 @@
    npx expo prebuild
    ```
 
-   *Remarque* : Cette commande génère les projets natifs en fonction de votre configuration actuelle. 
+   *Remarque* : Cette commande génère les projets natifs en fonction de votre configuration actuelle.
 
 3. **Démarrage de l'application en mode développement** :
 
@@ -32,8 +32,7 @@
    npx expo start --dev-client
    ```
 
-   *Remarque* : L'option `--dev-client` permet d'utiliser un client de développement personnalisé au lieu d'Expo Go. 
-
+   *Remarque* : L'option `--dev-client` permet d'utiliser un client de développement personnalisé au lieu d'Expo Go.
 
 ### Build pour mobile
 

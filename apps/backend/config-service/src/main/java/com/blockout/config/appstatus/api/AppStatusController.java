@@ -7,13 +7,11 @@ import com.blockout.config.appstatus.application.AppStatusService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-/** Exposes the handwritten V1 app-status API. */
+/**
+ * Exposes the handwritten V1 app-status API.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/config/app-status")
@@ -22,17 +20,21 @@ public class AppStatusController {
     private final AppStatusService appStatusService;
     private final AppStatusApiMapper mapper;
 
-    /** Returns the singleton application status. */
+    /**
+     * Returns the singleton application status.
+     */
     @GetMapping
     public ResponseEntity<AppStatusInternalResponse> getStatus() {
         return ResponseEntity.ok(mapper.toInternalResponse(appStatusService.getStatus()));
     }
 
-    /** Applies a partial update to the singleton application status. */
+    /**
+     * Applies a partial update to the singleton application status.
+     */
     @PutMapping
     @PreAuthorize("hasAuthority('SCOPE_update:maintenance')")
     public ResponseEntity<AppStatusInternalResponse> updateStatus(
-            @RequestBody UpdateAppStatusInternalRequest request) {
+        @RequestBody UpdateAppStatusInternalRequest request) {
         return ResponseEntity.ok(mapper.toInternalResponse(appStatusService.updateStatus(mapper.toCommand(request))));
     }
 }

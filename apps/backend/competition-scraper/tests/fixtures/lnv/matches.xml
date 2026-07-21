@@ -1,15 +1,26 @@
 <!-- Source-derived excerpt: https://lnv.fr/xml/calendrier-LAM.xml, archived 2023-01-30. -->
-<Calendrier><Competition CodeCompetition="LAM"><Journee NumJournee="J01">
-  <Match>
-    <CodeMatch>LAM001</CodeMatch>
-    <EquipeDomicile>MHSC Volley</EquipeDomicile>
-    <EquipeExterieur>St-Nazaire</EquipeExterieur>
-    <Competition>LAM</Competition>
-    <Journee>Journée 01</Journee>
-    <Date>30-09-2022</Date><Heure>20:00:00</Heure>
-    <Score>1-3</Score>
-    <Set1>17-25</Set1><Set2>25-22</Set2><Set3>22-25</Set3><Set4>19-25</Set4><Set5>0-0</Set5>
-    <PointsEquipeDomicile>0</PointsEquipeDomicile><PointsEquipeExterieur>3</PointsEquipeExterieur>
-    <P2></P2><Stats></Stats>
-  </Match>
-</Journee></Competition></Calendrier>
+<Calendrier>
+    <Competition CodeCompetition="LAM">
+        <Journee NumJournee="J01">
+            <Match>
+                <CodeMatch>LAM001</CodeMatch>
+                <EquipeDomicile>MHSC Volley</EquipeDomicile>
+                <EquipeExterieur>St-Nazaire</EquipeExterieur>
+                <Competition>LAM</Competition>
+                <Journee>Journée 01</Journee>
+                <Date>30-09-2022</Date>
+                <Heure>20:00:00</Heure>
+                <Score>1-3</Score>
+                <Set1>17-25</Set1>
+                <Set2>25-22</Set2>
+                <Set3>22-25</Set3>
+                <Set4>19-25</Set4>
+                <Set5>0-0</Set5>
+                <PointsEquipeDomicile>0</PointsEquipeDomicile>
+                <PointsEquipeExterieur>3</PointsEquipeExterieur>
+                <P2></P2>
+                <Stats></Stats>
+            </Match>
+        </Journee>
+    </Competition>
+</Calendrier>

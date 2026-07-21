@@ -1,15 +1,14 @@
 package com.blockout.mobilegateway.match.api.models;
 
-import java.time.Instant;
-
 import com.blockout.mobilegateway.shared.application.models.LiveLinkStatus;
 import com.blockout.mobilegateway.shared.application.models.LiveProvider;
 import com.blockout.mobilegateway.shared.application.models.MatchStatus;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.Instant;
 
 @Data
 @Builder

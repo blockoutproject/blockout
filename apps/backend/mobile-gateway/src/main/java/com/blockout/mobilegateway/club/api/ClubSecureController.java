@@ -22,9 +22,9 @@ public class ClubSecureController {
 
     @PutMapping(path = "/clubs/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ClubResponse> updateClub(
-            @PathVariable String id,
-            @RequestPart("data") String json,
-            @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
+        @PathVariable String id,
+        @RequestPart("data") String json,
+        @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
 
         UpdateClubRequest dto = objectMapper.readValue(json, UpdateClubRequest.class);
         ClubResponse updated = clubService.updateClub(id, dto, image);

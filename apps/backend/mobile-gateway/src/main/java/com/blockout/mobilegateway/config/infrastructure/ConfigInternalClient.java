@@ -1,16 +1,8 @@
 package com.blockout.mobilegateway.config.infrastructure;
 
-import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.config.api.models.AppStatusResponse;
-import com.blockout.mobilegateway.config.api.models.UpdateAppStatusRequest;
-import com.blockout.mobilegateway.config.api.models.DivisionResponse;
-import com.blockout.mobilegateway.config.api.models.UpsertDivisionRequest;
-import com.blockout.mobilegateway.config.api.models.LegalDocumentResponse;
-import com.blockout.mobilegateway.config.api.models.UpdateLegalDocumentRequest;
-import com.blockout.mobilegateway.config.api.models.RawDivisionMappingResponse;
-import com.blockout.mobilegateway.config.api.models.UpdateRawDivisionMappingRequest;
-import com.blockout.mobilegateway.config.api.models.ScraperStatusResponse;
+import com.blockout.mobilegateway.config.api.models.*;
+import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.shared.infrastructure.http.MultipartBodyBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -42,9 +34,9 @@ public class ConfigInternalClient {
 
     public AppStatusResponse getAppStatus() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("app-status")
-                .build()
-                .toUriString();
+            .pathSegment("app-status")
+            .build()
+            .toUriString();
 
         ResponseEntity<AppStatusResponse> res = internalApiClient.get(url, AppStatusResponse.class);
         return res.getBody();
@@ -52,9 +44,9 @@ public class ConfigInternalClient {
 
     public AppStatusResponse updateAppStatus(UpdateAppStatusRequest dto) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("app-status")
-                .build()
-                .toUriString();
+            .pathSegment("app-status")
+            .build()
+            .toUriString();
 
         ResponseEntity<AppStatusResponse> res = internalApiClient.put(url, dto, AppStatusResponse.class);
         return res.getBody();
@@ -63,9 +55,9 @@ public class ConfigInternalClient {
     @Cacheable(value = "divisions")
     public List<DivisionResponse> listDivisions() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("divisions")
-                .build()
-                .toUriString();
+            .pathSegment("divisions")
+            .build()
+            .toUriString();
 
         ResponseEntity<DivisionResponse[]> response = internalApiClient.get(url, DivisionResponse[].class);
         DivisionResponse[] body = response.getBody();
@@ -75,9 +67,9 @@ public class ConfigInternalClient {
     @Cacheable(value = "divisionById", key = "#id")
     public DivisionResponse getDivisionById(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("divisions", id.toString())
-                .build()
-                .toUriString();
+            .pathSegment("divisions", id.toString())
+            .build()
+            .toUriString();
 
         ResponseEntity<DivisionResponse> response = internalApiClient.get(url, DivisionResponse.class);
         return response.getBody();
@@ -85,9 +77,9 @@ public class ConfigInternalClient {
 
     public DivisionResponse createDivision(UpsertDivisionRequest dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("divisions")
-                .build()
-                .toUriString();
+            .pathSegment("divisions")
+            .build()
+            .toUriString();
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
 
@@ -96,15 +88,15 @@ public class ConfigInternalClient {
     }
 
     @Caching(put = {
-            @CachePut(value = "divisionById", key = "#id")
+        @CachePut(value = "divisionById", key = "#id")
     }, evict = {
-            @CacheEvict(value = "divisions")
+        @CacheEvict(value = "divisions")
     })
     public DivisionResponse updateDivision(Long id, UpsertDivisionRequest dto, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("divisions", id.toString())
-                .build()
-                .toUriString();
+            .pathSegment("divisions", id.toString())
+            .build()
+            .toUriString();
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
 
@@ -113,23 +105,23 @@ public class ConfigInternalClient {
     }
 
     @Caching(evict = {
-            @CacheEvict(value = "divisionById", key = "#id"),
-            @CacheEvict(value = "divisions")
+        @CacheEvict(value = "divisionById", key = "#id"),
+        @CacheEvict(value = "divisions")
     })
     public void deactivateDivision(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("divisions", id.toString())
-                .build()
-                .toUriString();
+            .pathSegment("divisions", id.toString())
+            .build()
+            .toUriString();
 
         internalApiClient.delete(url, Void.class);
     }
 
     public LegalDocumentResponse getLegalDocument(String type) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("legal", type)
-                .build()
-                .toUriString();
+            .pathSegment("legal", type)
+            .build()
+            .toUriString();
 
         ResponseEntity<LegalDocumentResponse> res = internalApiClient.get(url, LegalDocumentResponse.class);
         return res.getBody();
@@ -137,9 +129,9 @@ public class ConfigInternalClient {
 
     public LegalDocumentResponse updateLegalDocument(String type, UpdateLegalDocumentRequest dto) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("legal", type)
-                .build()
-                .toUriString();
+            .pathSegment("legal", type)
+            .build()
+            .toUriString();
 
         ResponseEntity<LegalDocumentResponse> res = internalApiClient.put(url, dto, LegalDocumentResponse.class);
         return res.getBody();
@@ -147,20 +139,20 @@ public class ConfigInternalClient {
 
     public RawDivisionMappingResponse createRawDivisionMapping(RawDivisionMappingResponse dto) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("raw-divisions")
-                .build()
-                .toUriString();
+            .pathSegment("raw-divisions")
+            .build()
+            .toUriString();
 
         return internalApiClient.post(url, dto, RawDivisionMappingResponse.class).getBody();
     }
 
     public List<RawDivisionMappingResponse> listRawDivisionMappings(String leagueCode, String season) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("raw-divisions")
-                .queryParamIfPresent("leagueCode", java.util.Optional.ofNullable(leagueCode))
-                .queryParamIfPresent("season", java.util.Optional.ofNullable(season))
-                .build()
-                .toUriString();
+            .pathSegment("raw-divisions")
+            .queryParamIfPresent("leagueCode", java.util.Optional.ofNullable(leagueCode))
+            .queryParamIfPresent("season", java.util.Optional.ofNullable(season))
+            .build()
+            .toUriString();
 
         ResponseEntity<RawDivisionMappingResponse[]> res = internalApiClient.get(url, RawDivisionMappingResponse[].class);
         return res.getBody() != null ? java.util.Arrays.asList(res.getBody()) : java.util.Collections.emptyList();
@@ -168,28 +160,28 @@ public class ConfigInternalClient {
 
     public RawDivisionMappingResponse getRawDivisionMappingById(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("raw-divisions", id.toString())
-                .build()
-                .toUriString();
+            .pathSegment("raw-divisions", id.toString())
+            .build()
+            .toUriString();
 
         return internalApiClient.get(url, RawDivisionMappingResponse.class).getBody();
     }
 
     public RawDivisionMappingResponse updateRawDivisionMapping(Long id, UpdateRawDivisionMappingRequest dto) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("raw-divisions", id.toString())
-                .build()
-                .toUriString();
+            .pathSegment("raw-divisions", id.toString())
+            .build()
+            .toUriString();
 
         return internalApiClient.put(url, dto, RawDivisionMappingResponse.class).getBody();
     }
 
     public ScraperStatusResponse updateScraperStatus(String name, boolean enabled) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("scrapers", name, "enabled")
-                .queryParam("enabled", enabled)
-                .build()
-                .toUriString();
+            .pathSegment("scrapers", name, "enabled")
+            .queryParam("enabled", enabled)
+            .build()
+            .toUriString();
 
         ResponseEntity<ScraperStatusResponse> response = internalApiClient.put(url, null, ScraperStatusResponse.class);
         return response.getBody();
@@ -197,9 +189,9 @@ public class ConfigInternalClient {
 
     public List<ScraperStatusResponse> listScraperStatuses() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
-                .pathSegment("scrapers", "status")
-                .build()
-                .toUriString();
+            .pathSegment("scrapers", "status")
+            .build()
+            .toUriString();
 
         ResponseEntity<ScraperStatusResponse[]> response = internalApiClient.get(url, ScraperStatusResponse[].class);
         ScraperStatusResponse[] body = response.getBody();

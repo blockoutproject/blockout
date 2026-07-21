@@ -1,5 +1,12 @@
 package com.blockout.notifications.notification.infrastructure.providers.expo;
 
+import com.blockout.notifications.config.ExpoClientProperties;
+import com.niamedtech.expo.exposerversdk.ExpoPushNotificationClient;
+import com.niamedtech.expo.exposerversdk.request.PushNotification;
+import com.niamedtech.expo.exposerversdk.response.Status;
+import com.niamedtech.expo.exposerversdk.response.TicketResponse;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -8,15 +15,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-
-import com.blockout.notifications.config.ExpoClientProperties;
-import com.niamedtech.expo.exposerversdk.ExpoPushNotificationClient;
-import com.niamedtech.expo.exposerversdk.request.PushNotification;
-import com.niamedtech.expo.exposerversdk.response.TicketResponse;
-import com.niamedtech.expo.exposerversdk.response.Status;
 
 /**
  * Service d’envoi Expo via le SDK "expo-server-sdk-java" (hlspablo).
@@ -37,13 +35,13 @@ public class ExpoPushProvider {
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
         this.client = ExpoPushNotificationClient
-                .builder()
-                .setHttpClient(httpClient)
-                .setAccessToken(expoClientProperties.getAccessToken())
-                .build();
+            .builder()
+            .setHttpClient(httpClient)
+            .setAccessToken(expoClientProperties.getAccessToken())
+            .build();
 
         logger.info("ExpoPushService initialized",
-                keyValue("action", "expo_service_init"));
+            keyValue("action", "expo_service_init"));
     }
 
     /**
@@ -55,7 +53,7 @@ public class ExpoPushProvider {
     public ExpoBatchResult sendBatch(List<ExpoMessage> messages) {
         if (messages == null || messages.isEmpty()) {
             logger.info("Empty batch, nothing to send",
-                    keyValue("action", "expo_sdk_batch_skip"));
+                keyValue("action", "expo_sdk_batch_skip"));
             return new ExpoBatchResult(Set.of(), Set.of(), List.of());
         }
 
@@ -85,16 +83,16 @@ public class ExpoPushProvider {
             List<TicketResponse.Ticket> tickets = client.sendPushNotifications(notifications);
 
             logger.info("Expo SDK batch sent",
-                    keyValue("action", "expo_sdk_batch_sent"),
-                    keyValue("count", notifications.size()),
-                    keyValue("tickets", tickets != null ? tickets.size() : 0));
+                keyValue("action", "expo_sdk_batch_sent"),
+                keyValue("count", notifications.size()),
+                keyValue("tickets", tickets != null ? tickets.size() : 0));
 
             return aggregateTickets(batch, tickets, indexToUser, indexToToken);
 
         } catch (Exception e) {
             logger.error("Expo SDK send failed",
-                    keyValue("action", "expo_sdk_send_failed"),
-                    keyValue("count", notifications.size()), e);
+                keyValue("action", "expo_sdk_send_failed"),
+                keyValue("count", notifications.size()), e);
 
             // Échec global → tous les users de ce lot = failed
             Set<Long> failedUsers = batch.stream().map(ExpoMessage::getUserId).collect(Collectors.toSet());
@@ -103,10 +101,10 @@ public class ExpoPushProvider {
     }
 
     private ExpoBatchResult aggregateTickets(
-            List<ExpoMessage> batch,
-            List<TicketResponse.Ticket> tickets,
-            Map<Integer, Long> indexToUser,
-            Map<Integer, String> indexToToken) {
+        List<ExpoMessage> batch,
+        List<TicketResponse.Ticket> tickets,
+        Map<Integer, Long> indexToUser,
+        Map<Integer, String> indexToToken) {
 
         int n = Math.min(batch.size(), tickets != null ? tickets.size() : 0);
 
@@ -122,9 +120,9 @@ public class ExpoPushProvider {
             if (tk == null) {
                 perUserErr.merge(userId, 1, Integer::sum);
                 logger.warn("Null ticket received",
-                        keyValue("action", "expo_ticket_null"),
-                        keyValue("userId", userId),
-                        keyValue("token", mask(tokenUsed)));
+                    keyValue("action", "expo_ticket_null"),
+                    keyValue("userId", userId),
+                    keyValue("token", mask(tokenUsed)));
                 continue;
             }
 
@@ -154,11 +152,11 @@ public class ExpoPushProvider {
             }
 
             logger.warn("Expo ticket error",
-                    keyValue("action", "expo_ticket_error"),
-                    keyValue("userId", userId),
-                    keyValue("token", mask(candidate)),
-                    keyValue("status", status != null ? status.name() : "null"),
-                    keyValue("message", msg));
+                keyValue("action", "expo_ticket_error"),
+                keyValue("userId", userId),
+                keyValue("token", mask(candidate)),
+                keyValue("status", status != null ? status.name() : "null"),
+                keyValue("message", msg));
         }
 
         // Users OK = au moins un ticket OK dans ce lot
@@ -167,14 +165,14 @@ public class ExpoPushProvider {
         // Users KO = présents dans le lot ET aucun OK (mais au moins une erreur)
         Set<Long> usersInBatch = batch.stream().map(ExpoMessage::getUserId).collect(Collectors.toSet());
         Set<Long> failedUsers = usersInBatch.stream()
-                .filter(u -> !okUsers.contains(u) && perUserErr.getOrDefault(u, 0) > 0)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+            .filter(u -> !okUsers.contains(u) && perUserErr.getOrDefault(u, 0) > 0)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
 
         logger.info("Expo batch aggregated",
-                keyValue("action", "expo_batch_aggregate"),
-                keyValue("okUsers", okUsers.size()),
-                keyValue("failedUsers", failedUsers.size()),
-                keyValue("invalidTokens", invalidTokens.size()));
+            keyValue("action", "expo_batch_aggregate"),
+            keyValue("okUsers", okUsers.size()),
+            keyValue("failedUsers", failedUsers.size()),
+            keyValue("invalidTokens", invalidTokens.size()));
 
         return new ExpoBatchResult(okUsers, failedUsers, invalidTokens);
     }
@@ -185,8 +183,8 @@ public class ExpoPushProvider {
         String m = message.toLowerCase(Locale.ROOT);
         // Messages fréquents côté Expo pour token invalide
         return m.contains("devicenotregistered")
-                || m.contains("not a registered push notification recipient")
-                || m.contains("not registered");
+            || m.contains("not a registered push notification recipient")
+            || m.contains("not registered");
     }
 
     private String mask(String token) {

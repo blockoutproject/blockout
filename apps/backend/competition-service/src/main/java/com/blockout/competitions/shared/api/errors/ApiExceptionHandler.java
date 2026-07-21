@@ -38,13 +38,13 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     ResponseEntity<ProblemDetail> handleAuthentication(AuthenticationException exception) {
         return problemFactory.response(
-                HttpStatus.UNAUTHORIZED, "authentication_required", "Authentication is required or invalid.");
+            HttpStatus.UNAUTHORIZED, "authentication_required", "Authentication is required or invalid.");
     }
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> handleUnexpected(Exception exception) {
         LOGGER.error("Unhandled competition-service exception", exception);
         return problemFactory.response(
-                HttpStatus.INTERNAL_SERVER_ERROR, "internal_server_error", "An internal error occurred.");
+            HttpStatus.INTERNAL_SERVER_ERROR, "internal_server_error", "An internal error occurred.");
     }
 }

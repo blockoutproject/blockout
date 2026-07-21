@@ -1,10 +1,9 @@
 """Download and parse FFVB calendar exports."""
 
+import aiohttp
 import asyncio
 import csv
 import io
-
-import aiohttp
 
 from scraper.application.source import Scraper
 from scraper.infrastructure.blockout.pool import PoolInternalResponse

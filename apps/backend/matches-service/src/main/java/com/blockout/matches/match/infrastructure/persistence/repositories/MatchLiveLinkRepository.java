@@ -19,25 +19,25 @@ public interface MatchLiveLinkRepository extends JpaRepository<MatchLiveLinkEnti
     long countByMatch_IdAndOwnerAuth0Id(Long matchId, String ownerAuth0Id);
 
     @Query("""
-            SELECT COUNT(DISTINCT l.match.id) FROM MatchLiveLinkEntity l
-            WHERE l.ownerAuth0Id = :ownerAuth0Id AND l.createdAt BETWEEN :start AND :end
-            """)
+        SELECT COUNT(DISTINCT l.match.id) FROM MatchLiveLinkEntity l
+        WHERE l.ownerAuth0Id = :ownerAuth0Id AND l.createdAt BETWEEN :start AND :end
+        """)
     long countDistinctMatchesByOwnerAndDay(
-            @Param("ownerAuth0Id") String ownerAuth0Id,
-            @Param("start") Instant start,
-            @Param("end") Instant end);
+        @Param("ownerAuth0Id") String ownerAuth0Id,
+        @Param("start") Instant start,
+        @Param("end") Instant end);
 
     List<MatchLiveLinkEntity> findByMatch_IdAndOwnerAuth0IdAndStatus(
-            Long matchId, String ownerAuth0Id, LiveLinkStatus status);
+        Long matchId, String ownerAuth0Id, LiveLinkStatus status);
 
     Optional<MatchLiveLinkEntity> findFirstByMatch_IdAndOwnerAuth0IdOrderByCreatedAtDesc(
-            Long matchId, String ownerAuth0Id);
+        Long matchId, String ownerAuth0Id);
 
     @Query("""
-            SELECT l FROM MatchLiveLinkEntity l
-            WHERE l.match.id IN :matchIds AND l.status = :status
-            """)
+        SELECT l FROM MatchLiveLinkEntity l
+        WHERE l.match.id IN :matchIds AND l.status = :status
+        """)
     List<MatchLiveLinkEntity> findByMatchIdInAndStatus(
-            @Param("matchIds") List<Long> matchIds,
-            @Param("status") LiveLinkStatus status);
+        @Param("matchIds") List<Long> matchIds,
+        @Param("status") LiveLinkStatus status);
 }

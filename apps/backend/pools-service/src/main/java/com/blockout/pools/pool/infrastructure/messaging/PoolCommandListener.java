@@ -7,10 +7,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
-/** Consumes Pool deactivation commands. */
-@Component @RequiredArgsConstructor
+/**
+ * Consumes Pool deactivation commands.
+ */
+@Component
+@RequiredArgsConstructor
 public class PoolCommandListener {
     private final PoolService poolService;
+
     @RabbitListener(queues = RabbitMQConfig.POOL_DEACTIVATION_QUEUE_POOLS)
-    public void handlePoolDeactivation(PoolDeactivationEvent event) { poolService.deactivatePool(event.poolId()); }
+    public void handlePoolDeactivation(PoolDeactivationEvent event) {
+        poolService.deactivatePool(event.poolId());
+    }
 }

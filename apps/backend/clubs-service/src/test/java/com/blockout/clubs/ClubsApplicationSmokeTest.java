@@ -9,8 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
  */
 @DisplayName("Clubs application smoke")
 @SpringBootTest(properties = {
-        "clubs.geocoding.initial-delay=86400000",
-        "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost/unused"
+    "clubs.geocoding.initial-delay=86400000",
+    "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost/unused"
 })
 class ClubsApplicationSmokeTest {
 

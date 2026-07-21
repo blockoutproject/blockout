@@ -1,12 +1,8 @@
 import asyncio
 import json
+import pytest
 from dataclasses import fields
 from datetime import datetime
-from typing import get_type_hints
-
-import pytest
-from scraper.config.settings import Settings
-from scraper.infrastructure.blockout.auth import TokenStore
 from scraper.infrastructure.blockout.clients import BlockoutClients
 from scraper.infrastructure.blockout.contracts import (
     BulkDeactivateClubsInternalRequest,
@@ -16,6 +12,10 @@ from scraper.infrastructure.blockout.contracts import (
     ScraperStatusInternalResponse,
     UpdateClubInternalRequest,
 )
+from typing import get_type_hints
+
+from scraper.config.settings import Settings
+from scraper.infrastructure.blockout.auth import TokenStore
 from scraper.infrastructure.blockout.response import read_json
 
 

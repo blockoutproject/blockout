@@ -1,8 +1,7 @@
 """Departmental FFVB competition source."""
 
-import asyncio
-
 import aiohttp
+import asyncio
 
 from scraper.application.ffvb_league_ingestion import ingest_league_pools
 from scraper.application.source import Scraper

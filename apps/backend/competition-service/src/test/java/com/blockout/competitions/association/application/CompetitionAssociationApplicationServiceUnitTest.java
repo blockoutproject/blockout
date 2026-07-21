@@ -16,9 +16,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Competition Association application service")
@@ -93,7 +91,7 @@ class CompetitionAssociationApplicationServiceUnitTest {
         when(repository.findByPoolIdAndTeamId(10L, 20L)).thenReturn(Optional.of(association));
         when(repository.saveAndFlush(association)).thenReturn(association);
         UpdateAssociationStatsCommand command = new UpdateAssociationStatsCommand(
-                3, 2, 1, 7, 1, 1, 0, 0, 1, 0, 7, 4, 240, 220, 0, 1.75, 1.09);
+            3, 2, 1, 7, 1, 1, 0, 0, 1, 0, 7, 4, 240, 220, 0, 1.75, 1.09);
 
         var updated = service.updateTeamAssociationStats(10L, 20L, command);
 
@@ -105,11 +103,11 @@ class CompetitionAssociationApplicationServiceUnitTest {
 
     private CompetitionAssociationEntity association(boolean active) {
         return CompetitionAssociationEntity.builder()
-                .id(1L)
-                .poolId(10L)
-                .teamId(20L)
-                .clubId("club-1")
-                .active(active)
-                .build();
+            .id(1L)
+            .poolId(10L)
+            .teamId(20L)
+            .clubId("club-1")
+            .active(active)
+            .build();
     }
 }

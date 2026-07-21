@@ -1,14 +1,14 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { useSearchTeams } from "@/src/hooks/search/useSearchTeams";
+import React, {useCallback, useMemo, useState} from "react";
+import {useSearchTeams} from "@/src/hooks/search/useSearchTeams";
 import TeamCard from "@/src/components/search/TeamCard";
-import { useRouter } from "expo-router";
+import {useRouter} from "expo-router";
 import * as Haptics from "expo-haptics";
-import { GenericSearchScreen } from "./GenericSearchScreen";
-import { SelectOption } from "@/src/components/common/form/SelectSheet";
-import { useDivisions } from "@/src/hooks/config/division/useDivisions";
-import { EnumFormat } from "@/src/types/enums/Format";
-import { EnumGender } from "@/src/types/enums/Gender";
-import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import {GenericSearchScreen} from "./GenericSearchScreen";
+import {SelectOption} from "@/src/components/common/form/SelectSheet";
+import {useDivisions} from "@/src/hooks/config/division/useDivisions";
+import {EnumFormat} from "@/src/types/enums/Format";
+import {EnumGender} from "@/src/types/enums/Gender";
+import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 
 export type SearchTeamScreenProps = {
   search: string;
@@ -19,12 +19,12 @@ export type SearchTeamScreenProps = {
 const SEASONS: string[] = ["2026/2027", "2025/2026", "2024/2025"];
 
 const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
-  search,
-  debouncedQuery,
-  setSearch,
-}) => {
-  const { data: divisions } = useDivisions();
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+                                                             search,
+                                                             debouncedQuery,
+                                                             setSearch,
+                                                           }) => {
+  const {data: divisions} = useDivisions();
+  const {handleNavigationWithAd} = useNavigationInterstitial();
 
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
   const [selectedDivisionId, setSelectedDivisionId] = useState<number | null>(
@@ -34,7 +34,7 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
   const [selectedGender, setSelectedGender] = useState<EnumGender | null>(null);
 
   const seasonOptions: SelectOption[] = useMemo(
-    () => SEASONS.map((s) => ({ value: s, label: s })),
+    () => SEASONS.map((s) => ({value: s, label: s})),
     [],
   );
 
@@ -49,7 +49,7 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
     [divisions],
   );
 
-  const { data, isLoading, isError, refetch } = useSearchTeams(
+  const {data, isLoading, isError, refetch} = useSearchTeams(
     debouncedQuery,
     selectedSeason ?? undefined,
     selectedDivisionId ?? undefined,
@@ -110,8 +110,8 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
       placeholder="Rechercher une équipe..."
       exampleLabel="Exemples d’équipes"
       emptyMessage="Aucune équipe trouvée pour cette recherche."
-      renderItem={({ item }) => (
-        <TeamCard team={item} onPress={() => handleTeamPress(item.id)} />
+      renderItem={({item}) => (
+        <TeamCard team={item} onPress={() => handleTeamPress(item.id)}/>
       )}
       seasonOptions={seasonOptions}
       selectedSeason={selectedSeason}

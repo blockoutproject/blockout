@@ -1,13 +1,13 @@
 package com.blockout.reports.report.api;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.blockout.reports.report.api.models.CreateReportInternalRequest;
 import com.blockout.reports.report.api.models.ReportInternalResponse;
 import com.blockout.reports.report.application.models.ReportType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ReportApiContractUnitTest {
 
@@ -16,7 +16,7 @@ class ReportApiContractUnitTest {
     @Test
     void exposesTheCompleteReportResultWithoutLeakingProviderTypes() throws Exception {
         ReportInternalResponse response = new ReportInternalResponse(
-                1L, 2, "https://github.invalid/issues/2", "Broken score", "OPEN");
+            1L, 2, "https://github.invalid/issues/2", "Broken score", "OPEN");
 
         JsonNode json = objectMapper.readTree(objectMapper.writeValueAsBytes(response));
         assertThat(json.path("htmlUrl").asText()).isEqualTo("https://github.invalid/issues/2");
@@ -26,14 +26,14 @@ class ReportApiContractUnitTest {
     @Test
     void keepsCreationInputSeparateFromTheResult() {
         CreateReportInternalRequest request = new CreateReportInternalRequest(
-                ReportType.DATA_ERROR, "Broken score", "Description", "1.0", "user-1", "User",
-                "Match", "iPhone", "iOS", null);
+            ReportType.DATA_ERROR, "Broken score", "Description", "1.0", "user-1", "User",
+            "Match", "iPhone", "iOS", null);
 
         JsonNode json = objectMapper.valueToTree(request);
 
         assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
-                "type", "title", "description", "appVersion", "userId", "userName", "screen",
-                "deviceModel", "os", "attachmentImageUrls");
+            "type", "title", "description", "appVersion", "userId", "userName", "screen",
+            "deviceModel", "os", "attachmentImageUrls");
         assertThat(json.has("number")).isFalse();
     }
 }

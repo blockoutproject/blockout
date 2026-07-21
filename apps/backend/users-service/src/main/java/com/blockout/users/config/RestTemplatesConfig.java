@@ -1,8 +1,5 @@
 package com.blockout.users.config;
 
-import java.time.Duration;
-import java.util.List;
-
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -18,6 +15,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
+import java.util.List;
+
 @Configuration
 public class RestTemplatesConfig {
 
@@ -27,21 +27,21 @@ public class RestTemplatesConfig {
     private HttpComponentsClientHttpRequestFactory requestFactory() {
         PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
         connManager.setDefaultConnectionConfig(
-                ConnectionConfig.custom()
-                        .setConnectTimeout(Timeout.ofMilliseconds(CONNECT_TIMEOUT_MS))
-                        .setSocketTimeout(Timeout.ofMilliseconds(READ_TIMEOUT_MS))
-                        .build());
+            ConnectionConfig.custom()
+                .setConnectTimeout(Timeout.ofMilliseconds(CONNECT_TIMEOUT_MS))
+                .setSocketTimeout(Timeout.ofMilliseconds(READ_TIMEOUT_MS))
+                .build());
 
         RequestConfig rc = RequestConfig.custom()
-                .setResponseTimeout(Timeout.ofMilliseconds(READ_TIMEOUT_MS))
-                .build();
+            .setResponseTimeout(Timeout.ofMilliseconds(READ_TIMEOUT_MS))
+            .build();
 
         CloseableHttpClient http = HttpClientBuilder.create()
-                .setConnectionManager(connManager)
-                .setDefaultRequestConfig(rc)
-                .evictExpiredConnections()
-                .evictIdleConnections(Timeout.ofSeconds(30))
-                .build();
+            .setConnectionManager(connManager)
+            .setDefaultRequestConfig(rc)
+            .evictExpiredConnections()
+            .evictIdleConnections(Timeout.ofSeconds(30))
+            .build();
 
         return new HttpComponentsClientHttpRequestFactory(http);
     }

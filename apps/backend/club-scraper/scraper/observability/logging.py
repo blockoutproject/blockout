@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
-import logging
 from contextvars import ContextVar
 from typing import Any
+
+import logging
 
 current_scraper = ContextVar("current_scraper", default="unknown_scraper")
 logger = logging.getLogger(__name__)
