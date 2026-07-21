@@ -8,7 +8,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/shared/providers/SessionProvider";
 import {withAlpha} from "@/src/utils/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import GradientButton, {GOLD_GRADIENT} from "@/src/shared/ui/GradientButton";
@@ -23,7 +23,7 @@ const ProUpsellTab: React.FC<Props> = ({
                                        }) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const {isAuthenticated} = useSession();
+  const {isAuthenticated} = useSessionState();
   const {isPro, isHydrated} = usePurchases();
   const [loading, setLoading] = useState(false);
 

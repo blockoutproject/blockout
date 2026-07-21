@@ -10,7 +10,7 @@ import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
 import {LOGO_SIZE} from "@/src/shared/theme/globals";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {computeBalancedRowsByCount, withAlpha} from "@/src/utils/utils";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/shared/providers/SessionProvider";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import GuestPromptSheet, {GuestPromptSheetRef} from "../user/GuestPromptSheet.tsx";
@@ -31,7 +31,7 @@ type PillConfig = {
 const PoolProfile: React.FC<PoolProfileProps> = ({enrichedPool}) => {
   const {isFollowing, isProcessing, followersCount, onToggleFollow} =
     usePoolFollowState(enrichedPool);
-  const {isGuest} = useSession();
+  const {isGuest} = useSessionState();
   const guestSheetRef = useRef<GuestPromptSheetRef>(null);
   const theme = useAppTheme();
 

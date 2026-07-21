@@ -11,7 +11,7 @@ import {EnrichedMatchDTO, LiveProvider, MatchStatus, PROVIDER_LABELS,} from "@/s
 import MatchLiveLinkReportFormSheet from "@/src/components/match/form/MatchLiveLinkReportFormSheet";
 import MatchLiveLinkFormSheet from "./form/MatchLiveLinkFormSheet";
 import MatchLiveLinkDeleteFormSheet from "./form/MatchLiveLinkDeleteFormSheet";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/shared/providers/SessionProvider";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import {useWebLinkInterstitial} from "@/src/hooks/ads/useWebLinkInterstitial";
 
@@ -50,7 +50,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     "moderate:match_live_link",
   ]);
 
-  const {customUser, isGuest} = useSession();
+  const {customUser, isGuest} = useSessionState();
 
   const hasLiveLink = !!enrichedMatch.liveUrl;
   const isFinished = enrichedMatch.status === MatchStatus.FINISHED;

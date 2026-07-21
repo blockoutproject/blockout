@@ -5,7 +5,7 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionActions, useSessionState} from "@/src/shared/providers/SessionProvider";
 import {withAlpha} from "@/src/utils/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
@@ -30,7 +30,8 @@ export const getLiveLinkErrorMessage = (err: unknown): string => {
 const LoginScreen: React.FC = () => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const {signIn, continueAsGuest, isLoading, error} = useSession();
+  const {signIn, continueAsGuest} = useSessionActions();
+  const {isLoading, error} = useSessionState();
 
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isGuesting, setIsGuesting] = useState(false);

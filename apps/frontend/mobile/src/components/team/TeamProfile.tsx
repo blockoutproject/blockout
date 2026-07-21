@@ -12,7 +12,7 @@ import {FormatLabels} from "@/src/types/enums/Format";
 import {LOGO_SIZE} from "@/src/shared/theme/globals";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/shared/providers/SessionProvider";
 import GuestPromptSheet, {GuestPromptSheetRef} from "../user/GuestPromptSheet.tsx";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {withAlpha} from "@/src/utils/utils";
@@ -59,7 +59,7 @@ const TeamProfile: React.FC<TeamProfileProps> = ({enrichedTeam}) => {
   const {handleNavigationWithAd} = useNavigationInterstitial();
   const {isFollowing, isProcessing, followersCount, onToggleFollow} =
     useTeamFollowState(enrichedTeam);
-  const {isGuest} = useSession();
+  const {isGuest} = useSessionState();
   const guestSheetRef = useRef<GuestPromptSheetRef>(null);
   const theme = useAppTheme();
 

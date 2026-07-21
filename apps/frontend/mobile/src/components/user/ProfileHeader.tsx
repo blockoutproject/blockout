@@ -11,7 +11,7 @@ import MatchLiveModerationScreen from "../match/moderation/MatchLiveModerationSc
 import RawDivisionMappingScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
 import DivisionScreen from "../division/DivisionScreen";
 import AdminScreen from "../appStatus/AdminScreen";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/shared/providers/SessionProvider";
 
 export type UserHeaderProps = {
   title: string;
@@ -21,7 +21,7 @@ export type UserHeaderProps = {
 const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const {isMaintenance} = useSession();
+  const {isMaintenance} = useSessionState();
 
   const liveLinkModerationSheetRef = useRef<BottomSheetModal>(null);
   const mappingSheetRef = useRef<BottomSheetModal>(null);

@@ -14,7 +14,7 @@ import {type Report, type ReportResult, ReportType} from "@/src/types/Report";
 import Filters from "@/src/shared/ui/Filters";
 import type {Filter} from "@/src/types/Filter";
 import Field from "@/src/shared/ui/form/Field";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/shared/providers/SessionProvider";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import {CustomImage} from "@/src/types/Common";
@@ -53,7 +53,7 @@ const CATEGORY_OPTIONS = [
 const ReportForm: React.FC<ReportFormProps> = ({context, onSuccess, onRegisterSubmit, onStateChange}) => {
   const theme = useAppTheme();
   const {mobile} = useApis();
-  const {customUser} = useSession();
+  const {customUser} = useSessionState();
 
   const [images, setImages] = useState<CustomImage[]>([]);
   const [loading, setLoading] = useState(false);

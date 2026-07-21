@@ -64,6 +64,25 @@ describe("AuthProvider web adapter", () => {
     });
   });
 
+  it("keeps session actions stable when Auth0 state is unchanged", async () => {
+    const { result, rerender } = await renderHook(() => useAuth0());
+    const initialActions = {
+      authorize: result.current.authorize,
+      clearSession: result.current.clearSession,
+      clearCredentials: result.current.clearCredentials,
+      getCredentials: result.current.getCredentials,
+    };
+
+    await rerender(undefined);
+
+    expect(result.current.authorize).toBe(initialActions.authorize);
+    expect(result.current.clearSession).toBe(initialActions.clearSession);
+    expect(result.current.clearCredentials).toBe(
+      initialActions.clearCredentials,
+    );
+    expect(result.current.getCredentials).toBe(initialActions.getCredentials);
+  });
+
   it("clears local credentials without navigating to Auth0", async () => {
     const { result } = await renderHook(() => useAuth0());
 

@@ -159,8 +159,9 @@ Unavailable credentials or hardware remain explicit evidence gaps; tests must no
    compatible Expo 54 patches, resolve actionable audit paths, and prove clean native resolution.
 3. **REF-034 — Upgrade the mobile application to Expo SDK 55 (complete).** Keep Nx as thin task orchestration, let Expo
    own SDK and native generation decisions, and prove the New Architecture dependency tree on Android and iOS.
-4. **REF-035 — Stabilize session and network state.** Separate stable actions from changing state, establish Query
-   lifecycle defaults, remove duplicate server-state ownership, and fail fast on required configuration.
+4. **REF-035 — Stabilize session and network state (complete).** Separate stable actions from changing state,
+   establish Query lifecycle defaults, remove duplicate server-state ownership, and fail fast on required
+   configuration.
 5. **REF-036 — Complete feature-owned mobile slices.** Move one coherent feature at a time, unify theme ownership,
    improve accessibility and measured list/image behavior, and simplify component APIs only where consumers justify it.
 6. **REF-037 — Certify the cleaned mobile application.** Run the complete static, test, Web phone-size, simulator, and
@@ -201,6 +202,23 @@ REF-034 added the following completion evidence on 2026-07-21:
 - Web export: pass, 3,148 modules exported with Expo 55 automatic monorepo autolinking;
 - clean Android/iOS prebuild: pass; Android debug assembly and unsigned iOS Simulator build: pass;
 - the generated development client installs and launches on an iPhone 17 Pro simulator.
+
+REF-035 added the following completion evidence on 2026-07-21:
+
+- separate session action and state contexts keep command identities stable without subscribing action-only consumers
+  to changing session facts;
+- the shared Query provider applies explicit retry and freshness defaults and forwards native application-focus and
+  Expo connectivity changes to TanStack Query;
+- pool and team follow state uses the current-user and entity Query caches as its only server-fact ownership, including
+  optimistic updates and full rollback on failure;
+- missing common or platform-specific required public configuration is rejected at startup;
+- Nx mobile lint and typecheck pass; all 24 Jest tests pass across 8 suites;
+- Expo dependency validation and all 19 Expo Doctor checks pass; Web export, clean native prebuild, Android debug
+  assembly, CocoaPods resolution, and the unsigned iOS Simulator build pass;
+- the iOS development client installs and launches on an iPhone 17 Pro simulator, while generated native projects
+  remain ignored and untracked;
+- `npm audit --omit=dev` reports 19 moderate, 0 high, and 0 critical production findings; the published fixes require
+  incompatible forced dependency changes.
 
 The audit itself changed no application source, native project, route, configuration value, or runtime behavior. The
 completion evidence above records the separately scoped implementation tasks that followed it.

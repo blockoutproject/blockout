@@ -3,7 +3,7 @@ import {StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionActions, useSessionState} from "@/src/shared/providers/SessionProvider";
 import {withAlpha} from "@/src/utils/utils";
 import {GradientButton} from "@/src/shared/ui/GradientButton";
 
@@ -17,7 +17,8 @@ const GuestUpsellCard: React.FC<Props> = ({
                                             subtitle = "Connecte-toi pour suivre tes équipes, recevoir des notifications et personnaliser ton profil.",
                                           }) => {
   const theme = useAppTheme();
-  const {isLoading, signIn} = useSession();
+  const {signIn} = useSessionActions();
+  const {isLoading} = useSessionState();
   const [loading, setLoading] = useState(false);
 
   const onSignIn = async () => {

@@ -9,7 +9,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import * as Haptics from "expo-haptics";
 import {APP_TITLE, LOGO_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/globals";
 import {withAlpha} from "@/src/utils/utils";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/shared/providers/SessionProvider";
 import {CONFIG} from "@/src/shared/config/config";
 import RevenueCatUI from "react-native-purchases-ui";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
@@ -34,7 +34,7 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
                                                    }) => {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
-  const {isAuthenticated} = useSession();
+  const {isAuthenticated} = useSessionState();
   const {isPro, isHydrated} = usePurchases();
 
   const {routes} = props.navigationState;

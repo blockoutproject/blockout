@@ -1,301 +1,345 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useAuth0, User } from "@/src/shared/providers/AuthProvider";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
-import type { CustomUser } from "@/src/types/User";
-import {registerForPushNotificationsAsync} from "@/src/utils/notifications";
-import {useOnboardingStore} from "@/src/utils/onboardingStore";
-import {useGuestSessionStore} from "@/src/utils/guestSessionStore";
-import { useApis } from "@/src/shared/providers/ApiProvider";
-import { setAuthOnApis } from "@/src/api";
 import { router, usePathname } from "expo-router";
-import {useRegisterPushToken} from "@/src/hooks/notification/useRegisterPushToken";
+
+import { setAuthOnApis } from "@/src/api";
+import { ApiError } from "@/src/shared/api/ApiError";
+import { AUTH0_CONFIG } from "@/src/shared/config/config";
+import { useApis } from "@/src/shared/providers/ApiProvider";
+import { useAuth0 } from "@/src/shared/providers/AuthProvider";
+import {
+  SessionActions,
+  SessionContextProvider,
+  SessionState,
+} from "@/src/shared/providers/SessionContext";
 import { useAppStatus } from "@/src/hooks/config/app/useAppStatus";
+import { useRegisterPushToken } from "@/src/hooks/notification/useRegisterPushToken";
+import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
-import type { AppStatusDTO } from "@/src/types/AppStatus";
 import { computeIsUpdateRequired, getStoreUrl } from "@/src/utils/appVersion";
-import {ApiError} from "@/src/shared/api/ApiError";
-import {AUTH0_CONFIG} from "@/src/shared/config/config";
+import { useGuestSessionStore } from "@/src/utils/guestSessionStore";
+import { registerForPushNotificationsAsync } from "@/src/utils/notifications";
+import { useOnboardingStore } from "@/src/utils/onboardingStore";
 
-export type SessionActions = {
-    signIn: () => Promise<void>;
-    continueAsGuest: () => void;
-    leaveGuest: () => Promise<void>;
-    signOutLocal: () => Promise<void>;
-    signOutSSO: (opts?: { federated?: boolean }) => Promise<void>;
-    softResetAuth: () => Promise<void>;
-    bypassMaintenance: () => void;
-    resetBypassMaintenance: () => void;
-    bypassUpdate: () => void;
-    resetBypassUpdate: () => void;
-};
+const APP_STATUS_BYPASS_SCOPES = ["update:maintenance"];
 
-export type SessionUserState = {
-    auth0User: User | null;
-    customUser: CustomUser | undefined;
-    isLoading: boolean;
-    isError: boolean;
-    isAuthenticated: boolean;
-    isGuest: boolean;
-    error: Error | null;
-    customUserError: Error | null;
-    auth0UserError: Error | null;
-    refetch: () => void;
-    appStatus: AppStatusDTO | undefined;
-    isAppStatusLoading: boolean;
-    isAppStatusError: boolean;
-    isMaintenance: boolean;
-    maintenanceBypass: boolean;
-    canBypassMaintenance: boolean;
-    isUpdateRequired: boolean;
-    updateBypass: boolean;
-    canBypassUpdate: boolean;
-    appUpdateUrl: string | null;
-    refetchAppStatus: () => void;
-    isBootstrapped: boolean;
-};
+export {
+  useSessionActions,
+  useSessionState,
+} from "@/src/shared/providers/SessionContext";
+export type {
+  SessionActions,
+  SessionState,
+} from "@/src/shared/providers/SessionContext";
 
-export type SessionContextValue = SessionActions & SessionUserState;
+export const SessionProvider: React.FC<React.PropsWithChildren> = ({
+  children,
+}) => {
+  const {
+    authorize,
+    clearSession,
+    clearCredentials,
+    getCredentials,
+    user: auth0User,
+    error: auth0UserError,
+    isLoading: isAuth0UserLoading,
+  } = useAuth0();
 
-const SessionContext = createContext<SessionContextValue | null>(null);
+  const {
+    data: customUser,
+    isLoading: isCustomUserLoading,
+    error: customUserError,
+    refetch,
+  } = useEnsureUser();
 
-export const useSession = () => {
-    const ctx = useContext(SessionContext);
-    if (!ctx) throw new Error("useSession must be used within <SessionProvider>");
-    return ctx;
-};
+  const queryClient = useQueryClient();
+  const { hasCompletedOnboarding } = useOnboardingStore();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
 
-export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-    const {
-        authorize,
-        clearSession,
-        clearCredentials,
-        getCredentials,
-        user: auth0User,
-        error: auth0UserError,
-        isLoading: isAuth0UserLoading,
-    } = useAuth0();
+  const apis = useApis();
+  const registerPushToken = useRegisterPushToken();
 
-    const {
-        data: customUser,
-        isLoading: isCustomUserLoading,
-        error: customUserError,
-        refetch,
-    } = useEnsureUser();
+  const isGuest = useGuestSessionStore((state) => state.isGuest);
+  const setGuest = useGuestSessionStore((state) => state.continueAsGuest);
+  const leaveGuestFlag = useGuestSessionStore((state) => state.leaveGuest);
 
-    const queryClient = useQueryClient();
-    const { hasCompletedOnboarding } = useOnboardingStore();
-    const pathname = usePathname();
-    const apis = useApis();
-    const registerPushToken = useRegisterPushToken();
+  const {
+    data: appStatus,
+    isLoading: isAppStatusLoading,
+    isError: isAppStatusError,
+    refetch: refetchAppStatus,
+  } = useAppStatus();
 
-    const isGuest = useGuestSessionStore((s) => s.isGuest);
-    const setGuest = useGuestSessionStore((s) => s.continueAsGuest);
-    const leaveGuestFlag = useGuestSessionStore((s) => s.leaveGuest);
+  const { allowed: canBypassAppStatus } = useHasScopes(
+    APP_STATUS_BYPASS_SCOPES,
+  );
 
-    const {
-        data: appStatus,
-        isLoading: isAppStatusLoading,
-        isError: isAppStatusError,
-        refetch: refetchAppStatus,
-    } = useAppStatus();
+  const [maintenanceBypass, setMaintenanceBypass] = useState(false);
+  const [updateBypass, setUpdateBypass] = useState(false);
+  const [isBootstrapped, setIsBootstrapped] = useState(false);
+  const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
 
-    const { allowed: canBypassAppStatus } = useHasScopes(["update:maintenance"]);
+  const isMaintenance = appStatus?.maintenance === true;
+  const isUpdateRequired = useMemo(
+    () => computeIsUpdateRequired(appStatus),
+    [appStatus],
+  );
+  const appUpdateUrl = useMemo(() => getStoreUrl(appStatus), [appStatus]);
+  const isLoading =
+    isAuth0UserLoading || isCustomUserLoading || isAppStatusLoading;
+  const isError = !!auth0UserError || !!customUserError || isAppStatusError;
+  const isAuthenticated = !!auth0User && !!customUser;
+  const error = customUserError || auth0UserError;
 
-    const [maintenanceBypass, setMaintenanceBypass] = useState(false);
-    const [updateBypass, setUpdateBypass] = useState(false);
-    const [isBootstrapped, setIsBootstrapped] = useState(false);
-    const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
+  const clearQueryCache = useCallback(async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+  }, [queryClient]);
 
-    const isMaintenance = appStatus?.maintenance === true;
-    const isUpdateRequired = useMemo(() => computeIsUpdateRequired(appStatus), [appStatus]);
-    const appUpdateUrl = useMemo(() => getStoreUrl(appStatus), [appStatus]);
-
-    useEffect(() => {
-        if (!isMaintenance && maintenanceBypass) setMaintenanceBypass(false);
-    }, [isMaintenance, maintenanceBypass]);
-
-    useEffect(() => {
-        if (!isUpdateRequired && updateBypass) setUpdateBypass(false);
-    }, [isUpdateRequired, updateBypass]);
-
-    const isLoading = isAuth0UserLoading || isCustomUserLoading || isAppStatusLoading;
-    const isError = !!auth0UserError || !!customUserError || isAppStatusError;
-    const isAuthenticated = !!auth0User && !!customUser;
-    const error = customUserError || auth0UserError;
-
-    useEffect(() => {
-        if (!hasCompletedOnboarding || !isAuthenticated) return;
-        (async () => {
-            try {
-                const token = await registerForPushNotificationsAsync().catch(() => null);
-                if (customUser?.id && token) {
-                    await registerPushToken(customUser.id, token).catch(() => { });
-                }
-            } catch { }
-        })();
-    }, [isAuthenticated, hasCompletedOnboarding, customUser?.id]);
-
-    useEffect(() => {
-        if (isAuth0UserLoading) return;
-
-        let cancelled = false;
-
-        const bootstrapAuth = async () => {
-            try {
-                const creds = await getCredentials(undefined, 60).catch(() => null);
-
-                if (creds?.accessToken) {
-                    await primeApisWithAuth();
-                    await refetch();
-                } else {
-                    setAuthOnApis(apis, undefined, undefined);
-                }
-            } catch {
-                setAuthOnApis(apis, undefined, undefined);
-            }
-        };
-
-        bootstrapPromiseRef.current ??= bootstrapAuth();
-        const currentBootstrap = bootstrapPromiseRef.current;
-        currentBootstrap.finally(() => {
-            if (bootstrapPromiseRef.current === currentBootstrap) {
-                bootstrapPromiseRef.current = null;
-            }
-            if (!cancelled) setIsBootstrapped(true);
-        });
-        return () => {
-            cancelled = true;
-        };
-    }, [auth0User?.sub, isAuth0UserLoading]);
-
-    const clearRQCache = async () => {
-        await queryClient.cancelQueries();
-        queryClient.clear();
+  const primeApisWithAuth = useCallback(async () => {
+    const tokenSupplier = async () => {
+      const credentials = await getCredentials(undefined, 60);
+      return credentials?.accessToken ?? null;
     };
 
-    const primeApisWithAuth = async () => {
-        const tokenSupplier = async () => {
-            const creds = await getCredentials(undefined, 60);
-            return creds?.accessToken ?? null;
-        };
-
-        const onUnauthorized = async (err: ApiError) => {
-            try {
-                await clearCredentials();
-                await clearRQCache();
-            } catch { }
-        };
-
-        setAuthOnApis(apis, tokenSupplier, onUnauthorized);
+    const onUnauthorized = async (_error: ApiError) => {
+      try {
+        await clearCredentials();
+        await clearQueryCache();
+      } catch {}
     };
 
-    const signIn = async () => {
-        await authorize({
-            audience: AUTH0_CONFIG.audience,
-            scope: "openid profile email offline_access",
-        });
+    setAuthOnApis(apis, tokenSupplier, onUnauthorized);
+  }, [apis, clearCredentials, clearQueryCache, getCredentials]);
 
-        await primeApisWithAuth();
-        await refetch();
+  const refreshUser = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
-        if (isGuest) leaveGuestFlag();
-        if (pathname === "/profile") router.push("/(tabs)/(feed)");
-    };
+  const refreshAppStatus = useCallback(async () => {
+    await refetchAppStatus();
+  }, [refetchAppStatus]);
 
-    const continueAsGuest = () => {
-        setAuthOnApis(apis, undefined, undefined);
-        setGuest();
-    };
+  const signIn = useCallback(async () => {
+    await authorize({
+      audience: AUTH0_CONFIG.audience,
+      scope: "openid profile email offline_access",
+    });
 
-    const leaveGuest = async () => {
-        leaveGuestFlag();
-        await clearRQCache();
-    };
+    await primeApisWithAuth();
+    await refreshUser();
 
-    const softResetAuth = async () => {
-        try {
-            await clearCredentials();
-            setAuthOnApis(apis, undefined, undefined);
-            await clearRQCache();
-        } catch { }
-    };
+    leaveGuestFlag();
+    if (pathnameRef.current === "/profile") router.push("/(tabs)/(feed)");
+  }, [authorize, leaveGuestFlag, primeApisWithAuth, refreshUser]);
 
-    const signOutLocal = async () => {
-        if (isGuest) return leaveGuest();
-        await softResetAuth();
+  const continueAsGuest = useCallback(() => {
+    setAuthOnApis(apis, undefined, undefined);
+    setGuest();
+  }, [apis, setGuest]);
+
+  const leaveGuest = useCallback(async () => {
+    leaveGuestFlag();
+    await clearQueryCache();
+  }, [clearQueryCache, leaveGuestFlag]);
+
+  const softResetAuth = useCallback(async () => {
+    try {
+      await clearCredentials();
+      setAuthOnApis(apis, undefined, undefined);
+      await clearQueryCache();
+    } catch {}
+  }, [apis, clearCredentials, clearQueryCache]);
+
+  const signOutLocal = useCallback(async () => {
+    if (useGuestSessionStore.getState().isGuest) return leaveGuest();
+    await softResetAuth();
+    setMaintenanceBypass(false);
+    setUpdateBypass(false);
+  }, [leaveGuest, softResetAuth]);
+
+  const signOutSSO = useCallback(
+    async (opts?: { federated?: boolean }) => {
+      try {
+        if (useGuestSessionStore.getState().isGuest) return leaveGuest();
+        await clearSession(opts);
+        await clearQueryCache();
         setMaintenanceBypass(false);
         setUpdateBypass(false);
+      } catch {}
+    },
+    [clearQueryCache, clearSession, leaveGuest],
+  );
+
+  const bypassMaintenance = useCallback(() => setMaintenanceBypass(true), []);
+  const resetBypassMaintenance = useCallback(
+    () => setMaintenanceBypass(false),
+    [],
+  );
+  const bypassUpdate = useCallback(() => setUpdateBypass(true), []);
+  const resetBypassUpdate = useCallback(() => setUpdateBypass(false), []);
+
+  useEffect(() => {
+    if (!isMaintenance && maintenanceBypass) setMaintenanceBypass(false);
+  }, [isMaintenance, maintenanceBypass]);
+
+  useEffect(() => {
+    if (!isUpdateRequired && updateBypass) setUpdateBypass(false);
+  }, [isUpdateRequired, updateBypass]);
+
+  useEffect(() => {
+    if (!hasCompletedOnboarding || !isAuthenticated) return;
+
+    const register = async () => {
+      try {
+        const token = await registerForPushNotificationsAsync().catch(
+          () => null,
+        );
+        if (customUser?.id && token) {
+          await registerPushToken(customUser.id, token).catch(() => {});
+        }
+      } catch {}
     };
 
-    const signOutSSO = async (opts?: { federated?: boolean }) => {
-        try {
-            if (isGuest) return leaveGuest();
-            await clearSession(opts);
-            await clearRQCache();
-            setMaintenanceBypass(false);
-            setUpdateBypass(false);
-        } catch { }
+    void register();
+  }, [
+    customUser?.id,
+    hasCompletedOnboarding,
+    isAuthenticated,
+    registerPushToken,
+  ]);
+
+  useEffect(() => {
+    if (isAuth0UserLoading) return;
+
+    let cancelled = false;
+
+    const bootstrapAuth = async () => {
+      try {
+        const credentials = await getCredentials(undefined, 60).catch(
+          () => null,
+        );
+
+        if (credentials?.accessToken) {
+          await primeApisWithAuth();
+          await refreshUser();
+        } else {
+          setAuthOnApis(apis, undefined, undefined);
+        }
+      } catch {
+        setAuthOnApis(apis, undefined, undefined);
+      }
     };
 
-    const value = useMemo<SessionContextValue>(
-        () => ({
-            signIn,
-            continueAsGuest,
-            leaveGuest,
-            signOutLocal,
-            signOutSSO,
-            softResetAuth,
-            bypassMaintenance: () => setMaintenanceBypass(true),
-            resetBypassMaintenance: () => setMaintenanceBypass(false),
-            bypassUpdate: () => setUpdateBypass(true),
-            resetBypassUpdate: () => setUpdateBypass(false),
-            auth0User,
-            customUser,
-            isAuthenticated,
-            isGuest,
-            isLoading,
-            isError,
-            refetch,
-            error,
-            customUserError,
-            auth0UserError,
-            appStatus,
-            isAppStatusLoading,
-            isAppStatusError,
-            isMaintenance,
-            maintenanceBypass,
-            canBypassMaintenance: canBypassAppStatus,
-            isUpdateRequired,
-            updateBypass,
-            canBypassUpdate: canBypassAppStatus,
-            appUpdateUrl,
-            refetchAppStatus,
-            isBootstrapped,
-        }),
-        [
-            auth0User,
-            customUser,
-            isAuthenticated,
-            isGuest,
-            isLoading,
-            isError,
-            error,
-            customUserError,
-            auth0UserError,
-            appStatus,
-            isAppStatusLoading,
-            isAppStatusError,
-            isMaintenance,
-            maintenanceBypass,
-            canBypassAppStatus,
-            isUpdateRequired,
-            updateBypass,
-            appUpdateUrl,
-            refetchAppStatus,
-            isBootstrapped,
-        ],
-    );
+    bootstrapPromiseRef.current ??= bootstrapAuth();
+    const currentBootstrap = bootstrapPromiseRef.current;
+    currentBootstrap.finally(() => {
+      if (bootstrapPromiseRef.current === currentBootstrap) {
+        bootstrapPromiseRef.current = null;
+      }
+      if (!cancelled) setIsBootstrapped(true);
+    });
 
-    return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    apis,
+    auth0User?.sub,
+    getCredentials,
+    isAuth0UserLoading,
+    primeApisWithAuth,
+    refreshUser,
+  ]);
+
+  const actions = useMemo<SessionActions>(
+    () => ({
+      signIn,
+      continueAsGuest,
+      leaveGuest,
+      signOutLocal,
+      signOutSSO,
+      softResetAuth,
+      bypassMaintenance,
+      resetBypassMaintenance,
+      bypassUpdate,
+      resetBypassUpdate,
+      refetch: refreshUser,
+      refetchAppStatus: refreshAppStatus,
+    }),
+    [
+      bypassMaintenance,
+      bypassUpdate,
+      continueAsGuest,
+      leaveGuest,
+      refreshAppStatus,
+      refreshUser,
+      resetBypassMaintenance,
+      resetBypassUpdate,
+      signIn,
+      signOutLocal,
+      signOutSSO,
+      softResetAuth,
+    ],
+  );
+
+  const state = useMemo<SessionState>(
+    () => ({
+      auth0User,
+      customUser,
+      isAuthenticated,
+      isGuest,
+      isLoading,
+      isError,
+      error,
+      customUserError,
+      auth0UserError,
+      appStatus,
+      isAppStatusLoading,
+      isAppStatusError,
+      isMaintenance,
+      maintenanceBypass,
+      canBypassMaintenance: canBypassAppStatus,
+      isUpdateRequired,
+      updateBypass,
+      canBypassUpdate: canBypassAppStatus,
+      appUpdateUrl,
+      isBootstrapped,
+    }),
+    [
+      appStatus,
+      appUpdateUrl,
+      auth0User,
+      auth0UserError,
+      canBypassAppStatus,
+      customUser,
+      customUserError,
+      error,
+      isAppStatusError,
+      isAppStatusLoading,
+      isAuthenticated,
+      isBootstrapped,
+      isError,
+      isGuest,
+      isLoading,
+      isMaintenance,
+      isUpdateRequired,
+      maintenanceBypass,
+      updateBypass,
+    ],
+  );
+
+  return (
+    <SessionContextProvider actions={actions} state={state}>
+      {children}
+    </SessionContextProvider>
+  );
 };

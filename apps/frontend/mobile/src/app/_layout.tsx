@@ -1,30 +1,30 @@
 import React, { useCallback, useEffect } from "react";
 import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Auth0Provider } from "@/src/shared/providers/AuthProvider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
-import { AUTH0_CONFIG } from "@/src/shared/config/config";
+import { AUTH0_CONFIG, validateRequiredConfig } from "@/src/shared/config/config";
 import { ThemeProvider } from "@/src/shared/theme/theme-provider";
 import { ApiProvider } from "@/src/shared/providers/ApiProvider";
-import { SessionProvider, useSession } from "@/src/shared/providers/SessionProvider";
+import { SessionProvider, useSessionState } from "@/src/shared/providers/SessionProvider";
 import { SplashScreenController } from "@/src/components/splash/SplashScreen";
 import { useOnboardingStore } from "../utils/onboardingStore";
 import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
 import { useNavigationInterstitial } from "../hooks/ads/useNavigationInterstitial";
 import { useConsentGDPR } from "../hooks/ads/useConsentGDPR";
 import { PurchasesProvider } from "@/src/shared/providers/PurchasesProvider";
-
-const queryClient = new QueryClient();
+import { QueryProvider } from "@/src/shared/providers/QueryProvider";
 
 export default function Root() {
+    validateRequiredConfig();
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
-                <QueryClientProvider client={queryClient}>
+                <QueryProvider>
                     <ThemeProvider>
                         <StatusBar barStyle="light-content" />
                         <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
@@ -38,7 +38,7 @@ export default function Root() {
                             </ApiProvider>
                         </Auth0Provider>
                     </ThemeProvider>
-                </QueryClientProvider>
+                </QueryProvider>
             </SafeAreaProvider>
         </GestureHandlerRootView>
     );
@@ -69,7 +69,7 @@ function RootNavigator() {
         maintenanceBypass,
         isUpdateRequired,
         updateBypass,
-    } = useSession();
+    } = useSessionState();
 
     const { hasCompletedOnboarding } = useOnboardingStore();
 

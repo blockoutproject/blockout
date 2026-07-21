@@ -6,7 +6,7 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionActions, useSessionState} from "@/src/shared/providers/SessionProvider";
 import AppStatusLayout from "@/src/components/appStatus/AppStatusLayout";
 import {CURRENT_APP_VERSION} from "@/src/utils/appVersion";
 import {CORNERS} from "@/src/shared/theme/globals";
@@ -16,11 +16,10 @@ const UpdateRequiredScreen: React.FC = () => {
   const {
     appStatus,
     isAppStatusLoading,
-    refetchAppStatus,
     appUpdateUrl,
     canBypassUpdate,
-    bypassUpdate,
-  } = useSession();
+  } = useSessionState();
+  const {refetchAppStatus, bypassUpdate} = useSessionActions();
 
   const theme = useAppTheme();
 

@@ -8,7 +8,7 @@ import * as Haptics from "expo-haptics";
 
 import {TabBarItem} from "./TabBarItem";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/shared/providers/SessionProvider";
 import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
 import {BOTTOM_TABBAR_HEIGHT, CORNERS} from "@/src/shared/theme/globals";
 import {withAlpha} from "@/src/utils/utils";
@@ -51,7 +51,7 @@ export default function TabBar({
                                }: Props) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
-  const {isMaintenance} = useSession();
+  const {isMaintenance} = useSessionState();
   const {isPro} = usePurchases();
 
   const routes = state.routes;

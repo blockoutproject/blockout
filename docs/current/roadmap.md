@@ -285,10 +285,19 @@
     tasks, the unsigned iOS Simulator build succeeds with 144 installed pods, and the generated development client is
     installed and launched on an iPhone 17 Pro simulator. Generated Android and iOS projects remain ignored.
 
-- [ ] **REF-035 — Stabilize mobile session and network state**
+- [x] **REF-035 — Stabilize mobile session and network state**
   - Separate stable session actions from changing state, establish React Query mobile lifecycle defaults, and remove
     duplicate local ownership of server facts.
   - Validate required configuration at startup while preserving Auth0, guest, maintenance, and update behavior.
+  - Evidence (2026-07-21): session actions and state now use separate contexts, shared Query defaults follow native
+    focus and Expo network changes, and pool/team follow state is owned by the Query cache with optimistic rollback.
+    Required common and platform-specific public configuration fails fast at startup. Nx lint completes with 0 errors
+    and 56 inherited warnings, typecheck passes, and all 24 Jest tests pass across 8 suites. Expo dependency validation
+    and all 19 Expo Doctor checks pass; the 3,154-module Web export, clean prebuild, 1,019-task Android debug build,
+    CocoaPods resolution with 145 pods, and unsigned iOS Simulator build pass. The iOS development client installs and
+    launches on an iPhone 17 Pro simulator. Production audit remains at 19 moderate, 0 high, and 0 critical findings;
+    its available fixes require incompatible dependency downgrades or forced upgrades. Generated native projects
+    remain ignored and untracked.
 
 - [ ] **REF-036 — Complete feature-owned mobile slices**
   - Move one coherent feature at a time from legacy root folders into its module and shared boundaries.

@@ -6,7 +6,7 @@ import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionActions, useSessionState} from "@/src/shared/providers/SessionProvider";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import {ReportType} from "@/src/types/Report";
 import {withAlpha} from "@/src/utils/utils";
@@ -28,7 +28,8 @@ const ProfileScreen: React.FC = () => {
   const {mobile} = useApis();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const {refetch, customUser, isGuest, signOutSSO} = useSession();
+  const {refetch, signOutSSO} = useSessionActions();
+  const {customUser, isGuest} = useSessionState();
   const {allowed: canEdit} = useHasScopes(["update:current_user"]);
   const {resetOnboarding} = useOnboardingStore();
 

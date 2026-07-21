@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   Auth0Provider as Auth0ReactProvider,
   useAuth0 as useAuth0React,
@@ -48,11 +48,15 @@ export const useAuth0 = () => {
     user,
   } = useAuth0React();
 
-  return {
-    authorize: async (options?: { audience?: string; scope?: string }) => {
+  const authorize = useCallback(
+    async (options?: { audience?: string; scope?: string }) => {
       await loginWithRedirect({ authorizationParams: options });
     },
-    clearSession: async (options?: { federated?: boolean }) => {
+    [loginWithRedirect],
+  );
+
+  const clearSession = useCallback(
+    async (options?: { federated?: boolean }) => {
       await logout({
         logoutParams: {
           federated: options?.federated,
@@ -60,16 +64,38 @@ export const useAuth0 = () => {
         },
       });
     },
-    clearCredentials: async () => {
-      await logout({ openUrl: false });
-    },
-    getCredentials: async () => {
-      if (!isAuthenticated) return null;
-      const accessToken = await getAccessTokenSilently();
-      return { accessToken };
-    },
-    user: user ?? null,
-    error: error ?? null,
-    isLoading,
-  };
+    [logout],
+  );
+
+  const clearCredentials = useCallback(
+    async () => logout({ openUrl: false }),
+    [logout],
+  );
+
+  const getCredentials = useCallback(async () => {
+    if (!isAuthenticated) return null;
+    const accessToken = await getAccessTokenSilently();
+    return { accessToken };
+  }, [getAccessTokenSilently, isAuthenticated]);
+
+  return useMemo(
+    () => ({
+      authorize,
+      clearSession,
+      clearCredentials,
+      getCredentials,
+      user: user ?? null,
+      error: error ?? null,
+      isLoading,
+    }),
+    [
+      authorize,
+      clearCredentials,
+      clearSession,
+      error,
+      getCredentials,
+      isLoading,
+      user,
+    ],
+  );
 };

@@ -7,7 +7,7 @@ import {EntityType} from '@/src/types/User';
 import AnimatedFeedHeader from '@/src/components/home/AnimatedFeedHeader';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {LOGO_HEIGHT, TABBAR_HEIGHT} from '@/src/shared/theme/globals';
-import {useSession} from '@/src/shared/providers/SessionProvider';
+import {useSessionState} from '@/src/shared/providers/SessionProvider';
 import ReportFormSheet from '@/src/components/report/ReportFormSheet';
 import {BottomSheetModal} from '@gorhom/bottom-sheet';
 import {ReportType} from '@/src/types/Report';
@@ -20,7 +20,7 @@ import {
 
 const FeedScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const {customUser, isGuest} = useSession();
+  const {customUser, isGuest} = useSessionState();
   const [index, setIndex] = useState(0);
   const reportSheetRef = useRef<BottomSheetModal>(null);
 

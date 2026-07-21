@@ -40,6 +40,13 @@ shape.
   feature workflow stays in its module even when another feature links to it.
 - API clients own HTTP calls. Handwritten transport types mirror the mobile gateway and stay distinct from
   screen-specific state.
+- Session commands and changing session facts use separate contexts. Consumers subscribe only to the side they use,
+  and session commands keep stable identities.
+- TanStack Query owns remote facts. Feature hooks may coordinate optimistic cache updates, but they do not mirror
+  query results into local component state. The shared Query provider maps native application focus and Expo network
+  connectivity to Query lifecycle state.
+- Required common and platform-specific public configuration is validated when the application starts. Optional
+  provider configuration remains owned by the feature that uses it.
 - Platform differences use Expo and React Native file resolution such as `.web.tsx`; runtime platform conditionals are
   kept only when file-level adapters cannot express the boundary clearly.
 - Native and local Web authentication use separate public Auth0 clients against the same issuer and API audience. The

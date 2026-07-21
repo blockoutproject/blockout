@@ -4,7 +4,7 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionActions, useSessionState} from "@/src/shared/providers/SessionProvider";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import AppStatusLayout from "@/src/components/appStatus/AppStatusLayout";
 import {CORNERS} from "@/src/shared/theme/globals";
@@ -13,10 +13,9 @@ const MaintenancePage: React.FC = () => {
   const {
     appStatus,
     isAppStatusLoading,
-    refetchAppStatus,
     canBypassMaintenance,
-    bypassMaintenance,
-  } = useSession();
+  } = useSessionState();
+  const {refetchAppStatus, bypassMaintenance} = useSessionActions();
 
   const theme = useAppTheme();
   const {message, imageUrl} = appStatus ?? {

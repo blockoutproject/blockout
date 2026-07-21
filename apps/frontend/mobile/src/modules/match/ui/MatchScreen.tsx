@@ -25,7 +25,7 @@ import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 import MatchLiveLinkCard from "@/src/components/match/MatchLiveLinkCard";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import GuestPromptSheet, {GuestPromptSheetRef} from "@/src/components/user/GuestPromptSheet.tsx";
-import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useSessionState} from "@/src/shared/providers/SessionProvider";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -33,7 +33,7 @@ const MatchScreen: React.FC = () => {
   const {id} = useLocalSearchParams();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const {isGuest} = useSession()
+  const {isGuest} = useSessionState()
 
   const {data: enrichedMatch, isLoading, error, refetch} =
     useEnrichedMatchById(Number(id));
