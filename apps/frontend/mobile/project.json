@@ -4,11 +4,26 @@
   "projectType": "application",
   "sourceRoot": "apps/frontend/mobile/src",
   "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/frontend/mobile",
+        "command": "npm test"
+      }
+    },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "apps/frontend/mobile",
         "command": "tsc --noEmit --pretty false"
+      }
+    },
+    "web-export": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/apps/frontend/mobile/web"],
+      "options": {
+        "cwd": "apps/frontend/mobile",
+        "command": "npm run web:export"
       }
     }
   },

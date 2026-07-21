@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { useAuth0, User } from "react-native-auth0";
+import { useAuth0, User } from "@/src/context/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
 import type { CustomUser } from "@/src/types/User";

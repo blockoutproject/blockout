@@ -127,7 +127,23 @@ Verify the mobile TypeScript sources through Nx:
 
 ```bash
 npm exec -- nx run @blockout/mobile:typecheck
+npm exec -- nx run @blockout/mobile:test
+npm exec -- nx run @blockout/mobile:web-export
 ```
+
+React Native Web is a local characterization aid, not a supported desktop product. When inspecting it in a browser,
+use a phone-sized viewport such as 390 x 844 rather than treating a 1920 x 1080 layout as an acceptance target.
+
+Run native debug builds from the mobile application directory when the matching SDK is installed:
+
+```bash
+cd apps/frontend/mobile
+npm run ios
+npm run android
+```
+
+The Android emulator can reach a gateway running on the host through `adb reverse tcp:8089 tcp:8089`. The iOS simulator
+can use `localhost`; a physical device requires the host machine address in its ignored `.env.local`.
 
 ## Python scrapers
 

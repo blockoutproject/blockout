@@ -96,7 +96,10 @@ export const PurchasesProvider: React.FC<React.PropsWithChildren> = ({ children 
             return;
         }
 
-        Purchases.logOut()
+        Purchases.isAnonymous()
+            .then((isAnonymous) =>
+                isAnonymous ? Purchases.getCustomerInfo() : Purchases.logOut(),
+            )
             .then((info) => {
                 syncFromInfo(info);
                 setIsReady(true);

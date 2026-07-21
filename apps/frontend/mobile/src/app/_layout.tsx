@@ -2,8 +2,9 @@ import React, { useCallback, useEffect } from "react";
 import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Auth0Provider } from "react-native-auth0";
+import { Auth0Provider } from "@/src/context/AuthProvider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 import { AUTH0_CONFIG } from "@/src/config/config";
@@ -22,21 +23,23 @@ const queryClient = new QueryClient();
 export default function Root() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <QueryClientProvider client={queryClient}>
-                <ThemeProvider>
-                    <StatusBar barStyle="light-content" />
-                    <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
-                        <ApiProvider>
-                            <SessionProvider>
-                                <PurchasesProvider>
-                                    <SplashScreenController />
-                                    <RootNavigator />
-                                </PurchasesProvider>
-                            </SessionProvider>
-                        </ApiProvider>
-                    </Auth0Provider>
-                </ThemeProvider>
-            </QueryClientProvider>
+            <SafeAreaProvider>
+                <QueryClientProvider client={queryClient}>
+                    <ThemeProvider>
+                        <StatusBar barStyle="light-content" />
+                        <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
+                            <ApiProvider>
+                                <SessionProvider>
+                                    <PurchasesProvider>
+                                        <SplashScreenController />
+                                        <RootNavigator />
+                                    </PurchasesProvider>
+                                </SessionProvider>
+                            </ApiProvider>
+                        </Auth0Provider>
+                    </ThemeProvider>
+                </QueryClientProvider>
+            </SafeAreaProvider>
         </GestureHandlerRootView>
     );
 }

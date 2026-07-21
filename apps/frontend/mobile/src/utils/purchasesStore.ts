@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import * as SecureStore from "expo-secure-store";
+import { secureStorage } from "./secureStorage";
 
 type PurchasesCacheState = {
     isProCached: boolean;
@@ -21,11 +21,7 @@ export const usePurchasesCacheStore = create(
         }),
         {
             name: "purchases-cache",
-            storage: createJSONStorage(() => ({
-                setItem: (k, v) => SecureStore.setItemAsync(k, v),
-                getItem: (k) => SecureStore.getItemAsync(k),
-                removeItem: (k) => SecureStore.deleteItemAsync(k),
-            })),
+            storage: createJSONStorage(() => secureStorage),
             onRehydrateStorage: () => {
                 return (state) => state?.setHasHydrated(true);
             },

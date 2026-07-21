@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import * as SecureStore from "expo-secure-store";
+import { secureStorage } from "./secureStorage";
 
 
 type OnboardingState = {
@@ -22,13 +22,7 @@ export const useOnboardingStore = create(
         }),
         {
             name: "onboarding-store",
-            storage: 
-                createJSONStorage(() => ({
-                    setItem: (key: string, value: string) =>
-                        SecureStore.setItemAsync(key, value),
-                    getItem: (key: string) => SecureStore.getItemAsync(key),
-                    removeItem: (key: string) => SecureStore.deleteItemAsync(key),
-                })),
+            storage: createJSONStorage(() => secureStorage),
             onRehydrateStorage: () => {
                 return (state) => {
                     state?.setHasHydrated(true);

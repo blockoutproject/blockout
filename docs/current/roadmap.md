@@ -161,6 +161,21 @@
     FFVB calendar rows cannot become rankings, and absent rankings cannot overwrite association statistics. All 71
     scraper tests, Ruff, compileall, Nx targets, image build/import, cleanup, and status-preservation checks pass.
 
+- [x] **REF-028 — Characterize the mobile application across web and native**
+  - Inventory the current Expo Router flows, gateway contracts, local stores, authentication, notifications, purchases,
+    advertising, maps, media, and other native-only boundaries without changing product behavior.
+  - Use React Native Web as a local characterization surface for render, navigation, and HTTP flows; it is not a new
+    supported product platform and no web deployment is introduced.
+  - Add focused Jest/React Native Testing Library coverage for stable behavior, then verify the available iOS simulator
+    and Android emulator surfaces. Record unavailable native infrastructure honestly instead of weakening the gate.
+  - Preserve the current routes, UI, APIs, native behavior, and handwritten models. Keep contract-first, code generation,
+    GitFlow, CI, deployment, and production changes deferred.
+  - Evidence: clean npm installation and a deduplicated native dependency tree pass; Nx typecheck, 10 focused Jest tests,
+    and the Expo Web export pass. Chrome renders and navigates the guest/search/profile flow at 390 x 844. Fresh iOS
+    and Android debug builds install and launch on their simulators, with Android remaining alive after startup. Native
+    boundaries, browser CORS, provider credentials, physical-device gaps, and the inherited audit findings are recorded
+    in the mobile characterization document.
+
 The Java and Python scraper refactors and their local persistence certification are complete.
 Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and production
 changes remain deferred.
