@@ -4,13 +4,13 @@ import { Animated } from "react-native";
 import GenericTabView from "@/src/shared/ui/GenericTabView";
 import MatchList from "@/src/modules/match/ui/MatchList";
 import RankingTab from "@/src/modules/ranking/ui/RankingTab";
-import ProUpsellTab from "@/src/shared/ui/subscription/ProUpsellTab";
+import ProUpsellTab from "@/src/modules/subscription/ui/ProUpsellTab";
 
 import { MatchStatus } from "@/src/modules/match/model/Match";
 import type { PoolResponse } from "@/src/modules/pool/model/Pool";
 import { TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
 import PoolMapTab from "./PoolMapTab";
-import { usePurchases } from "@/src/shared/providers/PurchasesProvider";
+import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 
 /** Tabs for pool: Ranking / Upcoming / Finished / Map. */
 export type PoolTabsProps = {

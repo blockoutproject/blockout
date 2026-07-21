@@ -5,8 +5,8 @@ import type {
   TeamSearchResponse,
 } from "@/src/modules/search/model/Search";
 import { BaseApi } from "@/src/shared/api/BaseApi";
-import { EnumFormat } from "@/src/types/enums/Format";
-import { EnumGender } from "@/src/types/enums/Gender";
+import { EnumFormat } from "@/src/shared/model/enums/Format";
+import { EnumGender } from "@/src/shared/model/enums/Gender";
 
 export class SearchApi extends BaseApi {
   constructor() {

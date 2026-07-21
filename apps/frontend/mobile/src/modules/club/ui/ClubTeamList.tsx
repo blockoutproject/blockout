@@ -11,7 +11,7 @@ import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 
 import TeamCard from "@/src/modules/team/ui/TeamListCard";
 import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
-import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
 type Props = {
   teams: TeamSummaryResponse[];

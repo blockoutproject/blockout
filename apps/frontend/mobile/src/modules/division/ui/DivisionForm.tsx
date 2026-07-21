@@ -19,7 +19,7 @@ import FormCard from "@/src/shared/ui/form/FormCard";
 import Field from "@/src/shared/ui/form/Field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import {useApis} from "@/src/shared/providers/ApiProvider";
-import {CustomImage} from "@/src/types/Common";
+import {ImageUpload} from "@/src/shared/model/ImageUpload";
 
 export type DivisionFormState = {
   loading: boolean;
@@ -38,7 +38,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({division, onSuccess, onRegis
   const theme = useAppTheme();
   const {mobile} = useApis();
 
-  const [imageFile, setImageFile] = useState<CustomImage | null>(null);
+  const [imageFile, setImageFile] = useState<ImageUpload | null>(null);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);

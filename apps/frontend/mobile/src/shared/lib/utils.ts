@@ -4,7 +4,7 @@ import type { PoolResponse } from "@/src/modules/pool/model/Pool";
 import tinycolor from "tinycolor2";
 import { DivisionResponse } from "@/src/modules/division/model/Division";
 import type { TeamHighlight } from "@/src/modules/team/model/Team";
-import { AppTheme } from "../shared/theme/themes";
+import { AppTheme } from "@/src/shared/theme/themes";
 
 export type GradientVariants = {
   base: readonly [string, string, ...string[]];

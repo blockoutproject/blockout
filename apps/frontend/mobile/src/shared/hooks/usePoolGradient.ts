@@ -1,6 +1,6 @@
 import {useMemo} from "react";
 import {poolColorPalettes} from "@/src/shared/theme/themes";
-import {getGradientVariants, GradientVariants} from "@/src/utils/utils";
+import {getGradientVariants, GradientVariants} from "@/src/shared/lib/utils";
 
 export const usePoolGradient = (poolId: number): GradientVariants => {
   return useMemo(() => {

@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import type { TeamSearchResponse } from "@/src/modules/search/model/Search";
-import { EnumFormat } from "@/src/types/enums/Format";
-import { EnumGender } from "@/src/types/enums/Gender";
+import { EnumFormat } from "@/src/shared/model/enums/Format";
+import { EnumGender } from "@/src/shared/model/enums/Gender";
 
 export const useSearchTeams = (
   query: string,

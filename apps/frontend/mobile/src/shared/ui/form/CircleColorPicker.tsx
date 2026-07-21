@@ -12,6 +12,8 @@ interface Props {
   value: string;
   onChange: (color: string) => void;
   size?: number;
+  accessibilityLabel?: string;
+  testID?: string;
 }
 
 const isValidHex = (c: string) => /^#([0-9A-F]{3}){1,2}$/i.test(c);
@@ -20,13 +22,18 @@ const CircleColorPicker: React.FC<Props> = ({
                                               value,
                                               onChange,
                                               size = 48,
+                                              accessibilityLabel = "Choisir une couleur",
+                                              testID,
                                             }) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
 
   const sheetRef = useRef<BottomSheetModal>(null);
 
-  const safeColor = useMemo(() => (isValidHex(value) ? value : theme.surface), [value]);
+  const safeColor = useMemo(
+    () => (isValidHex(value) ? value : theme.surface),
+    [theme.surface, value],
+  );
 
   const [tempColor, setTempColor] = useState(safeColor);
 
@@ -56,6 +63,10 @@ const CircleColorPicker: React.FC<Props> = ({
           },
         ]}
         onPress={open}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityValue={{text: safeColor}}
+        testID={testID}
       />
 
       <BottomSheetCustomModal ref={sheetRef}>

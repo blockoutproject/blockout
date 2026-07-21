@@ -1,4 +1,4 @@
-import React, {forwardRef, useImperativeHandle, useMemo, useRef} from "react";
+import React, {useImperativeHandle, useMemo, useRef} from "react";
 import {Pressable, StyleSheet, Text, View} from "react-native";
 import {BottomSheetFlatList, BottomSheetModal} from "@gorhom/bottom-sheet";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -29,6 +29,7 @@ export type SelectSheetProps = {
   clearable?: boolean;
   /** Libellé du bouton de réinitialisation. */
   clearLabel?: string;
+  ref?: React.Ref<SelectSheetRef>;
 };
 
 export type SelectSheetRef = {
@@ -36,18 +37,15 @@ export type SelectSheetRef = {
   dismiss: () => void;
 };
 
-const SelectSheet = forwardRef<SelectSheetRef, SelectSheetProps>(
-  (
-    {
-      title,
-      options,
-      selectedValue,
-      onSelect,
-      clearable = true,
-      clearLabel = "Réinitialiser",
-    },
-    ref,
-  ) => {
+const SelectSheet: React.FC<SelectSheetProps> = ({
+  title,
+  options,
+  selectedValue,
+  onSelect,
+  clearable = true,
+  clearLabel = "Réinitialiser",
+  ref,
+}) => {
     const theme = useAppTheme();
     const insets = useSafeAreaInsets();
     const sheetRef = useRef<BottomSheetModal>(null);
@@ -83,6 +81,9 @@ const SelectSheet = forwardRef<SelectSheetRef, SelectSheetProps>(
       return (
         <Pressable
           onPress={() => handleSelect(item)}
+          accessibilityRole="button"
+          accessibilityLabel={item.label}
+          accessibilityState={{selected: isSelected}}
           style={({pressed}) => [
             styles.row,
             {
@@ -138,6 +139,8 @@ const SelectSheet = forwardRef<SelectSheetRef, SelectSheetProps>(
             {clearable ? (
               <Pressable
                 onPress={handleClear}
+                accessibilityRole="button"
+                accessibilityLabel={clearLabel}
                 hitSlop={8}
                 style={styles.clearBtn}
               >
@@ -175,8 +178,7 @@ const SelectSheet = forwardRef<SelectSheetRef, SelectSheetProps>(
         </View>
       </BottomSheetCustomPage>
     );
-  },
-);
+};
 
 export default SelectSheet;
 

@@ -4,7 +4,7 @@ import type {
 } from "@/src/modules/report/model/Report";
 import { BaseApi } from "@/src/shared/api/BaseApi";
 import { CONFIG } from "@/src/shared/config/config";
-import type { CustomImage } from "@/src/types/Common";
+import type { ImageUpload } from "@/src/shared/model/ImageUpload";
 
 export class ReportApi extends BaseApi {
   constructor() {
@@ -13,7 +13,7 @@ export class ReportApi extends BaseApi {
 
   public createReport(
     data: CreateReportRequest,
-    images: readonly CustomImage[] = [],
+    images: readonly ImageUpload[] = [],
   ) {
     const formData = new FormData();
     formData.append("data", JSON.stringify(data));

@@ -2,14 +2,14 @@ import React, {useCallback, useMemo} from "react";
 import {Pressable, StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {splitIsoDateFormatted, withAlpha} from "@/src/utils/utils";
+import {splitIsoDateFormatted, withAlpha} from "@/src/shared/lib/utils";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {type MatchResponse, MatchStatus} from "@/src/modules/match/model/Match";
 import type {TeamInternalResponse} from "@/src/modules/team/model/Team";
 import InfoPillGradient, {type InfoPillGradientProps} from "@/src/shared/ui/chips/InfoPillGradient";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {useRouter} from "expo-router";
-import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
+import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigationInterstitial";
 
 export interface MatchScoreCardProps {
   match: MatchResponse;

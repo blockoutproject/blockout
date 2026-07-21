@@ -7,9 +7,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import { usePurchases } from "@/src/shared/providers/PurchasesProvider";
+import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
-import { withAlpha } from "@/src/utils/utils";
+import { withAlpha } from "@/src/shared/lib/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {
   GOLD_GRADIENT,

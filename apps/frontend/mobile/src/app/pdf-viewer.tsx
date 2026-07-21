@@ -1,1 +1,1 @@
-export {default} from "@/src/modules/report/ui/PdfViewerScreen";
+export {default} from "@/src/modules/pdf/ui/PdfViewerScreen";

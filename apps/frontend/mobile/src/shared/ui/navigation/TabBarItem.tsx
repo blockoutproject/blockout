@@ -1,11 +1,12 @@
 import React from "react";
 import {LayoutChangeEvent, Pressable, StyleSheet, ViewStyle,} from "react-native";
 import Animated, {SharedValue, useAnimatedStyle, withSpring,} from "react-native-reanimated";
+import type {BottomTabNavigationOptions} from "@react-navigation/bottom-tabs";
 
 const SPRING = {damping: 25, stiffness: 340, mass: 0.8};
 
 export type TabBarItemProps = {
-  options: any;
+  options: BottomTabNavigationOptions;
   index: number;
   isFocused: boolean;
   color: string;
@@ -54,6 +55,7 @@ export const TabBarItem: React.FC<TabBarItemProps> = ({
       android_ripple={{color: "rgba(255,255,255,0.05)", borderless: true}}
       hitSlop={12}
       accessibilityRole="button"
+      accessibilityLabel={options.tabBarAccessibilityLabel ?? options.title}
       accessibilityState={isFocused ? {selected: true} : {}}
     >
       <Animated.View style={[styles.iconWrap, iconAnimatedStyle]}>

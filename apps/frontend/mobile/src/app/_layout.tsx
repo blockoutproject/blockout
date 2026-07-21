@@ -13,9 +13,9 @@ import { SessionProvider } from "@/src/modules/session/providers/SessionProvider
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import { SplashScreenController } from "@/src/modules/session/ui/SplashScreenController";
 import { useOnboardingStore } from "@/src/modules/onboarding/model/onboardingStore";
-import { useNavigationInterstitial } from "../hooks/ads/useNavigationInterstitial";
-import { useConsentGDPR } from "../hooks/ads/useConsentGDPR";
-import { PurchasesProvider } from "@/src/shared/providers/PurchasesProvider";
+import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
+import { useConsentGDPR } from "@/src/modules/advertising/useConsentGDPR";
+import { PurchasesProvider } from "@/src/modules/subscription/providers/PurchasesProvider";
 import { QueryProvider } from "@/src/shared/providers/QueryProvider";
 import type { NotificationResponse } from "expo-notifications";
 import {

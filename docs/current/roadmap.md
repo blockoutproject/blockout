@@ -299,7 +299,7 @@
     its available fixes require incompatible dependency downgrades or forced upgrades. Generated native projects
     remain ignored and untracked.
 
-- [ ] **REF-036 — Complete feature-owned mobile slices**
+- [x] **REF-036 — Complete feature-owned mobile slices**
   - Move one coherent feature at a time from legacy root folders into its module and shared boundaries.
   - Unify theme ownership and improve measured list, image, accessibility, naming, and component-composition issues
     without a mass rewrite or premature native-control replacement.
@@ -320,8 +320,16 @@
     - [x] move clubs, search, followed entities, and team lists into coherent discovery boundaries;
     - [x] move matches, rankings, and the feed, optimizing lists only where measurements or stable semantics justify it;
     - [x] move user, session, onboarding, application status, configuration, and internal administration flows;
-    - [ ] remove empty legacy roots, correct naming and remaining unsafe types, complete accessibility checks, and
+    - [x] remove empty legacy roots, correct naming and remaining unsafe types, complete accessibility checks, and
           publish the final consolidation register.
+  - Evidence (2026-07-21): active routes now compose feature-owned modules while the mobile gateway, common storage,
+    concrete cross-feature types, and proven UI foundations live under `shared`. Advertising, subscription, PDF, and
+    application-version behavior have explicit module owners; the unused confirmation helper and all active legacy-root
+    imports are gone. The final unsafe-type scan is empty, API error payloads require feature-level narrowing, and the
+    mobile lint target accepts zero warnings. Accessible roles and names remain the primary test surface, with literal
+    IDs only on useful feature/domain boundaries. Typecheck and lint pass, and all 52 Jest/RNTL tests pass across 26
+    suites without snapshots or test-only production paths. The final Web export and repository integrity checks pass;
+    the Maaatch comparison confirms the same simple route/module/shared ownership without copying its Web code.
 
 - [ ] **REF-037 — Certify the cleaned mobile application**
   - Run the complete static, test, Web phone-size, simulator, and available physical-device/provider verification matrix.

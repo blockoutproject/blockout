@@ -28,15 +28,15 @@ easier to read and its public interface is simpler than the duplicated implement
 | Pattern                                 | Current evidence                                                             | Target owner                                        | Decision                                                                                                                          | Status      |
 | --------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | Theme and visual values                 | Separate application and navigation providers with overlapping color sources | `shared/providers/ThemeProvider` and `shared/theme` | One provider owns both contexts; one dark theme and concrete semantic tokens replace the unused light and duplicate color systems | Complete    |
-| Primary and secondary actions           | Repeated button shells and close/submit actions                              | `shared/ui`                                         | Share action primitives; keep feature labels and commands local                                                                   | Planned     |
-| Loading, empty, error, and API feedback | Repeated cards, alerts, toasts, and error extraction                         | `shared/ui` and `shared/api`                        | Share presentation and transport-neutral error handling; keep feature recovery decisions local                                    | Planned     |
+| Primary and secondary actions           | Repeated button shells and close/submit actions                              | `shared/ui`                                         | Share action primitives; keep feature labels and commands local                                                                   | Complete    |
+| Loading, empty, error, and API feedback | Repeated cards, alerts, toasts, and error extraction                         | `shared/ui` and `shared/api`                        | Share presentation and transport-neutral error handling; keep feature recovery decisions local                                    | Complete    |
 | Form and bottom-sheet structure         | Repeated sheet headers, fields, validation layout, and footers               | `shared/ui`                                         | Shared cards, inputs, modal/page frames, and accessible footers own layout; schemas, values, and submit commands stay in modules  | Complete    |
 | Team and pool presentation              | Near-identical headers, skeletons, profile layout, and form sheets           | `shared/ui` plus feature modules                    | Shared header and skeleton own only exact presentation; profiles, tabs, forms, models, APIs, and commands remain explicit          | Complete    |
 | Followed entity lists                   | Near-identical pool and team lists                                           | Entity modules plus `modules/followed`              | Share entity cards and list skeletons; keep typed queries, copy, filtering, and navigation explicit                                | Complete    |
 | Entity search                           | Near-identical team and pool filters with a simpler club variant             | `modules/search`                                    | One small results frame accepts composed filters; entity filters, requests, cards, and navigation remain explicit                 | Complete    |
 | High-volume lists and images            | Match, ranking, feed, and notification lists repeat item patterns            | Feature modules plus `shared/ui` primitives         | Keep feature-specific list composition; use stable callbacks, domain keys, accessible actions, FlashList, and Expo Image where proven | Complete    |
 | Application-state cards                 | Maintenance and required-update screens share layout but not actions         | `modules/app-status`                                | Share the state frame; express maintenance and update as explicit feature compositions                                            | Complete    |
-| Test selectors and component behavior   | Existing tests mix semantic queries with incidental or incorrectly named IDs | Owning feature tests and native host components     | Completed slices use semantic queries, observable commands, stable boundaries, and domain-item IDs                                | In progress |
+| Test selectors and component behavior   | Existing tests mix semantic queries with incidental or incorrectly named IDs | Owning feature tests and native host components     | Completed slices use semantic queries, observable commands, stable boundaries, and domain-item IDs                                | Complete    |
 
 ## Completed slices
 
@@ -159,8 +159,25 @@ easier to read and its public interface is simpler than the duplicated implement
 - All 51 tests pass across 25 suites, typecheck passes, lint completes with nine inherited warnings and no errors, and
   the 3,148-module Web export passes.
 
+### Final ownership and safety cleanup
+
+- The mobile gateway composition, cross-feature image/filter/pagination types, transport enums, shared utility
+  functions, and secure-storage adapters now live under their concrete `shared` roles. The vague `Common` model was
+  replaced by the exact `ImageUpload` type, and no active import points to a legacy root folder.
+- Advertising, subscriptions, and PDF viewing now own their adapters, state, providers, and UI in feature modules.
+  Application version rules moved beside application status. The unused confirmation helper was removed; no wrapper,
+  registry, or compatibility alias was retained.
+- API errors carry `unknown` response data until a feature narrows it, entity hooks state their actual identifier type,
+  native image and layout types replace casts, and navigation options use the React Navigation type. The mobile lint
+  target now rejects any warning instead of preserving a legacy warning allowance.
+- Shared selectors and the PDF boundary expose roles, names, states, and literal structural IDs. The focused PDF test
+  exercises real close and report commands with React Native Testing Library. Production code contains no test-only
+  branch, dependency container, selector factory, or complex testing abstraction.
+- Typecheck, lint with zero warnings, and all 52 tests across 26 suites pass. Final Web export and repository checks are
+  recorded with the REF-036 roadmap evidence.
+
 ## Final audit
 
-REF-036 is complete only when this table reflects the implemented owners, all active consumers use the chosen shared
-foundations, legacy root folders have no remaining legitimate owner, and intentionally local similarities are
-documented rather than silently duplicated.
+This table reflects the implemented owners. Active consumers use the chosen shared foundations, legacy root folders
+have no remaining legitimate owner, and intentionally local similarities remain feature-owned rather than being
+hidden behind generic abstractions.

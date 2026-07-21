@@ -10,7 +10,7 @@ import { BOTTOM_TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
-import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
 type Props = {
   teamIds?: number[];

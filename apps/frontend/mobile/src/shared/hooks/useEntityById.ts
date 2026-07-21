@@ -1,9 +1,9 @@
 import {useQuery, useQueryClient} from "@tanstack/react-query";
 
-export const useEntityById = <T>(
+export const useEntityById = <T, TId extends string | number = string | number>(
   key: string,
-  fetchOneFn: (id: any) => Promise<T | null>,
-  id?: any,
+  fetchOneFn: (id: TId) => Promise<T | null>,
+  id?: TId,
   enabled = true
 ) => {
   const qc = useQueryClient();
@@ -11,7 +11,7 @@ export const useEntityById = <T>(
 
   return useQuery<T | null, Error>({
     queryKey: [key, id],
-    queryFn: () => fetchOneFn(id),
+    queryFn: () => fetchOneFn(id as TId),
     enabled: isEnabled,
     staleTime: 0,
     initialData: () => {

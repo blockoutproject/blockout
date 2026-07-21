@@ -1,4 +1,4 @@
-import {EnumScraperName} from "@/src/types/enums/ScraperName";
+import {EnumScraperName} from "@/src/shared/model/enums/ScraperName";
 
 export interface ScraperStatusResponse {
   id: number;

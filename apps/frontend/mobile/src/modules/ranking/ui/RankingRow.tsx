@@ -5,7 +5,7 @@ import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import type {AppTheme} from "@/src/shared/theme/themes";
 import type {TeamHighlight, TeamWithStatsResponse} from "@/src/modules/team/model/Team";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import MiniStat from "./MiniStat";
 import Medal from "./Medal";
 

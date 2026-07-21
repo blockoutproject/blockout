@@ -11,9 +11,9 @@ import FormatSelect from "@/src/shared/ui/form/FormatSelect";
 import GenderSelect from "@/src/shared/ui/form/GenderSelect";
 import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
 import { useDivisions } from "@/src/modules/division/hooks/useDivisions";
-import { EnumFormat } from "@/src/types/enums/Format";
-import { EnumGender } from "@/src/types/enums/Gender";
-import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import { EnumFormat } from "@/src/shared/model/enums/Format";
+import { EnumGender } from "@/src/shared/model/enums/Gender";
+import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
 export type SearchTeamScreenProps = {
   search: string;

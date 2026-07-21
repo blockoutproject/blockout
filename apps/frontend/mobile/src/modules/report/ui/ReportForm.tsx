@@ -17,8 +17,8 @@ import {
 } from "react-native";
 import * as Yup from "yup";
 
-import type { Filter } from "@/src/types/Filter";
-import type { CustomImage } from "@/src/types/Common";
+import type { Filter } from "@/src/shared/model/Filter";
+import type { ImageUpload } from "@/src/shared/model/ImageUpload";
 import {
   CreateReportRequest,
   ReportResponse,
@@ -32,7 +32,7 @@ import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import Field from "@/src/shared/ui/form/Field";
 import FormCard from "@/src/shared/ui/form/FormCard";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
-import { CURRENT_APP_VERSION } from "@/src/utils/appVersion";
+import { CURRENT_APP_VERSION } from "@/src/modules/app-status/model/appVersion";
 
 export type ReportFormState = {
   loading: boolean;
@@ -75,7 +75,7 @@ const ReportForm = ({
   const theme = useAppTheme();
   const { mobile } = useApis();
   const { customUser } = useSessionState();
-  const [images, setImages] = useState<CustomImage[]>([]);
+  const [images, setImages] = useState<ImageUpload[]>([]);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const initialType = context?.defaultType ?? ReportType.DISPLAY_BUG;

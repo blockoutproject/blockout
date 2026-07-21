@@ -2,7 +2,7 @@ import React, {useMemo} from "react";
 import {StyleSheet, View} from "react-native";
 import Hero from "@/src/shared/ui/Hero";
 import type {UserResponse} from "@/src/modules/user/model/User";
-import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
+import {usePurchases} from "@/src/modules/subscription/providers/PurchasesProvider";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import {GOLD_GRADIENT} from "@/src/shared/ui/GradientButton";

@@ -2,7 +2,7 @@ import React, {useCallback, useMemo, useRef, useState} from "react";
 import {ActivityIndicator, Animated, StyleSheet, View} from "react-native";
 import {useLocalSearchParams} from "expo-router";
 import {WebView} from "react-native-webview";
-import PdfViewerHeader from "@/src/components/pdfViewer/PdfViewerHeader";
+import PdfViewerHeader from "@/src/modules/pdf/ui/PdfViewerHeader";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import {ReportType} from "@/src/modules/report/model/Report";
@@ -34,7 +34,7 @@ export default function PdfViewer() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="pdf-viewer-screen">
       <PdfViewerHeader title={title} onOpenReport={handleOpenReport}/>
       <View style={{flex: 1}}>
         <WebView
@@ -53,10 +53,11 @@ export default function PdfViewer() {
           allowFileAccess
           allowUniversalAccessFromFileURLs
           overScrollMode="never"
+          testID="pdf-viewer-document"
         />
 
         {!!loading && (
-          <View style={styles.loadingOverlay}>
+          <View style={styles.loadingOverlay} testID="pdf-viewer-loading">
             <ActivityIndicator/>
           </View>
         )}

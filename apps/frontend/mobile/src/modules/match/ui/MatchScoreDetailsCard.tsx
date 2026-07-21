@@ -6,7 +6,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {useRouter} from "expo-router";
 import * as Haptics from "expo-haptics";
-import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
+import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigationInterstitial";
 
 /** Per-set score breakdown. */
 export type MatchScoreDetailsCardProps = {

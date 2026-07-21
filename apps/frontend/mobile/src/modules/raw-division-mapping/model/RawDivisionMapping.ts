@@ -1,5 +1,5 @@
-import {EnumFormat} from "@/src/types/enums/Format";
-import {EnumGender} from "@/src/types/enums/Gender";
+import {EnumFormat} from "@/src/shared/model/enums/Format";
+import {EnumGender} from "@/src/shared/model/enums/Gender";
 
 export interface RawDivisionMappingResponse {
   id: number;

@@ -3,7 +3,7 @@ import {Linking, Platform, StatusBar} from "react-native";
 import {AdEventType, InterstitialAd} from "react-native-google-mobile-ads";
 import {ADS} from "@/src/shared/config/ads";
 import {onAdsReady} from "./adsManager";
-import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
+import {usePurchases} from "@/src/modules/subscription/providers/PurchasesProvider";
 
 let sharedInterstitial: InterstitialAd | null = null;
 let isLoaded = false;

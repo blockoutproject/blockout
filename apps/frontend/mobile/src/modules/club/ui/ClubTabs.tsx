@@ -6,13 +6,13 @@ import MatchList from "@/src/modules/match/ui/MatchList";
 
 import ClubInformationsTab from "./ClubInformationTab";
 import ClubTeamListTab from "./ClubTeamListTab";
-import ProUpsellTab from "@/src/shared/ui/subscription/ProUpsellTab";
+import ProUpsellTab from "@/src/modules/subscription/ui/ProUpsellTab";
 
 import type { ClubResponse } from "@/src/modules/club/model/Club";
 import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
 import { MatchStatus } from "@/src/modules/match/model/Match";
 import { TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
-import { usePurchases } from "@/src/shared/providers/PurchasesProvider";
+import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 
 type ClubTabsProps = {
   club: ClubResponse;

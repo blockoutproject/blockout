@@ -16,7 +16,7 @@ import * as Haptics from "expo-haptics";
 import type { PoolResponse } from "@/src/modules/pool/model/Pool";
 import type { TeamWithStatsResponse } from "@/src/modules/team/model/Team";
 import { CONFIG } from "@/src/shared/config/config";
-import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 
 type Props = {

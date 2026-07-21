@@ -15,8 +15,8 @@ deferred until the mobile and gateway boundaries are stable.
 The mobile source tree uses three top-level roles:
 
 - `app`: Expo Router files, route groups, layouts, redirects, and native-intent registration;
-- `modules/<feature>`: product screens and, in later focused tasks, their feature-owned UI, hooks, validation, and view
-  models;
+- `modules/<feature>`: product screens and their feature-owned UI, hooks, validation, models, APIs, stores, and native
+  adapters;
 - `shared`: infrastructure and UI used by multiple active features.
 
 `shared` currently owns:
@@ -24,13 +24,17 @@ The mobile source tree uses three top-level roles:
 - `api`: HTTP transport mechanics and error handling, not product-specific requests or models;
 - `config`: environment-backed application and provider configuration;
 - `hooks`: domain-neutral hooks used by multiple features;
+- `lib`: small cross-feature functions with concrete active consumers;
+- `model`: shared handwritten value types and transport enums used by more than one feature;
 - `providers`: application-wide React providers, including platform-specific adapters;
+- `storage`: the common secure-storage adapter and its Web implementation;
 - `theme`: theme tokens and theme integration;
 - `ui`: reusable visual and navigation primitives.
 
-Existing feature components, hooks, API clients, transport models, and local stores remain in place until their focused
-feature task moves them. REF-029 does not create placeholder layers or generic abstractions merely to complete a folder
-shape.
+Advertising, application status, PDF viewing, and subscriptions own their native or provider adapters in their feature
+modules. Application-wide provider composition stays at the route layout; provider-specific state does not become a
+generic shared service. Empty placeholder folders and generic abstractions used only to complete a folder shape are not
+permitted.
 
 ## Boundary rules
 
@@ -103,8 +107,10 @@ Every structural slice must keep the REF-028 baseline green:
 - iOS and Android builds or launches when a native or platform-specific boundary changes.
 
 Touched slices follow the repository mobile testing policy: production code stays testable through focused components,
-pure logic where justified, and explicit I/O boundaries. Tests prefer accessible roles and names, with literal stable
-feature-owned IDs reserved for structural boundaries and future end-to-end selectors.
+explicit commands, pure logic where justified, and existing I/O boundaries. Tests exercise visible behavior through
+React Native Testing Library and `userEvent`; they do not require a dependency container, test-only prop, mock registry,
+or production branch. Tests prefer accessible roles and names, with literal stable feature-owned IDs reserved for
+structural boundaries and future end-to-end selectors.
 
 Moving a file without changing its behavior does not by itself require a new abstraction or a new test. Existing tests
 must follow the source they protect so test ownership stays visible.

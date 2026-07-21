@@ -53,7 +53,7 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-jest.mock("@/src/hooks/ads/useNavigationInterstitial", () => ({
+jest.mock("@/src/modules/advertising/useNavigationInterstitial", () => ({
   useNavigationInterstitial: () => ({
     handleNavigationWithAd: (navigate: () => void) => navigate(),
   }),

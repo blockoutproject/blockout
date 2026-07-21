@@ -1,12 +1,12 @@
 import React from "react";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import type { TeamSearchResponse } from "@/src/modules/search/model/Search";
-import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
-import { withAlpha } from "@/src/utils/utils";
+import { EnumGender, GenderLabels } from "@/src/shared/model/enums/Gender";
+import { withAlpha } from "@/src/shared/lib/utils";
 import EntityGradientCard, {
   EntityCardChip,
 } from "@/src/shared/ui/EntityGradientCard";
-import { EnumFormat, FormatLabels } from "@/src/types/enums/Format";
+import { EnumFormat, FormatLabels } from "@/src/shared/model/enums/Format";
 
 export interface TeamCardProps {
   team: TeamSearchResponse;

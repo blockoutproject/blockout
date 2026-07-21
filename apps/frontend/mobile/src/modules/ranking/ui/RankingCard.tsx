@@ -9,7 +9,7 @@ import type {TeamHighlight} from "@/src/modules/team/model/Team";
 import RankingRow from "./RankingRow";
 import RankingHeader from "./RankingHeader";
 import {useRouter} from "expo-router";
-import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
+import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigationInterstitial";
 
 type RankingCardProps = {
   pool: PoolResponse;

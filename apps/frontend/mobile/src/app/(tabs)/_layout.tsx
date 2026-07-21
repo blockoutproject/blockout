@@ -7,7 +7,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSessionState} from "@/src/modules/session/providers/SessionContext";
 import {TABBAR_ICON_SIZE} from "@/src/shared/theme/tokens";
 import TabBar from "@/src/shared/ui/navigation/TabBar";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 
 export default function TabLayout() {
   const theme = useAppTheme();

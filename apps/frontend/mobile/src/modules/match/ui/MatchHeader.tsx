@@ -10,7 +10,7 @@ import {LinearGradient} from "expo-linear-gradient";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
 

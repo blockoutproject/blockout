@@ -1,10 +1,11 @@
 import React from "react";
 import {StyleSheet, StyleSheet as RNStyleSheet, Text, TouchableOpacity, View,} from "react-native";
 import {Image} from "expo-image";
+import type {ImageSource} from "expo-image";
 import {LinearGradient} from "expo-linear-gradient";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import InfoPillGradient from "./chips/InfoPillGradient";
 import {CORNERS} from "@/src/shared/theme/tokens";
@@ -15,10 +16,10 @@ export type HeroProps = {
   subtitleIcon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
   avatarUri?: string | null;
-  avatarFallback: any;
+  avatarFallback: ImageSource;
 
   backgroundUri?: string | null;
-  backgroundFallback?: any;
+  backgroundFallback?: ImageSource;
 
   onEdit?: () => void;
   testID?: string;

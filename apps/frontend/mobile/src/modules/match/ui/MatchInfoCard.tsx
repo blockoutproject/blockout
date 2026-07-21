@@ -6,9 +6,9 @@ import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {type MatchResponse, MatchStatus} from "@/src/modules/match/model/Match";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import {useRouter} from "expo-router";
-import {openPdf} from "@/src/utils/openPdf";
-import {isLNV} from "@/src/utils/utils";
-import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
+import {openPdf} from "@/src/modules/pdf/openPdf";
+import {isLNV} from "@/src/shared/lib/utils";
+import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigationInterstitial";
 
 /** Info card with league/pool/date/venue/referees. */
 export type MatchInfoCardProps = {

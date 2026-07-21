@@ -5,7 +5,7 @@ import * as Haptics from "expo-haptics";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useDivisions} from "@/src/modules/division/hooks/useDivisions";
 import {DivisionResponse} from "@/src/modules/division/model/Division";
-import {Filter} from "@/src/types/Filter";
+import {Filter} from "@/src/shared/model/Filter";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import DivisionItem from "@/src/modules/division/ui/DivisionItem";
 import SearchBar from "@/src/shared/ui/SearchBar";

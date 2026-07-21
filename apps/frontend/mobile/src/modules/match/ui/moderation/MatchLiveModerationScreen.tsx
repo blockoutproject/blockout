@@ -8,7 +8,7 @@ import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useLiveModerationMatches} from "@/src/modules/match/hooks/useLiveModerationMatches";
 import {MatchLiveSummaryResponse, LiveLinkStatus,} from "@/src/modules/match/model/Match";
-import {Filter} from "@/src/types/Filter";
+import {Filter} from "@/src/shared/model/Filter";
 
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import SearchBar from "@/src/shared/ui/SearchBar";

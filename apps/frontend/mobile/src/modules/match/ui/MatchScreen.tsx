@@ -19,7 +19,7 @@ import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
 
 import {ReportType} from "@/src/modules/report/model/Report";
-import {getTeamsRankingColor, isLNV, splitIsoDateFormatted} from "@/src/utils/utils";
+import {getTeamsRankingColor, isLNV, splitIsoDateFormatted} from "@/src/shared/lib/utils";
 import {BOTTOM_TABBAR_HEIGHT, HEADER_HEIGHT, SECTION_SEPARATOR_HEIGHT,} from "@/src/shared/theme/tokens";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import MatchLiveLinkCard from "@/src/modules/match/ui/MatchLiveLinkCard";

@@ -1,7 +1,7 @@
 import type { ClubResponse } from "@/src/modules/club/model/Club";
 import type { DivisionResponse } from "@/src/modules/division/model/Division";
-import type { EnumFormat } from "@/src/types/enums/Format";
-import type { EnumGender } from "@/src/types/enums/Gender";
+import type { EnumFormat } from "@/src/shared/model/enums/Format";
+import type { EnumGender } from "@/src/shared/model/enums/Gender";
 import type { PoolResponse } from "@/src/modules/pool/model/Pool";
 
 export type TeamInternalResponse = {

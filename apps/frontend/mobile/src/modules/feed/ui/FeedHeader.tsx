@@ -8,12 +8,12 @@ import {BlurView} from "expo-blur";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import * as Haptics from "expo-haptics";
 import {APP_TITLE, LOGO_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import {useSessionState} from "@/src/modules/session/providers/SessionContext";
 import {CONFIG} from "@/src/shared/config/config";
 import RevenueCatUI from "react-native-purchases-ui";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
-import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
+import {usePurchases} from "@/src/modules/subscription/providers/PurchasesProvider";
 import {GOLD_GRADIENT} from "@/src/shared/ui/GradientButton";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 

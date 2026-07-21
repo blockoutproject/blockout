@@ -9,7 +9,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 import {ReportType} from "@/src/modules/report/model/Report";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/BottomSheetCustomPage";
 import LegalDocumentScreen from "@/src/modules/legal/ui/LegalDocumentScreen";
 import ProfileHero from "@/src/modules/user/ui/ProfileHero";
@@ -20,7 +20,7 @@ import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import GuestUpsellCard from "@/src/modules/session/ui/GuestUpsellCard";
 import {useOnboardingStore} from "@/src/modules/onboarding/model/onboardingStore";
-import {CURRENT_APP_VERSION} from "@/src/utils/appVersion";
+import {CURRENT_APP_VERSION} from "@/src/modules/app-status/model/appVersion";
 
 const SPINNER_BOX = 18;
 

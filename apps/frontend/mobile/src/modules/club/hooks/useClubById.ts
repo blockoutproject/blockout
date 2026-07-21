@@ -5,7 +5,7 @@ import type { ClubResponse } from "@/src/modules/club/model/Club";
 export const useClubById = (id?: string) => {
   const { mobile } = useApis();
 
-  return useEntityById<ClubResponse>(
+  return useEntityById<ClubResponse, string>(
     "clubs",
     (clubId: string) => mobile.clubs.getClubById(clubId),
     id,

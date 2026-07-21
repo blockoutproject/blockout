@@ -5,7 +5,7 @@ import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
 export const useTeamListByClubId = (id?: string, enabled?: boolean) => {
   const { mobile } = useApis();
 
-  return useEntityById<TeamSummaryResponse[]>(
+  return useEntityById<TeamSummaryResponse[], string>(
     "teamList",
     (clubId: string) => mobile.teams.getTeamsByClubId(clubId),
     id,

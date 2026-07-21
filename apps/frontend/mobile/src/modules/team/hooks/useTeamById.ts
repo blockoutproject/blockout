@@ -5,7 +5,7 @@ import type { TeamResponse } from "@/src/modules/team/model/Team";
 export const useTeamById = (id?: number, enabled?: boolean) => {
   const { mobile } = useApis();
 
-  return useEntityById<TeamResponse>(
+  return useEntityById<TeamResponse, number>(
     "enrichedTeams",
     (teamId: number) => mobile.teams.getTeamById(teamId),
     id,

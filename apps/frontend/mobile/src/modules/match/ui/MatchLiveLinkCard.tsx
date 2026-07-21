@@ -13,7 +13,7 @@ import MatchLiveLinkFormSheet from "./form/MatchLiveLinkFormSheet";
 import MatchLiveLinkDeleteFormSheet from "./form/MatchLiveLinkDeleteFormSheet";
 import {useSessionState} from "@/src/modules/session/providers/SessionContext";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
-import {useWebLinkInterstitial} from "@/src/hooks/ads/useWebLinkInterstitial";
+import {useWebLinkInterstitial} from "@/src/modules/advertising/useWebLinkInterstitial";
 
 type Props = {
   match: MatchResponse;

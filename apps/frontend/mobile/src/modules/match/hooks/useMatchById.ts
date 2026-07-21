@@ -5,7 +5,7 @@ import {MatchResponse} from "@/src/modules/match/model/Match";
 export const useMatchById = (id?: number) => {
   const {mobile} = useApis();
 
-  return useEntityById<MatchResponse>(
+  return useEntityById<MatchResponse, number>(
     "matches",
     (matchId: number) => mobile.matches.getMatchById(matchId),
     id

@@ -4,7 +4,7 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import {useKeyboardVisible} from "@/src/shared/hooks/useKeyboardVisible";
 
 type ApiErrorToastProps = {

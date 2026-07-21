@@ -1,7 +1,7 @@
 import React, {useCallback} from "react";
 import {FlatList, ListRenderItem, StyleProp, StyleSheet, View, ViewStyle,} from "react-native";
 import * as Haptics from "expo-haptics";
-import {Filter} from "@/src/types/Filter";
+import {Filter} from "@/src/shared/model/Filter";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 
@@ -76,7 +76,7 @@ const Filters: React.FC<FiltersProps> = ({
         onPress={() => toggleFilter(index)}
       />
     );
-  }, [activeGradient, borderWidth, inactiveGradient, theme.border, toggleFilter]);
+  }, [activeGradient, borderWidth, inactiveGradient, theme.border, theme.borderSecondary, toggleFilter]);
 
   return (
     <View style={[style]}>

@@ -8,13 +8,13 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {DayMatchesResponse, PoolMatchesResponse, MatchStatus,} from "@/src/modules/match/model/Match";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useMatchList} from "@/src/modules/match/hooks/useMatchList";
-import {formatDateFrenchLocale} from "@/src/utils/utils";
+import {formatDateFrenchLocale} from "@/src/shared/lib/utils";
 import MatchDateHeader from "./MatchDateHeader";
 import MatchPoolSection from "./MatchPoolSection";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/tokens";
-import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
+import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigationInterstitial";
 
 export type MatchListProps = {
   poolIds?: number[];

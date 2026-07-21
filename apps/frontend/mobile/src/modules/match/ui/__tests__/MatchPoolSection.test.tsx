@@ -5,15 +5,15 @@ import type {PoolMatchesResponse} from "@/src/modules/match/model/Match";
 import {MatchStatus} from "@/src/modules/match/model/Match";
 import MatchPoolSection from "@/src/modules/match/ui/MatchPoolSection";
 import type {PoolResponse} from "@/src/modules/pool/model/Pool";
-import {EnumFormat} from "@/src/types/enums/Format";
-import {EnumGender} from "@/src/types/enums/Gender";
+import {EnumFormat} from "@/src/shared/model/enums/Format";
+import {EnumGender} from "@/src/shared/model/enums/Gender";
 import {ThemeProvider} from "@/src/shared/providers/ThemeProvider";
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({push: jest.fn()}),
 }));
 
-jest.mock("@/src/hooks/ads/useNavigationInterstitial", () => ({
+jest.mock("@/src/modules/advertising/useNavigationInterstitial", () => ({
   useNavigationInterstitial: () => ({
     handleNavigationWithAd: (navigate: () => void) => navigate(),
   }),

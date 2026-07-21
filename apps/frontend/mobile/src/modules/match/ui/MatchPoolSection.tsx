@@ -10,7 +10,7 @@ import FadeIn from "@/src/shared/ui/animations/FadeIn";
 import {SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/tokens";
 import RankingHeader from "@/src/modules/ranking/ui/RankingHeader";
 import {useRouter} from "expo-router";
-import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
+import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigationInterstitial";
 
 /** Carte listant les matchs d’une poule. */
 export type MatchPoolSectionProps = {

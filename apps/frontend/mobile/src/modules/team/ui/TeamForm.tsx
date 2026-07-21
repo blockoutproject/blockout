@@ -21,7 +21,7 @@ import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import FormCard from "@/src/shared/ui/form/FormCard";
 import Field from "@/src/shared/ui/form/Field";
 import { useApis } from "@/src/shared/providers/ApiProvider";
-import { CustomImage } from "@/src/types/Common";
+import { ImageUpload } from "@/src/shared/model/ImageUpload";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 
 export type TeamFormState = {
@@ -45,7 +45,7 @@ const TeamForm: React.FC<TeamFormProps> = ({
   const theme = useAppTheme();
   const { mobile } = useApis();
 
-  const [imageFile, setImageFile] = useState<CustomImage | null>(null);
+  const [imageFile, setImageFile] = useState<ImageUpload | null>(null);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [removedLogo, setRemovedLogo] = useState(false);
   const [loading, setLoading] = useState(false);

@@ -19,7 +19,7 @@ import Field from "@/src/shared/ui/form/Field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import {ApiError} from "@/src/shared/api/ApiError";
-import {CustomImage} from "@/src/types/Common";
+import {ImageUpload} from "@/src/shared/model/ImageUpload";
 
 export type ProfileFormState = {
   loading: boolean;
@@ -37,7 +37,7 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
   const theme = useAppTheme();
   const {mobile} = useApis();
 
-  const [imageFile, setImageFile] = useState<CustomImage | null>(null);
+  const [imageFile, setImageFile] = useState<ImageUpload | null>(null);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [removedAvatar, setRemovedAvatar] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -92,17 +92,21 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
         setLoading(true);
         setApiError(null);
 
-        const dto: UpdateUserRequest = {};
+        const request: UpdateUserRequest = {};
         const trimmed = values.pseudo.trim();
-        if (trimmed && trimmed !== user.pseudo) dto.pseudo = trimmed;
+        if (trimmed && trimmed !== user.pseudo) request.pseudo = trimmed;
 
         if (removedAvatar) {
-          dto.pictureUrl = null;
+          request.pictureUrl = null;
         } else if (!imageFile && user.pictureUrl) {
-          dto.pictureUrl = user.pictureUrl;
+          request.pictureUrl = user.pictureUrl;
         }
 
-        const updated = await mobile.users.updateUser(user.auth0Id, dto, imageFile ?? undefined);
+        const updated = await mobile.users.updateUser(
+          user.auth0Id,
+          request,
+          imageFile ?? undefined,
+        );
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onSuccess(updated);
       } catch (err) {

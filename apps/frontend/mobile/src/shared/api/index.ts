@@ -1,6 +1,6 @@
 import {TokenSupplier} from "@/src/shared/api/HttpClient";
 import {ApiError} from "@/src/shared/api/ApiError";
-import {MobileGatewayApi} from "@/src/api/MobileGatewayApi";
+import {MobileGatewayApi} from "@/src/shared/api/MobileGatewayApi";
 
 export type ApiClients = {
   mobile: MobileGatewayApi;

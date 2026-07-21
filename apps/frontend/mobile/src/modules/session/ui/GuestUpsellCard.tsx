@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import {GradientButton} from "@/src/shared/ui/GradientButton";
 
 type Props = {

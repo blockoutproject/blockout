@@ -6,7 +6,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import { withAlpha } from "@/src/utils/utils";
+import { withAlpha } from "@/src/shared/lib/utils";
 
 /** Single info row for club details. */
 export type ClubInfoRowProps = {

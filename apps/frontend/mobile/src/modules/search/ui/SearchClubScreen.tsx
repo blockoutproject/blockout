@@ -4,7 +4,7 @@ import ClubCard from "@/src/modules/search/ui/ClubCard";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import SearchResults from "@/src/modules/search/ui/SearchResults";
-import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
 export type SearchClubScreenProps = {
   search: string;

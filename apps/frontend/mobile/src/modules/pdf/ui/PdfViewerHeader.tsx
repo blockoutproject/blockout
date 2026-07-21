@@ -12,11 +12,9 @@ export type PdfViewerHeaderProps = {
   title?: string;
   /** Open report modal. */
   onOpenReport: () => void;
-  /** Open edit team form. */
-  onEdit?: () => void;
 };
 
-const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({title, onOpenReport, onEdit}) => {
+const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({title, onOpenReport}) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -38,6 +36,9 @@ const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({title, onOpenReport, o
         >
           <TouchableOpacity
             onPress={router.back}
+            accessibilityRole="button"
+            accessibilityLabel="Fermer le document"
+            testID="pdf-viewer-close-action"
             style={styles.backButton}
             hitSlop={{
               top: 8,
@@ -71,6 +72,9 @@ const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({title, onOpenReport, o
 
         <TouchableOpacity
           onPress={onOpenReport}
+          accessibilityRole="button"
+          accessibilityLabel="Signaler un problème avec ce document"
+          testID="pdf-viewer-report-action"
           hitSlop={{
             top: 8,
             bottom: 8,
@@ -105,11 +109,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexShrink: 1,
     flexGrow: 1,
-  },
-  rightGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
   },
   backButton: {
     marginRight: 4,

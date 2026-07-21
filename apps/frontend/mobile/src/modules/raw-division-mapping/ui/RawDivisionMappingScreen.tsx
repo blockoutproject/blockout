@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useRawDivisionMappings} from "@/src/modules/raw-division-mapping/hooks/useRawDivisionMapping";
 import {RawDivisionMappingResponse} from "@/src/modules/raw-division-mapping/model/RawDivisionMapping";
-import {Filter} from "@/src/types/Filter";
+import {Filter} from "@/src/shared/model/Filter";
 import Filters from "@/src/shared/ui/Filters";
 import RawDivisionMappingItem from "@/src/modules/raw-division-mapping/ui/RawDivisionMappingItem";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";

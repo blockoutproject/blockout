@@ -2,7 +2,7 @@ import React from "react";
 import {StyleSheet, Text, View} from "react-native";
 import {MatchResponse, MatchStatus} from "@/src/modules/match/model/Match";
 import {DivisionResponse} from "@/src/modules/division/model/Division";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";

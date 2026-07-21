@@ -1,9 +1,16 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import { Platform } from "react-native";
 import Purchases, { CustomerInfo } from "react-native-purchases";
 import { CONFIG } from "@/src/shared/config/config";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
-import {usePurchasesCacheStore} from "@/src/utils/purchasesStore";
+import {usePurchasesCacheStore} from "@/src/modules/subscription/model/purchasesStore";
 
 type PurchasesContextValue = {
     isPro: boolean;
@@ -47,11 +54,11 @@ export const PurchasesProvider: React.FC<React.PropsWithChildren> = ({ children 
 
     const isPro = isReady ? computedIsPro : isProCached;
 
-    const syncFromInfo = (info: CustomerInfo | null) => {
+    const syncFromInfo = useCallback((info: CustomerInfo | null) => {
         setCustomerInfo(info);
         const next = entitlementId ? !!info?.entitlements?.active?.[entitlementId] : false;
         setIsProCached(next);
-    };
+    }, [entitlementId, setIsProCached]);
 
     useEffect(() => {
         const apiKey = getApiKey();
@@ -77,7 +84,7 @@ export const PurchasesProvider: React.FC<React.PropsWithChildren> = ({ children 
         return () => {
             Purchases.removeCustomerInfoUpdateListener(listener);
         };
-    }, [entitlementId]);
+    }, [syncFromInfo]);
 
     useEffect(() => {
         if (!isConfigured || !isBootstrapped) return;
@@ -105,17 +112,17 @@ export const PurchasesProvider: React.FC<React.PropsWithChildren> = ({ children 
                 setIsReady(true);
             })
             .catch(() => setIsReady(true));
-    }, [isConfigured, isBootstrapped, isAuthenticated, auth0User?.sub, entitlementId]);
+    }, [auth0User?.sub, isAuthenticated, isBootstrapped, isConfigured, syncFromInfo]);
 
-    const refresh = async () => {
+    const refresh = useCallback(async () => {
         const info = await Purchases.getCustomerInfo();
         syncFromInfo(info);
         setIsReady(true);
-    };
+    }, [syncFromInfo]);
 
     const value = useMemo<PurchasesContextValue>(
         () => ({ isPro, isReady, isHydrated, customerInfo, refresh }),
-        [isPro, isReady, isHydrated, customerInfo],
+        [customerInfo, isHydrated, isPro, isReady, refresh],
     );
 
     return <PurchasesContext.Provider value={value}>{children}</PurchasesContext.Provider>;

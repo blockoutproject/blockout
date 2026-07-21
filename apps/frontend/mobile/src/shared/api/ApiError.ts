@@ -1,13 +1,13 @@
 export class ApiError extends Error {
   public readonly status: number;
-  public readonly data: any;
+  public readonly data: unknown;
   public readonly code?: string;
   public readonly requestId?: string;
 
   constructor(
     status: number,
     message: string,
-    data?: any,
+    data?: unknown,
     meta?: { code?: string; requestId?: string }
   ) {
     super(message);

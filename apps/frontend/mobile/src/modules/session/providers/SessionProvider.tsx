@@ -8,7 +8,7 @@ import React, {
 import { useQueryClient } from "@tanstack/react-query";
 import { router, usePathname } from "expo-router";
 
-import { setAuthOnApis } from "@/src/api";
+import { setAuthOnApis } from "@/src/shared/api";
 import { ApiError } from "@/src/shared/api/ApiError";
 import { AUTH0_CONFIG } from "@/src/shared/config/config";
 import { useApis } from "@/src/shared/providers/ApiProvider";
@@ -22,7 +22,7 @@ import { useAppStatus } from "@/src/modules/app-status/hooks/useAppStatus";
 import { useRegisterPushToken } from "@/src/modules/notifications/hooks/useRegisterPushToken";
 import { useEnsureUser } from "@/src/modules/user/hooks/useEnsureUser";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
-import { computeIsUpdateRequired, getStoreUrl } from "@/src/utils/appVersion";
+import { computeIsUpdateRequired, getStoreUrl } from "@/src/modules/app-status/model/appVersion";
 import { useGuestSessionStore } from "@/src/modules/session/model/guestSessionStore";
 import { registerForPushNotificationsAsync } from "@/src/modules/notifications/push";
 import { useOnboardingStore } from "@/src/modules/onboarding/model/onboardingStore";

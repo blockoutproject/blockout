@@ -162,13 +162,14 @@ Unavailable credentials or hardware remain explicit evidence gaps; tests must no
 4. **REF-035 — Stabilize session and network state (complete).** Separate stable actions from changing state,
    establish Query lifecycle defaults, remove duplicate server-state ownership, and fail fast on required
    configuration.
-5. **REF-036 — Complete feature-owned mobile slices.** Move one coherent feature at a time, unify theme ownership,
-   improve accessibility and measured list/image behavior, and simplify component APIs only where consumers justify it.
+5. **REF-036 — Complete feature-owned mobile slices (complete).** Move one coherent feature at a time, unify theme
+   ownership, improve accessibility and measured list/image behavior, and simplify component APIs only where consumers
+   justify it.
 6. **REF-037 — Certify the cleaned mobile application.** Run the complete static, test, Web phone-size, simulator, and
    available physical-device/provider matrix, then record remaining external evidence gaps without weakening gates.
 
-These tasks are deliberately sequential. REF-036 may be split into multiple feature-sized commits while it is
-executed, but no separate speculative architecture layer is required.
+These tasks are deliberately sequential. REF-036 was published as feature-sized commits without adding a speculative
+architecture layer.
 
 ## Audit evidence
 

@@ -1,12 +1,12 @@
 import React, {useEffect, useRef} from "react";
-import {Animated, StyleSheet, ViewStyle} from "react-native";
+import {Animated, DimensionValue, StyleSheet, ViewStyle} from "react-native";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {BORDER_RADIUS, CORNERS} from "@/src/shared/theme/tokens";
 
 /** Composant skeleton animé. */
 export type SkeletonProps = {
   /** Largeur (par défaut "100%"). */
-  width?: number | string;
+  width?: DimensionValue;
   /** Hauteur (par défaut 100). */
   height?: number;
   /** Styles additionnels. */
@@ -48,7 +48,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
       style={[
         styles.base,
         {
-          width: width as any,
+          width,
           height,
           backgroundColor: theme.muted,
           borderRadius: variant === 'default' ? CORNERS : BORDER_RADIUS,

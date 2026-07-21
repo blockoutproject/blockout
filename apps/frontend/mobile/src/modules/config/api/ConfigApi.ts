@@ -10,8 +10,8 @@ import {
   UpdateLegalDocumentRequest,
 } from "@/src/modules/legal/model/LegalDocument";
 import {AppStatusResponse, UpdateAppStatusRequest} from "@/src/modules/app-status/model/AppStatus";
-import {CustomImage} from "@/src/types/Common";
-import {appendJson} from "@/src/utils/utils";
+import {ImageUpload} from "@/src/shared/model/ImageUpload";
+import {appendJson} from "@/src/shared/lib/utils";
 import {BaseApi} from "@/src/shared/api/BaseApi";
 
 export class ConfigApi extends BaseApi {
@@ -35,7 +35,7 @@ export class ConfigApi extends BaseApi {
 
   public createDivision(
     data: UpsertDivisionRequest,
-    image?: CustomImage,
+    image?: ImageUpload,
   ) {
     const formData = new FormData();
     appendJson(formData, "data", data);
@@ -54,7 +54,7 @@ export class ConfigApi extends BaseApi {
   public updateDivision(
     id: number,
     data: UpsertDivisionRequest,
-    image?: CustomImage,
+    image?: ImageUpload,
   ) {
     const formData = new FormData();
     appendJson(formData, "data", data);

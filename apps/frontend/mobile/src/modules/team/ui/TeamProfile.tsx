@@ -13,8 +13,8 @@ import type { TeamResponse } from "@/src/modules/team/model/Team";
 import { useTeamFollowState } from "@/src/modules/team/hooks/useTeamFollowState";
 import FollowButton from "@/src/shared/ui/follow/FollowButton";
 import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
-import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
-import { FormatLabels } from "@/src/types/enums/Format";
+import { EnumGender, GenderLabels } from "@/src/shared/model/enums/Gender";
+import { FormatLabels } from "@/src/shared/model/enums/Format";
 import { LOGO_SIZE } from "@/src/shared/theme/tokens";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
@@ -23,8 +23,8 @@ import GuestPromptSheet, {
   GuestPromptSheetRef,
 } from "@/src/modules/session/ui/GuestPromptSheet";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import { computeBalancedRowsByCount, withAlpha } from "@/src/utils/utils";
-import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import { computeBalancedRowsByCount, withAlpha } from "@/src/shared/lib/utils";
+import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
 export type TeamProfileProps = {
   enrichedTeam: TeamResponse;

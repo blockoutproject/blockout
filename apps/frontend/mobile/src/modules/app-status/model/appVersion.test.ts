@@ -1,7 +1,7 @@
 import {Platform} from "react-native";
 
 import type {AppStatusResponse} from "@/src/modules/app-status/model/AppStatus";
-import {compareSemver, computeIsUpdateRequired, getStoreUrl,} from "@/src/utils/appVersion";
+import {compareSemver, computeIsUpdateRequired, getStoreUrl,} from "@/src/modules/app-status/model/appVersion";
 
 jest.mock("expo-application", () => ({
   nativeApplicationVersion: "1.3.5",

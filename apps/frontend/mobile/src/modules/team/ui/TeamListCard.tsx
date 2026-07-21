@@ -1,9 +1,9 @@
 import React from "react";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
-import { EnumGender, GenderLabels } from "@/src/types/enums/Gender";
-import { FormatLabels } from "@/src/types/enums/Format";
-import { withAlpha } from "@/src/utils/utils";
+import { EnumGender, GenderLabels } from "@/src/shared/model/enums/Gender";
+import { FormatLabels } from "@/src/shared/model/enums/Format";
+import { withAlpha } from "@/src/shared/lib/utils";
 import EntityGradientCard, {
   EntityCardChip,
 } from "@/src/shared/ui/EntityGradientCard";

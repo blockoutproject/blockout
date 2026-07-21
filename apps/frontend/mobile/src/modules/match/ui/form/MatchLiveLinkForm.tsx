@@ -12,7 +12,7 @@ import FormCard from "@/src/shared/ui/form/FormCard";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import {ApiError} from "@/src/shared/api/ApiError";
 import Field from "@/src/shared/ui/form/Field";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 
 export type MatchLiveLinkFormState = {

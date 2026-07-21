@@ -1,7 +1,7 @@
 import React from "react";
 import {StyleSheet, View} from "react-native";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {withAlpha} from "@/src/utils/utils";
+import {withAlpha} from "@/src/shared/lib/utils";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
 

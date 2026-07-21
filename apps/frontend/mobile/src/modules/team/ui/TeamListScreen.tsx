@@ -23,7 +23,7 @@ import { useTeamListByClubId } from "@/src/modules/team/hooks/useTeamListByClubI
 import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
 import { SelectOption } from "@/src/shared/ui/form/SelectSheet";
 import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
-import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
 const TeamListScreen: React.FC = () => {
   const theme = useAppTheme();

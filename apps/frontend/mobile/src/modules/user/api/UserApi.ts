@@ -1,6 +1,6 @@
 import {CONFIG} from "@/src/shared/config/config";
 import {UserResponse, UpdateUserRequest} from "@/src/modules/user/model/User";
-import {CustomImage} from "@/src/types/Common";
+import {ImageUpload} from "@/src/shared/model/ImageUpload";
 import {BaseApi} from "@/src/shared/api/BaseApi";
 
 export class UserApi extends BaseApi {
@@ -15,7 +15,7 @@ export class UserApi extends BaseApi {
   public updateUser(
     auth0Id: string,
     data: UpdateUserRequest,
-    image?: CustomImage,
+    image?: ImageUpload,
   ): Promise<UserResponse> {
     const formData = new FormData();
     formData.append("data", JSON.stringify(data));

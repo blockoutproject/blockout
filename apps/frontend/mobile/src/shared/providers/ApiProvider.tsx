@@ -1,5 +1,5 @@
 import React, {createContext, useContext, useMemo, useState} from "react";
-import {ApiClients, createApis} from "@/src/api";
+import {ApiClients, createApis} from "@/src/shared/api";
 
 const ApiContext = createContext<ApiClients | null>(null);
 

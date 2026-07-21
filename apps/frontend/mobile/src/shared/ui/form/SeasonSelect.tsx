@@ -41,7 +41,7 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
     if (selectedValue) return selectedValue;
 
     return placeholderLabel;
-  }, [selectedValue, options, placeholderLabel]);
+  }, [placeholderLabel, selectedValue]);
 
   const handleOpen = useCallback(async () => {
     if (isDisabled) return;
@@ -72,6 +72,9 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
           style,
         ]}
         testID={testIDButton}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{disabled: isDisabled, expanded: false}}
       >
         <MaterialCommunityIcons
           name="calendar-month-outline"
