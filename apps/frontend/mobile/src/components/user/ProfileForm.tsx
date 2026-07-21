@@ -9,16 +9,16 @@ import * as ImageManipulator from "expo-image-manipulator";
 import {Image} from "expo-image";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {CORNERS} from "@/src/theme/globals";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {CORNERS} from "@/src/shared/theme/globals";
 import {CustomUser, UpdateUserRequest} from "@/src/types/User";
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
-import FormCard from "@/src/components/common/form/FormCard";
-import Field from "@/src/components/common/form/Field";
-import SheetTextInput from "@/src/components/common/form/SheetTextInput";
-import {useApis} from "@/src/context/ApiProvider";
-import {ApiError} from "@/src/api/core/ApiError";
+import FormCard from "@/src/shared/ui/form/FormCard";
+import Field from "@/src/shared/ui/form/Field";
+import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
+import {useApis} from "@/src/shared/providers/ApiProvider";
+import {ApiError} from "@/src/shared/api/ApiError";
 import {CustomImage} from "@/src/types/Common";
 
 export type ProfileFormExternalState = {

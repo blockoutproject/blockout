@@ -1,13 +1,13 @@
 import React, {useCallback, useMemo} from "react";
 import {Pressable, StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {splitIsoDateFormatted, withAlpha} from "@/src/utils/utils";
-import GradientBorderView from "@/src/components/common/GradientBorderView";
+import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {type EnrichedMatchDTO, MatchStatus} from "@/src/types/Match";
 import type {Team} from "@/src/types/Team";
-import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
-import MaskedImage from "@/src/components/common/images/MaskedImage";
+import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {useRouter} from "expo-router";
 import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 

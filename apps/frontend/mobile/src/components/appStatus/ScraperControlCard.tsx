@@ -2,7 +2,7 @@ import React from "react";
 import {ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View,} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {ScraperStatus} from "@/src/types/ScraperStatus";
 import ScraperStatusItem from "./ScraperStatusItem";
 

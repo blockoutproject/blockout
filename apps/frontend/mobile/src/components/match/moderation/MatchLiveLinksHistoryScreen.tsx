@@ -4,11 +4,11 @@ import {FlashList} from "@shopify/flash-list";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {useApis} from "@/src/context/ApiProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 import {EnrichedMatchLiveSummaryDTO, MatchLiveLinkDTO,} from "@/src/types/Match";
 import {useMatchLiveLinksHistory} from "@/src/hooks/match/useMatchLiveLinksHistory";
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import MatchLiveLinksHistoryItem from "@/src/components/match/moderation/MatchLiveLinksHistoryItem";
 
 type MatchLiveLinksHistoryScreenProps = {

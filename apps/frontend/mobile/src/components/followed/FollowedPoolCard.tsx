@@ -1,11 +1,11 @@
 // src/components/cards/FollowedPoolCard.tsx
 import React from "react";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {PoolSummaryDTO} from "@/src/types/Pool";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
 import {FormatLabels} from "@/src/types/enums/Format";
 import {isRegional, withAlpha} from "@/src/utils/utils";
-import EntityGradientCard, {EntityCardChip} from "../common/EntityGradientCard";
+import EntityGradientCard, {EntityCardChip} from "@/src/shared/ui/EntityGradientCard";
 
 export type FollowedPoolCardProps = {
   pool: PoolSummaryDTO;

@@ -3,16 +3,16 @@ import {StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
 import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useDivisions} from "@/src/hooks/config/division/useDivisions";
 import {RawDivisionMapping} from "@/src/types/RawDivisionMapping";
 import {EnumFormat, FormatLabels} from "@/src/types/enums/Format";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
-import FormSelect from "@/src/components/common/form/FormSelect";
-import SelectSheet, {SelectOption, SelectSheetRef} from "@/src/components/common/form/SelectSheet";
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
-import FormCard from "@/src/components/common/form/FormCard";
-import {useApis} from "@/src/context/ApiProvider";
+import FormSelect from "@/src/shared/ui/form/FormSelect";
+import SelectSheet, {SelectOption, SelectSheetRef} from "@/src/shared/ui/form/SelectSheet";
+import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
+import FormCard from "@/src/shared/ui/form/FormCard";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 
 export type RawDivisionMappingFormExternalState = {
   loading: boolean;

@@ -1,8 +1,8 @@
 import React from "react";
 import {StyleSheet, View} from "react-native";
-import {Skeleton} from "@/src/components/common/Skeleton";
+import {Skeleton} from "@/src/shared/ui/Skeleton";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {HEADER_HEIGHT} from "@/src/theme/globals";
+import {HEADER_HEIGHT} from "@/src/shared/theme/globals";
 
 /** Skeleton for match screen while loading. */
 const MatchSkeleton: React.FC = () => {

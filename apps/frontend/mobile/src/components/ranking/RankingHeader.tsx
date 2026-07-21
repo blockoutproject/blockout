@@ -4,10 +4,10 @@ import {Ionicons} from "@expo/vector-icons";
 import {Image} from "expo-image";
 import {LinearGradient} from "expo-linear-gradient";
 
-import MaskedImage from "../common/images/MaskedImage";
+import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {isRegional, withAlpha} from "@/src/utils/utils";
 import {EnrichedPoolDTO} from "@/src/types/Pool";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {GenderLabels} from "@/src/types/enums/Gender";
 
 type Props = {

@@ -3,7 +3,7 @@ import {Linking, StyleSheet, Text, TouchableOpacity, View,} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {LiveLinkStatus, LiveProvider, MatchLiveLinkDTO,} from "@/src/types/Match";
 
 type Props = {

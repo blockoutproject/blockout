@@ -2,16 +2,16 @@ import React, {useMemo} from "react";
 import {Animated} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import GenericTabView from "@/src/components/common/GenericTabView";
+import GenericTabView from "@/src/shared/ui/GenericTabView";
 import MatchList from "@/src/components/matchList/MatchListContainer";
 import RankingTab from "@/src/components/ranking/RankingTab";
 import ProUpsellTab from "@/src/components/club/ProUpsellTab";
 
 import {MatchStatus} from "@/src/types/Match";
 import {EnrichedPoolDTO} from "@/src/types/Pool";
-import {TABBAR_HEIGHT} from "@/src/theme/globals";
+import {TABBAR_HEIGHT} from "@/src/shared/theme/globals";
 import PoolMapTab from "./PoolMapTab";
-import {usePurchases} from "@/src/context/PurchasesProvider";
+import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
 
 /** Tabs for pool: Ranking / Upcoming / Finished / Map. */
 export type PoolTabsProps = {

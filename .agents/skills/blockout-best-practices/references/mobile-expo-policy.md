@@ -5,7 +5,12 @@ mobile transport models.
 
 ## Structure And Boundaries
 
-- Keep routes and navigation in the Expo application structure already established by the imported app.
+- Keep Expo Router files under `src/app` and limit them to route registration, navigation, layouts, redirects, and
+  top-level composition. Product screens live under `src/modules/<feature>/ui`.
+- Keep feature-owned UI, hooks, validation, and view models inside their feature. Move code to `src/shared` only when
+  multiple active features consume it or it enforces an application-wide technical invariant.
+- Use `src/shared/api` for HTTP mechanics, `src/shared/config` for application configuration, `src/shared/providers` for
+  application-wide providers, `src/shared/theme` for theme ownership, and `src/shared/ui` for reusable primitives.
 - Keep API clients responsible for HTTP mechanics, typed transport models responsible for the gateway contract, and UI
   components responsible for presentation and interaction.
 - Blockout-owned request, response, and query fields use native camelCase. Do not add recursive case converters or

@@ -1,6 +1,6 @@
 import React from "react";
 import {Club} from "@/src/types/Club";
-import {SelectOption} from "@/src/components/common/form/SelectSheet";
+import {SelectOption} from "@/src/shared/ui/form/SelectSheet";
 import ClubHero from "@/src/components/club/ClubHero";
 
 type ClubProfileProps = {

@@ -1,7 +1,7 @@
 import React, {useMemo, useRef} from "react";
 import {Animated} from "react-native";
 
-import GenericTabView from "@/src/components/common/GenericTabView";
+import GenericTabView from "@/src/shared/ui/GenericTabView";
 import MatchList from "@/src/components/matchList/MatchListContainer";
 
 import ClubInformationsTab from "./ClubInformationTab";
@@ -11,8 +11,8 @@ import ProUpsellTab from "./ProUpsellTab";
 import {Club} from "@/src/types/Club";
 import {TeamSummaryDTO} from "@/src/types/Team";
 import {MatchStatus} from "@/src/types/Match";
-import {TABBAR_HEIGHT} from "@/src/theme/globals";
-import {usePurchases} from "@/src/context/PurchasesProvider";
+import {TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
 
 type ClubTabsProps = {
   club: Club;

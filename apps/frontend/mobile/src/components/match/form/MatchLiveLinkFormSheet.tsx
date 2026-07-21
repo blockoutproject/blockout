@@ -2,8 +2,8 @@ import React, {forwardRef, useCallback, useMemo, useRef, useState} from "react";
 import {BottomSheetFooterProps, BottomSheetModal} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
-import BottomSheetFormFooter from "@/src/components/common/form/BottomSheetFormFooter";
+import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
+import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import MatchLiveLinkForm, {MatchLiveLinkFormExternalState,} from "@/src/components/match/form/MatchLiveLinkForm";
 
 export type MatchLiveLinkFormSheetProps = {

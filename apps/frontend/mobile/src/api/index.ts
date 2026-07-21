@@ -1,5 +1,5 @@
-import {TokenSupplier} from "@/src/api/core/HttpClient";
-import {ApiError} from "@/src/api/core/ApiError";
+import {TokenSupplier} from "@/src/shared/api/HttpClient";
+import {ApiError} from "@/src/shared/api/ApiError";
 import {MobileGatewayApi} from "@/src/api/MobileGatewayApi";
 
 export type ApiClients = {

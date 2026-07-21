@@ -5,16 +5,16 @@ import {useRouter} from "expo-router";
 
 import {EnrichedTeamDTO} from "@/src/types/Team";
 import {useTeamFollowState} from "@/src/hooks/team/useTeamFollowState";
-import FollowButton from "@/src/components/common/follow/FollowButton";
-import FollowersCounter from "@/src/components/common/follow/FollowersCount";
+import FollowButton from "@/src/shared/ui/follow/FollowButton";
+import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
 import {FormatLabels} from "@/src/types/enums/Format";
-import {LOGO_SIZE} from "@/src/theme/globals";
-import MaskedImage from "@/src/components/common/images/MaskedImage";
-import InfoPillGradient from "../common/chips/InfoPillGradient";
-import {useSession} from "@/src/context/SessionProvider";
+import {LOGO_SIZE} from "@/src/shared/theme/globals";
+import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {useSession} from "@/src/shared/providers/SessionProvider";
 import GuestPromptSheet, {GuestPromptSheetRef} from "../user/GuestPromptSheet.tsx";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {withAlpha} from "@/src/utils/utils";
 import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 

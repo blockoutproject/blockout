@@ -1,8 +1,8 @@
-import {CONFIG} from "@/src/config/config";
+import {CONFIG} from "@/src/shared/config/config";
 import {ReportResult} from "../types/Report";
 import {CustomImage} from "../types/Common";
 import {appendJson} from "../utils/utils";
-import {BaseApi} from "./core/BaseApi";
+import {BaseApi} from "@/src/shared/api/BaseApi";
 
 export class ReportApi extends BaseApi {
   constructor() {

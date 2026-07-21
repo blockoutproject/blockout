@@ -2,10 +2,10 @@ import React, {useState} from "react";
 import {StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {useSession} from "@/src/context/SessionProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useSession} from "@/src/shared/providers/SessionProvider";
 import {withAlpha} from "@/src/utils/utils";
-import {GradientButton} from "@/src/components/common/GradientButton";
+import {GradientButton} from "@/src/shared/ui/GradientButton";
 
 type Props = {
   title?: string;

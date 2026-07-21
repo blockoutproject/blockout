@@ -5,9 +5,9 @@ import {LinearGradient} from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import {Image} from "expo-image";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {Division} from "@/src/types/Division";
-import {useApis} from "@/src/context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 
 type DivisionItemProps = {
   division: Division;

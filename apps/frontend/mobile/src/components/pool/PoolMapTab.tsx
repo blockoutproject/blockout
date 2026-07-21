@@ -2,9 +2,9 @@ import React from "react";
 import {StyleSheet, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {EnrichedPoolDTO} from "@/src/types/Pool";
-import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT,} from "@/src/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT,} from "@/src/shared/theme/globals";
 import PoolMapCard from "./PoolMapCard";
 
 type Props = {

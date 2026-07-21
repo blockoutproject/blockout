@@ -1,7 +1,7 @@
 import React from "react";
 import {Animated, StyleSheet, View} from "react-native";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import ClubTeamList from "@/src/components/club/ClubTeamList";
 import {TeamSummaryDTO} from "@/src/types/Team";
 

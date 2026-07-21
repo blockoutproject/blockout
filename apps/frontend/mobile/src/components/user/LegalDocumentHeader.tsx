@@ -2,9 +2,9 @@ import React from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {HEADER_HEIGHT} from "@/src/theme/globals";
-import {useBackOrClose} from "@/src/hooks/utils/useBackOrClose";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {HEADER_HEIGHT} from "@/src/shared/theme/globals";
+import {useBackOrClose} from "@/src/shared/hooks/useBackOrClose";
 
 /** Header for a legal document in a sheet. */
 export type LegalDocumentHeaderProps = {

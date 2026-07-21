@@ -5,14 +5,14 @@ import {useFormik} from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import type {LegalDocument} from "@/src/types/LegalDocument";
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
-import FormCard from "@/src/components/common/form/FormCard";
-import Field from "@/src/components/common/form/Field";
-import SheetTextInput from "@/src/components/common/form/SheetTextInput";
-import {useApis} from "@/src/context/ApiProvider";
+import FormCard from "@/src/shared/ui/form/FormCard";
+import Field from "@/src/shared/ui/form/Field";
+import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 
 export type LegalDocumentFormExternalState = {
   loading: boolean;

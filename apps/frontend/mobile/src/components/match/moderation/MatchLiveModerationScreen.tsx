@@ -5,16 +5,16 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useLiveModerationMatches} from "@/src/hooks/match/useLiveModerationMatches";
 import {EnrichedMatchLiveSummaryDTO, LiveLinkStatus,} from "@/src/types/Match";
 import {Filter} from "@/src/types/Filter";
 
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
-import SearchBar from "@/src/components/common/SearchBar";
-import Filters from "@/src/components/common/Filters";
+import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
+import SearchBar from "@/src/shared/ui/SearchBar";
+import Filters from "@/src/shared/ui/Filters";
 import MatchLiveModerationItem from "@/src/components/match/moderation/MatchLiveModerationItem";
-import BottomSheetCustomPage from "@/src/components/common/bottomSheet/BottomSheetCustomPage";
+import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/BottomSheetCustomPage";
 import MatchLiveLinksHistoryScreen from "./MatchLiveLinksHistoryScreen";
 
 const STATUS_FILTERS: Filter[] = [

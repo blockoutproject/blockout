@@ -1,9 +1,9 @@
 import React from "react";
 import {StyleSheet, View} from "react-native";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {withAlpha} from "@/src/utils/utils";
-import InfoPillGradient from "../common/chips/InfoPillGradient";
-import FadeIn from "../common/animations/FadeIn";
+import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import FadeIn from "@/src/shared/ui/animations/FadeIn";
 
 /** En-tête de section présentant la date. */
 export type SectionDateHeaderProps = {

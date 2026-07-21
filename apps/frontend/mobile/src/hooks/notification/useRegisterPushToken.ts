@@ -1,5 +1,5 @@
 import * as Device from "expo-device";
-import {useApis} from "@/src/context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 import {RegisterPushTokenRequest} from "@/src/types/Notification";
 import {platformToEnum} from "@/src/utils/notifications";
 

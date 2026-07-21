@@ -5,13 +5,13 @@ import {useFormik} from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {useApis} from "@/src/context/ApiProvider";
-import FormCard from "@/src/components/common/form/FormCard";
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
-import {ApiError} from "@/src/api/core/ApiError";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
+import FormCard from "@/src/shared/ui/form/FormCard";
+import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
+import {ApiError} from "@/src/shared/api/ApiError";
 import {MatchLiveLinkReportRequestDTO} from "@/src/types/Match";
-import Field from "../../common/form/Field";
+import Field from "@/src/shared/ui/form/Field";
 
 export type MatchLiveLinkReportFormExternalState = {
   loading: boolean;

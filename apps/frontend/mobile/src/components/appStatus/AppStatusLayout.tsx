@@ -4,8 +4,8 @@ import React from "react";
 import {StyleSheet, Text, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import MaskedImage from "@/src/components/common/images/MaskedImage";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 
 type AppStatusLayoutProps = {
   footer: string;

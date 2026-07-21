@@ -2,21 +2,21 @@ import React, { useCallback, useEffect } from "react";
 import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Auth0Provider } from "@/src/context/AuthProvider";
+import { Auth0Provider } from "@/src/shared/providers/AuthProvider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
-import { AUTH0_CONFIG } from "@/src/config/config";
-import { ThemeProvider } from "@/src/theme/theme-provider";
-import { ApiProvider } from "@/src/context/ApiProvider";
-import { SessionProvider, useSession } from "@/src/context/SessionProvider";
+import { AUTH0_CONFIG } from "@/src/shared/config/config";
+import { ThemeProvider } from "@/src/shared/theme/theme-provider";
+import { ApiProvider } from "@/src/shared/providers/ApiProvider";
+import { SessionProvider, useSession } from "@/src/shared/providers/SessionProvider";
 import { SplashScreenController } from "@/src/components/splash/SplashScreen";
 import { useOnboardingStore } from "../utils/onboardingStore";
 import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
 import { useNavigationInterstitial } from "../hooks/ads/useNavigationInterstitial";
 import { useConsentGDPR } from "../hooks/ads/useConsentGDPR";
-import { PurchasesProvider } from "../context/PurchasesProvider";
+import { PurchasesProvider } from "@/src/shared/providers/PurchasesProvider";
 
 const queryClient = new QueryClient();
 

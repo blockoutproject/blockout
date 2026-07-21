@@ -1,9 +1,9 @@
 import React, {forwardRef, useCallback, useRef, useState} from "react";
 import {BottomSheetFooterProps, BottomSheetModal} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
+import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
 import ProfileForm, {ProfileFormExternalState} from "@/src/components/user/ProfileForm";
-import BottomSheetFormFooter from "@/src/components/common/form/BottomSheetFormFooter";
+import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import {CustomUser} from "@/src/types/User";
 
 export type ProfileFormSheetProps = {

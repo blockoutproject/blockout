@@ -2,13 +2,13 @@ import React from "react";
 import {StyleSheet, View} from "react-native";
 import {BannerAd, BannerAdSize,} from "react-native-google-mobile-ads";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import GradientBorderView from "@/src/components/common/GradientBorderView";
-import FadeIn from "@/src/components/common/animations/FadeIn";
-import {SECTION_SEPARATOR_HEIGHT} from "@/src/theme/globals";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import FadeIn from "@/src/shared/ui/animations/FadeIn";
+import {SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/globals";
 import {withAlpha} from "@/src/utils/utils";
 import MatchListAdHeader from "./MatchListAdHeader";
-import {ADS} from "@/src/config/ads";
+import {ADS} from "@/src/shared/config/ads";
 
 export type MatchListAdItemProps = {};
 

@@ -199,6 +199,23 @@
     boundaries, browser CORS, provider credentials, physical-device gaps, and the inherited audit findings are recorded
     in the mobile characterization document.
 
+- [x] **REF-029 — Establish the clean mobile architecture foundation**
+  - Keep Expo Router files limited to route registration, navigation, layouts, and top-level screen composition.
+  - Place route-owned screens under `modules/<feature>/ui` and place only proven cross-feature infrastructure under
+    `shared`.
+  - Isolate HTTP mechanics, configuration, providers, theme, reusable UI primitives, and cross-feature hooks without
+    changing feature behavior or transport models.
+  - Preserve every route, screen, API call, native adapter, local store, platform-specific implementation, and visible
+    behavior characterized by REF-028.
+  - Keep Android and iOS as the supported product surfaces and use Web only as a phone-sized local verification
+    surface. Do not introduce contract generation, new product behavior, GitFlow, CI, deployment, or production
+    changes.
+  - Evidence: all 14 product route files now delegate to feature-owned screens, while shared HTTP mechanics,
+    configuration, providers, theme, hooks, navigation, and UI primitives have explicit ownership. Nx typecheck, all 10
+    Jest characterization tests, and the Web, iOS, and Android Expo exports pass. Chrome at 390 x 844 preserves the
+    sign-in, guest onboarding, and search flow, including the already documented browser-only CORS failure.
+
 The Java and Python scraper refactors and their local persistence certification are complete.
-Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and production
-changes remain deferred.
+The mobile behavior baseline is complete and its clean handwritten architecture is the current work.
+Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and
+production changes remain deferred.

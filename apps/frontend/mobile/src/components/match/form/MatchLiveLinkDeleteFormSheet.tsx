@@ -2,11 +2,11 @@ import React, {forwardRef, useCallback, useRef, useState} from "react";
 import {BottomSheetFooterProps, BottomSheetModal} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
-import BottomSheetFormFooter from "@/src/components/common/form/BottomSheetFormFooter";
+import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
+import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import MatchLiveLinkDeleteForm from "@/src/components/match/form/MatchLiveLinkDeleteForm";
 import {MatchLiveLinkFormExternalState} from "@/src/components/match/form/MatchLiveLinkForm";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 
 export type MatchLiveLinkDeleteFormSheetProps = {
   matchId: number;

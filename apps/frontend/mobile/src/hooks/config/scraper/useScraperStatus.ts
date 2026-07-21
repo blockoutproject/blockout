@@ -1,6 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 import {ScraperStatus} from '@/src/types/ScraperStatus';
-import {useApis} from '@/src/context/ApiProvider';
+import {useApis} from '@/src/shared/providers/ApiProvider';
 
 export const useScraperStatuses = () => {
   const {mobile} = useApis();

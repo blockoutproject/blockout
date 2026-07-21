@@ -1,6 +1,6 @@
 import React, {forwardRef, useImperativeHandle, useRef} from "react";
 import {BottomSheetModal, BottomSheetView} from "@gorhom/bottom-sheet";
-import BottomSheetCustomModal from "../common/bottomSheet/BottomSheetCustomModal";
+import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
 import GuestUpsellCard from "./GuestUpsellCard";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 

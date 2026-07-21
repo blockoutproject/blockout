@@ -17,7 +17,7 @@ import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import {OnboardingStep} from "@/src/components/onboarding/steps";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import GradientButton from "../common/GradientButton";
+import GradientButton from "@/src/shared/ui/GradientButton";
 import {runOnJS, scheduleOnRN} from "react-native-worklets";
 
 const {width: SCREEN_W} = Dimensions.get("window");

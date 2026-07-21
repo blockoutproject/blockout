@@ -1,8 +1,8 @@
-import {CONFIG} from "@/src/config/config";
+import {CONFIG} from "@/src/shared/config/config";
 import {Club} from "../types/Club";
 import {CustomImage} from "../types/Common";
 import {appendJson} from "../utils/utils";
-import {BaseApi} from "./core/BaseApi";
+import {BaseApi} from "@/src/shared/api/BaseApi";
 
 export class ClubApi extends BaseApi {
   constructor() {

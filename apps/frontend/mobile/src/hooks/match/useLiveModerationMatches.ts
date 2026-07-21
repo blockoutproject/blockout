@@ -1,5 +1,5 @@
 import {useQuery} from "@tanstack/react-query";
-import {useApis} from "@/src/context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 import {EnrichedMatchLiveSummaryDTO, LiveLinkStatus} from "@/src/types/Match";
 
 export const useLiveModerationMatches = (status?: LiveLinkStatus | null) => {

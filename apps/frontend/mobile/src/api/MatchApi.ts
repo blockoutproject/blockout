@@ -1,4 +1,4 @@
-import {CONFIG} from "@/src/config/config";
+import {CONFIG} from "@/src/shared/config/config";
 import {
   EnrichedDayPageDTO,
   EnrichedMatchDTO,
@@ -10,7 +10,7 @@ import {
   MatchLiveLinkResponseDTO,
   MatchStatus,
 } from "@/src/types/Match";
-import {BaseApi} from "./core/BaseApi";
+import {BaseApi} from "@/src/shared/api/BaseApi";
 
 export class MatchApi extends BaseApi {
   constructor() {

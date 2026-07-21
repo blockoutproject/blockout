@@ -3,10 +3,10 @@ import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {EnrichedMatchLiveSummaryDTO, LiveLinkStatus,} from "@/src/types/Match";
-import MaskedImage from "@/src/components/common/images/MaskedImage";
-import GradientBorderView from "@/src/components/common/GradientBorderView";
+import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 
 type Props = {
   match: EnrichedMatchLiveSummaryDTO;

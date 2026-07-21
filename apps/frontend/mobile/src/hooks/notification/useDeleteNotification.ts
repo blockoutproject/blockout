@@ -1,6 +1,6 @@
 import {InfiniteData, useMutation, useQueryClient} from "@tanstack/react-query";
 import {EnrichedUserNotificationPage} from "@/src/types/Notification";
-import {useApis} from "@/src/context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 
 const NOTIFS_QK = (pageSize: number) => ["notifications", "enriched", `size:${pageSize}`] as const;
 

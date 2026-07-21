@@ -2,11 +2,11 @@ import React, {useState} from "react";
 import {ActivityIndicator, StyleSheet, View} from "react-native";
 import {BannerAd, BannerAdSize} from "react-native-google-mobile-ads";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import GradientBorderView from "@/src/components/common/GradientBorderView";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {withAlpha} from "@/src/utils/utils";
 import MatchAdHeader from "@/src/components/match/MatchAdHeader";
-import {ADS} from "@/src/config/ads";
+import {ADS} from "@/src/shared/config/ads";
 
 const MatchAdCard: React.FC = () => {
   const theme = useAppTheme();

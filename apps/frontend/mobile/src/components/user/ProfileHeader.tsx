@@ -1,17 +1,17 @@
 import React, {useCallback, useRef} from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {HEADER_HEIGHT} from "@/src/theme/globals";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {HEADER_HEIGHT} from "@/src/shared/theme/globals";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
-import BottomSheetCustomPage from "../common/bottomSheet/BottomSheetCustomPage";
+import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/BottomSheetCustomPage";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import MatchLiveModerationScreen from "../match/moderation/MatchLiveModerationScreen";
 import RawDivisionMappingScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
 import DivisionScreen from "../division/DivisionScreen";
 import AdminScreen from "../appStatus/AdminScreen";
-import {useSession} from "@/src/context/SessionProvider";
+import {useSession} from "@/src/shared/providers/SessionProvider";
 
 export type UserHeaderProps = {
   title: string;

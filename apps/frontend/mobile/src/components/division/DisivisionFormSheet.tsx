@@ -1,11 +1,11 @@
 import React, {forwardRef, useCallback, useRef, useState} from "react";
 import {BottomSheetFooterProps, BottomSheetModal} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
+import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
 import DivisionForm, {DivisionFormExternalState} from "@/src/components/division/DivisionForm";
-import BottomSheetFormFooter from "@/src/components/common/form/BottomSheetFormFooter";
+import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import {Division} from "@/src/types/Division";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 
 export type DivisionFormSheetProps = {
   division: Division | null;

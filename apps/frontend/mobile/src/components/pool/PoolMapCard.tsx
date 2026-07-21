@@ -15,9 +15,9 @@ import * as Haptics from "expo-haptics";
 
 import type {EnrichedPoolDTO} from "@/src/types/Pool";
 import type {TeamWithStats} from "@/src/types/Team";
-import {CONFIG} from "@/src/config/config";
+import {CONFIG} from "@/src/shared/config/config";
 import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 
 type Props = {
   enrichedPool: EnrichedPoolDTO;

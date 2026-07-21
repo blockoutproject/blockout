@@ -2,14 +2,14 @@ import React, {useCallback, useMemo, useRef, useState} from "react";
 import {ActivityIndicator, Keyboard, RefreshControl, StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useDivisions} from "@/src/hooks/config/division/useDivisions";
 import {Division} from "@/src/types/Division";
 import {Filter} from "@/src/types/Filter";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import DivisionItem from "@/src/components/division/DivisionItem";
-import SearchBar from "@/src/components/common/SearchBar";
-import Filters from "@/src/components/common/Filters";
+import SearchBar from "@/src/shared/ui/SearchBar";
+import Filters from "@/src/shared/ui/Filters";
 import DivisionFormSheet from "@/src/components/division/DisivisionFormSheet";
 import {FlashList} from "@shopify/flash-list";
 

@@ -3,16 +3,16 @@ import {LayoutChangeEvent, StyleSheet, View} from "react-native";
 import * as Haptics from "expo-haptics";
 
 import {EnrichedPoolDTO} from "@/src/types/Pool";
-import FollowButton from "@/src/components/common/follow/FollowButton";
-import FollowersCounter from "@/src/components/common/follow/FollowersCount";
+import FollowButton from "@/src/shared/ui/follow/FollowButton";
+import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
 import {usePoolFollowState} from "@/src/hooks/pool/usePoolFollowState";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
-import {LOGO_SIZE} from "@/src/theme/globals";
-import MaskedImage from "@/src/components/common/images/MaskedImage";
+import {LOGO_SIZE} from "@/src/shared/theme/globals";
+import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {computeBalancedRowsByCount, withAlpha} from "@/src/utils/utils";
-import {useSession} from "@/src/context/SessionProvider";
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
+import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import GuestPromptSheet, {GuestPromptSheetRef} from "../user/GuestPromptSheet.tsx";
 
 export type PoolProfileProps = {

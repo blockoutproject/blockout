@@ -1,9 +1,9 @@
 import {useCallback, useEffect} from "react";
 import {Platform, StatusBar} from "react-native";
 import {AdEventType, InterstitialAd} from "react-native-google-mobile-ads";
-import {ADS} from "@/src/config/ads";
+import {ADS} from "@/src/shared/config/ads";
 import {onAdsReady} from "./adsManager";
-import {usePurchases} from "@/src/context/PurchasesProvider";
+import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
 
 const CLICKS_BETWEEN_ADS = 10;
 

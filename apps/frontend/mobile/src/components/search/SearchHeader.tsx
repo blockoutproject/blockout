@@ -2,9 +2,9 @@ import React from "react";
 import {StyleSheet, View} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {HEADER_HEIGHT} from "@/src/theme/globals";
-import Filters from "@/src/components/common/Filters";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {HEADER_HEIGHT} from "@/src/shared/theme/globals";
+import Filters from "@/src/shared/ui/Filters";
 import {Filter} from "@/src/types/Filter";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 

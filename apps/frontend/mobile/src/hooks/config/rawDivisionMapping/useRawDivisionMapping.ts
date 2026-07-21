@@ -1,6 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 import {RawDivisionMapping} from '@/src/types/RawDivisionMapping';
-import {useApis} from '@/src/context/ApiProvider';
+import {useApis} from '@/src/shared/providers/ApiProvider';
 
 export const useRawDivisionMappings = (
   leagueCode?: string,

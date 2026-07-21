@@ -1,8 +1,8 @@
 import React from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {HEADER_HEIGHT} from "@/src/theme/globals";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {HEADER_HEIGHT} from "@/src/shared/theme/globals";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useRouter} from "expo-router";
 

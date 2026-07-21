@@ -1,8 +1,8 @@
 import React, {forwardRef, useCallback, useRef, useState} from "react";
 import {BottomSheetFooterProps, BottomSheetModal} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
-import BottomSheetFormFooter from "@/src/components/common/form/BottomSheetFormFooter";
+import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
+import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import ReportForm, {ReportFormExternalState} from "@/src/components/report/ReportForm";
 import {type ReportResult, ReportType} from "@/src/types/Report";
 

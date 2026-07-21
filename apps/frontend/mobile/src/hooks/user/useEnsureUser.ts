@@ -1,7 +1,7 @@
 import {useQuery} from "@tanstack/react-query";
 import type {CustomUser} from "@/src/types/User";
-import {useApis} from "@/src/context/ApiProvider";
-import {ApiError} from "@/src/api/core/ApiError";
+import {useApis} from "@/src/shared/providers/ApiProvider";
+import {ApiError} from "@/src/shared/api/ApiError";
 
 export const useEnsureUser = () => {
   const {mobile} = useApis();

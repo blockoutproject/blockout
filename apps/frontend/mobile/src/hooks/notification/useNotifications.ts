@@ -1,7 +1,7 @@
 import {useMemo} from "react";
 import {useInfiniteQuery} from "@tanstack/react-query";
 import {EnrichedUserNotification, EnrichedUserNotificationPage} from "@/src/types/Notification";
-import {useApis} from "@/src/context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 
 /**
  * Liste infinie des notifications utilisateur (enrichies via Mobile Gateway).

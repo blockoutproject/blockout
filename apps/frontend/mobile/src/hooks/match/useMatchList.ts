@@ -1,7 +1,7 @@
 import {useMemo} from "react";
 import {useInfiniteQuery} from "@tanstack/react-query";
 import {EnrichedDayMatchesDTO, MatchStatus} from "@/src/types/Match";
-import {useApis} from "@/src/context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 
 export const useMatchList = (
   status: MatchStatus,

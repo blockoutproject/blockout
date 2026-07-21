@@ -3,10 +3,10 @@ import {StyleSheet, Text, View} from "react-native";
 import {EnrichedMatchDTO, MatchStatus} from "@/src/types/Match";
 import {Division} from "@/src/types/Division";
 import {withAlpha} from "@/src/utils/utils";
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import MaskedImage from "../common/images/MaskedImage";
-import GradientBorderView from "../common/GradientBorderView";
-import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 
 export type MatchRowProps = {
   enrichedMatch: EnrichedMatchDTO;

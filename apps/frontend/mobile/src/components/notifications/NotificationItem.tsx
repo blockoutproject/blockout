@@ -1,9 +1,9 @@
 import React, {useCallback, useMemo} from "react";
 import {Image, Pressable, StyleSheet, Text, View} from "react-native";
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import FadeIn from "../common/animations/FadeIn";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import FadeIn from "@/src/shared/ui/animations/FadeIn";
 import {EnrichedUserNotification} from "@/src/types/Notification";
-import SwipeableRow from "../common/animations/SwipeableRow";
+import SwipeableRow from "@/src/shared/ui/animations/SwipeableRow";
 
 export type NotificationItemProps = {
   notification: EnrichedUserNotification;

@@ -4,16 +4,16 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useScraperStatuses} from "@/src/hooks/config/scraper/useScraperStatus";
 import {useAppStatus} from "@/src/hooks/config/app/useAppStatus";
-import {useApis} from "@/src/context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 import {ScraperStatus} from "@/src/types/ScraperStatus";
 
 import MaintenanceControlCard from "./MaintenanceControlCard";
 import ScraperControlCard from "./ScraperControlCard";
 import AppVersionControlCard from "./AppVersionControlCard";
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 const AdminScreen: React.FC = () => {
   const theme = useAppTheme();

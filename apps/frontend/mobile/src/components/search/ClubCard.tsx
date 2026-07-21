@@ -1,7 +1,7 @@
 import React from "react";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {ClubSearchDocDTO} from "@/src/types/Club";
-import EntityGradientCard from "../common/EntityGradientCard";
+import EntityGradientCard from "@/src/shared/ui/EntityGradientCard";
 import {withAlpha} from "@/src/utils/utils";
 
 export interface ClubCardProps {

@@ -1,9 +1,9 @@
 import React from "react";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {TeamSearchDocDTO} from "@/src/types/Team";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
 import {withAlpha} from "@/src/utils/utils";
-import EntityGradientCard, {EntityCardChip} from "../common/EntityGradientCard";
+import EntityGradientCard, {EntityCardChip} from "@/src/shared/ui/EntityGradientCard";
 import {EnumFormat, FormatLabels} from "@/src/types/enums/Format";
 
 export interface TeamCardProps {

@@ -4,7 +4,7 @@ import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import {DevicePlatform, RegisterPushTokenRequest} from "../types/Notification";
 import * as Linking from "expo-linking";
-import {useApis} from "../context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

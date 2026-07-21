@@ -1,6 +1,6 @@
-import {CONFIG} from "@/src/config/config";
+import {CONFIG} from "@/src/shared/config/config";
 import {EnrichedUserNotificationPage, RegisterPushTokenRequest, UnreadCount} from "@/src/types/Notification";
-import {BaseApi} from "./core/BaseApi";
+import {BaseApi} from "@/src/shared/api/BaseApi";
 
 export class NotificationApi extends BaseApi {
   constructor() {

@@ -1,8 +1,8 @@
 import React from "react";
 import {Pressable, StyleSheet, StyleSheet as RNStyleSheet, Text, View} from "react-native";
 
-import GradientBorderView from "@/src/components/common/GradientBorderView";
-import MaskedImage from "../common/images/MaskedImage";
+import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {withAlpha} from "@/src/utils/utils";
 import MiniStat from "./MiniStat";
 import Medal from "./Medal";

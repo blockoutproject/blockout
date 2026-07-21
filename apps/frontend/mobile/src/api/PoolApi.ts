@@ -1,6 +1,6 @@
-import {CONFIG} from "@/src/config/config";
+import {CONFIG} from "@/src/shared/config/config";
 import {EnrichedPoolDTO, Pool, PoolSummaryDTO} from "@/src/types/Pool";
-import {BaseApi} from "./core/BaseApi";
+import {BaseApi} from "@/src/shared/api/BaseApi";
 
 export class PoolApi extends BaseApi {
   constructor() {

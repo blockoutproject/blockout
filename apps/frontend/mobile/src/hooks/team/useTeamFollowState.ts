@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useState} from "react";
 import {EntityType} from "@/src/types/User";
 import {EnrichedTeamDTO} from "@/src/types/Team";
-import {useSession} from "@/src/context/SessionProvider";
+import {useSession} from "@/src/shared/providers/SessionProvider";
 import {useQueryClient} from "@tanstack/react-query";
-import {useApis} from "@/src/context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 
 export function useTeamFollowState(enrichedTeam: EnrichedTeamDTO) {
   const {customUser, refetch} = useSession();

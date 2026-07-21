@@ -1,8 +1,8 @@
-import {CONFIG} from "@/src/config/config";
+import {CONFIG} from "@/src/shared/config/config";
 import {EnrichedTeamDTO, Team, TeamSummaryDTO} from "@/src/types/Team";
 import {CustomImage} from "../types/Common";
 import {appendJson} from "../utils/utils";
-import {BaseApi} from "./core/BaseApi";
+import {BaseApi} from "@/src/shared/api/BaseApi";
 
 export class TeamApi extends BaseApi {
   constructor() {

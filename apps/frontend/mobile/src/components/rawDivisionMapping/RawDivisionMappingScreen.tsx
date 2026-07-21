@@ -3,14 +3,14 @@ import {ActivityIndicator, Keyboard, RefreshControl, StyleSheet, Text, View} fro
 import {FlatList} from "react-native-gesture-handler";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useRawDivisionMappings} from "@/src/hooks/config/rawDivisionMapping/useRawDivisionMapping";
 import {RawDivisionMapping} from "@/src/types/RawDivisionMapping";
 import {Filter} from "@/src/types/Filter";
-import Filters from "@/src/components/common/Filters";
+import Filters from "@/src/shared/ui/Filters";
 import RawDivisionMappingItem from "@/src/components/rawDivisionMapping/RawDivisionMappingItem";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
-import SearchBar from "@/src/components/common/SearchBar";
+import SearchBar from "@/src/shared/ui/SearchBar";
 import RawDivisionMappingFormSheet from "@/src/components/rawDivisionMapping/RawDivisionMappingFormSheet";
 
 type FilterName = string;

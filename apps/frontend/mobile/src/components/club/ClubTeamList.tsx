@@ -4,10 +4,10 @@ import * as Haptics from "expo-haptics";
 import {useRouter} from "expo-router";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT} from "@/src/theme/globals";
-import ErrorState from "@/src/components/common/feedback/ErrorState";
+import {BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import FollowedListSkeleton from "@/src/components/followed/FollowedListSkeleton";
-import EmptyState from "@/src/components/common/feedback/EmptyState";
+import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 
 import TeamCard from "@/src/components/teamList/TeamListCard";
 import {TeamSummaryDTO} from "@/src/types/Team";

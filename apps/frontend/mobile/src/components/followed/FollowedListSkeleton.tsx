@@ -1,6 +1,6 @@
 import React from "react";
 import {StyleSheet, View} from "react-native";
-import {Skeleton} from "@/src/components/common/Skeleton";
+import {Skeleton} from "@/src/shared/ui/Skeleton";
 
 const FollowedListSkeleton: React.FC = () => {
   return (

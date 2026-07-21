@@ -1,11 +1,11 @@
 import React, {useMemo} from "react";
 import {StyleSheet, View} from "react-native";
-import Hero from "@/src/components/common/Hero";
+import Hero from "@/src/shared/ui/Hero";
 import type {CustomUser} from "@/src/types/User";
-import {usePurchases} from "@/src/context/PurchasesProvider";
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
-import {GOLD_GRADIENT} from "@/src/components/common/GradientButton";
+import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {GOLD_GRADIENT} from "@/src/shared/ui/GradientButton";
 
 export type UserHeroProps = {
   user: CustomUser;

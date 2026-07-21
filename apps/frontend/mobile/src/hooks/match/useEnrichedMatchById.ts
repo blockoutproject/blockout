@@ -1,5 +1,5 @@
-import {useApis} from "@/src/context/ApiProvider";
-import {useEntityById} from "../utils/useEntityById";
+import {useApis} from "@/src/shared/providers/ApiProvider";
+import {useEntityById} from "@/src/shared/hooks/useEntityById";
 import {EnrichedMatchDTO} from "@/src/types/Match";
 
 export const useEnrichedMatchById = (id?: number) => {

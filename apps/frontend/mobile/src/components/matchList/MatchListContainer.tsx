@@ -6,14 +6,14 @@ import {FlashList, FlashListRef, ListRenderItemInfo} from "@shopify/flash-list";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {EnrichedDayMatchesDTO, EnrichedPoolMatchesDTO, MatchStatus,} from "@/src/types/Match";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useMatchList} from "@/src/hooks/match/useMatchList";
 import {formatDateFrenchLocale} from "@/src/utils/utils";
 import SectionDateHeader from "./SectionDateHeader";
 import PoolItem from "./PoolItem";
-import EmptyState from "../common/feedback/EmptyState";
-import ErrorState from "../common/feedback/ErrorState";
-import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/theme/globals";
+import EmptyState from "@/src/shared/ui/feedback/EmptyState";
+import ErrorState from "@/src/shared/ui/feedback/ErrorState";
+import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/globals";
 // import MatchListAdItem from "./MatchListAdItem";
 import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 

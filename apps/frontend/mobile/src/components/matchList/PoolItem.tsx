@@ -3,11 +3,11 @@ import {StyleSheet, TouchableOpacity, View} from "react-native";
 import * as Haptics from "expo-haptics";
 
 import {EnrichedPoolMatchesDTO} from "@/src/types/Match";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import MatchRow from "./MatchRow";
-import GradientBorderView from "@/src/components/common/GradientBorderView";
-import FadeIn from "../common/animations/FadeIn";
-import {SECTION_SEPARATOR_HEIGHT} from "@/src/theme/globals";
+import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import FadeIn from "@/src/shared/ui/animations/FadeIn";
+import {SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/globals";
 import {useMappingHelper} from "@shopify/flash-list";
 import RankingHeader from "../ranking/RankingHeader";
 import {useRouter} from "expo-router";

@@ -1,6 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 import {Division} from '@/src/types/Division';
-import {useApis} from '@/src/context/ApiProvider';
+import {useApis} from '@/src/shared/providers/ApiProvider';
 
 export const useDivisions = () => {
   const {mobile} = useApis();

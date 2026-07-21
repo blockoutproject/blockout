@@ -1,9 +1,9 @@
 import React, {useMemo} from "react";
 import {StyleSheet, View} from "react-native";
 
-import Filters from "@/src/components/common/Filters";
+import Filters from "@/src/shared/ui/Filters";
 import {Filter} from "@/src/types/Filter";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 
 type Props = {
   filters: Filter[];

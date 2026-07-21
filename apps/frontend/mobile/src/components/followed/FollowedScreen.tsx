@@ -1,13 +1,13 @@
 import React, {useCallback, useMemo, useState,} from "react";
 import {StyleSheet, View} from "react-native";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {Filter} from "@/src/types/Filter";
 import FollowedTeamsList from "./FollowedTeamsList";
 import FollowedPoolsList from "./FollowedPoolsList";
 import FollowedListHeader from "./FollowedListHeader";
-import {SelectOption} from "@/src/components/common/form/SelectSheet";
-import SeasonSelect from "../common/form/SeasonSelect";
+import {SelectOption} from "@/src/shared/ui/form/SelectSheet";
+import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
 
 export type FollowedScreenListProps = {
   poolIds?: number[];

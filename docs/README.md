@@ -3,6 +3,7 @@
 - [Bootstrap design](current/blockout-clean-bootstrap-design.md)
 - [Refactor direction](current/refactor-direction.md)
 - [Mobile application characterization](current/mobile-characterization.md)
+- [Mobile architecture](current/mobile-architecture.md)
 - [Scraper functional validation](current/scraper-functional-validation.md)
 - [Source baseline](current/source-baseline.md)
 - [Roadmap](current/roadmap.md)

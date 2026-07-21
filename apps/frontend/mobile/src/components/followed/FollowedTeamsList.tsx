@@ -6,9 +6,9 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {useFollowedTeamList} from "@/src/hooks/team/useFollowedTeamList";
 import FollowedTeamCard from "./FollowedTeamCard";
-import {BOTTOM_TABBAR_HEIGHT} from "@/src/theme/globals";
-import EmptyState from "@/src/components/common/feedback/EmptyState";
-import ErrorState from "@/src/components/common/feedback/ErrorState";
+import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import EmptyState from "@/src/shared/ui/feedback/EmptyState";
+import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import FollowedListSkeleton from "./FollowedListSkeleton";
 import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 

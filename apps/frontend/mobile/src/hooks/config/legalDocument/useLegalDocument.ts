@@ -1,6 +1,6 @@
 import {useQuery} from "@tanstack/react-query";
 import {LegalDocument, LegalDocumentType} from "@/src/types/LegalDocument";
-import {useApis} from "@/src/context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 
 export const useLegalDocument = (type: LegalDocumentType) => {
   const {mobile} = useApis();

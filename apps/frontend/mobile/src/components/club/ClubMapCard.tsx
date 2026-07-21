@@ -10,8 +10,8 @@ import {
   SymbolLayer,
 } from "@maplibre/maplibre-react-native";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {CONFIG} from "@/src/config/config";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {CONFIG} from "@/src/shared/config/config";
 import type {Club} from "@/src/types/Club";
 
 const RADIUS = 18;

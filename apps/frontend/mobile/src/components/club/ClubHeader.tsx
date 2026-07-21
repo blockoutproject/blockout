@@ -3,9 +3,9 @@ import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {HEADER_HEIGHT} from "@/src/theme/globals";
-import {useBackOrClose} from "@/src/hooks/utils/useBackOrClose";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {HEADER_HEIGHT} from "@/src/shared/theme/globals";
+import {useBackOrClose} from "@/src/shared/hooks/useBackOrClose";
 
 /** Header for club screen with back/close and report. */
 export type ClubHeaderProps = {

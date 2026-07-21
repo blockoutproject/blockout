@@ -1,8 +1,8 @@
 import React from "react";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {PoolSearchDocDTO} from "@/src/types/Pool";
 import {isRegional, withAlpha} from "@/src/utils/utils";
-import EntityGradientCard, {EntityCardChip} from "../common/EntityGradientCard";
+import EntityGradientCard, {EntityCardChip} from "@/src/shared/ui/EntityGradientCard";
 import {EnumFormat, FormatLabels} from "@/src/types/enums/Format";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
 

@@ -7,8 +7,8 @@ import {SearchApi} from "./SearchApi";
 import {NotificationApi} from "./NotificationApi";
 import {ConfigApi} from "./ConfigApi";
 import {ReportApi} from "./ReportApi";
-import {TokenSupplier} from "@/src/api/core/HttpClient";
-import {ApiError} from "@/src/api/core/ApiError";
+import {TokenSupplier} from "@/src/shared/api/HttpClient";
+import {ApiError} from "@/src/shared/api/ApiError";
 
 export class MobileGatewayApi {
   public clubs: ClubApi;

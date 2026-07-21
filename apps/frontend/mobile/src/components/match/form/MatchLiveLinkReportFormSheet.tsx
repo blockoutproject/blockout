@@ -1,12 +1,12 @@
 import React, {forwardRef, useCallback, useRef, useState} from "react";
 import {BottomSheetFooterProps, BottomSheetModal} from "@gorhom/bottom-sheet";
 
-import BottomSheetCustomModal from "@/src/components/common/bottomSheet/BottomSheetCustomModal";
-import BottomSheetFormFooter from "@/src/components/common/form/BottomSheetFormFooter";
+import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
+import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import MatchLiveLinkReportForm, {
   MatchLiveLinkReportFormExternalState,
 } from "@/src/components/match/form/MatchLiveLinkReportForm";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 
 export type MatchLiveLinkReportSheetProps = {
   matchId: number;

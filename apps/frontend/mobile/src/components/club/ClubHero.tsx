@@ -1,9 +1,9 @@
 import React, {useMemo} from "react";
 
 import type {Club} from "@/src/types/Club";
-import Hero from "../common/Hero";
-import SeasonSelect from "@/src/components/common/form/SeasonSelect";
-import {SelectOption} from "@/src/components/common/form/SelectSheet";
+import Hero from "@/src/shared/ui/Hero";
+import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
+import {SelectOption} from "@/src/shared/ui/form/SelectSheet";
 
 export type ClubHeroProps = {
   club: Club;

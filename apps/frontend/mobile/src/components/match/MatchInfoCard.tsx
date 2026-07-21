@@ -1,10 +1,10 @@
 import React, {useCallback} from "react";
 import {StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import GradientBorderView from "@/src/components/common/GradientBorderView";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {type EnrichedMatchDTO, MatchStatus} from "@/src/types/Match";
-import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
+import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import {useRouter} from "expo-router";
 import {openPdf} from "@/src/utils/openPdf";
 import {isLNV} from "@/src/utils/utils";

@@ -2,13 +2,13 @@ import React, {useMemo} from "react";
 import {Animated} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import GenericTabView from "@/src/components/common/GenericTabView";
+import GenericTabView from "@/src/shared/ui/GenericTabView";
 import MatchList from "@/src/components/matchList/MatchListContainer";
 import RankingTab from "@/src/components/ranking/RankingTab";
 
 import {MatchStatus} from "@/src/types/Match";
 import {EnrichedTeamDTO} from "@/src/types/Team";
-import {TABBAR_HEIGHT} from "@/src/theme/globals";
+import {TABBAR_HEIGHT} from "@/src/shared/theme/globals";
 
 /** Tabs for team: Upcoming / Finished / Pools-as-ranking. */
 export type TeamTabsProps = {

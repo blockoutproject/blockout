@@ -2,9 +2,9 @@ import React, {useMemo} from "react";
 import {ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View,} from "react-native";
 import {Image} from "expo-image";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import Field from "@/src/components/common/form/Field";
-import SheetTextInput from "@/src/components/common/form/SheetTextInput";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import Field from "@/src/shared/ui/form/Field";
+import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 
 type Props = {
   maintenanceEnabled: boolean;

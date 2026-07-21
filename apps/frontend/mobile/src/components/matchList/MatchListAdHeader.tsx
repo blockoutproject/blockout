@@ -4,7 +4,7 @@ import {Ionicons} from "@expo/vector-icons";
 import {Image} from "expo-image";
 import {LinearGradient} from "expo-linear-gradient";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {withAlpha} from "@/src/utils/utils";
 
 const MatchListAdHeader: React.FC = () => {

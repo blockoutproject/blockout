@@ -4,14 +4,14 @@ import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 
-import GradientBorderView from "@/src/components/common/GradientBorderView";
-import InfoPillGradient from "@/src/components/common/chips/InfoPillGradient";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {EnrichedMatchDTO, LiveProvider, MatchStatus, PROVIDER_LABELS,} from "@/src/types/Match";
 import MatchLiveLinkReportFormSheet from "@/src/components/match/form/MatchLiveLinkReportFormSheet";
 import MatchLiveLinkFormSheet from "./form/MatchLiveLinkFormSheet";
 import MatchLiveLinkDeleteFormSheet from "./form/MatchLiveLinkDeleteFormSheet";
-import {useSession} from "@/src/context/SessionProvider";
+import {useSession} from "@/src/shared/providers/SessionProvider";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import {useWebLinkInterstitial} from "@/src/hooks/ads/useWebLinkInterstitial";
 

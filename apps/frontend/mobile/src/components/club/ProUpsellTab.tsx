@@ -6,13 +6,13 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {LinearGradient} from "expo-linear-gradient";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {usePurchases} from "@/src/context/PurchasesProvider";
-import {useSession} from "@/src/context/SessionProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
+import {useSession} from "@/src/shared/providers/SessionProvider";
 import {withAlpha} from "@/src/utils/utils";
-import MaskedImage from "@/src/components/common/images/MaskedImage";
-import GradientButton, {GOLD_GRADIENT} from "@/src/components/common/GradientButton";
-import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT,} from "@/src/theme/globals";
+import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+import GradientButton, {GOLD_GRADIENT} from "@/src/shared/ui/GradientButton";
+import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT,} from "@/src/shared/theme/globals";
 
 type Props = {
   subtitle?: string;

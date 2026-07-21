@@ -1,7 +1,7 @@
 import {useMemo} from "react";
 import {useQuery} from "@tanstack/react-query";
 import {PoolSummaryDTO} from "@/src/types/Pool";
-import {useApis} from "@/src/context/ApiProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 
 /**
  * Hook pour récupérer les équipes suivies par l'utilisateur.

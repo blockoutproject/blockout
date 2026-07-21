@@ -2,7 +2,7 @@ import React from "react";
 import {Pressable, StyleSheet, Text, View} from "react-native";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {withAlpha} from "@/src/utils/utils";
 
 /** Single info row for club details. */

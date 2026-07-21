@@ -6,10 +6,10 @@ import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {useApis} from "@/src/context/ApiProvider";
-import FormCard from "@/src/components/common/form/FormCard";
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useApis} from "@/src/shared/providers/ApiProvider";
+import FormCard from "@/src/shared/ui/form/FormCard";
+import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import {getLiveLinkErrorMessage, MatchLiveLinkFormExternalState,} from "./MatchLiveLinkForm";
 
 export type MatchLiveLinkDeleteFormProps = {

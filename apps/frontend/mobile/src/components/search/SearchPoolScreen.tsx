@@ -4,7 +4,7 @@ import PoolCard from "@/src/components/search/PoolCard";
 import {useRouter} from "expo-router";
 import * as Haptics from "expo-haptics";
 import {GenericSearchScreen} from "./GenericSearchScreen";
-import {SelectOption} from "@/src/components/common/form/SelectSheet";
+import {SelectOption} from "@/src/shared/ui/form/SelectSheet";
 import {useDivisions} from "@/src/hooks/config/division/useDivisions";
 import {EnumFormat} from "@/src/types/enums/Format";
 import {EnumGender} from "@/src/types/enums/Gender";

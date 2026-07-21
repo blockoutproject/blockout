@@ -1,6 +1,6 @@
 import React from "react";
 import {StyleSheet, View} from "react-native";
-import {Skeleton} from "@/src/components/common/Skeleton";
+import {Skeleton} from "@/src/shared/ui/Skeleton";
 
 /** Skeleton for club screen while loading. */
 const ClubSkeleton: React.FC = () => {

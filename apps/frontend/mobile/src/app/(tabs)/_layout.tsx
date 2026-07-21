@@ -3,10 +3,10 @@ import {Tabs} from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {Image} from "expo-image";
 import {StyleSheet} from "react-native";
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {useSession} from "@/src/context/SessionProvider";
-import {TABBAR_ICON_SIZE} from "@/src/theme/globals";
-import TabBar from "@/src/components/navigation/TabBar";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useSession} from "@/src/shared/providers/SessionProvider";
+import {TABBAR_ICON_SIZE} from "@/src/shared/theme/globals";
+import TabBar from "@/src/shared/ui/navigation/TabBar";
 import {withAlpha} from "@/src/utils/utils";
 
 export default function TabLayout() {

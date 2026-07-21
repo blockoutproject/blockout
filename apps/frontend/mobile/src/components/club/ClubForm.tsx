@@ -9,16 +9,16 @@ import * as ImageManipulator from "expo-image-manipulator";
 import {Image} from "expo-image";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import type {Club} from "@/src/types/Club";
-import {CORNERS} from "@/src/theme/globals";
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import {CORNERS} from "@/src/shared/theme/globals";
+import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
-import FormCard from "@/src/components/common/form/FormCard";
-import SheetTextInput from "@/src/components/common/form/SheetTextInput";
-import {useApis} from "@/src/context/ApiProvider";
+import FormCard from "@/src/shared/ui/form/FormCard";
+import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 import {CustomImage} from "@/src/types/Common";
-import Field from "../common/form/Field";
+import Field from "@/src/shared/ui/form/Field";
 
 export type ClubFormExternalState = {
   loading: boolean;

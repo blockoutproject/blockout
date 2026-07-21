@@ -5,17 +5,17 @@ import {NavigationState, Route, SceneRendererProps, TabBar,} from "react-native-
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {LinearGradient} from "expo-linear-gradient";
 import {BlurView} from "expo-blur";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import * as Haptics from "expo-haptics";
-import {APP_TITLE, LOGO_HEIGHT, TABBAR_HEIGHT} from "@/src/theme/globals";
+import {APP_TITLE, LOGO_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/globals";
 import {withAlpha} from "@/src/utils/utils";
-import {useSession} from "@/src/context/SessionProvider";
-import {CONFIG} from "@/src/config/config";
+import {useSession} from "@/src/shared/providers/SessionProvider";
+import {CONFIG} from "@/src/shared/config/config";
 import RevenueCatUI from "react-native-purchases-ui";
-import InfoPillGradient from "../common/chips/InfoPillGradient";
-import {usePurchases} from "@/src/context/PurchasesProvider";
-import {GOLD_GRADIENT} from "../common/GradientButton";
-import MaskedImage from "@/src/components/common/images/MaskedImage";
+import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
+import {GOLD_GRADIENT} from "@/src/shared/ui/GradientButton";
+import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 
 type HeaderProps = SceneRendererProps & {
   navigationState: NavigationState<Route>;

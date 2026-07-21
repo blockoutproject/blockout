@@ -9,16 +9,16 @@ import * as ImageManipulator from "expo-image-manipulator";
 import {Image} from "expo-image";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import type {EnrichedTeamDTO, Team} from "@/src/types/Team";
-import {CORNERS} from "@/src/theme/globals";
-import ApiErrorToast from "@/src/components/common/feedback/ApiErrorToast";
+import {CORNERS} from "@/src/shared/theme/globals";
+import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
-import FormCard from "@/src/components/common/form/FormCard";
-import Field from "@/src/components/common/form/Field";
-import {useApis} from "@/src/context/ApiProvider";
+import FormCard from "@/src/shared/ui/form/FormCard";
+import Field from "@/src/shared/ui/form/Field";
+import {useApis} from "@/src/shared/providers/ApiProvider";
 import {CustomImage} from "@/src/types/Common";
-import SheetTextInput from "../common/form/SheetTextInput";
+import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 
 export type TeamFormExternalState = {
   loading: boolean;

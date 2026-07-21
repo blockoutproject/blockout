@@ -1,4 +1,4 @@
-import {CONFIG} from "@/src/config/config";
+import {CONFIG} from "@/src/shared/config/config";
 import {Division} from "../types/Division";
 import {RawDivisionMapping} from "../types/RawDivisionMapping";
 import {ScraperStatus} from "../types/ScraperStatus";
@@ -6,7 +6,7 @@ import {LegalDocument} from "../types/LegalDocument";
 import {AppStatusDTO, AppStatusUpdateDTO} from "../types/AppStatus";
 import {CustomImage} from "../types/Common";
 import {appendJson} from "../utils/utils";
-import {BaseApi} from "./core/BaseApi";
+import {BaseApi} from "@/src/shared/api/BaseApi";
 
 export class ConfigApi extends BaseApi {
   constructor() {

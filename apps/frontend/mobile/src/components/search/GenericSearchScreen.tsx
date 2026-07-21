@@ -11,19 +11,19 @@ import {
   Text,
   View,
 } from "react-native";
-import {useAppTheme} from "@/src/context/ThemeProvider";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import SearchBar from "@/src/components/common/SearchBar";
-import ErrorState from "@/src/components/common/feedback/ErrorState";
-import {BOTTOM_TABBAR_HEIGHT} from "@/src/theme/globals";
-import InfoPillGradient from "../common/chips/InfoPillGradient";
-import {CTA_GRADIENT} from "../common/GradientButton";
-import FadeIn from "../common/animations/FadeIn";
-import SeasonSelect from "@/src/components/common/form/SeasonSelect";
-import DivisionSelect from "@/src/components/common/form/DivisionSelect";
-import FormatSelect from "@/src/components/common/form/FormatSelect";
-import GenderSelect from "@/src/components/common/form/GenderSelect";
-import {SelectOption} from "@/src/components/common/form/SelectSheet";
+import SearchBar from "@/src/shared/ui/SearchBar";
+import ErrorState from "@/src/shared/ui/feedback/ErrorState";
+import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {CTA_GRADIENT} from "@/src/shared/ui/GradientButton";
+import FadeIn from "@/src/shared/ui/animations/FadeIn";
+import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
+import DivisionSelect from "@/src/shared/ui/form/DivisionSelect";
+import FormatSelect from "@/src/shared/ui/form/FormatSelect";
+import GenderSelect from "@/src/shared/ui/form/GenderSelect";
+import {SelectOption} from "@/src/shared/ui/form/SelectSheet";
 import {EnumFormat} from "@/src/types/enums/Format";
 import {EnumGender} from "@/src/types/enums/Gender";
 

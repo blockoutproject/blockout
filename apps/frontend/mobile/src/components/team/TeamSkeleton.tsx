@@ -1,7 +1,7 @@
 import React from "react";
 import {StyleSheet, View} from "react-native";
-import {useAppTheme} from "@/src/context/ThemeProvider";
-import {Skeleton} from "@/src/components/common/Skeleton";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {Skeleton} from "@/src/shared/ui/Skeleton";
 
 /** Skeleton for team profile. */
 const TeamSkeleton: React.FC = () => {
