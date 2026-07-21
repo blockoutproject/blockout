@@ -259,17 +259,34 @@
     debug assembly, and an unsigned iOS Simulator build pass. The production audit has no high or critical finding;
     only proven-unused native packages were removed.
 
-- [ ] **REF-034 — Stabilize mobile session and network state**
+- [ ] **REF-034 — Upgrade the mobile application to Expo SDK 55**
+  - Upgrade Expo through the `@nx/expo` inferred install target, keeping Nx as the thin project and task orchestrator
+    while Expo remains authoritative for SDK-compatible React, React Native, Metro, autolinking, and native packages.
+  - Adopt the stable Expo 55 dependency set and React Native 0.83 without changing application behavior, opting into
+    Hermes v1, or performing unrelated mobile cleanup. Keep every directly used native dependency owned by the mobile
+    application and prove that each provider library supports the New Architecture required by SDK 55.
+  - Keep Metro on Expo's default monorepo-aware configuration and do not restore `withNxMetro`. Remove the SDK 54-only
+    explicit autolinking experiment and the default-only Metro file when Expo 55 makes them redundant and all checks
+    still pass.
+  - Preserve the existing Nx Expo plugin and its inferred start, install, prebuild, export, and native run targets;
+    verify the project configuration and dependency graph after the upgrade instead of duplicating those commands in
+    `project.json`.
+  - Require a clean install, Expo dependency check, all Expo Doctor checks, one native dependency tree, lint,
+    typecheck, all mobile tests, Web export, a clean prebuild, Android and iOS builds, and simulator startup evidence.
+    Leave REF-034 unchecked if any Auth0, notifications, maps, ads, purchases, updates, or navigation boundary cannot be
+    certified without a behavior workaround.
+
+- [ ] **REF-035 — Stabilize mobile session and network state**
   - Separate stable session actions from changing state, establish React Query mobile lifecycle defaults, and remove
     duplicate local ownership of server facts.
   - Validate required configuration at startup while preserving Auth0, guest, maintenance, and update behavior.
 
-- [ ] **REF-035 — Complete feature-owned mobile slices**
+- [ ] **REF-036 — Complete feature-owned mobile slices**
   - Move one coherent feature at a time from legacy root folders into its module and shared boundaries.
   - Unify theme ownership and improve measured list, image, accessibility, naming, and component-composition issues
     without a mass rewrite or premature native-control replacement.
 
-- [ ] **REF-036 — Certify the cleaned mobile application**
+- [ ] **REF-037 — Certify the cleaned mobile application**
   - Run the complete static, test, Web phone-size, simulator, and available physical-device/provider verification matrix.
   - Record external evidence gaps explicitly; never add an authentication or provider bypass to close them.
 
