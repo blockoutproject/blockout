@@ -6,7 +6,7 @@ import {useLocalSearchParams, useRouter} from "expo-router";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useClubById} from "@/src/hooks/club/useClubById";
-import {useTeamListByClubId} from "@/src/hooks/team/useTeamListByClubId";
+import {useTeamListByClubId} from "@/src/modules/team/hooks/useTeamListByClubId";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 
@@ -20,7 +20,7 @@ import {ReportType} from "@/src/modules/report/model/Report";
 
 import ClubProfile from "@/src/components/club/ClubProfile";
 import ClubTabs from "@/src/components/club/ClubTabs";
-import {TeamSummaryDTO} from "@/src/types/Team";
+import type {TeamSummaryResponse} from "@/src/modules/team/model/Team";
 import {SelectOption} from "@/src/shared/ui/form/SelectSheet";
 
 const ClubScreen: React.FC = () => {
@@ -77,7 +77,7 @@ const ClubScreen: React.FC = () => {
     [availableSeasons]
   );
 
-  const filteredTeams: TeamSummaryDTO[] = useMemo(() => {
+  const filteredTeams: TeamSummaryResponse[] = useMemo(() => {
     const all = teams ?? [];
     if (!selectedSeason) return all;
     return all.filter((t) => t.season === selectedSeason);

@@ -1,25 +1,25 @@
-import React, {useCallback, useMemo, useRef} from "react";
-import {StyleSheet, View} from "react-native";
-import {BottomSheetModal} from "@gorhom/bottom-sheet";
-import {useLocalSearchParams} from "expo-router";
+import React, { useCallback, useMemo, useRef } from "react";
+import { StyleSheet, View } from "react-native";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
-import {useEnrichedTeamById} from "@/src/hooks/team/useEnrichedTeamById";
-import TeamSkeleton from "@/src/components/team/TeamSkeleton";
-import TeamProfile from "@/src/components/team/TeamProfile";
-import TeamTabs from "@/src/components/team/TeamTabs";
+import { useTeamById } from "@/src/modules/team/hooks/useTeamById";
+import TeamProfile from "@/src/modules/team/ui/TeamProfile";
+import TeamTabs from "@/src/modules/team/ui/TeamTabs";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import TeamHeader from "@/src/components/team/TeamHeader";
-import {ReportType} from "@/src/modules/report/model/Report";
+import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import EntityScreenHeader from "@/src/shared/ui/entity/EntityScreenHeader";
+import EntityScreenSkeleton from "@/src/shared/ui/entity/EntityScreenSkeleton";
+import { ReportType } from "@/src/modules/report/model/Report";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
-import TeamFormSheet from "@/src/components/team/TeamFormSheet";
+import TeamFormSheet from "@/src/modules/team/ui/TeamFormSheet";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 
 const TeamScreen: React.FC = () => {
   const theme = useAppTheme();
-  const {id} = useLocalSearchParams();
-  const {data: team, isLoading, error, refetch} = useEnrichedTeamById(Number(id));
-  const {allowed: canUpdateTeam} = useHasScopes(["update:teams"]);
+  const { id } = useLocalSearchParams();
+  const { data: team, isLoading, error, refetch } = useTeamById(Number(id));
+  const { allowed: canUpdateTeam } = useHasScopes(["update:teams"]);
 
   const formSheetRef = useRef<BottomSheetModal>(null);
   const reportSheetRef = useRef<BottomSheetModal>(null);
@@ -37,9 +37,7 @@ const TeamScreen: React.FC = () => {
 
   const body = useMemo(() => {
     if (isLoading) {
-      return (
-        <TeamSkeleton/>
-      );
+      return <EntityScreenSkeleton testID="team-loading" />;
     }
     if (error) {
       return (
@@ -47,6 +45,8 @@ const TeamScreen: React.FC = () => {
           subtitle="Impossible de charger l'équipe."
           onRetry={refetch}
           paddingTop={"40%"}
+          testID="team-error"
+          retryTestID="team-retry-action"
         />
       );
     }
@@ -56,13 +56,15 @@ const TeamScreen: React.FC = () => {
           subtitle="Cette équipe est introuvable."
           onRetry={refetch}
           paddingTop={"40%"}
+          testID="team-not-found"
+          retryTestID="team-not-found-retry-action"
         />
       );
     }
     return (
       <>
-        <TeamProfile enrichedTeam={team}/>
-        <TeamTabs enrichedTeam={team}/>
+        <TeamProfile enrichedTeam={team} />
+        <TeamTabs enrichedTeam={team} />
         <TeamFormSheet
           ref={formSheetRef}
           team={team}
@@ -87,10 +89,14 @@ const TeamScreen: React.FC = () => {
       ]}
       testID="team-screen"
     >
-      <TeamHeader
+      <EntityScreenHeader
         title={team?.name}
         onOpenReport={handleOpenReport}
         onEdit={canUpdateTeam ? openForm : undefined}
+        testID="team-header"
+        backActionTestID="team-back-action"
+        editActionTestID="team-edit-action"
+        reportActionTestID="team-report-action"
       />
 
       {body}
@@ -99,7 +105,7 @@ const TeamScreen: React.FC = () => {
         ref={reportSheetRef}
         context={{
           screen: `Team#${team?.id}#${team?.name}`,
-          defaultType: ReportType.DISPLAY_BUG
+          defaultType: ReportType.DISPLAY_BUG,
         }}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();

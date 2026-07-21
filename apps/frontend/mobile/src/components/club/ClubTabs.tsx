@@ -9,7 +9,7 @@ import ClubTeamListTab from "./ClubTeamListTab";
 import ProUpsellTab from "./ProUpsellTab";
 
 import {Club} from "@/src/types/Club";
-import {TeamSummaryDTO} from "@/src/types/Team";
+import type {TeamSummaryResponse} from "@/src/modules/team/model/Team";
 import {MatchStatus} from "@/src/types/Match";
 import {TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
@@ -17,7 +17,7 @@ import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
 type ClubTabsProps = {
   club: Club;
   selectedSeason?: string;
-  teams: TeamSummaryDTO[];
+  teams: TeamSummaryResponse[];
   teamIdsForMatches: number[];
   onRefreshTeams: () => Promise<any>;
   isTeamsLoading: boolean;

@@ -5,7 +5,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {splitIsoDateFormatted, withAlpha} from "@/src/utils/utils";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {type EnrichedMatchDTO, MatchStatus} from "@/src/types/Match";
-import type {Team} from "@/src/types/Team";
+import type {TeamInternalResponse} from "@/src/modules/team/model/Team";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {useRouter} from "expo-router";
@@ -46,7 +46,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({enrichedMatch, gradient}
   );
 
   const TeamBlock: React.FC<{
-    team: Team & { logoUrl: string | null };
+    team: TeamInternalResponse & { logoUrl: string | null };
     role: "Locaux" | "Visiteurs";
   }> = ({team, role}) => (
     <Pressable onPress={() => handleTeamPress(team.id)} style={styles.teamCard}>

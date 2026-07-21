@@ -1,5 +1,5 @@
-import {EnrichedPoolDTO} from "./Pool";
-import {Team} from "./Team";
+import type { PoolResponse } from "@/src/modules/pool/model/Pool";
+import type { TeamInternalResponse } from "@/src/modules/team/model/Team";
 
 export enum MatchStatus {
   UPCOMING = "UPCOMING",
@@ -14,7 +14,13 @@ export const PROVIDER_LABELS: Record<LiveProvider, string> = {
 
 export type LiveProvider = "YOUTUBE" | "TWITCH" | "FACEBOOK";
 
-export type LiveLinkStatus = "ACTIVE" | "DEACTIVATED" | "BANNED" | "EXPIRED" | "PENDING" | "REJECTED";
+export type LiveLinkStatus =
+  | "ACTIVE"
+  | "DEACTIVATED"
+  | "BANNED"
+  | "EXPIRED"
+  | "PENDING"
+  | "REJECTED";
 
 export interface Match {
   id: number;
@@ -67,9 +73,9 @@ export interface EnrichedMatchDTO {
   firstReferee: string | null;
   secondReferee: string | null;
   liveCode: number | null;
-  teamA: Team;
-  teamB: Team;
-  pool: EnrichedPoolDTO;
+  teamA: TeamInternalResponse;
+  teamB: TeamInternalResponse;
+  pool: PoolResponse;
   liveUrl: string | null;
   liveProvider: string | null;
   matchAddressPdfUrl: string | null;
@@ -79,7 +85,7 @@ export interface EnrichedMatchDTO {
 }
 
 export interface EnrichedPoolMatchesDTO {
-  pool: EnrichedPoolDTO;
+  pool: PoolResponse;
   matches: EnrichedMatchDTO[];
 }
 
@@ -123,7 +129,7 @@ export interface MatchLiveLinkDTO {
 
 export interface EnrichedMatchLiveSummaryDTO {
   id: number;
-  matchDate: string | null;   // Instant -> string ISO
+  matchDate: string | null; // Instant -> string ISO
   season: string | null;
   set: string | null;
   score: string | null;
@@ -135,7 +141,7 @@ export interface EnrichedMatchLiveSummaryDTO {
   lastLiveLinkUrl: string | null;
   lastLiveLinkOwnerAuth0Id: string | null;
   lastLiveLinkCreatedAt: string | null;
-  teamA: Team;
-  teamB: Team;
-  pool: EnrichedPoolDTO;
+  teamA: TeamInternalResponse;
+  teamB: TeamInternalResponse;
+  pool: PoolResponse;
 }

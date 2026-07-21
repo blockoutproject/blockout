@@ -9,13 +9,13 @@ import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import FollowedListSkeleton from "@/src/components/followed/FollowedListSkeleton";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 
-import TeamCard from "@/src/components/teamList/TeamListCard";
-import {TeamSummaryDTO} from "@/src/types/Team";
+import TeamCard from "@/src/modules/team/ui/TeamListCard";
+import type {TeamSummaryResponse} from "@/src/modules/team/model/Team";
 import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 
 type Props = {
   clubId: string;
-  teams: TeamSummaryDTO[];
+  teams: TeamSummaryResponse[];
   isLoading: boolean;
   isError: boolean;
   onRefresh: () => Promise<any>;
@@ -76,7 +76,7 @@ const ClubTeamList: React.FC<Props> = ({teams, isLoading, isError, onRefresh, sc
   return (
     <FlatList
       data={teams}
-      keyExtractor={(item: TeamSummaryDTO) => String(item.id)}
+      keyExtractor={(item: TeamSummaryResponse) => String(item.id)}
       renderItem={({item}) => (
         <TeamCard
           team={item}

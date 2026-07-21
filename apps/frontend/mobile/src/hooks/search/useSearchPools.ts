@@ -1,6 +1,6 @@
 import {useQuery} from "@tanstack/react-query";
 import {useApis} from "@/src/shared/providers/ApiProvider";
-import {PoolSearchDocDTO} from "@/src/types/Pool";
+import type {PoolSearchResponse} from "@/src/modules/pool/model/Pool";
 import {EnumFormat} from "@/src/types/enums/Format";
 import {EnumGender} from "@/src/types/enums/Gender";
 
@@ -13,7 +13,7 @@ export const useSearchPools = (
 ) => {
   const {mobile} = useApis();
 
-  return useQuery<PoolSearchDocDTO[]>({
+  return useQuery<PoolSearchResponse[]>({
     queryKey: [
       "pools",
       "search",

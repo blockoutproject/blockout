@@ -1,14 +1,14 @@
-import {ClubApi} from "./ClubApi";
-import {MatchApi} from "./MatchApi";
-import {PoolApi} from "./PoolApi";
-import {TeamApi} from "./TeamApi";
-import {UserApi} from "./UserApi";
-import {SearchApi} from "./SearchApi";
-import {NotificationApi} from "@/src/modules/notifications/api/NotificationApi";
-import {ConfigApi} from "./ConfigApi";
-import {ReportApi} from "@/src/modules/report/api/ReportApi";
-import {TokenSupplier} from "@/src/shared/api/HttpClient";
-import {ApiError} from "@/src/shared/api/ApiError";
+import { ClubApi } from "./ClubApi";
+import { MatchApi } from "./MatchApi";
+import { PoolApi } from "@/src/modules/pool/api/PoolApi";
+import { TeamApi } from "@/src/modules/team/api/TeamApi";
+import { UserApi } from "./UserApi";
+import { SearchApi } from "./SearchApi";
+import { NotificationApi } from "@/src/modules/notifications/api/NotificationApi";
+import { ConfigApi } from "./ConfigApi";
+import { ReportApi } from "@/src/modules/report/api/ReportApi";
+import { TokenSupplier } from "@/src/shared/api/HttpClient";
+import { ApiError } from "@/src/shared/api/ApiError";
 
 export class MobileGatewayApi {
   public clubs: ClubApi;

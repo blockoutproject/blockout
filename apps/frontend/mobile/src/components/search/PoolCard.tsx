@@ -1,13 +1,13 @@
 import React from "react";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {PoolSearchDocDTO} from "@/src/types/Pool";
+import type {PoolSearchResponse} from "@/src/modules/pool/model/Pool";
 import {isRegional, withAlpha} from "@/src/utils/utils";
 import EntityGradientCard, {EntityCardChip} from "@/src/shared/ui/EntityGradientCard";
 import {EnumFormat, FormatLabels} from "@/src/types/enums/Format";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
 
 export type PoolCardProps = {
-  pool: PoolSearchDocDTO;
+  pool: PoolSearchResponse;
   onPress: () => void;
 };
 

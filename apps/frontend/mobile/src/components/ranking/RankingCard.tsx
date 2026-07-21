@@ -4,15 +4,15 @@ import {FlatList} from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import type {EnrichedPoolDTO} from "@/src/types/Pool";
-import type {TeamHighlight} from "@/src/types/Team";
+import type {PoolResponse} from "@/src/modules/pool/model/Pool";
+import type {TeamHighlight} from "@/src/modules/team/model/Team";
 import RankingRow from "./RankingRow";
 import RankingHeader from "./RankingHeader";
 import {useRouter} from "expo-router";
 import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 
 type RankingCardProps = {
-  enrichedPool: EnrichedPoolDTO;
+  enrichedPool: PoolResponse;
   scrollable?: boolean;
   highlightTeams?: TeamHighlight[];
 };

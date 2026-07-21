@@ -1,6 +1,6 @@
 import {useQuery} from "@tanstack/react-query";
 import {useApis} from "@/src/shared/providers/ApiProvider";
-import {TeamSearchDocDTO} from "@/src/types/Team";
+import type {TeamSearchResponse} from "@/src/modules/team/model/Team";
 import {EnumFormat} from "@/src/types/enums/Format";
 import {EnumGender} from "@/src/types/enums/Gender";
 
@@ -13,7 +13,7 @@ export const useSearchTeams = (
 ) => {
   const {mobile} = useApis();
 
-  return useQuery<TeamSearchDocDTO[]>({
+  return useQuery<TeamSearchResponse[]>({
     queryKey: [
       "teams",
       "search",

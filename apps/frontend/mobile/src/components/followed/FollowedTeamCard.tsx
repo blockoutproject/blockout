@@ -1,13 +1,13 @@
 import React from "react";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {TeamSummaryDTO} from "@/src/types/Team";
+import type {TeamSummaryResponse} from "@/src/modules/team/model/Team";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
 import {withAlpha} from "@/src/utils/utils";
 import EntityGradientCard, {EntityCardChip} from "@/src/shared/ui/EntityGradientCard";
 import {FormatLabels} from "@/src/types/enums/Format";
 
 export type FollowedTeamCardProps = {
-  team: TeamSummaryDTO;
+  team: TeamSummaryResponse;
   onPress: () => void;
   testID?: string;
   logoSize?: number;

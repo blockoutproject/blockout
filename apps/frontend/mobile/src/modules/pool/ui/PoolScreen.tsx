@@ -1,25 +1,25 @@
-import React, {useCallback, useMemo, useRef} from "react";
-import {StyleSheet, View} from "react-native";
-import {BottomSheetModal} from "@gorhom/bottom-sheet";
-import {useLocalSearchParams} from "expo-router";
+import React, { useCallback, useMemo, useRef } from "react";
+import { StyleSheet, View } from "react-native";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
-import {useEnrichedPoolById} from "@/src/hooks/pool/useEnrichedPoolById";
-import PoolSkeleton from "@/src/components/pool/PoolSkeleton";
-import PoolProfile from "@/src/components/pool/PoolProfile";
-import PoolTabs from "@/src/components/pool/PoolTabs";
+import { usePoolById } from "@/src/modules/pool/hooks/usePoolById";
+import PoolProfile from "@/src/modules/pool/ui/PoolProfile";
+import PoolTabs from "@/src/modules/pool/ui/PoolTabs";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import PoolHeader from "@/src/components/pool/PoolHeader";
-import {ReportType} from "@/src/modules/report/model/Report";
+import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import EntityScreenHeader from "@/src/shared/ui/entity/EntityScreenHeader";
+import EntityScreenSkeleton from "@/src/shared/ui/entity/EntityScreenSkeleton";
+import { ReportType } from "@/src/modules/report/model/Report";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
-import PoolFormSheet from "@/src/components/pool/PoolFormSheet";
+import PoolFormSheet from "@/src/modules/pool/ui/PoolFormSheet";
 
 const PoolScreen: React.FC = () => {
   const theme = useAppTheme();
-  const {id} = useLocalSearchParams();
-  const {data: pool, isLoading, error, refetch} = useEnrichedPoolById(Number(id));
-  const {allowed: canUpdatePool} = useHasScopes(["update:pools"]);
+  const { id } = useLocalSearchParams();
+  const { data: pool, isLoading, error, refetch } = usePoolById(Number(id));
+  const { allowed: canUpdatePool } = useHasScopes(["update:pools"]);
 
   const formSheetRef = useRef<BottomSheetModal>(null);
   const reportSheetRef = useRef<BottomSheetModal>(null);
@@ -37,9 +37,7 @@ const PoolScreen: React.FC = () => {
 
   const body = useMemo(() => {
     if (isLoading) {
-      return (
-        <PoolSkeleton/>
-      );
+      return <EntityScreenSkeleton testID="pool-loading" />;
     }
     if (error) {
       return (
@@ -47,6 +45,8 @@ const PoolScreen: React.FC = () => {
           subtitle="Impossible de charger la poule."
           onRetry={refetch}
           paddingTop="40%"
+          testID="pool-error"
+          retryTestID="pool-retry-action"
         />
       );
     }
@@ -56,13 +56,15 @@ const PoolScreen: React.FC = () => {
           subtitle="Cette poule est introuvable."
           onRetry={refetch}
           paddingTop="40%"
+          testID="pool-not-found"
+          retryTestID="pool-not-found-retry-action"
         />
       );
     }
     return (
       <>
-        <PoolProfile enrichedPool={pool}/>
-        <PoolTabs enrichedPool={pool}/>
+        <PoolProfile enrichedPool={pool} />
+        <PoolTabs enrichedPool={pool} />
         <PoolFormSheet
           ref={formSheetRef}
           pool={pool}
@@ -87,10 +89,14 @@ const PoolScreen: React.FC = () => {
       ]}
       testID="pool-screen"
     >
-      <PoolHeader
+      <EntityScreenHeader
         title={pool?.name}
         onOpenReport={handleOpenReport}
         onEdit={canUpdatePool ? openForm : undefined}
+        testID="pool-header"
+        backActionTestID="pool-back-action"
+        editActionTestID="pool-edit-action"
+        reportActionTestID="pool-report-action"
       />
 
       {body}
@@ -99,7 +105,7 @@ const PoolScreen: React.FC = () => {
         ref={reportSheetRef}
         context={{
           screen: `Pool#${pool?.id}#${pool?.name}`,
-          defaultType: ReportType.DISPLAY_BUG
+          defaultType: ReportType.DISPLAY_BUG,
         }}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();

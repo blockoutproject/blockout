@@ -1,32 +1,38 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState,} from "react";
-import {FlatList, Keyboard, StyleSheet, View,} from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { FlatList, Keyboard, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import {BottomSheetModal} from "@gorhom/bottom-sheet";
-import {useLocalSearchParams, useRouter} from "expo-router";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
+import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import { BOTTOM_TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import TeamCard from "@/src/components/teamList/TeamListCard";
-import TeamListHeader from "@/src/components/teamList/TeamListHeader";
+import TeamCard from "@/src/modules/team/ui/TeamListCard";
+import TeamListHeader from "@/src/modules/team/ui/TeamListHeader";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
-import {ReportType} from "@/src/modules/report/model/Report";
-import {TeamSummaryDTO} from "@/src/types/Team";
-import {useTeamListByClubId} from "@/src/hooks/team/useTeamListByClubId";
+import { ReportType } from "@/src/modules/report/model/Report";
+import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
+import { useTeamListByClubId } from "@/src/modules/team/hooks/useTeamListByClubId";
 import FollowedListSkeleton from "@/src/components/followed/FollowedListSkeleton";
-import {SelectOption} from "@/src/shared/ui/form/SelectSheet";
+import { SelectOption } from "@/src/shared/ui/form/SelectSheet";
 import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
-import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
 
 const TeamListScreen: React.FC = () => {
   const theme = useAppTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const {clubId} = useLocalSearchParams();
-  const {handleNavigationWithAd} = useNavigationInterstitial();
+  const { clubId } = useLocalSearchParams();
+  const { handleNavigationWithAd } = useNavigationInterstitial();
 
-  const {data, isLoading, isError, refetch} = useTeamListByClubId(
+  const { data, isLoading, isError, refetch } = useTeamListByClubId(
     String(clubId),
   );
 
@@ -49,7 +55,7 @@ const TeamListScreen: React.FC = () => {
         router.push(`/team/${teamId}`);
       });
     },
-    [router, handleNavigationWithAd]
+    [router, handleNavigationWithAd],
   );
 
   const onRefresh = useCallback(async () => {
@@ -64,7 +70,7 @@ const TeamListScreen: React.FC = () => {
   }, [refetch]);
 
   const renderItem = useCallback(
-    ({item}: { item: TeamSummaryDTO }) => (
+    ({ item }: { item: TeamSummaryResponse }) => (
       <TeamCard
         team={item}
         onPress={() => handleTeamPress(item.id)}
@@ -77,11 +83,7 @@ const TeamListScreen: React.FC = () => {
   useEffect(() => {
     const allTeams = data ?? [];
     const seasons = Array.from(
-      new Set(
-        allTeams
-          .map((t) => t.season)
-          .filter((s): s is string => !!s),
-      ),
+      new Set(allTeams.map((t) => t.season).filter((s): s is string => !!s)),
     ).sort((a, b) => b.localeCompare(a));
 
     setAvailableSeasons(seasons);
@@ -94,11 +96,11 @@ const TeamListScreen: React.FC = () => {
   }, [data, selectedSeason]);
 
   const seasonOptions: SelectOption[] = useMemo(
-    () => availableSeasons.map((s) => ({value: s, label: s})),
+    () => availableSeasons.map((s) => ({ value: s, label: s })),
     [availableSeasons],
   );
 
-  const filteredData: TeamSummaryDTO[] = useMemo(() => {
+  const filteredData: TeamSummaryResponse[] = useMemo(() => {
     const all = data ?? [];
     if (!selectedSeason) return all;
     return all.filter((t) => t.season === selectedSeason);
@@ -108,7 +110,7 @@ const TeamListScreen: React.FC = () => {
 
   const body = useMemo(() => {
     if (isLoading && !refreshing) {
-      return <FollowedListSkeleton/>;
+      return <FollowedListSkeleton />;
     }
 
     if (isError) {
@@ -167,7 +169,7 @@ const TeamListScreen: React.FC = () => {
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.background}]}
+      style={[styles.container, { backgroundColor: theme.background }]}
       testID="team-list-screen"
     >
       <TeamListHeader
@@ -206,5 +208,5 @@ const TeamListScreen: React.FC = () => {
 export default TeamListScreen;
 
 const styles = StyleSheet.create({
-  container: {flex: 1},
+  container: { flex: 1 },
 });

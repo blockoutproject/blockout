@@ -1,7 +1,7 @@
 import React, {useCallback} from "react";
 import {Image, Pressable, StyleSheet, Text, View} from "react-native";
 import {EnrichedMatchDTO} from "@/src/types/Match";
-import {Team} from "@/src/types/Team";
+import type {TeamInternalResponse} from "@/src/modules/team/model/Team";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {useRouter} from "expo-router";
@@ -90,7 +90,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
 
   const TeamRow: React.FC<{
     /** Team entity with logo url. */
-    team: Team & { logoUrl: string | null };
+    team: TeamInternalResponse & { logoUrl: string | null };
     /** Final set count for team. */
     finalScore: string;
     /** Points per set. */

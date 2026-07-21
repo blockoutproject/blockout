@@ -31,12 +31,12 @@ easier to read and its public interface is simpler than the duplicated implement
 | Primary and secondary actions           | Repeated button shells and close/submit actions                              | `shared/ui`                                         | Share action primitives; keep feature labels and commands local                                                                   | Planned     |
 | Loading, empty, error, and API feedback | Repeated cards, alerts, toasts, and error extraction                         | `shared/ui` and `shared/api`                        | Share presentation and transport-neutral error handling; keep feature recovery decisions local                                    | Planned     |
 | Form and bottom-sheet structure         | Repeated sheet headers, fields, validation layout, and footers               | `shared/ui`                                         | Shared cards, inputs, modal/page frames, and accessible footers own layout; schemas, values, and submit commands stay in modules  | Complete    |
-| Team and pool presentation              | Near-identical headers, skeletons, profile layout, and form sheets           | `shared/ui` plus feature modules                    | Share stable entity frames; retain team/pool content, types, and behavior in their modules                                        | Planned     |
+| Team and pool presentation              | Near-identical headers, skeletons, profile layout, and form sheets           | `shared/ui` plus feature modules                    | Shared header and skeleton own only exact presentation; profiles, tabs, forms, models, APIs, and commands remain explicit          | Complete    |
 | Followed entity lists                   | Near-identical pool and team lists                                           | `shared/ui` plus discovery modules                  | Share list presentation and stable interaction contract; retain queries and navigation per feature                                | Planned     |
 | Entity search                           | Near-identical team and pool filters with a simpler club variant             | `shared/ui` plus search module                      | Share proven controls and result framing; retain feature filters and requests                                                     | Planned     |
 | High-volume lists and images            | Match, ranking, feed, and notification lists repeat item patterns            | Feature modules plus `shared/ui` primitives         | Notifications now has memoized items, stable callbacks, and Expo Image recycling; other list slices remain                        | In progress |
 | Application-state cards                 | Maintenance and required-update screens share layout but not actions         | `shared/ui` plus app-status module                  | Share the state frame; express maintenance and update as explicit feature compositions                                            | Planned     |
-| Test selectors and component behavior   | Existing tests mix semantic queries with incidental or incorrectly named IDs | Owning feature tests and native host components     | Notifications and Reporting use semantic queries and stable feature IDs; remaining features are handled in their slices           | In progress |
+| Test selectors and component behavior   | Existing tests mix semantic queries with incidental or incorrectly named IDs | Owning feature tests and native host components     | Notifications, Reporting, Team, and Pool use semantic queries, observable commands, and stable feature IDs                        | In progress |
 
 ## Completed slices
 
@@ -71,6 +71,21 @@ easier to read and its public interface is simpler than the duplicated implement
 - Focused tests cover the validated report request and the shared footer interaction/loading contract. Query-hook tests
   use non-expiring test caches, so all 33 tests now finish without an open timer. Typecheck and lint pass with 52
   inherited warnings; Web export evidence is recorded with the slice commit.
+
+### Team and pool
+
+- Team and Pool now own their handwritten gateway response/request models, API clients, Query hooks, forms, profiles,
+  tabs, maps, and list presentation under `modules/team` and `modules/pool`. Active consumers use these owners; the
+  duplicate legacy roots and stale `*DTO` names were removed.
+- Only the identical entity header and loading skeleton became shared. Profiles, tabs, forms, follow behavior, map
+  behavior, request construction, and product copy remain explicit feature compositions; no generic entity workflow or
+  form abstraction was introduced.
+- Shared headers expose accessible back, edit, and report actions with literal feature-owned IDs. Team and Pool forms
+  expose labelled fields and submit validated, trimmed requests through their existing API provider boundary, without
+  test-only branches or dependency-injection machinery.
+- Focused Jest/RNTL tests protect header permissions and interactions plus Team and Pool request construction. All 37
+  tests pass across 16 suites, typecheck passes, lint completes with 42 inherited warnings and no errors, and the
+  3,150-module Web export passes.
 
 ## Final audit
 

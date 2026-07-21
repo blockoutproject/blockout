@@ -3,11 +3,11 @@ import {Animated, StyleSheet, View} from "react-native";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import ClubTeamList from "@/src/components/club/ClubTeamList";
-import {TeamSummaryDTO} from "@/src/types/Team";
+import type {TeamSummaryResponse} from "@/src/modules/team/model/Team";
 
 type Props = {
   clubId: string;
-  teams: TeamSummaryDTO[];
+  teams: TeamSummaryResponse[];
   isLoading: boolean;
   isError: boolean;
   onRefresh: () => Promise<any>;

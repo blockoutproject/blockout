@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import {useRouter} from "expo-router";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {useFollowedTeamList} from "@/src/hooks/team/useFollowedTeamList";
+import {useFollowedTeamList} from "@/src/modules/team/hooks/useFollowedTeamList";
 import FollowedTeamCard from "./FollowedTeamCard";
 import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";

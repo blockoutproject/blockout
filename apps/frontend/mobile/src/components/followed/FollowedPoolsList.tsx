@@ -3,7 +3,7 @@ import {FlatList, View,} from "react-native";
 import * as Haptics from "expo-haptics";
 import {useRouter} from "expo-router";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {useFollowedPoolList} from "@/src/hooks/pool/useFollowedPoolList";
+import {useFollowedPoolList} from "@/src/modules/pool/hooks/useFollowedPoolList";
 import FollowedPoolCard from "./FollowedPoolCard";
 import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";

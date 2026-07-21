@@ -1,10 +1,10 @@
-import {format, parseISO} from 'date-fns';
-import {fr} from 'date-fns/locale';
-import {Pool} from '../types/Pool';
-import tinycolor from 'tinycolor2';
-import {Division} from '../types/Division';
-import {TeamHighlight} from '../types/Team';
-import {AppTheme} from '../shared/theme/themes';
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
+import type { PoolResponse } from "@/src/modules/pool/model/Pool";
+import tinycolor from "tinycolor2";
+import { Division } from "../types/Division";
+import type { TeamHighlight } from "@/src/modules/team/model/Team";
+import { AppTheme } from "../shared/theme/themes";
 
 export type GradientVariants = {
   base: readonly [string, string, ...string[]];
@@ -15,22 +15,42 @@ export type GradientVariants = {
 };
 
 export const isLNV = (code: string): boolean => {
-  return code.toLowerCase() === 'aalnv'
-}
+  return code.toLowerCase() === "aalnv";
+};
 
 export const isRegional = (code: string): boolean => {
-  return !['aalnv', 'abccs'].includes(code.toLowerCase());
-}
+  return !["aalnv", "abccs"].includes(code.toLowerCase());
+};
 
 export const getGradientVariants = (
-  colors: readonly [string, string, ...string[]]
+  colors: readonly [string, string, ...string[]],
 ): GradientVariants => {
   return {
-    base: colors.map((c) => tinycolor(c).toHexString()) as [string, string, ...string[]],
-    light: colors.map((c) => tinycolor(c).lighten(15).toHexString()) as [string, string, ...string[]],
-    lighter: colors.map((c) => tinycolor(c).lighten(30).toHexString()) as [string, string, ...string[]],
-    dark: colors.map((c) => tinycolor(c).darken(15).toHexString()) as [string, string, ...string[]],
-    darker: colors.map((c) => tinycolor(c).darken(20).toHexString()) as [string, string, ...string[]],
+    base: colors.map((c) => tinycolor(c).toHexString()) as [
+      string,
+      string,
+      ...string[],
+    ],
+    light: colors.map((c) => tinycolor(c).lighten(15).toHexString()) as [
+      string,
+      string,
+      ...string[],
+    ],
+    lighter: colors.map((c) => tinycolor(c).lighten(30).toHexString()) as [
+      string,
+      string,
+      ...string[],
+    ],
+    dark: colors.map((c) => tinycolor(c).darken(15).toHexString()) as [
+      string,
+      string,
+      ...string[],
+    ],
+    darker: colors.map((c) => tinycolor(c).darken(20).toHexString()) as [
+      string,
+      string,
+      ...string[],
+    ],
   };
 };
 
@@ -44,11 +64,9 @@ export function formatDateFrenchLocale(dateString: string): string {
 
   // "Aujourd'hui" calculé en UTC pour rester cohérent avec LocalDate backend
   const now = new Date();
-  const todayUTC = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate()
-  ));
+  const todayUTC = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
 
   const diffDays =
     (targetDate.getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24);
@@ -71,24 +89,23 @@ export function formatDateFrenchLocale(dateString: string): string {
 
 export function splitIsoDate(isoString: string) {
   const dateObj = parseISO(isoString);
-  const date = format(dateObj, 'yyyy-MM-dd');
-  const time = format(dateObj, 'HH:mm:ss');
-  return {date, time};
+  const date = format(dateObj, "yyyy-MM-dd");
+  const time = format(dateObj, "HH:mm:ss");
+  return { date, time };
 }
 
-export function splitIsoDateFormatted(
-  isoString: string
-) {
+export function splitIsoDateFormatted(isoString: string) {
   const dateObj = parseISO(isoString);
   const loc = fr;
 
-  const date = format(dateObj, 'd MMM yyyy', {locale: loc});
-  const time = format(dateObj, 'HH:mm', {locale: loc});
+  const date = format(dateObj, "d MMM yyyy", { locale: loc });
+  const time = format(dateObj, "HH:mm", { locale: loc });
 
-  return {date, time};
+  return { date, time };
 }
 
-export const getLeagueLabel = (division: Division, pool: Pool) => `${division.name} - ${pool.gender}`;
+export const getLeagueLabel = (division: Division, pool: PoolResponse) =>
+  `${division.name} - ${pool.gender}`;
 
 export function getTeamsRankingColor(
   theme: AppTheme,
@@ -97,20 +114,20 @@ export function getTeamsRankingColor(
     teamB: { id: number };
     set: string | null;
     highlightColor: string;
-  }
+  },
 ): TeamHighlight[] {
-  const {teamA, teamB, set, highlightColor} = enrichedMatch;
+  const { teamA, teamB, set, highlightColor } = enrichedMatch;
 
   if (!set || set.trim() === "") {
     return [
-      {teamId: teamA.id, color: `${highlightColor}`},
-      {teamId: teamB.id, color: `${highlightColor}`},
+      { teamId: teamA.id, color: `${highlightColor}` },
+      { teamId: teamB.id, color: `${highlightColor}` },
     ];
   }
 
   const sets = set
     .split(" ")
-    .map(s => s.split("-").map(Number))
+    .map((s) => s.split("-").map(Number))
     .filter(([a, b]) => !isNaN(a) && !isNaN(b));
 
   if (sets.length === 0) return [];
@@ -120,13 +137,13 @@ export function getTeamsRankingColor(
 
   if (teamAWins > teamBWins) {
     return [
-      {teamId: teamA.id, color: withAlpha(theme.success, 0.7)},
-      {teamId: teamB.id, color: withAlpha(theme.error, 0.7)},
+      { teamId: teamA.id, color: withAlpha(theme.success, 0.7) },
+      { teamId: teamB.id, color: withAlpha(theme.error, 0.7) },
     ];
   } else {
     return [
-      {teamId: teamB.id, color: withAlpha(theme.success, 0.7)},
-      {teamId: teamA.id, color: withAlpha(theme.error, 0.7)},
+      { teamId: teamB.id, color: withAlpha(theme.success, 0.7) },
+      { teamId: teamA.id, color: withAlpha(theme.error, 0.7) },
     ];
   }
 }
@@ -138,7 +155,10 @@ export function withAlpha(color: string, alpha: number): string {
     let hex = color.slice(1);
 
     if (hex.length === 3) {
-      hex = hex.split("").map(c => c + c).join("");
+      hex = hex
+        .split("")
+        .map((c) => c + c)
+        .join("");
     }
 
     if (hex.length === 8) {
@@ -170,7 +190,7 @@ export function computeMaxFitCount(params: {
   pillWidths: number[];
   gap: number;
 }): number {
-  const {containerWidth, pillWidths, gap} = params;
+  const { containerWidth, pillWidths, gap } = params;
   let count = 0;
   let current = 0;
 
@@ -192,20 +212,20 @@ export function computeBalancedRowsByCount(params: {
   pillWidths: number[];
   gap: number;
 }): { topIndices: number[]; bottomIndices: number[] } {
-  const {containerWidth, pillWidths, gap} = params;
+  const { containerWidth, pillWidths, gap } = params;
   const n = pillWidths.length;
-  if (n === 0) return {topIndices: [], bottomIndices: []};
+  if (n === 0) return { topIndices: [], bottomIndices: [] };
 
   // Cible équilibrée par NOMBRE
   const desiredTop = Math.ceil(n / 2);
 
   // Capacité réelle maximale de la 1ʳᵉ ligne
-  const maxFitTop = computeMaxFitCount({containerWidth, pillWidths, gap});
+  const maxFitTop = computeMaxFitCount({ containerWidth, pillWidths, gap });
 
   // On prend le minimum entre la cible et la capacité réelle
   const topCount = Math.max(1, Math.min(desiredTop, maxFitTop));
 
-  const indices = Array.from({length: n}, (_, i) => i);
+  const indices = Array.from({ length: n }, (_, i) => i);
   return {
     topIndices: indices.slice(0, topCount),
     bottomIndices: indices.slice(topCount),

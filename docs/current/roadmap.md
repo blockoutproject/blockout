@@ -315,7 +315,7 @@
     - [x] establish the single theme owner, provisional semantic tokens, and the consolidation register;
     - [x] move notifications into a complete feature boundary and apply proven list, image, and accessibility fixes;
     - [x] move reporting and establish shared form and bottom-sheet foundations from existing consumers;
-    - [ ] move teams and pools together, sharing their equivalent entity presentation while keeping feature behavior
+    - [x] move teams and pools together, sharing their equivalent entity presentation while keeping feature behavior
           explicit;
     - [ ] move clubs, search, followed entities, and team lists into coherent discovery boundaries;
     - [ ] move matches, rankings, and the feed, optimizing lists only where measurements or stable semantics justify it;
