@@ -1,7 +1,9 @@
 """Regional FFVB competition source."""
 
-import aiohttp
 import asyncio
+
+import aiohttp
+import httpx
 
 from scraper.application.ffvb_league_ingestion import ingest_league_pools
 from scraper.application.source import Scraper
@@ -16,9 +18,12 @@ from scraper.observability.logging import log_event
 class RegionalScraper(Scraper):
     """Discover regional leagues and ingest their mapped pools."""
 
-    def __init__(self, session: aiohttp.ClientSession) -> None:
+    def __init__(
+        self, session: aiohttp.ClientSession, provider_client: httpx.AsyncClient
+    ) -> None:
         super().__init__(
             session,
+            provider_client,
             name="regional_scraper",
             url="https://www.ffvb.org/120-37-1-Championnats-Regionaux",
             priority_validation_enabled=False,

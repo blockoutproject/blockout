@@ -1,6 +1,5 @@
 from scraper.application.ports import BlockoutPort
 from scraper.infrastructure.blockout.contracts import ClubInternalResponse
-
 from scraper.observability.logging import log_event
 
 

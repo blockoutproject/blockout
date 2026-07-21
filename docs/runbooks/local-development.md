@@ -181,16 +181,25 @@ can use `localhost`; a physical device requires the host machine address in its 
 
 ## Python scrapers
 
-The scrapers intentionally keep their standalone `requirements.txt` files and Dockerfiles. Nx only invokes native
-commands.
+Install uv 0.11.29, then synchronize the repository's single Python 3.12 workspace from the root. The two scrapers and
+the private shared contract-client package use one ignored `.venv` and the committed `uv.lock`.
 
 ```bash
+uv sync --locked --all-packages
+```
+
+Nx activates that environment for the application targets:
+
+```bash
+npm exec nx run @blockout/python-contract-clients:sync
+npm exec nx run @blockout/python-contract-clients:build
 npm exec nx run @blockout/club-scraper:syntax-check
 npm exec nx run @blockout/competition-scraper:syntax-check
 npm exec nx run @blockout/club-scraper:docker-build
 npm exec nx run @blockout/competition-scraper:docker-build
 ```
 
-Running a scraper outside Docker requires installing its declared requirements in a local Python 3.12 environment. Use
-non-secret development values for `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_AUDIENCE`, and the
-required `*_API_URL` variables.
+Each Dockerfile uses a Python 3.12 builder, the pinned official uv binary, one locked package sync, and a Python 3.12
+runtime containing only the copied virtual environment and application. Nx and uv are not part of the final image.
+Use non-secret development values for `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_AUDIENCE`, and
+the required `*_API_URL` variables.

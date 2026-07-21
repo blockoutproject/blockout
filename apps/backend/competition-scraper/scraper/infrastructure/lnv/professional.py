@@ -1,8 +1,10 @@
-import aiohttp
 import asyncio
 import xml.etree.ElementTree as ET
 from dataclasses import replace
 from datetime import date
+
+import aiohttp
+import httpx
 
 from scraper.application.calendar_ingestion import handle_csv_download_and_parse
 from scraper.application.source import Scraper
@@ -33,9 +35,12 @@ from scraper.observability.logging import log_event
 
 
 class ProScraper(Scraper):
-    def __init__(self, session: aiohttp.ClientSession) -> None:
+    def __init__(
+        self, session: aiohttp.ClientSession, provider_client: httpx.AsyncClient
+    ) -> None:
         super().__init__(
             session,
+            provider_client,
             name="pro_scraper",
             priority_validation_enabled=True,
         )

@@ -1,7 +1,7 @@
 import asyncio
-import pytest
-from scraper.infrastructure.ffvb.client import FfvbClubClient
 
+import httpx
+import pytest
 from scraper import bootstrap
 from scraper.bootstrap import ClubScraperRuntime
 from scraper.config.settings import Settings
@@ -10,60 +10,10 @@ from scraper.infrastructure.blockout.auth import (
     TokenStore,
 )
 from scraper.infrastructure.ffvb import client as ffvb_module
+from scraper.infrastructure.ffvb.client import FfvbClubClient
 from scraper.infrastructure.scheduling import (
     scheduler as scheduler_module,
 )
-
-
-class _Content:
-    def __init__(self, body: bytes) -> None:
-        self.body = body
-
-    async def read(self) -> bytes:
-        return self.body
-
-
-class _Response:
-    def __init__(
-        self,
-        body: bytes = b"",
-        *,
-        status: int = 200,
-        payload=None,
-    ) -> None:
-        self.content = _Content(body)
-        self.status = status
-        self.payload = payload
-        self.content_type = "application/json"
-
-    def raise_for_status(self) -> None:
-        return None
-
-    async def json(self):
-        return self.payload
-
-
-class _Context:
-    def __init__(self, result) -> None:
-        self.result = result
-
-    async def __aenter__(self):
-        if isinstance(self.result, BaseException):
-            raise self.result
-        return self.result
-
-    async def __aexit__(self, *_args) -> None:
-        return None
-
-
-class _ScriptedSession:
-    def __init__(self, results) -> None:
-        self.results = list(results)
-        self.calls: list[dict] = []
-
-    def post(self, url, **kwargs):
-        self.calls.append({"url": url, **kwargs})
-        return _Context(self.results.pop(0))
 
 
 class _Gauge:
@@ -92,16 +42,21 @@ def test_fetch_decodes_ffvb_as_windows_1252() -> None:
     """Protect the provider-specific encoding and request constraints."""
 
     async def scenario() -> None:
-        session = _ScriptedSession([_Response(b"caf\xe9")])
+        calls: list[httpx.Request] = []
 
-        result = await FfvbClubClient(session).fetch(
-            "https://www.ffvbbeach.org/address",
-            {"id": "1"},
-        )
+        def respond(request: httpx.Request) -> httpx.Response:
+            calls.append(request)
+            return httpx.Response(200, content=b"caf\xe9")
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            result = await FfvbClubClient(client).fetch(
+                "https://www.ffvbbeach.org/address",
+                {"id": "1"},
+            )
 
         assert result == "café"
-        assert session.calls[0]["ssl"] is False
-        assert session.calls[0]["timeout"].total == 20
+        assert calls[0].content == b"id=1"
+        assert calls[0].extensions["timeout"]["read"] == 20
 
     asyncio.run(scenario())
 
@@ -110,8 +65,15 @@ def test_fetch_retries_three_times_with_the_configured_delay(monkeypatch) -> Non
     """Protect retry count, delay, and eventual success."""
 
     async def scenario() -> None:
-        session = _ScriptedSession([TimeoutError(), TimeoutError(), _Response(b"ok")])
+        attempts = 0
         sleeps: list[int] = []
+
+        def respond(request: httpx.Request) -> httpx.Response:
+            nonlocal attempts
+            attempts += 1
+            if attempts < 3:
+                raise httpx.ReadTimeout("provider timeout", request=request)
+            return httpx.Response(200, content=b"ok")
 
         async def sleep(delay: int) -> None:
             sleeps.append(delay)
@@ -119,10 +81,11 @@ def test_fetch_retries_three_times_with_the_configured_delay(monkeypatch) -> Non
         monkeypatch.setattr(ffvb_module.asyncio, "sleep", sleep)
         monkeypatch.setattr(ffvb_module, "log_event", lambda **_event: None)
 
-        result = await FfvbClubClient(session).fetch("https://provider.invalid", {})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            result = await FfvbClubClient(client).fetch("https://provider.invalid", {})
 
         assert result == "ok"
-        assert len(session.calls) == 3
+        assert attempts == 3
         assert sleeps == [2, 2]
 
     asyncio.run(scenario())
@@ -132,7 +95,12 @@ def test_fetch_raises_after_the_final_failed_attempt(monkeypatch) -> None:
     """Protect terminal failure after all retries are exhausted."""
 
     async def scenario() -> None:
-        session = _ScriptedSession([TimeoutError(), TimeoutError(), TimeoutError()])
+        attempts = 0
+
+        def timeout(request: httpx.Request) -> httpx.Response:
+            nonlocal attempts
+            attempts += 1
+            raise httpx.ReadTimeout("provider timeout", request=request)
 
         async def sleep(_delay: int) -> None:
             return None
@@ -140,10 +108,11 @@ def test_fetch_raises_after_the_final_failed_attempt(monkeypatch) -> None:
         monkeypatch.setattr(ffvb_module.asyncio, "sleep", sleep)
         monkeypatch.setattr(ffvb_module, "log_event", lambda **_event: None)
 
-        with pytest.raises(RuntimeError, match="3 tentatives"):
-            await FfvbClubClient(session).fetch("https://provider.invalid", {})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(timeout)) as client:
+            with pytest.raises(RuntimeError, match="3 tentatives"):
+                await FfvbClubClient(client).fetch("https://provider.invalid", {})
 
-        assert len(session.calls) == 3
+        assert attempts == 3
 
     asyncio.run(scenario())
 
@@ -237,8 +206,18 @@ def test_run_scraper_keeps_the_characterized_session_limits(monkeypatch) -> None
             observed["session"] = kwargs
             return Session()
 
+        def limits(**kwargs):
+            observed["limits"] = kwargs
+            return "limits"
+
+        def httpx_client(**kwargs):
+            observed["httpx"] = kwargs
+            return Session()
+
         monkeypatch.setattr(bootstrap.aiohttp, "TCPConnector", connector)
         monkeypatch.setattr(bootstrap.aiohttp, "ClientSession", session)
+        monkeypatch.setattr(bootstrap.httpx, "Limits", limits)
+        monkeypatch.setattr(bootstrap.httpx, "AsyncClient", httpx_client)
         monkeypatch.setattr(bootstrap, "BlockoutClients", lambda *_args: "blockout")
         monkeypatch.setattr(bootstrap, "FfvbClubClient", lambda *_args: "ffvb")
         monkeypatch.setattr(bootstrap, "ClubIngestion", Ingestion)
@@ -248,6 +227,14 @@ def test_run_scraper_keeps_the_characterized_session_limits(monkeypatch) -> None
         assert observed["connector"] == {"limit": 20, "ssl": False}
         assert observed["session"]["timeout"].total == 60
         assert observed["session"]["trust_env"] is True
+        assert observed["limits"] == {"max_connections": 20}
+        assert observed["httpx"] == {
+            "timeout": 60,
+            "trust_env": True,
+            "verify": False,
+            "follow_redirects": True,
+            "limits": "limits",
+        }
         assert observed["adapters"][:2] == ("blockout", "ffvb")
         assert observed["ran"] is True
 

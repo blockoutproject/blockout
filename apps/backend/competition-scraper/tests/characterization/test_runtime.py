@@ -1,9 +1,10 @@
 import asyncio
-import pytest
 from datetime import datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
+import httpx
+import pytest
 import scraper.bootstrap as competition_main
 import scraper.infrastructure.blockout.auth as auth0
 import scraper.infrastructure.provider_http as provider_http
@@ -23,45 +24,6 @@ class DummyScraper(Scraper):
         return None
 
 
-class _Content:
-    def __init__(self, body: bytes) -> None:
-        self.body = body
-
-    async def read(self) -> bytes:
-        return self.body
-
-
-class _Response:
-    def __init__(self, body: bytes = b"ok") -> None:
-        self.content = _Content(body)
-
-    def raise_for_status(self) -> None:
-        return None
-
-
-class _Context:
-    def __init__(self, result) -> None:
-        self.result = result
-
-    async def __aenter__(self):
-        if isinstance(self.result, BaseException):
-            raise self.result
-        return self.result
-
-    async def __aexit__(self, *_args) -> None:
-        return None
-
-
-class _ScriptedSession:
-    def __init__(self, results) -> None:
-        self.results = list(results)
-        self.calls: list[tuple] = []
-
-    def get(self, url, **kwargs):
-        self.calls.append((url, kwargs))
-        return _Context(self.results.pop(0))
-
-
 class _Gauge:
     def __init__(self) -> None:
         self.values: list[float] = []
@@ -74,24 +36,30 @@ def test_provider_fetch_preserves_encoding_timeout_retry_and_tls(monkeypatch) ->
     """Protect the shared GET adapter's bounded network behavior."""
 
     async def scenario() -> None:
-        session = _ScriptedSession(
-            [TimeoutError(), TimeoutError(), _Response(b"caf\xe9")]
-        )
+        attempts = 0
+        calls: list[httpx.Request] = []
         sleeps: list[int] = []
+
+        def respond(request: httpx.Request) -> httpx.Response:
+            nonlocal attempts
+            attempts += 1
+            calls.append(request)
+            if attempts < 3:
+                raise httpx.ReadTimeout("provider timeout", request=request)
+            return httpx.Response(200, content=b"caf\xe9")
 
         async def sleep(delay: int) -> None:
             sleeps.append(delay)
 
         monkeypatch.setattr(provider_http.asyncio, "sleep", sleep)
         monkeypatch.setattr(provider_http, "log_event", lambda **_event: None)
-        scraper = DummyScraper(session, "dummy")
-
-        result = await scraper.fetch("https://www.ffvbbeach.org/provider")
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            scraper = DummyScraper(object(), client, "dummy")
+            result = await scraper.fetch("https://www.ffvbbeach.org/provider")
 
         assert result == "café"
-        assert len(session.calls) == 3
-        assert all("ssl" not in call[1] for call in session.calls)
-        assert all(call[1]["timeout"].total == 20 for call in session.calls)
+        assert attempts == 3
+        assert all(call.extensions["timeout"]["read"] == 20 for call in calls)
         assert sleeps == [5, 5]
 
     asyncio.run(scenario())
@@ -101,7 +69,12 @@ def test_provider_fetch_raises_only_after_three_failures(monkeypatch) -> None:
     """Protect terminal provider failure and retry count."""
 
     async def scenario() -> None:
-        session = _ScriptedSession([TimeoutError(), TimeoutError(), TimeoutError()])
+        attempts = 0
+
+        def timeout(request: httpx.Request) -> httpx.Response:
+            nonlocal attempts
+            attempts += 1
+            raise httpx.ReadTimeout("provider timeout", request=request)
 
         async def sleep(_delay: int) -> None:
             return None
@@ -109,10 +82,13 @@ def test_provider_fetch_raises_only_after_three_failures(monkeypatch) -> None:
         monkeypatch.setattr(provider_http.asyncio, "sleep", sleep)
         monkeypatch.setattr(provider_http, "log_event", lambda **_event: None)
 
-        with pytest.raises(Exception, match="3 tentatives"):
-            await DummyScraper(session, "dummy").fetch("https://provider.invalid")
+        async with httpx.AsyncClient(transport=httpx.MockTransport(timeout)) as client:
+            with pytest.raises(Exception, match="3 tentatives"):
+                await DummyScraper(object(), client, "dummy").fetch(
+                    "https://provider.invalid"
+                )
 
-        assert len(session.calls) == 3
+        assert attempts == 3
 
     asyncio.run(scenario())
 
@@ -134,7 +110,7 @@ def test_top_level_runner_limits_scraper_concurrency_to_two(monkeypatch) -> None
         maximum = 0
         started: list[str] = []
 
-        async def run_one(_session, scraper_type):
+        async def run_one(_session, _provider_client, scraper_type):
             nonlocal active, maximum
             active += 1
             maximum = max(maximum, active)
@@ -145,6 +121,7 @@ def test_top_level_runner_limits_scraper_concurrency_to_two(monkeypatch) -> None
         monkeypatch.setattr(competition_main, "_run_one_scraper", run_one)
 
         await competition_main.run_scrapers_with_max_concurrency(
+            object(),
             object(),
             ["regional", "departmental", "national", "pro"],
         )
@@ -213,11 +190,26 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
         async def status(_session, _name):
             return SimpleNamespace(enabled=True)
 
-        async def run(session, scraper_types, max_concurrency=2):
-            observed["run"] = (session, list(scraper_types), max_concurrency)
+        def limits(**kwargs):
+            observed["limits"] = kwargs
+            return "limits"
+
+        def httpx_client(**kwargs):
+            observed["httpx"] = kwargs
+            return Session()
+
+        async def run(session, provider_client, scraper_types, max_concurrency=2):
+            observed["run"] = (
+                session,
+                provider_client,
+                list(scraper_types),
+                max_concurrency,
+            )
 
         monkeypatch.setattr(competition_main.aiohttp, "ClientSession", session)
         monkeypatch.setattr(competition_main.aiohttp, "TCPConnector", connector)
+        monkeypatch.setattr(competition_main.httpx, "Limits", limits)
+        monkeypatch.setattr(competition_main.httpx, "AsyncClient", httpx_client)
         monkeypatch.setattr(competition_main, "get_scraper_status", status)
         monkeypatch.setattr(competition_main, "run_scrapers_with_max_concurrency", run)
         monkeypatch.setattr(competition_main, "execution_duration_gauge", _Gauge())
@@ -226,8 +218,15 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
         assert [item["timeout"].total for item in observed["sessions"]] == [10, 10]
         assert all(item["trust_env"] is True for item in observed["sessions"])
         assert observed["connector"] == {"limit": 20}
-        assert observed["run"][1] == ["regional", "departmental", "national", "pro"]
-        assert observed["run"][2] == 2
+        assert observed["limits"] == {"max_connections": 20}
+        assert observed["httpx"] == {
+            "timeout": 10,
+            "trust_env": True,
+            "follow_redirects": True,
+            "limits": "limits",
+        }
+        assert observed["run"][2] == ["regional", "departmental", "national", "pro"]
+        assert observed["run"][3] == 2
 
     asyncio.run(scenario())
 
@@ -371,11 +370,16 @@ def test_application_startup_exposes_metrics_and_supervises_background_work(
 
 def test_factory_maps_only_the_four_supported_sources() -> None:
     """Protect configured source names and concrete adapter selection."""
-    assert isinstance(ScraperFactory.create_scraper("regional", None), RegionalScraper)
     assert isinstance(
-        ScraperFactory.create_scraper("departmental", None), DepartmentalScraper
+        ScraperFactory.create_scraper("regional", None, None), RegionalScraper
     )
-    assert isinstance(ScraperFactory.create_scraper("national", None), NationalScraper)
-    assert isinstance(ScraperFactory.create_scraper("pro", None), ProScraper)
+    assert isinstance(
+        ScraperFactory.create_scraper("departmental", None, None),
+        DepartmentalScraper,
+    )
+    assert isinstance(
+        ScraperFactory.create_scraper("national", None, None), NationalScraper
+    )
+    assert isinstance(ScraperFactory.create_scraper("pro", None, None), ProScraper)
     with pytest.raises(ValueError, match="inconnu"):
-        ScraperFactory.create_scraper("unknown", None)
+        ScraperFactory.create_scraper("unknown", None, None)

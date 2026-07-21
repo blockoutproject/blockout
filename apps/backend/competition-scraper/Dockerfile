@@ -1,19 +1,28 @@
-# Utiliser une image Python minimale basée sur Alpine
+FROM python:3.12-alpine AS builder
+
+COPY --from=ghcr.io/astral-sh/uv:0.11.29 /uv /uvx /bin/
+
+WORKDIR /workspace
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+COPY pyproject.toml uv.lock .python-version ./
+COPY apps/backend/club-scraper/pyproject.toml apps/backend/club-scraper/pyproject.toml
+COPY apps/backend/competition-scraper/pyproject.toml apps/backend/competition-scraper/pyproject.toml
+COPY libs/shared/python-contract-clients libs/shared/python-contract-clients
+
+RUN uv sync --locked --package blockout-competition-scraper --no-dev --no-editable
+
 FROM python:3.12-alpine
 
-# Définir le répertoire de travail
 WORKDIR /app
 
-ENV TZ=UTC
+ENV TZ=UTC \
+    PATH="/app/.venv/bin:$PATH"
 
-# Copier les dépendances
-COPY requirements.txt .
+COPY --from=builder /workspace/.venv /app/.venv
+COPY apps/backend/competition-scraper/main.py ./main.py
+COPY apps/backend/competition-scraper/scraper ./scraper
 
-# Installer les dépendances Python
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copier le code source
-COPY . .
-
-# Définir la commande par défaut pour exécuter le scraper
 CMD ["python", "main.py"]

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import aiohttp
 import asyncio
 from collections.abc import Mapping
 from typing import Any
+
+import httpx
 
 from scraper.observability.logging import log_event
 
@@ -13,10 +14,8 @@ ADDRESS_BOOK_URL = "https://www.ffvbbeach.org/ffvbapp/adressier/rech_aff_club.ph
 class FfvbClubClient:
     """Fetch FFVB address-book pages with bounded legacy retry semantics."""
 
-    def __init__(
-        self, session: aiohttp.ClientSession, max_concurrency: int = 10
-    ) -> None:
-        self._session = session
+    def __init__(self, client: httpx.AsyncClient, max_concurrency: int = 10) -> None:
+        self._client = client
         self._semaphore = asyncio.Semaphore(max_concurrency)
 
     async def fetch_club_page(self, identifier: str) -> str:
@@ -34,53 +33,49 @@ class FfvbClubClient:
         async with self._semaphore:
             for attempt in range(1, retries + 1):
                 try:
-                    response_timeout = aiohttp.ClientTimeout(total=timeout)
-                    async with self._session.post(
+                    response = await self._client.post(
                         url,
                         data=form_data,
-                        ssl=False,
-                        timeout=response_timeout,
-                    ) as response:
-                        response.raise_for_status()
-                        raw_content = await response.content.read()
-                        encoding = (
-                            "windows-1252"
-                            if "ffvbbeach.org" in url or "ffvb.org" in url
-                            else "utf-8"
+                        timeout=timeout,
+                    )
+                    response.raise_for_status()
+                    encoding = (
+                        "windows-1252"
+                        if "ffvbbeach.org" in url or "ffvb.org" in url
+                        else "utf-8"
+                    )
+                    content = response.content.decode(encoding, errors="replace")
+                    if attempt > 1:
+                        log_event(
+                            action="http_request_retry_success",
+                            level="info",
+                            attempt=attempt,
+                            url=url,
+                            method="POST",
+                            message=(
+                                f"Succès après retry {attempt}/{retries} pour l'URL {url}."
+                            ),
                         )
-                        content = raw_content.decode(encoding, errors="replace")
-                        if attempt > 1:
-                            log_event(
-                                action="http_request_retry_success",
-                                level="info",
-                                attempt=attempt,
-                                url=url,
-                                method="POST",
-                                message=(
-                                    f"Succès après retry {attempt}/{retries} pour l'URL {url}."
-                                ),
-                            )
-                        return content
-                except aiohttp.ClientConnectorDNSError as error:
-                    self._log_failure("dns", "error", url, attempt, retries, error)
-                except aiohttp.ClientConnectorError as error:
+                    return content
+                except httpx.ConnectError as error:
                     self._log_failure(
                         "connector", "error", url, attempt, retries, error
                     )
-                except aiohttp.ClientResponseError as error:
+                except httpx.HTTPStatusError as error:
+                    status = error.response.status_code
                     log_event(
                         action="http_request_http_error",
                         level="warning",
                         url=url,
                         attempt=attempt,
-                        status=error.status,
+                        status=status,
                         error=str(error),
                         message=(
-                            f"Erreur HTTP {error.status} lors du POST '{url}' "
+                            f"Erreur HTTP {status} lors du POST '{url}' "
                             f"(tentative {attempt}/{retries})."
                         ),
                     )
-                except TimeoutError as error:
+                except httpx.TimeoutException as error:
                     self._log_failure(
                         "timeout", "warning", url, attempt, retries, error
                     )

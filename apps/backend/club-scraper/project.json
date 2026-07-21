@@ -5,58 +5,73 @@
   "sourceRoot": "apps/backend/club-scraper",
   "targets": {
     "serve": {
-      "executor": "nx:run-commands",
+      "executor": "@nxlv/python:run-commands",
       "continuous": true,
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python3.12 main.py"
+        "command": "python main.py",
+        "installDependenciesIfNotExists": true
       }
     },
     "syntax-check": {
-      "executor": "nx:run-commands",
+      "executor": "@nxlv/python:run-commands",
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python3.12 -m compileall -q ."
+        "command": "python -m compileall -q main.py scraper tests",
+        "installDependenciesIfNotExists": true
       }
     },
     "test": {
-      "executor": "nx:run-commands",
+      "executor": "@nxlv/python:run-commands",
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python3.12 -m pytest -q"
+        "command": "python -m pytest -q",
+        "installDependenciesIfNotExists": true
       }
     },
     "lint": {
-      "executor": "nx:run-commands",
+      "executor": "@nxlv/python:run-commands",
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python3.12 -m ruff check ."
+        "command": "python -m ruff check .",
+        "installDependenciesIfNotExists": true
       }
     },
     "format": {
-      "executor": "nx:run-commands",
+      "executor": "@nxlv/python:run-commands",
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python3.12 -m ruff check --fix . && python3.12 -m ruff format ."
+        "commands": [
+          "python -m ruff check --fix .",
+          "python -m ruff format ."
+        ],
+        "parallel": false,
+        "installDependenciesIfNotExists": true
       }
     },
     "format-check": {
-      "executor": "nx:run-commands",
+      "executor": "@nxlv/python:run-commands",
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python3.12 -m ruff check . && python3.12 -m ruff format --check ."
+        "commands": [
+          "python -m ruff check .",
+          "python -m ruff format --check ."
+        ],
+        "parallel": false,
+        "installDependenciesIfNotExists": true
       }
     },
     "docker-build": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "apps/backend/club-scraper",
-        "command": "docker build -t blockout/club-scraper:local ."
+        "cwd": ".",
+        "command": "docker build -f apps/backend/club-scraper/Dockerfile -t blockout/club-scraper:local ."
       }
     }
   },
   "tags": [
     "scope:backend",
-    "type:application"
+    "type:application",
+    "language:python"
   ]
 }

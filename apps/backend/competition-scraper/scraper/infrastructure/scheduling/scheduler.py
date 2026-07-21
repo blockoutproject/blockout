@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from scraper.observability.logging import log_event
 

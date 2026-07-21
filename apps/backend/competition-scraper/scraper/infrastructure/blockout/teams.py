@@ -1,6 +1,7 @@
-import aiohttp
 import json
 from dataclasses import asdict, fields
+
+import aiohttp
 
 from scraper.config.settings import TEAM_API_URL
 from scraper.infrastructure.blockout.auth import _get_headers

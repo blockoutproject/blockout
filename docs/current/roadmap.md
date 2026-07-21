@@ -346,7 +346,15 @@
 
 ## Contract-first adoption
 
-- [ ] **REF-038 — Establish the Nx and uv Python workspace**
+Contract-first generation will replace the handwritten transport boundaries of the existing V1 API in place. It must
+not introduce V2 routes, controllers, DTO names, aliases, or a parallel API path.
+
+Before a boundary is generated, every active handwritten DTO in that vertical must already match the owning service's
+recommended role name, shape, field semantics, nullability, and nesting. Characterization and parity checks must prove
+that no legacy duplicate or migration-only DTO remains. Generation then changes imports and removes the superseded
+handwritten types; it must not hide a simultaneous transport or business refactor.
+
+- [x] **REF-038 — Establish the Nx and uv Python workspace**
   - Replace the two isolated scraper environments with one Python 3.12 uv workspace containing `club-scraper`,
     `competition-scraper`, and the tracked shared contract-client package scaffold.
   - Pin uv and `@nxlv/python` 22.2.2 after proving local compatibility with the current Nx graph. Keep the plugin limited
@@ -354,29 +362,49 @@
     inference or source-rewriting sync generators.
   - Commit one root `uv.lock`, ignore the single root `.venv`, and remove each `requirements.txt` only after dependency,
     test, scraper, and container parity passes.
+  - Evidence: npm installs cleanly; the pinned plugin adds one moderate transitive audit finding but no high or critical
+    vulnerability. uv resolves and synchronizes all three members from one lockfile, Nx exposes both scraper-to-client
+    edges, and the private wheel builds. Both simple multi-stage images preserve Python 3.12, `/app`, `TZ=UTC`, and the
+    existing command; runtime imports and no-network starts pass without uv or test tools in either final image.
 
-- [ ] **REF-039 — Migrate the club scraper's external transport to HTTPX**
+- [x] **REF-039 — Migrate the club scraper's external transport to HTTPX**
   - Replace only handwritten FFVB network access with one correctly scoped `httpx.AsyncClient` per scraper run.
   - Preserve URLs, query parameters, headers, redirects, timeout intent, error semantics, parsing, and scheduling. Do not
     rewrite Blockout API calls that will be replaced by generated clients.
   - Prove behavior with the captured real FFVB pages, focused transport tests, the complete club scraper suite, and an
     available read-only provider smoke.
+  - Evidence: one run-scoped HTTPX client now owns FFVB access while the temporary internal Blockout adapter remains on
+    aiohttp. HTTPX MockTransport covers form encoding, Windows-1252 decoding, timeout, and retries; all 40 tests pass,
+    and a live read-only FFVB address-book request parses club `0015372` successfully.
 
-- [ ] **REF-040 — Migrate the competition scraper's external transport to HTTPX**
+- [x] **REF-040 — Migrate the competition scraper's external transport to HTTPX**
   - Move FFVB and LNV CSV, XML, and HTML retrieval to a correctly scoped `httpx.AsyncClient` without changing provider
     parsing, competition selection, persistence order, or the existing XML outage tolerance.
   - Preserve the current retry and failure behavior rather than adding a generic transport framework. Share code with
     the club scraper only where the two proven policies are genuinely identical.
   - Validate against the real departmental, regional, national, and professional fixtures, both scraper suites, and
     available read-only provider smokes before removing superseded HTTP dependencies.
+  - Evidence: one run-scoped HTTPX client now retrieves FFVB and LNV GET documents and FFVB form exports without
+    changing parsers or owner-write ordering. MockTransport protects retry, encoding, timeout, and form behavior; all
+    71 competition tests pass. Live read-only smokes pass for the national FFVB index, a real FFVB CSV export, and the
+    LNV DataProject page. The known unavailable LNV XML endpoints were not changed or used as an adoption gate.
 
 - [ ] **REF-041 — Establish deterministic OpenAPI code generation**
-  - Add the authoritative OpenAPI source layout under `libs/shared` and pin OpenAPI Generator 7.22.0 as the single
-    generator family for Java, TypeScript, and Python transport code.
-  - Generate shared Python contract models plus service-specific asynchronous HTTPX clients inside one private
-    `blockout-contract-clients` wheel. Keep its packaging metadata tracked while every generated source remains ignored.
+  - Mirror Maaatch's ownership model: keep authoritative fragments in `libs/shared/contracts/specs/source/**` and write
+    ignored bundled specifications to `libs/shared/contracts/generated/specs/**`.
+  - Generate the Python models and asynchronous clients with OpenAPI Generator CLI 7.22.0, using the stable Python
+    generator's `httpx` library inside the private `libs/shared/python-contract-clients` wheel. Track only handwritten
+    packaging and generation configuration; ignore its generated package sources.
+  - Use the same pinned OpenAPI Generator version through Maven for Java. Keep the model-only shared artifact at
+    `apps/backend/shared-models`, generate its sources under `target/generated-sources/openapi/**`, and generate every
+    server interface or service-to-service client under the owning consumer Maven module's `target/**`.
+  - Reserve Orval for the TypeScript mobile client, generated under
+    `apps/frontend/mobile/src/shared/generated/**` from the mobile-gateway contract. TypeScript never consumes an
+    internal service contract directly, and no generated Java or TypeScript source is stored in `libs/shared`.
   - Generate contract enums from OpenAPI and keep application-only enums in their owning application. Use semantic
     names such as `ClubInternalRequest` and `ClubInternalResponse`; do not encode migration versions in class names.
+  - Add a readiness inventory that rejects a vertical whose handwritten DTOs still diverge from the recommended role
+    names or the owner model. Generated adoption is limited to import replacement and deletion of those proven mirrors.
   - Expose explicit validate, generate, test, build, and clean Nx targets. Require two clean identical generations,
     build/import tests from a clean checkout, and a guard rejecting any tracked generated artifact.
   - Use default generator templates initially. Do not add custom templates, wrapper frameworks, or handwritten patches
@@ -387,8 +415,9 @@
     club refactor, resolving every active handwritten copy against the owner model.
   - Make `clubs-service` implement generated Java interfaces and models, and replace the club scraper's handwritten
     Blockout transport with the generated asynchronous Python client behind one thin configuration/error adapter.
-  - Migrate active Java and TypeScript Club transport consumers in the same vertical so they all derive from the same
-    schema source. Preserve routes, camelCase JSON, persistence, error behavior, and scraper results.
+  - Migrate active Java internal consumers in the same vertical so they derive from the same schema source. Preserve
+    routes, camelCase JSON, persistence, error behavior, and scraper results; the mobile keeps consuming only its
+    gateway boundary until REF-052/053.
 
 - [ ] **REF-043 — Migrate the Config and Division contracts**
   - Generate the configuration and Division internal boundaries owned by `config-service`, including the Python clients
@@ -443,10 +472,11 @@
     directly through the mobile boundary.
 
 - [ ] **REF-053 — Adopt the generated mobile TypeScript client**
-  - Generate the mobile client and models from the gateway contract and replace handwritten Axios transport and
-    duplicate mobile DTOs feature by feature.
+  - Generate the mobile client and models with Orval from the gateway contract into
+    `apps/frontend/mobile/src/shared/generated/**`, then replace handwritten Axios transport and duplicate mobile DTOs
+    feature by feature.
   - Keep TanStack Query ownership, Expo session behavior, error presentation, accessibility, and all existing tests;
-    generated source remains under `libs/shared` and outside Git.
+    generated source remains application-local and outside Git.
 
 - [ ] **REF-054 — Certify and clean the complete contract-first application**
   - Remove superseded handwritten transport DTOs, internal HTTP clients, obsolete dependencies, and compatibility-only

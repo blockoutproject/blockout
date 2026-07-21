@@ -1,8 +1,10 @@
 """Shared lifecycle for competition provider sources."""
 
-import aiohttp
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
+
+import aiohttp
+import httpx
 from prometheus_client import Gauge
 
 from scraper.application.association_changes import AssociationChangeSet
@@ -24,6 +26,7 @@ class Scraper(ABC):
     def __init__(
         self,
         session: aiohttp.ClientSession,
+        provider_client: httpx.AsyncClient,
         name: str,
         url: str | None = None,
         priority_validation_enabled: bool = False,
@@ -34,7 +37,7 @@ class Scraper(ABC):
         self.url = url
         self.priority_validation_enabled = priority_validation_enabled
         self._max_concurrency = max_concurrency
-        self._provider_http = ProviderHttpClient(session, max_concurrency)
+        self._provider_http = ProviderHttpClient(provider_client, max_concurrency)
         self._match_changes = MatchChangeSet(session, priority_validation_enabled)
         self._association_changes = AssociationChangeSet(session)
 
@@ -80,6 +83,12 @@ class Scraper(ABC):
     ) -> str:
         """Fetch and decode one provider document."""
         return await self._provider_http.fetch(url, retries, delay, timeout)
+
+    async def post_provider_form(
+        self, url: str, data: dict[str, str], timeout: int = 20
+    ) -> httpx.Response:
+        """POST one provider form without using the Blockout API session."""
+        return await self._provider_http.post_form(url, data, timeout)
 
     async def init_matches_cache(self, poolId: int) -> None:
         """Load current owner matches for one pool."""

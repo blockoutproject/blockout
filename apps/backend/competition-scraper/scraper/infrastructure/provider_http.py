@@ -1,8 +1,10 @@
 """Bounded HTTP access shared by FFVB and LNV sources."""
 
-import aiohttp
 import asyncio
 import re
+from collections.abc import Mapping
+
+import httpx
 
 from scraper.observability.logging import log_event
 
@@ -10,10 +12,8 @@ from scraper.observability.logging import log_event
 class ProviderHttpClient:
     """Fetch provider documents with bounded retries and declared encodings."""
 
-    def __init__(
-        self, session: aiohttp.ClientSession, max_concurrency: int = 10
-    ) -> None:
-        self._session = session
+    def __init__(self, client: httpx.AsyncClient, max_concurrency: int = 10) -> None:
+        self._client = client
         self._semaphore = asyncio.Semaphore(max_concurrency)
 
     async def fetch(
@@ -23,42 +23,36 @@ class ProviderHttpClient:
         async with self._semaphore:
             for attempt in range(1, retries + 1):
                 try:
-                    async with self._session.get(
-                        url,
-                        timeout=aiohttp.ClientTimeout(total=timeout),
-                    ) as response:
-                        response.raise_for_status()
-                        raw_content = await response.content.read()
-                        content = self._decode(
-                            url, raw_content, getattr(response, "charset", None)
+                    response = await self._client.get(url, timeout=timeout)
+                    response.raise_for_status()
+                    content = self._decode(
+                        url, response.content, response.charset_encoding
+                    )
+                    if attempt > 1:
+                        log_event(
+                            action="http_request_retry_success",
+                            level="info",
+                            attempt=attempt,
+                            url=url,
+                            message=(
+                                f"Succès après retry {attempt}/{retries}: "
+                                f"Contenu récupéré pour l'URL {url}."
+                            ),
                         )
-                        if attempt > 1:
-                            log_event(
-                                action="http_request_retry_success",
-                                level="info",
-                                attempt=attempt,
-                                url=url,
-                                message=(
-                                    f"Succès après retry {attempt}/{retries}: "
-                                    f"Contenu récupéré pour l'URL {url}."
-                                ),
-                            )
-                        return content
-                except aiohttp.ClientConnectorDNSError as error:
-                    self._log_failure("dns_error", url, attempt, retries, error)
-                except aiohttp.ClientConnectorError as error:
+                    return content
+                except httpx.ConnectError as error:
                     self._log_failure("connector_error", url, attempt, retries, error)
-                except aiohttp.ClientResponseError as error:
+                except httpx.HTTPStatusError as error:
                     self._log_failure(
                         "http_error",
                         url,
                         attempt,
                         retries,
                         error,
-                        status=error.status,
+                        status=error.response.status_code,
                         level="debug",
                     )
-                except TimeoutError as error:
+                except httpx.TimeoutException as error:
                     self._log_failure(
                         "timeout", url, attempt, retries, error, level="debug"
                     )
@@ -94,6 +88,17 @@ class ProviderHttpClient:
                 )
 
         raise RuntimeError(f"No provider request was attempted for '{url}'.")
+
+    async def post_form(
+        self,
+        url: str,
+        data: Mapping[str, str],
+        timeout: int = 20,
+    ) -> httpx.Response:
+        """POST one provider form while the caller owns retry semantics."""
+        response = await self._client.post(url, data=data, timeout=timeout)
+        response.raise_for_status()
+        return response
 
     @staticmethod
     def _decode(url: str, content: bytes, declared_encoding: str | None = None) -> str:

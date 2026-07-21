@@ -63,7 +63,7 @@ def _team(identifier: int, name: str) -> TeamInternalResponse:
 
 def test_professional_source_catalog_remains_explicit_and_season_bound() -> None:
     """Protect configured pro competitions, source URLs, and local priority mode."""
-    scraper = ProScraper(None)
+    scraper = ProScraper(None, None)
 
     assert scraper.raw_season == "2026/2027"
     assert scraper.leagueCode == "AALNV"
@@ -89,7 +89,7 @@ def test_professional_chain_keeps_csv_then_xml_then_live_order(monkeypatch) -> N
     """Protect source ordering within one professional pool."""
 
     async def scenario() -> None:
-        scraper = ProScraper(object())
+        scraper = ProScraper(object(), object())
         order: list[str] = []
 
         async def csv(*_args, **_kwargs):
@@ -123,7 +123,7 @@ def test_lnv_match_xml_updates_date_set_and_score_in_utc() -> None:
     """Protect XML parsing, invalid-match skipping, and LNV XML ownership."""
 
     async def scenario() -> None:
-        scraper = ProScraper(None)
+        scraper = ProScraper(None, None)
         existing = _match(
             matchCode="LAM001",
             matchDate=datetime(2020, 1, 1, tzinfo=UTC),
@@ -155,7 +155,7 @@ def test_lnv_rank_xml_replaces_complete_association_stats(monkeypatch) -> None:
     """Protect rank parsing, alias lookup, team resolution, and replacement semantics."""
 
     async def scenario() -> None:
-        scraper = ProScraper(object())
+        scraper = ProScraper(object(), object())
         pool = _pool()
 
         async def find_team(*_args):
@@ -186,7 +186,7 @@ def test_lnv_live_html_resolves_teams_and_adds_only_the_live_code(monkeypatch) -
     """Protect DataProject identifiers, two-step indexes, and date-based match lookup."""
 
     async def scenario() -> None:
-        scraper = ProScraper(object())
+        scraper = ProScraper(object(), object())
         existing = _match(
             liveCode=None,
             matchDate=datetime(2026, 3, 25, 18, 0, tzinfo=UTC),
@@ -229,7 +229,7 @@ def test_professional_parser_and_identifier_failures_are_isolated(monkeypatch) -
     """Protect pool-local isolation with injected technical failures."""
 
     async def scenario() -> None:
-        scraper = ProScraper(object())
+        scraper = ProScraper(object(), object())
         events: list[dict] = []
 
         async def fetch(url):
@@ -264,7 +264,7 @@ def test_shared_professional_live_page_is_fetched_once(monkeypatch) -> None:
     """Protect the per-run cache used by pools sharing one Data Project page."""
 
     async def scenario() -> None:
-        scraper = ProScraper(object())
+        scraper = ProScraper(object(), object())
         fetches = 0
 
         async def fetch(_url):
@@ -292,7 +292,7 @@ def test_professional_live_page_cache_is_reset_between_runs(monkeypatch) -> None
     """Protect fresh provider observations across separate scheduled runs."""
 
     async def scenario() -> None:
-        scraper = ProScraper(object())
+        scraper = ProScraper(object(), object())
         scraper._live_documents["https://live.invalid"] = "stale"
 
         async def empty_read(*_args):

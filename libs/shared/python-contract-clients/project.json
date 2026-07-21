@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "@blockout/python-contract-clients",
+  "projectType": "library",
+  "sourceRoot": "libs/shared/python-contract-clients/src",
+  "targets": {
+    "sync": {
+      "executor": "@nxlv/python:sync",
+      "options": {
+        "args": "--locked --all-packages"
+      }
+    },
+    "build": {
+      "executor": "@nxlv/python:build",
+      "outputs": ["{workspaceRoot}/dist/libs/shared/python-contract-clients"],
+      "options": {
+        "outputPath": "dist/libs/shared/python-contract-clients",
+        "format": "wheel",
+        "lockedVersions": true,
+        "bundleLocalDependencies": true
+      }
+    }
+  },
+  "tags": [
+    "scope:shared",
+    "type:library",
+    "language:python"
+  ]
+}
