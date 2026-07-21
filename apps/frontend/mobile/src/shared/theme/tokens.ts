@@ -12,3 +12,8 @@ export const SEARCHBAR_HEIGHT = 36;
 export const SECTION_SEPARATOR_HEIGHT = 12;
 export const FOLLOWED_HEADER = 54;
 export const TABBAR_ICON_SIZE = 28;
+export const CTA_GRADIENT: [string, string, string] = [
+  "#24b3c9ff",
+  "#8f8bfaff",
+  "#F472B6",
+];

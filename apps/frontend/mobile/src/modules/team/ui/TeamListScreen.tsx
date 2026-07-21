@@ -20,7 +20,7 @@ import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import { ReportType } from "@/src/modules/report/model/Report";
 import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
 import { useTeamListByClubId } from "@/src/modules/team/hooks/useTeamListByClubId";
-import FollowedListSkeleton from "@/src/components/followed/FollowedListSkeleton";
+import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
 import { SelectOption } from "@/src/shared/ui/form/SelectSheet";
 import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
 import { useNavigationInterstitial } from "@/src/hooks/ads/useNavigationInterstitial";
@@ -62,8 +62,6 @@ const TeamListScreen: React.FC = () => {
     setRefreshing(true);
     try {
       await refetch();
-    } catch (error) {
-      console.error("Error on refresh:", error);
     } finally {
       setRefreshing(false);
     }
@@ -74,7 +72,7 @@ const TeamListScreen: React.FC = () => {
       <TeamCard
         team={item}
         onPress={() => handleTeamPress(item.id)}
-        testID={`team-card-${item.id}`}
+        testID={`team-list-item-${item.id}`}
       />
     ),
     [handleTeamPress],
@@ -110,7 +108,7 @@ const TeamListScreen: React.FC = () => {
 
   const body = useMemo(() => {
     if (isLoading && !refreshing) {
-      return <FollowedListSkeleton />;
+      return <EntityListSkeleton testID="team-list-loading" />;
     }
 
     if (isError) {
@@ -119,6 +117,8 @@ const TeamListScreen: React.FC = () => {
           subtitle="Impossible de charger les équipes."
           onRetry={refetch}
           paddingTop={"40%"}
+          testID="team-list-error"
+          retryTestID="team-list-retry-action"
         />
       );
     }
@@ -129,6 +129,8 @@ const TeamListScreen: React.FC = () => {
           subtitle="Aucune équipe trouvée pour ce club."
           onRetry={refetch}
           paddingTop={"30%"}
+          testID="team-list-empty"
+          retryTestID="team-list-empty-retry-action"
         />
       );
     }

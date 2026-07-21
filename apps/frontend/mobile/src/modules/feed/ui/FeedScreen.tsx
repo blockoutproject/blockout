@@ -11,7 +11,7 @@ import {useSessionState} from '@/src/shared/providers/SessionProvider';
 import ReportFormSheet from '@/src/modules/report/ui/ReportFormSheet';
 import {BottomSheetModal} from '@gorhom/bottom-sheet';
 import {ReportType} from '@/src/modules/report/model/Report';
-import FollowedScreen from '@/src/components/followed/FollowedScreen';
+import FollowedScreen from '@/src/modules/followed/ui/FollowedScreen';
 import {openNotificationUrlIfAny} from '@/src/modules/notifications/push';
 import {
   isDefaultNotificationAction,

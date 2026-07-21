@@ -317,7 +317,7 @@
     - [x] move reporting and establish shared form and bottom-sheet foundations from existing consumers;
     - [x] move teams and pools together, sharing their equivalent entity presentation while keeping feature behavior
           explicit;
-    - [ ] move clubs, search, followed entities, and team lists into coherent discovery boundaries;
+    - [x] move clubs, search, followed entities, and team lists into coherent discovery boundaries;
     - [ ] move matches, rankings, and the feed, optimizing lists only where measurements or stable semantics justify it;
     - [ ] move user, session, onboarding, application status, configuration, and internal administration flows;
     - [ ] remove empty legacy roots, correct naming and remaining unsafe types, complete accessibility checks, and

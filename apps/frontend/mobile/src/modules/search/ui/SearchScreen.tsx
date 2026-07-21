@@ -1,21 +1,21 @@
-import React, {useRef, useState} from "react";
-import {StyleSheet, View} from "react-native";
-import {useDebounce} from "use-debounce";
-import {BottomSheetModal} from "@gorhom/bottom-sheet";
+import React, { useRef, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { useDebounce } from "use-debounce";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
-import SearchTeamScreen from "@/src/components/search/SearchTeamScreen";
-import SearchClubScreen from "@/src/components/search/SearchClubScreen";
-import SearchPoolScreen from "@/src/components/search/SearchPoolScreen";
-import SearchHeader from "@/src/components/search/SearchHeader";
-import {ReportType} from "@/src/modules/report/model/Report";
-import {Filter} from "@/src/types/Filter";
+import SearchTeamScreen from "@/src/modules/search/ui/SearchTeamScreen";
+import SearchClubScreen from "@/src/modules/search/ui/SearchClubScreen";
+import SearchPoolScreen from "@/src/modules/search/ui/SearchPoolScreen";
+import SearchHeader from "@/src/modules/search/ui/SearchHeader";
+import { ReportType } from "@/src/modules/report/model/Report";
+import { Filter } from "@/src/types/Filter";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 
 const SearchScreen: React.FC = () => {
   const [filters, setFilters] = useState<Filter[]>([
-    {name: "Équipes", isActive: true},
-    {name: "Poules", isActive: false},
-    {name: "Clubs", isActive: false},
+    { name: "Équipes", isActive: true },
+    { name: "Poules", isActive: false },
+    { name: "Clubs", isActive: false },
   ]);
   const [search, setSearch] = useState("");
   const [debouncedQuery] = useDebounce(search, 300);
@@ -26,10 +26,7 @@ const SearchScreen: React.FC = () => {
   const reportSheetRef = useRef<BottomSheetModal>(null);
 
   return (
-    <View
-      style={styles.container}
-      testID="search-screen"
-    >
+    <View style={styles.container} testID="search-screen">
       <SearchHeader
         filters={filters}
         setFilters={setFilters}
@@ -58,7 +55,10 @@ const SearchScreen: React.FC = () => {
 
       <ReportFormSheet
         ref={reportSheetRef}
-        context={{screen: `Search#${activeEntity}`, defaultType: ReportType.DISPLAY_BUG}}
+        context={{
+          screen: `Search#${activeEntity}`,
+          defaultType: ReportType.DISPLAY_BUG,
+        }}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();
         }}

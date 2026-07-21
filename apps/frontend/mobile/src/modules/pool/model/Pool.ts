@@ -62,17 +62,3 @@ export type PoolSummaryResponse = {
   leagueCode: string;
   leagueName: string;
 };
-
-export type PoolSearchResponse = {
-  id: number;
-  name: string;
-  divisionId: number;
-  divisionName: string;
-  divisionMainColor: string;
-  leagueCode: string;
-  leagueName: string;
-  logoUrl?: string;
-  format: string;
-  gender: string;
-  season: string;
-};

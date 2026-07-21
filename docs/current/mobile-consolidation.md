@@ -32,11 +32,11 @@ easier to read and its public interface is simpler than the duplicated implement
 | Loading, empty, error, and API feedback | Repeated cards, alerts, toasts, and error extraction                         | `shared/ui` and `shared/api`                        | Share presentation and transport-neutral error handling; keep feature recovery decisions local                                    | Planned     |
 | Form and bottom-sheet structure         | Repeated sheet headers, fields, validation layout, and footers               | `shared/ui`                                         | Shared cards, inputs, modal/page frames, and accessible footers own layout; schemas, values, and submit commands stay in modules  | Complete    |
 | Team and pool presentation              | Near-identical headers, skeletons, profile layout, and form sheets           | `shared/ui` plus feature modules                    | Shared header and skeleton own only exact presentation; profiles, tabs, forms, models, APIs, and commands remain explicit          | Complete    |
-| Followed entity lists                   | Near-identical pool and team lists                                           | `shared/ui` plus discovery modules                  | Share list presentation and stable interaction contract; retain queries and navigation per feature                                | Planned     |
-| Entity search                           | Near-identical team and pool filters with a simpler club variant             | `shared/ui` plus search module                      | Share proven controls and result framing; retain feature filters and requests                                                     | Planned     |
+| Followed entity lists                   | Near-identical pool and team lists                                           | Entity modules plus `modules/followed`              | Share entity cards and list skeletons; keep typed queries, copy, filtering, and navigation explicit                                | Complete    |
+| Entity search                           | Near-identical team and pool filters with a simpler club variant             | `modules/search`                                    | One small results frame accepts composed filters; entity filters, requests, cards, and navigation remain explicit                 | Complete    |
 | High-volume lists and images            | Match, ranking, feed, and notification lists repeat item patterns            | Feature modules plus `shared/ui` primitives         | Notifications now has memoized items, stable callbacks, and Expo Image recycling; other list slices remain                        | In progress |
 | Application-state cards                 | Maintenance and required-update screens share layout but not actions         | `shared/ui` plus app-status module                  | Share the state frame; express maintenance and update as explicit feature compositions                                            | Planned     |
-| Test selectors and component behavior   | Existing tests mix semantic queries with incidental or incorrectly named IDs | Owning feature tests and native host components     | Notifications, Reporting, Team, and Pool use semantic queries, observable commands, and stable feature IDs                        | In progress |
+| Test selectors and component behavior   | Existing tests mix semantic queries with incidental or incorrectly named IDs | Owning feature tests and native host components     | Completed slices use semantic queries, observable commands, stable boundaries, and domain-item IDs                                | In progress |
 
 ## Completed slices
 
@@ -86,6 +86,23 @@ easier to read and its public interface is simpler than the duplicated implement
 - Focused Jest/RNTL tests protect header permissions and interactions plus Team and Pool request construction. All 37
   tests pass across 16 suites, typecheck passes, lint completes with 42 inherited warnings and no errors, and the
   3,150-module Web export passes.
+
+### Club, search, and followed discovery
+
+- Club now owns its handwritten response/update model, API, Query hook, form, header, hero, tabs, map, information,
+  and team-list composition under `modules/club`. The one-line `ClubProfile` wrapper was removed, while the distinct
+  club header and skeleton remain local instead of being forced into the Team/Pool frame.
+- Search now owns the three gateway search response models exactly as the Java gateway exposes them, including the
+  previously missing `shortName` fields and without nonexistent division color/id fields. Its former large generic
+  screen was reduced to a small typed results frame; Team and Pool compose their concrete filters directly.
+- Followed navigation and lists live under `modules/followed`. Team and Pool entity cards remain owned by their entity
+  modules, and the proven list skeleton is shared. Season filtering and navigation stay explicit and typed; no generic
+  followed-list factory or selector registry was introduced.
+- Search inputs, clear/report/back actions, Club editing, state boundaries, collections, and repeated items expose
+  accessible semantics and stable feature/domain IDs. Focused tests protect Club request construction, Search result
+  and recovery behavior, and followed-Team season filtering/navigation.
+- All 41 tests pass across 19 suites, typecheck passes, lint completes with 35 inherited warnings and no errors, and
+  the 3,148-module Web export passes.
 
 ## Final audit
 

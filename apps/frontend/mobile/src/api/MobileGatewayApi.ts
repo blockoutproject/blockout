@@ -1,9 +1,9 @@
-import { ClubApi } from "./ClubApi";
+import { ClubApi } from "@/src/modules/club/api/ClubApi";
 import { MatchApi } from "./MatchApi";
 import { PoolApi } from "@/src/modules/pool/api/PoolApi";
 import { TeamApi } from "@/src/modules/team/api/TeamApi";
 import { UserApi } from "./UserApi";
-import { SearchApi } from "./SearchApi";
+import { SearchApi } from "@/src/modules/search/api/SearchApi";
 import { NotificationApi } from "@/src/modules/notifications/api/NotificationApi";
 import { ConfigApi } from "./ConfigApi";
 import { ReportApi } from "@/src/modules/report/api/ReportApi";

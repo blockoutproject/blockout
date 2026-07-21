@@ -1,4 +1,4 @@
-import type { Club } from "@/src/types/Club";
+import type { ClubResponse } from "@/src/modules/club/model/Club";
 import type { Division } from "@/src/types/Division";
 import type { EnumFormat } from "@/src/types/enums/Format";
 import type { EnumGender } from "@/src/types/enums/Gender";
@@ -47,7 +47,7 @@ export type TeamResponse = {
   season: string;
   followersCount: number;
   logoUrl: string | null;
-  club: Club | null;
+  club: ClubResponse | null;
   division: Division;
   pools: PoolResponse[];
 };
@@ -60,7 +60,7 @@ export type TeamSummaryResponse = {
   format: EnumFormat;
   logoUrl: string | null;
   division: Division;
-  club: Club;
+  club: ClubResponse;
   shortName: string;
 };
 
@@ -83,19 +83,4 @@ export type TeamWithStatsResponse = {
 export type TeamHighlight = {
   teamId?: number;
   color: string;
-};
-
-export type TeamSearchResponse = {
-  id: number;
-  name: string;
-  clubId: string;
-  clubName: string;
-  clubCity: string;
-  logoUrl: string | null;
-  divisionId: number;
-  divisionMainColor: string;
-  divisionName: string;
-  format: string;
-  gender: string;
-  season: string;
 };

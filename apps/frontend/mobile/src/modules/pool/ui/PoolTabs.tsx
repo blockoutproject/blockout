@@ -4,7 +4,7 @@ import { Animated } from "react-native";
 import GenericTabView from "@/src/shared/ui/GenericTabView";
 import MatchList from "@/src/components/matchList/MatchListContainer";
 import RankingTab from "@/src/components/ranking/RankingTab";
-import ProUpsellTab from "@/src/components/club/ProUpsellTab";
+import ProUpsellTab from "@/src/shared/ui/subscription/ProUpsellTab";
 
 import { MatchStatus } from "@/src/types/Match";
 import type { PoolResponse } from "@/src/modules/pool/model/Pool";

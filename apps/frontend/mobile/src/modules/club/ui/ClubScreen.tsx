@@ -1,38 +1,41 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {StyleSheet, View} from "react-native";
-import {BottomSheetModal} from "@gorhom/bottom-sheet";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { StyleSheet, View } from "react-native";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import {useLocalSearchParams, useRouter} from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {useClubById} from "@/src/hooks/club/useClubById";
-import {useTeamListByClubId} from "@/src/modules/team/hooks/useTeamListByClubId";
+import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import { useClubById } from "@/src/modules/club/hooks/useClubById";
+import { useTeamListByClubId } from "@/src/modules/team/hooks/useTeamListByClubId";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
-import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import ClubSkeleton from "@/src/components/club/ClubSkeleton";
-import ClubHeader from "@/src/components/club/ClubHeader";
-import ClubFormSheet from "@/src/components/club/ClubFormSheet";
+import ClubSkeleton from "@/src/modules/club/ui/ClubSkeleton";
+import ClubHeader from "@/src/modules/club/ui/ClubHeader";
+import ClubFormSheet from "@/src/modules/club/ui/ClubFormSheet";
 
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
-import {ReportType} from "@/src/modules/report/model/Report";
+import { ReportType } from "@/src/modules/report/model/Report";
 
-import ClubProfile from "@/src/components/club/ClubProfile";
-import ClubTabs from "@/src/components/club/ClubTabs";
-import type {TeamSummaryResponse} from "@/src/modules/team/model/Team";
-import {SelectOption} from "@/src/shared/ui/form/SelectSheet";
+import ClubHero from "@/src/modules/club/ui/ClubHero";
+import ClubTabs from "@/src/modules/club/ui/ClubTabs";
+import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
+import { SelectOption } from "@/src/shared/ui/form/SelectSheet";
 
 const ClubScreen: React.FC = () => {
   const theme = useAppTheme();
-  const router = useRouter();
-  const {id} = useLocalSearchParams();
+  const { id } = useLocalSearchParams();
 
   const clubId = String(id);
 
-  const {data: club, isLoading, error, refetch} = useClubById(clubId);
-  const {allowed: canUpdateClub} = useHasScopes(["update:clubs"]);
-  const {handleNavigationWithAd} = useNavigationInterstitial();
+  const { data: club, isLoading, error, refetch } = useClubById(clubId);
+  const { allowed: canUpdateClub } = useHasScopes(["update:clubs"]);
 
   const {
     data: teams,
@@ -42,7 +45,9 @@ const ClubScreen: React.FC = () => {
   } = useTeamListByClubId(clubId);
 
   const [availableSeasons, setAvailableSeasons] = useState<string[]>([]);
-  const [selectedSeason, setSelectedSeason] = useState<string | undefined>(undefined);
+  const [selectedSeason, setSelectedSeason] = useState<string | undefined>(
+    undefined,
+  );
   const [activeTab, setActiveTab] = useState<string>("info");
 
   const formSheetRef = useRef<BottomSheetModal>(null);
@@ -65,16 +70,18 @@ const ClubScreen: React.FC = () => {
   useEffect(() => {
     const all = teams ?? [];
     const seasons = Array.from(
-      new Set(all.map((t) => t.season).filter((s): s is string => !!s))
+      new Set(all.map((t) => t.season).filter((s): s is string => !!s)),
     ).sort((a, b) => b.localeCompare(a));
 
     setAvailableSeasons(seasons);
-    setSelectedSeason((prev) => (prev && seasons.includes(prev) ? prev : seasons[0]));
+    setSelectedSeason((prev) =>
+      prev && seasons.includes(prev) ? prev : seasons[0],
+    );
   }, [teams]);
 
   const seasonOptions: SelectOption[] = useMemo(
-    () => availableSeasons.map((s) => ({value: s, label: s})),
-    [availableSeasons]
+    () => availableSeasons.map((s) => ({ value: s, label: s })),
+    [availableSeasons],
   );
 
   const filteredTeams: TeamSummaryResponse[] = useMemo(() => {
@@ -85,13 +92,13 @@ const ClubScreen: React.FC = () => {
 
   const teamIdsForMatches = useMemo(
     () => filteredTeams.map((t) => t.id),
-    [filteredTeams]
+    [filteredTeams],
   );
 
   const showSeasonInHero = activeTab !== "info";
 
   const body = useMemo(() => {
-    if (isLoading) return <ClubSkeleton/>;
+    if (isLoading) return <ClubSkeleton />;
 
     if (error) {
       return (
@@ -99,6 +106,8 @@ const ClubScreen: React.FC = () => {
           subtitle="Impossible de charger ce club."
           onRetry={refetch}
           paddingTop="40%"
+          testID="club-error"
+          retryTestID="club-retry-action"
         />
       );
     }
@@ -109,13 +118,15 @@ const ClubScreen: React.FC = () => {
           subtitle="Ce club est introuvable."
           onRetry={refetch}
           paddingTop="40%"
+          testID="club-not-found"
+          retryTestID="club-not-found-retry-action"
         />
       );
     }
 
     return (
       <>
-        <ClubProfile
+        <ClubHero
           club={club}
           onEdit={canUpdateClub ? openForm : undefined}
           showSeasonSelect={showSeasonInHero}
@@ -127,7 +138,6 @@ const ClubScreen: React.FC = () => {
           }}
           isSeasonLoading={isTeamsLoading}
           isSeasonError={isTeamsError}
-          onRetrySeason={refetchTeams}
         />
 
         <ClubTabs
@@ -173,8 +183,11 @@ const ClubScreen: React.FC = () => {
   ]);
 
   return (
-    <View style={[styles.container, {backgroundColor: theme.background}]} testID="club-screen">
-      <ClubHeader title={club?.name ?? ""} onOpenReport={handleOpenReport}/>
+    <View
+      style={[styles.container, { backgroundColor: theme.background }]}
+      testID="club-screen"
+    >
+      <ClubHeader title={club?.name ?? ""} onOpenReport={handleOpenReport} />
 
       {body}
 
@@ -197,5 +210,5 @@ const ClubScreen: React.FC = () => {
 export default ClubScreen;
 
 const styles = StyleSheet.create({
-  container: {flex: 1},
+  container: { flex: 1 },
 });

@@ -1,9 +1,9 @@
 import React from "react";
-import {StyleSheet, TextInput, TouchableOpacity, View} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {BottomSheetTextInput} from "@gorhom/bottom-sheet";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {SEARCHBAR_HEIGHT} from "@/src/shared/theme/tokens";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import { SEARCHBAR_HEIGHT } from "@/src/shared/theme/tokens";
 
 export type SearchBarProps = {
   /** Valeur contrôlée. */
@@ -18,26 +18,24 @@ export type SearchBarProps = {
   onBlur?: () => void;
   /** Utilisation dans un BottomSheet. */
   inSheet?: boolean;
+  /** Stable id for the native search input when a concrete feature needs it. */
+  testID?: string;
 };
 
 const SearchBar: React.FC<SearchBarProps> = ({
-                                               value,
-                                               onChangeText,
-                                               placeholder = "Rechercher...",
-                                               onFocus,
-                                               onBlur,
-                                               inSheet = true,
-                                             }) => {
+  value,
+  onChangeText,
+  placeholder = "Rechercher...",
+  onFocus,
+  onBlur,
+  inSheet = true,
+  testID,
+}) => {
   const theme = useAppTheme();
   const Input = inSheet ? BottomSheetTextInput : TextInput;
 
   return (
-    <View
-      style={[
-        styles.container,
-        {backgroundColor: theme.surface},
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: theme.surface }]}>
       <MaterialCommunityIcons
         name="magnify"
         size={18}
@@ -50,24 +48,28 @@ const SearchBar: React.FC<SearchBarProps> = ({
         autoCorrect={false}
         onChangeText={onChangeText}
         placeholder={placeholder}
+        accessibilityLabel={placeholder}
+        testID={testID}
         placeholderTextColor={theme.textInactive}
         onFocus={onFocus}
         onBlur={onBlur}
-        style={[
-          styles.input,
-          {color: theme.text},
-        ]}
+        style={[styles.input, { color: theme.text }]}
       />
 
       {value.length > 0 ? (
-        <TouchableOpacity onPress={() => onChangeText("")}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Effacer la recherche"
+          onPress={() => onChangeText("")}
+          style={({ pressed }) => (pressed ? styles.pressed : undefined)}
+        >
           <MaterialCommunityIcons
             name="close-circle"
             size={18}
             color={theme.textInactive}
             style={styles.clearIcon}
           />
-        </TouchableOpacity>
+        </Pressable>
       ) : null}
     </View>
   );
@@ -94,4 +96,5 @@ const styles = StyleSheet.create({
   clearIcon: {
     marginRight: 8,
   },
+  pressed: { opacity: 0.7 },
 });

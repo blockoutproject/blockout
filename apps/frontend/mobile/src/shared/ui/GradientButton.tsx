@@ -3,6 +3,7 @@ import {ActivityIndicator, GestureResponderEvent, Pressable, StyleSheet, Text, V
 import {LinearGradient} from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Animated, {useAnimatedStyle, useSharedValue, withSpring} from "react-native-reanimated";
+import {CTA_GRADIENT} from "@/src/shared/theme/tokens";
 
 export type GradientButtonProps = {
   onPress: () => Promise<void> | void;
@@ -18,7 +19,6 @@ export type GradientButtonProps = {
   gradient?: [string, string, string];
 };
 
-export const CTA_GRADIENT: [string, string, string] = ["#24b3c9ff", "#8f8bfaff", "#F472B6"];
 export const GOLD_GRADIENT: [string, string, string] = ["#fedc84", "#CFAE70", "#9E844C"];
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
