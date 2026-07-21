@@ -1,0 +1,62 @@
+{
+  "name": "@blockout/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "parallel": false,
+          "commands": [
+            "node --test libs/shared/contracts/specs/scripts/bundle-openapi.test.mjs",
+            "openapi-generator-cli validate -i libs/shared/contracts/generated/specs/shared.json"
+          ]
+        }
+      },
+      "generate-openapi-bundles": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/specs/source/**/*.json",
+          "{projectRoot}/specs/adoption-readiness.json",
+          "{projectRoot}/specs/scripts/bundle-openapi.mjs"
+        ],
+        "outputs": ["{projectRoot}/generated/specs/*.json"],
+        "options": {
+          "command": "node libs/shared/contracts/specs/scripts/bundle-openapi.mjs"
+        }
+      },
+      "sync-backend-schema-mappings": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "inputs": [
+          "{projectRoot}/specs/source/shared/schemas/**/*.json",
+          "{projectRoot}/specs/scripts/sync-backend-schema-mappings.mjs",
+          "{workspaceRoot}/apps/backend/pom.xml"
+        ],
+        "outputs": ["{workspaceRoot}/apps/backend/pom.xml"],
+        "options": {
+          "command": "node libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.mjs"
+        }
+      },
+      "generate-contracts": {
+        "executor": "nx:noop",
+        "outputs": [
+          "{projectRoot}/generated/specs/*.json",
+          "{workspaceRoot}/apps/backend/pom.xml"
+        ],
+        "dependsOn": [
+          {
+            "target": "generate-openapi-bundles"
+          },
+          {
+            "target": "sync-backend-schema-mappings"
+          }
+        ]
+      }
+    }
+  }
+}

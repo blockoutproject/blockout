@@ -1,0 +1,6 @@
+{
+  "GenderEnum": {
+    "type": "string",
+    "enum": ["M", "F", "O"]
+  }
+}

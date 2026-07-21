@@ -179,6 +179,22 @@ Each vertical must first align every active handwritten DTO with the owning serv
 transport shape, and remove legacy duplicates. Once parity is proven, code generation only replaces imports and the
 superseded handwritten definitions; contract adoption must not conceal another DTO or business redesign.
 
+## Contract generation foundation after REF-041
+
+REF-041 establishes only the shared generation foundation. Authoritative OpenAPI fragments live under
+`libs/shared/contracts/specs/source`, ignored bundles under `libs/shared/contracts/generated/specs`, and reusable
+transport enums under `source/shared/schemas`. Service DTOs remain owned by their service contract even when several
+applications consume them.
+
+OpenAPI Generator is the common Java and Python engine. Maven writes Java sources below the owning module's `target`,
+while the private Python workspace package contains generated models and asynchronous HTTPX clients in one namespace
+per contract. Orval is reserved for the mobile-gateway client and will be configured only when that V1 contract is
+adopted. All generated sources remain outside Git.
+
+No service vertical is adopted by REF-041. The readiness inventory keeps every vertical pending until its dedicated
+roadmap task proves exact parity between the owner and every active handwritten mirror. Application-only enums such as
+`DataSourcePriority` remain local; transport enums defined by OpenAPI are generated.
+
 ## Current boundary inventory
 
 | Application            | Blockout-owned JSON to migrate                                                 | External JSON to preserve                      |
