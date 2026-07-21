@@ -1,0 +1,6 @@
+{
+  "FormatEnum": {
+    "type": "string",
+    "enum": ["SIX", "FOUR", "TWO"]
+  }
+}

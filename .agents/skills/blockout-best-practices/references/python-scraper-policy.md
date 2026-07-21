@@ -73,9 +73,9 @@ transport contracts, not scraper-owned domain models.
 - Use a distinct domain value only when it expresses different semantics. If it is structurally and semantically the
   owner resource, use the transport boundary rather than another copy.
 
-Until contract-first is activated, these types are handwritten exact mirrors protected by parity tests. Later, Java and
-Python types and clients will be generated from the same internal OpenAPI source under `libs/shared`; generated sources
-remain untracked. The scraper then imports generated Python models instead of retaining handwritten copies.
+Until its owning vertical is adopted, each type remains a handwritten exact mirror protected by parity tests. The
+vertical then generates Java and Python types and clients from the same internal OpenAPI source under `libs/shared`;
+generated sources remain untracked, and the scraper replaces the proven mirror with generated imports.
 
 Contract-owned enums such as Format, Gender, and MatchStatus follow the owner service. Application-only policy such as
 `DataSourcePriority` remains local to the competition scraper. Provider-owned enums remain provider-specific.

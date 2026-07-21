@@ -3,7 +3,12 @@ name = "blockout-contract-clients"
 version = "0.0.0"
 description = "Private generated Python clients for Blockout contracts"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "httpx>=0.28.1,<1",
+    "pydantic>=2,<3",
+    "python-dateutil>=2.8.2",
+    "typing-extensions>=4.7.1",
+]
 
 [build-system]
 requires = ["uv-build==0.11.29"]

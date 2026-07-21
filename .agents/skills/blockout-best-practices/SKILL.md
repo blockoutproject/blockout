@@ -29,6 +29,7 @@ the current task. Detailed rules live in the references rather than in this entr
 | Backend Java tests                                                            | `references/java-testing-policy.md`                                                     |
 | JPA entity, repository, migration, or PostgreSQL schema                       | `references/persistence-policy.md`                                                      |
 | Request, response, controller, mapping, error, collection, or pagination      | `references/rest-api-policy.md`                                                         |
+| OpenAPI source, generated DTO/client, transport enum, or code generation      | `references/contract-first-policy.md`                                                   |
 | Java, Python, or mobile logging                                               | `references/logging-policy.md`                                                          |
 | Python scraper code, model, dependency, or fixture                            | `references/python-scraper-policy.md` and `references/python-scraper-testing-policy.md` |
 | Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | `references/mobile-expo-policy.md`, `references/mobile-testing-policy.md`, and `vercel-react-native-skills` |
@@ -62,15 +63,13 @@ install their Next.js, deployment, web-design, or writing skills for Blockout mo
 - Preserve existing runtime behavior unless the active roadmap task explicitly authorizes a behavior correction.
 - Maaatch is a read-only structural reference. Reuse its policies and vocabulary patterns, never its business code.
 
-## Temporarily Deferred Capabilities
+## Staged Contract Adoption
 
-Blockout is intentionally not contract-first yet:
+REF-041 activates the OpenAPI generation foundation. Contract ownership now follows
+`references/contract-first-policy.md`, but each vertical remains handwritten until its ordered roadmap task proves DTO
+readiness and adopts the generated boundary. Do not generate or migrate a later vertical by continuity.
 
-- Keep explicit handwritten `InternalRequest`, `InternalResponse`, command, view, event, and provider models.
-- Do not add OpenAPI/AsyncAPI source ownership, code generation, generated-model modules, or generated-client workflows.
-- Do not claim generated files or contracts as the current source of truth.
-
-Blockout also does not use GitFlow or a GitHub Project roadmap yet:
+Blockout does not use GitFlow or a GitHub Project roadmap yet:
 
 - `docs/current/roadmap.md` is the temporary ordered task source.
 - Work directly on `main`; commit and push each completed roadmap task separately.

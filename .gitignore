@@ -16,7 +16,11 @@ coverage/
 __pycache__/
 *.py[cod]
 .pytest_cache/
-libs/shared/python-contract-clients/src/blockout_contract_clients/generated/
+libs/shared/contracts/generated/
+libs/shared/python-contract-clients/src/blockout_contract_clients/*/
+libs/shared/python-contract-clients/src/.openapi-generator/
+libs/shared/python-contract-clients/src/blockout_contract_clients/*_README.md
+apps/frontend/mobile/src/shared/generated/
 
 # Local runtime data
 logs/

@@ -4,6 +4,21 @@
   "projectType": "library",
   "sourceRoot": "libs/shared/python-contract-clients/src",
   "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        {
+          "projects": "@blockout/contracts",
+          "target": "generate-contracts"
+        }
+      ],
+      "outputs": [
+        "{projectRoot}/src/blockout_contract_clients/*"
+      ],
+      "options": {
+        "command": "openapi-generator-cli batch --clean --fail-fast libs/shared/contracts/generators/python/*.json"
+      }
+    },
     "sync": {
       "executor": "@nxlv/python:sync",
       "options": {
@@ -12,12 +27,20 @@
     },
     "build": {
       "executor": "@nxlv/python:build",
+      "dependsOn": ["generate"],
       "outputs": ["{workspaceRoot}/dist/libs/shared/python-contract-clients"],
       "options": {
         "outputPath": "dist/libs/shared/python-contract-clients",
         "format": "wheel",
         "lockedVersions": true,
         "bundleLocalDependencies": true
+      }
+    },
+    "test": {
+      "executor": "@nxlv/python:run-commands",
+      "dependsOn": ["generate"],
+      "options": {
+        "command": "python -c \"from blockout_contract_clients.shared import FormatEnum, GenderEnum; assert FormatEnum.SIX.value == 'SIX'; assert GenderEnum.F.value == 'F'\""
       }
     }
   },

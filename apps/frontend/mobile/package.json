@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "2.6.0",
+    "@babel/runtime": "^7.29.7",
     "@expo/metro-runtime": "~55.0.12",
     "@expo/vector-icons": "15.0.3",
     "@gorhom/bottom-sheet": "5.2.6",

@@ -60,9 +60,12 @@ package that owns their role; never create a generic `records` package.
 
 ## Transport Boundary
 
-Until contract-first is activated, handwritten transport types stay at the API edge and use explicit names such as
-`CreateClubInternalRequest`, `UpdateClubInternalRequest`, and `ClubInternalResponse`. Controllers and API mappers
-translate them to application commands and views. Persistence entities never cross the boundary.
+Until its contract-first vertical is adopted, each handwritten transport type stays at the API edge and uses an explicit
+name such as `CreateClubInternalRequest`, `UpdateClubInternalRequest`, or `ClubInternalResponse`. Controllers and API
+mappers translate transport models to application commands and views. Persistence entities never cross the boundary.
+
+After adoption, generated transport types and interfaces remain at the same edge. Application commands, views, domain
+objects, persistence entities, provider models, and mapping stay handwritten and explicit.
 
 Complete resource mirrors in other applications must match the owning service's field semantics. Purpose-specific
 events and query projections may be smaller when their role is explicit.

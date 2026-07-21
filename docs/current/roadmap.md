@@ -389,7 +389,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     71 competition tests pass. Live read-only smokes pass for the national FFVB index, a real FFVB CSV export, and the
     LNV DataProject page. The known unavailable LNV XML endpoints were not changed or used as an adoption gate.
 
-- [ ] **REF-041 — Establish deterministic OpenAPI code generation**
+- [x] **REF-041 — Establish deterministic OpenAPI code generation**
   - Mirror Maaatch's ownership model: keep authoritative fragments in `libs/shared/contracts/specs/source/**` and write
     ignored bundled specifications to `libs/shared/contracts/generated/specs/**`.
   - Generate the Python models and asynchronous clients with OpenAPI Generator CLI 7.22.0, using the stable Python
@@ -405,10 +405,21 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     names such as `ClubInternalRequest` and `ClubInternalResponse`; do not encode migration versions in class names.
   - Add a readiness inventory that rejects a vertical whose handwritten DTOs still diverge from the recommended role
     names or the owner model. Generated adoption is limited to import replacement and deletion of those proven mirrors.
-  - Expose explicit validate, generate, test, build, and clean Nx targets. Require two clean identical generations,
-    build/import tests from a clean checkout, and a guard rejecting any tracked generated artifact.
+  - Keep Maaatch's Nx contract target names: `test`, `generate-openapi-bundles`,
+    `sync-backend-schema-mappings`, and `generate-contracts`. Generation, test, and build targets for an output remain
+    on the project that owns that generated output, and cleanup uses each official generator's native mechanism.
+  - Require two clean identical generations, build/import tests from a clean checkout, and a guard rejecting any
+    tracked generated artifact.
   - Use default generator templates initially. Do not add custom templates, wrapper frameworks, or handwritten patches
     to generated code.
+  - Evidence: the contract project has the same four Nx target names and the same three contract scripts as Maaatch.
+    OpenAPI Generator 7.22.0 produces identical ignored bundles, Java enums, Python enums, and asynchronous HTTPX code
+    over two clean runs; the Java artifact builds, and the Python wheel installs and imports from an isolated Python
+    3.12 environment. `npm ci`, uv lock/sync, the Nx scraper-to-client edges, contract guards, both scraper suites,
+    mobile lint/typecheck and all 52 mobile tests pass. The Java 21 reactor compiles every service and passes all
+    non-context tests; the inherited local databases still prevent context smokes because their applied Flyway
+    checksums predate the imported migration files. npm reports no high or critical vulnerability, and Git tracks no
+    generated output.
 
 - [ ] **REF-042 — Migrate the Club contract as the first generated vertical**
   - Define the single authoritative Club schemas and internal operations from the behavior already established by the
