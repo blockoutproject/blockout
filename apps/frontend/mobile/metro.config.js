@@ -1,8 +1,3 @@
-const {getDefaultConfig} = require("@expo/metro-config");
-const {withNxMetro} = require("@nx/expo");
+const {getDefaultConfig} = require("expo/metro-config");
 
-module.exports = withNxMetro(getDefaultConfig(__dirname), {
-  debug: false,
-  extensions: [],
-  watchFolders: [],
-});
+module.exports = getDefaultConfig(__dirname);

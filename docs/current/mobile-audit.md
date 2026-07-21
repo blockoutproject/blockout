@@ -54,7 +54,16 @@ format-only mass rewrite.
 
 ### 2. Align Expo, Metro, and native dependency resolution — high
 
-`expo-doctor` passes 15 of 18 checks. It reports:
+**Resolved by REF-033.** Metro now uses Expo SDK 54's default monorepo-aware configuration directly. Nx still owns
+the mobile project graph and its lint, test, typecheck, export, and run targets; it no longer overrides Metro's runtime
+module resolution. Experimental autolinking module resolution makes Metro and native autolinking select the same
+dependency versions.
+
+The compatible Expo 54 patch set and navigation tree are unified, direct imports are declared by the mobile
+application, test-only types and tooling are development dependencies, and only packages with no source,
+configuration, or native requirement were removed. Clean Android and iOS builds prove the resulting native graph.
+
+At audit time, `expo-doctor` passed 15 of 18 checks. It reported:
 
 - the Nx-wrapped Metro configuration omits an Expo default `nodeModulesPaths` entry;
 - duplicate installations of `@expo/vector-icons` and `@react-navigation/native`;
@@ -146,8 +155,8 @@ Unavailable credentials or hardware remain explicit evidence gaps; tests must no
 
 1. **REF-032 — Restore mobile correctness and static quality gates (complete).** Add the standard lint integration,
    fix the proven Hooks and leaked-render issues, and add focused regression tests.
-2. **REF-033 — Reconcile Expo and native dependencies.** Correct Metro and package ownership, align compatible Expo 54
-   patches, resolve actionable audit paths, and prove clean native resolution.
+2. **REF-033 — Reconcile Expo and native dependencies (complete).** Correct Metro and package ownership, align
+   compatible Expo 54 patches, resolve actionable audit paths, and prove clean native resolution.
 3. **REF-034 — Stabilize session and network state.** Separate stable actions from changing state, establish Query
    lifecycle defaults, remove duplicate server-state ownership, and fail fast on required configuration.
 4. **REF-035 — Complete feature-owned mobile slices.** Move one coherent feature at a time, unify theme ownership,
@@ -170,5 +179,15 @@ The audit used the current checked-out application and recorded the following re
 - `npx expo-doctor@latest`: 15 of 18 checks pass; the three failures are described above.
 - `npm run lint --workspace=blockout`: no ESLint configuration existed at audit time; REF-032 made it operational.
 - `npm audit --omit=dev`: 50 moderate, 4 high, and 0 critical production findings.
+
+REF-033 added the following completion evidence on 2026-07-21:
+
+- clean `npm ci`, followed by `npx expo install --check`: pass;
+- `npx expo-doctor@latest`: all 18 checks pass;
+- dependency-tree inspection: one Expo, vector-icons, React Navigation, Axios, and Markdown resolution;
+- `npm audit --omit=dev`: 51 moderate, 1 low, 0 high, and 0 critical production findings;
+- Nx mobile lint and typecheck: pass; all 15 Jest tests: pass;
+- Web export: pass, 3,128 modules exported;
+- fresh Android debug assembly and unsigned iOS Simulator build: pass.
 
 No application source, native project, route, configuration value, or runtime behavior was changed by this audit.

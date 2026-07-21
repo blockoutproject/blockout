@@ -250,9 +250,14 @@
     ownership when the step count changes, and push registration no longer calls a provider Hook from a utility.
     Mobile typecheck, all 15 Jest tests, and the 3,335-module Web export pass.
 
-- [ ] **REF-033 — Reconcile Expo and native dependencies**
+- [x] **REF-033 — Reconcile Expo and native dependencies**
   - Align the compatible Expo 54 patch set, Metro resolution, and direct dependency ownership.
   - Remove only proven unused dependencies, resolve actionable production audit paths, and certify Android/iOS builds.
+  - Evidence: Expo owns Metro resolution through its SDK 54 default configuration and experimental autolinking module
+    resolution, while Nx continues to own project orchestration. A clean install, Expo dependency check, and all 18 Expo
+    Doctor checks pass with one native dependency tree. Mobile lint, typecheck, all 15 Jest tests, Web export, Android
+    debug assembly, and an unsigned iOS Simulator build pass. The production audit has no high or critical finding;
+    only proven-unused native packages were removed.
 
 - [ ] **REF-034 — Stabilize mobile session and network state**
   - Separate stable session actions from changing state, establish React Query mobile lifecycle defaults, and remove
