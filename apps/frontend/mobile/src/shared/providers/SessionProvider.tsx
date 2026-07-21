@@ -19,12 +19,12 @@ import {
   SessionState,
 } from "@/src/shared/providers/SessionContext";
 import { useAppStatus } from "@/src/hooks/config/app/useAppStatus";
-import { useRegisterPushToken } from "@/src/hooks/notification/useRegisterPushToken";
+import { useRegisterPushToken } from "@/src/modules/notifications/hooks/useRegisterPushToken";
 import { useEnsureUser } from "@/src/hooks/user/useEnsureUser";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
 import { computeIsUpdateRequired, getStoreUrl } from "@/src/utils/appVersion";
 import { useGuestSessionStore } from "@/src/utils/guestSessionStore";
-import { registerForPushNotificationsAsync } from "@/src/utils/notifications";
+import { registerForPushNotificationsAsync } from "@/src/modules/notifications/push";
 import { useOnboardingStore } from "@/src/utils/onboardingStore";
 
 const APP_STATUS_BYPASS_SCOPES = ["update:maintenance"];

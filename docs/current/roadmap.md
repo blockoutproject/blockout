@@ -308,9 +308,12 @@
     preserve meaningful product differences as explicit variants or feature-owned composition.
   - Keep shared APIs concrete and simple: do not introduce speculative helpers, complex generic typing, configuration
     frameworks, or wrapper layers whose cognitive cost exceeds the duplication they remove.
+  - Apply the mobile testing policy in every slice: protect observable behavior with co-located Jest/RNTL tests, add
+    stable feature-owned `testID` values only at useful structural boundaries, and keep roles and accessible names as
+    the preferred selectors.
   - Execute and publish the following behavior-preserving slices in order:
     - [x] establish the single theme owner, provisional semantic tokens, and the consolidation register;
-    - [ ] move notifications into a complete feature boundary and apply proven list, image, and accessibility fixes;
+    - [x] move notifications into a complete feature boundary and apply proven list, image, and accessibility fixes;
     - [ ] move reporting and establish shared form and bottom-sheet foundations from existing consumers;
     - [ ] move teams and pools together, sharing their equivalent entity presentation while keeping feature behavior
           explicit;

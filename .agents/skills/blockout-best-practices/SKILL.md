@@ -31,7 +31,8 @@ the current task. Detailed rules live in the references rather than in this entr
 | Request, response, controller, mapping, error, collection, or pagination      | `references/rest-api-policy.md`                                                         |
 | Java, Python, or mobile logging                                               | `references/logging-policy.md`                                                          |
 | Python scraper code, model, dependency, or fixture                            | `references/python-scraper-policy.md` and `references/python-scraper-testing-policy.md` |
-| Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | `references/mobile-expo-policy.md` and `vercel-react-native-skills`                     |
+| Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | `references/mobile-expo-policy.md`, `references/mobile-testing-policy.md`, and `vercel-react-native-skills` |
+| Mobile Jest or React Native Testing Library test                              | `references/mobile-testing-policy.md`                                                   |
 | React component API, provider composition, or reusable mobile UI architecture | `vercel-composition-patterns` in addition to the applicable mobile policy               |
 | Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md`                                                    |
 | Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                       |

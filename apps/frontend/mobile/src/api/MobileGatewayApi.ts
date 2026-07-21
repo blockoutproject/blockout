@@ -4,7 +4,7 @@ import {PoolApi} from "./PoolApi";
 import {TeamApi} from "./TeamApi";
 import {UserApi} from "./UserApi";
 import {SearchApi} from "./SearchApi";
-import {NotificationApi} from "./NotificationApi";
+import {NotificationApi} from "@/src/modules/notifications/api/NotificationApi";
 import {ConfigApi} from "./ConfigApi";
 import {ReportApi} from "./ReportApi";
 import {TokenSupplier} from "@/src/shared/api/HttpClient";

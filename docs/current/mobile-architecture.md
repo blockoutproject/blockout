@@ -97,5 +97,9 @@ Every structural slice must keep the REF-028 baseline green:
 - phone-sized Web inspection when rendered output or navigation composition changes;
 - iOS and Android builds or launches when a native or platform-specific boundary changes.
 
+Touched slices follow the repository mobile testing policy: production code stays testable through focused components,
+pure logic where justified, and explicit I/O boundaries. Tests prefer accessible roles and names, with literal stable
+feature-owned IDs reserved for structural boundaries and future end-to-end selectors.
+
 Moving a file without changing its behavior does not by itself require a new abstraction or a new test. Existing tests
 must follow the source they protect so test ownership stays visible.

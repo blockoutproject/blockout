@@ -14,6 +14,10 @@ export type EmptyStateProps = {
   paddingTop?: DimensionValue;
   /** Label for the retry action. */
   retryLabel?: string;
+  /** Stable id for the state boundary. */
+  testID?: string;
+  /** Stable id for the retry action. */
+  retryTestID?: string;
 };
 
 const EmptyState: React.FC<EmptyStateProps> = ({
@@ -22,6 +26,8 @@ const EmptyState: React.FC<EmptyStateProps> = ({
                                                  onRetry,
                                                  paddingTop = "20%",
                                                  retryLabel = "Rafraîchir",
+                                                 testID = "empty-state",
+                                                 retryTestID = "empty-retry",
                                                }) => {
   const [retrying, setRetrying] = useState(false);
 
@@ -44,7 +50,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       icon: "refresh",
       loading: retrying,
       disabled: retrying,
-      testID: "empty-retry",
+      testID: retryTestID,
     }
     : undefined;
 
@@ -59,7 +65,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           paddingTop: paddingTop,
         },
       ]}
-      testID="empty-state"
+      testID={testID}
     />
   );
 };

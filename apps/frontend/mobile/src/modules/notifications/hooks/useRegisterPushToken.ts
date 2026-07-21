@@ -1,13 +1,10 @@
 import * as Device from "expo-device";
 import { useCallback } from "react";
-import { useApis } from "@/src/shared/providers/ApiProvider";
-import { RegisterPushTokenRequest } from "@/src/types/Notification";
-import { platformToEnum } from "@/src/utils/notifications";
 
-/**
- * Custom hook qui expose une fonction de registration.
- * -> Ici on a le droit d'utiliser `useApis()`.
- */
+import { RegisterPushTokenRequest } from "@/src/modules/notifications/model/Notification";
+import { platformToNotificationDevice } from "@/src/modules/notifications/push";
+import { useApis } from "@/src/shared/providers/ApiProvider";
+
 export function useRegisterPushToken() {
   const { mobile } = useApis();
 
@@ -21,7 +18,7 @@ export function useRegisterPushToken() {
 
       const payload: RegisterPushTokenRequest = {
         expoPushToken,
-        platform: platformToEnum(),
+        platform: platformToNotificationDevice(),
         deviceId,
       };
 

@@ -14,6 +14,10 @@ export type ErrorStateProps = {
   paddingTop?: DimensionValue;
   /** Label for the retry action. */
   retryLabel?: string;
+  /** Stable id for the state boundary. */
+  testID?: string;
+  /** Stable id for the retry action. */
+  retryTestID?: string;
 };
 
 const ErrorState: React.FC<ErrorStateProps> = ({
@@ -22,6 +26,8 @@ const ErrorState: React.FC<ErrorStateProps> = ({
                                                  onRetry,
                                                  paddingTop = "20%",
                                                  retryLabel = "Réessayer",
+                                                 testID = "error-state",
+                                                 retryTestID = "error-retry",
                                                }) => {
   const [retrying, setRetrying] = useState(false);
 
@@ -49,14 +55,14 @@ const ErrorState: React.FC<ErrorStateProps> = ({
         icon: "refresh",
         loading: retrying,
         disabled: retrying,
-        testID: "error-retry",
+        testID: retryTestID,
       }}
       containerStyle={[
         {
           paddingTop: paddingTop,
         },
       ]}
-      testID="error-state"
+      testID={testID}
     />
   );
 };

@@ -12,7 +12,7 @@ import ReportFormSheet from '@/src/components/report/ReportFormSheet';
 import {BottomSheetModal} from '@gorhom/bottom-sheet';
 import {ReportType} from '@/src/types/Report';
 import FollowedScreen from '@/src/components/followed/FollowedScreen';
-import {openNotificationUrlIfAny} from '@/src/utils/notifications';
+import {openNotificationUrlIfAny} from '@/src/modules/notifications/push';
 import {
   isDefaultNotificationAction,
   useLastNotificationResponse,

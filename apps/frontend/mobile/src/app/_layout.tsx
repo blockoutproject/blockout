@@ -12,11 +12,15 @@ import { ApiProvider } from "@/src/shared/providers/ApiProvider";
 import { SessionProvider, useSessionState } from "@/src/shared/providers/SessionProvider";
 import { SplashScreenController } from "@/src/components/splash/SplashScreen";
 import { useOnboardingStore } from "../utils/onboardingStore";
-import { addNotificationListeners, openNotificationUrlIfAny } from "../utils/notifications";
 import { useNavigationInterstitial } from "../hooks/ads/useNavigationInterstitial";
 import { useConsentGDPR } from "../hooks/ads/useConsentGDPR";
 import { PurchasesProvider } from "@/src/shared/providers/PurchasesProvider";
 import { QueryProvider } from "@/src/shared/providers/QueryProvider";
+import type { NotificationResponse } from "expo-notifications";
+import {
+    addNotificationListeners,
+    openNotificationUrlIfAny,
+} from "@/src/modules/notifications/push";
 
 export default function Root() {
     validateRequiredConfig();
@@ -50,7 +54,7 @@ function RootNavigator() {
     const { handleNavigationWithAd } = useNavigationInterstitial();
 
     const handleNotificationRespond = useCallback(
-        (response: any) => {
+        (response: NotificationResponse) => {
             const data = response.notification.request.content.data;
             openNotificationUrlIfAny(data, handleNavigationWithAd);
         },

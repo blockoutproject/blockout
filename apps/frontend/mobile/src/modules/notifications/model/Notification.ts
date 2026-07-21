@@ -17,17 +17,6 @@ export interface RegisterPushTokenRequest {
   deviceId?: string | null;
 }
 
-export interface PushToken {
-  id: number;
-  userId: number;
-  expoPushToken: string;
-  platform: DevicePlatform;
-  deviceId: string | null;
-  active: boolean;
-  createdAt: string;
-  lastUpdate: string;
-}
-
 export type EnrichedUserNotification = {
   id: number;
   userId: number;
