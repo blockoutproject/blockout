@@ -2,6 +2,7 @@ import React from "react";
 import {fireEvent, render, waitFor} from "@testing-library/react-native";
 import * as Haptics from "expo-haptics";
 
+import {ThemeProvider} from "@/src/shared/providers/ThemeProvider";
 import StateCard from "@/src/shared/ui/feedback/StateCard";
 
 jest.mock("expo-haptics", () => ({
@@ -20,11 +21,13 @@ describe("StateCard", () => {
   it("renders its stable content and performs an enabled action", async () => {
     const onPress = jest.fn();
     const screen = await render(
-      <StateCard
-        title="Aucun résultat"
-        subtitle="Réessaie dans quelques instants."
-        action={{label: "Réessayer", onPress, testID: "retry"}}
-      />,
+      <ThemeProvider>
+        <StateCard
+          title="Aucun résultat"
+          subtitle="Réessaie dans quelques instants."
+          action={{label: "Réessayer", onPress, testID: "retry"}}
+        />
+      </ThemeProvider>,
     );
 
     expect(screen.getByRole("header", {name: "Aucun résultat"})).toBeTruthy();
@@ -41,16 +44,18 @@ describe("StateCard", () => {
   it("keeps a loading action disabled and exposes its loading label", async () => {
     const onPress = jest.fn();
     const screen = await render(
-      <StateCard
-        title="Chargement"
-        action={{
-          label: "Réessayer",
-          loadingLabel: "Actualisation…",
-          loading: true,
-          onPress,
-          testID: "retry",
-        }}
-      />,
+      <ThemeProvider>
+        <StateCard
+          title="Chargement"
+          action={{
+            label: "Réessayer",
+            loadingLabel: "Actualisation…",
+            loading: true,
+            onPress,
+            testID: "retry",
+          }}
+        />
+      </ThemeProvider>,
     );
 
     const action = screen.getByTestId("retry");

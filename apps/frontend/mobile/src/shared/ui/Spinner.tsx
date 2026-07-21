@@ -1,5 +1,5 @@
-import {useThemeColor} from '@/src/shared/hooks/useThemeColor';
-import {BORDER_RADIUS, CORNERS, FONT_SIZE} from '@/src/shared/theme/globals';
+import {useAppTheme} from '@/src/shared/providers/ThemeProvider';
+import {BORDER_RADIUS, CORNERS, FONT_SIZE} from '@/src/shared/theme/tokens';
 import {Loader2} from 'lucide-react-native';
 import React, {useEffect, useRef} from 'react';
 import {ActivityIndicator, Animated, StyleSheet, Text, View, ViewStyle} from 'react-native';
@@ -79,12 +79,10 @@ export function Spinner({
     new Animated.Value(0.3),
   ]).current;
 
-  // Theme colors
-  const primaryColor = useThemeColor({}, 'text');
-  const textColor = useThemeColor({}, 'text');
+  const theme = useAppTheme();
 
   const config = sizeConfig[size];
-  const spinnerColor = color || primaryColor;
+  const spinnerColor = color || theme.text;
   const animationDuration = speedConfig[speed];
 
   // Rotation animation
@@ -288,7 +286,7 @@ export function Spinner({
           style={[
             styles.label,
             {
-              color: textColor,
+              color: theme.text,
               fontSize: config.fontSize,
             },
           ]}
@@ -310,8 +308,7 @@ export function LoadingOverlay({
                                  ...spinnerProps
                                }: LoadingOverlayProps) {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const backgroundColor = useThemeColor({}, 'background');
-  const cardColor = useThemeColor({}, 'card');
+  const theme = useAppTheme();
 
   useEffect(() => {
     Animated.timing(overlayOpacity, {
@@ -325,7 +322,7 @@ export function LoadingOverlay({
 
   const defaultBackdropColor =
     backdropColor ||
-    `${backgroundColor}${Math.round(backdropOpacity * 255)
+    `${theme.background}${Math.round(backdropOpacity * 255)
       .toString(16)
       .padStart(2, '0')}`;
 
@@ -340,7 +337,7 @@ export function LoadingOverlay({
       ]}
       pointerEvents={visible ? 'auto' : 'none'}
     >
-      <View style={[styles.overlayContent, {backgroundColor: cardColor}]}>
+      <View style={[styles.overlayContent, {backgroundColor: theme.surface}]}>
         <Spinner {...spinnerProps} />
       </View>
     </Animated.View>
@@ -369,13 +366,13 @@ export function ButtonSpinner({
                                 variant = 'default',
                                 color,
                               }: Omit<SpinnerProps, 'label' | 'showLabel'>) {
-  const primaryForegroundColor = useThemeColor({}, 'primaryForeground');
+  const theme = useAppTheme();
 
   return (
     <Spinner
       size={size}
       variant={variant}
-      color={color || primaryForegroundColor}
+      color={color || theme.onPrimary}
       style={styles.buttonSpinner}
     />
   );

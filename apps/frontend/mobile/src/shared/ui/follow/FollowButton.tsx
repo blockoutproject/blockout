@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import {useAppTheme} from '@/src/shared/providers/ThemeProvider';
 import GradientView from '../GradientView'; // adapte les chemins si besoin
 import GradientBorderView from '../GradientBorderView';
-import {CORNERS} from '@/src/shared/theme/globals';
+import {CORNERS} from '@/src/shared/theme/tokens';
 
 type Props = {
   isFollowing: boolean;

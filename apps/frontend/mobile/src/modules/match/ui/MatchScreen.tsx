@@ -20,7 +20,7 @@ import FadeIn from "@/src/shared/ui/animations/FadeIn";
 
 import {ReportType} from "@/src/types/Report";
 import {getTeamsRankingColor, isLNV, splitIsoDateFormatted} from "@/src/utils/utils";
-import {BOTTOM_TABBAR_HEIGHT, HEADER_HEIGHT, SECTION_SEPARATOR_HEIGHT,} from "@/src/shared/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT, HEADER_HEIGHT, SECTION_SEPARATOR_HEIGHT,} from "@/src/shared/theme/tokens";
 import ReportFormSheet from "@/src/components/report/ReportFormSheet";
 import MatchLiveLinkCard from "@/src/components/match/MatchLiveLinkCard";
 import useHasScopes from "@/src/hooks/user/useHasScopes";

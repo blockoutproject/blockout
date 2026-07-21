@@ -7,7 +7,7 @@ import {LinearGradient} from "expo-linear-gradient";
 import {BlurView} from "expo-blur";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import * as Haptics from "expo-haptics";
-import {APP_TITLE, LOGO_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {APP_TITLE, LOGO_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import {withAlpha} from "@/src/utils/utils";
 import {useSessionState} from "@/src/shared/providers/SessionProvider";
 import {CONFIG} from "@/src/shared/config/config";

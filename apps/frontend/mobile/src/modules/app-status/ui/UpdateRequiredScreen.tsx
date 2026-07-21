@@ -9,7 +9,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSessionActions, useSessionState} from "@/src/shared/providers/SessionProvider";
 import AppStatusLayout from "@/src/components/appStatus/AppStatusLayout";
 import {CURRENT_APP_VERSION} from "@/src/utils/appVersion";
-import {CORNERS} from "@/src/shared/theme/globals";
+import {CORNERS} from "@/src/shared/theme/tokens";
 import {Image} from "expo-image";
 
 const UpdateRequiredScreen: React.FC = () => {

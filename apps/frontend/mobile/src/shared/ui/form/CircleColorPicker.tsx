@@ -6,7 +6,7 @@ import {BottomSheetModal, BottomSheetView} from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../bottomSheet/BottomSheetCustomModal";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from 'expo-haptics';
-import {CORNERS} from "@/src/shared/theme/globals";
+import {CORNERS} from "@/src/shared/theme/tokens";
 
 interface Props {
   value: string;

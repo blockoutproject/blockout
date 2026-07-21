@@ -8,7 +8,7 @@ import RankingTab from "@/src/components/ranking/RankingTab";
 
 import {MatchStatus} from "@/src/types/Match";
 import {EnrichedTeamDTO} from "@/src/types/Team";
-import {TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 
 /** Tabs for team: Upcoming / Finished / Pools-as-ranking. */
 export type TeamTabsProps = {

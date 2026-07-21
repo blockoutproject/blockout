@@ -7,7 +7,7 @@ import * as Haptics from "expo-haptics";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import type {EnrichedPoolDTO, Pool} from "@/src/types/Pool";
-import {CORNERS} from "@/src/shared/theme/globals";
+import {CORNERS} from "@/src/shared/theme/tokens";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";

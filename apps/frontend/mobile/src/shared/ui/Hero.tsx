@@ -7,7 +7,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {withAlpha} from "@/src/utils/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import InfoPillGradient from "./chips/InfoPillGradient";
-import {CORNERS} from "@/src/shared/theme/globals";
+import {CORNERS} from "@/src/shared/theme/tokens";
 
 export type HeroProps = {
   title: string;

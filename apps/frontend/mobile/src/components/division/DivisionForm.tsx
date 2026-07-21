@@ -12,7 +12,7 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {Division} from "@/src/types/Division";
 import CircleColorPicker from "@/src/shared/ui/form/CircleColorPicker";
-import {CORNERS} from "@/src/shared/theme/globals";
+import {CORNERS} from "@/src/shared/theme/tokens";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";

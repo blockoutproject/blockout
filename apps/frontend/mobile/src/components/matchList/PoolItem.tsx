@@ -7,7 +7,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import MatchRow from "./MatchRow";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
-import {SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/globals";
+import {SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/tokens";
 import {useMappingHelper} from "@shopify/flash-list";
 import RankingHeader from "../ranking/RankingHeader";
 import {useRouter} from "expo-router";

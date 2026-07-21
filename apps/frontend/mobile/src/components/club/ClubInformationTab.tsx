@@ -5,7 +5,7 @@ import * as Linking from "expo-linking";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {InfoCard, InfoRow} from "@/src/components/club/ClubInfoCard";
-import {BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import {Club} from "@/src/types/Club";
 import ClubMapCard from "./ClubMapCard";
 

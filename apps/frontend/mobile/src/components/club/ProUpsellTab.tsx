@@ -12,7 +12,7 @@ import {useSessionState} from "@/src/shared/providers/SessionProvider";
 import {withAlpha} from "@/src/utils/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import GradientButton, {GOLD_GRADIENT} from "@/src/shared/ui/GradientButton";
-import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT,} from "@/src/shared/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT,} from "@/src/shared/theme/tokens";
 
 type Props = {
   subtitle?: string;

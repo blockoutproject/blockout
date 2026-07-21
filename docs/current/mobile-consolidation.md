@@ -27,7 +27,7 @@ easier to read and its public interface is simpler than the duplicated implement
 
 | Pattern                                 | Current evidence                                                     | Target owner                                | Decision                                                                                           | Status  |
 | --------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------- |
-| Theme and visual values                 | Two theme providers and overlapping color/value sources              | `shared/theme`                              | Keep one mounted owner and semantic color, spacing, radius, and typography tokens                  | Planned |
+| Theme and visual values                 | Separate application and navigation providers with overlapping color sources | `shared/providers/ThemeProvider` and `shared/theme` | One provider owns both contexts; one dark theme and concrete semantic tokens replace the unused light and duplicate color systems | Complete |
 | Primary and secondary actions           | Repeated button shells and close/submit actions                      | `shared/ui`                                 | Share action primitives; keep feature labels and commands local                                    | Planned |
 | Loading, empty, error, and API feedback | Repeated cards, alerts, toasts, and error extraction                 | `shared/ui` and `shared/api`                | Share presentation and transport-neutral error handling; keep feature recovery decisions local     | Planned |
 | Form and bottom-sheet structure         | Repeated sheet headers, fields, validation layout, and footers       | `shared/ui`                                 | Share scaffold and field/action layout; keep schemas, values, and submit commands in modules       | Planned |
@@ -36,6 +36,16 @@ easier to read and its public interface is simpler than the duplicated implement
 | Entity search                           | Near-identical team and pool filters with a simpler club variant     | `shared/ui` plus search module              | Share proven controls and result framing; retain feature filters and requests                      | Planned |
 | High-volume lists and images            | Match, ranking, feed, and notification lists repeat item patterns    | Feature modules plus `shared/ui` primitives | Stabilize callbacks and item boundaries; virtualize or change image behavior only with evidence    | Planned |
 | Application-state cards                 | Maintenance and required-update screens share layout but not actions | `shared/ui` plus app-status module          | Share the state frame; express maintenance and update as explicit feature compositions             | Planned |
+
+## Completed slices
+
+### Theme foundation
+
+- `ThemeProvider` is the single mounted owner for both the Blockout theme and React Navigation theme.
+- The unused light theme, duplicate color catalog, duplicate provider, and unused legacy theme types were removed.
+- Existing layout dimensions now come from `shared/theme/tokens`; no configuration layer or token factory was added.
+- `Skeleton` and `Spinner` consume the same application theme as every other shared component.
+- Typecheck, 25 tests, lint with 55 inherited warnings, and the 3,151-module Web export pass.
 
 ## Final audit
 

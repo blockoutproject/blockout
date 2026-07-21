@@ -4,7 +4,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {BottomSheetFooter, BottomSheetFooterProps} from "@gorhom/bottom-sheet";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {CORNERS} from "@/src/shared/theme/globals";
+import {CORNERS} from "@/src/shared/theme/tokens";
 
 export type BottomSheetFormFooterProps = Omit<BottomSheetFooterProps, "children"> & {
   label: string;

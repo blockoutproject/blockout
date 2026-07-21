@@ -10,7 +10,7 @@ import {TabBarItem} from "./TabBarItem";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSessionState} from "@/src/shared/providers/SessionProvider";
 import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
-import {BOTTOM_TABBAR_HEIGHT, CORNERS} from "@/src/shared/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT, CORNERS} from "@/src/shared/theme/tokens";
 import {withAlpha} from "@/src/utils/utils";
 
 type Props = BottomTabBarProps & {

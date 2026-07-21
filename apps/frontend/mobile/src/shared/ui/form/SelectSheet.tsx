@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import BottomSheetCustomPage from "../bottomSheet/BottomSheetCustomPage";
 
 export type SelectOption = {

@@ -15,7 +15,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import SearchBar from "@/src/shared/ui/SearchBar";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import {CTA_GRADIENT} from "@/src/shared/ui/GradientButton";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";

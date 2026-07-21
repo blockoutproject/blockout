@@ -9,7 +9,7 @@ import ProUpsellTab from "@/src/components/club/ProUpsellTab";
 
 import {MatchStatus} from "@/src/types/Match";
 import {EnrichedPoolDTO} from "@/src/types/Pool";
-import {TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import PoolMapTab from "./PoolMapTab";
 import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
 

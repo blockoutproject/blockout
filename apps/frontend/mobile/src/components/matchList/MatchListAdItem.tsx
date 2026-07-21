@@ -5,7 +5,7 @@ import {BannerAd, BannerAdSize,} from "react-native-google-mobile-ads";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
-import {SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/globals";
+import {SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/tokens";
 import {withAlpha} from "@/src/utils/utils";
 import MatchListAdHeader from "./MatchListAdHeader";
 import {ADS} from "@/src/shared/config/ads";

@@ -7,7 +7,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSessionActions, useSessionState} from "@/src/shared/providers/SessionProvider";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import AppStatusLayout from "@/src/components/appStatus/AppStatusLayout";
-import {CORNERS} from "@/src/shared/theme/globals";
+import {CORNERS} from "@/src/shared/theme/tokens";
 
 const MaintenancePage: React.FC = () => {
   const {

@@ -7,7 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 import { AUTH0_CONFIG, validateRequiredConfig } from "@/src/shared/config/config";
-import { ThemeProvider } from "@/src/shared/theme/theme-provider";
+import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
 import { ApiProvider } from "@/src/shared/providers/ApiProvider";
 import { SessionProvider, useSessionState } from "@/src/shared/providers/SessionProvider";
 import { SplashScreenController } from "@/src/components/splash/SplashScreen";

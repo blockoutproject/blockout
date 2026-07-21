@@ -3,7 +3,7 @@ import {StyleSheet, View} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {HEADER_HEIGHT} from "@/src/shared/theme/globals";
+import {HEADER_HEIGHT} from "@/src/shared/theme/tokens";
 import Filters from "@/src/shared/ui/Filters";
 import {Filter} from "@/src/types/Filter";
 import {useSafeAreaInsets} from "react-native-safe-area-context";

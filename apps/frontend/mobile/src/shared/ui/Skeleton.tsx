@@ -1,7 +1,7 @@
 import React, {useEffect, useRef} from "react";
 import {Animated, StyleSheet, ViewStyle} from "react-native";
-import {useThemeColor} from "@/src/shared/hooks/useThemeColor";
-import {BORDER_RADIUS, CORNERS} from "@/src/shared/theme/globals";
+import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {BORDER_RADIUS, CORNERS} from "@/src/shared/theme/tokens";
 
 /** Composant skeleton animé. */
 export type SkeletonProps = {
@@ -21,7 +21,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
                                                     style,
                                                     variant = "default",
                                                   }) => {
-  const mutedColor = useThemeColor({}, "muted");
+  const theme = useAppTheme();
   const opacity = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
         {
           width: width as any,
           height,
-          backgroundColor: mutedColor,
+          backgroundColor: theme.muted,
           borderRadius: variant === 'default' ? CORNERS : BORDER_RADIUS,
           opacity,
         },

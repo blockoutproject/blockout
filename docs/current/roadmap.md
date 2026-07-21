@@ -309,7 +309,7 @@
   - Keep shared APIs concrete and simple: do not introduce speculative helpers, complex generic typing, configuration
     frameworks, or wrapper layers whose cognitive cost exceeds the duplication they remove.
   - Execute and publish the following behavior-preserving slices in order:
-    - [ ] establish the single theme owner, provisional semantic tokens, and the consolidation register;
+    - [x] establish the single theme owner, provisional semantic tokens, and the consolidation register;
     - [ ] move notifications into a complete feature boundary and apply proven list, image, and accessibility fixes;
     - [ ] move reporting and establish shared form and bottom-sheet foundations from existing consumers;
     - [ ] move teams and pools together, sharing their equivalent entity presentation while keeping feature behavior

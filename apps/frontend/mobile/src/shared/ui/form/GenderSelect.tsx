@@ -4,7 +4,7 @@ import {StyleProp, StyleSheet, Text, TouchableOpacity, ViewStyle,} from "react-n
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {CORNERS} from "@/src/shared/theme/globals";
+import {CORNERS} from "@/src/shared/theme/tokens";
 import SelectSheet, {SelectOption, SelectSheetRef,} from "@/src/shared/ui/form/SelectSheet";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
 

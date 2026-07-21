@@ -16,7 +16,7 @@ import ProfileHero from "@/src/components/user/ProfileHero";
 import ProfileHeader from "@/src/components/user/ProfileHeader";
 import ProfileFormSheet from "@/src/components/user/ProfileFormSheet";
 import ReportFormSheet from "@/src/components/report/ReportFormSheet";
-import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/tokens";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import GuestUpsellCard from "@/src/components/user/GuestUpsellCard";
 import {useOnboardingStore} from "@/src/utils/onboardingStore";

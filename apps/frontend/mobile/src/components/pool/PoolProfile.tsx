@@ -7,7 +7,7 @@ import FollowButton from "@/src/shared/ui/follow/FollowButton";
 import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
 import {usePoolFollowState} from "@/src/hooks/pool/usePoolFollowState";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
-import {LOGO_SIZE} from "@/src/shared/theme/globals";
+import {LOGO_SIZE} from "@/src/shared/theme/tokens";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {computeBalancedRowsByCount, withAlpha} from "@/src/utils/utils";
 import {useSessionState} from "@/src/shared/providers/SessionProvider";

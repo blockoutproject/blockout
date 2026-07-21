@@ -5,7 +5,7 @@ import {BlurView} from "expo-blur";
 import * as Haptics from "expo-haptics";
 import {LinearGradient} from "expo-linear-gradient";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {TABBAR_HEIGHT, TABBAR_INDICATOR_HEIGHT} from "@/src/shared/theme/globals";
+import {TABBAR_HEIGHT, TABBAR_INDICATOR_HEIGHT} from "@/src/shared/theme/tokens";
 
 export type TabDefinition = {
   key: string;

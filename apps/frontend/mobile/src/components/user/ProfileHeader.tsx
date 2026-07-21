@@ -2,7 +2,7 @@ import React, {useCallback, useRef} from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {HEADER_HEIGHT} from "@/src/shared/theme/globals";
+import {HEADER_HEIGHT} from "@/src/shared/theme/tokens";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/BottomSheetCustomPage";

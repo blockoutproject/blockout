@@ -9,7 +9,7 @@ import FollowButton from "@/src/shared/ui/follow/FollowButton";
 import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
 import {EnumGender, GenderLabels} from "@/src/types/enums/Gender";
 import {FormatLabels} from "@/src/types/enums/Format";
-import {LOGO_SIZE} from "@/src/shared/theme/globals";
+import {LOGO_SIZE} from "@/src/shared/theme/tokens";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import {useSessionState} from "@/src/shared/providers/SessionProvider";

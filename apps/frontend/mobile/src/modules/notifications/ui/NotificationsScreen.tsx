@@ -10,7 +10,7 @@ import NotificationItem from "@/src/components/notifications/NotificationItem";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import NotificationsHeader from "@/src/components/notifications/NotificationsHeader";
-import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import {EnrichedUserNotification} from "@/src/types/Notification";
 import {useDeleteNotification} from "@/src/hooks/notification/useDeleteNotification";
 import NotificationsSkeleton from "@/src/components/notifications/NotificationsSkeleton";

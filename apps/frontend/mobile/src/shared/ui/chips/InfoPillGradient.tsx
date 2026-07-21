@@ -2,7 +2,7 @@ import React, {memo} from "react";
 import {DimensionValue, StyleProp, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle,} from "react-native";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {CORNERS} from "@/src/shared/theme/globals";
+import {CORNERS} from "@/src/shared/theme/tokens";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import GradientView from "@/src/shared/ui/GradientView";
 

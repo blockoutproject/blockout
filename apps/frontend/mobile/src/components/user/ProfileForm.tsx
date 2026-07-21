@@ -10,7 +10,7 @@ import {Image} from "expo-image";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {CORNERS} from "@/src/shared/theme/globals";
+import {CORNERS} from "@/src/shared/theme/tokens";
 import {CustomUser, UpdateUserRequest} from "@/src/types/User";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 

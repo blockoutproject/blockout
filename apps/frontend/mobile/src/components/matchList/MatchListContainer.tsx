@@ -13,7 +13,7 @@ import SectionDateHeader from "./SectionDateHeader";
 import PoolItem from "./PoolItem";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/tokens";
 // import MatchListAdItem from "./MatchListAdItem";
 import {useNavigationInterstitial} from "@/src/hooks/ads/useNavigationInterstitial";
 

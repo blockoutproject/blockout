@@ -2,7 +2,7 @@ import React from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {HEADER_HEIGHT} from "@/src/shared/theme/globals";
+import {HEADER_HEIGHT} from "@/src/shared/theme/tokens";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useRouter} from "expo-router";
 

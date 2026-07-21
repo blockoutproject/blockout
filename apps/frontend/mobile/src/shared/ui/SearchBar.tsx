@@ -3,7 +3,7 @@ import {StyleSheet, TextInput, TouchableOpacity, View} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {BottomSheetTextInput} from "@gorhom/bottom-sheet";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {SEARCHBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {SEARCHBAR_HEIGHT} from "@/src/shared/theme/tokens";
 
 export type SearchBarProps = {
   /** Valeur contrôlée. */

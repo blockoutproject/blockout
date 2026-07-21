@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import {useRouter} from "expo-router";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import FollowedListSkeleton from "@/src/components/followed/FollowedListSkeleton";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";

@@ -11,7 +11,7 @@ import ProUpsellTab from "./ProUpsellTab";
 import {Club} from "@/src/types/Club";
 import {TeamSummaryDTO} from "@/src/types/Team";
 import {MatchStatus} from "@/src/types/Match";
-import {TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import {usePurchases} from "@/src/shared/providers/PurchasesProvider";
 
 type ClubTabsProps = {

@@ -12,7 +12,7 @@ import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import {GradientButton} from "@/src/shared/ui/GradientButton";
 import {ApiError} from "@/src/shared/api/ApiError";
-import {APP_TITLE} from "@/src/shared/theme/globals";
+import {APP_TITLE} from "@/src/shared/theme/tokens";
 
 export const getLiveLinkErrorMessage = (err: unknown): string => {
   if (err instanceof ApiError) {

@@ -5,7 +5,7 @@ import {useRouter} from "expo-router";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useFollowedPoolList} from "@/src/hooks/pool/useFollowedPoolList";
 import FollowedPoolCard from "./FollowedPoolCard";
-import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/globals";
+import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import FollowedListSkeleton from "./FollowedListSkeleton";
