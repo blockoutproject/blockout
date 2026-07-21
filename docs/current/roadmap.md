@@ -232,6 +232,38 @@
     findings outside the added Auth0 client path; no credential, token, ignored environment file, or test database is
     retained.
 
+- [x] **REF-031 — Audit the Expo application against current mobile best practices**
+  - Audit the live application with the Blockout mobile policy, Expo guidance, Vercel React Native best practices, and
+    Vercel composition patterns without performing a broad refactor.
+  - Record the strengths, concrete correctness and dependency risks, and a short ordered remediation roadmap.
+  - Install only the two relevant Vercel companion skills in the repository and route future mobile work to them.
+  - Evidence: mobile typecheck, all 14 Jest tests, and Web export pass. Expo Doctor passes 15 of 18 checks and identifies
+    Metro/native dependency duplication and compatible-package drift. The non-operational lint gate, one Rules of Hooks
+    violation, session/network ownership issues, and remaining feature-ownership work are documented without changing
+    runtime code.
+
+- [ ] **REF-032 — Restore mobile correctness and static quality gates**
+  - Add the standard Expo ESLint configuration and an Nx lint target.
+  - Fix only proven Hooks, leaked-render, and directly related correctness violations, with focused regression tests.
+
+- [ ] **REF-033 — Reconcile Expo and native dependencies**
+  - Align the compatible Expo 54 patch set, Metro resolution, and direct dependency ownership.
+  - Remove only proven unused dependencies, resolve actionable production audit paths, and certify Android/iOS builds.
+
+- [ ] **REF-034 — Stabilize mobile session and network state**
+  - Separate stable session actions from changing state, establish React Query mobile lifecycle defaults, and remove
+    duplicate local ownership of server facts.
+  - Validate required configuration at startup while preserving Auth0, guest, maintenance, and update behavior.
+
+- [ ] **REF-035 — Complete feature-owned mobile slices**
+  - Move one coherent feature at a time from legacy root folders into its module and shared boundaries.
+  - Unify theme ownership and improve measured list, image, accessibility, naming, and component-composition issues
+    without a mass rewrite or premature native-control replacement.
+
+- [ ] **REF-036 — Certify the cleaned mobile application**
+  - Run the complete static, test, Web phone-size, simulator, and available physical-device/provider verification matrix.
+  - Record external evidence gaps explicitly; never add an authentication or provider bypass to close them.
+
 The Java and Python scraper refactors and their local persistence certification are complete.
 The mobile behavior baseline is complete and its clean handwritten architecture is the current work.
 Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and
