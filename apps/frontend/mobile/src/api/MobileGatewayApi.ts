@@ -1,5 +1,5 @@
 import { ClubApi } from "@/src/modules/club/api/ClubApi";
-import { MatchApi } from "./MatchApi";
+import { MatchApi } from "@/src/modules/match/api/MatchApi";
 import { PoolApi } from "@/src/modules/pool/api/PoolApi";
 import { TeamApi } from "@/src/modules/team/api/TeamApi";
 import { UserApi } from "./UserApi";

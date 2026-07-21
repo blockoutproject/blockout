@@ -1,12 +1,12 @@
 import React, {memo} from "react";
 import {Pressable, StyleProp, StyleSheet, View, ViewStyle} from "react-native";
-import {Image} from "expo-image";
+import {Image, type ImageProps} from "expo-image";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import * as Haptics from "expo-haptics";
 
 export type MaskedImageProps = {
   uri?: string | null;
-  fallback?: any;
+  fallback?: ImageProps["source"];
   size: number;
   radius?: number;
   backgroundColor?: string;
@@ -17,10 +17,12 @@ export type MaskedImageProps = {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   onLoad?: () => void;
+  accessibilityLabel?: string;
+  testID?: string;
 };
 
 const MaskedImage: React.FC<MaskedImageProps> = memo(
-  ({
+  function MaskedImage({
      uri,
      fallback = require("@/assets/clubs/default_club_logo.png"),
      size,
@@ -33,11 +35,11 @@ const MaskedImage: React.FC<MaskedImageProps> = memo(
      style,
      onPress,
      onLoad,
-   }) => {
+     accessibilityLabel,
+     testID,
+   }: MaskedImageProps) {
     const theme = useAppTheme();
     const r = radius ?? Math.round(size * 0.28);
-
-    const Container_logout = onPress ? Pressable : View;
 
     const handlePress = async () => {
       if (onPress) {
@@ -46,35 +48,47 @@ const MaskedImage: React.FC<MaskedImageProps> = memo(
       }
     };
 
+    const image = (
+      <Image
+        source={uri ? {uri} : fallback}
+        style={{width: "100%", height: "100%"}}
+        contentFit={contentFit}
+        onLoad={onLoad}
+      />
+    );
+    const containerStyle = [
+      {
+        width: size,
+        aspectRatio: 1,
+        borderRadius: r,
+        overflow: "hidden" as const,
+        alignItems: "center" as const,
+        justifyContent: "center" as const,
+        backgroundColor: backgroundColor ?? theme.text,
+        borderWidth,
+        borderColor: borderColor ?? "transparent",
+      },
+      style,
+    ];
+
     return (
       <View style={[shadow && styles.shadow]}>
-        <Container_logout
-          onPress={handlePress}
-          style={[
-            {
-              width: size,
-              aspectRatio: 1,
-              borderRadius: r,
-              overflow: "hidden",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: backgroundColor ?? theme.text,
-              borderWidth,
-              borderColor: borderColor ?? "transparent",
-            },
-            style,
-          ]}
-        >
-          <Image
-            source={uri ? {uri} : fallback}
-            style={{width: "100%", height: "100%"}}
-            contentFit={contentFit}
-            onLoad={onLoad}
-          />
-        </Container_logout>
+        {onPress ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel ?? "Ouvrir l’image"}
+            onPress={handlePress}
+            style={containerStyle}
+            testID={testID}
+          >
+            {image}
+          </Pressable>
+        ) : (
+          <View style={containerStyle} testID={testID}>{image}</View>
+        )}
       </View>
     );
-  }
+  },
 );
 
 export default MaskedImage;

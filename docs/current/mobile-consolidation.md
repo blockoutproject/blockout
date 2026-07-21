@@ -34,7 +34,7 @@ easier to read and its public interface is simpler than the duplicated implement
 | Team and pool presentation              | Near-identical headers, skeletons, profile layout, and form sheets           | `shared/ui` plus feature modules                    | Shared header and skeleton own only exact presentation; profiles, tabs, forms, models, APIs, and commands remain explicit          | Complete    |
 | Followed entity lists                   | Near-identical pool and team lists                                           | Entity modules plus `modules/followed`              | Share entity cards and list skeletons; keep typed queries, copy, filtering, and navigation explicit                                | Complete    |
 | Entity search                           | Near-identical team and pool filters with a simpler club variant             | `modules/search`                                    | One small results frame accepts composed filters; entity filters, requests, cards, and navigation remain explicit                 | Complete    |
-| High-volume lists and images            | Match, ranking, feed, and notification lists repeat item patterns            | Feature modules plus `shared/ui` primitives         | Notifications now has memoized items, stable callbacks, and Expo Image recycling; other list slices remain                        | In progress |
+| High-volume lists and images            | Match, ranking, feed, and notification lists repeat item patterns            | Feature modules plus `shared/ui` primitives         | Keep feature-specific list composition; use stable callbacks, domain keys, accessible actions, FlashList, and Expo Image where proven | Complete    |
 | Application-state cards                 | Maintenance and required-update screens share layout but not actions         | `shared/ui` plus app-status module                  | Share the state frame; express maintenance and update as explicit feature compositions                                            | Planned     |
 | Test selectors and component behavior   | Existing tests mix semantic queries with incidental or incorrectly named IDs | Owning feature tests and native host components     | Completed slices use semantic queries, observable commands, stable boundaries, and domain-item IDs                                | In progress |
 
@@ -102,6 +102,22 @@ easier to read and its public interface is simpler than the duplicated implement
   accessible semantics and stable feature/domain IDs. Focused tests protect Club request construction, Search result
   and recovery behavior, and followed-Team season filtering/navigation.
 - All 41 tests pass across 19 suites, typecheck passes, lint completes with 35 inherited warnings and no errors, and
+  the 3,148-module Web export passes.
+
+### Match, ranking, and feed
+
+- Match now owns its exact handwritten mobile-gateway responses, API client, Query hooks, screen, list, live-link
+  forms, and moderation UI under `modules/match`. The misleading `Enriched*DTO` names and unused internal match/list
+  response copies were removed; active response fields now mirror the current Java gateway boundary.
+- Ranking owns its compact presentation under `modules/ranking`, while Feed owns its screen and animated header under
+  `modules/feed`. Team, Pool, Club, and Feed compose the same concrete Match list without a generic list framework.
+- The existing FlashList boundary, stable callbacks, and domain keys remain. Disabled ad components and commented ad
+  insertion branches were removed rather than preserved as dormant abstractions. Ranking values and highlights now
+  use the real Team and theme types instead of `any`.
+- Match, ranking, live-link, moderation, Feed, pill, and masked-image actions expose user-facing accessibility names and
+  stable feature/domain IDs. Focused tests protect match selection and ranking facts/navigation through observable
+  native interactions; no test-only branch, dependency container, selector registry, or snapshot was introduced.
+- All 44 tests pass across 22 suites, typecheck passes, lint completes with 18 inherited warnings and no errors, and
   the 3,148-module Web export passes.
 
 ## Final audit

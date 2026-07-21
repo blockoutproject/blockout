@@ -1,10 +1,10 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {Animated, StyleSheet} from 'react-native';
+import {Animated, StyleSheet, View} from 'react-native';
 import {NavigationState, Route, SceneRendererProps, TabView} from 'react-native-tab-view';
-import MatchList from '@/src/components/matchList/MatchListContainer';
-import {MatchStatus} from '@/src/types/Match';
+import MatchList from '@/src/modules/match/ui/MatchList';
+import {MatchStatus} from '@/src/modules/match/model/Match';
 import {EntityType} from '@/src/types/User';
-import AnimatedFeedHeader from '@/src/components/home/AnimatedFeedHeader';
+import FeedHeader from '@/src/modules/feed/ui/FeedHeader';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {LOGO_HEIGHT, TABBAR_HEIGHT} from '@/src/shared/theme/tokens';
 import {useSessionState} from '@/src/shared/providers/SessionProvider';
@@ -20,12 +20,12 @@ import {
 
 const FeedScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const {customUser, isGuest} = useSessionState();
+  const {customUser} = useSessionState();
   const [index, setIndex] = useState(0);
   const reportSheetRef = useRef<BottomSheetModal>(null);
 
   const headerOffset = insets.top + TABBAR_HEIGHT + LOGO_HEIGHT;
-  const favorites = customUser?.favorites ?? [];
+  const favorites = useMemo(() => customUser?.favorites ?? [], [customUser?.favorites]);
   const userFavoritePools = useMemo(
     () => favorites.filter(f => f.entityType === EntityType.POOL).map(f => f.entityId),
     [favorites]
@@ -106,7 +106,6 @@ const FeedScreen: React.FC = () => {
       userFavoritePools,
       userFavoriteTeams,
       headerOffset,
-      scrollYs,
     ]
   );
 
@@ -130,7 +129,7 @@ const FeedScreen: React.FC = () => {
 
   const renderTabBar = useCallback(
     (props: SceneRendererProps & { navigationState: NavigationState<Route> }) => (
-      <AnimatedFeedHeader {...props} scrollYs={scrollYs} onOpenReport={() => reportSheetRef.current?.present()}/>
+      <FeedHeader {...props} scrollYs={scrollYs} onOpenReport={() => reportSheetRef.current?.present()}/>
     ),
     [scrollYs]
   );
@@ -144,7 +143,7 @@ const FeedScreen: React.FC = () => {
     }
   }, [lastNotificationResponse]);
   return (
-    <>
+    <View style={styles.screen} testID="feed-screen">
       <TabView
         lazy
         lazyPreloadDistance={1}
@@ -164,11 +163,12 @@ const FeedScreen: React.FC = () => {
         snapPoint="90%"
         footerLabel="Envoyer"
       />
-    </>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  screen: {flex: 1},
   tabItem: {fontSize: 14, fontWeight: '700'},
 });
 

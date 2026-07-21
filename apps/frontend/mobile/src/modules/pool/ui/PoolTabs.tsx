@@ -2,11 +2,11 @@ import React, { useMemo } from "react";
 import { Animated } from "react-native";
 
 import GenericTabView from "@/src/shared/ui/GenericTabView";
-import MatchList from "@/src/components/matchList/MatchListContainer";
-import RankingTab from "@/src/components/ranking/RankingTab";
+import MatchList from "@/src/modules/match/ui/MatchList";
+import RankingTab from "@/src/modules/ranking/ui/RankingTab";
 import ProUpsellTab from "@/src/shared/ui/subscription/ProUpsellTab";
 
-import { MatchStatus } from "@/src/types/Match";
+import { MatchStatus } from "@/src/modules/match/model/Match";
 import type { PoolResponse } from "@/src/modules/pool/model/Pool";
 import { TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
 import PoolMapTab from "./PoolMapTab";
@@ -38,7 +38,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
   }, [tabs]);
 
   const ranking = useMemo(
-    () => <RankingTab enrichedPool={enrichedPool} />,
+    () => <RankingTab pool={enrichedPool} />,
     [enrichedPool],
   );
 

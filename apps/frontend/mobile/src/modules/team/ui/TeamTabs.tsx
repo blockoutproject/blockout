@@ -2,10 +2,10 @@ import React, { useMemo } from "react";
 import { Animated } from "react-native";
 
 import GenericTabView from "@/src/shared/ui/GenericTabView";
-import MatchList from "@/src/components/matchList/MatchListContainer";
-import RankingTab from "@/src/components/ranking/RankingTab";
+import MatchList from "@/src/modules/match/ui/MatchList";
+import RankingTab from "@/src/modules/ranking/ui/RankingTab";
 
-import { MatchStatus } from "@/src/types/Match";
+import { MatchStatus } from "@/src/modules/match/model/Match";
 import type { TeamResponse } from "@/src/modules/team/model/Team";
 import { TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
 
@@ -88,7 +88,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
           render: () =>
             pool ? (
               <RankingTab
-                enrichedPool={pool}
+                pool={pool}
                 highlightTeams={[
                   {
                     teamId: pool.ranking.find((t) => t.id === enrichedTeam.id)

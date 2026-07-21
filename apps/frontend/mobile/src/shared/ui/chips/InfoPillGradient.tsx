@@ -1,5 +1,5 @@
 import React, {memo} from "react";
-import {DimensionValue, StyleProp, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle,} from "react-native";
+import {DimensionValue, Pressable, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle,} from "react-native";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {CORNERS} from "@/src/shared/theme/tokens";
@@ -16,6 +16,8 @@ export type InfoPillGradientProps = {
   size?: PillSize;
   onPress?: () => void;
   disabled?: boolean;
+  accessibilityLabel?: string;
+  testID?: string;
   borderWidth?: number;
   maxWidth?: DimensionValue;
   leftIcon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -49,6 +51,8 @@ const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
                                                              size = "md",
                                                              onPress,
                                                              disabled,
+                                                             accessibilityLabel,
+                                                             testID,
                                                              borderWidth = 1,
                                                              maxWidth,
                                                              leftIcon,
@@ -141,10 +145,24 @@ const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
     </View>
   );
 
-  const Wrapper = onPress ? TouchableOpacity : View;
-  const wrapperProps = onPress
-    ? {activeOpacity: 0.9, onPress, disabled}
-    : {};
+  const interactiveContent = onPress ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{disabled: Boolean(disabled)}}
+      disabled={disabled}
+      onPress={onPress}
+      style={({pressed}) => [
+        {borderRadius: CORNERS},
+        pressed ? styles.pressed : undefined,
+      ]}
+      testID={testID}
+    >
+      {content}
+    </Pressable>
+  ) : (
+    content
+  );
 
   // === CAS AVEC GRADIENT ===
   if (hasGradient) {
@@ -154,7 +172,7 @@ const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
           gradient={gradient!}
           style={[styles.outer, {borderRadius: CORNERS}, style]}
         >
-          <Wrapper {...(wrapperProps as any)}>{content}</Wrapper>
+          {interactiveContent}
         </GradientView>
       );
     }
@@ -167,7 +185,19 @@ const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
         borderWidth={borderWidth}
         style={[styles.outer, style]}
       >
-        <Wrapper {...(wrapperProps as any)}>
+        {onPress ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel ?? label}
+            accessibilityState={{disabled: Boolean(disabled)}}
+            disabled={disabled}
+            onPress={onPress}
+            style={({pressed}) => [
+              {borderRadius: CORNERS},
+              pressed ? styles.pressed : undefined,
+            ]}
+            testID={testID}
+          >
           <View
             style={{
               borderRadius: CORNERS - Math.min(
@@ -179,7 +209,17 @@ const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
           >
             {content}
           </View>
-        </Wrapper>
+          </Pressable>
+        ) : (
+          <View
+            style={{
+              borderRadius: CORNERS - Math.min(CORNERS / 2, borderWidth),
+              backgroundColor: baseBackgroundColor,
+            }}
+          >
+            {content}
+          </View>
+        )}
       </GradientBorderView>
     );
   }
@@ -202,12 +242,7 @@ const InfoPillGradient: React.FC<InfoPillGradientProps> = ({
         style,
       ]}
     >
-      <Wrapper
-        {...(wrapperProps as any)}
-        style={{borderRadius: CORNERS}}
-      >
-        {content}
-      </Wrapper>
+      {interactiveContent}
     </View>
   );
 };
@@ -218,6 +253,7 @@ const styles = StyleSheet.create({
   outer: {
     borderRadius: CORNERS,
   },
+  pressed: {opacity: 0.9},
   inner: {
     flexDirection: "row",
     alignItems: "center",

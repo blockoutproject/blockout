@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from "react";
 import { Animated } from "react-native";
 
 import GenericTabView from "@/src/shared/ui/GenericTabView";
-import MatchList from "@/src/components/matchList/MatchListContainer";
+import MatchList from "@/src/modules/match/ui/MatchList";
 
 import ClubInformationsTab from "./ClubInformationTab";
 import ClubTeamListTab from "./ClubTeamListTab";
@@ -10,7 +10,7 @@ import ProUpsellTab from "@/src/shared/ui/subscription/ProUpsellTab";
 
 import type { ClubResponse } from "@/src/modules/club/model/Club";
 import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
-import { MatchStatus } from "@/src/types/Match";
+import { MatchStatus } from "@/src/modules/match/model/Match";
 import { TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
 import { usePurchases } from "@/src/shared/providers/PurchasesProvider";
 

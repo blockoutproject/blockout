@@ -7,7 +7,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/BottomSheetCustomPage";
 import useHasScopes from "@/src/hooks/user/useHasScopes";
-import MatchLiveModerationScreen from "../match/moderation/MatchLiveModerationScreen";
+import MatchLiveModerationScreen from "@/src/modules/match/ui/moderation/MatchLiveModerationScreen";
 import RawDivisionMappingScreen from "../rawDivisionMapping/RawDivisionMappingScreen";
 import DivisionScreen from "../division/DivisionScreen";
 import AdminScreen from "../appStatus/AdminScreen";
