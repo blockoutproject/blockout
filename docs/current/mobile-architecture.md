@@ -54,6 +54,39 @@ shape.
 - UI, route names, gateway calls, persistence keys, authentication, notifications, purchases, ads, maps, and media
   behavior remain unchanged during structural moves.
 
+## Consolidation and design readiness
+
+REF-036 treats repeated UI as an ownership problem, not as a reason to build a generic screen framework. A component,
+hook, or style moves to `shared` only when at least two active consumers have the same semantic role and behavior, or
+when it enforces an application-wide invariant. Similar-looking feature workflows keep their own composition, copy,
+commands, and data ownership.
+
+Keep it simple is a hard constraint. A small explicit component or direct feature implementation is preferred over a
+generic helper, type utility, configuration object, wrapper layer, or abstraction that is harder to understand than the
+code it replaces. Shared APIs use straightforward React Native props and concrete TypeScript types. They do not add
+advanced generic typing, helper factories, registries, or indirection without a current, demonstrated need.
+
+The following rules guide each feature slice:
+
+- equivalent actions, feedback states, form scaffolds, bottom-sheet structure, entity presentation, search controls, and
+  list behavior converge on one shared primitive;
+- insignificant visual drift such as adjacent spacing, radius, or typography values converges on the closest established
+  semantic token instead of preserving accidental one-off values;
+- a real behavioral or semantic difference is represented by a named variant, a dedicated child component, or
+  feature-owned composition; shared components do not accumulate unrelated boolean options;
+- complete screens are not shared merely because their layouts look alike. The stable frame may be shared while each
+  feature retains its content and interactions;
+- an extraction must reduce both duplication and cognitive load. If it only shortens code or requires complex helpers
+  and types, the explicit feature code remains in place;
+- provisional tokens describe purpose rather than a specific numeric value. A later Figma token system may replace
+  their values without requiring feature components to be rewritten;
+- a module creates only the `api`, `hooks`, `model`, and `ui` folders it needs. Empty architectural placeholders are not
+  permitted.
+
+The live decisions and consumers are recorded in the
+[mobile consolidation register](mobile-consolidation.md). Every REF-036 slice updates that register so final cleanup can
+prove what was shared, intentionally kept local, or removed.
+
 ## Verification
 
 Every structural slice must keep the REF-028 baseline green:
