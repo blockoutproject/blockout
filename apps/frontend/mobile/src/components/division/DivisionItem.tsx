@@ -76,7 +76,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({division, onPress, onDeactiv
         end={{x: 1, y: 1}}
       />
 
-      {division.active && (
+      {!!division.active && (
         <TouchableOpacity onPress={handleDeactivate}>
           <MaterialCommunityIcons
             name="close"

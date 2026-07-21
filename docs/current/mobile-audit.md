@@ -36,6 +36,9 @@ next work should fix those foundations first, then finish feature ownership and 
 
 ### 1. Restore an enforceable correctness gate first — high
 
+**Resolved by REF-032.** The Expo flat ESLint configuration and Nx lint target now enforce the Hooks and leaked-render
+rules. The remaining inherited warnings are visible and capped so new warnings fail the target.
+
 The mobile project exposes `expo lint`, but it has no ESLint configuration and therefore cannot currently run as a
 repository gate. Static inspection found a concrete Rules of Hooks violation in `Onboarding.tsx`: `useAnimatedStyle`
 is called from inside `steps.map`. The same component uses `useDerivedValue` for a JavaScript side effect, captures the
@@ -141,8 +144,8 @@ Unavailable credentials or hardware remain explicit evidence gaps; tests must no
 
 ## Ordered remediation
 
-1. **REF-032 — Restore mobile correctness and static quality gates.** Add the standard lint integration, fix the
-   proven Hooks and leaked-render issues, and add focused regression tests.
+1. **REF-032 — Restore mobile correctness and static quality gates (complete).** Add the standard lint integration,
+   fix the proven Hooks and leaked-render issues, and add focused regression tests.
 2. **REF-033 — Reconcile Expo and native dependencies.** Correct Metro and package ownership, align compatible Expo 54
    patches, resolve actionable audit paths, and prove clean native resolution.
 3. **REF-034 — Stabilize session and network state.** Separate stable actions from changing state, establish Query
@@ -165,7 +168,7 @@ The audit used the current checked-out application and recorded the following re
 - `npx expo install --check`: compatible-package drift reported; the command used cached metadata because network
   access was unavailable.
 - `npx expo-doctor@latest`: 15 of 18 checks pass; the three failures are described above.
-- `npm run lint --workspace=blockout`: no ESLint configuration exists, so lint is not operational.
+- `npm run lint --workspace=blockout`: no ESLint configuration existed at audit time; REF-032 made it operational.
 - `npm audit --omit=dev`: 50 moderate, 4 high, and 0 critical production findings.
 
 No application source, native project, route, configuration value, or runtime behavior was changed by this audit.

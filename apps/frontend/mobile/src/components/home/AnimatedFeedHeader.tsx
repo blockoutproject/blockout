@@ -152,7 +152,7 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
               </Text>
             </View>
 
-            {isHydrated && isPro && (
+            {!!isHydrated && !!isPro && (
               <Text style={[styles.titlePro, {color: theme.gold}]}>
                 Pro
               </Text>
@@ -180,7 +180,7 @@ const AnimatedFeedHeader: React.FC<HeaderProps> = ({
           />
 
           <View style={styles.actions}>
-            {showUpgradeCta && (
+            {!!showUpgradeCta && (
               <View style={{marginRight: 4}}>
                 <InfoPillGradient
                   size="md"

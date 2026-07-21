@@ -122,7 +122,7 @@ const RawDivisionMappingScreen: React.FC = () => {
         />
       </View>
 
-      {editing && (
+      {!!editing && (
         <RawDivisionMappingFormSheet
           ref={formSheetRef}
           mapping={editing}

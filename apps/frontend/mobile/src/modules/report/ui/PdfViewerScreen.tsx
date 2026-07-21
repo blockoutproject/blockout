@@ -55,7 +55,7 @@ export default function PdfViewer() {
           overScrollMode="never"
         />
 
-        {loading && (
+        {!!loading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator/>
           </View>

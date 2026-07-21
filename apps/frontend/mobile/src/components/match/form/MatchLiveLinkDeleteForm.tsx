@@ -108,7 +108,7 @@ const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
             </View>
           </View>
 
-          {liveUrl && (
+          {!!liveUrl && (
             <View
               style={[
                 styles.urlBlock,

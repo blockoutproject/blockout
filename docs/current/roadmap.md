@@ -242,9 +242,13 @@
     violation, session/network ownership issues, and remaining feature-ownership work are documented without changing
     runtime code.
 
-- [ ] **REF-032 — Restore mobile correctness and static quality gates**
+- [x] **REF-032 — Restore mobile correctness and static quality gates**
   - Add the standard Expo ESLint configuration and an Nx lint target.
   - Fix only proven Hooks, leaked-render, and directly related correctness violations, with focused regression tests.
+  - Evidence: the Expo flat configuration and explicit Nx target pass with zero errors and a capped baseline of 63
+    inherited warnings. All unsafe JSX falsy conditions are explicitly boolean, onboarding indicators keep stable Hook
+    ownership when the step count changes, and push registration no longer calls a provider Hook from a utility.
+    Mobile typecheck, all 15 Jest tests, and the 3,335-module Web export pass.
 
 - [ ] **REF-033 — Reconcile Expo and native dependencies**
   - Align the compatible Expo 54 patch set, Metro resolution, and direct dependency ownership.

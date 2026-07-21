@@ -34,7 +34,7 @@ const DEFAULT_ZOOM = 5;
 
 const EDGE_PADDING = 60;
 
-function computeBounds(coords: Array<[number, number]>) {
+function computeBounds(coords: [number, number][]) {
   let minLng = Infinity;
   let maxLng = -Infinity;
   let minLat = Infinity;
@@ -65,7 +65,7 @@ const PoolMapCard: React.FC<Props> = ({enrichedPool}) => {
   const cameraRef = useRef<CameraRef>(null);
 
   const teamsWithCoords = useMemo(() => {
-    return enrichedPool.ranking.filter((t) => hasCoord(t.latitude, t.longitude)) as Array<TeamWithStats>;
+    return enrichedPool.ranking.filter((t) => hasCoord(t.latitude, t.longitude)) as TeamWithStats[];
   }, [enrichedPool.ranking]);
 
   // Map pour retrouver vite l’équipe au tap (pas de find O(n) à chaque press)

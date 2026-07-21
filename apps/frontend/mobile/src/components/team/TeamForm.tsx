@@ -163,7 +163,7 @@ const TeamForm: React.FC<TeamFormProps> = ({team, onSuccess, onRegisterSubmit, o
               <Text style={[styles.logoBtnText, {color: theme.text}]}>Changer le logo</Text>
             </TouchableOpacity>
 
-            {logoUri && (
+            {!!logoUri && (
               <TouchableOpacity
                 onPress={handleRemoveImage}
                 style={[styles.removeBtn, {backgroundColor: theme.backgroundSecondary}]}

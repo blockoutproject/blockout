@@ -218,7 +218,7 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
             </Text>
           </View>
 
-          {isMatchFinished && (
+          {!!isMatchFinished && (
             <View
               style={[
                 styles.warningBox,

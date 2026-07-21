@@ -103,7 +103,7 @@ const EntityGradientCard: React.FC<EntityGradientCardProps> = ({
             </View>
           </View>
 
-          {hasChips && (
+          {!!hasChips && (
             <View style={styles.chipsContainer}>
               <View style={styles.chipsRow}>
                 {chips.map((chip, idx) => (

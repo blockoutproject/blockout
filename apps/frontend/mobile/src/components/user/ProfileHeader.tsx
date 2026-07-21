@@ -74,24 +74,23 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
           </Text>
 
           <View style={styles.actions}>
-            {hasAnyAdmin && (
-              <>
-                {canAccessRawDivisionMappings && (
+            {!!hasAnyAdmin && <>
+                {!!canAccessRawDivisionMappings && (
                   <TouchableOpacity onPress={openSheet(mappingSheetRef)} hitSlop={HIT_SLOP}>
                     <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text}/>
                   </TouchableOpacity>
                 )}
-                {canAccessDivisions && (
+                {!!canAccessDivisions && (
                   <TouchableOpacity onPress={openSheet(divisionSheetRef)} hitSlop={HIT_SLOP}>
                     <MaterialCommunityIcons name="alpha-d-circle" size={28} color={theme.text}/>
                   </TouchableOpacity>
                 )}
-                {canAccessLiveLinkModeration && (
+                {!!canAccessLiveLinkModeration && (
                   <TouchableOpacity onPress={openSheet(liveLinkModerationSheetRef)} hitSlop={HIT_SLOP}>
                     <MaterialCommunityIcons name="video-check-outline" size={28} color={theme.text}/>
                   </TouchableOpacity>
                 )}
-                {canAdminManagement && (
+                {!!canAdminManagement && (
                   <TouchableOpacity onPress={openSheet(scraperSheetRef)} hitSlop={HIT_SLOP}>
                     <MaterialCommunityIcons
                       name="power-standby"
@@ -100,8 +99,7 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
                     />
                   </TouchableOpacity>
                 )}
-              </>
-            )}
+              </>}
 
             <TouchableOpacity onPress={onOpenReport} hitSlop={HIT_SLOP}>
               <MaterialCommunityIcons name="flag-outline" size={28} color={theme.text}/>

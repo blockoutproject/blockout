@@ -8,7 +8,7 @@ import {
 
 let adsReady = false;
 let initializing: Promise<void> | null = null;
-const listeners: Array<() => void> = [];
+const listeners: (() => void)[] = [];
 
 export function onAdsReady(listener: () => void) {
   if (adsReady) {

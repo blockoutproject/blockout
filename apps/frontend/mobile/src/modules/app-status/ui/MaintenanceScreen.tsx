@@ -138,7 +138,7 @@ const MaintenancePage: React.FC = () => {
                   </Text>
                 </TouchableOpacity>
 
-                {canBypassMaintenance && (
+                {!!canBypassMaintenance && (
                   <TouchableOpacity
                     onPress={handleBypass}
                     activeOpacity={0.85}

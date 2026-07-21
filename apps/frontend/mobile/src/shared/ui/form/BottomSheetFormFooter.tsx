@@ -53,7 +53,7 @@ const BottomSheetFormFooter: React.FC<BottomSheetFormFooterProps> = ({
             <ActivityIndicator color={theme.text}/>
           ) : (
             <>
-              {icon && (
+              {!!icon && (
                 <MaterialCommunityIcons
                   name={icon as any}
                   size={18}

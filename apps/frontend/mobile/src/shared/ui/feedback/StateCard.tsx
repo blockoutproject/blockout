@@ -154,7 +154,7 @@ const StateCard: React.FC<StateCardProps> = ({
           </Text>
         )}
 
-        {action && (
+        {!!action && (
           <Pressable
             onPress={onPressAction}
             disabled={isActionDisabled}

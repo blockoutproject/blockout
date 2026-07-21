@@ -38,9 +38,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({notification, onOpen
           ]}
           testID="notification-item"
         >
-          {notification.divisionLogoUrl && (
-            <Image source={{uri: notification.divisionLogoUrl}} style={styles.logo}/>
-          )}
+          {!!notification.divisionLogoUrl && <Image source={{uri: notification.divisionLogoUrl}} style={styles.logo}/>}
 
           <View style={styles.content}>
             <Text style={[styles.title, {color: theme.text}]} numberOfLines={1}>

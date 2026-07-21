@@ -49,7 +49,7 @@ const MatchRow: React.FC<MatchRowProps> = ({enrichedMatch, division}) => {
       testID={`match-row-${enrichedMatch.id}`}
     >
       {/* Ligne dédiée en haut à droite pour la pastille Live / Rediff */}
-      {livePillLabel && (
+      {!!livePillLabel && (
         <View style={styles.topRow}>
           <InfoPillGradient
             label={livePillLabel}

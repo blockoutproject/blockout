@@ -70,7 +70,7 @@ const PoolHeader: React.FC<PoolHeaderProps> = ({title, onOpenReport, onEdit}) =>
         </View>
 
         <View style={styles.rightGroup}>
-          {onEdit && (
+          {!!onEdit && (
             <TouchableOpacity
               onPress={onEdit}
               hitSlop={{

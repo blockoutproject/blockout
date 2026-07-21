@@ -106,7 +106,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({enrichedMatch}) => {
             borderWidth={1}
           />
         )}
-        {ref1 && (
+        {!!ref1 && (
           <InfoPillGradient
             leftIcon="whistle"
             label={ref1}
@@ -114,7 +114,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({enrichedMatch}) => {
             borderWidth={1}
           />
         )}
-        {ref2 && (
+        {!!ref2 && (
           <InfoPillGradient
             leftIcon="whistle"
             label={ref2}
@@ -129,7 +129,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({enrichedMatch}) => {
           onPress={() => handlePoolPress(enrichedMatch.pool.id)}
           rightIcon="chevron-forward-outline"
         />
-        {matchAddressPdfUrl && (
+        {!!matchAddressPdfUrl && (
           <InfoPillGradient
             leftIcon="map-marker"
             rightIcon="chevron-forward-outline"
@@ -140,7 +140,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({enrichedMatch}) => {
             borderWidth={1}
           />
         )}
-        {matchSheetPdfUrl && enrichedMatch.status === MatchStatus.FINISHED && (
+        {!!matchSheetPdfUrl && enrichedMatch.status === MatchStatus.FINISHED && (
           <InfoPillGradient
             label={"Feuille de match"}
             gradient={gradient}
@@ -149,7 +149,6 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({enrichedMatch}) => {
             leftIcon="file-document-outline"
             rightIcon="chevron-forward-outline"
           />
-
         )}
       </View>
     </GradientBorderView>

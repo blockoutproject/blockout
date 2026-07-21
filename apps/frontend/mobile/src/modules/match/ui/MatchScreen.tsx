@@ -260,29 +260,19 @@ const MatchScreen: React.FC = () => {
         scrollEventThrottle={16}
         testID="match-scroll"
       >
-        {scoreCard && (
-          <FadeIn appearIndex={0}>{scoreCard}</FadeIn>
-        )}
+        {!!scoreCard && <FadeIn appearIndex={0}>{scoreCard}</FadeIn>}
 
-        {liveLinkCard && (
-          <FadeIn appearIndex={1}>{liveLinkCard}</FadeIn>
-        )}
+        {!!liveLinkCard && <FadeIn appearIndex={1}>{liveLinkCard}</FadeIn>}
 
-        {detailsCard && (
-          <FadeIn appearIndex={2}>{detailsCard}</FadeIn>
-        )}
+        {!!detailsCard && <FadeIn appearIndex={2}>{detailsCard}</FadeIn>}
 
-        {infoCard && (
-          <FadeIn appearIndex={3}>{infoCard}</FadeIn>
-        )}
+        {!!infoCard && <FadeIn appearIndex={3}>{infoCard}</FadeIn>}
 
         {/* {adCard && (
                     <FadeIn appearIndex={4}>{adCard}</FadeIn>
                 )} */}
 
-        {rankingCard && (
-          <FadeIn appearIndex={5}>{rankingCard}</FadeIn>
-        )}
+        {!!rankingCard && <FadeIn appearIndex={5}>{rankingCard}</FadeIn>}
       </AnimatedScrollView>
     );
 

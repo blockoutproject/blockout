@@ -70,7 +70,7 @@ const ScraperControlCard: React.FC<Props> = ({
 
       {/* Body : liste des scrapers */}
       <View style={styles.listContainer}>
-        {refreshing && !loading && (
+        {!!refreshing && !loading && (
           <View style={styles.inlineLoaderRow}>
             <ActivityIndicator size="small" color={theme.textInactive}/>
             <Text

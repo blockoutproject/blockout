@@ -163,7 +163,7 @@ const UpdateRequiredScreen: React.FC = () => {
                   </Text>
                 </TouchableOpacity>
 
-                {canBypassUpdate && (
+                {!!canBypassUpdate && (
                   <TouchableOpacity
                     onPress={handleBypass}
                     activeOpacity={0.85}

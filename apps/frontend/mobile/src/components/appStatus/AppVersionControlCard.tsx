@@ -291,7 +291,7 @@ const AppVersionControlCard: React.FC<Props> = ({
       </View>
 
       <View style={styles.footerRow}>
-        {lastUpdate && (
+        {!!lastUpdate && (
           <Text
             style={[styles.lastUpdate, {color: theme.textInactive}]}
             numberOfLines={1}
@@ -301,7 +301,7 @@ const AppVersionControlCard: React.FC<Props> = ({
           </Text>
         )}
 
-        {showMiniLoader && (
+        {!!showMiniLoader && (
           <View style={styles.miniLoaderRow}>
             <ActivityIndicator size="small" color={theme.textInactive}/>
             <Text

@@ -242,7 +242,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
           )}
         </TouchableOpacity>
 
-        {maintenanceEnabled && (
+        {!!maintenanceEnabled && (
           <TouchableOpacity
             onPress={handleConfirmDisable}
             disabled={saving}
@@ -269,7 +269,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
       </View>
 
       <View style={styles.footerRow}>
-        {lastUpdate && (
+        {!!lastUpdate && (
           <Text
             style={[styles.lastUpdate, {color: theme.textInactive}]}
             numberOfLines={1}
@@ -279,7 +279,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
           </Text>
         )}
 
-        {showMiniLoader && (
+        {!!showMiniLoader && (
           <View style={styles.miniLoaderRow}>
             <ActivityIndicator size="small" color={theme.textInactive}/>
             <Text

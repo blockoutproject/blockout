@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import {Dimensions, Platform, Pressable, StyleSheet, Text, View, ViewStyle,} from "react-native";
+import {Platform, Pressable, StyleSheet, Text, useWindowDimensions, View, ViewStyle,} from "react-native";
 import {Image} from "expo-image";
 import Animated, {
   Extrapolation,
@@ -7,9 +7,9 @@ import Animated, {
   interpolateColor,
   SharedValue,
   useAnimatedRef,
+  useAnimatedReaction,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
@@ -19,8 +19,6 @@ import {OnboardingStep} from "@/src/components/onboarding/steps";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import GradientButton from "@/src/shared/ui/GradientButton";
 import {runOnJS, scheduleOnRN} from "react-native-worklets";
-
-const {width: SCREEN_W} = Dimensions.get("window");
 
 type Props = {
   steps: OnboardingStep[];
@@ -46,6 +44,7 @@ export function FancyOnboarding({
                                   onStepNext,
                                 }: Props) {
   const insets = useSafeAreaInsets();
+  const {width: screenWidth} = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const isFirst = index === 0;
   const isLast = index === steps.length - 1;
@@ -62,22 +61,27 @@ export function FancyOnboarding({
   const dragX = useSharedValue(0);
   const jsGoTo = (i: number) => goTo(i);
 
-  const pan = Gesture.Pan().onEnd((e) => {
-    "worklet";
+  const pan = Gesture.Pan()
+    .onUpdate((event) => {
+      dragX.value = event.translationX;
+    })
+    .onEnd((event) => {
+      "worklet";
 
-    const should =
-      Math.abs(e.translationX) > SCREEN_W * 0.25 || Math.abs(e.velocityX) > 600;
+      const shouldNavigate =
+        Math.abs(event.translationX) > screenWidth * 0.25 || Math.abs(event.velocityX) > 600;
 
-    if (should) {
-      if (e.translationX < 0 && !isLast) {
-        scheduleOnRN(() => jsGoTo(index + 1));
-      } else if (e.translationX > 0 && !isFirst) {
-        scheduleOnRN(() => jsGoTo(index - 1));
+      if (shouldNavigate) {
+        if (event.translationX < 0 && !isLast) {
+          scheduleOnRN(() => jsGoTo(index + 1));
+        } else if (event.translationX > 0 && !isFirst) {
+          scheduleOnRN(() => jsGoTo(index - 1));
+        }
       }
-    }
-
-    dragX.value = withSpring(0);
-  });
+    })
+    .onFinalize(() => {
+      dragX.value = withSpring(0);
+    });
 
   const dragStyle = useAnimatedStyle(() => ({
     transform: [{translateX: dragX.value * 0.08}],
@@ -85,24 +89,26 @@ export function FancyOnboarding({
 
   const bgStyle = useAnimatedStyle(() => {
     const colors = steps.map((s) => s.bg);
-    const input = steps.map((_, i) => i * SCREEN_W);
+    const input = steps.map((_, i) => i * screenWidth);
     return {
       backgroundColor: interpolateColor(svX.value, input, colors),
     };
   });
 
-  useDerivedValue(() => {
-    const next = Math.round(svX.value / SCREEN_W);
-    // évite les appels redondants
-    if (next !== index) {
+  useAnimatedReaction(
+    () => Math.round(svX.value / screenWidth),
+    (next, previous) => {
+      if (next !== previous) {
       runOnJS(setIndex)(next);
-    }
-  });
+      }
+    },
+    [screenWidth],
+  );
 
   const goTo = (i: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
     });
-    scrollRef.current?.scrollTo({x: i * SCREEN_W, animated: true});
+    scrollRef.current?.scrollTo({x: i * screenWidth, animated: true});
   };
 
   const onNext = async () => {
@@ -112,7 +118,7 @@ export function FancyOnboarding({
       try {
         await onStepNext(current);
       } catch {
-        // Ne bloque pas la navigation si erreur
+        // Push permission failures must not block onboarding navigation.
       }
     }
 
@@ -131,7 +137,11 @@ export function FancyOnboarding({
   const onSkipPress = () => {
     Haptics.selectionAsync().catch(() => {
     });
-    onSkip ? onSkip() : onComplete();
+    if (onSkip) {
+      onSkip();
+    } else {
+      onComplete();
+    }
   };
 
   return (
@@ -148,7 +158,7 @@ export function FancyOnboarding({
             contentContainerStyle={{alignItems: "stretch"}}
           >
             {steps.map((step, i) => (
-              <Slide key={step.id} step={step} i={i} svX={svX}/>
+              <Slide key={step.id} step={step} i={i} svX={svX} screenWidth={screenWidth}/>
             ))}
           </Animated.ScrollView>
         </Animated.View>
@@ -156,7 +166,7 @@ export function FancyOnboarding({
 
       {/* Dots + Skip */}
       <View style={styles.topBar}>
-        <Dots steps={steps} svX={svX}/>
+        <Dots steps={steps} svX={svX} screenWidth={screenWidth}/>
         {!isLast && (
           <Pressable onPress={onSkipPress} hitSlop={8} style={styles.skipBtn}>
             <Text style={styles.skipTxt}>{skipText}</Text>
@@ -184,24 +194,23 @@ export function FancyOnboarding({
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────────
-// Slide: parallax visuel + cross-fade/slide des textes
-// ────────────────────────────────────────────────────────────────────────────────
-const IMAGE_SIZE = 200; // même taille pour logo et gif
+const IMAGE_SIZE = 200;
 
 const Slide = ({
                  step,
                  i,
                  svX,
+                 screenWidth,
                }: {
   step: OnboardingStep;
   i: number;
   svX: SharedValue<number>;
+  screenWidth: number;
 }) => {
-  const base = i * SCREEN_W;
+  const base = i * screenWidth;
 
   const imgParallax = useAnimatedStyle(() => {
-    const progress = (svX.value - base) / SCREEN_W; // 0 au centre
+    const progress = (svX.value - base) / screenWidth;
     const translateX = interpolate(progress, [-1, 0, 1], [-40, 0, 40], Extrapolation.CLAMP);
     const scale = interpolate(progress, [-1, 0, 1], [0.92, 1, 0.92], Extrapolation.CLAMP);
     const opacity = interpolate(progress, [-0.8, 0, 0.8], [0.2, 1, 0.2], Extrapolation.CLAMP);
@@ -209,14 +218,14 @@ const Slide = ({
   });
 
   const titleStyle = useAnimatedStyle(() => {
-    const progress = (svX.value - base) / SCREEN_W;
+    const progress = (svX.value - base) / screenWidth;
     const translateY = interpolate(progress, [-1, 0, 1], [20, 0, -20], Extrapolation.CLAMP);
     const opacity = interpolate(progress, [-0.6, 0, 0.6], [0, 1, 0], Extrapolation.CLAMP);
     return {transform: [{translateY}], opacity};
   });
 
   const descStyle = useAnimatedStyle(() => {
-    const progress = (svX.value - base) / SCREEN_W;
+    const progress = (svX.value - base) / screenWidth;
     const translateY = interpolate(progress, [-1, 0, 1], [10, 0, -10], Extrapolation.CLAMP);
     const opacity = interpolate(progress, [-0.5, 0, 0.5], [0, 1, 0], Extrapolation.CLAMP);
     return {transform: [{translateY}], opacity};
@@ -225,7 +234,7 @@ const Slide = ({
   const visualSource = step.visual.gif ?? step.visual.image;
 
   return (
-    <View style={[styles.slide, {width: SCREEN_W}]}>
+    <View style={[styles.slide, {width: screenWidth}]}>
       <Animated.View style={[styles.visual, imgParallax]}>
         {step.visual.component ? (
           <View>{step.visual.component}</View>
@@ -252,31 +261,49 @@ const Slide = ({
   );
 };
 
-// ────────────────────────────────────────────────────────────────────────────────
-// Dots animés: largeur + opacité interpolées sur le scroll
-// ────────────────────────────────────────────────────────────────────────────────
-const Dots = ({steps, svX}: { steps: OnboardingStep[]; svX: SharedValue<number> }) => {
+const Dots = ({
+                steps,
+                svX,
+                screenWidth,
+              }: {
+  steps: OnboardingStep[];
+  svX: SharedValue<number>;
+  screenWidth: number;
+}) => {
+  const input = steps.map((_, index) => index * screenWidth);
+
   return (
     <View style={styles.dotsRow}>
-      {steps.map((_, i) => {
-        const input = steps.map((__, j) => j * SCREEN_W);
-        const dotStyle = useAnimatedStyle(() => {
-          const w = interpolate(
-            svX.value,
-            input,
-            input.map((x, j) => (j === i ? 22 : 8))
-          );
-          const o = interpolate(
-            svX.value,
-            input,
-            input.map((x, j) => (j === i ? 1 : 0.35))
-          );
-          return {width: w, opacity: o};
-        });
-        return <Animated.View key={i} style={[styles.dot, dotStyle]}/>;
-      })}
+      {steps.map((step, index) => (
+        <Dot key={step.id} index={index} input={input} svX={svX}/>
+      ))}
     </View>
   );
+};
+
+const Dot = ({
+               index,
+               input,
+               svX,
+             }: {
+  index: number;
+  input: number[];
+  svX: SharedValue<number>;
+}) => {
+  const dotStyle = useAnimatedStyle(() => ({
+    width: interpolate(
+      svX.value,
+      input,
+      input.map((_, position) => (position === index ? 22 : 8)),
+    ),
+    opacity: interpolate(
+      svX.value,
+      input,
+      input.map((_, position) => (position === index ? 1 : 0.35)),
+    ),
+  }));
+
+  return <Animated.View style={[styles.dot, dotStyle]}/>;
 };
 
 const GhostButton = ({

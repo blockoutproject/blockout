@@ -177,7 +177,7 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
               <Text style={[styles.logoBtnText, {color: theme.text}]}>Changer la photo</Text>
             </TouchableOpacity>
 
-            {avatarUri && (
+            {!!avatarUri && (
               <TouchableOpacity
                 onPress={handleRemoveImage}
                 style={[styles.removeBtn, {backgroundColor: theme.backgroundSecondary}]}

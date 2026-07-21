@@ -330,7 +330,7 @@ const AdminScreen: React.FC = () => {
         <ScraperControlCard
           scrapers={sortedScrapers}
           loading={scrapersLoading}
-          refreshing={scrapersLoading && !!scrapers}
+          refreshing={!!scrapersLoading && !!scrapers}
           onToggleScraper={toggleScraper}
           onRefresh={refetchScrapers}
         />

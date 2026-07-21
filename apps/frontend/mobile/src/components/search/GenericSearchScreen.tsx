@@ -174,14 +174,14 @@ export const GenericSearchScreen = <T, >({
           inSheet={false}
         />
 
-        {showFiltersRow && (
+        {!!showFiltersRow && (
           <ScrollView
             horizontal
             contentContainerStyle={styles.filtersRow}
             showsHorizontalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {showSeasonSelect && (
+            {!!showSeasonSelect && (
               <SeasonSelect
                 options={seasonOptions}
                 selectedValue={selectedSeason}
@@ -192,7 +192,7 @@ export const GenericSearchScreen = <T, >({
               />
             )}
 
-            {showDivisionSelect && (
+            {!!showDivisionSelect && (
               <DivisionSelect
                 options={divisionOptions}
                 selectedValue={selectedDivisionId ?? null}
@@ -203,7 +203,7 @@ export const GenericSearchScreen = <T, >({
               />
             )}
 
-            {showFormatSelect && (
+            {!!showFormatSelect && (
               <FormatSelect
                 selectedValue={selectedFormat ?? null}
                 onSelect={onSelectFormat!}
@@ -213,7 +213,7 @@ export const GenericSearchScreen = <T, >({
               />
             )}
 
-            {showGenderSelect && (
+            {!!showGenderSelect && (
               <GenderSelect
                 selectedValue={selectedGender ?? null}
                 onSelect={onSelectGender!}
@@ -226,7 +226,7 @@ export const GenericSearchScreen = <T, >({
         )}
       </View>
 
-      {isLoading && (
+      {!!isLoading && (
         <ActivityIndicator
           size="small"
           color={theme.text}
@@ -234,7 +234,7 @@ export const GenericSearchScreen = <T, >({
         />
       )}
 
-      {isError && (
+      {!!isError && (
         <ErrorState
           subtitle="Impossible de charger les résultats."
           paddingTop={"30%"}

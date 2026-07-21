@@ -177,14 +177,14 @@ const MatchLiveLinkCard: React.FC<Props> = ({
             <Text style={[styles.title, {color: theme.text}]}>
               {headerTitle}
             </Text>
-            {isLive && (
+            {!!isLive && (
               <View
                 style={[styles.liveDot, {backgroundColor: theme.error}]}
               />
             )}
           </View>
 
-          {showReportButton && (
+          {!!showReportButton && (
             <TouchableOpacity
               onPress={handlePressReportButton}
               style={styles.reportBtn}
@@ -204,7 +204,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         </View>
 
         <View style={styles.content}>
-          {hasLiveLink && (
+          {!!hasLiveLink && (
             <View style={styles.liveBlock}>
               <View style={styles.livePillRow}>
                 <View style={styles.livePillWrap}>
@@ -218,9 +218,9 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                   />
                 </View>
 
-                {(canEditExistingLink || canDeleteLiveLink) && (
+                {!!(canEditExistingLink || canDeleteLiveLink) && (
                   <View style={styles.actionsRow}>
-                    {canEditExistingLink && (
+                    {!!canEditExistingLink && (
                       <TouchableOpacity
                         onPress={handleOpenEdit}
                         style={[
@@ -239,7 +239,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                       </TouchableOpacity>
                     )}
 
-                    {canDeleteLiveLink && (
+                    {!!canDeleteLiveLink && (
                       <TouchableOpacity
                         onPress={handleOpenDelete}
                         style={[
@@ -263,7 +263,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
             </View>
           )}
 
-          {!hasLiveLink && canShowEmptyStateCta && (
+          {!hasLiveLink && !!canShowEmptyStateCta && (
             <View style={styles.addPillWrap}>
               <InfoPillGradient
                 leftIcon="plus-circle-outline"
@@ -280,7 +280,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         </View>
       </GradientBorderView>
 
-      {canCreateLiveLinkScope && (
+      {!!canCreateLiveLinkScope && (
         <MatchLiveLinkFormSheet
           ref={editSheetRef}
           matchId={enrichedMatch.id}
@@ -294,7 +294,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         />
       )}
 
-      {canDeleteLiveLinkScope && (
+      {!!canDeleteLiveLinkScope && (
         <MatchLiveLinkDeleteFormSheet
           ref={deleteSheetRef}
           matchId={enrichedMatch.id}
@@ -306,7 +306,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         />
       )}
 
-      {canReportLiveLinkScope && (
+      {!!canReportLiveLinkScope && (
         <MatchLiveLinkReportFormSheet
           ref={reportSheetRef}
           matchId={enrichedMatch.id}

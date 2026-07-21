@@ -175,7 +175,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
           )}
         </View>
 
-        {link.provider && (
+        {!!link.provider && (
           <View style={styles.providerRow}>
             <MaterialCommunityIcons
               name={providerIconName}
@@ -194,7 +194,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
         )}
       </View>
 
-      {link.url && (
+      {!!link.url && (
         <TouchableOpacity
           onPress={handleOpenUrl}
           activeOpacity={0.8}
@@ -218,7 +218,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
       )}
 
       <View style={styles.metaBlock}>
-        {link.ownerAuth0Id && (
+        {!!link.ownerAuth0Id && (
           <Text
             style={[
               styles.metaText,
@@ -253,9 +253,9 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
         )}
       </View>
 
-      {(canApprove || canReject || canDeleteActive || canReactivate) && (
+      {!!(canApprove || canReject || canDeleteActive || canReactivate) && (
         <View style={styles.actionsRow}>
-          {canReject && (
+          {!!canReject && (
             <TouchableOpacity
               onPress={() => onReject?.(link)}
               style={[
@@ -280,7 +280,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
             </TouchableOpacity>
           )}
 
-          {canDeleteActive && (
+          {!!canDeleteActive && (
             <TouchableOpacity
               onPress={() => onDeleteActive?.(link)}
               style={[
@@ -305,7 +305,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
             </TouchableOpacity>
           )}
 
-          {canApprove && (
+          {!!canApprove && (
             <TouchableOpacity
               onPress={() => onApprove?.(link)}
               style={[
@@ -330,7 +330,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
             </TouchableOpacity>
           )}
 
-          {canReactivate && (
+          {!!canReactivate && (
             <TouchableOpacity
               onPress={() => onReactivate?.(link)}
               style={[

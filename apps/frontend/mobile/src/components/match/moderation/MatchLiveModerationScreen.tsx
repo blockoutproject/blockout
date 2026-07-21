@@ -184,9 +184,7 @@ const MatchLiveModerationScreen: React.FC = () => {
       />
 
       <BottomSheetCustomPage ref={historySheetRef}>
-        {selectedMatch && (
-          <MatchLiveLinksHistoryScreen match={selectedMatch}/>
-        )}
+        {!!selectedMatch && <MatchLiveLinksHistoryScreen match={selectedMatch}/>}
       </BottomSheetCustomPage>
     </>
   );

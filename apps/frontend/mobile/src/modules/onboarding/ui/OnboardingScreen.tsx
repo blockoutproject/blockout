@@ -2,12 +2,14 @@ import React from "react";
 import {useOnboardingStore} from "@/src/utils/onboardingStore";
 import {FancyOnboarding} from "@/src/components/onboarding/Onboarding";
 import {ONBOARDING_STEPS} from "@/src/components/onboarding/steps";
-import {registerForPushNotificationsAsync, registerPushTokenOnBackend,} from "@/src/utils/notifications";
+import {registerForPushNotificationsAsync} from "@/src/utils/notifications";
 import {useSession} from "@/src/shared/providers/SessionProvider";
+import {useRegisterPushToken} from "@/src/hooks/notification/useRegisterPushToken";
 
 const OnboardingScreen: React.FC = () => {
   const {completeOnboarding} = useOnboardingStore();
   const {customUser} = useSession();
+  const registerPushToken = useRegisterPushToken();
 
   return (
     <FancyOnboarding
@@ -18,7 +20,7 @@ const OnboardingScreen: React.FC = () => {
         if (step.id !== "push") return;
         const token = await registerForPushNotificationsAsync().catch(() => null);
         if (customUser?.id && token) {
-          await registerPushTokenOnBackend(customUser.id, token).catch(() => {
+          await registerPushToken(customUser.id, token).catch(() => {
           });
         }
       }}

@@ -283,7 +283,7 @@ export function Spinner({
   return (
     <View style={[containerStyle, style]}>
       {renderSpinner()}
-      {(showLabel || label) && (
+      {!!(showLabel || label) && (
         <Text
           style={[
             styles.label,

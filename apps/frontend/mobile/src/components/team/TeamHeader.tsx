@@ -71,7 +71,7 @@ const TeamHeader: React.FC<TeamHeaderProps> = ({title, onOpenReport, onEdit}) =>
         </View>
 
         <View style={styles.rightGroup}>
-          {onEdit && (
+          {!!onEdit && (
             <TouchableOpacity
               onPress={onEdit}
               hitSlop={{

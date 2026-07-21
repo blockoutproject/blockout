@@ -11,7 +11,7 @@ const Field: React.FC<{ label?: string; children: React.ReactNode; error?: strin
   const theme = useAppTheme();
   return (
     <View style={styles.fieldBlock}>
-      {label && <Text style={[styles.label, {color: theme.text}]}>{label}</Text>}
+      {!!label && <Text style={[styles.label, {color: theme.text}]}>{label}</Text>}
       {children}
       {touched && error ? <Text style={[styles.error, {color: theme.error}]}>{error}</Text> : null}
     </View>

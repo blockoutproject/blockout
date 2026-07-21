@@ -87,7 +87,7 @@ function RootNavigator() {
                     />
                 </Stack.Protected>
 
-                <Stack.Protected guard={isBlockedByUpdate && !isBlockedByMaintenance}>
+                <Stack.Protected guard={!!isBlockedByUpdate && !isBlockedByMaintenance}>
                     <Stack.Screen
                         name="update-required"
                         options={{ animation: "fade_from_bottom", animationDuration: 300 }}
@@ -101,7 +101,7 @@ function RootNavigator() {
                     />
                 </Stack.Protected>
 
-                <Stack.Protected guard={(isGuest || isAuthenticated) && !isGloballyBlocked}>
+                <Stack.Protected guard={!!(isGuest || isAuthenticated) && !isGloballyBlocked}>
                     <Stack.Protected guard={!hasCompletedOnboarding}>
                         <Stack.Screen
                             name="onboarding"

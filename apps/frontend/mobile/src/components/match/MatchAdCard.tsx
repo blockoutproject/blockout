@@ -30,7 +30,7 @@ const MatchAdCard: React.FC = () => {
 
         <View style={styles.body}>
           <View style={styles.bannerContainer}>
-            {isLoading && (
+            {!!isLoading && (
               <View
                 style={[styles.loaderWrapper]}
               >
