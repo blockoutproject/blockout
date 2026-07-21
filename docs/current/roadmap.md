@@ -344,7 +344,119 @@
     purchase, map, and media evidence remains explicitly outstanding without any bypass. Generated native projects
     remain ignored and untracked; the production audit remains at 19 moderate, 0 high, and 0 critical findings.
 
+## Contract-first adoption
+
+- [ ] **REF-038 — Establish the Nx and uv Python workspace**
+  - Replace the two isolated scraper environments with one Python 3.12 uv workspace containing `club-scraper`,
+    `competition-scraper`, and the tracked shared contract-client package scaffold.
+  - Pin uv and `@nxlv/python` 22.2.2 after proving local compatibility with the current Nx graph. Keep the plugin limited
+    to environment activation, project targets, packaging, and dependency edges; do not enable experimental dependency
+    inference or source-rewriting sync generators.
+  - Commit one root `uv.lock`, ignore the single root `.venv`, and remove each `requirements.txt` only after dependency,
+    test, scraper, and container parity passes.
+
+- [ ] **REF-039 — Migrate the club scraper's external transport to HTTPX**
+  - Replace only handwritten FFVB network access with one correctly scoped `httpx.AsyncClient` per scraper run.
+  - Preserve URLs, query parameters, headers, redirects, timeout intent, error semantics, parsing, and scheduling. Do not
+    rewrite Blockout API calls that will be replaced by generated clients.
+  - Prove behavior with the captured real FFVB pages, focused transport tests, the complete club scraper suite, and an
+    available read-only provider smoke.
+
+- [ ] **REF-040 — Migrate the competition scraper's external transport to HTTPX**
+  - Move FFVB and LNV CSV, XML, and HTML retrieval to a correctly scoped `httpx.AsyncClient` without changing provider
+    parsing, competition selection, persistence order, or the existing XML outage tolerance.
+  - Preserve the current retry and failure behavior rather than adding a generic transport framework. Share code with
+    the club scraper only where the two proven policies are genuinely identical.
+  - Validate against the real departmental, regional, national, and professional fixtures, both scraper suites, and
+    available read-only provider smokes before removing superseded HTTP dependencies.
+
+- [ ] **REF-041 — Establish deterministic OpenAPI code generation**
+  - Add the authoritative OpenAPI source layout under `libs/shared` and pin OpenAPI Generator 7.22.0 as the single
+    generator family for Java, TypeScript, and Python transport code.
+  - Generate shared Python contract models plus service-specific asynchronous HTTPX clients inside one private
+    `blockout-contract-clients` wheel. Keep its packaging metadata tracked while every generated source remains ignored.
+  - Generate contract enums from OpenAPI and keep application-only enums in their owning application. Use semantic
+    names such as `ClubInternalRequest` and `ClubInternalResponse`; do not encode migration versions in class names.
+  - Expose explicit validate, generate, test, build, and clean Nx targets. Require two clean identical generations,
+    build/import tests from a clean checkout, and a guard rejecting any tracked generated artifact.
+  - Use default generator templates initially. Do not add custom templates, wrapper frameworks, or handwritten patches
+    to generated code.
+
+- [ ] **REF-042 — Migrate the Club contract as the first generated vertical**
+  - Define the single authoritative Club schemas and internal operations from the behavior already established by the
+    club refactor, resolving every active handwritten copy against the owner model.
+  - Make `clubs-service` implement generated Java interfaces and models, and replace the club scraper's handwritten
+    Blockout transport with the generated asynchronous Python client behind one thin configuration/error adapter.
+  - Migrate active Java and TypeScript Club transport consumers in the same vertical so they all derive from the same
+    schema source. Preserve routes, camelCase JSON, persistence, error behavior, and scraper results.
+
+- [ ] **REF-043 — Migrate the Config and Division contracts**
+  - Generate the configuration and Division internal boundaries owned by `config-service`, including the Python clients
+    needed by both scrapers.
+  - Replace handwritten transport DTOs and calls only after characterization proves identical scheduling, season,
+    division, format, gender, and scraper-name behavior.
+
+- [ ] **REF-044 — Migrate the Team contract**
+  - Establish Team schemas from the authoritative `teams-service` model and shared Club and Division references.
+  - Adopt generated Java models/interfaces and the competition scraper's generated asynchronous client while preserving
+    create, update, deactivate, follow, lookup, and ingestion behavior.
+
+- [ ] **REF-045 — Migrate the Pool contract**
+  - Establish Pool schemas from the authoritative `pools-service` model and shared Division, format, and gender schemas.
+  - Replace handwritten server and scraper transport types with generated boundaries while preserving standings,
+    activation, season, ingestion, and lookup behavior.
+
+- [ ] **REF-046 — Migrate the Competition contract**
+  - Generate the competition-service boundary used by ingestion and downstream services from one authoritative contract.
+  - Preserve cascade commands, external identifiers, season semantics, transaction boundaries, and existing routes; do
+    not introduce a parallel API version or speculative event redesign.
+
+- [ ] **REF-047 — Migrate the Match contract**
+  - Generate Match requests, responses, enums, and clients from the authoritative `matches-service` model.
+  - Preserve score, status, date, team, pool, ingestion, follow, and feed behavior across the competition scraper,
+    services, gateway, and search consumers.
+
+- [ ] **REF-048 — Migrate the User contract**
+  - Generate the users-service transport boundary while keeping Auth0 identity, guest behavior, preferences, and public
+    repository safety unchanged.
+  - Remove handwritten User transport copies only after service, gateway, and mobile-facing behavior passes unchanged.
+
+- [ ] **REF-049 — Migrate the Notification contract**
+  - Generate notification requests, responses, preferences, and enums while retaining provider implementations behind
+    handwritten adapters.
+  - Preserve push registration, delivery decisions, read state, and error behavior without activating external sends.
+
+- [ ] **REF-050 — Migrate the Report contract**
+  - Generate report transport models and operations while keeping report destinations and external providers isolated.
+  - Preserve creation, validation, attachment, status, and gateway behavior without sending production reports.
+
+- [ ] **REF-051 — Migrate the Search contract and worker consumers**
+  - Generate the search-service API boundary and replace search-worker transport copies with models derived from the
+    same Club, Team, Pool, Competition, and Match schema sources.
+  - Preserve indexing, filtering, ranking, reconciliation, and error behavior; do not perform an index cutover or any
+    production Elasticsearch operation.
+
+- [ ] **REF-052 — Migrate the mobile gateway contract**
+  - Define the authoritative mobile-facing OpenAPI contract and make `mobile-gateway` implement its generated Java
+    interfaces and DTOs while keeping aggregation logic handwritten and explicit.
+  - Preserve every mobile route and camelCase payload. Reuse internal generated clients without exposing internal DTOs
+    directly through the mobile boundary.
+
+- [ ] **REF-053 — Adopt the generated mobile TypeScript client**
+  - Generate the mobile client and models from the gateway contract and replace handwritten Axios transport and
+    duplicate mobile DTOs feature by feature.
+  - Keep TanStack Query ownership, Expo session behavior, error presentation, accessibility, and all existing tests;
+    generated source remains under `libs/shared` and outside Git.
+
+- [ ] **REF-054 — Certify and clean the complete contract-first application**
+  - Remove superseded handwritten transport DTOs, internal HTTP clients, obsolete dependencies, and compatibility-only
+    names only after every consumer uses the generated boundary.
+  - Prove clean deterministic generation, zero tracked generated files, wheel and Java artifact builds, both scraper
+    suites, all backend reactors, the gateway, the mobile static/test/Web/native matrix, and a complete local functional
+    flow from providers through persistence to the mobile application.
+  - Record unavailable signed-device or external-provider evidence without adding authentication, network, storage, or
+    production bypasses.
+
 The Java and Python scraper refactors and their local persistence certification are complete.
-The mobile behavior baseline is complete and its clean handwritten architecture is the current work.
-Contract-first adoption, code generation, Python packaging/toolchain migration, GitFlow, CI, deployment, and
-production changes remain deferred.
+The mobile behavior baseline and handwritten architecture are complete. REF-038 through REF-054 now define the
+sequential contract-first adoption path. GitFlow, CI, deployment, and production changes remain deferred.
