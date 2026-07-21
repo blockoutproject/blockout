@@ -259,22 +259,31 @@
     debug assembly, and an unsigned iOS Simulator build pass. The production audit has no high or critical finding;
     only proven-unused native packages were removed.
 
-- [ ] **REF-034 — Upgrade the mobile application to Expo SDK 55**
-  - Upgrade Expo through the `@nx/expo` inferred install target, keeping Nx as the thin project and task orchestrator
-    while Expo remains authoritative for SDK-compatible React, React Native, Metro, autolinking, and native packages.
+- [x] **REF-034 — Upgrade the mobile application to Expo SDK 55**
+  - Upgrade Expo through an Nx `install` target that delegates directly to the Expo CLI from the application root,
+    keeping Nx as the thin project and task orchestrator while Expo remains authoritative for SDK-compatible React,
+    React Native, Metro, autolinking, and native packages.
   - Adopt the stable Expo 55 dependency set and React Native 0.83 without changing application behavior, opting into
     Hermes v1, or performing unrelated mobile cleanup. Keep every directly used native dependency owned by the mobile
     application and prove that each provider library supports the New Architecture required by SDK 55.
   - Keep Metro on Expo's default monorepo-aware configuration and do not restore `withNxMetro`. Remove the SDK 54-only
-    explicit autolinking experiment and the default-only Metro file when Expo 55 makes them redundant and all checks
-    still pass.
-  - Preserve the existing Nx Expo plugin and its inferred start, install, prebuild, export, and native run targets;
-    verify the project configuration and dependency graph after the upgrade instead of duplicating those commands in
-    `project.json`.
+    explicit autolinking experiment. Retain the minimal default Metro file because Nx 23.1 uses its presence to
+    discover the Expo project even though Expo 55 no longer needs custom monorepo resolution.
+  - Preserve the Nx Expo plugin and its inferred start, export, and native run targets. Override only `install` and
+    `prebuild` with thin `nx:run-commands` targets because the Nx 23.1 executors behind those inferred targets are
+    deprecated and the install executor targets the workspace root instead of the application package.
   - Require a clean install, Expo dependency check, all Expo Doctor checks, one native dependency tree, lint,
     typecheck, all mobile tests, Web export, a clean prebuild, Android and iOS builds, and simulator startup evidence.
     Leave REF-034 unchecked if any Auth0, notifications, maps, ads, purchases, updates, or navigation boundary cannot be
     certified without a behavior workaround.
+  - Evidence (2026-07-21): Expo 55.0.28, React 19.2.0, and React Native 0.83.6 resolve from one native tree after a clean
+    lockfile regeneration and `npm ci`. The Expo online dependency check and all 19 Expo Doctor checks pass; forcing the
+    0.83.10 value advertised only by the package-local prebuild table instead created a duplicate and failed Doctor, so
+    the online certified 0.83.6 matrix remains authoritative. Production audit reports 19 moderate, 0 high, and 0
+    critical findings. Nx project discovery, lint with 0 errors and the capped 63-warning baseline, typecheck, all 15
+    Jest tests, the 3,148-module Web export, and a clean Expo prebuild pass. Android debug assembly completes 1,019
+    tasks, the unsigned iOS Simulator build succeeds with 144 installed pods, and the generated development client is
+    installed and launched on an iPhone 17 Pro simulator. Generated Android and iOS projects remain ignored.
 
 - [ ] **REF-035 — Stabilize mobile session and network state**
   - Separate stable session actions from changing state, establish React Query mobile lifecycle defaults, and remove

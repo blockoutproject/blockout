@@ -4,6 +4,20 @@
   "projectType": "application",
   "sourceRoot": "apps/frontend/mobile/src",
   "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/frontend/mobile",
+        "command": "expo install"
+      }
+    },
+    "prebuild": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/frontend/mobile",
+        "command": "expo prebuild"
+      }
+    },
     "lint": {
       "executor": "nx:run-commands",
       "options": {

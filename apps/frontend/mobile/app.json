@@ -165,10 +165,11 @@
       "expo-secure-store",
       "expo-notifications",
       "expo-web-browser",
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      "expo-image",
+      "expo-tracking-transparency"
     ],
     "experiments": {
-      "autolinkingModuleResolution": true,
       "typedRoutes": true
     },
     "extra": {

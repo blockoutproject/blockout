@@ -33,7 +33,7 @@ export function useModeToggle(): UseModeToggleReturn {
   const setMode = (newMode: Mode) => {
     setModeState(newMode);
     if (newMode === 'system') {
-      Appearance.setColorScheme(null); // Reset to system default
+      Appearance.setColorScheme('unspecified');
     } else {
       Appearance.setColorScheme(newMode);
     }

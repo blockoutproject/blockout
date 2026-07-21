@@ -10,17 +10,13 @@
     "show-projects": "nx show projects"
   },
   "overrides": {
-    "@expo/vector-icons": "15.0.3",
-    "expo": "54.0.36",
     "markdown-it": "14.3.0",
     "nx": {
       "axios": "1.18.1",
       "brace-expansion": "5.0.7"
     },
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-native-reanimated": "4.1.7",
-    "react-native-safe-area-context": "5.6.2"
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
     "@nx/expo": "23.1.0",

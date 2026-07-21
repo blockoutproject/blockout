@@ -157,14 +157,16 @@ Unavailable credentials or hardware remain explicit evidence gaps; tests must no
    fix the proven Hooks and leaked-render issues, and add focused regression tests.
 2. **REF-033 — Reconcile Expo and native dependencies (complete).** Correct Metro and package ownership, align
    compatible Expo 54 patches, resolve actionable audit paths, and prove clean native resolution.
-3. **REF-034 — Stabilize session and network state.** Separate stable actions from changing state, establish Query
+3. **REF-034 — Upgrade the mobile application to Expo SDK 55 (complete).** Keep Nx as thin task orchestration, let Expo
+   own SDK and native generation decisions, and prove the New Architecture dependency tree on Android and iOS.
+4. **REF-035 — Stabilize session and network state.** Separate stable actions from changing state, establish Query
    lifecycle defaults, remove duplicate server-state ownership, and fail fast on required configuration.
-4. **REF-035 — Complete feature-owned mobile slices.** Move one coherent feature at a time, unify theme ownership,
+5. **REF-036 — Complete feature-owned mobile slices.** Move one coherent feature at a time, unify theme ownership,
    improve accessibility and measured list/image behavior, and simplify component APIs only where consumers justify it.
-5. **REF-036 — Certify the cleaned mobile application.** Run the complete static, test, Web phone-size, simulator, and
+6. **REF-037 — Certify the cleaned mobile application.** Run the complete static, test, Web phone-size, simulator, and
    available physical-device/provider matrix, then record remaining external evidence gaps without weakening gates.
 
-These tasks are deliberately sequential. REF-035 may be split into multiple feature-sized commits while it is
+These tasks are deliberately sequential. REF-036 may be split into multiple feature-sized commits while it is
 executed, but no separate speculative architecture layer is required.
 
 ## Audit evidence
@@ -190,4 +192,15 @@ REF-033 added the following completion evidence on 2026-07-21:
 - Web export: pass, 3,128 modules exported;
 - fresh Android debug assembly and unsigned iOS Simulator build: pass.
 
-No application source, native project, route, configuration value, or runtime behavior was changed by this audit.
+REF-034 added the following completion evidence on 2026-07-21:
+
+- clean lockfile regeneration and `npm ci`: one Expo 55.0.28, React 19.2.0, and React Native 0.83.6 tree;
+- Nx-delegated Expo dependency check: pass; Expo Doctor: all 19 checks pass;
+- `npm audit --omit=dev`: 19 moderate, 0 high, and 0 critical production findings;
+- Nx mobile lint and typecheck: pass; all 15 Jest tests: pass;
+- Web export: pass, 3,148 modules exported with Expo 55 automatic monorepo autolinking;
+- clean Android/iOS prebuild: pass; Android debug assembly and unsigned iOS Simulator build: pass;
+- the generated development client installs and launches on an iPhone 17 Pro simulator.
+
+The audit itself changed no application source, native project, route, configuration value, or runtime behavior. The
+completion evidence above records the separately scoped implementation tasks that followed it.

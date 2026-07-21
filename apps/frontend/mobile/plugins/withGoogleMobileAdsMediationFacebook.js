@@ -1,4 +1,4 @@
-const {withAppBuildGradle, withPodfile} = require("@expo/config-plugins");
+const {withAppBuildGradle, withPodfile} = require("expo/config-plugins");
 
 const withGoogleMobileAdsMediationFacebook = (config) => {
   config = withPodfile(config, (c) => {
