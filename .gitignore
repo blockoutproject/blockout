@@ -16,6 +16,7 @@ coverage/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+libs/shared/python-contract-clients/src/blockout_contract_clients/generated/
 
 # Local runtime data
 logs/

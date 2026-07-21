@@ -1,6 +1,0 @@
-aiohttp
-beautifulsoup4
-APScheduler
-python-dotenv
-prometheus_client
-auth0-python

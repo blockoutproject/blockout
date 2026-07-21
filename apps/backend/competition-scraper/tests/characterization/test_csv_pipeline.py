@@ -2,6 +2,7 @@ import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 
+import httpx
 from scraper.application import calendar_ingestion as pipeline
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.team import TeamInternalResponse
@@ -12,6 +13,7 @@ from scraper.infrastructure.ffvb.models import (
     FfvbCalendarSnapshot,
     FfvbRanking,
 )
+from scraper.infrastructure.provider_http import ProviderHttpClient
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "ffvb" / "calendar.csv"
 
@@ -76,9 +78,21 @@ def test_csv_download_preserves_post_shape_encoding_timeout_and_retries(
     """Protect the FFVB export request and its independent retry policy."""
 
     async def scenario() -> None:
-        session = _Session([TimeoutError(), TimeoutError(), _Response()])
-        scraper = type("Scraper", (), {"session": session})()
+        attempts = 0
+        calls: list[httpx.Request] = []
         sleeps: list[int] = []
+
+        def respond(request: httpx.Request) -> httpx.Response:
+            nonlocal attempts
+            attempts += 1
+            calls.append(request)
+            if attempts < 3:
+                raise httpx.ReadTimeout("provider timeout", request=request)
+            return httpx.Response(
+                200,
+                content=FIXTURE.read_bytes(),
+                headers={"Content-Type": "text/csv"},
+            )
 
         async def sleep(delay: int) -> None:
             sleeps.append(delay)
@@ -86,19 +100,23 @@ def test_csv_download_preserves_post_shape_encoding_timeout_and_retries(
         monkeypatch.setattr(file_utils.asyncio, "sleep", sleep)
         monkeypatch.setattr(file_utils, "log_event", lambda **_event: None)
 
-        snapshot = await download_and_parse_csv(scraper, _pool(), "2026/2027")
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            provider = ProviderHttpClient(client)
+            scraper = type(
+                "Scraper",
+                (),
+                {"post_provider_form": provider.post_form},
+            )()
+            snapshot = await download_and_parse_csv(scraper, _pool(), "2026/2027")
 
         assert snapshot.matches[0].match_code == "3MA001"
-        assert len(session.calls) == 3
-        url, kwargs = session.calls[-1]
-        assert url.endswith("vbspo_calendrier_export.php")
-        assert kwargs["data"] == {
-            "cal_saison": "2026/2027",
-            "cal_codent": "LNAQ",
-            "cal_codpoule": "R1M",
-        }
-        assert kwargs["timeout"].total == 20
-        assert "ssl" not in kwargs
+        assert attempts == 3
+        request = calls[-1]
+        assert str(request.url).endswith("vbspo_calendrier_export.php")
+        assert request.content == (
+            b"cal_saison=2026%2F2027&cal_codent=LNAQ&cal_codpoule=R1M"
+        )
+        assert request.extensions["timeout"]["read"] == 20
         assert sleeps == [5, 5]
 
     asyncio.run(scenario())

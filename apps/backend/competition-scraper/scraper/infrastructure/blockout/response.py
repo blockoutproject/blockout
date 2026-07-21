@@ -1,12 +1,13 @@
 # file: utils/handlers/api_handler.py
 from __future__ import annotations
 
-import aiohttp
 from dataclasses import fields
 from datetime import datetime
 from enum import Enum
 from functools import wraps
 from typing import get_args, get_origin
+
+import aiohttp
 
 from scraper.observability.logging import log_event
 

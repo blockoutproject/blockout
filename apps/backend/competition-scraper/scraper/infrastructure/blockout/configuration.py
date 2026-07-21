@@ -1,5 +1,6 @@
-import aiohttp
 from dataclasses import asdict
+
+import aiohttp
 
 from scraper.config.settings import CONFIG_API_URL
 from scraper.infrastructure.blockout.auth import _get_headers

@@ -94,9 +94,11 @@ def test_sources_finalize_after_bounded_typed_discovery(monkeypatch) -> None:
         assert finalizations == ["matches", "associations"]
         return calls
 
-    regional = asyncio.run(scenario(RegionalScraper(object()), "regional_index.html"))
+    regional = asyncio.run(
+        scenario(RegionalScraper(object(), object()), "regional_index.html")
+    )
     departmental = asyncio.run(
-        scenario(DepartmentalScraper(object()), "departmental_index.html")
+        scenario(DepartmentalScraper(object(), object()), "departmental_index.html")
     )
     assert regional[0][0:2] == ("LIAQ", "Nouvelle Aquitaine")
     assert [call[0] for call in departmental] == ["PTRA01", "PTRA26"]
@@ -155,14 +157,14 @@ def test_complete_league_observation_dispatches_without_deactivation(
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
 
         assert (
-                   dispatched[0].divisionId,
-                   dispatched[0].format,
-                   dispatched[0].gender,
-               ) == (
-                   7,
-                   "SIX",
-                   "M",
-               )
+            dispatched[0].divisionId,
+            dispatched[0].format,
+            dispatched[0].gender,
+        ) == (
+            7,
+            "SIX",
+            "M",
+        )
 
     asyncio.run(scenario())
 
@@ -216,7 +218,7 @@ def test_national_source_dispatches_typed_pools(monkeypatch) -> None:
     """Protect the national source constants and typed ingestion boundary."""
 
     async def scenario() -> None:
-        scraper = NationalScraper(object())
+        scraper = NationalScraper(object(), object())
         observed: list[tuple] = []
 
         async def fetch(_url):

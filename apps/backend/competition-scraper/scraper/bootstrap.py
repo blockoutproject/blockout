@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-import aiohttp
 import asyncio
 from contextvars import ContextVar
 from datetime import UTC, datetime
+
+import aiohttp
+import httpx
 from prometheus_client import Gauge, start_http_server
 
 from scraper.application.factory import ScraperFactory
@@ -23,14 +25,19 @@ execution_duration_gauge = Gauge(
 )
 
 
-async def _run_one_scraper(session: aiohttp.ClientSession, scraper_type: str):
+async def _run_one_scraper(
+    session: aiohttp.ClientSession,
+    provider_client: httpx.AsyncClient,
+    scraper_type: str,
+):
     current_scraper.set(scraper_type)
-    scraper = ScraperFactory.create_scraper(scraper_type, session)
+    scraper = ScraperFactory.create_scraper(scraper_type, session, provider_client)
     await scraper.scrape()
 
 
 async def run_scrapers_with_max_concurrency(
     session: aiohttp.ClientSession,
+    provider_client: httpx.AsyncClient,
     scraper_types: list[str],
     max_concurrency: int = 2,
 ):
@@ -39,7 +46,7 @@ async def run_scrapers_with_max_concurrency(
 
     while pending_types and len(running) < max_concurrency:
         st = pending_types.pop(0)
-        running.add(asyncio.create_task(_run_one_scraper(session, st)))
+        running.add(asyncio.create_task(_run_one_scraper(session, provider_client, st)))
 
     while running:
         done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
@@ -48,7 +55,9 @@ async def run_scrapers_with_max_concurrency(
 
         while pending_types and len(running) < max_concurrency:
             st = pending_types.pop(0)
-            running.add(asyncio.create_task(_run_one_scraper(session, st)))
+            running.add(
+                asyncio.create_task(_run_one_scraper(session, provider_client, st))
+            )
 
 
 async def main() -> bool:
@@ -83,14 +92,23 @@ async def main() -> bool:
                 connector = aiohttp.TCPConnector(limit=20)
                 timeout = aiohttp.ClientTimeout(total=10)
 
-                async with aiohttp.ClientSession(
-                    timeout=timeout,
-                    trust_env=True,
-                    connector=connector,
-                ) as session:
+                async with (
+                    aiohttp.ClientSession(
+                        timeout=timeout,
+                        trust_env=True,
+                        connector=connector,
+                    ) as session,
+                    httpx.AsyncClient(
+                        timeout=10,
+                        trust_env=True,
+                        follow_redirects=True,
+                        limits=httpx.Limits(max_connections=20),
+                    ) as provider_client,
+                ):
                     scraper_types = SCRAPER_TYPES
                     await run_scrapers_with_max_concurrency(
                         session=session,
+                        provider_client=provider_client,
                         scraper_types=scraper_types,
                     )
 

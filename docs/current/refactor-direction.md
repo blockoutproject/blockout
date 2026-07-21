@@ -172,6 +172,13 @@ local APIs and validates both scrapers through controlled end-to-end flows.
 No production deployment, broker operation, dual contract support, generated source, or unrelated business refactor is
 authorized by this direction.
 
+The later contract-first transition remains the V1 API path. It replaces handwritten transport ownership in place;
+it does not create V2 routes, V2 controllers, V2 DTO names, aliases, or a parallel compatibility API.
+
+Each vertical must first align every active handwritten DTO with the owning service's recommended role name and exact
+transport shape, and remove legacy duplicates. Once parity is proven, code generation only replaces imports and the
+superseded handwritten definitions; contract adoption must not conceal another DTO or business redesign.
+
 ## Current boundary inventory
 
 | Application            | Blockout-owned JSON to migrate                                                 | External JSON to preserve                      |

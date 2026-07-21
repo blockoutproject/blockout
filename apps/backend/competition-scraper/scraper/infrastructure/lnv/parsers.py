@@ -2,10 +2,11 @@
 
 import re
 import xml.etree.ElementTree as ET
-from bs4 import BeautifulSoup, Tag
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
+
+from bs4 import BeautifulSoup, Tag
 
 from scraper.domain.match import validate_set_format, validate_set_score_format
 from scraper.infrastructure.blockout.association_stats import (
@@ -58,7 +59,7 @@ def parse_matches(root: ET.Element) -> list[LnvMatch]:
             score
             for index in range(1, 6)
             if (score := validate_set_score_format(element.findtext(f"Set{index}")))
-               != "0-0"
+            != "0-0"
         ]
         matches.append(
             LnvMatch(

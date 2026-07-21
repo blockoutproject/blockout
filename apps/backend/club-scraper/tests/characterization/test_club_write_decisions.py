@@ -1,7 +1,8 @@
 import asyncio
-import pytest
 from dataclasses import replace
 from pathlib import Path
+
+import pytest
 from scraper.application.club_ingestion import ClubIngestion
 from scraper.application.club_writer import ClubWriter
 from scraper.infrastructure.blockout.contracts import (

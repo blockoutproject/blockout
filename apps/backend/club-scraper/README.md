@@ -5,12 +5,11 @@ The application imports club details from the FFVB address book and writes them 
 ## Local setup
 
 ```shell
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
+uv sync --locked --all-packages
 ```
 
-Run checks through Nx from the repository root:
+The command creates the single ignored workspace `.venv`. Run checks through Nx
+from the repository root:
 
 ```shell
 npm exec nx run @blockout/club-scraper:format-check

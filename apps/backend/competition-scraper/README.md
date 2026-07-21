@@ -7,12 +7,11 @@ Blockout's internal APIs.
 ## Local setup
 
 ```shell
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements-dev.txt
+uv sync --locked --all-packages
 ```
 
-Run the local checks through Nx from the repository root:
+The command creates the single ignored workspace `.venv`. Run the local checks
+through Nx from the repository root:
 
 ```shell
 npm exec nx run @blockout/competition-scraper:format-check

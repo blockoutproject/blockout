@@ -36,6 +36,13 @@
         "targetNamePrefix": "mvn-",
         "verbose": false
       }
+    },
+    {
+      "plugin": "@nxlv/python",
+      "options": {
+        "packageManager": "uv",
+        "inferDependencies": false
+      }
     }
   ]
 }

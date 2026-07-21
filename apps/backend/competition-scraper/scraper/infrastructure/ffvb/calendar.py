@@ -1,9 +1,10 @@
 """Download and parse FFVB calendar exports."""
 
-import aiohttp
 import asyncio
 import csv
 import io
+
+import httpx
 
 from scraper.application.source import Scraper
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
@@ -105,37 +106,30 @@ async def download_and_parse_csv(
     async with _CSV_DOWNLOAD_SEMAPHORE:
         for attempt in range(1, retries + 1):
             try:
-                async with scraper.session.post(
-                    download_url,
-                    data=data,
-                    timeout=aiohttp.ClientTimeout(total=timeout),
-                ) as response:
-                    response.raise_for_status()
-                    raw_content = await response.content.read()
-                    snapshot = parse_csv_from_content(
-                        raw_content.decode("windows-1252", errors="replace")
-                    )
-                    log_event(
-                        action="download_success",
-                        level="info",
-                        attempt=attempt,
-                        leagueCode=pool.leagueCode,
-                        poolCode=pool.poolCode,
-                        status=response.status,
-                        bytes=len(raw_content),
-                        content_type=response.headers.get("Content-Type"),
-                        message=f"CSV téléchargé pour {name}.",
-                    )
-                    return snapshot
-            except aiohttp.ClientResponseError as error:
+                response = await scraper.post_provider_form(download_url, data, timeout)
+                raw_content = response.content
+                snapshot = parse_csv_from_content(
+                    raw_content.decode("windows-1252", errors="replace")
+                )
+                log_event(
+                    action="download_success",
+                    level="info",
+                    attempt=attempt,
+                    leagueCode=pool.leagueCode,
+                    poolCode=pool.poolCode,
+                    status=response.status_code,
+                    bytes=len(raw_content),
+                    content_type=response.headers.get("Content-Type"),
+                    message=f"CSV téléchargé pour {name}.",
+                )
+                return snapshot
+            except httpx.HTTPStatusError as error:
                 _log_download_failure("download_http_error", pool, attempt, error)
-            except aiohttp.ClientConnectorDNSError as error:
-                _log_download_failure("download_dns_error", pool, attempt, error)
-            except aiohttp.ClientConnectorError as error:
+            except httpx.ConnectError as error:
                 _log_download_failure(
                     "download_client_connector_error", pool, attempt, error
                 )
-            except TimeoutError as error:
+            except httpx.TimeoutException as error:
                 _log_download_failure("download_timeout", pool, attempt, error)
             except ValueError as error:
                 log_event(

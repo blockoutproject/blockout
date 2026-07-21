@@ -182,31 +182,31 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
     assert set(
         item.name for item in fields(CompetitionAssociationInternalResponse)
     ) == {
-               "id",
-               "poolId",
-               "teamId",
-               "clubId",
-               "active",
-               "points",
-               "played",
-               "wins",
-               "losses",
-               "winsThreeToZero",
-               "winsThreeToOne",
-               "winsThreeToTwo",
-               "lossesZeroToThree",
-               "lossesOneToThree",
-               "lossesTwoToThree",
-               "wonSets",
-               "lostSets",
-               "wonPoints",
-               "lostPoints",
-               "pointsPenalty",
-               "coefSets",
-               "coefPoints",
-               "createdAt",
-               "lastUpdate",
-           }
+        "id",
+        "poolId",
+        "teamId",
+        "clubId",
+        "active",
+        "points",
+        "played",
+        "wins",
+        "losses",
+        "winsThreeToZero",
+        "winsThreeToOne",
+        "winsThreeToTwo",
+        "lossesZeroToThree",
+        "lossesOneToThree",
+        "lossesTwoToThree",
+        "wonSets",
+        "lostSets",
+        "wonPoints",
+        "lostPoints",
+        "pointsPenalty",
+        "coefSets",
+        "coefPoints",
+        "createdAt",
+        "lastUpdate",
+    }
     assert set(item.name for item in fields(RawDivisionMappingInternalResponse)) == {
         "id",
         "rawDivisionName",
@@ -465,7 +465,7 @@ def test_match_finalization_creates_updates_skips_and_isolates_failures(
         monkeypatch.setattr(match_changes, "create_match", create)
         monkeypatch.setattr(match_changes, "update_match", update)
         monkeypatch.setattr(match_changes, "log_event", lambda **_event: None)
-        scraper = DummyScraper(None, "finalize")
+        scraper = DummyScraper(None, None, "finalize")
         existing = _match(matchCode="UPDATE")
         unchanged = _match(matchCode="NOOP")
         scraper._matches_cache = {

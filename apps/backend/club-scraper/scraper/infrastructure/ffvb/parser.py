@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
+
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 
 from scraper.infrastructure.ffvb.models import FfvbClubRecord
 from scraper.observability.logging import log_event
@@ -47,19 +49,19 @@ def capitalize_words(text: str | None) -> str:
 
 def _club_name(soup: BeautifulSoup) -> str | None:
     name = soup.find("td", class_="titreblanc_gd")
-    return name.get_text(strip=True).split(maxsplit=1)[-1] if name else None
+    return _text(name).split(maxsplit=1)[-1] if name else None
 
 
 def _phone_number(soup: BeautifulSoup) -> str | None:
     label = soup.find(string=re.compile(r"(Portable|T[ée]l\.?)", re.IGNORECASE))
     parent = label.find_parent("td") if label else None
     value = parent.find_next("td") if parent else None
-    return value.get_text(strip=True) if value else None
+    return _text(value) if value else None
 
 
 def _email(soup: BeautifulSoup) -> str | None:
     link = soup.find("a", href=lambda href: href and href.startswith("mailto:"))
-    return link.get_text(strip=True) if link else None
+    return _text(link) if link else None
 
 
 def _website(soup: BeautifulSoup) -> str | None:
@@ -67,38 +69,38 @@ def _website(soup: BeautifulSoup) -> str | None:
     parent = image.find_parent("td") if image else None
     value = parent.find_next("td") if parent else None
     link = value.find("a", href=True) if value else None
-    return link.get_text(strip=True).rstrip("/") if link else None
+    return _text(link).rstrip("/") if link else None
 
 
 def _postal_code_and_city(soup: BeautifulSoup) -> tuple[str | None, str | None]:
-    direct = soup.find(
-        "td",
-        class_="lienquestion",
-        string=re.compile(r"^\d{5}\s+[A-Za-zÀ-ÖØ-öø-ÿ].*", re.IGNORECASE),
-    )
-    if direct:
-        parts = direct.get_text(strip=True).split(maxsplit=1)
-        return (parts[0], parts[1]) if len(parts) == 2 else (None, None)
-
+    direct = re.compile(r"^(?P<cp>\d{5})\s+(?P<ville>[A-Za-zÀ-ÖØ-öø-ÿ].*)$")
     fallback = re.compile(
         r"(?P<cp>\d{5})(?:\s+\d{5})?\s*-\s*(?P<ville>.+)", re.IGNORECASE
     )
     for cell in soup.find_all("td", class_="lienquestion"):
-        match = fallback.match(cell.get_text(strip=True))
+        text = _text(cell)
+        match = direct.match(text) or fallback.match(text)
         if match:
             return match.group("cp"), match.group("ville").strip()
     return None, None
 
 
 def _address(soup: BeautifulSoup) -> str | None:
-    header = soup.find("td", string=re.compile("Siège Social", re.IGNORECASE))
+    header = next(
+        (
+            cell
+            for cell in soup.find_all("td", class_="lienblanc_pt")
+            if _text(cell).casefold() == "siège social".casefold()
+        ),
+        None,
+    )
     table = header.find_parent("table") if header else None
     if not table:
         return None
 
     lines: list[str] = []
     for cell in table.find_all("td", class_="lienquestion"):
-        text = cell.get_text(strip=True)
+        text = _text(cell)
         if re.match(r"^\d{5}\s+", text):
             break
         lines.append(text)
@@ -107,3 +109,7 @@ def _address(soup: BeautifulSoup) -> str | None:
         return None
     parts = [part.strip() for part in ", ".join(lines).split(",") if part.strip()]
     return ", ".join(parts[-2:] if len(parts) >= 3 else parts)
+
+
+def _text(element: Tag) -> str:
+    return " ".join(element.get_text(" ", strip=True).split())

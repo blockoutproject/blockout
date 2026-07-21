@@ -1,6 +1,7 @@
 """National FFVB competition source."""
 
 import aiohttp
+import httpx
 
 from scraper.application.ffvb_league_ingestion import ingest_league_pools
 from scraper.application.source import Scraper
@@ -11,9 +12,12 @@ from scraper.observability.logging import log_event
 class NationalScraper(Scraper):
     """Discover and ingest national FFVB pools."""
 
-    def __init__(self, session: aiohttp.ClientSession) -> None:
+    def __init__(
+        self, session: aiohttp.ClientSession, provider_client: httpx.AsyncClient
+    ) -> None:
         super().__init__(
             session,
+            provider_client,
             name="national_scraper",
             url="https://www.ffvb.org/119-37-1-Championnats-Nationaux",
             priority_validation_enabled=False,

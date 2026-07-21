@@ -1,10 +1,10 @@
 import asyncio
-from bs4 import BeautifulSoup
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 import scraper.application.association_changes as association_changes
+from bs4 import BeautifulSoup
 from scraper.application.source import Scraper
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.domain.match import (
@@ -66,11 +66,11 @@ def test_csv_parser_protects_headers_and_normalized_rows() -> None:
     assert len(snapshot.matches) == 1
     match = snapshot.matches[0]
     assert (
-               match.league_code,
-               match.match_code,
-               match.home_club_id,
-               match.away_club_id,
-           ) == ("ABCCS", "3MA001", "0837251", "0060007")
+        match.league_code,
+        match.match_code,
+        match.home_club_id,
+        match.away_club_id,
+    ) == ("ABCCS", "3MA001", "0837251", "0060007")
     assert (match.home_team_name, match.away_team_name) == (
         "VOLLEY BALL OLLIOULAIS",
         "AS CANNES VOLLEY-BALL 3",
@@ -144,7 +144,7 @@ def test_match_stat_calculation_preserves_ranking_and_point_totals() -> None:
 
 def test_data_source_priority_updates_only_the_owned_match_fields() -> None:
     """Protect FFVB, LNV XML, and LNV HTML field ownership."""
-    scraper = DummyScraper(None, "priority", priority_validation_enabled=True)
+    scraper = DummyScraper(None, None, "priority", priority_validation_enabled=True)
     existing = _match()
     scraper._matches_cache[("LNAQ", "M001")] = (
         existing,
@@ -194,7 +194,7 @@ def test_data_source_priority_updates_only_the_owned_match_fields() -> None:
 
 def test_disabled_priority_validation_replaces_every_scraped_field() -> None:
     """Protect the non-professional all-field merge policy."""
-    scraper = DummyScraper(None, "no-priority", priority_validation_enabled=False)
+    scraper = DummyScraper(None, None, "no-priority", priority_validation_enabled=False)
     existing = _match(active=False)
     scraper._matches_cache[("LNAQ", "M001")] = (
         existing,
@@ -234,7 +234,7 @@ def test_association_finalization_computes_coefficients_and_clears_cache(
         monkeypatch.setattr(
             association_changes, "update_team_association_stats", update
         )
-        scraper = DummyScraper(None, "stats")
+        scraper = DummyScraper(None, None, "stats")
         stats = UpdateAssociationStatsInternalRequest(
             wonSets=9, lostSets=3, wonPoints=250, lostPoints=0
         )
@@ -262,7 +262,7 @@ def test_association_finalization_preserves_untouched_owner_stats(monkeypatch) -
         monkeypatch.setattr(
             association_changes, "update_team_association_stats", update
         )
-        scraper = DummyScraper(None, "stats")
+        scraper = DummyScraper(None, None, "stats")
         original = UpdateAssociationStatsInternalRequest(
             played=10,
             points=20,
