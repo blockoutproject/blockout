@@ -1,2 +1,10 @@
 /blockout_contract_clients/__init__.py
+/blockout_contract_clients/shared/__init__.py
+/blockout_contract_clients/shared/api/
+/blockout_contract_clients/shared/api_client.py
+/blockout_contract_clients/shared/api_response.py
+/blockout_contract_clients/shared/configuration.py
+/blockout_contract_clients/shared/exceptions.py
+/blockout_contract_clients/shared/rest.py
+/blockout_contract_clients/shared/test/
 **/*_README.md

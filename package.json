@@ -11,11 +11,6 @@
     "show-projects": "nx show projects"
   },
   "overrides": {
-    "@openapitools/openapi-generator-cli": {
-      "concurrently": {
-        "shell-quote": "1.10.0"
-      }
-    },
     "js-yaml": "4.3.0",
     "markdown-it": "14.3.0",
     "nx": {
@@ -32,7 +27,6 @@
     "@nx/react": "23.1.0",
     "@nx/workspace": "23.1.0",
     "@nxlv/python": "22.2.2",
-    "@openapitools/openapi-generator-cli": "2.40.0",
     "nx": "23.1.0",
     "orval": "8.22.0",
     "typescript": "~5.9.2"

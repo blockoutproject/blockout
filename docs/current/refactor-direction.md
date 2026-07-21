@@ -191,9 +191,9 @@ while the private Python workspace package contains generated models and asynchr
 per contract. Orval is reserved for the mobile-gateway client and will be configured only when that V1 contract is
 adopted. All generated sources remain outside Git.
 
-No service vertical is adopted by REF-041. The readiness inventory keeps every vertical pending until its dedicated
-roadmap task proves exact parity between the owner and every active handwritten mirror. Application-only enums such as
-`DataSourcePriority` remain local; transport enums defined by OpenAPI are generated.
+No service vertical is adopted by REF-041. Each vertical stays pending until its dedicated roadmap task proves exact
+parity between the owner and every active handwritten mirror. Application-only enums such as `DataSourcePriority`
+remain local; transport enums defined by OpenAPI are generated.
 
 ## Current boundary inventory
 

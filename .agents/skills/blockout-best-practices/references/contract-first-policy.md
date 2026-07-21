@@ -42,7 +42,7 @@ source
 
 ## Readiness Gate
 
-Before adding a service contract, update `specs/adoption-readiness.json` only after focused tests prove that every active
+Before adding a service contract, its dedicated roadmap task must use focused tests to prove that every active
 handwritten mirror has:
 
 - the final role name, such as `CreateClubInternalRequest` or `ClubInternalResponse`;
@@ -56,7 +56,8 @@ business, route, or serialization redesign.
 ## Tooling
 
 - OpenAPI Generator 7.22.0 is the common Java and Python engine.
-- Python uses the official `httpx` library option and the official CLI batch command.
+- The Python workspace installs the official PyPI CLI. The shared contract generates models only; service contracts
+  use the official `httpx` library option and CLI batch command.
 - Java uses `openapi-generator-maven-plugin`; shared schema mappings are synchronized from the shared enum fragments.
 - Orval is reserved for the future mobile-gateway TypeScript client. Its configuration belongs to that vertical and is
   not created before the mobile-gateway contract exists.

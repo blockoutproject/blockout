@@ -9,7 +9,6 @@ const generatedSpecsDir = path.resolve(specsDir, '../generated/specs');
 const servicesDir = path.join(sourceDir, 'services');
 const sharedBaseFile = path.join(sourceDir, 'shared/base.json');
 const sharedSchemasDir = path.join(sourceDir, 'shared/schemas');
-const readinessFile = path.join(specsDir, 'adoption-readiness.json');
 const schemaRefPattern = /^#\/components\/schemas\/(.+)$/;
 
 async function readJson(file) {
@@ -144,17 +143,8 @@ async function writeContract({baseFile, paths = {}, schemas, outputFile}) {
 
 async function bundle() {
   const sharedSchemas = await loadJsonDirectory(sharedSchemasDir);
-  const readiness = await readJson(readinessFile);
 
   for (const service of await directories(servicesDir)) {
-    const adoption = readiness[service];
-    if (!adoption) {
-      throw new Error(`Service contract "${service}" is missing from adoption-readiness.json`);
-    }
-    if (adoption.status !== 'ready' || adoption.evidence.length === 0) {
-      throw new Error(`Service contract "${service}" has not passed the DTO readiness gate`);
-    }
-
     const serviceDir = path.join(servicesDir, service);
     const paths = await loadJsonDirectory(path.join(serviceDir, 'paths'));
     const serviceSchemas = await loadJsonDirectory(path.join(serviceDir, 'schemas'));

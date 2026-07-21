@@ -421,75 +421,90 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     checksums predate the imported migration files. npm reports no high or critical vulnerability, and Git tracks no
     generated output.
 
-- [ ] **REF-042 — Migrate the Club contract as the first generated vertical**
+- [x] **REF-042 — Simplify the contract generation foundation**
+  - Audit every configuration introduced by REF-041 against Maaatch and the official Nx, Maven, OpenAPI Generator, uv,
+    and Orval documentation.
+  - Remove the npm OpenAPI Generator wrapper, its security-only overrides, the speculative readiness inventory, and
+    redundant validation or generator options. Keep the official Python CLI in the Python package that owns it.
+  - Keep Nx as a thin orchestrator and retain only the source layout, model/client generation, native generator cleanup,
+    deterministic outputs, and zero-tracked-generation guard required by the planned vertical migrations.
+  - Evidence: the npm OpenAPI wrapper, root wrapper configuration, wrapper-only override, speculative readiness file,
+    redundant CLI validation, and unused Python client dependencies are removed. The official PyPI CLI is pinned in the
+    existing uv development group, and the shared Python generation now emits only the two enum models and their model
+    package initializer while retaining the generator's native cleanup manifest.
+  - `npm ci`, the high-severity audit gate, uv lock/sync checks, two identical clean generations, the Java shared-model
+    build, the minimal Python wheel build and isolated import, all 111 scraper tests, mobile lint/typecheck, and all 52
+    mobile tests pass. The Nx contract target names remain aligned with Maaatch and Git tracks no generated artifact.
+
+- [ ] **REF-043 — Migrate the Club contract as the first generated vertical**
   - Define the single authoritative Club schemas and internal operations from the behavior already established by the
     club refactor, resolving every active handwritten copy against the owner model.
   - Make `clubs-service` implement generated Java interfaces and models, and replace the club scraper's handwritten
     Blockout transport with the generated asynchronous Python client behind one thin configuration/error adapter.
   - Migrate active Java internal consumers in the same vertical so they derive from the same schema source. Preserve
     routes, camelCase JSON, persistence, error behavior, and scraper results; the mobile keeps consuming only its
-    gateway boundary until REF-052/053.
+    gateway boundary until REF-053/054.
 
-- [ ] **REF-043 — Migrate the Config and Division contracts**
+- [ ] **REF-044 — Migrate the Config and Division contracts**
   - Generate the configuration and Division internal boundaries owned by `config-service`, including the Python clients
     needed by both scrapers.
   - Replace handwritten transport DTOs and calls only after characterization proves identical scheduling, season,
     division, format, gender, and scraper-name behavior.
 
-- [ ] **REF-044 — Migrate the Team contract**
+- [ ] **REF-045 — Migrate the Team contract**
   - Establish Team schemas from the authoritative `teams-service` model and shared Club and Division references.
   - Adopt generated Java models/interfaces and the competition scraper's generated asynchronous client while preserving
     create, update, deactivate, follow, lookup, and ingestion behavior.
 
-- [ ] **REF-045 — Migrate the Pool contract**
+- [ ] **REF-046 — Migrate the Pool contract**
   - Establish Pool schemas from the authoritative `pools-service` model and shared Division, format, and gender schemas.
   - Replace handwritten server and scraper transport types with generated boundaries while preserving standings,
     activation, season, ingestion, and lookup behavior.
 
-- [ ] **REF-046 — Migrate the Competition contract**
+- [ ] **REF-047 — Migrate the Competition contract**
   - Generate the competition-service boundary used by ingestion and downstream services from one authoritative contract.
   - Preserve cascade commands, external identifiers, season semantics, transaction boundaries, and existing routes; do
     not introduce a parallel API version or speculative event redesign.
 
-- [ ] **REF-047 — Migrate the Match contract**
+- [ ] **REF-048 — Migrate the Match contract**
   - Generate Match requests, responses, enums, and clients from the authoritative `matches-service` model.
   - Preserve score, status, date, team, pool, ingestion, follow, and feed behavior across the competition scraper,
     services, gateway, and search consumers.
 
-- [ ] **REF-048 — Migrate the User contract**
+- [ ] **REF-049 — Migrate the User contract**
   - Generate the users-service transport boundary while keeping Auth0 identity, guest behavior, preferences, and public
     repository safety unchanged.
   - Remove handwritten User transport copies only after service, gateway, and mobile-facing behavior passes unchanged.
 
-- [ ] **REF-049 — Migrate the Notification contract**
+- [ ] **REF-050 — Migrate the Notification contract**
   - Generate notification requests, responses, preferences, and enums while retaining provider implementations behind
     handwritten adapters.
   - Preserve push registration, delivery decisions, read state, and error behavior without activating external sends.
 
-- [ ] **REF-050 — Migrate the Report contract**
+- [ ] **REF-051 — Migrate the Report contract**
   - Generate report transport models and operations while keeping report destinations and external providers isolated.
   - Preserve creation, validation, attachment, status, and gateway behavior without sending production reports.
 
-- [ ] **REF-051 — Migrate the Search contract and worker consumers**
+- [ ] **REF-052 — Migrate the Search contract and worker consumers**
   - Generate the search-service API boundary and replace search-worker transport copies with models derived from the
     same Club, Team, Pool, Competition, and Match schema sources.
   - Preserve indexing, filtering, ranking, reconciliation, and error behavior; do not perform an index cutover or any
     production Elasticsearch operation.
 
-- [ ] **REF-052 — Migrate the mobile gateway contract**
+- [ ] **REF-053 — Migrate the mobile gateway contract**
   - Define the authoritative mobile-facing OpenAPI contract and make `mobile-gateway` implement its generated Java
     interfaces and DTOs while keeping aggregation logic handwritten and explicit.
   - Preserve every mobile route and camelCase payload. Reuse internal generated clients without exposing internal DTOs
     directly through the mobile boundary.
 
-- [ ] **REF-053 — Adopt the generated mobile TypeScript client**
+- [ ] **REF-054 — Adopt the generated mobile TypeScript client**
   - Generate the mobile client and models with Orval from the gateway contract into
     `apps/frontend/mobile/src/shared/generated/**`, then replace handwritten Axios transport and duplicate mobile DTOs
     feature by feature.
   - Keep TanStack Query ownership, Expo session behavior, error presentation, accessibility, and all existing tests;
     generated source remains application-local and outside Git.
 
-- [ ] **REF-054 — Certify and clean the complete contract-first application**
+- [ ] **REF-055 — Certify and clean the complete contract-first application**
   - Remove superseded handwritten transport DTOs, internal HTTP clients, obsolete dependencies, and compatibility-only
     names only after every consumer uses the generated boundary.
   - Prove clean deterministic generation, zero tracked generated files, wheel and Java artifact builds, both scraper
@@ -499,5 +514,5 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     production bypasses.
 
 The Java and Python scraper refactors and their local persistence certification are complete.
-The mobile behavior baseline and handwritten architecture are complete. REF-038 through REF-054 now define the
+The mobile behavior baseline and handwritten architecture are complete. REF-038 through REF-055 now define the
 sequential contract-first adoption path. GitFlow, CI, deployment, and production changes remain deferred.
