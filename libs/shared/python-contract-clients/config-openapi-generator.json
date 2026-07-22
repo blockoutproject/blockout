@@ -1,0 +1,16 @@
+{
+  "generatorName": "python",
+  "inputSpec": "libs/shared/contracts/generated/specs/config.json",
+  "outputDir": "libs/shared/python-contract-clients/src",
+  "additionalProperties": {
+    "packageName": "blockout_contract_clients.config",
+    "library": "httpx",
+    "generateSourceCodeOnly": true
+  },
+  "globalProperties": {
+    "apiDocs": false,
+    "apiTests": false,
+    "modelDocs": false,
+    "modelTests": false
+  }
+}

@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 import aiohttp
 import httpx
 from blockout_contract_clients.club.api.club_api import ClubApi
+from blockout_contract_clients.config.api.scraper_status_api import ScraperStatusApi
+from blockout_contract_clients.config.models.scraper_name_enum import ScraperNameEnum
 from prometheus_client import start_http_server
 
 from scraper.application.club_ingestion import ClubIngestion
@@ -18,6 +20,7 @@ from scraper.infrastructure.blockout.auth import (
 from scraper.infrastructure.blockout.clients import (
     BlockoutClients,
     build_club_api_client,
+    build_config_api_client,
 )
 from scraper.infrastructure.ffvb.client import FfvbClubClient
 from scraper.infrastructure.scheduling.scheduler import run_hourly
@@ -27,7 +30,7 @@ from scraper.observability.metrics import (
     execution_duration,
 )
 
-SCRAPER_NAME = "SCRAPER_CLUBS"
+SCRAPER_NAME = ScraperNameEnum.SCRAPER_CLUBS
 
 
 class ClubScraperRuntime:
@@ -45,18 +48,20 @@ class ClubScraperRuntime:
             async with (
                 aiohttp.ClientSession(timeout=timeout, trust_env=True) as session,
                 build_club_api_client(self.settings) as club_api_client,
+                build_config_api_client(self.settings) as config_api_client,
             ):
-                status = await BlockoutClients(
+                enabled = await BlockoutClients(
                     session,
                     self.settings,
                     self.tokens,
                     ClubApi(club_api_client),
-                ).get_scraper_status(SCRAPER_NAME)
-            if not status.enabled:
+                    ScraperStatusApi(config_api_client),
+                ).scraper_enabled(SCRAPER_NAME)
+            if not enabled:
                 log_event(
                     action="scraper_skipped",
                     level="warning",
-                    message=f"Scraper '{SCRAPER_NAME}' désactivé via API config.",
+                    message=f"Scraper '{SCRAPER_NAME.value}' désactivé via API config.",
                 )
                 return False
             return True
@@ -64,7 +69,7 @@ class ClubScraperRuntime:
             log_event(
                 action="scraper_status_fetch_failed",
                 level="error",
-                message=f"Impossible de récupérer le statut du scraper '{SCRAPER_NAME}'.",
+                message=f"Impossible de récupérer le statut du scraper '{SCRAPER_NAME.value}'.",
                 error=str(error),
             )
             return False
@@ -81,6 +86,7 @@ class ClubScraperRuntime:
                     connector=connector,
                 ) as blockout_session,
                 build_club_api_client(self.settings) as club_api_client,
+                build_config_api_client(self.settings) as config_api_client,
                 httpx.AsyncClient(
                     timeout=60,
                     trust_env=True,
@@ -95,6 +101,7 @@ class ClubScraperRuntime:
                         self.settings,
                         self.tokens,
                         ClubApi(club_api_client),
+                        ScraperStatusApi(config_api_client),
                     ),
                     FfvbClubClient(ffvb_client),
                     club_scraping_duration,

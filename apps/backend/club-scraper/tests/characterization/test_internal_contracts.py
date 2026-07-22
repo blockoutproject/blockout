@@ -1,5 +1,4 @@
 import asyncio
-from dataclasses import fields
 from datetime import datetime
 from typing import get_type_hints
 
@@ -15,17 +14,21 @@ from blockout_contract_clients.club.models.create_club_internal_request import (
 from blockout_contract_clients.club.models.update_club_internal_request import (
     UpdateClubInternalRequest,
 )
+from blockout_contract_clients.config.api.scraper_status_api import ScraperStatusApi
+from blockout_contract_clients.config.models.scraper_name_enum import ScraperNameEnum
+from blockout_contract_clients.config.models.scraper_status_internal_response import (
+    ScraperStatusInternalResponse,
+)
 from scraper.application.models import Club
 from scraper.config.settings import Settings
 from scraper.infrastructure.blockout.auth import TokenStore
 from scraper.infrastructure.blockout.clients import (
     BlockoutClients,
     build_club_api_client,
+    build_config_api_client,
 )
 from scraper.infrastructure.blockout.contracts import (
     BulkDeactivateClubsInternalRequest,
-    ScraperName,
-    ScraperStatusInternalResponse,
 )
 from scraper.infrastructure.blockout.response import read_json
 
@@ -142,47 +145,43 @@ def test_generated_club_models_own_the_exact_camel_case_transport() -> None:
     assert "raw_name" not in create.to_dict()
 
 
-def test_internal_contract_types_not_yet_migrated_remain_characterized() -> None:
-    """Protect config and competition mirrors until their own verticals."""
-    assert get_type_hints(ScraperStatusInternalResponse) == {
-        "id": int,
-        "name": ScraperName,
-        "enabled": bool,
-        "lastUpdate": datetime,
-    }
+def test_remaining_competition_contract_stays_characterized() -> None:
+    """Protect the competition mirror until its own vertical."""
     assert get_type_hints(BulkDeactivateClubsInternalRequest) == {
         "missingClubIds": list[str]
     }
-    assert [field.name for field in fields(ScraperStatusInternalResponse)] == [
-        "id",
-        "name",
-        "enabled",
-        "lastUpdate",
-    ]
-    assert set(ScraperName) == {ScraperName.SCRAPER, ScraperName.SCRAPER_CLUBS}
+    assert set(ScraperNameEnum) == {
+        ScraperNameEnum.SCRAPER,
+        ScraperNameEnum.SCRAPER_CLUBS,
+    }
+
+
+class StatusApiStub:
+    async def get_scraper_status(self, name, **_kwargs):
+        return ScraperStatusInternalResponse(
+            id=1,
+            name=name,
+            enabled=True,
+            last_update=datetime.fromisoformat("2026-07-20T12:00:00"),
+        )
 
 
 def test_clients_use_exact_internal_routes_and_authorization() -> None:
     """Protect the not-yet-migrated team, config, and competition calls."""
 
     async def scenario() -> None:
-        status = {
-            "id": 1,
-            "name": "SCRAPER_CLUBS",
-            "enabled": True,
-            "lastUpdate": "2026-07-20T12:00:00",
-        }
         session = RecordingSession(
             [
                 RecordingResponse(payload=["club-1"]),
-                RecordingResponse(payload=status),
                 RecordingResponse(status=204),
             ]
         )
-        clients = BlockoutClients(session, _settings(), _tokens(), object())
+        clients = BlockoutClients(
+            session, _settings(), _tokens(), object(), StatusApiStub()
+        )
 
         assert await clients.get_unique_club_ids() == ["club-1"]
-        assert (await clients.get_scraper_status("SCRAPER_CLUBS")).enabled is True
+        assert await clients.scraper_enabled(ScraperNameEnum.SCRAPER_CLUBS) is True
         await clients.bulk_deactivate_clubs({"club-1"})
 
         assert session.calls[0] == (
@@ -190,10 +189,7 @@ def test_clients_use_exact_internal_routes_and_authorization() -> None:
             "http://teams.local/api/v1/teams/club-ids",
             {"headers": {"Authorization": "Bearer test"}},
         )
-        assert session.calls[1][1] == (
-            "http://config.local/api/v1/config/scrapers/SCRAPER_CLUBS/status"
-        )
-        assert session.calls[2] == (
+        assert session.calls[1] == (
             "PUT",
             "http://competition.local/api/v1/competitions/clubs/bulk-deactivate",
             {
@@ -227,6 +223,7 @@ def test_generated_club_client_preserves_routes_auth_and_multipart_json() -> Non
             _settings(),
             _tokens(),
             ClubApi(api_client),
+            StatusApiStub(),
         )
         try:
             listed = await clients.get_all_clubs()
@@ -281,12 +278,53 @@ def test_generated_club_client_errors_keep_the_existing_adapter_semantics() -> N
             _settings(),
             _tokens(),
             ClubApi(api_client),
+            StatusApiStub(),
         )
         try:
             with pytest.raises(RuntimeError, match="Erreur API 409"):
                 await clients.update_club(_club())
         finally:
             await api_client.close()
+
+    asyncio.run(scenario())
+
+
+def test_generated_config_client_preserves_status_route_and_auth() -> None:
+    """Exercise the generated config client used by the Club scraper gate."""
+
+    async def scenario() -> None:
+        requests: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(
+                200,
+                json={
+                    "id": 1,
+                    "name": "SCRAPER_CLUBS",
+                    "enabled": True,
+                    "lastUpdate": "2026-07-20T12:00:00",
+                },
+            )
+
+        api_client = build_config_api_client(_settings())
+        api_client.rest_client.pool_manager = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler)
+        )
+        clients = BlockoutClients(
+            RecordingSession([]),
+            _settings(),
+            _tokens(),
+            object(),
+            ScraperStatusApi(api_client),
+        )
+        try:
+            assert await clients.scraper_enabled(ScraperNameEnum.SCRAPER_CLUBS)
+        finally:
+            await api_client.close()
+
+        assert requests[0].url.path == ("/api/v1/config/scrapers/SCRAPER_CLUBS/status")
+        assert requests[0].headers["authorization"] == "Bearer test"
 
     asyncio.run(scenario())
 

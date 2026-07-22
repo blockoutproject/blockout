@@ -8,6 +8,7 @@ from scraper.application.calendar_ingestion import (
     CalendarIngestionResult,
     handle_csv_download_and_parse,
 )
+from scraper.application.models import RawDivisionMapping
 from scraper.application.source import Scraper
 from scraper.infrastructure.blockout.competitions import bulk_deactivate_pools
 from scraper.infrastructure.blockout.configuration import (
@@ -16,9 +17,6 @@ from scraper.infrastructure.blockout.configuration import (
 )
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.pools import get_pools_by_league_and_season
-from scraper.infrastructure.blockout.raw_division_mapping import (
-    RawDivisionMappingInternalResponse,
-)
 from scraper.infrastructure.ffvb.models import FfvbPoolSource
 
 
@@ -57,11 +55,11 @@ async def _ingest_season(
     }
     mappings = (
         await get_raw_division_mappings_by_league_and_season(
-            scraper.session, league_code, season
+            _config_api(scraper), league_code, season
         )
         or []
     )
-    mapping_by_name = {mapping.rawDivisionName: mapping for mapping in mappings}
+    mapping_by_name = {mapping.raw_division_name: mapping for mapping in mappings}
     observation_complete = True
     pending: list[Awaitable[CalendarIngestionResult]] = []
 
@@ -69,10 +67,10 @@ async def _ingest_season(
         mapping = mapping_by_name.get(source.raw_division_name)
         if mapping is None:
             mapping = await create_raw_division_mapping(
-                scraper.session,
-                RawDivisionMappingInternalResponse(
-                    rawDivisionName=source.raw_division_name,
-                    leagueCode=league_code,
+                _config_api(scraper),
+                RawDivisionMapping(
+                    raw_division_name=source.raw_division_name,
+                    league_code=league_code,
                     season=season,
                 ),
             )
@@ -91,7 +89,7 @@ async def _ingest_season(
             rawName=source.name,
             name=source.name,
             shortName=source.name,
-            divisionId=mapping.divisionId,
+            divisionId=mapping.division_id,
             format=mapping.format,
             gender=mapping.gender,
         )
@@ -124,6 +122,12 @@ async def _ingest_season(
     }
     if missing_ids:
         await bulk_deactivate_pools(scraper.session, missing_ids)
+
+
+def _config_api(scraper: Scraper):
+    if scraper.raw_division_mapping_api is None:
+        raise RuntimeError("The generated config-service client is not configured.")
+    return scraper.raw_division_mapping_api
 
 
 async def _run_limited(

@@ -1,0 +1,16 @@
+{
+  "ScraperStatusInternalResponse": {
+    "type": "object",
+    "required": ["id", "name", "enabled"],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "name": { "$ref": "#/components/schemas/ScraperNameEnum" },
+      "enabled": { "type": "boolean" },
+      "lastUpdate": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      }
+    }
+  }
+}

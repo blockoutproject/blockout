@@ -1,0 +1,12 @@
+{
+  "UpdateDivisionInternalRequest": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string", "nullable": true },
+      "mainColor": { "type": "string", "nullable": true },
+      "firstGradientColor": { "type": "string", "nullable": true },
+      "secondGradientColor": { "type": "string", "nullable": true },
+      "thirdGradientColor": { "type": "string", "nullable": true }
+    }
+  }
+}

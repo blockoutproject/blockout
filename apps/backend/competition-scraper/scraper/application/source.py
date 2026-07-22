@@ -5,6 +5,9 @@ from datetime import UTC, datetime
 
 import aiohttp
 import httpx
+from blockout_contract_clients.config.api.raw_division_mapping_api import (
+    RawDivisionMappingApi,
+)
 from prometheus_client import Gauge
 
 from scraper.application.association_changes import AssociationChangeSet
@@ -28,12 +31,14 @@ class Scraper(ABC):
         session: aiohttp.ClientSession,
         provider_client: httpx.AsyncClient,
         name: str,
+        raw_division_mapping_api: RawDivisionMappingApi | None = None,
         url: str | None = None,
         priority_validation_enabled: bool = False,
         max_concurrency: int = 10,
     ) -> None:
         self.session = session
         self.name = name
+        self.raw_division_mapping_api = raw_division_mapping_api
         self.url = url
         self.priority_validation_enabled = priority_validation_enabled
         self._max_concurrency = max_concurrency

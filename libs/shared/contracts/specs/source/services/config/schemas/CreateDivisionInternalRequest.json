@@ -1,0 +1,19 @@
+{
+  "CreateDivisionInternalRequest": {
+    "type": "object",
+    "required": [
+      "name",
+      "mainColor",
+      "firstGradientColor",
+      "secondGradientColor",
+      "thirdGradientColor"
+    ],
+    "properties": {
+      "name": { "type": "string" },
+      "mainColor": { "type": "string" },
+      "firstGradientColor": { "type": "string" },
+      "secondGradientColor": { "type": "string" },
+      "thirdGradientColor": { "type": "string" }
+    }
+  }
+}

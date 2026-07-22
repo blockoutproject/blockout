@@ -52,7 +52,11 @@ test('workspace fragments produce the shared OpenAPI bundle', async () => {
     await readFile(path.join(contractsRoot, 'generated/specs/shared.json'), 'utf8'),
   );
   assert.equal(bundle.openapi, '3.0.3');
-  assert.deepEqual(Object.keys(bundle.components.schemas), ['FormatEnum', 'GenderEnum']);
+  assert.deepEqual(Object.keys(bundle.components.schemas), [
+    'FormatEnum',
+    'GenderEnum',
+    'ScraperNameEnum',
+  ]);
 });
 
 test('shared schemas contain only reusable named transport enums', async () => {
@@ -80,13 +84,25 @@ test('service schemas contain no handwritten inline transport enum', async () =>
 });
 
 test('schema roots include active multipart JSON models without fake endpoints', async () => {
-  const bundle = JSON.parse(
+  const clubBundle = JSON.parse(
     await readFile(path.join(contractsRoot, 'generated/specs/club.json'), 'utf8'),
   );
-  assert.ok(bundle.components.schemas.CreateClubInternalRequest);
-  assert.ok(bundle.components.schemas.UpdateClubInternalRequest);
+  assert.ok(clubBundle.components.schemas.CreateClubInternalRequest);
+  assert.ok(clubBundle.components.schemas.UpdateClubInternalRequest);
   assert.equal(
-    bundle.paths['/api/v1/clubs'].post.requestBody.content['multipart/form-data'].schema.properties.data.type,
+    clubBundle.paths['/api/v1/clubs'].post.requestBody.content['multipart/form-data'].schema.properties.data.type,
+    'string',
+  );
+
+  const configBundle = JSON.parse(
+    await readFile(path.join(contractsRoot, 'generated/specs/config.json'), 'utf8'),
+  );
+  assert.ok(configBundle.components.schemas.CreateDivisionInternalRequest);
+  assert.ok(configBundle.components.schemas.UpdateDivisionInternalRequest);
+  assert.equal(
+    configBundle.paths['/api/v1/config/divisions'].post.requestBody.content[
+      'multipart/form-data'
+    ].schema.properties.data.type,
     'string',
   );
 });

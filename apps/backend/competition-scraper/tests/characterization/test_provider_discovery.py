@@ -5,10 +5,8 @@ from pathlib import Path
 
 from scraper.application import ffvb_league_ingestion as ingestion
 from scraper.application.calendar_ingestion import CalendarIngestionResult
+from scraper.application.models import RawDivisionMapping
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
-from scraper.infrastructure.blockout.raw_division_mapping import (
-    RawDivisionMappingInternalResponse,
-)
 from scraper.infrastructure.ffvb import national as national_module
 from scraper.infrastructure.ffvb.departmental import DepartmentalScraper
 from scraper.infrastructure.ffvb.discovery import (
@@ -123,11 +121,11 @@ def test_complete_league_observation_dispatches_without_deactivation(
             gender="M",
             id=99,
         )
-        mapping = RawDivisionMappingInternalResponse(
-            rawDivisionName="NATIONALE 3 MASCULINE",
-            leagueCode="ABCCS",
+        mapping = RawDivisionMapping(
+            raw_division_name="NATIONALE 3 MASCULINE",
+            league_code="ABCCS",
             season="2026/2027",
-            divisionId=7,
+            division_id=7,
             format="SIX",
             gender="M",
         )
@@ -152,7 +150,11 @@ def test_complete_league_observation_dispatches_without_deactivation(
         )
         monkeypatch.setattr(ingestion, "handle_csv_download_and_parse", handle)
         monkeypatch.setattr(ingestion, "bulk_deactivate_pools", unexpected)
-        scraper = type("Scraper", (), {"session": object()})()
+        scraper = type(
+            "Scraper",
+            (),
+            {"session": object(), "raw_division_mapping_api": object()},
+        )()
 
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
 
@@ -207,7 +209,11 @@ def test_unmapped_or_incomplete_observation_never_deactivates_pools(
         )
         monkeypatch.setattr(ingestion, "create_raw_division_mapping", create)
         monkeypatch.setattr(ingestion, "bulk_deactivate_pools", unexpected)
-        scraper = type("Scraper", (), {"session": object()})()
+        scraper = type(
+            "Scraper",
+            (),
+            {"session": object(), "raw_division_mapping_api": object()},
+        )()
 
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
 
@@ -260,11 +266,11 @@ def test_incomplete_calendar_result_suppresses_league_cleanup(monkeypatch) -> No
             gender="M",
             id=98,
         )
-        mapping = RawDivisionMappingInternalResponse(
-            rawDivisionName="NATIONALE 3 MASCULINE",
-            leagueCode="ABCCS",
+        mapping = RawDivisionMapping(
+            raw_division_name="NATIONALE 3 MASCULINE",
+            league_code="ABCCS",
             season="2026/2027",
-            divisionId=7,
+            division_id=7,
             format="SIX",
             gender="M",
         )
@@ -287,7 +293,11 @@ def test_incomplete_calendar_result_suppresses_league_cleanup(monkeypatch) -> No
         )
         monkeypatch.setattr(ingestion, "handle_csv_download_and_parse", handle)
         monkeypatch.setattr(ingestion, "bulk_deactivate_pools", unexpected)
-        scraper = type("Scraper", (), {"session": object()})()
+        scraper = type(
+            "Scraper",
+            (),
+            {"session": object(), "raw_division_mapping_api": object()},
+        )()
 
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
 

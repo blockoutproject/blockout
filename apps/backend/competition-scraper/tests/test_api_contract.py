@@ -1,6 +1,14 @@
 import asyncio
+import json
 from datetime import UTC, datetime
 
+import httpx
+from blockout_contract_clients.config.api.raw_division_mapping_api import (
+    RawDivisionMappingApi,
+)
+from blockout_contract_clients.config.api.scraper_status_api import ScraperStatusApi
+from blockout_contract_clients.config.models.scraper_name_enum import ScraperNameEnum
+from scraper.application.models import RawDivisionMapping
 from scraper.infrastructure.blockout import competitions as competitions_api
 from scraper.infrastructure.blockout import configuration as config_api
 from scraper.infrastructure.blockout import matches as matches_api
@@ -14,11 +22,7 @@ from scraper.infrastructure.blockout.competition_association import (
 )
 from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
-from scraper.infrastructure.blockout.raw_division_mapping import (
-    RawDivisionMappingInternalResponse,
-)
 from scraper.infrastructure.blockout.response import convert_to_dataclass
-from scraper.infrastructure.blockout.scraper_status import ScraperStatusInternalResponse
 from scraper.infrastructure.blockout.team import TeamInternalResponse
 
 
@@ -45,21 +49,40 @@ class RecordingSession:
 
 def test_requests_scraper_status_from_the_config_api(monkeypatch):
     async def scenario():
-        monkeypatch.setattr(config_api, "CONFIG_API_URL", "http://config.local/v1")
+        monkeypatch.setattr(
+            config_api, "CONFIG_API_URL", "http://config.local/api/v1/config"
+        )
         monkeypatch.setattr(
             config_api, "_get_headers", lambda: {"Authorization": "Bearer test"}
         )
-        session = RecordingSession()
+        requests: list[httpx.Request] = []
 
-        await config_api.get_scraper_status.__wrapped__(session, "SCRAPER")
-
-        assert session.calls == [
-            (
-                "GET",
-                "http://config.local/v1/scrapers/SCRAPER/status",
-                {"headers": {"Authorization": "Bearer test"}},
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(
+                200,
+                json={
+                    "id": 1,
+                    "name": "SCRAPER",
+                    "enabled": True,
+                    "lastUpdate": "2026-07-19T12:30:00",
+                },
             )
-        ]
+
+        api_client = config_api.build_config_api_client()
+        api_client.rest_client.pool_manager = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler)
+        )
+        try:
+            status = await config_api.get_scraper_status(
+                ScraperStatusApi(api_client), ScraperNameEnum.SCRAPER
+            )
+        finally:
+            await api_client.close()
+
+        assert status.enabled is True
+        assert requests[0].url.path == "/api/v1/config/scrapers/SCRAPER/status"
+        assert requests[0].headers["authorization"] == "Bearer test"
 
     asyncio.run(scenario())
 
@@ -198,49 +221,66 @@ def test_sends_native_camel_case_query_parameters(monkeypatch):
     asyncio.run(scenario())
 
 
-def test_status_mapping_reads_the_camel_case_timestamp():
-    status = convert_to_dataclass(
-        {
-            "id": 1,
-            "name": "SCRAPER",
-            "enabled": True,
-            "lastUpdate": "2026-07-19T12:30:00",
-        },
-        ScraperStatusInternalResponse,
-    )
+def test_generated_config_client_reads_and_writes_raw_division_mapping(monkeypatch):
+    async def scenario() -> None:
+        monkeypatch.setattr(
+            config_api, "CONFIG_API_URL", "http://config.local/api/v1/config"
+        )
+        monkeypatch.setattr(
+            config_api, "_get_headers", lambda: {"Authorization": "Bearer test"}
+        )
+        requests: list[httpx.Request] = []
 
-    assert status.enabled is True
-    assert status.lastUpdate.isoformat() == "2026-07-19T12:30:00"
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(
+                201,
+                json={
+                    "id": 1,
+                    "rawDivisionName": "N3",
+                    "divisionId": 7,
+                    "format": "SIX",
+                    "gender": "F",
+                    "leagueCode": "LNV",
+                    "season": "2026/2027",
+                    "createdAt": "2026-07-19T12:30:00",
+                    "lastUpdate": "2026-07-19T12:30:00",
+                    "mapped": True,
+                },
+            )
 
+        api_client = config_api.build_config_api_client()
+        api_client.rest_client.pool_manager = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler)
+        )
+        try:
+            mapping = await config_api.create_raw_division_mapping(
+                RawDivisionMappingApi(api_client),
+                RawDivisionMapping(
+                    raw_division_name="N3",
+                    division_id=7,
+                    format="SIX",
+                    gender="F",
+                    league_code="LNV",
+                    season="2026/2027",
+                ),
+            )
+        finally:
+            await api_client.close()
 
-def test_reads_and_writes_the_authoritative_raw_division_mapping_contract():
-    mapping = convert_to_dataclass(
-        {
-            "id": 1,
+        payload = json.loads(requests[0].content)
+        assert mapping.mapped is True
+        assert mapping.raw_division_name == "N3"
+        assert payload == {
             "rawDivisionName": "N3",
             "divisionId": 7,
             "format": "SIX",
             "gender": "F",
             "leagueCode": "LNV",
             "season": "2026/2027",
-            "createdAt": "2026-07-19T12:30:00",
-            "lastUpdate": "2026-07-19T12:30:00",
-            "mapped": True,
-        },
-        RawDivisionMappingInternalResponse,
-    )
+        }
 
-    payload = config_api._create_raw_division_mapping_payload(mapping)
-
-    assert mapping.mapped is True
-    assert payload == {
-        "rawDivisionName": "N3",
-        "divisionId": 7,
-        "format": "SIX",
-        "gender": "F",
-        "leagueCode": "LNV",
-        "season": "2026/2027",
-    }
+    asyncio.run(scenario())
 
 
 def test_reads_the_complete_competition_association_contract():

@@ -5,8 +5,12 @@ from datetime import date
 
 import aiohttp
 import httpx
+from blockout_contract_clients.config.api.raw_division_mapping_api import (
+    RawDivisionMappingApi,
+)
 
 from scraper.application.calendar_ingestion import handle_csv_download_and_parse
+from scraper.application.models import RawDivisionMapping
 from scraper.application.source import Scraper
 from scraper.application.team_writer import (
     find_team_by_name_in_division_format_gender_season,
@@ -20,9 +24,6 @@ from scraper.infrastructure.blockout.configuration import (
 from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.pools import get_pools_by_league_and_season
-from scraper.infrastructure.blockout.raw_division_mapping import (
-    RawDivisionMappingInternalResponse,
-)
 from scraper.infrastructure.blockout.team import TeamInternalResponse
 from scraper.infrastructure.blockout.teams import get_teams
 from scraper.infrastructure.lnv.parsers import (
@@ -36,12 +37,16 @@ from scraper.observability.logging import log_event
 
 class ProScraper(Scraper):
     def __init__(
-        self, session: aiohttp.ClientSession, provider_client: httpx.AsyncClient
+        self,
+        session: aiohttp.ClientSession,
+        provider_client: httpx.AsyncClient,
+        raw_division_mapping_api: RawDivisionMappingApi | None = None,
     ) -> None:
         super().__init__(
             session,
             provider_client,
             name="pro_scraper",
+            raw_division_mapping_api=raw_division_mapping_api,
             priority_validation_enabled=True,
         )
         self.raw_season = "2026/2027"
@@ -89,6 +94,11 @@ class ProScraper(Scraper):
         self._live_documents: dict[str, str] = {}
         self._live_document_locks: dict[str, asyncio.Lock] = {}
 
+    def _config_api(self) -> RawDivisionMappingApi:
+        if self.raw_division_mapping_api is None:
+            raise RuntimeError("The generated config-service client is not configured.")
+        return self.raw_division_mapping_api
+
     async def run_scraping(self):
         if self.session is None:
             raise ValueError("La session aiohttp est non initialisée ou fermée.")
@@ -109,10 +119,10 @@ class ProScraper(Scraper):
             }
 
             raw_mappings = await get_raw_division_mappings_by_league_and_season(
-                self.session, self.leagueCode, self.raw_season
+                self._config_api(), self.leagueCode, self.raw_season
             )
             raw_mappings = raw_mappings or []
-            mapping_dict = {m.rawDivisionName: m for m in raw_mappings}
+            mapping_dict = {m.raw_division_name: m for m in raw_mappings}
 
             tasks = []
             for pool_json in self.pools_json:
@@ -122,13 +132,13 @@ class ProScraper(Scraper):
                     mapping = mapping_dict.get(name)
 
                     if not mapping:
-                        new_mapping = RawDivisionMappingInternalResponse(
-                            rawDivisionName=name,
-                            leagueCode=self.leagueCode,
+                        new_mapping = RawDivisionMapping(
+                            raw_division_name=name,
+                            league_code=self.leagueCode,
                             season=self.raw_season,
                         )
                         created_mapping = await create_raw_division_mapping(
-                            self.session, new_mapping
+                            self._config_api(), new_mapping
                         )
                         mapping_dict[name] = created_mapping
                         continue
@@ -144,7 +154,7 @@ class ProScraper(Scraper):
                         rawName=name,
                         name=name,
                         shortName=name,
-                        divisionId=mapping.divisionId,
+                        divisionId=mapping.division_id,
                         format=mapping.format,
                         gender=mapping.gender,
                     )

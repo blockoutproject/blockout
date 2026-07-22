@@ -1,0 +1,10 @@
+{
+  "UpdateRawDivisionMappingInternalRequest": {
+    "type": "object",
+    "properties": {
+      "divisionId": { "type": "integer", "format": "int64", "nullable": true },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" }
+    }
+  }
+}

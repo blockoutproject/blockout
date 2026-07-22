@@ -1,9 +1,9 @@
 package com.blockout.config.appstatus.api.mappers;
 
-import com.blockout.config.appstatus.api.models.AppStatusInternalResponse;
-import com.blockout.config.appstatus.api.models.UpdateAppStatusInternalRequest;
 import com.blockout.config.appstatus.application.commands.UpdateAppStatusCommand;
 import com.blockout.config.appstatus.application.views.AppStatusView;
+import com.blockout.config.contract.model.AppStatusInternalResponse;
+import com.blockout.config.contract.model.UpdateAppStatusInternalRequest;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,17 +17,23 @@ public class AppStatusApiMapper {
      */
     public UpdateAppStatusCommand toCommand(UpdateAppStatusInternalRequest request) {
         return new UpdateAppStatusCommand(
-            request.maintenance(), request.message(), request.imageUrl(), request.minVersionIos(),
-            request.minVersionAndroid(), request.storeUrlIos(), request.storeUrlAndroid(),
-            request.forceUpdateMessage());
+            request.getMaintenance(), request.getMessage(), request.getImageUrl(), request.getMinVersionIos(),
+            request.getMinVersionAndroid(), request.getStoreUrlIos(), request.getStoreUrlAndroid(),
+            request.getForceUpdateMessage());
     }
 
     /**
      * Maps the authoritative view to the V1 response.
      */
     public AppStatusInternalResponse toInternalResponse(AppStatusView view) {
-        return new AppStatusInternalResponse(
-            view.maintenance(), view.message(), view.imageUrl(), view.minVersionIos(), view.minVersionAndroid(),
-            view.storeUrlIos(), view.storeUrlAndroid(), view.forceUpdateMessage(), view.lastUpdate());
+        return new AppStatusInternalResponse(view.maintenance())
+            .message(view.message())
+            .imageUrl(view.imageUrl())
+            .minVersionIos(view.minVersionIos())
+            .minVersionAndroid(view.minVersionAndroid())
+            .storeUrlIos(view.storeUrlIos())
+            .storeUrlAndroid(view.storeUrlAndroid())
+            .forceUpdateMessage(view.forceUpdateMessage())
+            .lastUpdate(view.lastUpdate());
     }
 }

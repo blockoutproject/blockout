@@ -1,21 +1,21 @@
 package com.blockout.config.legaldocument.api;
 
 import com.blockout.config.legaldocument.api.mappers.LegalDocumentApiMapper;
-import com.blockout.config.legaldocument.api.models.LegalDocumentInternalResponse;
-import com.blockout.config.legaldocument.api.models.UpdateLegalDocumentInternalRequest;
 import com.blockout.config.legaldocument.application.LegalDocumentService;
+import com.blockout.config.contract.api.LegalDocumentApi;
+import com.blockout.config.contract.model.LegalDocumentInternalResponse;
+import com.blockout.config.contract.model.UpdateLegalDocumentInternalRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Exposes the handwritten V1 LegalDocument API.
+ * Implements the generated V1 LegalDocument API.
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/config/legal")
-public class LegalDocumentController {
+public class LegalDocumentController implements LegalDocumentApi {
 
     private final LegalDocumentService legalDocumentService;
     private final LegalDocumentApiMapper mapper;
@@ -23,19 +23,18 @@ public class LegalDocumentController {
     /**
      * Returns one legal document by its stable type.
      */
-    @GetMapping("/{type}")
-    public ResponseEntity<LegalDocumentInternalResponse> getByType(@PathVariable String type) {
+    @Override
+    public ResponseEntity<LegalDocumentInternalResponse> getLegalDocumentByType(String type) {
         return ResponseEntity.ok(mapper.toInternalResponse(legalDocumentService.getByType(type)));
     }
 
     /**
      * Applies a partial update to a legal document.
      */
-    @PutMapping("/{type}")
+    @Override
     @PreAuthorize("hasAuthority('SCOPE_update:legal')")
-    public ResponseEntity<LegalDocumentInternalResponse> update(
-        @PathVariable String type,
-        @RequestBody UpdateLegalDocumentInternalRequest request) {
+    public ResponseEntity<LegalDocumentInternalResponse> updateLegalDocument(
+        String type, UpdateLegalDocumentInternalRequest request) {
         return ResponseEntity.ok(mapper.toInternalResponse(
             legalDocumentService.update(type, mapper.toCommand(request))));
     }

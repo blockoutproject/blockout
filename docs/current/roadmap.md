@@ -459,11 +459,21 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     already recorded by REF-041/042; no database repair or migration change is part of this task. Git tracks no
     generated output.
 
-- [ ] **REF-044 — Migrate the Config and Division contracts**
+- [x] **REF-044 — Migrate the Config and Division contracts**
   - Generate the configuration and Division internal boundaries owned by `config-service`, including the Python clients
     needed by both scrapers.
   - Replace handwritten transport DTOs and calls only after characterization proves identical scheduling, season,
     division, format, gender, and scraper-name behavior.
+  - Evidence: one Config OpenAPI source now owns the existing app-status, Division, legal-document,
+    raw-division-mapping, and scraper-status V1 routes. `config-service` implements its generated server interfaces,
+    `mobile-gateway` and `search-worker` consume generated adapter-local models, and both scrapers use the generated
+    asynchronous HTTPX clients. The former handwritten Config transport DTOs and scraper transport mirrors are
+    removed, while gateway public DTOs remain intentionally separate until the public-boundary migration.
+  - The shared contract now owns `ScraperNameEnum`; format and gender keep their existing shared ownership. Scheduling,
+    season classification, multipart Division requests, `Instant` app-status values, routes, camelCase JSON, and public
+    gateway behavior remain unchanged. Two clean generations have the same hash; the contract guards, uv lock check,
+    39 club-scraper tests, 70 competition-scraper tests, Ruff checks, and the targeted Java 21 reactor pass. Git tracks
+    no generated source.
 
 - [ ] **REF-045 — Migrate the Team contract**
   - Establish Team schemas from the authoritative `teams-service` model and shared Club and Division references.

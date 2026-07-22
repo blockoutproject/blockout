@@ -1,0 +1,15 @@
+{
+  "UpdateAppStatusInternalRequest": {
+    "type": "object",
+    "properties": {
+      "maintenance": { "type": "boolean", "nullable": true },
+      "message": { "type": "string", "nullable": true },
+      "imageUrl": { "type": "string", "nullable": true },
+      "minVersionIos": { "type": "string", "nullable": true },
+      "minVersionAndroid": { "type": "string", "nullable": true },
+      "storeUrlIos": { "type": "string", "nullable": true },
+      "storeUrlAndroid": { "type": "string", "nullable": true },
+      "forceUpdateMessage": { "type": "string", "nullable": true }
+    }
+  }
+}

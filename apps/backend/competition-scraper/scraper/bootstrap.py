@@ -6,12 +6,20 @@ from datetime import UTC, datetime
 
 import aiohttp
 import httpx
+from blockout_contract_clients.config.api.raw_division_mapping_api import (
+    RawDivisionMappingApi,
+)
+from blockout_contract_clients.config.api.scraper_status_api import ScraperStatusApi
+from blockout_contract_clients.config.models.scraper_name_enum import ScraperNameEnum
 from prometheus_client import Gauge, start_http_server
 
 from scraper.application.factory import ScraperFactory
 from scraper.config.settings import SCRAPER_TYPES
 from scraper.infrastructure.blockout.auth import refresh_token_task
-from scraper.infrastructure.blockout.configuration import get_scraper_status
+from scraper.infrastructure.blockout.configuration import (
+    build_config_api_client,
+    get_scraper_status,
+)
 from scraper.infrastructure.scheduling.scheduler import schedule_scraper
 from scraper.observability.logging import log_event
 
@@ -29,9 +37,12 @@ async def _run_one_scraper(
     session: aiohttp.ClientSession,
     provider_client: httpx.AsyncClient,
     scraper_type: str,
+    raw_division_mapping_api: RawDivisionMappingApi | None = None,
 ):
     current_scraper.set(scraper_type)
-    scraper = ScraperFactory.create_scraper(scraper_type, session, provider_client)
+    scraper = ScraperFactory.create_scraper(
+        scraper_type, session, provider_client, raw_division_mapping_api
+    )
     await scraper.scrape()
 
 
@@ -39,6 +50,7 @@ async def run_scrapers_with_max_concurrency(
     session: aiohttp.ClientSession,
     provider_client: httpx.AsyncClient,
     scraper_types: list[str],
+    raw_division_mapping_api: RawDivisionMappingApi | None = None,
     max_concurrency: int = 2,
 ):
     pending_types = list(scraper_types)
@@ -46,7 +58,11 @@ async def run_scrapers_with_max_concurrency(
 
     while pending_types and len(running) < max_concurrency:
         st = pending_types.pop(0)
-        running.add(asyncio.create_task(_run_one_scraper(session, provider_client, st)))
+        running.add(
+            asyncio.create_task(
+                _run_one_scraper(session, provider_client, st, raw_division_mapping_api)
+            )
+        )
 
     while running:
         done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
@@ -56,7 +72,11 @@ async def run_scrapers_with_max_concurrency(
         while pending_types and len(running) < max_concurrency:
             st = pending_types.pop(0)
             running.add(
-                asyncio.create_task(_run_one_scraper(session, provider_client, st))
+                asyncio.create_task(
+                    _run_one_scraper(
+                        session, provider_client, st, raw_division_mapping_api
+                    )
+                )
             )
 
 
@@ -65,12 +85,11 @@ async def main() -> bool:
     skipped = False
 
     try:
-        async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=10),
-            trust_env=True,
-        ) as tmp_session:
+        async with build_config_api_client() as config_api_client:
             try:
-                status = await get_scraper_status(tmp_session, "SCRAPER")
+                status = await get_scraper_status(
+                    ScraperStatusApi(config_api_client), ScraperNameEnum.SCRAPER
+                )
                 if not status.enabled:
                     log_event(
                         action="scraper_skipped",
@@ -104,11 +123,15 @@ async def main() -> bool:
                         follow_redirects=True,
                         limits=httpx.Limits(max_connections=20),
                     ) as provider_client,
+                    build_config_api_client() as config_api_client,
                 ):
                     scraper_types = SCRAPER_TYPES
                     await run_scrapers_with_max_concurrency(
                         session=session,
                         provider_client=provider_client,
+                        raw_division_mapping_api=RawDivisionMappingApi(
+                            config_api_client
+                        ),
                         scraper_types=scraper_types,
                     )
 

@@ -1,0 +1,10 @@
+{
+  "UpdateLegalDocumentInternalRequest": {
+    "type": "object",
+    "properties": {
+      "title": { "type": "string", "nullable": true },
+      "version": { "type": "string", "nullable": true },
+      "content": { "type": "string", "nullable": true }
+    }
+  }
+}

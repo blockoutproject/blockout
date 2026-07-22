@@ -1,0 +1,34 @@
+{
+  "DivisionInternalResponse": {
+    "type": "object",
+    "required": [
+      "id",
+      "name",
+      "mainColor",
+      "firstGradientColor",
+      "secondGradientColor",
+      "thirdGradientColor",
+      "active"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "name": { "type": "string" },
+      "mainColor": { "type": "string" },
+      "firstGradientColor": { "type": "string" },
+      "secondGradientColor": { "type": "string" },
+      "thirdGradientColor": { "type": "string" },
+      "logoUrl": { "type": "string", "nullable": true },
+      "active": { "type": "boolean" },
+      "createdAt": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      },
+      "lastUpdate": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      }
+    }
+  }
+}

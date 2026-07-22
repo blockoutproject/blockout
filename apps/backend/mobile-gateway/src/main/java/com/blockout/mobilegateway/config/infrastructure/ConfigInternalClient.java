@@ -2,6 +2,11 @@ package com.blockout.mobilegateway.config.infrastructure;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.config.api.models.*;
+import com.blockout.mobilegateway.config.infrastructure.contract.models.AppStatusInternalResponse;
+import com.blockout.mobilegateway.config.infrastructure.contract.models.DivisionInternalResponse;
+import com.blockout.mobilegateway.config.infrastructure.contract.models.LegalDocumentInternalResponse;
+import com.blockout.mobilegateway.config.infrastructure.contract.models.RawDivisionMappingInternalResponse;
+import com.blockout.mobilegateway.config.infrastructure.contract.models.ScraperStatusInternalResponse;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.shared.infrastructure.http.MultipartBodyBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +31,7 @@ public class ConfigInternalClient {
     private final ApiClientProperties apiClientProperties;
     private final InternalApiClient internalApiClient;
     private final ObjectMapper objectMapper;
+    private final ConfigContractMapper contractMapper;
 
     private String baseUrl() {
         return apiClientProperties.getConfig().getUrl();
@@ -38,8 +43,8 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<AppStatusResponse> res = internalApiClient.get(url, AppStatusResponse.class);
-        return res.getBody();
+        AppStatusInternalResponse body = internalApiClient.get(url, AppStatusInternalResponse.class).getBody();
+        return body == null ? null : contractMapper.toResponse(body);
     }
 
     public AppStatusResponse updateAppStatus(UpdateAppStatusRequest dto) {
@@ -48,8 +53,9 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<AppStatusResponse> res = internalApiClient.put(url, dto, AppStatusResponse.class);
-        return res.getBody();
+        AppStatusInternalResponse body = internalApiClient.put(
+            url, contractMapper.toInternalRequest(dto), AppStatusInternalResponse.class).getBody();
+        return body == null ? null : contractMapper.toResponse(body);
     }
 
     @Cacheable(value = "divisions")
@@ -59,9 +65,8 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<DivisionResponse[]> response = internalApiClient.get(url, DivisionResponse[].class);
-        DivisionResponse[] body = response.getBody();
-        return body != null ? Arrays.asList(body) : Collections.emptyList();
+        DivisionInternalResponse[] body = internalApiClient.get(url, DivisionInternalResponse[].class).getBody();
+        return body == null ? Collections.emptyList() : Arrays.stream(body).map(contractMapper::toResponse).toList();
     }
 
     @Cacheable(value = "divisionById", key = "#id")
@@ -71,8 +76,8 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<DivisionResponse> response = internalApiClient.get(url, DivisionResponse.class);
-        return response.getBody();
+        DivisionInternalResponse body = internalApiClient.get(url, DivisionInternalResponse.class).getBody();
+        return body == null ? null : contractMapper.toResponse(body);
     }
 
     public DivisionResponse createDivision(UpsertDivisionRequest dto, MultipartFile image) {
@@ -81,10 +86,12 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(
+            objectMapper, contractMapper.toCreateRequest(dto), image);
 
-        ResponseEntity<DivisionResponse> response = internalApiClient.postMultipart(url, body, DivisionResponse.class);
-        return response.getBody();
+        DivisionInternalResponse response = internalApiClient.postMultipart(
+            url, body, DivisionInternalResponse.class).getBody();
+        return response == null ? null : contractMapper.toResponse(response);
     }
 
     @Caching(put = {
@@ -98,10 +105,12 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(
+            objectMapper, contractMapper.toUpdateRequest(dto), image);
 
-        ResponseEntity<DivisionResponse> response = internalApiClient.putMultipart(url, body, DivisionResponse.class);
-        return response.getBody();
+        DivisionInternalResponse response = internalApiClient.putMultipart(
+            url, body, DivisionInternalResponse.class).getBody();
+        return response == null ? null : contractMapper.toResponse(response);
     }
 
     @Caching(evict = {
@@ -123,8 +132,8 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<LegalDocumentResponse> res = internalApiClient.get(url, LegalDocumentResponse.class);
-        return res.getBody();
+        LegalDocumentInternalResponse body = internalApiClient.get(url, LegalDocumentInternalResponse.class).getBody();
+        return body == null ? null : contractMapper.toResponse(body);
     }
 
     public LegalDocumentResponse updateLegalDocument(String type, UpdateLegalDocumentRequest dto) {
@@ -133,8 +142,9 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<LegalDocumentResponse> res = internalApiClient.put(url, dto, LegalDocumentResponse.class);
-        return res.getBody();
+        LegalDocumentInternalResponse body = internalApiClient.put(
+            url, contractMapper.toInternalRequest(dto), LegalDocumentInternalResponse.class).getBody();
+        return body == null ? null : contractMapper.toResponse(body);
     }
 
     public RawDivisionMappingResponse createRawDivisionMapping(RawDivisionMappingResponse dto) {
@@ -143,7 +153,9 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        return internalApiClient.post(url, dto, RawDivisionMappingResponse.class).getBody();
+        RawDivisionMappingInternalResponse body = internalApiClient.post(
+            url, contractMapper.toCreateRequest(dto), RawDivisionMappingInternalResponse.class).getBody();
+        return body == null ? null : contractMapper.toResponse(body);
     }
 
     public List<RawDivisionMappingResponse> listRawDivisionMappings(String leagueCode, String season) {
@@ -154,8 +166,9 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<RawDivisionMappingResponse[]> res = internalApiClient.get(url, RawDivisionMappingResponse[].class);
-        return res.getBody() != null ? java.util.Arrays.asList(res.getBody()) : java.util.Collections.emptyList();
+        RawDivisionMappingInternalResponse[] body = internalApiClient.get(
+            url, RawDivisionMappingInternalResponse[].class).getBody();
+        return body == null ? Collections.emptyList() : Arrays.stream(body).map(contractMapper::toResponse).toList();
     }
 
     public RawDivisionMappingResponse getRawDivisionMappingById(Long id) {
@@ -164,7 +177,9 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        return internalApiClient.get(url, RawDivisionMappingResponse.class).getBody();
+        RawDivisionMappingInternalResponse body = internalApiClient.get(
+            url, RawDivisionMappingInternalResponse.class).getBody();
+        return body == null ? null : contractMapper.toResponse(body);
     }
 
     public RawDivisionMappingResponse updateRawDivisionMapping(Long id, UpdateRawDivisionMappingRequest dto) {
@@ -173,7 +188,9 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        return internalApiClient.put(url, dto, RawDivisionMappingResponse.class).getBody();
+        RawDivisionMappingInternalResponse body = internalApiClient.put(
+            url, contractMapper.toInternalRequest(dto), RawDivisionMappingInternalResponse.class).getBody();
+        return body == null ? null : contractMapper.toResponse(body);
     }
 
     public ScraperStatusResponse updateScraperStatus(String name, boolean enabled) {
@@ -183,8 +200,9 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<ScraperStatusResponse> response = internalApiClient.put(url, null, ScraperStatusResponse.class);
-        return response.getBody();
+        ScraperStatusInternalResponse body = internalApiClient.put(
+            url, null, ScraperStatusInternalResponse.class).getBody();
+        return body == null ? null : contractMapper.toResponse(body);
     }
 
     public List<ScraperStatusResponse> listScraperStatuses() {
@@ -193,8 +211,8 @@ public class ConfigInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<ScraperStatusResponse[]> response = internalApiClient.get(url, ScraperStatusResponse[].class);
-        ScraperStatusResponse[] body = response.getBody();
-        return body != null ? Arrays.asList(body) : Collections.emptyList();
+        ScraperStatusInternalResponse[] body = internalApiClient.get(
+            url, ScraperStatusInternalResponse[].class).getBody();
+        return body == null ? Collections.emptyList() : Arrays.stream(body).map(contractMapper::toResponse).toList();
     }
 }

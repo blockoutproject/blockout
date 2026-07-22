@@ -1,32 +1,30 @@
 package com.blockout.config.division.api;
 
 import com.blockout.config.division.api.mappers.DivisionApiMapper;
-import com.blockout.config.division.api.models.CreateDivisionInternalRequest;
-import com.blockout.config.division.api.models.DivisionInternalResponse;
-import com.blockout.config.division.api.models.UpdateDivisionInternalRequest;
 import com.blockout.config.division.application.DivisionService;
 import com.blockout.config.division.application.views.DivisionView;
+import com.blockout.config.contract.api.DivisionApi;
+import com.blockout.config.contract.model.CreateDivisionInternalRequest;
+import com.blockout.config.contract.model.DivisionInternalResponse;
+import com.blockout.config.contract.model.UpdateDivisionInternalRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
 /**
- * Exposes the handwritten V1 Division API.
+ * Implements the generated V1 Division API.
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/config/divisions")
-public class DivisionController {
+public class DivisionController implements DivisionApi {
 
     private final DivisionService divisionService;
     private final DivisionApiMapper mapper;
@@ -36,8 +34,8 @@ public class DivisionController {
      * Lists active and inactive divisions.
      */
     @PreAuthorize("hasAuthority('SCOPE_read:divisions')")
-    @GetMapping
-    public ResponseEntity<List<DivisionInternalResponse>> listAll() {
+    @Override
+    public ResponseEntity<List<DivisionInternalResponse>> listDivisions() {
         return ResponseEntity.ok(divisionService.findAll().stream().map(mapper::toInternalResponse).toList());
     }
 
@@ -45,8 +43,8 @@ public class DivisionController {
      * Returns one division by identifier.
      */
     @PreAuthorize("hasAuthority('SCOPE_read:divisions')")
-    @GetMapping("/{id}")
-    public ResponseEntity<DivisionInternalResponse> getById(@PathVariable Long id) {
+    @Override
+    public ResponseEntity<DivisionInternalResponse> getDivisionById(Long id) {
         return ResponseEntity.ok(mapper.toInternalResponse(divisionService.getById(id)));
     }
 
@@ -54,12 +52,9 @@ public class DivisionController {
      * Creates a division from multipart JSON and an optional logo.
      */
     @PreAuthorize("hasAuthority('SCOPE_create:divisions')")
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DivisionInternalResponse> create(
-        @RequestPart("data") String json,
-        @RequestPart(value = "image", required = false) MultipartFile image)
-        throws JsonProcessingException, IOException {
-        CreateDivisionInternalRequest request = objectMapper.readValue(json, CreateDivisionInternalRequest.class);
+    @Override
+    public ResponseEntity<DivisionInternalResponse> createDivision(String data, MultipartFile image) {
+        CreateDivisionInternalRequest request = readData(data, CreateDivisionInternalRequest.class);
         DivisionView created = divisionService.create(mapper.toCommand(request, image));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{id}").buildAndExpand(created.id()).toUri();
@@ -70,13 +65,9 @@ public class DivisionController {
      * Updates and, when necessary, reactivates a division.
      */
     @PreAuthorize("hasAuthority('SCOPE_update:divisions')")
-    @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DivisionInternalResponse> update(
-        @PathVariable Long id,
-        @RequestPart("data") String json,
-        @RequestPart(value = "image", required = false) MultipartFile image)
-        throws JsonProcessingException, IOException {
-        UpdateDivisionInternalRequest request = objectMapper.readValue(json, UpdateDivisionInternalRequest.class);
+    @Override
+    public ResponseEntity<DivisionInternalResponse> updateDivision(Long id, String data, MultipartFile image) {
+        UpdateDivisionInternalRequest request = readData(data, UpdateDivisionInternalRequest.class);
         return ResponseEntity.ok(mapper.toInternalResponse(divisionService.update(id, mapper.toCommand(request, image))));
     }
 
@@ -84,9 +75,17 @@ public class DivisionController {
      * Soft-deletes one division.
      */
     @PreAuthorize("hasAuthority('SCOPE_delete:divisions')")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deactivate(@PathVariable Long id) {
+    @Override
+    public ResponseEntity<Void> deactivateDivision(Long id) {
         divisionService.deactivate(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private <T> T readData(String data, Class<T> requestType) {
+        try {
+            return objectMapper.readValue(data, requestType);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("The multipart data field is invalid.", exception);
+        }
     }
 }

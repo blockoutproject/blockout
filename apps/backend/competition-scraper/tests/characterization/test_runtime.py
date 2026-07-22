@@ -110,7 +110,9 @@ def test_top_level_runner_limits_scraper_concurrency_to_two(monkeypatch) -> None
         maximum = 0
         started: list[str] = []
 
-        async def run_one(_session, _provider_client, scraper_type):
+        async def run_one(
+            _session, _provider_client, scraper_type, _raw_division_mapping_api=None
+        ):
             nonlocal active, maximum
             active += 1
             maximum = max(maximum, active)
@@ -198,11 +200,18 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
             observed["httpx"] = kwargs
             return Session()
 
-        async def run(session, provider_client, scraper_types, max_concurrency=2):
+        async def run(
+            session,
+            provider_client,
+            scraper_types,
+            raw_division_mapping_api=None,
+            max_concurrency=2,
+        ):
             observed["run"] = (
                 session,
                 provider_client,
                 list(scraper_types),
+                raw_division_mapping_api,
                 max_concurrency,
             )
 
@@ -215,7 +224,7 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
         monkeypatch.setattr(competition_main, "execution_duration_gauge", _Gauge())
 
         assert await competition_main.main() is True
-        assert [item["timeout"].total for item in observed["sessions"]] == [10, 10]
+        assert [item["timeout"].total for item in observed["sessions"]] == [10]
         assert all(item["trust_env"] is True for item in observed["sessions"])
         assert observed["connector"] == {"limit": 20}
         assert observed["limits"] == {"max_connections": 20}
@@ -226,7 +235,8 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
             "limits": "limits",
         }
         assert observed["run"][2] == ["regional", "departmental", "national", "pro"]
-        assert observed["run"][3] == 2
+        assert observed["run"][3] is not None
+        assert observed["run"][4] == 2
 
     asyncio.run(scenario())
 

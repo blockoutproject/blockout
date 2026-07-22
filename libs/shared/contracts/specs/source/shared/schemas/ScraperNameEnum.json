@@ -1,0 +1,6 @@
+{
+  "ScraperNameEnum": {
+    "type": "string",
+    "enum": ["SCRAPER", "SCRAPER_CLUBS"]
+  }
+}

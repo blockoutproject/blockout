@@ -1,13 +1,23 @@
 package com.blockout.config;
 
-import com.blockout.config.appstatus.api.models.AppStatusInternalResponse;
-import com.blockout.config.division.api.models.DivisionInternalResponse;
-import com.blockout.config.legaldocument.api.models.LegalDocumentInternalResponse;
-import com.blockout.config.rawdivisionmapping.api.models.RawDivisionMappingInternalResponse;
-import com.blockout.config.rawdivisionmapping.application.models.Format;
-import com.blockout.config.rawdivisionmapping.application.models.Gender;
-import com.blockout.config.scraperstatus.api.models.ScraperStatusInternalResponse;
-import com.blockout.config.scraperstatus.application.models.ScraperName;
+import com.blockout.config.appstatus.api.AppStatusController;
+import com.blockout.config.contract.api.AppStatusApi;
+import com.blockout.config.contract.api.DivisionApi;
+import com.blockout.config.contract.api.LegalDocumentApi;
+import com.blockout.config.contract.api.RawDivisionMappingApi;
+import com.blockout.config.contract.api.ScraperStatusApi;
+import com.blockout.config.contract.model.AppStatusInternalResponse;
+import com.blockout.config.contract.model.DivisionInternalResponse;
+import com.blockout.config.contract.model.LegalDocumentInternalResponse;
+import com.blockout.config.contract.model.RawDivisionMappingInternalResponse;
+import com.blockout.config.contract.model.ScraperStatusInternalResponse;
+import com.blockout.config.division.api.DivisionController;
+import com.blockout.config.legaldocument.api.LegalDocumentController;
+import com.blockout.config.rawdivisionmapping.api.RawDivisionMappingController;
+import com.blockout.config.scraperstatus.api.ScraperStatusController;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
+import com.blockout.shared.model.ScraperNameEnum;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -37,22 +47,38 @@ class ConfigApiContractUnitTest {
     void serializesAuthoritativeConfigurationResponses() {
         LocalDateTime timestamp = LocalDateTime.of(2026, 7, 19, 12, 30);
 
-        assertFields(new AppStatusInternalResponse(false, "ready", null, "1.0", "1.0", null, null, null,
-                Instant.parse("2026-07-19T10:30:00Z")),
+        assertFields(new AppStatusInternalResponse(false)
+                .message("ready")
+                .minVersionIos("1.0")
+                .minVersionAndroid("1.0")
+                .lastUpdate(Instant.parse("2026-07-19T10:30:00Z")),
             "maintenance", "message", "imageUrl", "minVersionIos", "minVersionAndroid", "storeUrlIos",
             "storeUrlAndroid", "forceUpdateMessage", "lastUpdate");
-        assertFields(new DivisionInternalResponse(1L, "National", "#1", "#2", "#3", "#4", null, true,
-                timestamp, timestamp),
+        assertFields(new DivisionInternalResponse(1L, "National", "#1", "#2", "#3", "#4", true)
+                .createdAt(timestamp).lastUpdate(timestamp),
             "id", "name", "mainColor", "firstGradientColor", "secondGradientColor", "thirdGradientColor",
             "logoUrl", "active", "createdAt", "lastUpdate");
-        assertFields(new LegalDocumentInternalResponse(1L, "terms", "Terms", "1", "content", timestamp, timestamp),
+        assertFields(new LegalDocumentInternalResponse(1L, "terms", "Terms", "1", "content")
+                .createdAt(timestamp).lastUpdate(timestamp),
             "id", "type", "title", "version", "content", "createdAt", "lastUpdate");
-        assertFields(new RawDivisionMappingInternalResponse(1L, "N3", 4L, Format.SIX, Gender.F, "LNV", "2026",
-                timestamp, timestamp, true),
+        assertFields(new RawDivisionMappingInternalResponse(1L, "N3", "LNV", "2026", true)
+                .divisionId(4L).format(FormatEnum.SIX).gender(GenderEnum.F)
+                .createdAt(timestamp).lastUpdate(timestamp),
             "id", "rawDivisionName", "divisionId", "format", "gender", "leagueCode", "season", "createdAt",
             "lastUpdate", "mapped");
-        assertFields(new ScraperStatusInternalResponse(1L, ScraperName.SCRAPER_CLUBS, true, timestamp),
+        assertFields(new ScraperStatusInternalResponse(1L, ScraperNameEnum.SCRAPER_CLUBS, true)
+                .lastUpdate(timestamp),
             "id", "name", "enabled", "lastUpdate");
+    }
+
+    @Test
+    @DisplayName("controllers implement their generated interfaces")
+    void controllersImplementGeneratedInterfaces() {
+        assertThat(AppStatusApi.class).isAssignableFrom(AppStatusController.class);
+        assertThat(DivisionApi.class).isAssignableFrom(DivisionController.class);
+        assertThat(LegalDocumentApi.class).isAssignableFrom(LegalDocumentController.class);
+        assertThat(RawDivisionMappingApi.class).isAssignableFrom(RawDivisionMappingController.class);
+        assertThat(ScraperStatusApi.class).isAssignableFrom(ScraperStatusController.class);
     }
 
     /**

@@ -16,17 +16,26 @@ from blockout_contract_clients.club.models.create_club_internal_request import (
 from blockout_contract_clients.club.models.update_club_internal_request import (
     UpdateClubInternalRequest,
 )
+from blockout_contract_clients.config.api.scraper_status_api import ScraperStatusApi
+from blockout_contract_clients.config.api_client import ApiClient as ConfigApiClient
+from blockout_contract_clients.config.configuration import (
+    Configuration as ConfigConfiguration,
+)
+from blockout_contract_clients.config.exceptions import (
+    ApiException as ConfigApiException,
+)
+from blockout_contract_clients.config.models.scraper_name_enum import ScraperNameEnum
 
 from scraper.application.models import Club
 from scraper.config.settings import Settings
 from scraper.infrastructure.blockout.auth import TokenStore
 from scraper.infrastructure.blockout.contracts import (
     BulkDeactivateClubsInternalRequest,
-    ScraperStatusInternalResponse,
 )
 from scraper.infrastructure.blockout.response import read_json
 
 _CLUB_API_PATH = "/api/v1/clubs"
+_CONFIG_API_PATH = "/api/v1/config"
 # The generated HTTPX transport needs one file tuple to retain multipart encoding.
 _EMPTY_IMAGE_PART = ("image", b"")
 
@@ -40,11 +49,13 @@ class BlockoutClients:
         settings: Settings,
         tokens: TokenStore,
         club_api: ClubApi,
+        scraper_status_api: ScraperStatusApi,
     ) -> None:
         self._session = session
         self._settings = settings
         self._tokens = tokens
         self._club_api = club_api
+        self._scraper_status_api = scraper_status_api
 
     async def get_all_clubs(self) -> list[Club]:
         clubs = await _club_call(
@@ -63,12 +74,15 @@ class BlockoutClients:
         data = await read_json(response)
         return [] if data is None else data
 
-    async def get_scraper_status(self, name: str) -> ScraperStatusInternalResponse:
-        response = await self._session.get(
-            f"{self._settings.config_api_url}/scrapers/{name}/status",
-            headers=self._tokens.headers(),
+    async def scraper_enabled(self, name: ScraperNameEnum) -> bool:
+        response = await _config_call(
+            self._scraper_status_api.get_scraper_status(
+                name,
+                _headers=self._tokens.headers(),
+                _request_timeout=10,
+            )
         )
-        return ScraperStatusInternalResponse.from_json(await read_json(response))
+        return response.enabled
 
     async def create_club(
         self,
@@ -121,6 +135,18 @@ def build_club_api_client(settings: Settings) -> ApiClient:
         verify_ssl=False,
     )
     return ApiClient(configuration)
+
+
+def build_config_api_client(settings: Settings) -> ConfigApiClient:
+    """Configure the generated config-service client from its existing URL."""
+    if not settings.config_api_url.endswith(_CONFIG_API_PATH):
+        raise ValueError(f"CONFIG_API_URL must end with '{_CONFIG_API_PATH}'.")
+    configuration = ConfigConfiguration(
+        host=settings.config_api_url.removesuffix(_CONFIG_API_PATH),
+        connection_pool_maxsize=20,
+        verify_ssl=False,
+    )
+    return ConfigApiClient(configuration)
 
 
 def _create_request(club: Club) -> CreateClubInternalRequest:
@@ -176,5 +202,13 @@ async def _club_call[T](request: Awaitable[T]) -> T:
     try:
         return await request
     except ApiException as error:
+        detail = error.body or error.reason or "Unknown error"
+        raise RuntimeError(f"Erreur API {error.status}: {detail}") from error
+
+
+async def _config_call[T](request: Awaitable[T]) -> T:
+    try:
+        return await request
+    except ConfigApiException as error:
         detail = error.body or error.reason or "Unknown error"
         raise RuntimeError(f"Erreur API {error.status}: {detail}") from error

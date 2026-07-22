@@ -1,0 +1,21 @@
+{
+  "AppStatusInternalResponse": {
+    "type": "object",
+    "required": ["maintenance"],
+    "properties": {
+      "maintenance": { "type": "boolean" },
+      "message": { "type": "string", "nullable": true },
+      "imageUrl": { "type": "string", "nullable": true },
+      "minVersionIos": { "type": "string", "nullable": true },
+      "minVersionAndroid": { "type": "string", "nullable": true },
+      "storeUrlIos": { "type": "string", "nullable": true },
+      "storeUrlAndroid": { "type": "string", "nullable": true },
+      "forceUpdateMessage": { "type": "string", "nullable": true },
+      "lastUpdate": {
+        "type": "string",
+        "format": "instant",
+        "nullable": true
+      }
+    }
+  }
+}

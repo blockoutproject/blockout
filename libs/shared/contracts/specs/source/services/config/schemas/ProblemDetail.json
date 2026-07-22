@@ -1,0 +1,13 @@
+{
+  "ProblemDetail": {
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+      "type": { "type": "string", "format": "uri" },
+      "title": { "type": "string" },
+      "status": { "type": "integer", "format": "int32" },
+      "detail": { "type": "string" },
+      "instance": { "type": "string", "format": "uri" }
+    }
+  }
+}

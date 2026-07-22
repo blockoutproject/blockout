@@ -2,6 +2,7 @@ package com.blockout.workersearch.projection;
 
 import com.blockout.workersearch.projection.application.models.Format;
 import com.blockout.workersearch.projection.application.models.Gender;
+import com.blockout.workersearch.projection.infrastructure.http.contract.config.models.DivisionInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.contract.models.ClubInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.PoolInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.TeamInternalResponse;
@@ -48,6 +49,19 @@ class ProjectionTransportContractUnitTest {
         assertThat(club.getLatitude()).isEqualTo(48.0);
         assertThat(club.getCreatedAt()).isEqualTo(club.getLastUpdate());
         assertThat(club.getActive()).isTrue();
+    }
+
+    @Test
+    void readsTheGeneratedDivisionInternalResponse() throws Exception {
+        DivisionInternalResponse division = mapper().readValue("""
+            {"id":20,"name":"National","mainColor":"#1","firstGradientColor":"#2",
+             "secondGradientColor":"#3","thirdGradientColor":"#4","logoUrl":"logo",
+             "active":true,"createdAt":"2026-07-19T12:00:00","lastUpdate":"2026-07-19T12:00:00"}
+            """, DivisionInternalResponse.class);
+
+        assertThat(division.getName()).isEqualTo("National");
+        assertThat(division.getLogoUrl()).isEqualTo("logo");
+        assertThat(division.getActive()).isTrue();
     }
 
     @Test

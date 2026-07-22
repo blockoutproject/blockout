@@ -1,0 +1,474 @@
+{
+  "/api/v1/config/app-status": {
+    "get": {
+      "tags": ["AppStatus"],
+      "operationId": "getAppStatus",
+      "summary": "Get the application status",
+      "responses": {
+        "200": {
+          "description": "Application status returned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppStatusInternalResponse"
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/Unauthorized" }
+      }
+    },
+    "put": {
+      "tags": ["AppStatus"],
+      "operationId": "updateAppStatus",
+      "summary": "Update the application status",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateAppStatusInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Application status updated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppStatusInternalResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequest" },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" }
+      }
+    }
+  },
+  "/api/v1/config/divisions": {
+    "get": {
+      "tags": ["Division"],
+      "operationId": "listDivisions",
+      "summary": "List active and inactive Divisions",
+      "responses": {
+        "200": {
+          "description": "Divisions returned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DivisionInternalResponse"
+                }
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" }
+      }
+    },
+    "post": {
+      "tags": ["Division"],
+      "operationId": "createDivision",
+      "summary": "Create a Division from multipart JSON and an optional image",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "image": { "type": "string", "format": "binary" }
+              }
+            },
+            "encoding": { "data": { "contentType": "application/json" } }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Division created",
+          "headers": {
+            "Location": {
+              "description": "URI of the created Division",
+              "schema": { "type": "string", "format": "uri" }
+            }
+          },
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DivisionInternalResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequest" },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" }
+      }
+    }
+  },
+  "/api/v1/config/divisions/{id}": {
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      }
+    ],
+    "get": {
+      "tags": ["Division"],
+      "operationId": "getDivisionById",
+      "summary": "Get a Division by identifier",
+      "responses": {
+        "200": {
+          "description": "Division returned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DivisionInternalResponse"
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" },
+        "404": { "$ref": "#/components/responses/NotFound" }
+      }
+    },
+    "put": {
+      "tags": ["Division"],
+      "operationId": "updateDivision",
+      "summary": "Update and, when necessary, reactivate a Division",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "image": { "type": "string", "format": "binary" }
+              }
+            },
+            "encoding": { "data": { "contentType": "application/json" } }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Division updated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DivisionInternalResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequest" },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" },
+        "404": { "$ref": "#/components/responses/NotFound" }
+      }
+    },
+    "delete": {
+      "tags": ["Division"],
+      "operationId": "deactivateDivision",
+      "summary": "Deactivate a Division",
+      "responses": {
+        "204": { "description": "Division deactivated" },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" },
+        "404": { "$ref": "#/components/responses/NotFound" }
+      }
+    }
+  },
+  "/api/v1/config/legal/{type}": {
+    "parameters": [
+      {
+        "name": "type",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    ],
+    "get": {
+      "tags": ["LegalDocument"],
+      "operationId": "getLegalDocumentByType",
+      "summary": "Get a LegalDocument by its stable type",
+      "security": [],
+      "responses": {
+        "200": {
+          "description": "LegalDocument returned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalDocumentInternalResponse"
+              }
+            }
+          }
+        },
+        "404": { "$ref": "#/components/responses/NotFound" }
+      }
+    },
+    "put": {
+      "tags": ["LegalDocument"],
+      "operationId": "updateLegalDocument",
+      "summary": "Update a LegalDocument",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateLegalDocumentInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "LegalDocument updated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalDocumentInternalResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequest" },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" },
+        "404": { "$ref": "#/components/responses/NotFound" }
+      }
+    }
+  },
+  "/api/v1/config/raw-divisions": {
+    "get": {
+      "tags": ["RawDivisionMapping"],
+      "operationId": "listRawDivisionMappings",
+      "summary": "List raw provider-to-Blockout Division mappings",
+      "parameters": [
+        {
+          "name": "leagueCode",
+          "in": "query",
+          "required": false,
+          "schema": { "type": "string" }
+        },
+        {
+          "name": "season",
+          "in": "query",
+          "required": false,
+          "schema": { "type": "string" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Raw Division mappings returned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RawDivisionMappingInternalResponse"
+                }
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" }
+      }
+    },
+    "post": {
+      "tags": ["RawDivisionMapping"],
+      "operationId": "createRawDivisionMapping",
+      "summary": "Create a raw provider-to-Blockout Division mapping",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateRawDivisionMappingInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Raw Division mapping created",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawDivisionMappingInternalResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequest" },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" }
+      }
+    }
+  },
+  "/api/v1/config/raw-divisions/{id}": {
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      }
+    ],
+    "get": {
+      "tags": ["RawDivisionMapping"],
+      "operationId": "getRawDivisionMappingById",
+      "summary": "Get a raw Division mapping by identifier",
+      "responses": {
+        "200": {
+          "description": "Raw Division mapping returned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawDivisionMappingInternalResponse"
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" },
+        "404": { "$ref": "#/components/responses/NotFound" }
+      }
+    },
+    "put": {
+      "tags": ["RawDivisionMapping"],
+      "operationId": "updateRawDivisionMapping",
+      "summary": "Update a raw Division mapping classification",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateRawDivisionMappingInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Raw Division mapping updated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawDivisionMappingInternalResponse"
+              }
+            }
+          }
+        },
+        "400": { "$ref": "#/components/responses/BadRequest" },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" },
+        "404": { "$ref": "#/components/responses/NotFound" }
+      }
+    }
+  },
+  "/api/v1/config/scrapers/{name}/status": {
+    "get": {
+      "tags": ["ScraperStatus"],
+      "operationId": "getScraperStatus",
+      "summary": "Get a scraper status by its stable name",
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": { "$ref": "#/components/schemas/ScraperNameEnum" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Scraper status returned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScraperStatusInternalResponse"
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "404": { "$ref": "#/components/responses/NotFound" }
+      }
+    }
+  },
+  "/api/v1/config/scrapers/{name}/enabled": {
+    "put": {
+      "tags": ["ScraperStatus"],
+      "operationId": "updateScraperStatus",
+      "summary": "Enable or disable a scraper",
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": { "$ref": "#/components/schemas/ScraperNameEnum" }
+        },
+        {
+          "name": "enabled",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "boolean" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Scraper status updated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScraperStatusInternalResponse"
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" },
+        "404": { "$ref": "#/components/responses/NotFound" }
+      }
+    }
+  },
+  "/api/v1/config/scrapers/status": {
+    "get": {
+      "tags": ["ScraperStatus"],
+      "operationId": "listScraperStatuses",
+      "summary": "List configured scraper statuses",
+      "responses": {
+        "200": {
+          "description": "Scraper statuses returned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScraperStatusInternalResponse"
+                }
+              }
+            }
+          }
+        },
+        "401": { "$ref": "#/components/responses/Unauthorized" },
+        "403": { "$ref": "#/components/responses/Forbidden" }
+      }
+    }
+  }
+}

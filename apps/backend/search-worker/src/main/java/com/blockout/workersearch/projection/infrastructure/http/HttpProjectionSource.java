@@ -7,7 +7,7 @@ import com.blockout.workersearch.projection.application.models.PoolProjectionSou
 import com.blockout.workersearch.projection.application.models.TeamProjectionSource;
 import com.blockout.workersearch.projection.application.ports.ProjectionSource;
 import com.blockout.workersearch.projection.infrastructure.http.contract.models.ClubInternalResponse;
-import com.blockout.workersearch.projection.infrastructure.http.models.DivisionInternalResponse;
+import com.blockout.workersearch.projection.infrastructure.http.contract.config.models.DivisionInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.PoolInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.TeamInternalResponse;
 import lombok.RequiredArgsConstructor;
@@ -71,7 +71,7 @@ public class HttpProjectionSource implements ProjectionSource {
             ? Collections.emptyList()
             : Arrays.stream(body)
             .map(division -> new DivisionProjectionSource(
-                division.id(), division.name(), division.logoUrl()))
+                division.getId(), division.getName(), division.getLogoUrl()))
             .toList();
     }
 

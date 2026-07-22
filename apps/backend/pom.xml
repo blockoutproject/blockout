@@ -80,6 +80,7 @@
                         <schemaMappings>
                             <schemaMapping>FormatEnum=com.blockout.shared.model.FormatEnum</schemaMapping>
                             <schemaMapping>GenderEnum=com.blockout.shared.model.GenderEnum</schemaMapping>
+                            <schemaMapping>ScraperNameEnum=com.blockout.shared.model.ScraperNameEnum</schemaMapping>
                         </schemaMappings>
                         <!-- END generated schemaMappings -->
                     </configuration>

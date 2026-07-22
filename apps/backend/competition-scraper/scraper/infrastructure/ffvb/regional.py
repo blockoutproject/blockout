@@ -4,6 +4,9 @@ import asyncio
 
 import aiohttp
 import httpx
+from blockout_contract_clients.config.api.raw_division_mapping_api import (
+    RawDivisionMappingApi,
+)
 
 from scraper.application.ffvb_league_ingestion import ingest_league_pools
 from scraper.application.source import Scraper
@@ -19,12 +22,16 @@ class RegionalScraper(Scraper):
     """Discover regional leagues and ingest their mapped pools."""
 
     def __init__(
-        self, session: aiohttp.ClientSession, provider_client: httpx.AsyncClient
+        self,
+        session: aiohttp.ClientSession,
+        provider_client: httpx.AsyncClient,
+        raw_division_mapping_api: RawDivisionMappingApi | None = None,
     ) -> None:
         super().__init__(
             session,
             provider_client,
             name="regional_scraper",
+            raw_division_mapping_api=raw_division_mapping_api,
             url="https://www.ffvb.org/120-37-1-Championnats-Regionaux",
             priority_validation_enabled=False,
         )

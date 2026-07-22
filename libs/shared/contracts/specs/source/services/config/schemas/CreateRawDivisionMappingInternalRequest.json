@@ -1,0 +1,14 @@
+{
+  "CreateRawDivisionMappingInternalRequest": {
+    "type": "object",
+    "required": ["rawDivisionName", "leagueCode", "season"],
+    "properties": {
+      "rawDivisionName": { "type": "string" },
+      "divisionId": { "type": "integer", "format": "int64", "nullable": true },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "leagueCode": { "type": "string" },
+      "season": { "type": "string" }
+    }
+  }
+}

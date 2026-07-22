@@ -3,8 +3,15 @@ from dataclasses import fields, replace
 from datetime import UTC, datetime
 
 import scraper.application.match_changes as match_changes
+from blockout_contract_clients.config.models.create_raw_division_mapping_internal_request import (
+    CreateRawDivisionMappingInternalRequest,
+)
+from blockout_contract_clients.config.models.scraper_status_internal_response import (
+    ScraperStatusInternalResponse,
+)
 from scraper.application import pool_writer as pools_service
 from scraper.application import team_writer as teams_service
+from scraper.application.models import RawDivisionMapping
 from scraper.application.source import Scraper
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.infrastructure.blockout import competitions as competitions_api
@@ -28,12 +35,7 @@ from scraper.infrastructure.blockout.pool import (
     PoolInternalResponse,
     UpdatePoolInternalRequest,
 )
-from scraper.infrastructure.blockout.raw_division_mapping import (
-    CreateRawDivisionMappingInternalRequest,
-    RawDivisionMappingInternalResponse,
-)
 from scraper.infrastructure.blockout.response import process_response
-from scraper.infrastructure.blockout.scraper_status import ScraperStatusInternalResponse
 from scraper.infrastructure.blockout.team import (
     CreateTeamInternalRequest,
     TeamInternalResponse,
@@ -207,23 +209,23 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
         "createdAt",
         "lastUpdate",
     }
-    assert set(item.name for item in fields(RawDivisionMappingInternalResponse)) == {
+    assert set(item.name for item in fields(RawDivisionMapping)) == {
         "id",
-        "rawDivisionName",
-        "divisionId",
+        "raw_division_name",
+        "division_id",
         "format",
         "gender",
-        "leagueCode",
+        "league_code",
         "season",
-        "createdAt",
-        "lastUpdate",
+        "created_at",
+        "last_update",
         "mapped",
     }
-    assert [item.name for item in fields(ScraperStatusInternalResponse)] == [
+    assert list(ScraperStatusInternalResponse.model_fields) == [
         "id",
         "name",
         "enabled",
-        "lastUpdate",
+        "last_update",
     ]
 
 
@@ -305,7 +307,10 @@ def test_write_contracts_mirror_java_owner_field_sets() -> None:
     assert [item.name for item in fields(UpdateMatchInternalRequest)] == (
         match_write_fields
     )
-    assert [item.name for item in fields(CreateRawDivisionMappingInternalRequest)] == [
+    assert [
+        field.alias or name
+        for name, field in CreateRawDivisionMappingInternalRequest.model_fields.items()
+    ] == [
         "rawDivisionName",
         "divisionId",
         "format",

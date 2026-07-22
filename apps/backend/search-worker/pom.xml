@@ -30,6 +30,10 @@
     </properties>
     <dependencies>
         <dependency>
+            <groupId>com.blockout</groupId>
+            <artifactId>shared-models</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -130,6 +134,35 @@
                             </configOptions>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>generate-config-client-models</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>
+                                ${project.basedir}/../../../libs/shared/contracts/generated/specs/config.json
+                            </inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources/openapi/config-client</output>
+                            <modelPackage>
+                                com.blockout.workersearch.projection.infrastructure.http.contract.config.models
+                            </modelPackage>
+                            <generateApis>false</generateApis>
+                            <generateModels>true</generateModels>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <configOptions>
+                                <dateLibrary>java8-localdatetime</dateLibrary>
+                            </configOptions>
+                            <typeMappings>
+                                <typeMapping>string+instant=Instant</typeMapping>
+                            </typeMappings>
+                            <importMappings>
+                                <importMapping>Instant=java.time.Instant</importMapping>
+                            </importMappings>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -146,6 +179,9 @@
                             <sources>
                                 <source>
                                     ${project.build.directory}/generated-sources/openapi/club-client/src/main/java
+                                </source>
+                                <source>
+                                    ${project.build.directory}/generated-sources/openapi/config-client/src/main/java
                                 </source>
                             </sources>
                         </configuration>

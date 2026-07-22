@@ -1,0 +1,63 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Config Service Internal API",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "http://localhost:8090" }],
+  "tags": [
+    { "name": "AppStatus" },
+    { "name": "Division" },
+    { "name": "LegalDocument" },
+    { "name": "RawDivisionMapping" },
+    { "name": "ScraperStatus" }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "x-contract-schema-roots": [
+    "CreateDivisionInternalRequest",
+    "UpdateDivisionInternalRequest"
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "The request is invalid",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Authentication is missing or invalid",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "The caller cannot perform this operation",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "The requested configuration resource does not exist",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      }
+    }
+  }
+}
