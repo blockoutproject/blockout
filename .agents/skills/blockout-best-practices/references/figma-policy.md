@@ -7,8 +7,8 @@ Figma-to-code implementation, and visual reconciliation.
 ## Authority
 
 - `docs/current/roadmap.md` controls current task scope, order, dependencies, and acceptance evidence.
-- Runtime source and the running iOS and Android application control behavior, routes, authorization, data flow, copy,
-  accessibility, platform integration, and available states. Figma cannot activate or redefine them.
+- Runtime source and the running supported application surfaces control behavior, routes, authorization, data flow,
+  copy, accessibility, platform integration, and available states. Figma cannot activate or redefine them.
 - [`ref-061-mobile-visual-baseline.md`](../../../../docs/current/ref-061-mobile-visual-baseline.md) controls the visual
   inventory and the approved foundation, component, and screen scope.
 - [`ref-064-figma-screen-certification.md`](../../../../docs/current/ref-064-figma-screen-certification.md) records the
@@ -64,7 +64,8 @@ Figma-to-code implementation, and visual reconciliation.
 - Keep Figma writes sequential, incremental, idempotent, and bounded to the owning page or node.
 - Reuse semantic variables, text and effect styles, local components, variants, and icon instance swaps. Do not detach
   instances or duplicate an existing component family.
-- Preserve a minimum 44-point interactive target. Keep iOS and Android safe-area and system differences explicit.
+- Preserve a minimum 44-point interactive target. Keep safe-area and system differences explicit for every platform
+  included in the owning task.
 - Every variable, token category, component family, lifecycle page, and screen state requires evidence from REF-061 or
   current runtime source.
 - Return every changed node ID and immediately verify naming, properties, bindings, fonts, metadata, instance linkage,
@@ -78,6 +79,9 @@ Figma-to-code implementation, and visual reconciliation.
 
 - Compare Figma with the running application at the same viewport, platform, theme, authentication mode, sanitized
   fixture, and state.
+- A roadmap task may limit runtime visual evidence to a smaller platform set for resource reasons. Record the exact
+  platforms exercised. An explicitly assumed parity platform may guide design decisions, but it must never be reported
+  as launched, observed, or certified.
 - Validate loading, empty, error, disabled, destructive, sheet, toast, keyboard, scrolling, and platform-specific states
   where current evidence makes them reachable. Figma alone cannot prove interaction behavior.
 - Missing runtime data, authentication, provider state, font, entitlement, simulator, or physical-device evidence is a

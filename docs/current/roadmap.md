@@ -798,7 +798,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     behavior changed. Full ownership and validation evidence is recorded in
     [the REF-063 Figma component library record](./ref-063-figma-components.md).
 
-- [x] **REF-064 — Reconstruct and certify the mobile screens in Figma**
+- [x] **REF-064 — Reconstruct the mobile screen specifications in Figma**
   - Reconstruct every screen and state from the REF-061 matrix using the approved foundations and components. Preserve
     the current product, copy, information hierarchy, navigation intent, and native identity while resolving accidental
     spacing, alignment, sizing, and component inconsistencies.
@@ -806,15 +806,29 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     but do not design a 1920-by-1080 desktop application.
   - Review the complete screen set against the running native application and close every unexplained gap. At completion,
     Figma becomes the visual authority for the implementation refactor; the application remains the functional authority.
-  - Evidence: `30 - Ready for Development` now contains all 39 screen rows and 210 named states from REF-061, grouped
-    into five mobile domains. Twenty-one frames use `iOS 393` and eighteen use `Android 411`; every frame records its
+  - Evidence: `30 - Ready for Development` now contains all 39 screen rows and 210 named state labels from REF-061,
+    grouped into five mobile domains. Twenty-one frames use `iOS 393` and eighteen use `Android 411`; every frame records its
     observed, certified, or source-reconstructed evidence and follows the canonical domain/screen/viewport/state name.
     The consent, map, and PDF surfaces are explicit provider boundaries, Auth0 remains a handoff, and no desktop product
-    was invented. The final 1,440-by-9,006 audit reports no placeholder, duplicate screen key, or immediate overflow.
-    Figma now controls visual composition while the application retains functional and platform authority. No Expo
+    was invented. The final 1,440-by-9,006 structural audit reports no placeholder, duplicate screen key, or immediate
+    overflow. These compact frames are specification coverage rather than full-height runtime reproductions. No Expo
     source, API contract, generated artifact, provider configuration, deployment, or production state changed. Full
     scope and validation evidence is recorded in
     [the REF-064 Figma screen certification](./ref-064-figma-screen-certification.md).
+
+- [ ] **REF-064A — Reconcile the canonical Web mobile and iOS screens in Figma**
+  - Compare the running application with the canonical file and replace specification-only claims with complete,
+    implementation-ready screen compositions. Preserve current behavior, copy, information hierarchy, native identity,
+    provider ownership, and the small local Blockout component system.
+  - Exercise React Native Web at a phone viewport and the iOS simulator. Do not launch or test Android in this task for
+    resource reasons; treat Android as an explicit parity assumption with iOS and never describe it as observed or
+    certified evidence.
+  - Normalize only proven visual drift: spacing, radii, typography, component proportions, and repeated states. Use the
+    Apple library only for genuine iOS system or provider boundaries; keep Blockout controls local. Do not modify Expo
+    runtime source, contracts, generated artifacts, providers, deployment, or production state.
+  - Certify only full compositions with matching runtime evidence. Record inaccessible data, authentication, provider,
+    or native states as blocked instead of manufacturing fixtures or visual proof. Update the Figma policy and this
+    roadmap with the exact nodes, viewports, states, validation results, and remaining limitations.
 
 - [ ] **REF-065 — Establish the Expo UI and component policy**
   - Rewrite the mobile policy from the certified Figma system, current Expo and React Native guidance, and the existing

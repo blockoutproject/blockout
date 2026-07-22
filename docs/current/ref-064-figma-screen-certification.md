@@ -2,18 +2,24 @@
 
 ## Visual authority
 
+> **Reconciliation note:** REF-064 established complete specification coverage, not pixel-complete screen certification.
+> Its 39 compact frames document composition intent and required states, but they are not full-height runtime screen
+> reproductions. REF-064A owns the visual reconciliation and may certify only complete compositions backed by current
+> runtime evidence.
+
 The [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) file is now the visual
 authority for the Blockout mobile refactor. The running application and runtime source remain authoritative for
 behavior, navigation, authorization, data flow, copy, accessibility, and native provider integration.
 
-The certified screen set lives on `30 - Ready for Development`. Nothing moved to `40 - Shipped`: that lifecycle step
+The specification set lives on `30 - Ready for Development`. Nothing moved to `40 - Shipped`: that lifecycle step
 belongs to the later Expo implementation and native verification tasks.
 
 ## Certified scope
 
-REF-064 reconstructs all 39 rows of the REF-061 matrix as mobile specification frames. Each frame contains the approved
-composition, reusable component instances, sanitized representative content, evidence origin, and an explicit instance
-for every required state. The set contains 210 named states across five groups:
+REF-064 reconstructs all 39 rows of the REF-061 matrix as compact mobile specification frames. Each frame records the
+intended composition, reusable component instances, sanitized representative content, evidence origin, and named state
+coverage. These chips are an inventory, not rendered instances of every state. The set contains 210 named state labels
+across five groups:
 
 | Group                                    | Screen frames |
 | ---------------------------------------- | ------------: |
@@ -52,9 +58,9 @@ nine families certified by REF-063.
 
 ## Validation
 
-The final Figma audit reports:
+The final REF-064 structural audit reports:
 
-- 39 uniquely keyed screen frames and 210 named state instances;
+- 39 uniquely keyed specification frames and 210 named state labels;
 - 21 `iOS 393` and 18 `Android 411` frames;
 - section counts of 7, 7, 8, 7, and 10, matching the authoritative matrix;
 - zero unfinished placeholder;
@@ -62,9 +68,9 @@ The final Figma audit reports:
 - zero immediate child overflow;
 - exactly three documented provider boundaries.
 
-The complete `Ready for Development` root renders at 1,440 by 9,006 pixels. Each section was also reviewed at a legible
-scale while it was built, and the canonical cover now records the certified mobile screen set. Temporary captures remain
-outside Git.
+The complete `Ready for Development` root renders at 1,440 by 9,006 pixels. Each section was reviewed as a legible
+specification catalog. REF-064A must add full-height canonical compositions and runtime comparisons before any screen is
+described as visually certified. Temporary captures remain outside Git.
 
 REF-064 changes no Expo source, API contract, generated artifact, provider configuration, deployment, or production
 state. The next task may use these designs to establish the Expo UI policy; implementation remains separately scoped.
