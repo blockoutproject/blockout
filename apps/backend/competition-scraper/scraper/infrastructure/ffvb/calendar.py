@@ -6,8 +6,8 @@ import io
 
 import httpx
 
+from scraper.application.models import Pool
 from scraper.application.source import Scraper
-from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.ffvb.models import (
     FfvbCalendarMatch,
     FfvbCalendarSnapshot,
@@ -88,7 +88,7 @@ def parse_csv_from_content(content: str) -> FfvbCalendarSnapshot:
 
 async def download_and_parse_csv(
     scraper: Scraper,
-    pool: PoolInternalResponse,
+    pool: Pool,
     raw_season: str,
     retries: int = 3,
     delay: int = 5,
@@ -98,10 +98,10 @@ async def download_and_parse_csv(
     download_url = "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier_export.php"
     data = {
         "cal_saison": raw_season,
-        "cal_codent": pool.leagueCode,
-        "cal_codpoule": pool.poolCode,
+        "cal_codent": pool.league_code,
+        "cal_codpoule": pool.pool_code,
     }
-    name = f"{pool.leagueCode}_{pool.poolCode}"
+    name = f"{pool.league_code}_{pool.pool_code}"
 
     async with _CSV_DOWNLOAD_SEMAPHORE:
         for attempt in range(1, retries + 1):
@@ -115,8 +115,8 @@ async def download_and_parse_csv(
                     action="download_success",
                     level="info",
                     attempt=attempt,
-                    leagueCode=pool.leagueCode,
-                    poolCode=pool.poolCode,
+                    leagueCode=pool.league_code,
+                    poolCode=pool.pool_code,
                     status=response.status_code,
                     bytes=len(raw_content),
                     content_type=response.headers.get("Content-Type"),
@@ -135,8 +135,8 @@ async def download_and_parse_csv(
                 log_event(
                     action="download_invalid_response",
                     level="error",
-                    leagueCode=pool.leagueCode,
-                    poolCode=pool.poolCode,
+                    leagueCode=pool.league_code,
+                    poolCode=pool.pool_code,
                     error=repr(error),
                     message=f"CSV invalide pour {name}.",
                 )
@@ -151,8 +151,8 @@ async def download_and_parse_csv(
         action="download_failed",
         level="error",
         attempts=retries,
-        leagueCode=pool.leagueCode,
-        poolCode=pool.poolCode,
+        leagueCode=pool.league_code,
+        poolCode=pool.pool_code,
         message=f"Échec complet pour {name} après {retries} tentatives.",
     )
     return None
@@ -160,7 +160,7 @@ async def download_and_parse_csv(
 
 def _log_download_failure(
     action: str,
-    pool: PoolInternalResponse,
+    pool: Pool,
     attempt: int,
     error: Exception,
 ) -> None:
@@ -168,7 +168,7 @@ def _log_download_failure(
         action=action,
         level="error",
         attempt=attempt,
-        leagueCode=pool.leagueCode,
-        poolCode=pool.poolCode,
+        leagueCode=pool.league_code,
+        poolCode=pool.pool_code,
         error=repr(error),
     )

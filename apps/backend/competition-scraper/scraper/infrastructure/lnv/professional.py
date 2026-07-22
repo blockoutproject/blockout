@@ -8,10 +8,11 @@ import httpx
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
+from blockout_contract_clients.pool.api.pool_api import PoolApi
 from blockout_contract_clients.team.api.team_api import TeamApi
 
 from scraper.application.calendar_ingestion import handle_csv_download_and_parse
-from scraper.application.models import RawDivisionMapping, Team
+from scraper.application.models import Pool, RawDivisionMapping, Team
 from scraper.application.source import Scraper
 from scraper.application.team_writer import (
     find_team_by_name_in_division_format_gender_season,
@@ -23,7 +24,6 @@ from scraper.infrastructure.blockout.configuration import (
     get_raw_division_mappings_by_league_and_season,
 )
 from scraper.infrastructure.blockout.match import MatchInternalResponse
-from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.pools import get_pools_by_league_and_season
 from scraper.infrastructure.blockout.teams import get_teams
 from scraper.infrastructure.lnv.parsers import (
@@ -42,6 +42,7 @@ class ProScraper(Scraper):
         provider_client: httpx.AsyncClient,
         raw_division_mapping_api: RawDivisionMappingApi | None = None,
         team_api: TeamApi | None = None,
+        pool_api: PoolApi | None = None,
     ) -> None:
         super().__init__(
             session,
@@ -49,6 +50,7 @@ class ProScraper(Scraper):
             name="pro_scraper",
             raw_division_mapping_api=raw_division_mapping_api,
             team_api=team_api,
+            pool_api=pool_api,
             priority_validation_enabled=True,
         )
         self.raw_season = "2026/2027"
@@ -112,11 +114,11 @@ class ProScraper(Scraper):
 
         try:
             existing_pools = await get_pools_by_league_and_season(
-                self.session, self.leagueCode, self.raw_season
+                self.pools_api(), self.leagueCode, self.raw_season
             )
             existing_pools = existing_pools or []
             existing_pools_dict = {
-                (pool.poolCode, pool.leagueCode, pool.season): pool
+                (pool.pool_code, pool.league_code, pool.season): pool
                 for pool in existing_pools
             }
 
@@ -148,21 +150,21 @@ class ProScraper(Scraper):
                     if not mapping.is_mapped():
                         continue
 
-                    pool_obj = PoolInternalResponse(
-                        poolCode=poolCode,
-                        leagueCode=self.leagueCode,
+                    pool_obj = Pool(
+                        pool_code=poolCode,
+                        league_code=self.leagueCode,
                         season=self.raw_season,
-                        leagueName=self.leagueName,
-                        rawName=name,
+                        league_name=self.leagueName,
+                        raw_name=name,
                         name=name,
-                        shortName=name,
-                        divisionId=mapping.division_id,
+                        short_name=name,
+                        division_id=mapping.division_id,
                         format=mapping.format,
                         gender=mapping.gender,
                     )
 
                     existing_pool = existing_pools_dict.get(
-                        (pool_obj.poolCode, pool_obj.leagueCode, pool_obj.season)
+                        (pool_obj.pool_code, pool_obj.league_code, pool_obj.season)
                     )
 
                     tasks.append(
@@ -202,8 +204,8 @@ class ProScraper(Scraper):
 
     async def execute_task_chain(
         self,
-        pool: PoolInternalResponse,
-        existing_pool: PoolInternalResponse,
+        pool: Pool,
+        existing_pool: Pool,
         raw_season: str,
         lnv_url: str,
         lnv_xml_matches_url: str,
@@ -221,7 +223,7 @@ class ProScraper(Scraper):
             log_event(
                 action="task_chain_error",
                 level="error",
-                poolCode=pool.poolCode,
+                poolCode=pool.pool_code,
                 error=repr(e),
                 message="Erreur lors de l'exécution de la chaîne de tâches pour une poule.",
             )
@@ -230,7 +232,7 @@ class ProScraper(Scraper):
         self,
         lnv_xml_matches_url: str,
         lnv_xml_rank_url: str,
-        pool: PoolInternalResponse,
+        pool: Pool,
     ):
         try:
             xml_matches_content = await self.fetch(lnv_xml_matches_url)
@@ -300,7 +302,7 @@ class ProScraper(Scraper):
                 message=repr(e),
             )
 
-    async def process_xml_rank(self, rank_root: ET.Element, pool: PoolInternalResponse):
+    async def process_xml_rank(self, rank_root: ET.Element, pool: Pool):
         try:
             for ranking in parse_rankings(rank_root):
                 full_name = get_full_name(ranking.team_name, pool.gender)
@@ -308,7 +310,7 @@ class ProScraper(Scraper):
                     continue
                 team = await find_team_by_name_in_division_format_gender_season(
                     self.teams_api(),
-                    pool.divisionId,
+                    pool.division_id,
                     pool.format,
                     pool.gender,
                     pool.season,
@@ -337,7 +339,7 @@ class ProScraper(Scraper):
                 message=repr(e),
             )
 
-    async def add_match_live_code(self, url: str, pool: PoolInternalResponse) -> None:
+    async def add_match_live_code(self, url: str, pool: Pool) -> None:
         """Enrich one pool from a single parsed Data Project page."""
         html_content = await self._fetch_live_page(url)
         if not html_content:
@@ -363,7 +365,7 @@ class ProScraper(Scraper):
         teams = (
             await get_teams(
                 self.teams_api(),
-                pool.divisionId,
+                pool.division_id,
                 pool.format,
                 pool.gender,
                 pool.season,
@@ -397,7 +399,7 @@ class ProScraper(Scraper):
     def _apply_live_match(
         self,
         provider_match: LnvLiveMatch,
-        pool: PoolInternalResponse,
+        pool: Pool,
         teams_by_name: dict[str, Team],
         matches_by_identity: dict[
             tuple[int | None, int, int, date], MatchInternalResponse

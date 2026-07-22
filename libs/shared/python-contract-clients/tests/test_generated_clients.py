@@ -16,6 +16,13 @@ from blockout_contract_clients.shared.models import (
     GenderEnum,
     ScraperNameEnum,
 )
+from blockout_contract_clients.pool.api import PoolApi
+from blockout_contract_clients.pool.models import (
+    CreatePoolInternalRequest,
+    FormatEnum as PoolFormatEnum,
+    GenderEnum as PoolGenderEnum,
+    PoolInternalResponse,
+)
 from blockout_contract_clients.team.api import TeamApi
 from blockout_contract_clients.team.models import (
     CreateTeamInternalRequest,
@@ -113,3 +120,27 @@ def test_team_models_and_async_api_are_generated() -> None:
     assert response is not None
     assert response.raw_name == "RAW"
     assert TeamApi.list_teams.__name__ == "list_teams"
+
+
+def test_pool_models_and_async_api_are_generated() -> None:
+    """Expose the complete Pool boundary and its asynchronous API."""
+    request = CreatePoolInternalRequest(
+        pool_code="A",
+        league_code="LNV",
+        season="2026/2027",
+        league_name="League",
+        raw_name="RAW",
+        name="Pool",
+        short_name="P",
+        division_id=2,
+        format=PoolFormatEnum.SIX,
+        gender=PoolGenderEnum.F,
+    )
+    response = PoolInternalResponse.from_dict(
+        {**request.to_dict(), "id": 1, "followersCount": 0, "active": True}
+    )
+
+    assert request.to_dict()["divisionId"] == 2
+    assert response is not None
+    assert response.pool_code == "A"
+    assert PoolApi.list_pools.__name__ == "list_pools"

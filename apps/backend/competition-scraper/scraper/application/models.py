@@ -47,3 +47,24 @@ class Team:
     active: bool = True
     created_at: datetime | None = None
     last_update: datetime | None = None
+
+
+@dataclass(slots=True)
+class Pool:
+    """Pool state used by competition ingestion independently of HTTP transport."""
+
+    pool_code: str
+    league_code: str
+    season: str
+    division_id: int
+    league_name: str
+    raw_name: str
+    name: str
+    short_name: str
+    format: str
+    gender: str
+    followers_count: int | None = 0
+    active: bool = True
+    id: int | None = None
+    created_at: datetime | None = None
+    last_update: datetime | None = None

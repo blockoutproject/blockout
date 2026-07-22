@@ -9,8 +9,9 @@ from blockout_contract_clients.config.api.raw_division_mapping_api import (
 )
 from blockout_contract_clients.config.api.scraper_status_api import ScraperStatusApi
 from blockout_contract_clients.config.models.scraper_name_enum import ScraperNameEnum
+from blockout_contract_clients.pool.api.pool_api import PoolApi
 from blockout_contract_clients.team.api.team_api import TeamApi
-from scraper.application.models import RawDivisionMapping, Team
+from scraper.application.models import Pool, RawDivisionMapping, Team
 from scraper.infrastructure.blockout import competitions as competitions_api
 from scraper.infrastructure.blockout import configuration as config_api
 from scraper.infrastructure.blockout import matches as matches_api
@@ -23,7 +24,6 @@ from scraper.infrastructure.blockout.competition_association import (
     CompetitionAssociationInternalResponse,
 )
 from scraper.infrastructure.blockout.match import MatchInternalResponse
-from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.response import convert_to_dataclass
 
 
@@ -163,31 +163,63 @@ def test_writes_the_camel_case_team_payload(monkeypatch):
 
 def test_writes_only_the_pool_creation_boundary(monkeypatch):
     async def scenario():
-        monkeypatch.setattr(pools_api, "POOL_API_URL", "http://pools.local/v1/pools")
+        monkeypatch.setattr(
+            pools_api, "POOL_API_URL", "http://pools.local/api/v1/pools"
+        )
         monkeypatch.setattr(
             pools_api, "_get_headers", lambda: {"Authorization": "Bearer test"}
         )
-        session = RecordingSession()
-        pool = PoolInternalResponse(
-            "A",
-            "LNV",
-            "2026/2027",
-            10,
-            "League",
-            "RAW",
-            "Pool",
-            "P",
-            "SIX",
-            "F",
+        requests: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(
+                201,
+                json={
+                    "id": 1,
+                    "poolCode": "A",
+                    "leagueCode": "LNV",
+                    "season": "2026/2027",
+                    "leagueName": "League",
+                    "rawName": "RAW",
+                    "name": "Pool",
+                    "shortName": "P",
+                    "divisionId": 10,
+                    "format": "SIX",
+                    "gender": "F",
+                    "followersCount": 0,
+                    "active": True,
+                },
+            )
+
+        pool = Pool(
+            pool_code="A",
+            league_code="LNV",
+            season="2026/2027",
+            division_id=10,
+            league_name="League",
+            raw_name="RAW",
+            name="Pool",
+            short_name="P",
+            format="SIX",
+            gender="F",
         )
 
-        await pools_api.create_pool.__wrapped__(session, pool)
+        api_client = pools_api.build_pool_api_client()
+        api_client.rest_client.pool_manager = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler)
+        )
+        try:
+            created = await pools_api.create_pool(PoolApi(api_client), pool)
+        finally:
+            await api_client.close()
 
-        payload = session.calls[0][2]["json"]
-        assert set(payload) == set(pools_api.POOL_CREATE_WRITE_FIELDS)
+        payload = json.loads(requests[0].content)
         assert payload["followersCount"] == 0
         assert payload["divisionId"] == 10
         assert "createdAt" not in payload
+        assert "division_id" not in payload
+        assert created.pool_code == "A"
 
     asyncio.run(scenario())
 

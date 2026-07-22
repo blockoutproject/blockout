@@ -186,6 +186,21 @@
                             </configOptions>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>generate-pool-client-models</id>
+                        <phase>generate-sources</phase>
+                        <goals><goal>generate</goal></goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/pool.json</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources/openapi/pool-client</output>
+                            <modelPackage>com.blockout.workersearch.projection.infrastructure.http.contract.pool.models</modelPackage>
+                            <generateApis>false</generateApis>
+                            <generateModels>true</generateModels>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <configOptions><dateLibrary>java8-localdatetime</dateLibrary></configOptions>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -208,6 +223,9 @@
                                 </source>
                                 <source>
                                     ${project.build.directory}/generated-sources/openapi/team-client/src/main/java
+                                </source>
+                                <source>
+                                    ${project.build.directory}/generated-sources/openapi/pool-client/src/main/java
                                 </source>
                             </sources>
                         </configuration>

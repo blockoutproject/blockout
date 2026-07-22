@@ -2,8 +2,8 @@
 
 from bs4 import BeautifulSoup, Tag
 
+from scraper.application.models import Pool
 from scraper.application.source import Scraper
-from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.ffvb.models import FfvbRanking
 
 _RANKING_HEADERS = (
@@ -113,12 +113,12 @@ def parse_rankings(html: str) -> tuple[FfvbRanking, ...]:
 
 
 async def extract_club_stats_list(
-    scraper: Scraper, raw_season: str, pool: PoolInternalResponse
+    scraper: Scraper, raw_season: str, pool: Pool
 ) -> tuple[FfvbRanking, ...]:
     """Download and parse the authoritative ranking for one pool."""
     url = (
         "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php"
-        f"?saison={raw_season}&codent={pool.leagueCode}&poule={pool.poolCode}"
+        f"?saison={raw_season}&codent={pool.league_code}&poule={pool.pool_code}"
     )
     return parse_rankings(await scraper.fetch(url))
 

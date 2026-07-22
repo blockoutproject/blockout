@@ -116,6 +116,16 @@ test('schema roots include active multipart JSON models without fake endpoints',
       .properties.data.type,
     'string',
   );
+
+  const poolBundle = JSON.parse(
+    await readFile(path.join(contractsRoot, 'generated/specs/pool.json'), 'utf8'),
+  );
+  assert.ok(poolBundle.components.schemas.CreatePoolInternalRequest);
+  assert.ok(poolBundle.components.schemas.UpdatePoolInternalRequest);
+  assert.equal(
+    poolBundle.paths['/api/v1/pools'].post.requestBody.content['application/json'].schema.$ref,
+    '#/components/schemas/CreatePoolInternalRequest',
+  );
 });
 
 test('generated artifacts are not tracked by Git', () => {

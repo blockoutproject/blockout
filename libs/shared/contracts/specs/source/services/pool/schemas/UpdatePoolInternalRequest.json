@@ -1,0 +1,19 @@
+{
+  "UpdatePoolInternalRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "poolCode": { "type": "string", "nullable": true },
+      "leagueCode": { "type": "string", "nullable": true },
+      "season": { "type": "string", "nullable": true },
+      "leagueName": { "type": "string", "nullable": true },
+      "rawName": { "type": "string", "nullable": true },
+      "name": { "type": "string", "nullable": true },
+      "shortName": { "type": "string", "nullable": true },
+      "divisionId": { "type": "integer", "format": "int64", "nullable": true },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "active": { "type": "boolean", "nullable": true }
+    }
+  }
+}

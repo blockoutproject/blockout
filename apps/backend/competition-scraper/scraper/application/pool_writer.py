@@ -1,17 +1,17 @@
-import aiohttp
+from blockout_contract_clients.pool.api.pool_api import PoolApi
 
-from scraper.infrastructure.blockout.pool import PoolInternalResponse
+from scraper.application.models import Pool
 from scraper.infrastructure.blockout.pools import create_pool, update_pool
 
 
 async def add_or_update_pool(
-    session: aiohttp.ClientSession,
-    pool: PoolInternalResponse,
-    existing_pool: PoolInternalResponse | None,
+    api: PoolApi,
+    pool: Pool,
+    existing_pool: Pool | None,
     allow_reactivation: bool = True,
-) -> PoolInternalResponse:
+) -> Pool:
     """Create a pool or apply the legacy owner-controlled update fields."""
-    required_fields = ["poolCode", "leagueCode", "season", "rawName", "divisionId"]
+    required_fields = ["pool_code", "league_code", "season", "raw_name", "division_id"]
     missing_fields = [
         field for field in required_fields if not getattr(pool, field, None)
     ]
@@ -24,7 +24,7 @@ async def add_or_update_pool(
         changes_list = []
         pool.id = existing_pool.id
 
-        for field in ["rawName", "divisionId", "leagueName", "format", "gender"]:
+        for field in ["raw_name", "division_id", "league_name", "format", "gender"]:
             if getattr(existing_pool, field, None) != getattr(pool, field, None):
                 changes_list.append(
                     f"{field}: {getattr(existing_pool, field)} -> {getattr(pool, field)}"
@@ -35,6 +35,6 @@ async def add_or_update_pool(
             changes_list.append("Pool réactivée.")
 
         if changes_list:
-            return await update_pool(session, pool, changes_list)
+            return await update_pool(api, pool, changes_list)
         return existing_pool
-    return await create_pool(session, pool)
+    return await create_pool(api, pool)

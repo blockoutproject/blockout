@@ -5,8 +5,7 @@ from pathlib import Path
 
 from scraper.application import ffvb_league_ingestion as ingestion
 from scraper.application.calendar_ingestion import CalendarIngestionResult
-from scraper.application.models import RawDivisionMapping
-from scraper.infrastructure.blockout.pool import PoolInternalResponse
+from scraper.application.models import Pool, RawDivisionMapping
 from scraper.infrastructure.ffvb import national as national_module
 from scraper.infrastructure.ffvb.departmental import DepartmentalScraper
 from scraper.infrastructure.ffvb.discovery import (
@@ -108,15 +107,15 @@ def test_complete_league_observation_dispatches_without_deactivation(
     """Protect mapped pool assembly and complete-snapshot reconciliation."""
 
     async def scenario() -> None:
-        existing = PoolInternalResponse(
-            poolCode="3MA",
-            leagueCode="ABCCS",
+        existing = Pool(
+            pool_code="3MA",
+            league_code="ABCCS",
             season="2026/2027",
-            divisionId=7,
-            leagueName="Nationale",
-            rawName="old",
+            division_id=7,
+            league_name="Nationale",
+            raw_name="old",
             name="old",
-            shortName="old",
+            short_name="old",
             format="SIX",
             gender="M",
             id=99,
@@ -129,7 +128,7 @@ def test_complete_league_observation_dispatches_without_deactivation(
             format="SIX",
             gender="M",
         )
-        dispatched: list[PoolInternalResponse] = []
+        dispatched: list[Pool] = []
 
         async def pools(*_args):
             return [existing]
@@ -153,13 +152,17 @@ def test_complete_league_observation_dispatches_without_deactivation(
         scraper = type(
             "Scraper",
             (),
-            {"session": object(), "raw_division_mapping_api": object()},
+            {
+                "session": object(),
+                "raw_division_mapping_api": object(),
+                "pools_api": lambda _self: object(),
+            },
         )()
 
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
 
         assert (
-            dispatched[0].divisionId,
+            dispatched[0].division_id,
             dispatched[0].format,
             dispatched[0].gender,
         ) == (
@@ -177,15 +180,15 @@ def test_unmapped_or_incomplete_observation_never_deactivates_pools(
     """Protect destructive cleanup from configuration gaps and partial reads."""
 
     async def scenario() -> None:
-        existing = PoolInternalResponse(
-            poolCode="OLD",
-            leagueCode="ABCCS",
+        existing = Pool(
+            pool_code="OLD",
+            league_code="ABCCS",
             season="2026/2027",
-            divisionId=7,
-            leagueName="Nationale",
-            rawName="old",
+            division_id=7,
+            league_name="Nationale",
+            raw_name="old",
             name="old",
-            shortName="old",
+            short_name="old",
             format="SIX",
             gender="M",
             id=98,
@@ -212,7 +215,11 @@ def test_unmapped_or_incomplete_observation_never_deactivates_pools(
         scraper = type(
             "Scraper",
             (),
-            {"session": object(), "raw_division_mapping_api": object()},
+            {
+                "session": object(),
+                "raw_division_mapping_api": object(),
+                "pools_api": lambda _self: object(),
+            },
         )()
 
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
@@ -253,15 +260,15 @@ def test_incomplete_calendar_result_suppresses_league_cleanup(monkeypatch) -> No
     """Protect existing pools when one mapped calendar observation is incomplete."""
 
     async def scenario() -> None:
-        existing = PoolInternalResponse(
-            poolCode="OLD",
-            leagueCode="ABCCS",
+        existing = Pool(
+            pool_code="OLD",
+            league_code="ABCCS",
             season="2026/2027",
-            divisionId=7,
-            leagueName="Nationale",
-            rawName="old",
+            division_id=7,
+            league_name="Nationale",
+            raw_name="old",
             name="old",
-            shortName="old",
+            short_name="old",
             format="SIX",
             gender="M",
             id=98,
@@ -296,7 +303,11 @@ def test_incomplete_calendar_result_suppresses_league_cleanup(monkeypatch) -> No
         scraper = type(
             "Scraper",
             (),
-            {"session": object(), "raw_division_mapping_api": object()},
+            {
+                "session": object(),
+                "raw_division_mapping_api": object(),
+                "pools_api": lambda _self: object(),
+            },
         )()
 
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))

@@ -7,6 +7,7 @@ import httpx
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
+from blockout_contract_clients.pool.api.pool_api import PoolApi
 from blockout_contract_clients.team.api.team_api import TeamApi
 
 from scraper.application.ffvb_league_ingestion import ingest_league_pools
@@ -28,6 +29,7 @@ class DepartmentalScraper(Scraper):
         provider_client: httpx.AsyncClient,
         raw_division_mapping_api: RawDivisionMappingApi | None = None,
         team_api: TeamApi | None = None,
+        pool_api: PoolApi | None = None,
     ) -> None:
         super().__init__(
             session,
@@ -35,6 +37,7 @@ class DepartmentalScraper(Scraper):
             name="departmental_scraper",
             raw_division_mapping_api=raw_division_mapping_api,
             team_api=team_api,
+            pool_api=pool_api,
             url="https://www.ffvb.org/122-37-1-Championnats-Departementaux",
             priority_validation_enabled=False,
         )

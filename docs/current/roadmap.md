@@ -489,10 +489,17 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     70 competition-scraper tests, 5 generated-client tests, and the targeted clean Java 21 reactor pass. Git tracks no
     generated source.
 
-- [ ] **REF-046 — Migrate the Pool contract**
+- [x] **REF-046 — Migrate the Pool contract**
   - Establish Pool schemas from the authoritative `pools-service` model and shared Division, format, and gender schemas.
   - Replace handwritten server and scraper transport types with generated boundaries while preserving standings,
     activation, season, ingestion, and lookup behavior.
+  - Evidence: one Pool OpenAPI source owns the existing V1 routes and camelCase create, update, and response models.
+    `pools-service` implements the generated server interface, gateway and search adapters consume generated local
+    models, and the competition scraper uses the generated asynchronous HTTPX client. Its application layer now uses a
+    transport-independent, idiomatic Python `Pool` model; handwritten Pool transport mirrors are removed.
+  - Pool creation, update, lookup, deactivation, follower operations, activation, standings, season reconciliation, and
+    ingestion retain their existing behavior. Clean contract/client generation, uv lock, Ruff, 70 scraper tests,
+    6 generated-client tests, contract guards, and the targeted Java 21 reactor pass. Git tracks no generated output.
 
 - [ ] **REF-047 — Migrate the Competition contract**
   - Generate the competition-service boundary used by ingestion and downstream services from one authoritative contract.

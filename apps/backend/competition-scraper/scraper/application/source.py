@@ -8,6 +8,7 @@ import httpx
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
+from blockout_contract_clients.pool.api.pool_api import PoolApi
 from blockout_contract_clients.team.api.team_api import TeamApi
 from prometheus_client import Gauge
 
@@ -34,6 +35,7 @@ class Scraper(ABC):
         name: str,
         raw_division_mapping_api: RawDivisionMappingApi | None = None,
         team_api: TeamApi | None = None,
+        pool_api: PoolApi | None = None,
         url: str | None = None,
         priority_validation_enabled: bool = False,
         max_concurrency: int = 10,
@@ -42,6 +44,7 @@ class Scraper(ABC):
         self.name = name
         self.raw_division_mapping_api = raw_division_mapping_api
         self.team_api = team_api
+        self.pool_api = pool_api
         self.url = url
         self.priority_validation_enabled = priority_validation_enabled
         self._max_concurrency = max_concurrency
@@ -69,6 +72,12 @@ class Scraper(ABC):
         if self.team_api is None:
             raise RuntimeError("The generated teams-service client is not configured.")
         return self.team_api
+
+    def pools_api(self) -> PoolApi:
+        """Return the configured generated pools-service client."""
+        if self.pool_api is None:
+            raise RuntimeError("The generated pools-service client is not configured.")
+        return self.pool_api
 
     @abstractmethod
     async def run_scraping(self) -> None:

@@ -4,26 +4,25 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-from scraper.application.models import Team
+from scraper.application.models import Pool, Team
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.infrastructure.blockout.match import MatchInternalResponse
-from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.lnv import professional as pro_module
 from scraper.infrastructure.lnv.professional import ProScraper
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "lnv"
 
 
-def _pool() -> PoolInternalResponse:
-    return PoolInternalResponse(
-        poolCode="MSL",
-        leagueCode="AALNV",
+def _pool() -> Pool:
+    return Pool(
+        pool_code="MSL",
+        league_code="AALNV",
         season="2026/2027",
-        divisionId=10,
-        leagueName="Pro",
-        rawName="Marmara SpikeLigue",
+        division_id=10,
+        league_name="Pro",
+        raw_name="Marmara SpikeLigue",
         name="Marmara SpikeLigue",
-        shortName="MSL",
+        short_name="MSL",
         format="SIX",
         gender="M",
         id=1,

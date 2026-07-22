@@ -1,0 +1,36 @@
+{
+  "CreatePoolInternalRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "poolCode",
+      "leagueCode",
+      "season",
+      "leagueName",
+      "rawName",
+      "name",
+      "shortName",
+      "divisionId",
+      "format",
+      "gender"
+    ],
+    "properties": {
+      "poolCode": { "type": "string" },
+      "leagueCode": { "type": "string" },
+      "season": { "type": "string" },
+      "leagueName": { "type": "string" },
+      "rawName": { "type": "string" },
+      "name": { "type": "string" },
+      "shortName": { "type": "string" },
+      "divisionId": { "type": "integer", "format": "int64" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "followersCount": {
+        "type": "integer",
+        "format": "int64",
+        "nullable": true
+      },
+      "active": { "type": "boolean", "nullable": true }
+    }
+  }
+}

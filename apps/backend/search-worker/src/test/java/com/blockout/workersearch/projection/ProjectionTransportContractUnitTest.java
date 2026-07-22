@@ -4,8 +4,8 @@ import com.blockout.workersearch.projection.application.models.Format;
 import com.blockout.workersearch.projection.application.models.Gender;
 import com.blockout.workersearch.projection.infrastructure.http.contract.config.models.DivisionInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.contract.models.ClubInternalResponse;
+import com.blockout.workersearch.projection.infrastructure.http.contract.pool.models.PoolInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.contract.team.models.TeamInternalResponse;
-import com.blockout.workersearch.projection.infrastructure.http.models.PoolInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.messaging.messages.TeamUpsertMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -87,8 +87,8 @@ class ProjectionTransportContractUnitTest {
              "lastUpdate":"2026-07-19T12:00:00"}
             """, PoolInternalResponse.class);
 
-        assertThat(pool.rawName()).isEqualTo("RAW");
-        assertThat(pool.createdAt()).isEqualTo(pool.lastUpdate());
+        assertThat(pool.getRawName()).isEqualTo("RAW");
+        assertThat(pool.getCreatedAt()).isEqualTo(pool.getLastUpdate());
     }
 
     private ObjectMapper mapper() {

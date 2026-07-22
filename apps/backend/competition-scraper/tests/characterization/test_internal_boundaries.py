@@ -17,7 +17,7 @@ from blockout_contract_clients.team.models.update_team_internal_request import (
 )
 from scraper.application import pool_writer as pools_service
 from scraper.application import team_writer as teams_service
-from scraper.application.models import RawDivisionMapping, Team
+from scraper.application.models import Pool, RawDivisionMapping, Team
 from scraper.application.source import Scraper
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.infrastructure.blockout import competitions as competitions_api
@@ -35,11 +35,6 @@ from scraper.infrastructure.blockout.match import (
     CreateMatchInternalRequest,
     MatchInternalResponse,
     UpdateMatchInternalRequest,
-)
-from scraper.infrastructure.blockout.pool import (
-    CreatePoolInternalRequest,
-    PoolInternalResponse,
-    UpdatePoolInternalRequest,
 )
 from scraper.infrastructure.blockout.response import process_response
 
@@ -73,22 +68,22 @@ class DummyScraper(Scraper):
         return None
 
 
-def _pool(**overrides) -> PoolInternalResponse:
+def _pool(**overrides) -> Pool:
     values = {
         "id": 10,
-        "poolCode": "R1M",
-        "leagueCode": "LNAQ",
+        "pool_code": "R1M",
+        "league_code": "LNAQ",
         "season": "2026/2027",
-        "divisionId": 7,
-        "leagueName": "League",
-        "rawName": "Raw Pool",
+        "division_id": 7,
+        "league_name": "League",
+        "raw_name": "Raw Pool",
         "name": "Pool",
-        "shortName": "P",
+        "short_name": "P",
         "format": "SIX",
         "gender": "M",
     }
     values.update(overrides)
-    return PoolInternalResponse(**values)
+    return Pool(**values)
 
 
 def _team(**overrides) -> Team:
@@ -142,22 +137,22 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
         "created_at",
         "last_update",
     ]
-    assert set(item.name for item in fields(PoolInternalResponse)) == {
+    assert set(item.name for item in fields(Pool)) == {
         "id",
-        "poolCode",
-        "leagueCode",
+        "pool_code",
+        "league_code",
         "season",
-        "divisionId",
-        "leagueName",
-        "rawName",
+        "division_id",
+        "league_name",
+        "raw_name",
         "name",
-        "shortName",
+        "short_name",
         "format",
         "gender",
-        "followersCount",
+        "followers_count",
         "active",
-        "createdAt",
-        "lastUpdate",
+        "created_at",
+        "last_update",
     }
     assert set(item.name for item in fields(MatchInternalResponse)) == {
         "id",
@@ -255,33 +250,6 @@ def test_write_contracts_mirror_java_owner_field_sets() -> None:
         "division_id",
         "logo_url",
         "season",
-        "format",
-        "gender",
-        "active",
-    ]
-    assert [item.name for item in fields(CreatePoolInternalRequest)] == [
-        "poolCode",
-        "leagueCode",
-        "season",
-        "leagueName",
-        "rawName",
-        "name",
-        "shortName",
-        "divisionId",
-        "format",
-        "gender",
-        "followersCount",
-        "active",
-    ]
-    assert [item.name for item in fields(UpdatePoolInternalRequest)] == [
-        "poolCode",
-        "leagueCode",
-        "season",
-        "leagueName",
-        "rawName",
-        "name",
-        "shortName",
-        "divisionId",
         "format",
         "gender",
         "active",
@@ -424,7 +392,7 @@ def test_pool_and_team_decisions_preserve_identity_noop_and_reactivation(
         monkeypatch.setattr(teams_service, "update_team", update_team)
 
         current_pool = _pool(active=False)
-        pool_candidate = _pool(id=999, rawName="Changed", active=False)
+        pool_candidate = _pool(id=999, raw_name="Changed", active=False)
         await pools_service.add_or_update_pool(None, pool_candidate, current_pool)
         assert pool_candidate.id == 10
         assert pool_candidate.active is True
@@ -513,8 +481,6 @@ def test_match_finalization_creates_updates_skips_and_isolates_failures(
 def test_response_handler_preserves_no_content_list_semantics() -> None:
     """Protect empty-list decoding used by owner collection clients."""
     result = asyncio.run(
-        process_response(
-            RecordingResponse(), list[PoolInternalResponse], "get_pools", (), {}
-        )
+        process_response(RecordingResponse(), list[Pool], "get_pools", (), {})
     )
     assert result == []

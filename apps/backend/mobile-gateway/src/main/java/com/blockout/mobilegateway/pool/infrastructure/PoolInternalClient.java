@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -23,6 +22,7 @@ public class PoolInternalClient {
 
     private final ApiClientProperties apiClientProperties;
     private final InternalApiClient internalApiClient;
+    private final PoolContractMapper contractMapper;
 
     private String baseUrl() {
         return apiClientProperties.getPool().getUrl();
@@ -35,8 +35,9 @@ public class PoolInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<PoolInternalResponse> response = internalApiClient.get(url, PoolInternalResponse.class);
-        return response.getBody();
+        var response = internalApiClient.get(url,
+            com.blockout.mobilegateway.pool.infrastructure.contract.models.PoolInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 
     public List<PoolInternalResponse> getPoolsByIds(Set<Long> ids) {
@@ -49,9 +50,10 @@ public class PoolInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<PoolInternalResponse[]> response = internalApiClient.get(url, PoolInternalResponse[].class);
-        PoolInternalResponse[] body = response.getBody();
-        return body != null ? Arrays.asList(body) : Collections.emptyList();
+        var response = internalApiClient.get(url,
+            com.blockout.mobilegateway.pool.infrastructure.contract.models.PoolInternalResponse[].class);
+        var body = response.getBody();
+        return body != null ? Arrays.stream(body).map(contractMapper::toResponse).toList() : Collections.emptyList();
     }
 
     @Caching(put = {
@@ -63,7 +65,8 @@ public class PoolInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<PoolInternalResponse> response = internalApiClient.put(url, dto, PoolInternalResponse.class);
-        return response.getBody();
+        var response = internalApiClient.put(url, contractMapper.toInternalRequest(dto),
+            com.blockout.mobilegateway.pool.infrastructure.contract.models.PoolInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 }

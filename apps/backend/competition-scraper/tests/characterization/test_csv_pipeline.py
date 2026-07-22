@@ -4,8 +4,7 @@ from pathlib import Path
 
 import httpx
 from scraper.application import calendar_ingestion as pipeline
-from scraper.application.models import Team
-from scraper.infrastructure.blockout.pool import PoolInternalResponse
+from scraper.application.models import Pool, Team
 from scraper.infrastructure.ffvb import calendar as file_utils
 from scraper.infrastructure.ffvb.calendar import download_and_parse_csv
 from scraper.infrastructure.ffvb.models import (
@@ -56,16 +55,16 @@ class _Session:
         return _Context(self.results.pop(0))
 
 
-def _pool() -> PoolInternalResponse:
-    return PoolInternalResponse(
-        poolCode="R1M",
-        leagueCode="LNAQ",
+def _pool() -> Pool:
+    return Pool(
+        pool_code="R1M",
+        league_code="LNAQ",
         season="2026/2027",
-        divisionId=7,
-        leagueName="Nouvelle Aquitaine",
-        rawName="Poule A",
+        division_id=7,
+        league_name="Nouvelle Aquitaine",
+        raw_name="Poule A",
         name="Poule A",
-        shortName="Poule A",
+        short_name="Poule A",
         format="SIX",
         gender="M",
         id=10,
@@ -145,6 +144,9 @@ class RecordingScraper:
         self.stats.append((pool_id, team_id, stats))
 
     def teams_api(self):
+        return object()
+
+    def pools_api(self):
         return object()
 
 

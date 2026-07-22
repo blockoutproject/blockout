@@ -1,0 +1,171 @@
+{
+  "/api/v1/pools": {
+    "get": {
+      "tags": ["Pool"],
+      "operationId": "listPools",
+      "parameters": [
+        { "name": "leagueCode", "in": "query", "schema": { "type": "string" } },
+        { "name": "season", "in": "query", "schema": { "type": "string" } },
+        { "name": "active", "in": "query", "schema": { "type": "boolean" } },
+        {
+          "name": "ids",
+          "in": "query",
+          "schema": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int64" }
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Pools",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/PoolInternalResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "post": {
+      "tags": ["Pool"],
+      "operationId": "createPool",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreatePoolInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Created Pool",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PoolInternalResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/pools/{id}": {
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      }
+    ],
+    "get": {
+      "tags": ["Pool"],
+      "operationId": "getPoolById",
+      "responses": {
+        "200": {
+          "description": "Pool",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PoolInternalResponse" }
+            }
+          }
+        }
+      }
+    },
+    "put": {
+      "tags": ["Pool"],
+      "operationId": "updatePool",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdatePoolInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Updated Pool",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PoolInternalResponse" }
+            }
+          }
+        }
+      }
+    },
+    "delete": {
+      "tags": ["Pool"],
+      "operationId": "deactivatePool",
+      "responses": { "204": { "description": "Deactivated" } }
+    }
+  },
+  "/api/v1/pools/{poolId}/followers/increment": {
+    "post": {
+      "tags": ["Pool"],
+      "operationId": "incrementFollowers",
+      "parameters": [
+        {
+          "name": "poolId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "userId",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Updated Pool",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PoolInternalResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/pools/{poolId}/followers/decrement": {
+    "post": {
+      "tags": ["Pool"],
+      "operationId": "decrementFollowers",
+      "parameters": [
+        {
+          "name": "poolId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "userId",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Updated Pool",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PoolInternalResponse" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

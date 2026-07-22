@@ -1,8 +1,8 @@
 package com.blockout.pools.pool.api;
 
 import com.blockout.pools.pool.api.models.PoolInternalResponse;
-import com.blockout.pools.pool.application.models.Format;
-import com.blockout.pools.pool.application.models.Gender;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -13,19 +13,27 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Protects the complete handwritten Pool transport shape.
+ * Protects the generated Pool transport shape.
  */
 @DisplayName("Pool API contract")
 class PoolApiContractUnitTest {
     @Test
     @DisplayName("exposes the complete Pool shape in native camelCase")
     void exposesTheCompletePoolShape() {
-        PoolInternalResponse response = new PoolInternalResponse(1L, "A", "LNV", "2026/2027", "League", "RAW",
-            "Pool", "P", 2L, Format.SIX, Gender.F, 3L, true, null, null);
+        PoolInternalResponse response = new PoolInternalResponse()
+            .id(1L).poolCode("A").leagueCode("LNV").season("2026/2027").leagueName("League").rawName("RAW")
+            .name("Pool").shortName("P").divisionId(2L).format(FormatEnum.SIX).gender(GenderEnum.F)
+            .followersCount(3L).active(true);
         JsonNode json = new ObjectMapper().valueToTree(response);
         assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrderElementsOf(Set.of(
             "id", "poolCode", "leagueCode", "season", "leagueName", "rawName", "name", "shortName",
             "divisionId", "format", "gender", "followersCount", "active", "createdAt", "lastUpdate"));
         assertThat(json.has("pool_code")).isFalse();
+    }
+
+    @Test
+    @DisplayName("controller implements the generated Pool API")
+    void controllerImplementsGeneratedApi() {
+        assertThat(PoolApi.class).isAssignableFrom(PoolController.class);
     }
 }

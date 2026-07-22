@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from scraper.application.models import Team
+from scraper.application.models import Pool, Team
 from scraper.application.pool_writer import add_or_update_pool
 from scraper.application.source import Scraper
 from scraper.application.team_writer import add_or_update_team
@@ -18,7 +18,6 @@ from scraper.infrastructure.blockout.competitions import (
 )
 from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.matches import bulk_deactivate_matches
-from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.pools import update_pool
 from scraper.infrastructure.blockout.teams import get_teams
 from scraper.infrastructure.ffvb.calendar import download_and_parse_csv
@@ -37,9 +36,9 @@ class CalendarIngestionResult:
 
 async def handle_csv_download_and_parse(
     scraper: Scraper,
-    pool: PoolInternalResponse,
+    pool: Pool,
     raw_season: str,
-    existing_pool: PoolInternalResponse | None = None,
+    existing_pool: Pool | None = None,
     scraped_pool_ids: set[int] | None = None,
 ) -> CalendarIngestionResult:
     """Apply one calendar snapshot and gate cleanup on complete provider input."""
@@ -99,7 +98,9 @@ async def handle_csv_download_and_parse(
                 complete=observation_complete,
             )
 
-        new_pool = await add_or_update_pool(scraper.session, pool, existing_pool, False)
+        new_pool = await add_or_update_pool(
+            scraper.pools_api(), pool, existing_pool, False
+        )
         # Professional enrichment reuses the owner identifier assigned here.
         pool.id = new_pool.id
         await scraper.init_matches_cache(new_pool.id)
@@ -108,7 +109,7 @@ async def handle_csv_download_and_parse(
         existing_teams = (
             await get_teams(
                 scraper.teams_api(),
-                new_pool.divisionId,
+                new_pool.division_id,
                 new_pool.format,
                 new_pool.gender,
                 new_pool.season,
@@ -128,7 +129,7 @@ async def handle_csv_download_and_parse(
 
         scraped_team_ids = set()
         scraped_match_codes = set()
-        is_nat_or_pro = new_pool.leagueCode in {"AALNV", "ABCCS"}
+        is_nat_or_pro = new_pool.league_code in {"AALNV", "ABCCS"}
 
         # Owner rankings remain authoritative for association statistics.
         has_anomalous_match = True
@@ -142,7 +143,7 @@ async def handle_csv_download_and_parse(
             team_a_short = get_short_name(row.home_team_name, new_pool.gender)
             team_a_key = (
                 row.home_club_id,
-                new_pool.divisionId,
+                new_pool.division_id,
                 new_pool.format,
                 new_pool.gender,
                 normalize(team_a_full),
@@ -155,8 +156,8 @@ async def handle_csv_download_and_parse(
                 short_name=team_a_short,
                 club_id=row.home_club_id,
                 season=new_pool.season,
-                league_code=new_pool.leagueCode,
-                division_id=new_pool.divisionId,
+                league_code=new_pool.league_code,
+                division_id=new_pool.division_id,
                 format=new_pool.format,
                 gender=new_pool.gender,
             )
@@ -171,7 +172,7 @@ async def handle_csv_download_and_parse(
             team_b_short = get_short_name(row.away_team_name, new_pool.gender)
             team_b_key = (
                 row.away_club_id,
-                new_pool.divisionId,
+                new_pool.division_id,
                 new_pool.format,
                 new_pool.gender,
                 normalize(team_b_full),
@@ -184,8 +185,8 @@ async def handle_csv_download_and_parse(
                 short_name=team_b_short,
                 club_id=row.away_club_id,
                 season=new_pool.season,
-                league_code=new_pool.leagueCode,
-                division_id=new_pool.divisionId,
+                league_code=new_pool.league_code,
+                division_id=new_pool.division_id,
                 format=new_pool.format,
                 gender=new_pool.gender,
             )
@@ -199,7 +200,7 @@ async def handle_csv_download_and_parse(
             match_code = row.match_code
             updated_match = MatchInternalResponse(
                 matchCode=match_code,
-                leagueCode=new_pool.leagueCode,
+                leagueCode=new_pool.league_code,
                 poolId=new_pool.id,
                 teamIdA=new_team_a.id,
                 teamIdB=new_team_b.id,
@@ -270,7 +271,7 @@ async def handle_csv_download_and_parse(
         if not new_pool.active:
             new_pool.active = True
             await update_pool(
-                scraper.session,
+                scraper.pools_api(),
                 new_pool,
                 ["Pool réactivée après détection de matchs"],
             )

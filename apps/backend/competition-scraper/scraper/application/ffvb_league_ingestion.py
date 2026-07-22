@@ -8,14 +8,13 @@ from scraper.application.calendar_ingestion import (
     CalendarIngestionResult,
     handle_csv_download_and_parse,
 )
-from scraper.application.models import RawDivisionMapping
+from scraper.application.models import Pool, RawDivisionMapping
 from scraper.application.source import Scraper
 from scraper.infrastructure.blockout.competitions import bulk_deactivate_pools
 from scraper.infrastructure.blockout.configuration import (
     create_raw_division_mapping,
     get_raw_division_mappings_by_league_and_season,
 )
-from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.pools import get_pools_by_league_and_season
 from scraper.infrastructure.ffvb.models import FfvbPoolSource
 
@@ -48,10 +47,11 @@ async def _ingest_season(
     sources: tuple[FfvbPoolSource, ...],
 ) -> None:
     existing_pools = (
-        await get_pools_by_league_and_season(scraper.session, league_code, season) or []
+        await get_pools_by_league_and_season(scraper.pools_api(), league_code, season)
+        or []
     )
     existing_by_key = {
-        (pool.poolCode, pool.leagueCode, pool.season): pool for pool in existing_pools
+        (pool.pool_code, pool.league_code, pool.season): pool for pool in existing_pools
     }
     mappings = (
         await get_raw_division_mappings_by_league_and_season(
@@ -81,15 +81,15 @@ async def _ingest_season(
             observation_complete = False
             continue
 
-        pool = PoolInternalResponse(
-            poolCode=source.code,
-            leagueCode=league_code,
+        pool = Pool(
+            pool_code=source.code,
+            league_code=league_code,
             season=season,
-            leagueName=league_name,
-            rawName=source.name,
+            league_name=league_name,
+            raw_name=source.name,
             name=source.name,
-            shortName=source.name,
-            divisionId=mapping.division_id,
+            short_name=source.name,
+            division_id=mapping.division_id,
             format=mapping.format,
             gender=mapping.gender,
         )
