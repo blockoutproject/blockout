@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
 import LegalDocumentForm, {LegalDocumentFormState} from "@/src/modules/legal/ui/LegalDocumentForm";
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
-import type {LegalDocumentResponse} from "@/src/modules/legal/model/LegalDocument";
+import type {LegalDocumentResponse} from "@/src/shared/generated/models";
 
 export type LegalDocumentFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;

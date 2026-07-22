@@ -4,7 +4,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useDivisions} from "@/src/modules/division/hooks/useDivisions";
-import {DivisionResponse} from "@/src/modules/division/model/Division";
+import {DivisionResponse} from "@/src/shared/generated/models";
 import {Filter} from "@/src/shared/model/Filter";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import DivisionItem from "@/src/modules/division/ui/DivisionItem";

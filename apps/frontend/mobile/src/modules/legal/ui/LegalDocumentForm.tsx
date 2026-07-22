@@ -6,7 +6,7 @@ import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import type {LegalDocumentResponse} from "@/src/modules/legal/model/LegalDocument";
+import type {LegalDocumentResponse} from "@/src/shared/generated/models";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";

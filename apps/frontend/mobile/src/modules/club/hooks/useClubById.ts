@@ -1,6 +1,6 @@
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import { useEntityById } from "@/src/shared/hooks/useEntityById";
-import type { ClubResponse } from "@/src/modules/club/model/Club";
+import type { ClubResponse } from "@/src/shared/generated/models";
 
 export const useClubById = (id?: string) => {
   const { mobile } = useApis();

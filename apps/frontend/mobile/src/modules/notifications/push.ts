@@ -4,7 +4,7 @@ import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
-import { DevicePlatform } from "@/src/modules/notifications/model/Notification";
+import { DevicePlatformEnum } from "@/src/shared/generated/models";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -37,7 +37,7 @@ export function openNotificationUrlIfAny(
 }
 
 /** Map the active React Native platform to the internal notification contract. */
-export function platformToNotificationDevice(): DevicePlatform {
+export function platformToNotificationDevice(): DevicePlatformEnum {
   if (Platform.OS === "ios") return "IOS";
   if (Platform.OS === "android") return "ANDROID";
   if (Platform.OS === "web") return "WEB";

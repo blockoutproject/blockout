@@ -7,7 +7,12 @@ import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {MatchResponse, LiveProvider, MatchStatus, PROVIDER_LABELS,} from "@/src/modules/match/model/Match";
+import {
+  LiveProviderEnum,
+  MatchResponse,
+  MatchStatusEnum,
+} from "@/src/shared/generated/models";
+import {LIVE_PROVIDER_LABELS} from "@/src/modules/match/model/liveProviderLabels";
 import MatchLiveLinkReportFormSheet from "@/src/modules/match/ui/form/MatchLiveLinkReportFormSheet";
 import MatchLiveLinkFormSheet from "./form/MatchLiveLinkFormSheet";
 import MatchLiveLinkDeleteFormSheet from "./form/MatchLiveLinkDeleteFormSheet";
@@ -53,7 +58,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
   const {customUser, isGuest} = useSessionState();
 
   const hasLiveLink = !!match.liveUrl;
-  const isFinished = match.status === MatchStatus.FINISHED;
+  const isFinished = match.status === MatchStatusEnum.FINISHED;
   const isLive = hasLiveLink && !isFinished;
 
   const isOwner = useMemo(() => {
@@ -89,12 +94,12 @@ const MatchLiveLinkCard: React.FC<Props> = ({
 
   const providerLabel = useMemo(() => {
     if (!match.liveProvider) return "";
-    const key = match.liveProvider as LiveProvider;
-    return PROVIDER_LABELS[key] ?? "";
+    const key = match.liveProvider as LiveProviderEnum;
+    return LIVE_PROVIDER_LABELS[key] ?? "";
   }, [match.liveProvider]);
 
   const leftIcon = useMemo(() => {
-    switch (match.liveProvider as LiveProvider | null) {
+    switch (match.liveProvider as LiveProviderEnum | null) {
       case "YOUTUBE":
         return "youtube";
       case "TWITCH":

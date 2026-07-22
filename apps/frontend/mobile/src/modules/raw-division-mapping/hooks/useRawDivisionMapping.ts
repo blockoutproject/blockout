@@ -1,5 +1,5 @@
 import {useQuery} from "@tanstack/react-query";
-import {RawDivisionMappingResponse} from "@/src/modules/raw-division-mapping/model/RawDivisionMapping";
+import {RawDivisionMappingResponse} from "@/src/shared/generated/models";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 
 export const useRawDivisionMappings = (

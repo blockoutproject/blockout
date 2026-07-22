@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useDeleteNotification } from "@/src/modules/notifications/hooks/useDeleteNotification";
 import { useNotifications } from "@/src/modules/notifications/hooks/useNotifications";
-import { EnrichedUserNotification } from "@/src/modules/notifications/model/Notification";
+import { NotificationResponse } from "@/src/shared/generated/models";
 import NotificationItem from "@/src/modules/notifications/ui/NotificationItem";
 import NotificationsHeader from "@/src/modules/notifications/ui/NotificationsHeader";
 import NotificationsSkeleton from "@/src/modules/notifications/ui/NotificationsSkeleton";
@@ -55,7 +55,7 @@ const NotificationsScreen: React.FC = () => {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleDelete = useCallback(
-    async (notification: EnrichedUserNotification) => {
+    async (notification: NotificationResponse) => {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await deleteNotif(notification.id);
     },
@@ -63,7 +63,7 @@ const NotificationsScreen: React.FC = () => {
   );
 
   const handleOpen = useCallback(
-    async (notification: EnrichedUserNotification) => {
+    async (notification: NotificationResponse) => {
       await Haptics.selectionAsync();
       if (notification.deepLink) router.push(notification.deepLink as Href);
     },
@@ -71,7 +71,7 @@ const NotificationsScreen: React.FC = () => {
   );
 
   const renderNotification = useCallback(
-    ({ item }: ListRenderItemInfo<EnrichedUserNotification>) => (
+    ({ item }: ListRenderItemInfo<NotificationResponse>) => (
       <NotificationItem
         notification={item}
         onOpen={handleOpen}

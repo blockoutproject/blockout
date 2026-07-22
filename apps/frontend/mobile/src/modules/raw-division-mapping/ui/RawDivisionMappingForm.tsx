@@ -5,9 +5,9 @@ import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useDivisions} from "@/src/modules/division/hooks/useDivisions";
-import {RawDivisionMappingResponse} from "@/src/modules/raw-division-mapping/model/RawDivisionMapping";
-import {EnumFormat, FormatLabels} from "@/src/shared/model/enums/Format";
-import {EnumGender, GenderLabels} from "@/src/shared/model/enums/Gender";
+import {RawDivisionMappingResponse} from "@/src/shared/generated/models";
+import {FormatEnum, FormatLabels} from "@/src/shared/model/formatLabels";
+import {GenderEnum, GenderLabels} from "@/src/shared/model/genderLabels";
 import FormSelect from "@/src/shared/ui/form/FormSelect";
 import SelectSheet, {SelectOption, SelectSheetRef} from "@/src/shared/ui/form/SelectSheet";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
@@ -36,17 +36,17 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
   const {data: divisions = [], isLoading: loadingDivisions} = useDivisions();
   const {mobile} = useApis();
   const [divisionId, setDivisionId] = useState<number | "">(mapping.divisionId ?? "");
-  const [format, setFormat] = useState<EnumFormat | "">(mapping.format ?? "");
-  const [gender, setGender] = useState<EnumGender | "">(mapping.gender ?? "");
+  const [format, setFormat] = useState<FormatEnum | "">(mapping.format ?? "");
+  const [gender, setGender] = useState<GenderEnum | "">(mapping.gender ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const formatOptions: SelectOption[] = useMemo(
-    () => Object.values(EnumFormat).map((val) => ({value: val, label: FormatLabels[val]})),
+    () => Object.values(FormatEnum).map((val) => ({value: val, label: FormatLabels[val]})),
     []
   );
   const genderOptions: SelectOption[] = useMemo(
-    () => Object.values(EnumGender).map((val) => ({value: val, label: GenderLabels[val]})),
+    () => Object.values(GenderEnum).map((val) => ({value: val, label: GenderLabels[val]})),
     []
   );
   const divisionOptions: SelectOption[] = useMemo(
@@ -134,14 +134,14 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
         title="Choisir un format"
         options={formatOptions}
         selectedValue={format || ""}
-        onSelect={(opt) => setFormat((opt.value as EnumFormat) || "")}
+        onSelect={(opt) => setFormat((opt.value as FormatEnum) || "")}
       />
       <SelectSheet
         ref={genderRef}
         title="Choisir un genre"
         options={genderOptions}
         selectedValue={gender || ""}
-        onSelect={(opt) => setGender((opt.value as EnumGender) || "")}
+        onSelect={(opt) => setGender((opt.value as GenderEnum) || "")}
       />
       <SelectSheet
         ref={divisionRef}

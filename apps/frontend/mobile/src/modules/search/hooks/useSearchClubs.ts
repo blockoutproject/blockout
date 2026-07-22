@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApis } from "@/src/shared/providers/ApiProvider";
-import type { ClubSearchResponse } from "@/src/modules/search/model/Search";
+import type { ClubSearchResponse } from "@/src/shared/generated/models";
 
 export const useSearchClubs = (query: string, triggerOnEmpty = false) => {
   const { mobile } = useApis();

@@ -5,7 +5,7 @@ import {WebView} from "react-native-webview";
 import PdfViewerHeader from "@/src/modules/pdf/ui/PdfViewerHeader";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
-import {ReportType} from "@/src/modules/report/model/Report";
+import {ReportTypeEnum} from "@/src/shared/generated/models";
 
 export default function PdfViewer() {
   const params = useLocalSearchParams<{ url: string; title?: string }>();
@@ -64,7 +64,7 @@ export default function PdfViewer() {
       </View>
       <ReportFormSheet
         ref={reportSheetRef}
-        context={{screen: "PDF Viewer", defaultType: ReportType.DISPLAY_BUG}}
+        context={{screen: "PDF Viewer", defaultType: ReportTypeEnum.DISPLAY_BUG}}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();
         }}

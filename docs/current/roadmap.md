@@ -676,12 +676,26 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     abstraction was introduced. Nx lint and typecheck pass, all 26 Jest suites and 52 tests pass, and the 3,148-module
     Expo Web export succeeds. No native boundary changed, so no native rebuild was required; `git diff --check` passes.
 
-- [ ] **REF-058 — Adopt the generated mobile TypeScript client**
+- [x] **REF-058 — Adopt the generated mobile TypeScript client**
   - Generate the mobile client and models with Orval from the gateway contract into
     `apps/frontend/mobile/src/shared/generated/**`, then replace handwritten Axios transport and duplicate mobile DTOs
     feature by feature.
   - Keep TanStack Query ownership, Expo session behavior, error presentation, accessibility, and all existing tests;
     generated source remains application-local and outside Git.
+  - Evidence: the mobile now owns one Maaatch-aligned Orval configuration using the official `fetch`, `tags`, `clean`,
+    schema-output, custom-mutator, and body-only response options. Its Nx `codegen` target depends on the authoritative
+    mobile-gateway bundle and is a prerequisite of lint, typecheck, tests, and Web export. The 50 public V1 operations
+    generate 15 tag-scoped endpoint files and 73 model files, all ignored and untracked. Every handwritten mobile
+    request, response, and transport enum was replaced by the generated official name; only genuine presentation
+    values such as ranking highlights, legal route selection, and enum labels remain local. The nine feature API
+    adapters now call generated operations, while the former Axios registry, base client, `qs`, handwritten multipart
+    helper, and duplicate transport files were removed. One small `expo/fetch` mutator preserves the 20-second timeout,
+    secure-route token injection, public-route isolation, `ApiError`, unauthorized cleanup, JSON/text/blob handling,
+    and `204` semantics. Four focused tests cover public repeated query parameters, secure authentication, gateway
+    problems, and safe transport failures. Two clean generations have the identical
+    `5412392890cddf1b466f68a41b534ee34614df81` aggregate hash. All six contract tests, mobile lint with zero warnings,
+    typecheck, 27 Jest suites and 56 tests pass; the 3,138-module Expo Web export succeeds. No generated file is tracked,
+    no empty legacy model directory remains, and `git diff --check` passes.
 
 - [ ] **REF-059 — Certify and clean the complete contract-first application**
   - Remove superseded handwritten transport DTOs, internal HTTP clients, obsolete dependencies, and compatibility-only

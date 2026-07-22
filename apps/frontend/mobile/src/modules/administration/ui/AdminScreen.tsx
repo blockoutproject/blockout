@@ -8,7 +8,7 @@ import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useScraperStatuses} from "@/src/modules/administration/hooks/useScraperStatus";
 import {useAppStatus} from "@/src/modules/app-status/hooks/useAppStatus";
 import {useApis} from "@/src/shared/providers/ApiProvider";
-import {ScraperStatusResponse} from "@/src/modules/administration/model/ScraperStatus";
+import {ScraperStatusResponse} from "@/src/shared/generated/models";
 
 import MaintenanceControlCard from "./MaintenanceControlCard";
 import ScraperControlCard from "./ScraperControlCard";

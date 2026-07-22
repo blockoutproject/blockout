@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 
 import { notificationListQueryKey } from "@/src/modules/notifications/hooks/useNotifications";
-import { EnrichedUserNotificationPage } from "@/src/modules/notifications/model/Notification";
+import { NotificationPageResponse } from "@/src/shared/generated/models";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 
 export function useDeleteNotification(pageSize = 20) {
@@ -19,11 +19,11 @@ export function useDeleteNotification(pageSize = 20) {
       await queryClient.cancelQueries({ queryKey });
 
       const previous =
-        queryClient.getQueryData<InfiniteData<EnrichedUserNotificationPage>>(
+        queryClient.getQueryData<InfiniteData<NotificationPageResponse>>(
           queryKey,
         );
 
-      queryClient.setQueryData<InfiniteData<EnrichedUserNotificationPage>>(
+      queryClient.setQueryData<InfiniteData<NotificationPageResponse>>(
         queryKey,
         (current) => {
           if (!current) return current;

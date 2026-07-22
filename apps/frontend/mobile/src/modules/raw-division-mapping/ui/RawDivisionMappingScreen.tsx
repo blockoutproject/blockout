@@ -5,7 +5,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useRawDivisionMappings} from "@/src/modules/raw-division-mapping/hooks/useRawDivisionMapping";
-import {RawDivisionMappingResponse} from "@/src/modules/raw-division-mapping/model/RawDivisionMapping";
+import {RawDivisionMappingResponse} from "@/src/shared/generated/models";
 import {Filter} from "@/src/shared/model/Filter";
 import Filters from "@/src/shared/ui/Filters";
 import RawDivisionMappingItem from "@/src/modules/raw-division-mapping/ui/RawDivisionMappingItem";

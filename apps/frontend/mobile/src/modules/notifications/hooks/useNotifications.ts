@@ -1,9 +1,9 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import {
-  EnrichedUserNotification,
-  EnrichedUserNotificationPage,
-} from "@/src/modules/notifications/model/Notification";
+  NotificationResponse,
+  NotificationPageResponse,
+} from "@/src/shared/generated/models";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 
 export const notificationListQueryKey = (pageSize: number) =>
@@ -12,7 +12,7 @@ export const notificationListQueryKey = (pageSize: number) =>
 export const useNotifications = (pageSize = 20) => {
   const { mobile } = useApis();
 
-  const query = useInfiniteQuery<EnrichedUserNotificationPage>({
+  const query = useInfiniteQuery<NotificationPageResponse>({
     queryKey: notificationListQueryKey(pageSize),
     queryFn: ({ pageParam = 0 }) =>
       mobile.notifications.getNotifications({
@@ -26,7 +26,7 @@ export const useNotifications = (pageSize = 20) => {
   });
 
   const pages = query.data?.pages ?? [];
-  const items: EnrichedUserNotification[] = pages.flatMap(
+  const items: NotificationResponse[] = pages.flatMap(
     (page) => page.notifications,
   );
 

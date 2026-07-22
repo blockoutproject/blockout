@@ -13,8 +13,10 @@ import {
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
-import type { PoolResponse } from "@/src/modules/pool/model/Pool";
-import type { TeamWithStatsResponse } from "@/src/modules/team/model/Team";
+import type {
+  PoolResponse,
+  TeamWithStatsResponse,
+} from "@/src/shared/generated/models";
 import { CONFIG } from "@/src/shared/config/config";
 import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
@@ -25,7 +27,10 @@ type Props = {
 
 const RADIUS = 18;
 
-function hasCoord(lat: number | null, lng: number | null): lat is number {
+function hasCoord(
+  lat: number | null | undefined,
+  lng: number | null | undefined,
+): lat is number {
   return (
     typeof lat === "number" &&
     typeof lng === "number" &&

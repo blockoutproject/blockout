@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
 import ProfileForm, {ProfileFormState} from "@/src/modules/user/ui/ProfileForm";
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
-import {UserResponse} from "@/src/modules/user/model/User";
+import {UserResponse} from "@/src/shared/generated/models";
 
 export type ProfileFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;

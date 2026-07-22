@@ -6,7 +6,7 @@ import * as Linking from "expo-linking";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import { InfoCard, InfoRow } from "@/src/modules/club/ui/ClubInfoCard";
 import { BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
-import type { ClubResponse } from "@/src/modules/club/model/Club";
+import type { ClubResponse } from "@/src/shared/generated/models";
 import ClubMapCard from "./ClubMapCard";
 
 type ClubInformationsTabProps = {
@@ -74,14 +74,14 @@ const ClubInformationsTab: React.FC<ClubInformationsTabProps> = ({
         <InfoRow
           icon="email-outline"
           label="Email"
-          value={club.email}
+          value={club.email ?? null}
           onPress={openMail}
           isLink
         />
         <InfoRow
           icon="phone-outline"
           label="Téléphone"
-          value={club.phoneNumber}
+          value={club.phoneNumber ?? null}
           onPress={openPhone}
           isLink
         />
@@ -92,11 +92,11 @@ const ClubInformationsTab: React.FC<ClubInformationsTabProps> = ({
           onPress={openWebsite}
           isLink
         />
-        <InfoRow icon="map-marker" label="Ville" value={club.city} />
+        <InfoRow icon="map-marker" label="Ville" value={club.city ?? null} />
         <InfoRow
           icon="map-marker-outline"
           label="Adresse"
-          value={club.address}
+          value={club.address ?? null}
         />
         <InfoRow
           icon="map-outline"

@@ -1,44 +1,44 @@
-import {CONFIG} from "@/src/shared/config/config";
-import {UserResponse, UpdateUserRequest} from "@/src/modules/user/model/User";
-import {ImageUpload} from "@/src/shared/model/ImageUpload";
-import {BaseApi} from "@/src/shared/api/BaseApi";
+import {
+  deleteCurrentUser,
+  ensureCurrentUser,
+  followFavorite,
+  unfollowFavorite,
+  updateUser,
+} from "@/src/shared/generated/endpoints/user-secure";
+import type {UpdateUserRequest} from "@/src/shared/generated/models";
+import type {ImageUpload} from "@/src/shared/model/ImageUpload";
 
-export class UserApi extends BaseApi {
-  constructor() {
-    super({baseURL: CONFIG.API_GATEWAY_BASE_URL});
+/** Expose user operations through the feature API boundary. */
+export class UserApi {
+  /** Ensure and load the authenticated gateway user. */
+  public ensureCurrentUser() {
+    return ensureCurrentUser();
   }
 
-  public ensureCurrentUser(): Promise<UserResponse> {
-    return this.httpAuth.put<UserResponse>("/users/me");
-  }
-
+  /** Update a user with an optional native profile image. */
   public updateUser(
     auth0Id: string,
     data: UpdateUserRequest,
     image?: ImageUpload,
-  ): Promise<UserResponse> {
-    const formData = new FormData();
-    formData.append("data", JSON.stringify(data));
-    if (image) formData.append("image", image as unknown as Blob);
-
-    return this.httpAuth.put<UserResponse>(`/users/${auth0Id}`, formData, {
-      headers: {"Content-Type": "multipart/form-data"},
+  ) {
+    return updateUser(auth0Id, {
+      data: JSON.stringify(data),
+      image: image as unknown as Blob | undefined,
     });
   }
 
-  public deleteCurrentUser(): Promise<void> {
-    return this.httpAuth.delete<void>("/users/me");
+  /** Delete the authenticated gateway user. */
+  public deleteCurrentUser() {
+    return deleteCurrentUser();
   }
 
+  /** Follow one supported entity. */
   public follow(entityType: string, entityId: number) {
-    return this.httpAuth.post<void>("/favorites/follow", null, {
-      params: {entityType, entityId},
-    });
+    return followFavorite({entityType, entityId});
   }
 
+  /** Stop following one supported entity. */
   public unfollow(entityType: string, entityId: number) {
-    return this.httpAuth.delete<void>("/favorites/follow", {
-      params: {entityType, entityId},
-    });
+    return unfollowFavorite({entityType, entityId});
   }
 }

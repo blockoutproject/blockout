@@ -7,7 +7,7 @@ import {BottomSheetModal} from "@gorhom/bottom-sheet";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useLiveModerationMatches} from "@/src/modules/match/hooks/useLiveModerationMatches";
-import {MatchLiveSummaryResponse, LiveLinkStatus,} from "@/src/modules/match/model/Match";
+import {MatchLiveSummaryResponse, LiveLinkStatusEnum,} from "@/src/shared/generated/models";
 import {Filter} from "@/src/shared/model/Filter";
 
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
@@ -26,7 +26,7 @@ const STATUS_FILTERS: Filter[] = [
   {name: "Expirés", isActive: false},
 ];
 
-const FILTER_NAME_TO_STATUS: Record<string, LiveLinkStatus | null> = {
+const FILTER_NAME_TO_STATUS: Record<string, LiveLinkStatusEnum | null> = {
   "En attente": "PENDING",
   Actifs: "ACTIVE",
   Rejetés: "REJECTED",
@@ -53,7 +53,7 @@ const MatchLiveModerationScreen: React.FC = () => {
     useRef<FlashListRef<MatchLiveSummaryResponse> | null>(null);
 
   const activeStatusName = statusFilters.find((f) => f.isActive)?.name ?? "";
-  const activeStatus = useMemo<LiveLinkStatus | null>(
+  const activeStatus = useMemo<LiveLinkStatusEnum | null>(
     () => FILTER_NAME_TO_STATUS[activeStatusName] ?? null,
     [activeStatusName],
   );

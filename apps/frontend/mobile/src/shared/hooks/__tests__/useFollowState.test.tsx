@@ -9,7 +9,7 @@ import {
   SessionContextProvider,
   SessionState,
 } from "@/src/modules/session/providers/SessionContext";
-import { UserResponse, EntityType } from "@/src/modules/user/model/User";
+import { UserResponse, EntityTypeEnum } from "@/src/shared/generated/models";
 
 const mockFollow = jest.fn();
 const mockUnfollow = jest.fn();
@@ -115,7 +115,7 @@ describe("follow state", () => {
     mockFollow.mockResolvedValue(undefined);
 
     const { result, unmount } = await renderHook(
-      () => useFollowState("enrichedPools", EntityType.POOL, pool),
+      () => useFollowState("enrichedPools", EntityTypeEnum.POOL, pool),
       { wrapper: createWrapper(queryClient, refetch) },
     );
 
@@ -124,11 +124,11 @@ describe("follow state", () => {
     });
 
     await waitFor(() =>
-      expect(mockFollow).toHaveBeenCalledWith(EntityType.POOL, pool.id),
+      expect(mockFollow).toHaveBeenCalledWith(EntityTypeEnum.POOL, pool.id),
     );
     expect(
       queryClient.getQueryData<UserResponse>(CURRENT_USER_QUERY_KEY)?.favorites,
-    ).toEqual([{ entityType: EntityType.POOL, entityId: pool.id }]);
+    ).toEqual([{ entityType: EntityTypeEnum.POOL, entityId: pool.id }]);
     expect(queryClient.getQueryData<typeof pool>(poolKey)?.followersCount).toBe(
       8,
     );
@@ -149,7 +149,7 @@ describe("follow state", () => {
     mockFollow.mockRejectedValue(new Error("network"));
 
     const { result, unmount } = await renderHook(
-      () => useFollowState("enrichedTeams", EntityType.TEAM, team),
+      () => useFollowState("enrichedTeams", EntityTypeEnum.TEAM, team),
       { wrapper: createWrapper(queryClient, refetch) },
     );
 

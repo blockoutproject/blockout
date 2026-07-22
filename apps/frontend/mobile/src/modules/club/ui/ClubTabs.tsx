@@ -8,9 +8,11 @@ import ClubInformationsTab from "./ClubInformationTab";
 import ClubTeamListTab from "./ClubTeamListTab";
 import ProUpsellTab from "@/src/modules/subscription/ui/ProUpsellTab";
 
-import type { ClubResponse } from "@/src/modules/club/model/Club";
-import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
-import { MatchStatus } from "@/src/modules/match/model/Match";
+import {
+  type ClubResponse,
+  MatchStatusEnum,
+  type TeamSummaryResponse,
+} from "@/src/shared/generated/models";
 import { TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
 import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 
@@ -81,7 +83,7 @@ const ClubTabs: React.FC<ClubTabsProps> = ({
     return (
       <MatchList
         teamIds={teamIdsForMatches}
-        status={MatchStatus.UPCOMING}
+        status={MatchStatusEnum.UPCOMING}
         scrollY={scrollYs.upcoming}
         headerOffset={TABBAR_HEIGHT}
         contentContainerStyle={[{ paddingHorizontal: 4 }]}
@@ -100,7 +102,7 @@ const ClubTabs: React.FC<ClubTabsProps> = ({
     return (
       <MatchList
         teamIds={teamIdsForMatches}
-        status={MatchStatus.FINISHED}
+        status={MatchStatusEnum.FINISHED}
         scrollY={scrollYs.finished}
         headerOffset={TABBAR_HEIGHT}
         contentContainerStyle={[{ paddingHorizontal: 4 }]}

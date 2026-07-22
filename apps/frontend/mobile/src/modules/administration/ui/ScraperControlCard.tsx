@@ -3,7 +3,7 @@ import {ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {ScraperStatusResponse} from "@/src/modules/administration/model/ScraperStatus";
+import {ScraperStatusResponse} from "@/src/shared/generated/models";
 import ScraperStatusItem from "./ScraperStatusItem";
 
 type Props = {

@@ -4,14 +4,14 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {LiveLinkStatus, LiveProvider, MatchLiveLinkInternalResponse,} from "@/src/modules/match/model/Match";
+import {LiveLinkStatusEnum, LiveProviderEnum, MatchLiveLinkHistoryResponse,} from "@/src/shared/generated/models";
 
 type Props = {
-  link: MatchLiveLinkInternalResponse;
-  onApprove?: (link: MatchLiveLinkInternalResponse) => void;
-  onReject?: (link: MatchLiveLinkInternalResponse) => void;
-  onDeleteActive?: (link: MatchLiveLinkInternalResponse) => void;
-  onReactivate?: (link: MatchLiveLinkInternalResponse) => void;
+  link: MatchLiveLinkHistoryResponse;
+  onApprove?: (link: MatchLiveLinkHistoryResponse) => void;
+  onReject?: (link: MatchLiveLinkHistoryResponse) => void;
+  onDeleteActive?: (link: MatchLiveLinkHistoryResponse) => void;
+  onReactivate?: (link: MatchLiveLinkHistoryResponse) => void;
 };
 
 const formatDateTime = (value?: string | number | null) => {
@@ -43,7 +43,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
   );
 
   const statusConfig = useMemo(() => {
-    switch (link.status as LiveLinkStatus) {
+    switch (link.status as LiveLinkStatusEnum) {
       case "PENDING":
         return {
           label: "En attente",
@@ -90,7 +90,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
   }, [link.status, theme]);
 
   const providerIconName = useMemo(() => {
-    switch (link.provider as LiveProvider | null) {
+    switch (link.provider as LiveProviderEnum | null) {
       case "YOUTUBE":
         return "youtube";
       case "TWITCH":

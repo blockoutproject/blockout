@@ -2,7 +2,7 @@ import React, {useCallback} from "react";
 import {Pressable, StyleSheet, View} from "react-native";
 import * as Haptics from "expo-haptics";
 
-import {PoolMatchesResponse} from "@/src/modules/match/model/Match";
+import {PoolMatchesResponse} from "@/src/shared/generated/models";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import MatchRow from "./MatchRow";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";

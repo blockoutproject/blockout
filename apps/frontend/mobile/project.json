@@ -4,6 +4,19 @@
   "projectType": "application",
   "sourceRoot": "apps/frontend/mobile/src",
   "targets": {
+    "codegen": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        {
+          "projects": "@blockout/contracts",
+          "target": "generate-openapi-bundles"
+        }
+      ],
+      "outputs": ["{projectRoot}/src/shared/generated"],
+      "options": {
+        "command": "orval --config apps/frontend/mobile/orval.config.ts"
+      }
+    },
     "install": {
       "executor": "nx:run-commands",
       "options": {
@@ -20,6 +33,7 @@
     },
     "lint": {
       "executor": "nx:run-commands",
+      "dependsOn": ["codegen"],
       "options": {
         "cwd": "apps/frontend/mobile",
         "command": "npm run lint"
@@ -27,6 +41,7 @@
     },
     "test": {
       "executor": "nx:run-commands",
+      "dependsOn": ["codegen"],
       "options": {
         "cwd": "apps/frontend/mobile",
         "command": "npm test"
@@ -34,6 +49,7 @@
     },
     "typecheck": {
       "executor": "nx:run-commands",
+      "dependsOn": ["codegen"],
       "options": {
         "cwd": "apps/frontend/mobile",
         "command": "tsc --noEmit --pretty false"
@@ -41,6 +57,7 @@
     },
     "web-export": {
       "executor": "nx:run-commands",
+      "dependsOn": ["codegen"],
       "outputs": ["{workspaceRoot}/dist/apps/frontend/mobile/web"],
       "options": {
         "cwd": "apps/frontend/mobile",

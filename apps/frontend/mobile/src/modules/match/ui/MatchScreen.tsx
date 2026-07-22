@@ -18,7 +18,7 @@ import MatchHeader from "@/src/modules/match/ui/MatchHeader";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
 
-import {ReportType} from "@/src/modules/report/model/Report";
+import {ReportTypeEnum} from "@/src/shared/generated/models";
 import {getTeamsRankingColor, isLNV, splitIsoDateFormatted} from "@/src/shared/lib/utils";
 import {BOTTOM_TABBAR_HEIGHT, HEADER_HEIGHT, SECTION_SEPARATOR_HEIGHT,} from "@/src/shared/theme/tokens";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
@@ -128,7 +128,7 @@ const MatchScreen: React.FC = () => {
     return getTeamsRankingColor(theme, {
       teamA: match.teamA,
       teamB: match.teamB,
-      set: match.set,
+      set: match.set ?? null,
       highlightColor: division.mainColor,
     });
   }, [match, theme]);
@@ -282,8 +282,8 @@ const MatchScreen: React.FC = () => {
           scrollY={scrollY}
           onOpenReport={handleOpenReport}
           headerContent={{
-            teamALogo: match.teamA.logoUrl,
-            teamBLogo: match.teamB.logoUrl,
+            teamALogo: match.teamA.logoUrl ?? null,
+            teamBLogo: match.teamB.logoUrl ?? null,
             scoreText: match.set ?? null,
             timeText,
             poolCode: match.pool.poolCode,
@@ -299,7 +299,7 @@ const MatchScreen: React.FC = () => {
           ref={reportSheetRef}
           context={{
             screen: `Match#${match.id}#${match.teamA.name}/${match.teamB.name}`,
-            defaultType: ReportType.DISPLAY_BUG,
+            defaultType: ReportTypeEnum.DISPLAY_BUG,
           }}
           onSuccess={() => {
             reportSheetRef.current?.dismiss();

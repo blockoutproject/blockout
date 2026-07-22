@@ -1,7 +1,7 @@
 import { useFollowState } from "@/src/shared/hooks/useFollowState";
-import type { PoolResponse } from "@/src/modules/pool/model/Pool";
-import { EntityType } from "@/src/modules/user/model/User";
+import type { PoolResponse } from "@/src/shared/generated/models";
+import { EntityTypeEnum } from "@/src/shared/generated/models";
 
 export function usePoolFollowState(pool: PoolResponse) {
-  return useFollowState("enrichedPools", EntityType.POOL, pool);
+  return useFollowState("enrichedPools", EntityTypeEnum.POOL, pool);
 }

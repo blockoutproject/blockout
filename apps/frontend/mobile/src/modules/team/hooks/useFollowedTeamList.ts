@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
+import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 
 /**

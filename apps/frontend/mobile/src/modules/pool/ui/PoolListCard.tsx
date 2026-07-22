@@ -1,8 +1,8 @@
 import React from "react";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import type { PoolSummaryResponse } from "@/src/modules/pool/model/Pool";
-import { EnumGender, GenderLabels } from "@/src/shared/model/enums/Gender";
-import { FormatLabels } from "@/src/shared/model/enums/Format";
+import type { PoolSummaryResponse } from "@/src/shared/generated/models";
+import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
+import { FormatLabels } from "@/src/shared/model/formatLabels";
 import { isRegional, withAlpha } from "@/src/shared/lib/utils";
 import EntityGradientCard, {
   EntityCardChip,
@@ -59,13 +59,13 @@ const PoolListCard: React.FC<PoolListCardProps> = ({
   if (pool.gender) {
     let genderColor: string;
     switch (pool.gender) {
-      case EnumGender.M:
+      case GenderEnum.M:
         genderColor = theme.male;
         break;
-      case EnumGender.F:
+      case GenderEnum.F:
         genderColor = theme.female;
         break;
-      case EnumGender.O:
+      case GenderEnum.O:
       default:
         genderColor = theme.textSecondary;
         break;

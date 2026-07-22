@@ -1,57 +1,40 @@
-import { CONFIG } from "@/src/shared/config/config";
-import type {
-  ClubSearchResponse,
-  PoolSearchResponse,
-  TeamSearchResponse,
-} from "@/src/modules/search/model/Search";
-import { BaseApi } from "@/src/shared/api/BaseApi";
-import { EnumFormat } from "@/src/shared/model/enums/Format";
-import { EnumGender } from "@/src/shared/model/enums/Gender";
+import {
+  searchClubs,
+  searchPools,
+  searchTeams,
+} from "@/src/shared/generated/endpoints/search-public";
+import type {FormatEnum, GenderEnum} from "@/src/shared/generated/models";
 
-export class SearchApi extends BaseApi {
-  constructor() {
-    super({ baseURL: CONFIG.API_GATEWAY_BASE_URL });
-  }
-
+/** Expose search operations through the feature API boundary. */
+export class SearchApi {
+  /** Search public clubs by name. */
   public searchClubs(query: string) {
-    return this.httpPublic.get<ClubSearchResponse[]>("/search/clubs", {
-      params: { query },
-    });
+    return searchClubs({query}).then((results) => results ?? []);
   }
 
+  /** Search public teams with optional competition filters. */
   public searchTeams(
     query: string,
     season?: string,
     divisionId?: number,
-    format?: EnumFormat,
-    gender?: EnumGender,
+    format?: FormatEnum,
+    gender?: GenderEnum,
   ) {
-    return this.httpPublic.get<TeamSearchResponse[]>("/search/teams", {
-      params: {
-        query,
-        ...(season ? { season } : {}),
-        ...(typeof divisionId === "number" ? { divisionId } : {}),
-        ...(format ? { format } : {}),
-        ...(gender ? { gender } : {}),
-      },
-    });
+    return searchTeams({query, season, divisionId, format, gender}).then(
+      (results) => results ?? [],
+    );
   }
 
+  /** Search public pools with optional competition filters. */
   public searchPools(
     query: string,
     season?: string,
     divisionId?: number,
-    format?: EnumFormat,
-    gender?: EnumGender,
+    format?: FormatEnum,
+    gender?: GenderEnum,
   ) {
-    return this.httpPublic.get<PoolSearchResponse[]>("/search/pools", {
-      params: {
-        query,
-        ...(season ? { season } : {}),
-        ...(typeof divisionId === "number" ? { divisionId } : {}),
-        ...(format ? { format } : {}),
-        ...(gender ? { gender } : {}),
-      },
-    });
+    return searchPools({query, season, divisionId, format, gender}).then(
+      (results) => results ?? [],
+    );
   }
 }

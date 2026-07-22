@@ -7,7 +7,7 @@ import SearchTeamScreen from "@/src/modules/search/ui/SearchTeamScreen";
 import SearchClubScreen from "@/src/modules/search/ui/SearchClubScreen";
 import SearchPoolScreen from "@/src/modules/search/ui/SearchPoolScreen";
 import SearchHeader from "@/src/modules/search/ui/SearchHeader";
-import { ReportType } from "@/src/modules/report/model/Report";
+import { ReportTypeEnum } from "@/src/shared/generated/models";
 import { Filter } from "@/src/shared/model/Filter";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 
@@ -57,7 +57,7 @@ const SearchScreen: React.FC = () => {
         ref={reportSheetRef}
         context={{
           screen: `Search#${activeEntity}`,
-          defaultType: ReportType.DISPLAY_BUG,
+          defaultType: ReportTypeEnum.DISPLAY_BUG,
         }}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();

@@ -5,7 +5,7 @@ import {useRouter} from "expo-router";
 import {FlashList, ListRenderItemInfo} from "@shopify/flash-list";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {DayMatchesResponse, PoolMatchesResponse, MatchStatus,} from "@/src/modules/match/model/Match";
+import {DayMatchesResponse, PoolMatchesResponse, MatchStatusEnum,} from "@/src/shared/generated/models";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useMatchList} from "@/src/modules/match/hooks/useMatchList";
 import {formatDateFrenchLocale} from "@/src/shared/lib/utils";
@@ -19,7 +19,7 @@ import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigation
 export type MatchListProps = {
   poolIds?: number[];
   teamIds?: number[];
-  status: MatchStatus;
+  status: MatchStatusEnum;
   scrollY: Animated.Value;
   contentContainerStyle?: StyleProp<ViewStyle>;
   headerOffset: number;

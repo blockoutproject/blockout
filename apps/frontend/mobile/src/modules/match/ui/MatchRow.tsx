@@ -1,7 +1,10 @@
 import React from "react";
 import {StyleSheet, Text, View} from "react-native";
-import {MatchResponse, MatchStatus} from "@/src/modules/match/model/Match";
-import {DivisionResponse} from "@/src/modules/division/model/Division";
+import {
+  DivisionResponse,
+  MatchResponse,
+  MatchStatusEnum,
+} from "@/src/shared/generated/models";
 import {withAlpha} from "@/src/shared/lib/utils";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
@@ -21,8 +24,8 @@ const MatchRow: React.FC<MatchRowProps> = ({match, division}) => {
   const mm = date.getMinutes().toString().padStart(2, "0");
   const matchTime = `${hh}:${mm}`;
 
-  const upcoming = match.status === MatchStatus.UPCOMING;
-  const isFinished = match.status === MatchStatus.FINISHED;
+  const upcoming = match.status === MatchStatusEnum.UPCOMING;
+  const isFinished = match.status === MatchStatusEnum.FINISHED;
   const hasLiveLink = !!match.liveUrl;
 
   const gradient = [

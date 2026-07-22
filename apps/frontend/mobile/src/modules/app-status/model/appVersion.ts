@@ -1,6 +1,6 @@
 import * as Application from "expo-application";
 import {Platform} from "react-native";
-import type {AppStatusResponse} from "@/src/modules/app-status/model/AppStatus";
+import type {AppStatusResponse} from "@/src/shared/generated/models";
 
 export const CURRENT_APP_VERSION = Application.nativeApplicationVersion ?? "1.0.0";
 

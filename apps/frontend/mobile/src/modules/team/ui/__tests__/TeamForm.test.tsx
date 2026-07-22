@@ -3,9 +3,9 @@ import React from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import type {
-  TeamInternalResponse,
+  TeamDetailsResponse,
   TeamResponse,
-} from "@/src/modules/team/model/Team";
+} from "@/src/shared/generated/models";
 import TeamForm from "@/src/modules/team/ui/TeamForm";
 import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
 
@@ -55,7 +55,7 @@ describe("TeamForm", () => {
       rawName: "Raw team name",
       logoUrl: "https://example.test/team.png",
     } as TeamResponse;
-    const response = { id: 12, name: "Nouveau nom" } as TeamInternalResponse;
+    const response = { id: 12, name: "Nouveau nom" } as TeamDetailsResponse;
     mockUpdateTeam.mockResolvedValue(response);
     const onSuccess = jest.fn();
     let submit: () => void = () => undefined;

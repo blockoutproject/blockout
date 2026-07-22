@@ -12,7 +12,7 @@ import {
 
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import { CONFIG } from "@/src/shared/config/config";
-import type { ClubResponse } from "@/src/modules/club/model/Club";
+import type { ClubResponse } from "@/src/shared/generated/models";
 
 const RADIUS = 18;
 

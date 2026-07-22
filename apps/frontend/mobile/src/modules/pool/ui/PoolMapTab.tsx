@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import type { PoolResponse } from "@/src/modules/pool/model/Pool";
+import type { PoolResponse } from "@/src/shared/generated/models";
 import {
   BOTTOM_TABBAR_HEIGHT,
   SECTION_SEPARATOR_HEIGHT,

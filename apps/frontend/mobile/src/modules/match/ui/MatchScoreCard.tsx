@@ -4,8 +4,11 @@ import * as Haptics from "expo-haptics";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {splitIsoDateFormatted, withAlpha} from "@/src/shared/lib/utils";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import {type MatchResponse, MatchStatus} from "@/src/modules/match/model/Match";
-import type {TeamInternalResponse} from "@/src/modules/team/model/Team";
+import {
+  type MatchResponse,
+  MatchStatusEnum,
+  type TeamDetailsResponse,
+} from "@/src/shared/generated/models";
 import InfoPillGradient, {type InfoPillGradientProps} from "@/src/shared/ui/chips/InfoPillGradient";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {useRouter} from "expo-router";
@@ -26,7 +29,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({match, gradient}) => {
   const {handleNavigationWithAd} = useNavigationInterstitial();
 
   const hasLiveLink = !!match.liveUrl;
-  const isFinished = match.status === MatchStatus.FINISHED;
+  const isFinished = match.status === MatchStatusEnum.FINISHED;
 
   const isMatchStarted = useMemo(() => {
     const matchMs = new Date(match.matchDate).getTime();
@@ -46,7 +49,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({match, gradient}) => {
   );
 
   const TeamBlock: React.FC<{
-    team: TeamInternalResponse & { logoUrl: string | null };
+    team: TeamDetailsResponse;
     role: "Locaux" | "Visiteurs";
   }> = ({team, role}) => (
     <Pressable
@@ -56,7 +59,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({match, gradient}) => {
       style={styles.teamCard}
       testID={`match-team-action-${team.id}`}
     >
-      <MaskedImage uri={team.logoUrl} size={LOGO_SIZE} radius={RADIUS} shadow/>
+      <MaskedImage uri={team.logoUrl ?? null} size={LOGO_SIZE} radius={RADIUS} shadow/>
       <Text style={[styles.teamLabel, {color: theme.text}]} numberOfLines={2}>
         {team.shortName}
       </Text>

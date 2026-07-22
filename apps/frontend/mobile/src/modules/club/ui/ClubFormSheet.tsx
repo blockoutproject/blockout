@@ -3,7 +3,7 @@ import { BottomSheetFooterProps, BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
-import type { ClubResponse } from "@/src/modules/club/model/Club";
+import type { ClubResponse } from "@/src/shared/generated/models";
 import ClubForm, { ClubFormState } from "@/src/modules/club/ui/ClubForm";
 
 export type ClubFormSheetProps = {

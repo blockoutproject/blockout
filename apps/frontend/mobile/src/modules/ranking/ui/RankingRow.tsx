@@ -4,7 +4,8 @@ import {Pressable, StyleSheet, StyleSheet as RNStyleSheet, Text, View} from "rea
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import type {AppTheme} from "@/src/shared/theme/themes";
-import type {TeamHighlight, TeamWithStatsResponse} from "@/src/modules/team/model/Team";
+import type {TeamWithStatsResponse} from "@/src/shared/generated/models";
+import type {TeamHighlight} from "@/src/modules/team/model/TeamHighlight";
 import {withAlpha} from "@/src/shared/lib/utils";
 import MiniStat from "./MiniStat";
 import Medal from "./Medal";

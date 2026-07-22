@@ -5,15 +5,15 @@ import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCusto
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import TeamForm, { TeamFormState } from "@/src/modules/team/ui/TeamForm";
 import type {
-  TeamInternalResponse,
+  TeamDetailsResponse,
   TeamResponse,
-} from "@/src/modules/team/model/Team";
+} from "@/src/shared/generated/models";
 
 export type TeamFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;
   team: TeamResponse;
   snapPoint?: string | number;
-  onSuccess: (updated: TeamInternalResponse) => void;
+  onSuccess: (updated: TeamDetailsResponse) => void;
   footerLabel?: string;
 };
 
@@ -49,7 +49,7 @@ const TeamFormSheet = ({
   );
 
   const handleSuccess = useCallback(
-    async (updated: TeamInternalResponse) => {
+    async (updated: TeamDetailsResponse) => {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess(updated);
     },

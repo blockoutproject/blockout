@@ -1,7 +1,7 @@
 import React, {useMemo} from "react";
 import {StyleSheet, View} from "react-native";
 import Hero from "@/src/shared/ui/Hero";
-import type {UserResponse} from "@/src/modules/user/model/User";
+import type {UserResponse} from "@/src/shared/generated/models";
 import {usePurchases} from "@/src/modules/subscription/providers/PurchasesProvider";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";

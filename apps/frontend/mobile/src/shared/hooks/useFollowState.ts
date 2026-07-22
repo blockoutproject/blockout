@@ -7,8 +7,8 @@ import {
   useSessionActions,
   useSessionState,
 } from "@/src/modules/session/providers/SessionContext";
-import type { UserResponse } from "@/src/modules/user/model/User";
-import { EntityType } from "@/src/modules/user/model/User";
+import type { UserResponse } from "@/src/shared/generated/models";
+import { EntityTypeEnum } from "@/src/shared/generated/models";
 
 type FollowableEntity = {
   id: number;
@@ -22,7 +22,7 @@ type FollowMutationContext<T extends FollowableEntity> = {
 
 const updateFavorite = (
   user: UserResponse,
-  entityType: EntityType,
+  entityType: EntityTypeEnum,
   entityId: number,
   isFollowing: boolean,
 ): UserResponse => {
@@ -42,7 +42,7 @@ const updateFavorite = (
 
 export function useFollowState<T extends FollowableEntity>(
   queryNamespace: string,
-  entityType: EntityType,
+  entityType: EntityTypeEnum,
   entity: T,
 ) {
   const { customUser } = useSessionState();

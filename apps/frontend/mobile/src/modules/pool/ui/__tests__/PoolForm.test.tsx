@@ -3,9 +3,9 @@ import React from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import type {
-  PoolInternalResponse,
+  PoolDetailsResponse,
   PoolResponse,
-} from "@/src/modules/pool/model/Pool";
+} from "@/src/shared/generated/models";
 import PoolForm from "@/src/modules/pool/ui/PoolForm";
 import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
 
@@ -45,7 +45,7 @@ describe("PoolForm", () => {
     const response = {
       id: 24,
       name: "Poule principale",
-    } as PoolInternalResponse;
+    } as PoolDetailsResponse;
     mockUpdatePool.mockResolvedValue(response);
     const onSuccess = jest.fn();
     let submit: () => void = () => undefined;

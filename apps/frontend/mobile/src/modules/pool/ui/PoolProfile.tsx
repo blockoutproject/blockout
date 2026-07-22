@@ -8,11 +8,11 @@ import React, {
 import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
-import type { PoolResponse } from "@/src/modules/pool/model/Pool";
+import type { PoolResponse } from "@/src/shared/generated/models";
 import FollowButton from "@/src/shared/ui/follow/FollowButton";
 import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
 import { usePoolFollowState } from "@/src/modules/pool/hooks/usePoolFollowState";
-import { EnumGender, GenderLabels } from "@/src/shared/model/enums/Gender";
+import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
 import { LOGO_SIZE } from "@/src/shared/theme/tokens";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import { computeBalancedRowsByCount, withAlpha } from "@/src/shared/lib/utils";
@@ -73,13 +73,13 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
     if (enrichedPool.gender) {
       let genderColor: string;
       switch (enrichedPool.gender) {
-        case EnumGender.M:
+        case GenderEnum.M:
           genderColor = theme.male;
           break;
-        case EnumGender.F:
+        case GenderEnum.F:
           genderColor = theme.female;
           break;
-        case EnumGender.O:
+        case GenderEnum.O:
         default:
           genderColor = theme.textSecondary;
           break;

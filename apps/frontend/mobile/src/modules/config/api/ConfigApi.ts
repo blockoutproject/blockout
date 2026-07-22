@@ -1,106 +1,101 @@
-import {CONFIG} from "@/src/shared/config/config";
-import {DivisionResponse, UpsertDivisionRequest} from "@/src/modules/division/model/Division";
 import {
-  RawDivisionMappingResponse,
-  UpdateRawDivisionMappingRequest,
-} from "@/src/modules/raw-division-mapping/model/RawDivisionMapping";
-import {ScraperStatusResponse} from "@/src/modules/administration/model/ScraperStatus";
+  getAppStatus,
+  getLegalDocument,
+  listDivisions,
+} from "@/src/shared/generated/endpoints/config-public";
 import {
-  LegalDocumentResponse,
+  createDivision,
+  deactivateDivision,
+  listRawDivisions,
+  listScraperStatuses,
+  updateAppStatus,
+  updateDivision,
+  updateLegalDocument,
+  updateRawDivision,
+  updateScraperStatus,
+} from "@/src/shared/generated/endpoints/config-secure";
+import type {
+  UpdateAppStatusRequest,
   UpdateLegalDocumentRequest,
-} from "@/src/modules/legal/model/LegalDocument";
-import {AppStatusResponse, UpdateAppStatusRequest} from "@/src/modules/app-status/model/AppStatus";
-import {ImageUpload} from "@/src/shared/model/ImageUpload";
-import {appendJson} from "@/src/shared/lib/utils";
-import {BaseApi} from "@/src/shared/api/BaseApi";
+  UpdateRawDivisionMappingRequest,
+  UpsertDivisionRequest,
+} from "@/src/shared/generated/models";
+import type {ImageUpload} from "@/src/shared/model/ImageUpload";
 
-export class ConfigApi extends BaseApi {
-  constructor() {
-    super({baseURL: CONFIG.API_GATEWAY_BASE_URL});
-  }
-
+/** Expose configuration operations through the feature API boundary. */
+export class ConfigApi {
+  /** Load a public legal document. */
   public getLegalDocument(type: string) {
-    return this.httpPublic.get<LegalDocumentResponse>(
-      `/config/legal/${type}`,
-    );
+    return getLegalDocument(type);
   }
 
+  /** Update a legal document. */
   public updateLegalDocument(type: string, data: UpdateLegalDocumentRequest) {
-    return this.httpAuth.put<LegalDocumentResponse>(`/config/legal/${type}`, data);
+    return updateLegalDocument(type, data);
   }
 
+  /** Load every active public division. */
   public getDivisions() {
-    return this.httpPublic.get<DivisionResponse[]>("/config/divisions");
+    return listDivisions();
   }
 
-  public createDivision(
-    data: UpsertDivisionRequest,
-    image?: ImageUpload,
-  ) {
-    const formData = new FormData();
-    appendJson(formData, "data", data);
-    if (image) {
-      formData.append("image", {
-        uri: image.uri,
-        type: image.type,
-        name: image.name,
-      } as unknown as Blob);
-    }
-    return this.httpAuth.post<DivisionResponse>("/config/divisions", formData, {
-      headers: {"Content-Type": "multipart/form-data"},
-    });
+  /** Create a division with its optional native image upload. */
+  public createDivision(data: UpsertDivisionRequest, image?: ImageUpload) {
+    return createDivision(toDivisionBody(data, image));
   }
 
+  /** Update a division with its optional native image upload. */
   public updateDivision(
     id: number,
     data: UpsertDivisionRequest,
     image?: ImageUpload,
   ) {
-    const formData = new FormData();
-    appendJson(formData, "data", data);
-    if (image) {
-      formData.append("image", {
-        uri: image.uri,
-        type: image.type,
-        name: image.name,
-      } as unknown as Blob);
-    }
-    return this.httpAuth.put<DivisionResponse>(`/config/divisions/${id}`, formData, {
-      headers: {"Content-Type": "multipart/form-data"},
-    });
+    return updateDivision(id, toDivisionBody(data, image));
   }
 
+  /** Deactivate one division. */
   public deactivateDivision(id: number) {
-    return this.httpAuth.delete<void>(`/config/divisions/${id}`);
+    return deactivateDivision(id);
   }
 
+  /** Load raw division mappings matching the optional provider filters. */
   public getRawDivisionMappings(leagueCode?: string, season?: string) {
-    return this.httpAuth.get<RawDivisionMappingResponse[]>("/config/raw-divisions", {
-      params: {leagueCode, season},
-    });
+    return listRawDivisions({leagueCode, season});
   }
 
-  public updateRawDivisionMapping(id: number, data: UpdateRawDivisionMappingRequest) {
-    return this.httpAuth.put<RawDivisionMappingResponse>(`/config/raw-divisions/${id}`, data);
+  /** Update one raw division mapping. */
+  public updateRawDivisionMapping(
+    id: number,
+    data: UpdateRawDivisionMappingRequest,
+  ) {
+    return updateRawDivision(id, data);
   }
 
+  /** Enable or disable one scraper schedule. */
   public updateScraperStatus(name: string, enabled: boolean) {
-    return this.httpAuth.put<ScraperStatusResponse>(
-      `/config/scrapers/${name}/enabled`,
-      null,
-      {params: {enabled}},
-    );
+    return updateScraperStatus(name, {enabled});
   }
 
+  /** Load all scraper statuses. */
   public getScraperStatuses() {
-    return this.httpAuth.get<ScraperStatusResponse[]>("/config/scrapers/status");
+    return listScraperStatuses();
   }
 
+  /** Load the public application status. */
   public getAppStatus() {
-    return this.httpPublic.get<AppStatusResponse>("/config/app-status");
+    return getAppStatus();
   }
 
+  /** Update the application status. */
   public updateAppStatus(data: UpdateAppStatusRequest) {
-    return this.httpAuth.put<AppStatusResponse>("/config/app-status", data);
+    return updateAppStatus(data);
   }
+}
+
+/** Build the generated multipart body from the feature's native image value. */
+function toDivisionBody(data: UpsertDivisionRequest, image?: ImageUpload) {
+  return {
+    data: JSON.stringify(data),
+    image: image as unknown as Blob | undefined,
+  };
 }

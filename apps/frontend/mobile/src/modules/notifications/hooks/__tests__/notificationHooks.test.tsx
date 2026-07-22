@@ -12,11 +12,11 @@ import {
   useNotifications,
 } from "@/src/modules/notifications/hooks/useNotifications";
 import {
-  EnrichedUserNotification,
-  EnrichedUserNotificationPage,
-  NotificationTargetType,
-  NotificationType,
-} from "@/src/modules/notifications/model/Notification";
+  NotificationResponse,
+  NotificationPageResponse,
+  NotificationTargetTypeEnum,
+  NotificationTypeEnum,
+} from "@/src/shared/generated/models";
 
 const mockGetNotifications = jest.fn();
 const mockDeleteNotification = jest.fn();
@@ -32,14 +32,14 @@ jest.mock("@/src/shared/providers/ApiProvider", () => ({
   }),
 }));
 
-const notification: EnrichedUserNotification = {
+const notification: NotificationResponse = {
   id: 12,
   userId: 4,
-  type: NotificationType.MATCH_FINISHED,
+  type: NotificationTypeEnum.MATCH_FINISHED,
   title: "Match terminé",
   body: "Le score final est disponible.",
   deepLink: "/match/42",
-  targetType: NotificationTargetType.MATCH,
+  targetType: NotificationTargetTypeEnum.MATCH,
   targetId: 42,
   metadata: null,
   isRead: false,
@@ -50,7 +50,7 @@ const notification: EnrichedUserNotification = {
   divisionLogoUrl: null,
 };
 
-const page: EnrichedUserNotificationPage = {
+const page: NotificationPageResponse = {
   notifications: [notification],
   hasNext: false,
   nextPage: null,
@@ -94,7 +94,7 @@ describe("notification hooks", () => {
   it("restores the cached page when deletion fails", async () => {
     const queryClient = createQueryClient();
     const queryKey = notificationListQueryKey(20);
-    const cached: InfiniteData<EnrichedUserNotificationPage> = {
+    const cached: InfiniteData<NotificationPageResponse> = {
       pages: [page],
       pageParams: [0],
     };

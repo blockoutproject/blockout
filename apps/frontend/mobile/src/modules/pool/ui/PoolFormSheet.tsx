@@ -5,15 +5,15 @@ import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCusto
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import PoolForm, { PoolFormState } from "@/src/modules/pool/ui/PoolForm";
 import type {
-  PoolInternalResponse,
+  PoolDetailsResponse,
   PoolResponse,
-} from "@/src/modules/pool/model/Pool";
+} from "@/src/shared/generated/models";
 
 export type PoolFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;
   pool: PoolResponse;
   snapPoint?: string | number;
-  onSuccess: (updated: PoolInternalResponse) => void;
+  onSuccess: (updated: PoolDetailsResponse) => void;
   footerLabel?: string;
 };
 
@@ -49,7 +49,7 @@ const PoolFormSheet = ({
   );
 
   const handleSuccess = useCallback(
-    async (updated: PoolInternalResponse) => {
+    async (updated: PoolDetailsResponse) => {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess(updated);
     },

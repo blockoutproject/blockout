@@ -17,8 +17,8 @@ import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import TeamCard from "@/src/modules/team/ui/TeamListCard";
 import TeamListHeader from "@/src/modules/team/ui/TeamListHeader";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
-import { ReportType } from "@/src/modules/report/model/Report";
-import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
+import { ReportTypeEnum } from "@/src/shared/generated/models";
+import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 import { useTeamListByClubId } from "@/src/modules/team/hooks/useTeamListByClubId";
 import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
 import { SelectOption } from "@/src/shared/ui/form/SelectSheet";
@@ -195,7 +195,7 @@ const TeamListScreen: React.FC = () => {
         ref={reportSheetRef}
         context={{
           screen: `TeamList#${clubId}`,
-          defaultType: ReportType.DISPLAY_BUG,
+          defaultType: ReportTypeEnum.DISPLAY_BUG,
         }}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();

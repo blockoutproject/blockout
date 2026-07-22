@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import type { PoolResponse } from "@/src/modules/pool/model/Pool";
+import type { PoolResponse } from "@/src/shared/generated/models";
 
 type Props = {
   enrichedPool: PoolResponse;

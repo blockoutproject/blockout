@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCustomModal";
 import DivisionForm, {DivisionFormState} from "@/src/modules/division/ui/DivisionForm";
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
-import {DivisionResponse} from "@/src/modules/division/model/Division";
+import {DivisionResponse} from "@/src/shared/generated/models";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 
 export type DivisionFormSheetProps = {

@@ -1,10 +1,10 @@
 import {useMemo} from "react";
 import {useInfiniteQuery} from "@tanstack/react-query";
-import {DayMatchesResponse, MatchStatus} from "@/src/modules/match/model/Match";
+import {DayMatchesResponse, MatchStatusEnum} from "@/src/shared/generated/models";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 
 export const useMatchList = (
-  status: MatchStatus,
+  status: MatchStatusEnum,
   poolIds?: number[],
   teamIds?: number[],
   pageSize?: number

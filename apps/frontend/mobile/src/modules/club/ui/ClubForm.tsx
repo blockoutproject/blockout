@@ -13,7 +13,7 @@ import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import type {
   ClubResponse,
   UpdateClubRequest,
-} from "@/src/modules/club/model/Club";
+} from "@/src/shared/generated/models";
 import { CORNERS } from "@/src/shared/theme/tokens";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 

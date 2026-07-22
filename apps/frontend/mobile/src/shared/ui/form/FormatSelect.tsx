@@ -6,10 +6,10 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {CORNERS} from "@/src/shared/theme/tokens";
 import SelectSheet, {SelectOption, SelectSheetRef,} from "@/src/shared/ui/form/SelectSheet";
-import {EnumFormat, FormatLabels} from "@/src/shared/model/enums/Format";
+import {FormatEnum, FormatLabels} from "@/src/shared/model/formatLabels";
 
 export type FormatSelectProps = {
-  selectedValue?: EnumFormat | null;
+  selectedValue?: FormatEnum | null;
   onSelect: (opt: SelectOption) => void;
 
   /** UI */
@@ -36,9 +36,9 @@ const FormatSelect: React.FC<FormatSelectProps> = ({
 
   const options: SelectOption[] = useMemo(
     () => [
-      {value: EnumFormat.SIX, label: FormatLabels[EnumFormat.SIX]},
-      {value: EnumFormat.FOUR, label: FormatLabels[EnumFormat.FOUR]},
-      {value: EnumFormat.TWO, label: FormatLabels[EnumFormat.TWO]},
+      {value: FormatEnum.SIX, label: FormatLabels[FormatEnum.SIX]},
+      {value: FormatEnum.FOUR, label: FormatLabels[FormatEnum.FOUR]},
+      {value: FormatEnum.TWO, label: FormatLabels[FormatEnum.TWO]},
     ],
     [],
   );

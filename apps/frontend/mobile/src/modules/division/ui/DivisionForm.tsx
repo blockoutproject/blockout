@@ -10,7 +10,7 @@ import {Image} from "expo-image";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {DivisionResponse, UpsertDivisionRequest} from "@/src/modules/division/model/Division";
+import {DivisionResponse, UpsertDivisionRequest} from "@/src/shared/generated/models";
 import CircleColorPicker from "@/src/shared/ui/form/CircleColorPicker";
 import {CORNERS} from "@/src/shared/theme/tokens";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";

@@ -11,10 +11,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import type {
-  TeamInternalResponse,
+  TeamDetailsResponse,
   TeamResponse,
   UpdateTeamRequest,
-} from "@/src/modules/team/model/Team";
+} from "@/src/shared/generated/models";
 import { CORNERS } from "@/src/shared/theme/tokens";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
@@ -31,7 +31,7 @@ export type TeamFormState = {
 
 export type TeamFormProps = {
   team: TeamResponse;
-  onSuccess: (updated: TeamInternalResponse) => void;
+  onSuccess: (updated: TeamDetailsResponse) => void;
   onRegisterSubmit: (submit: () => void) => void;
   onStateChange?: (state: TeamFormState) => void;
 };

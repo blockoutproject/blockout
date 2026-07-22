@@ -10,7 +10,7 @@ import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 
 import TeamCard from "@/src/modules/team/ui/TeamListCard";
-import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
+import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
 type Props = {

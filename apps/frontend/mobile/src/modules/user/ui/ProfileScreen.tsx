@@ -8,7 +8,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
-import {ReportType} from "@/src/modules/report/model/Report";
+import {ReportTypeEnum} from "@/src/shared/generated/models";
 import {withAlpha} from "@/src/shared/lib/utils";
 import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/BottomSheetCustomPage";
 import LegalDocumentScreen from "@/src/modules/legal/ui/LegalDocumentScreen";
@@ -176,7 +176,7 @@ const ProfileScreen: React.FC = () => {
 
         <ReportFormSheet
           ref={reportSheetRef}
-          context={{screen: "Profile", defaultType: ReportType.DISPLAY_BUG}}
+          context={{screen: "Profile", defaultType: ReportTypeEnum.DISPLAY_BUG}}
           onSuccess={() => {
             reportSheetRef.current?.dismiss();
           }}
@@ -304,7 +304,7 @@ const ProfileScreen: React.FC = () => {
 
         <ReportFormSheet
           ref={reportSheetRef}
-          context={{screen: "Profile", defaultType: ReportType.DISPLAY_BUG}}
+          context={{screen: "Profile", defaultType: ReportTypeEnum.DISPLAY_BUG}}
           onSuccess={() => {
             reportSheetRef.current?.dismiss();
           }}

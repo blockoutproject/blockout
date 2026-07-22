@@ -11,8 +11,8 @@ import FormatSelect from "@/src/shared/ui/form/FormatSelect";
 import GenderSelect from "@/src/shared/ui/form/GenderSelect";
 import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
 import { useDivisions } from "@/src/modules/division/hooks/useDivisions";
-import { EnumFormat } from "@/src/shared/model/enums/Format";
-import { EnumGender } from "@/src/shared/model/enums/Gender";
+import { FormatEnum } from "@/src/shared/model/formatLabels";
+import { GenderEnum } from "@/src/shared/model/genderLabels";
 import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
 export type SearchTeamScreenProps = {
@@ -35,8 +35,8 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
   const [selectedDivisionId, setSelectedDivisionId] = useState<number | null>(
     null,
   );
-  const [selectedFormat, setSelectedFormat] = useState<EnumFormat | null>(null);
-  const [selectedGender, setSelectedGender] = useState<EnumGender | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<FormatEnum | null>(null);
+  const [selectedGender, setSelectedGender] = useState<GenderEnum | null>(null);
 
   const seasonOptions: SelectOption[] = useMemo(
     () => SEASONS.map((s) => ({ value: s, label: s })),
@@ -91,7 +91,7 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
     if (!opt.value) {
       setSelectedFormat(null);
     } else {
-      setSelectedFormat(opt.value as EnumFormat);
+      setSelectedFormat(opt.value as FormatEnum);
     }
   }, []);
 
@@ -99,7 +99,7 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
     if (!opt.value) {
       setSelectedGender(null);
     } else {
-      setSelectedGender(opt.value as EnumGender);
+      setSelectedGender(opt.value as GenderEnum);
     }
   }, []);
 

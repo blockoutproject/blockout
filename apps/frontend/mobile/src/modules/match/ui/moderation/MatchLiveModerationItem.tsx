@@ -4,7 +4,7 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {MatchLiveSummaryResponse, LiveLinkStatus,} from "@/src/modules/match/model/Match";
+import {MatchLiveSummaryResponse, LiveLinkStatusEnum,} from "@/src/shared/generated/models";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 
@@ -48,7 +48,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
       icon: "help-circle-outline" as const,
     };
 
-    switch (match.lastLiveLinkStatus as LiveLinkStatus | null | undefined) {
+    switch (match.lastLiveLinkStatus as LiveLinkStatusEnum | null | undefined) {
       case "PENDING":
         return {
           label: "En attente",

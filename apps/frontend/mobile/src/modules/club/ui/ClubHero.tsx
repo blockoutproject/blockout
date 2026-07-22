@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 
-import type { ClubResponse } from "@/src/modules/club/model/Club";
+import type { ClubResponse } from "@/src/shared/generated/models";
 import Hero from "@/src/shared/ui/Hero";
 import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
 import { SelectOption } from "@/src/shared/ui/form/SelectSheet";

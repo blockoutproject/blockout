@@ -22,8 +22,8 @@ import type { ImageUpload } from "@/src/shared/model/ImageUpload";
 import {
   CreateReportRequest,
   ReportResponse,
-  ReportType,
-} from "@/src/modules/report/model/Report";
+  ReportTypeEnum,
+} from "@/src/shared/generated/models";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
@@ -41,7 +41,7 @@ export type ReportFormState = {
 
 export type ReportContext = {
   screen?: string;
-  defaultType?: ReportType;
+  defaultType?: ReportTypeEnum;
   userId?: string;
 };
 
@@ -53,17 +53,17 @@ export type ReportFormProps = {
 };
 
 type FormValues = {
-  type: ReportType;
+  type: ReportTypeEnum;
   title: string;
   description: string;
 };
 
 const CATEGORY_OPTIONS = [
-  { name: "Bug d'affichage", value: ReportType.DISPLAY_BUG },
-  { name: "Données", value: ReportType.DATA_ERROR },
-  { name: "Logo", value: ReportType.LOGO },
-  { name: "Live", value: ReportType.LIVE },
-  { name: "Autre", value: ReportType.OTHER },
+  { name: "Bug d'affichage", value: ReportTypeEnum.DISPLAY_BUG },
+  { name: "Données", value: ReportTypeEnum.DATA_ERROR },
+  { name: "Logo", value: ReportTypeEnum.LOGO },
+  { name: "Live", value: ReportTypeEnum.LIVE },
+  { name: "Autre", value: ReportTypeEnum.OTHER },
 ] as const;
 
 const ReportForm = ({
@@ -78,12 +78,12 @@ const ReportForm = ({
   const [images, setImages] = useState<ImageUpload[]>([]);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  const initialType = context?.defaultType ?? ReportType.DISPLAY_BUG;
+  const initialType = context?.defaultType ?? ReportTypeEnum.DISPLAY_BUG;
 
   const formik = useFormik<FormValues>({
     initialValues: { type: initialType, title: "", description: "" },
     validationSchema: Yup.object({
-      type: Yup.mixed<ReportType>().oneOf(Object.values(ReportType)).required(),
+      type: Yup.mixed<ReportTypeEnum>().oneOf(Object.values(ReportTypeEnum)).required(),
       title: Yup.string().trim().required("Titre requis 🚨"),
       description: Yup.string()
         .trim()

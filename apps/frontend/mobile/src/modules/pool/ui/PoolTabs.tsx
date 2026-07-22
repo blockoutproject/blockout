@@ -6,8 +6,8 @@ import MatchList from "@/src/modules/match/ui/MatchList";
 import RankingTab from "@/src/modules/ranking/ui/RankingTab";
 import ProUpsellTab from "@/src/modules/subscription/ui/ProUpsellTab";
 
-import { MatchStatus } from "@/src/modules/match/model/Match";
-import type { PoolResponse } from "@/src/modules/pool/model/Pool";
+import { MatchStatusEnum } from "@/src/shared/generated/models";
+import type { PoolResponse } from "@/src/shared/generated/models";
 import { TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
 import PoolMapTab from "./PoolMapTab";
 import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
@@ -46,7 +46,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
     () => (
       <MatchList
         poolIds={[enrichedPool.id]}
-        status={MatchStatus.FINISHED}
+        status={MatchStatusEnum.FINISHED}
         scrollY={scrollYs["finished"]}
         headerOffset={TABBAR_HEIGHT}
         contentContainerStyle={[{ paddingHorizontal: 4 }]}
@@ -60,7 +60,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
     () => (
       <MatchList
         poolIds={[enrichedPool.id]}
-        status={MatchStatus.UPCOMING}
+        status={MatchStatusEnum.UPCOMING}
         scrollY={scrollYs["upcoming"]}
         headerOffset={TABBAR_HEIGHT}
         contentContainerStyle={[{ paddingHorizontal: 4 }]}

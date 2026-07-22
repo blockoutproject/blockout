@@ -7,9 +7,11 @@ import { SearchApi } from "@/src/modules/search/api/SearchApi";
 import { NotificationApi } from "@/src/modules/notifications/api/NotificationApi";
 import { ConfigApi } from "@/src/modules/config/api/ConfigApi";
 import { ReportApi } from "@/src/modules/report/api/ReportApi";
-import { TokenSupplier } from "@/src/shared/api/HttpClient";
-import { ApiError } from "@/src/shared/api/ApiError";
+import {ApiError} from "@/src/shared/api/ApiError";
+import {setMobileGatewayAuthContext} from "@/src/shared/api/orvalFetch";
+import type {TokenSupplier} from "@/src/shared/api/orvalFetch";
 
+/** Group feature adapters for the generated mobile-gateway client. */
 export class MobileGatewayApi {
   public clubs: ClubApi;
   public matches: MatchApi;
@@ -21,6 +23,7 @@ export class MobileGatewayApi {
   public config: ConfigApi;
   public reports: ReportApi;
 
+  /** Create the stable feature API adapters exposed through React context. */
   constructor() {
     this.clubs = new ClubApi();
     this.matches = new MatchApi();
@@ -33,18 +36,11 @@ export class MobileGatewayApi {
     this.reports = new ReportApi();
   }
 
+  /** Configure authentication shared by generated secure operations. */
   public setAuthContext(
     tokenSupplier?: TokenSupplier,
     onUnauthorized?: (e: ApiError) => void | Promise<void>,
   ) {
-    this.clubs.setAuthContext(tokenSupplier, onUnauthorized);
-    this.matches.setAuthContext(tokenSupplier, onUnauthorized);
-    this.pools.setAuthContext(tokenSupplier, onUnauthorized);
-    this.teams.setAuthContext(tokenSupplier, onUnauthorized);
-    this.users.setAuthContext(tokenSupplier, onUnauthorized);
-    this.search.setAuthContext(tokenSupplier, onUnauthorized);
-    this.notifications.setAuthContext(tokenSupplier, onUnauthorized);
-    this.config.setAuthContext(tokenSupplier, onUnauthorized);
-    this.reports.setAuthContext(tokenSupplier, onUnauthorized);
+    setMobileGatewayAuthContext(tokenSupplier, onUnauthorized);
   }
 }

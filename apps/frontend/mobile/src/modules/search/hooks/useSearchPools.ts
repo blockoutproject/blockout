@@ -1,15 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApis } from "@/src/shared/providers/ApiProvider";
-import type { PoolSearchResponse } from "@/src/modules/search/model/Search";
-import { EnumFormat } from "@/src/shared/model/enums/Format";
-import { EnumGender } from "@/src/shared/model/enums/Gender";
+import type { PoolSearchResponse } from "@/src/shared/generated/models";
+import { FormatEnum } from "@/src/shared/model/formatLabels";
+import { GenderEnum } from "@/src/shared/model/genderLabels";
 
 export const useSearchPools = (
   query: string,
   season?: string,
   divisionId?: number,
-  format?: EnumFormat,
-  gender?: EnumGender,
+  format?: FormatEnum,
+  gender?: GenderEnum,
 ) => {
   const { mobile } = useApis();
 

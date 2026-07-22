@@ -9,12 +9,12 @@ import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
-import type { TeamResponse } from "@/src/modules/team/model/Team";
+import type { TeamResponse } from "@/src/shared/generated/models";
 import { useTeamFollowState } from "@/src/modules/team/hooks/useTeamFollowState";
 import FollowButton from "@/src/shared/ui/follow/FollowButton";
 import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
-import { EnumGender, GenderLabels } from "@/src/shared/model/enums/Gender";
-import { FormatLabels } from "@/src/shared/model/enums/Format";
+import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
+import { FormatLabels } from "@/src/shared/model/formatLabels";
 import { LOGO_SIZE } from "@/src/shared/theme/tokens";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
@@ -68,13 +68,13 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     if (enrichedTeam.gender) {
       let genderColor: string;
       switch (enrichedTeam.gender) {
-        case EnumGender.M:
+        case GenderEnum.M:
           genderColor = theme.male;
           break;
-        case EnumGender.F:
+        case GenderEnum.F:
           genderColor = theme.female;
           break;
-        case EnumGender.O:
+        case GenderEnum.O:
         default:
           genderColor = theme.textSecondary;
           break;

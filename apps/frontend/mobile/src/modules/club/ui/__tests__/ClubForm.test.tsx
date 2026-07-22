@@ -2,7 +2,7 @@ import { act, render, userEvent } from "@testing-library/react-native";
 import React from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import type { ClubResponse } from "@/src/modules/club/model/Club";
+import type { ClubResponse } from "@/src/shared/generated/models";
 import ClubForm from "@/src/modules/club/ui/ClubForm";
 import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
 

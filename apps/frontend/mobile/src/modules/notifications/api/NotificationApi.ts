@@ -1,43 +1,43 @@
-import { BaseApi } from "@/src/shared/api/BaseApi";
-import { CONFIG } from "@/src/shared/config/config";
 import {
-  EnrichedUserNotificationPage,
-  RegisterPushTokenRequest,
-  UnreadCount,
-} from "@/src/modules/notifications/model/Notification";
+  deleteNotification,
+  getNotifications,
+  getUnreadNotificationsCount,
+  markNotificationOpened,
+  markNotificationRead,
+  registerPushToken,
+} from "@/src/shared/generated/endpoints/notification-secure";
+import type {RegisterPushTokenRequest} from "@/src/shared/generated/models";
 
-export class NotificationApi extends BaseApi {
-  constructor() {
-    super({ baseURL: CONFIG.API_GATEWAY_BASE_URL });
+/** Expose notification operations through the feature API boundary. */
+export class NotificationApi {
+  /** Load one page of notifications for the authenticated user. */
+  public getNotifications(params: {page?: number; size?: number} = {}) {
+    const {page = 0, size} = params;
+    return getNotifications({page, size});
   }
 
-  public getNotifications(params: { page?: number; size?: number } = {}) {
-    const { page = 0, size } = params;
-    return this.httpAuth.get<EnrichedUserNotificationPage>("/notifications", {
-      params: { page, size },
-    });
-  }
-
+  /** Load the authenticated user's unread notification count. */
   public getUnreadNotificationsCount() {
-    return this.httpAuth.get<UnreadCount>("/notifications/unread-count");
+    return getUnreadNotificationsCount();
   }
 
+  /** Mark one notification as read. */
   public markNotificationRead(id: number) {
-    return this.httpAuth.post<void>(`/notifications/${id}/read`);
+    return markNotificationRead(id);
   }
 
+  /** Mark one notification as opened. */
   public markNotificationOpened(id: number) {
-    return this.httpAuth.post<void>(`/notifications/${id}/opened`);
+    return markNotificationOpened(id);
   }
 
+  /** Delete one notification. */
   public deleteNotification(id: number) {
-    return this.httpAuth.delete<void>(`/notifications/${id}`);
+    return deleteNotification(id);
   }
 
+  /** Register one native push token for a user. */
   public registerPushToken(userId: number, payload: RegisterPushTokenRequest) {
-    return this.httpAuth.post<void>(
-      `/notifications/users/${userId}/push-tokens`,
-      payload,
-    );
+    return registerPushToken(userId, payload);
   }
 }

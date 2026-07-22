@@ -1,9 +1,9 @@
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import type { PoolResponse } from "@/src/modules/pool/model/Pool";
+import type { PoolResponse } from "@/src/shared/generated/models";
 import tinycolor from "tinycolor2";
-import { DivisionResponse } from "@/src/modules/division/model/Division";
-import type { TeamHighlight } from "@/src/modules/team/model/Team";
+import { DivisionResponse } from "@/src/shared/generated/models";
+import type { TeamHighlight } from "@/src/modules/team/model/TeamHighlight";
 import { AppTheme } from "@/src/shared/theme/themes";
 
 export type GradientVariants = {
@@ -231,7 +231,3 @@ export function computeBalancedRowsByCount(params: {
     bottomIndices: indices.slice(topCount),
   };
 }
-
-export const appendJson = (fd: FormData, name: string, value: unknown) => {
-  fd.append(name, JSON.stringify(value));
-};

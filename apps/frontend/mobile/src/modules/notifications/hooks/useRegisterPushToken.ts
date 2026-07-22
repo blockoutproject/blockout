@@ -1,7 +1,7 @@
 import * as Device from "expo-device";
 import { useCallback } from "react";
 
-import { RegisterPushTokenRequest } from "@/src/modules/notifications/model/Notification";
+import { RegisterPushTokenRequest } from "@/src/shared/generated/models";
 import { platformToNotificationDevice } from "@/src/modules/notifications/push";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 

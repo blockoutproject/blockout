@@ -1,5 +1,5 @@
 import {useQuery} from "@tanstack/react-query";
-import {ScraperStatusResponse} from "@/src/modules/administration/model/ScraperStatus";
+import {ScraperStatusResponse} from "@/src/shared/generated/models";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 
 export const useScraperStatuses = () => {

@@ -10,7 +10,7 @@ import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import EntityScreenHeader from "@/src/shared/ui/entity/EntityScreenHeader";
 import EntityScreenSkeleton from "@/src/shared/ui/entity/EntityScreenSkeleton";
-import { ReportType } from "@/src/modules/report/model/Report";
+import { ReportTypeEnum } from "@/src/shared/generated/models";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import TeamFormSheet from "@/src/modules/team/ui/TeamFormSheet";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
@@ -105,7 +105,7 @@ const TeamScreen: React.FC = () => {
         ref={reportSheetRef}
         context={{
           screen: `Team#${team?.id}#${team?.name}`,
-          defaultType: ReportType.DISPLAY_BUG,
+          defaultType: ReportTypeEnum.DISPLAY_BUG,
         }}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();

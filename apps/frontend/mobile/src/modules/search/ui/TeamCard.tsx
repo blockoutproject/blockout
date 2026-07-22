@@ -1,12 +1,12 @@
 import React from "react";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import type { TeamSearchResponse } from "@/src/modules/search/model/Search";
-import { EnumGender, GenderLabels } from "@/src/shared/model/enums/Gender";
+import type { TeamSearchResponse } from "@/src/shared/generated/models";
+import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
 import { withAlpha } from "@/src/shared/lib/utils";
 import EntityGradientCard, {
   EntityCardChip,
 } from "@/src/shared/ui/EntityGradientCard";
-import { EnumFormat, FormatLabels } from "@/src/shared/model/enums/Format";
+import { FormatEnum, FormatLabels } from "@/src/shared/model/formatLabels";
 
 export interface TeamCardProps {
   team: TeamSearchResponse;
@@ -29,20 +29,20 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onPress }) => {
   if (team.gender) {
     let genderColor: string;
     switch (team.gender) {
-      case EnumGender.M:
+      case GenderEnum.M:
         genderColor = theme.male;
         break;
-      case EnumGender.F:
+      case GenderEnum.F:
         genderColor = theme.female;
         break;
-      case EnumGender.O:
+      case GenderEnum.O:
       default:
         genderColor = theme.textSecondary;
         break;
     }
 
     chips.push({
-      label: GenderLabels[team.gender as EnumGender],
+      label: GenderLabels[team.gender as GenderEnum],
       borderColor: genderColor,
       backgroundColor: withAlpha(genderColor, 0.12),
     });
@@ -58,7 +58,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onPress }) => {
 
   if (team.format) {
     chips.push({
-      label: FormatLabels[team.format as EnumFormat],
+      label: FormatLabels[team.format as FormatEnum],
       borderColor: theme.textInactive,
       backgroundColor: withAlpha(theme.textInactive, 0.12),
     });

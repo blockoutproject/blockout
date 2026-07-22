@@ -3,7 +3,7 @@ import { Animated, StyleSheet, View } from "react-native";
 
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import ClubTeamList from "@/src/modules/club/ui/ClubTeamList";
-import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
+import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 
 type Props = {
   teams: TeamSummaryResponse[];

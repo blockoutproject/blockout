@@ -1,28 +1,24 @@
-import type {
-  PoolInternalResponse,
-  PoolResponse,
-  PoolSummaryResponse,
-  UpdatePoolRequest,
-} from "@/src/modules/pool/model/Pool";
-import { BaseApi } from "@/src/shared/api/BaseApi";
-import { CONFIG } from "@/src/shared/config/config";
+import {
+  getPoolById,
+  getPoolsByIds,
+} from "@/src/shared/generated/endpoints/pool-public";
+import {updatePool} from "@/src/shared/generated/endpoints/pool-secure";
+import type {UpdatePoolRequest} from "@/src/shared/generated/models";
 
-export class PoolApi extends BaseApi {
-  constructor() {
-    super({ baseURL: CONFIG.API_GATEWAY_BASE_URL });
-  }
-
+/** Expose pool operations through the feature API boundary. */
+export class PoolApi {
+  /** Load one public pool projection. */
   public getPoolById(id: number) {
-    return this.httpPublic.get<PoolResponse>(`/pools/${id}`);
+    return getPoolById(id);
   }
 
+  /** Load the public summaries for the requested pools. */
   public getPoolsByIds(ids: number[]) {
-    return this.httpPublic.get<PoolSummaryResponse[]>("/pools/by-ids", {
-      params: { ids },
-    });
+    return getPoolsByIds({ids});
   }
 
+  /** Update one pool. */
   public updatePool(id: number, data: UpdatePoolRequest) {
-    return this.httpAuth.put<PoolInternalResponse>(`/pools/${id}`, data);
+    return updatePool(id, data);
   }
 }

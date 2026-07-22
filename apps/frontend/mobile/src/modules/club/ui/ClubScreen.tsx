@@ -21,11 +21,11 @@ import ClubHeader from "@/src/modules/club/ui/ClubHeader";
 import ClubFormSheet from "@/src/modules/club/ui/ClubFormSheet";
 
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
-import { ReportType } from "@/src/modules/report/model/Report";
+import { ReportTypeEnum } from "@/src/shared/generated/models";
 
 import ClubHero from "@/src/modules/club/ui/ClubHero";
 import ClubTabs from "@/src/modules/club/ui/ClubTabs";
-import type { TeamSummaryResponse } from "@/src/modules/team/model/Team";
+import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 import { SelectOption } from "@/src/shared/ui/form/SelectSheet";
 
 const ClubScreen: React.FC = () => {
@@ -195,7 +195,7 @@ const ClubScreen: React.FC = () => {
         ref={reportSheetRef}
         context={{
           screen: `Club#${club?.id}#${club?.name}`,
-          defaultType: ReportType.DISPLAY_BUG,
+          defaultType: ReportTypeEnum.DISPLAY_BUG,
         }}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();

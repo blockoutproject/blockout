@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {useApis} from "@/src/shared/providers/ApiProvider";
-import {MatchLiveSummaryResponse, MatchLiveLinkInternalResponse,} from "@/src/modules/match/model/Match";
+import {MatchLiveSummaryResponse, MatchLiveLinkHistoryResponse,} from "@/src/shared/generated/models";
 import {useMatchLiveLinksHistory} from "@/src/modules/match/hooks/useMatchLiveLinksHistory";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import MatchLiveLinksHistoryItem from "@/src/modules/match/ui/moderation/MatchLiveLinksHistoryItem";
@@ -31,7 +31,7 @@ const MatchLiveLinksHistoryScreen: React.FC<
     refetch,
   } = useMatchLiveLinksHistory(match.id);
 
-  const links = useMemo<MatchLiveLinkInternalResponse[]>(
+  const links = useMemo<MatchLiveLinkHistoryResponse[]>(
     () => data ?? [],
     [data],
   );
@@ -83,7 +83,7 @@ const MatchLiveLinksHistoryScreen: React.FC<
   );
 
   const handleApprove = useCallback(
-    async (link: MatchLiveLinkInternalResponse) => {
+    async (link: MatchLiveLinkHistoryResponse) => {
       await handleAction(
         () => mobile.matches.approvePendingLiveLink(link.id),
         "Impossible de valider ce lien, réessaie.",
@@ -93,7 +93,7 @@ const MatchLiveLinksHistoryScreen: React.FC<
   );
 
   const handleReject = useCallback(
-    async (link: MatchLiveLinkInternalResponse) => {
+    async (link: MatchLiveLinkHistoryResponse) => {
       await handleAction(
         () => mobile.matches.rejectPendingLiveLink(link.id),
         "Impossible de rejeter ce lien, réessaie.",
@@ -103,7 +103,7 @@ const MatchLiveLinksHistoryScreen: React.FC<
   );
 
   const handleDeleteActive = useCallback(
-    async (_link: MatchLiveLinkInternalResponse) => {
+    async (_link: MatchLiveLinkHistoryResponse) => {
       await handleAction(
         () => mobile.matches.deleteMatchLiveLink(match.id),
         "Impossible de supprimer ce lien, réessaie.",
@@ -113,7 +113,7 @@ const MatchLiveLinksHistoryScreen: React.FC<
   );
 
   const handleReactivate = useCallback(
-    async (link: MatchLiveLinkInternalResponse) => {
+    async (link: MatchLiveLinkHistoryResponse) => {
       await handleAction(
         () => mobile.matches.reactivateLiveLink(link.id),
         "Impossible de réactiver ce lien, réessaie.",

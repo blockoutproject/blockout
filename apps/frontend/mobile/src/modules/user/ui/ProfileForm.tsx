@@ -11,7 +11,7 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {CORNERS} from "@/src/shared/theme/tokens";
-import {UserResponse, UpdateUserRequest} from "@/src/modules/user/model/User";
+import {UserResponse, UpdateUserRequest} from "@/src/shared/generated/models";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";

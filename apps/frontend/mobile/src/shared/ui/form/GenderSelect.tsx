@@ -6,10 +6,10 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import {CORNERS} from "@/src/shared/theme/tokens";
 import SelectSheet, {SelectOption, SelectSheetRef,} from "@/src/shared/ui/form/SelectSheet";
-import {EnumGender, GenderLabels} from "@/src/shared/model/enums/Gender";
+import {GenderEnum, GenderLabels} from "@/src/shared/model/genderLabels";
 
 export type GenderSelectProps = {
-  selectedValue?: EnumGender | null;
+  selectedValue?: GenderEnum | null;
   onSelect: (opt: SelectOption) => void;
 
   /** UI */
@@ -36,9 +36,9 @@ const GenderSelect: React.FC<GenderSelectProps> = ({
 
   const options: SelectOption[] = useMemo(
     () => [
-      {value: EnumGender.M, label: GenderLabels[EnumGender.M]},
-      {value: EnumGender.F, label: GenderLabels[EnumGender.F]},
-      {value: EnumGender.O, label: GenderLabels[EnumGender.O]},
+      {value: GenderEnum.M, label: GenderLabels[GenderEnum.M]},
+      {value: GenderEnum.F, label: GenderLabels[GenderEnum.F]},
+      {value: GenderEnum.O, label: GenderLabels[GenderEnum.O]},
     ],
     [],
   );

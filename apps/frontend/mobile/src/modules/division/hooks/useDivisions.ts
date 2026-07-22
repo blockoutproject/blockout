@@ -1,5 +1,5 @@
 import {useQuery} from "@tanstack/react-query";
-import {DivisionResponse} from "@/src/modules/division/model/Division";
+import {DivisionResponse} from "@/src/shared/generated/models";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 
 export const useDivisions = () => {

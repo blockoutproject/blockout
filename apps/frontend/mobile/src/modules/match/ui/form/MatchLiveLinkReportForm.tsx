@@ -10,7 +10,7 @@ import {useApis} from "@/src/shared/providers/ApiProvider";
 import FormCard from "@/src/shared/ui/form/FormCard";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import {ApiError} from "@/src/shared/api/ApiError";
-import {ReportMatchLiveLinkRequest} from "@/src/modules/match/model/Match";
+import {ReportMatchLiveLinkRequest} from "@/src/shared/generated/models";
 import Field from "@/src/shared/ui/form/Field";
 
 export type MatchLiveLinkReportFormState = {

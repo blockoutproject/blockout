@@ -2,7 +2,7 @@ import { act, render, userEvent, waitFor } from "@testing-library/react-native";
 import React from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { ReportType } from "@/src/modules/report/model/Report";
+import { ReportTypeEnum } from "@/src/shared/generated/models";
 import ReportForm from "@/src/modules/report/ui/ReportForm";
 import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
 
@@ -111,7 +111,7 @@ describe("ReportForm", () => {
 
     expect(mockCreateReport).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: ReportType.DISPLAY_BUG,
+        type: ReportTypeEnum.DISPLAY_BUG,
         title: "Score incorrect",
         description: "Le score affiché ne correspond pas.",
         userId: "42",

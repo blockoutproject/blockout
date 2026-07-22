@@ -2,7 +2,7 @@ const { defineConfig, globalIgnores } = require("eslint/config");
 const expoConfig = require("eslint-config-expo/flat");
 
 module.exports = defineConfig([
-  globalIgnores(["dist/**"]),
+  globalIgnores(["dist/**", "src/shared/generated/**"]),
   expoConfig,
   {
     rules: {

@@ -10,7 +10,7 @@ import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import EntityScreenHeader from "@/src/shared/ui/entity/EntityScreenHeader";
 import EntityScreenSkeleton from "@/src/shared/ui/entity/EntityScreenSkeleton";
-import { ReportType } from "@/src/modules/report/model/Report";
+import { ReportTypeEnum } from "@/src/shared/generated/models";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 import PoolFormSheet from "@/src/modules/pool/ui/PoolFormSheet";
@@ -105,7 +105,7 @@ const PoolScreen: React.FC = () => {
         ref={reportSheetRef}
         context={{
           screen: `Pool#${pool?.id}#${pool?.name}`,
-          defaultType: ReportType.DISPLAY_BUG,
+          defaultType: ReportTypeEnum.DISPLAY_BUG,
         }}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();

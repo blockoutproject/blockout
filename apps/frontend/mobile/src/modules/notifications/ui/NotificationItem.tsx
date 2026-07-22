@@ -2,16 +2,16 @@ import { Image } from "expo-image";
 import React, { memo, useCallback, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { EnrichedUserNotification } from "@/src/modules/notifications/model/Notification";
+import { NotificationResponse } from "@/src/shared/generated/models";
 import { formatNotificationAge } from "@/src/modules/notifications/model/formatNotificationAge";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
 import NotificationSwipeAction from "@/src/modules/notifications/ui/NotificationSwipeAction";
 
 export type NotificationItemProps = {
-  notification: EnrichedUserNotification;
-  onOpen: (notification: EnrichedUserNotification) => void;
-  onDelete: (notification: EnrichedUserNotification) => Promise<void>;
+  notification: NotificationResponse;
+  onOpen: (notification: NotificationResponse) => void;
+  onDelete: (notification: NotificationResponse) => Promise<void>;
 };
 
 const NotificationItem = ({

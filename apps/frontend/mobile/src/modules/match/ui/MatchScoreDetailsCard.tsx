@@ -1,7 +1,7 @@
 import React, {useCallback} from "react";
 import {Image, Pressable, StyleSheet, Text, View} from "react-native";
-import {MatchResponse} from "@/src/modules/match/model/Match";
-import type {TeamInternalResponse} from "@/src/modules/team/model/Team";
+import {MatchResponse} from "@/src/shared/generated/models";
+import type {TeamDetailsResponse} from "@/src/shared/generated/models";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {useRouter} from "expo-router";
@@ -90,7 +90,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
 
   const TeamRow: React.FC<{
     /** Team entity with logo url. */
-    team: TeamInternalResponse & { logoUrl: string | null };
+    team: TeamDetailsResponse;
     /** Final set count for team. */
     finalScore: string;
     /** Points per set. */

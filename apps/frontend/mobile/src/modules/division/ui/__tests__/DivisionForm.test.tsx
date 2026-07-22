@@ -2,7 +2,7 @@ import React from "react";
 import {act, render, userEvent} from "@testing-library/react-native";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 
-import {DivisionResponse} from "@/src/modules/division/model/Division";
+import {DivisionResponse} from "@/src/shared/generated/models";
 import DivisionForm from "@/src/modules/division/ui/DivisionForm";
 import {ThemeProvider} from "@/src/shared/providers/ThemeProvider";
 

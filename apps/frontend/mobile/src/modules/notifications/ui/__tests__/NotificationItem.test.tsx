@@ -2,10 +2,10 @@ import { fireEvent, render, userEvent } from "@testing-library/react-native";
 import React from "react";
 
 import {
-  EnrichedUserNotification,
-  NotificationTargetType,
-  NotificationType,
-} from "@/src/modules/notifications/model/Notification";
+  NotificationResponse,
+  NotificationTargetTypeEnum,
+  NotificationTypeEnum,
+} from "@/src/shared/generated/models";
 import { formatNotificationAge } from "@/src/modules/notifications/model/formatNotificationAge";
 import NotificationItem from "@/src/modules/notifications/ui/NotificationItem";
 import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
@@ -20,14 +20,14 @@ jest.mock("@/src/modules/notifications/ui/NotificationSwipeAction", () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-const notification: EnrichedUserNotification = {
+const notification: NotificationResponse = {
   id: 12,
   userId: 4,
-  type: NotificationType.MATCH_FINISHED,
+  type: NotificationTypeEnum.MATCH_FINISHED,
   title: "Match terminé",
   body: "Le score final est disponible.",
   deepLink: "/match/42",
-  targetType: NotificationTargetType.MATCH,
+  targetType: NotificationTargetTypeEnum.MATCH,
   targetId: 42,
   metadata: null,
   isRead: false,

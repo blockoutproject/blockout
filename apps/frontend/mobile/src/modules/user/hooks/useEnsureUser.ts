@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { UserResponse } from "@/src/modules/user/model/User";
+import type { UserResponse } from "@/src/shared/generated/models";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import { ApiError } from "@/src/shared/api/ApiError";
 

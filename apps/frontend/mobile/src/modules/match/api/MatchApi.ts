@@ -1,83 +1,85 @@
-import {CONFIG} from "@/src/shared/config/config";
 import {
-  DayPageResponse,
-  MatchResponse,
-  MatchLiveSummaryResponse,
-  LiveLinkStatus,
-  MatchLiveLinkInternalResponse,
+  getMatchById,
+  getMatchList,
+} from "@/src/shared/generated/endpoints/match-public";
+import {
+  approvePendingLink,
+  deleteLiveLink,
+  getLiveLinksHistory,
+  listMatchesForLiveModeration,
+  reactivateLiveLink,
+  rejectPendingLink,
+  reportLiveLink,
+  upsertLiveLink,
+} from "@/src/shared/generated/endpoints/match-secure";
+import type {
+  LiveLinkStatusEnum,
+  MatchStatusEnum,
   ReportMatchLiveLinkRequest,
   UpsertMatchLiveLinkRequest,
-  UpsertMatchLiveLinkResponse,
-  MatchStatus,
-} from "@/src/modules/match/model/Match";
-import {BaseApi} from "@/src/shared/api/BaseApi";
+} from "@/src/shared/generated/models";
 
-export class MatchApi extends BaseApi {
-  constructor() {
-    super({baseURL: CONFIG.API_GATEWAY_BASE_URL});
-  }
-
+/** Expose match operations through the feature API boundary. */
+export class MatchApi {
+  /** Load the requested page of public matches. */
   public getMatches(params: {
     page?: number;
     size?: number;
     poolIds?: number[];
     teamIds?: number[];
-    status: MatchStatus;
+    status: MatchStatusEnum;
   }) {
-    return this.httpPublic.get<DayPageResponse>("/matches", {params});
+    return getMatchList(params);
   }
 
+  /** Load one public match projection. */
   public getMatchById(id: number) {
-    return this.httpPublic.get<MatchResponse>(`/matches/${id}`);
+    return getMatchById(id);
   }
 
-  public upsertMatchLiveLink(matchId: number, data: UpsertMatchLiveLinkRequest) {
-    return this.httpAuth.post<UpsertMatchLiveLinkResponse>(
-      `/matches/${matchId}/live-link`,
-      data
-    );
+  /** Create or replace the current user's live link. */
+  public upsertMatchLiveLink(
+    matchId: number,
+    data: UpsertMatchLiveLinkRequest,
+  ) {
+    return upsertLiveLink(matchId, data);
   }
 
+  /** Delete the current user's live link. */
   public deleteMatchLiveLink(matchId: number) {
-    return this.httpAuth.delete<void>(`/matches/${matchId}/live-link`);
+    return deleteLiveLink(matchId);
   }
 
-  public reportMatchLiveLink(matchId: number, data: ReportMatchLiveLinkRequest) {
-    return this.httpAuth.post<void>(
-      `/matches/${matchId}/live-link/report`,
-      data
-    );
+  /** Report one live link. */
+  public reportMatchLiveLink(
+    matchId: number,
+    data: ReportMatchLiveLinkRequest,
+  ) {
+    return reportLiveLink(matchId, data);
   }
 
+  /** Load the live-link moderation history for one match. */
   public getMatchLiveLinksHistory(matchId: number) {
-    return this.httpAuth.get<MatchLiveLinkInternalResponse[]>(
-      `/matches/${matchId}/live-links`
-    );
+    return getLiveLinksHistory(matchId);
   }
 
-  public getMatchesForLiveModeration(status?: LiveLinkStatus) {
-    const params = status ? {status} : undefined;
-    return this.httpAuth.get<MatchLiveSummaryResponse[]>(
-      "/matches/live-moderation",
-      {params},
-    );
+  /** Load matches requiring live-link moderation. */
+  public getMatchesForLiveModeration(status?: LiveLinkStatusEnum) {
+    return listMatchesForLiveModeration(status ? {status} : undefined);
   }
 
+  /** Approve a pending live link. */
   public approvePendingLiveLink(liveLinkId: number) {
-    return this.httpAuth.post<void>(
-      `/matches/live-links/${liveLinkId}/approve`
-    );
+    return approvePendingLink(liveLinkId);
   }
 
+  /** Reject a pending live link. */
   public rejectPendingLiveLink(liveLinkId: number) {
-    return this.httpAuth.post<void>(
-      `/matches/live-links/${liveLinkId}/reject`
-    );
+    return rejectPendingLink(liveLinkId);
   }
 
+  /** Reactivate a previously deactivated live link. */
   public reactivateLiveLink(liveLinkId: number) {
-    return this.httpAuth.post<void>(
-      `/matches/live-links/${liveLinkId}/reactivate`
-    );
+    return reactivateLiveLink(liveLinkId);
   }
 }

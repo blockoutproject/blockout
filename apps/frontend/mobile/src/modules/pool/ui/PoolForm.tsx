@@ -7,10 +7,10 @@ import * as Haptics from "expo-haptics";
 
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
 import type {
-  PoolInternalResponse,
+  PoolDetailsResponse,
   PoolResponse,
   UpdatePoolRequest,
-} from "@/src/modules/pool/model/Pool";
+} from "@/src/shared/generated/models";
 import { CORNERS } from "@/src/shared/theme/tokens";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
@@ -26,7 +26,7 @@ export type PoolFormState = {
 
 export type PoolFormProps = {
   pool: PoolResponse;
-  onSuccess: (updated: PoolInternalResponse) => void;
+  onSuccess: (updated: PoolDetailsResponse) => void;
   onRegisterSubmit: (submit: () => void) => void;
   onStateChange?: (state: PoolFormState) => void;
 };

@@ -6,7 +6,7 @@ import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import RawDivisionMappingForm, {
   RawDivisionMappingFormState
 } from "@/src/modules/raw-division-mapping/ui/RawDivisionMappingForm";
-import {RawDivisionMappingResponse} from "@/src/modules/raw-division-mapping/model/RawDivisionMapping";
+import {RawDivisionMappingResponse} from "@/src/shared/generated/models";
 
 export type RawDivisionMappingFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;

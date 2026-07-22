@@ -1,8 +1,10 @@
 import React, { createContext, useContext } from "react";
 
 import type { User } from "@/src/modules/session/auth/AuthProvider";
-import type { AppStatusResponse } from "@/src/modules/app-status/model/AppStatus";
-import type { UserResponse } from "@/src/modules/user/model/User";
+import type {
+  AppStatusResponse,
+  UserResponse,
+} from "@/src/shared/generated/models";
 
 export type SessionActions = {
   signIn: () => Promise<void>;

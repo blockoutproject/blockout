@@ -1,6 +1,6 @@
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import { useEntityById } from "@/src/shared/hooks/useEntityById";
-import type { PoolResponse } from "@/src/modules/pool/model/Pool";
+import type { PoolResponse } from "@/src/shared/generated/models";
 
 export const usePoolById = (id?: number, enabled?: boolean) => {
   const { mobile } = useApis();

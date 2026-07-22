@@ -2,15 +2,17 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Animated, StyleSheet, View} from 'react-native';
 import {NavigationState, Route, SceneRendererProps, TabView} from 'react-native-tab-view';
 import MatchList from '@/src/modules/match/ui/MatchList';
-import {MatchStatus} from '@/src/modules/match/model/Match';
-import {EntityType} from '@/src/modules/user/model/User';
+import {
+  EntityTypeEnum,
+  MatchStatusEnum,
+  ReportTypeEnum,
+} from '@/src/shared/generated/models';
 import FeedHeader from '@/src/modules/feed/ui/FeedHeader';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {LOGO_HEIGHT, TABBAR_HEIGHT} from '@/src/shared/theme/tokens';
 import {useSessionState} from '@/src/modules/session/providers/SessionContext';
 import ReportFormSheet from '@/src/modules/report/ui/ReportFormSheet';
 import {BottomSheetModal} from '@gorhom/bottom-sheet';
-import {ReportType} from '@/src/modules/report/model/Report';
 import FollowedScreen from '@/src/modules/followed/ui/FollowedScreen';
 import {openNotificationUrlIfAny} from '@/src/modules/notifications/push';
 import {
@@ -27,11 +29,11 @@ const FeedScreen: React.FC = () => {
   const headerOffset = insets.top + TABBAR_HEIGHT + LOGO_HEIGHT;
   const favorites = useMemo(() => customUser?.favorites ?? [], [customUser?.favorites]);
   const userFavoritePools = useMemo(
-    () => favorites.filter(f => f.entityType === EntityType.POOL).map(f => f.entityId),
+    () => favorites.filter(f => f.entityType === EntityTypeEnum.POOL).map(f => f.entityId),
     [favorites]
   );
   const userFavoriteTeams = useMemo(
-    () => favorites.filter(f => f.entityType === EntityType.TEAM).map(f => f.entityId),
+    () => favorites.filter(f => f.entityType === EntityTypeEnum.TEAM).map(f => f.entityId),
     [favorites]
   );
 
@@ -55,7 +57,7 @@ const FeedScreen: React.FC = () => {
       <MatchList
         poolIds={userFavoritePools}
         teamIds={userFavoriteTeams}
-        status={MatchStatus.UPCOMING}
+        status={MatchStatusEnum.UPCOMING}
         scrollY={scrollYs.upcoming}
         contentContainerStyle={{
           paddingHorizontal: 4,
@@ -77,7 +79,7 @@ const FeedScreen: React.FC = () => {
       <MatchList
         poolIds={userFavoritePools}
         teamIds={userFavoriteTeams}
-        status={MatchStatus.FINISHED}
+        status={MatchStatusEnum.FINISHED}
         scrollY={scrollYs.finished}
         contentContainerStyle={{
           paddingHorizontal: 4,
@@ -156,7 +158,7 @@ const FeedScreen: React.FC = () => {
       />
       <ReportFormSheet
         ref={reportSheetRef}
-        context={{screen: "Feed", defaultType: ReportType.DISPLAY_BUG}}
+        context={{screen: "Feed", defaultType: ReportTypeEnum.DISPLAY_BUG}}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();
         }}

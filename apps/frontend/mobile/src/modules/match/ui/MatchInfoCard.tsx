@@ -3,7 +3,7 @@ import {StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
 import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import {type MatchResponse, MatchStatus} from "@/src/modules/match/model/Match";
+import {type MatchResponse, MatchStatusEnum} from "@/src/shared/generated/models";
 import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
 import {useRouter} from "expo-router";
 import {openPdf} from "@/src/modules/pdf/openPdf";
@@ -140,7 +140,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({match}) => {
             borderWidth={1}
           />
         )}
-        {!!matchSheetPdfUrl && match.status === MatchStatus.FINISHED && (
+        {!!matchSheetPdfUrl && match.status === MatchStatusEnum.FINISHED && (
           <InfoPillGradient
             label={"Feuille de match"}
             gradient={gradient}

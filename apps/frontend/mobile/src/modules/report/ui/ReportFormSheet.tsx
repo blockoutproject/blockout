@@ -5,7 +5,7 @@ import type {
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useRef, useState } from "react";
 
-import type { ReportResponse } from "@/src/modules/report/model/Report";
+import type { ReportResponse } from "@/src/shared/generated/models";
 import ReportForm, {
   ReportContext,
   ReportFormState,

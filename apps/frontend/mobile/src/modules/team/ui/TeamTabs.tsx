@@ -5,8 +5,8 @@ import GenericTabView from "@/src/shared/ui/GenericTabView";
 import MatchList from "@/src/modules/match/ui/MatchList";
 import RankingTab from "@/src/modules/ranking/ui/RankingTab";
 
-import { MatchStatus } from "@/src/modules/match/model/Match";
-import type { TeamResponse } from "@/src/modules/team/model/Team";
+import { MatchStatusEnum } from "@/src/shared/generated/models";
+import type { TeamResponse } from "@/src/shared/generated/models";
 import { TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
 
 /** Tabs for team: Upcoming / Finished / Pools-as-ranking. */
@@ -38,7 +38,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
     () => (
       <MatchList
         teamIds={[enrichedTeam.id]}
-        status={MatchStatus.FINISHED}
+        status={MatchStatusEnum.FINISHED}
         scrollY={scrollYs["finished"]}
         headerOffset={TABBAR_HEIGHT}
         contentContainerStyle={[
@@ -56,7 +56,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
     () => (
       <MatchList
         teamIds={[enrichedTeam.id]}
-        status={MatchStatus.UPCOMING}
+        status={MatchStatusEnum.UPCOMING}
         scrollY={scrollYs["upcoming"]}
         headerOffset={TABBAR_HEIGHT}
         contentContainerStyle={[

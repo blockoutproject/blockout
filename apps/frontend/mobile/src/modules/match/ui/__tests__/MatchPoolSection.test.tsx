@@ -1,12 +1,14 @@
 import {render, userEvent} from "@testing-library/react-native";
 import React from "react";
 
-import type {PoolMatchesResponse} from "@/src/modules/match/model/Match";
-import {MatchStatus} from "@/src/modules/match/model/Match";
+import {
+  MatchStatusEnum,
+  type PoolMatchesResponse,
+  type PoolResponse,
+} from "@/src/shared/generated/models";
 import MatchPoolSection from "@/src/modules/match/ui/MatchPoolSection";
-import type {PoolResponse} from "@/src/modules/pool/model/Pool";
-import {EnumFormat} from "@/src/shared/model/enums/Format";
-import {EnumGender} from "@/src/shared/model/enums/Gender";
+import {FormatEnum} from "@/src/shared/model/formatLabels";
+import {GenderEnum} from "@/src/shared/model/genderLabels";
 import {ThemeProvider} from "@/src/shared/providers/ThemeProvider";
 
 jest.mock("expo-router", () => ({
@@ -32,8 +34,8 @@ const pool: PoolResponse = {
   name: "Nationale 2 - Poule A",
   shortName: "N2A",
   rawName: "N2A",
-  format: EnumFormat.SIX,
-  gender: EnumGender.M,
+  format: FormatEnum.SIX,
+  gender: GenderEnum.M,
   followersCount: 4,
   ranking: [],
   division: {
@@ -60,7 +62,7 @@ const poolMatches: PoolMatchesResponse = {
       season: "2025/2026",
       set: null,
       score: null,
-      status: MatchStatus.UPCOMING,
+      status: MatchStatusEnum.UPCOMING,
       venue: null,
       firstReferee: null,
       secondReferee: null,
@@ -75,8 +77,8 @@ const poolMatches: PoolMatchesResponse = {
         shortName: "BO A",
         leagueCode: "FFVB",
         divisionId: 3,
-        format: EnumFormat.SIX,
-        gender: EnumGender.M,
+        format: FormatEnum.SIX,
+        gender: GenderEnum.M,
         season: "2025/2026",
         logoUrl: null,
         followersCount: 2,
@@ -92,8 +94,8 @@ const poolMatches: PoolMatchesResponse = {
         shortName: "BO B",
         leagueCode: "FFVB",
         divisionId: 3,
-        format: EnumFormat.SIX,
-        gender: EnumGender.M,
+        format: FormatEnum.SIX,
+        gender: GenderEnum.M,
         season: "2025/2026",
         logoUrl: null,
         followersCount: 3,
