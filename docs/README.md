@@ -5,6 +5,7 @@
 - [Local development](runbooks/local-development.md)
 - [Architecture and refactor direction](current/refactor-direction.md)
 - [Mobile architecture](current/mobile-architecture.md)
+- [Mobile visual baseline](current/ref-061-mobile-visual-baseline.md)
 - [Contract-first certification](current/ref-059-certification.md)
 - [Public release readiness](current/ref-060-public-release-readiness.md)
 - [Completed roadmap](current/roadmap.md)

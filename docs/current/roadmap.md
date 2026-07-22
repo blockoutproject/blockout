@@ -737,7 +737,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     no high or critical finding. Full evidence is recorded in
     [the REF-060 public release readiness record](./ref-060-public-release-readiness.md).
 
-- [ ] **REF-061 — Capture the complete mobile visual baseline**
+- [x] **REF-061 — Capture the complete mobile visual baseline**
   - Treat the currently shipped native application as the visual and behavioral baseline. Exercise iOS and Android,
     then inspect React Native Web only at representative mobile viewports to catalogue platform gaps rather than infer a
     desktop design.
@@ -748,6 +748,14 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     shared primitives.
   - Produce the authoritative screen/state matrix and the proposed Figma token and component scope. Do not change the
     application, correct Web rendering, or create Figma foundations before this discovery record is complete.
+  - Evidence: the complete route and feature surface was inventoried into an authoritative screen/state matrix, and
+    the existing theme, visual values, shared component consumers, prop pressure, duplication, file naming, and exports
+    were measured from handwritten production source. Chrome exercised sanitized guest, search, feedback, and Auth0
+    handoff states at `390 x 844`; fresh official Expo 55 clients built and launched on a Pixel 7 and iPhone 17 Pro and
+    exposed the native consent entry without changing consent. Existing local Flyway checksum drift prevented a full
+    authenticated dataset, so no database, provider, or authentication bypass was introduced. The approved Figma
+    foundation/component scope, feature-versus-shared ownership, and remaining external evidence gaps are recorded in
+    [the REF-061 mobile visual baseline](./ref-061-mobile-visual-baseline.md). No application or Figma object changed.
 
 - [ ] **REF-062 — Build the Blockout foundations in Figma**
   - Create or select one Blockout mobile design-system file and implement the approved primitive and semantic variables
