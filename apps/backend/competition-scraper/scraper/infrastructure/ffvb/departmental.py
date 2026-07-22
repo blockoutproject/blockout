@@ -10,6 +10,7 @@ from blockout_contract_clients.competition.api.competition_association_api impor
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
+from blockout_contract_clients.match.api.match_api import MatchApi
 from blockout_contract_clients.pool.api.pool_api import PoolApi
 from blockout_contract_clients.team.api.team_api import TeamApi
 
@@ -34,6 +35,7 @@ class DepartmentalScraper(Scraper):
         team_api: TeamApi | None = None,
         pool_api: PoolApi | None = None,
         competition_api: CompetitionAssociationApi | None = None,
+        match_api: MatchApi | None = None,
     ) -> None:
         super().__init__(
             session,
@@ -43,6 +45,7 @@ class DepartmentalScraper(Scraper):
             team_api=team_api,
             pool_api=pool_api,
             competition_api=competition_api,
+            match_api=match_api,
             url="https://www.ffvb.org/122-37-1-Championnats-Departementaux",
             priority_validation_enabled=False,
         )

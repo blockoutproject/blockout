@@ -11,17 +11,15 @@ from blockout_contract_clients.competition.api.competition_association_api impor
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
+from blockout_contract_clients.match.api.match_api import MatchApi
 from blockout_contract_clients.pool.api.pool_api import PoolApi
 from blockout_contract_clients.team.api.team_api import TeamApi
 from prometheus_client import Gauge
 
 from scraper.application.association_changes import AssociationChangeSet
 from scraper.application.match_changes import MatchChangeSet, MatchEntry
-from scraper.application.models import (
-    AssociationStats,
-)
+from scraper.application.models import AssociationStats, Match
 from scraper.domain.data_source_priority import DataSourcePriority
-from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.provider_http import ProviderHttpClient
 from scraper.observability.logging import current_scraper, log_event
 
@@ -40,6 +38,7 @@ class Scraper(ABC):
         team_api: TeamApi | None = None,
         pool_api: PoolApi | None = None,
         competition_api: CompetitionAssociationApi | None = None,
+        match_api: MatchApi | None = None,
         url: str | None = None,
         priority_validation_enabled: bool = False,
         max_concurrency: int = 10,
@@ -50,11 +49,12 @@ class Scraper(ABC):
         self.team_api = team_api
         self.pool_api = pool_api
         self.competition_api = competition_api
+        self.match_api = match_api
         self.url = url
         self.priority_validation_enabled = priority_validation_enabled
         self._max_concurrency = max_concurrency
         self._provider_http = ProviderHttpClient(provider_client, max_concurrency)
-        self._match_changes = MatchChangeSet(session, priority_validation_enabled)
+        self._match_changes = MatchChangeSet(match_api, priority_validation_enabled)
         self._association_changes = AssociationChangeSet(competition_api)
 
         # These aliases remain public within the application because provider workflows
@@ -92,6 +92,14 @@ class Scraper(ABC):
             )
         return self.competition_api
 
+    def matches_api(self) -> MatchApi:
+        """Return the configured generated matches-service client."""
+        if self.match_api is None:
+            raise RuntimeError(
+                "The generated matches-service client is not configured."
+            )
+        return self.match_api
+
     @abstractmethod
     async def run_scraping(self) -> None:
         """Run the provider-specific workflow."""
@@ -126,10 +134,10 @@ class Scraper(ABC):
         """POST one provider form without using the Blockout API session."""
         return await self._provider_http.post_form(url, data, timeout)
 
-    async def init_matches_cache(self, poolId: int) -> None:
+    async def init_matches_cache(self, pool_id: int) -> None:
         """Load current owner matches for one pool."""
         self._match_changes.entries = self._matches_cache
-        await self._match_changes.load(poolId)
+        await self._match_changes.load(pool_id)
         self._matches_cache = self._match_changes.entries
 
     async def init_associations_cache(self, pool_id: int) -> None:
@@ -140,7 +148,7 @@ class Scraper(ABC):
 
     def schedule_match_changes(
         self,
-        updated_match: MatchInternalResponse,
+        updated_match: Match,
         prefix: str,
         priority: DataSourcePriority,
     ) -> None:

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from scraper.application.models import AssociationStats, Pool, Team
+from scraper.application.models import AssociationStats, Match, Pool, Team
 from scraper.application.pool_writer import add_or_update_pool
 from scraper.application.source import Scraper
 from scraper.application.team_writer import add_or_update_team
@@ -13,7 +13,6 @@ from scraper.infrastructure.blockout.competitions import (
     add_team_to_pool,
     bulk_deactivate_teams_by_pool,
 )
-from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.matches import bulk_deactivate_matches
 from scraper.infrastructure.blockout.pools import update_pool
 from scraper.infrastructure.blockout.teams import get_teams
@@ -195,19 +194,19 @@ async def handle_csv_download_and_parse(
             scraped_team_ids.add(new_team_b.id)
 
             match_code = row.match_code
-            updated_match = MatchInternalResponse(
-                matchCode=match_code,
-                leagueCode=new_pool.league_code,
-                poolId=new_pool.id,
-                teamIdA=new_team_a.id,
-                teamIdB=new_team_b.id,
-                matchDate=match_datetime,
+            updated_match = Match(
+                match_code=match_code,
+                league_code=new_pool.league_code,
+                pool_id=new_pool.id,
+                team_id_a=new_team_a.id,
+                team_id_b=new_team_b.id,
+                match_date=match_datetime,
                 season=new_pool.season,
                 set=row.set_score.replace("/", "-") if row.set_score else None,
                 score=row.points_score,
                 venue=capitalize_words(row.venue),
-                firstReferee=capitalize_words(row.first_referee),
-                secondReferee=capitalize_words(row.second_referee),
+                first_referee=capitalize_words(row.first_referee),
+                second_referee=capitalize_words(row.second_referee),
             )
             scraped_match_codes.add(match_code)
 
@@ -292,12 +291,14 @@ async def handle_csv_download_and_parse(
                 *_,
             ) in scraper._matches_cache.items()
             if existing_match
-            and existing_match.poolId == new_pool.id
+            and existing_match.pool_id == new_pool.id
             and match_code not in scraped_match_codes
             and existing_match.active
         }
         if observation_complete and missing_matches:
-            await bulk_deactivate_matches(scraper.session, new_pool.id, missing_matches)
+            await bulk_deactivate_matches(
+                scraper.matches_api(), new_pool.id, missing_matches
+            )
 
         return CalendarIngestionResult(
             pool_id=new_pool.id,

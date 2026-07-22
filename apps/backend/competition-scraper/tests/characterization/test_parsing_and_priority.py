@@ -7,6 +7,7 @@ import scraper.application.association_changes as association_changes
 from bs4 import BeautifulSoup
 from scraper.application.models import (
     AssociationStats,
+    Match,
 )
 from scraper.application.source import Scraper
 from scraper.domain.data_source_priority import DataSourcePriority
@@ -18,7 +19,6 @@ from scraper.domain.match import (
 )
 from scraper.domain.normalization import parse_date, strip_department_code
 from scraper.domain.team import get_full_name, get_short_name, normalize
-from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.ffvb.calendar import (
     parse_csv_from_content,
     validate_columns,
@@ -35,25 +35,25 @@ class DummyScraper(Scraper):
         return None
 
 
-def _match(**overrides) -> MatchInternalResponse:
+def _match(**overrides) -> Match:
     values = {
         "id": 1,
-        "matchCode": "M001",
-        "leagueCode": "LNAQ",
-        "poolId": 10,
-        "teamIdA": 20,
-        "teamIdB": 30,
-        "matchDate": datetime(2026, 10, 4, 16, 30, tzinfo=UTC),
+        "match_code": "M001",
+        "league_code": "LNAQ",
+        "pool_id": 10,
+        "team_id_a": 20,
+        "team_id_b": 30,
+        "match_date": datetime(2026, 10, 4, 16, 30, tzinfo=UTC),
         "season": "2026/2027",
         "set": "3-1",
         "score": "25-20,25-22,20-25,25-18",
         "venue": "Old venue",
-        "firstReferee": "Old A",
-        "secondReferee": "Old B",
-        "liveCode": None,
+        "first_referee": "Old A",
+        "second_referee": "Old B",
+        "live_code": None,
     }
     values.update(overrides)
-    return MatchInternalResponse(**values)
+    return Match(**values)
 
 
 def test_csv_parser_protects_headers_and_normalized_rows() -> None:
@@ -154,35 +154,35 @@ def test_data_source_priority_updates_only_the_owned_match_fields() -> None:
     )
 
     ffvb = _match(
-        matchDate=datetime(2030, 1, 1, tzinfo=UTC),
+        match_date=datetime(2030, 1, 1, tzinfo=UTC),
         set="0-3",
         score="old",
         venue="New venue",
-        firstReferee="New A",
+        first_referee="New A",
     )
     scraper.schedule_match_changes(ffvb, "CSV", DataSourcePriority.FFVB)
     current = scraper._matches_cache[("LNAQ", "M001")][1]
     assert current.venue == "New venue"
-    assert current.firstReferee == "New A"
-    assert current.matchDate == existing.matchDate
+    assert current.first_referee == "New A"
+    assert current.match_date == existing.match_date
     assert current.set == "3-1"
 
     xml = _match(
-        matchDate=datetime(2026, 10, 5, tzinfo=UTC),
+        match_date=datetime(2026, 10, 5, tzinfo=UTC),
         set="3-0",
         score="25-20,25-18,25-19",
         venue="Ignored XML venue",
     )
     scraper.schedule_match_changes(xml, "LNV-XML", DataSourcePriority.LNV_XML)
     current = scraper._matches_cache[("LNAQ", "M001")][1]
-    assert current.matchDate == xml.matchDate
+    assert current.match_date == xml.match_date
     assert current.set == "3-0"
     assert current.venue == "New venue"
 
-    html = _match(liveCode=98765, venue="Ignored HTML venue")
+    html = _match(live_code=98765, venue="Ignored HTML venue")
     scraper.schedule_match_changes(html, "LNV-Live", DataSourcePriority.LNV_HTML)
     current = scraper._matches_cache[("LNAQ", "M001")][1]
-    assert current.liveCode == 98765
+    assert current.live_code == 98765
     assert current.venue == "New venue"
     assert list(DataSourcePriority) == [
         DataSourcePriority.DB,
@@ -203,9 +203,9 @@ def test_disabled_priority_validation_replaces_every_scraped_field() -> None:
         DataSourcePriority.DB,
     )
     replacement = _match(
-        matchDate=datetime(2027, 1, 1, tzinfo=UTC),
+        match_date=datetime(2027, 1, 1, tzinfo=UTC),
         set="3-0",
-        liveCode=5,
+        live_code=5,
         venue="Replacement",
     )
 
@@ -213,8 +213,8 @@ def test_disabled_priority_validation_replaces_every_scraped_field() -> None:
 
     _, updated, changes, priority = scraper._matches_cache[("LNAQ", "M001")]
     assert updated.active is True
-    assert updated.matchDate == replacement.matchDate
-    assert updated.liveCode == 5
+    assert updated.match_date == replacement.match_date
+    assert updated.live_code == 5
     assert updated.venue == "Replacement"
     assert any("Match réactivé" in change for change in changes)
     assert priority == DataSourcePriority.FFVB

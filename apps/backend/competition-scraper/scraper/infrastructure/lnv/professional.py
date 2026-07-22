@@ -11,11 +11,12 @@ from blockout_contract_clients.competition.api.competition_association_api impor
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
+from blockout_contract_clients.match.api.match_api import MatchApi
 from blockout_contract_clients.pool.api.pool_api import PoolApi
 from blockout_contract_clients.team.api.team_api import TeamApi
 
 from scraper.application.calendar_ingestion import handle_csv_download_and_parse
-from scraper.application.models import Pool, RawDivisionMapping, Team
+from scraper.application.models import Match, Pool, RawDivisionMapping, Team
 from scraper.application.source import Scraper
 from scraper.application.team_writer import (
     find_team_by_name_in_division_format_gender_season,
@@ -26,7 +27,6 @@ from scraper.infrastructure.blockout.configuration import (
     create_raw_division_mapping,
     get_raw_division_mappings_by_league_and_season,
 )
-from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.pools import get_pools_by_league_and_season
 from scraper.infrastructure.blockout.teams import get_teams
 from scraper.infrastructure.lnv.parsers import (
@@ -47,6 +47,7 @@ class ProScraper(Scraper):
         team_api: TeamApi | None = None,
         pool_api: PoolApi | None = None,
         competition_api: CompetitionAssociationApi | None = None,
+        match_api: MatchApi | None = None,
     ) -> None:
         super().__init__(
             session,
@@ -56,11 +57,12 @@ class ProScraper(Scraper):
             team_api=team_api,
             pool_api=pool_api,
             competition_api=competition_api,
+            match_api=match_api,
             priority_validation_enabled=True,
         )
         self.raw_season = "2026/2027"
-        self.leagueCode = "AALNV"
-        self.leagueName = "Pro"
+        self.league_code = "AALNV"
+        self.league_name = "Pro"
         self.pools_json = [
             {
                 "poolCode": "MSL",
@@ -119,7 +121,7 @@ class ProScraper(Scraper):
 
         try:
             existing_pools = await get_pools_by_league_and_season(
-                self.pools_api(), self.leagueCode, self.raw_season
+                self.pools_api(), self.league_code, self.raw_season
             )
             existing_pools = existing_pools or []
             existing_pools_dict = {
@@ -128,7 +130,7 @@ class ProScraper(Scraper):
             }
 
             raw_mappings = await get_raw_division_mappings_by_league_and_season(
-                self._config_api(), self.leagueCode, self.raw_season
+                self._config_api(), self.league_code, self.raw_season
             )
             raw_mappings = raw_mappings or []
             mapping_dict = {m.raw_division_name: m for m in raw_mappings}
@@ -137,13 +139,13 @@ class ProScraper(Scraper):
             for pool_json in self.pools_json:
                 try:
                     name = pool_json["name"]
-                    poolCode = pool_json["poolCode"]
+                    pool_code = pool_json["poolCode"]
                     mapping = mapping_dict.get(name)
 
                     if not mapping:
                         new_mapping = RawDivisionMapping(
                             raw_division_name=name,
-                            league_code=self.leagueCode,
+                            league_code=self.league_code,
                             season=self.raw_season,
                         )
                         created_mapping = await create_raw_division_mapping(
@@ -156,10 +158,10 @@ class ProScraper(Scraper):
                         continue
 
                     pool_obj = Pool(
-                        pool_code=poolCode,
-                        league_code=self.leagueCode,
+                        pool_code=pool_code,
+                        league_code=self.league_code,
                         season=self.raw_season,
-                        league_name=self.leagueName,
+                        league_name=self.league_name,
                         raw_name=name,
                         name=name,
                         short_name=name,
@@ -280,14 +282,14 @@ class ProScraper(Scraper):
     async def process_xml_matches(self, matches_root: ET.Element, poolId: int):
         try:
             for provider_match in parse_matches(matches_root):
-                match_key = (self.leagueCode, provider_match.code)
+                match_key = (self.league_code, provider_match.code)
                 cache_entry = self._matches_cache.get(match_key)
                 existing_match = cache_entry[1] if cache_entry else None
                 if not existing_match:
                     continue
 
                 updated_match = replace(existing_match)
-                updated_match.matchDate = provider_match.match_date
+                updated_match.match_date = provider_match.match_date
                 if provider_match.set_score:
                     updated_match.set = provider_match.set_score
                 if provider_match.points_score:
@@ -380,13 +382,13 @@ class ProScraper(Scraper):
         teams_by_name = {team.raw_name.strip().casefold(): team for team in teams}
         matches_by_identity = {
             (
-                candidate.poolId,
-                candidate.teamIdA,
-                candidate.teamIdB,
-                candidate.matchDate.date(),
+                candidate.pool_id,
+                candidate.team_id_a,
+                candidate.team_id_b,
+                candidate.match_date.date(),
             ): candidate
             for _, candidate, _, _ in self._matches_cache.values()
-            if candidate.matchDate
+            if candidate.match_date
         }
         for provider_match in provider_matches:
             self._apply_live_match(
@@ -406,9 +408,7 @@ class ProScraper(Scraper):
         provider_match: LnvLiveMatch,
         pool: Pool,
         teams_by_name: dict[str, Team],
-        matches_by_identity: dict[
-            tuple[int | None, int, int, date], MatchInternalResponse
-        ],
+        matches_by_identity: dict[tuple[int | None, int, int, date], Match],
     ) -> None:
         home_team_full = get_full_name(provider_match.home_name, pool.gender)
         guest_team_full = get_full_name(provider_match.guest_name, pool.gender)
@@ -446,7 +446,7 @@ class ProScraper(Scraper):
             return
 
         updated_match = replace(existing_match)
-        updated_match.liveCode = provider_match.live_code
+        updated_match.live_code = provider_match.live_code
 
         self.schedule_match_changes(
             updated_match=updated_match,

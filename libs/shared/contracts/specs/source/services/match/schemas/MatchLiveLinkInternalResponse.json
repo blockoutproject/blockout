@@ -1,0 +1,28 @@
+{
+  "MatchLiveLinkInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "matchId",
+      "provider",
+      "url",
+      "status",
+      "reportCount",
+      "ownerAuth0Id",
+      "createdAt",
+      "lastUpdate"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "matchId": { "type": "integer", "format": "int64" },
+      "provider": { "$ref": "#/components/schemas/LiveProviderEnum" },
+      "url": { "type": "string" },
+      "status": { "$ref": "#/components/schemas/LiveLinkStatusEnum" },
+      "reportCount": { "type": "integer" },
+      "ownerAuth0Id": { "type": "string" },
+      "createdAt": { "type": "string", "format": "date-time" },
+      "lastUpdate": { "type": "string", "format": "date-time" }
+    }
+  }
+}

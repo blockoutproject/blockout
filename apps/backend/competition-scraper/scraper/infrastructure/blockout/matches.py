@@ -1,109 +1,175 @@
-import aiohttp
+"""Generated matches-service client adapter."""
 
-from scraper.config.settings import MATCH_API_URL
-from scraper.domain.normalization import to_dict
-from scraper.infrastructure.blockout.auth import _get_headers
-from scraper.infrastructure.blockout.match import (
+from collections.abc import Awaitable
+
+from blockout_contract_clients.match.api.match_api import MatchApi
+from blockout_contract_clients.match.api_client import ApiClient
+from blockout_contract_clients.match.configuration import Configuration
+from blockout_contract_clients.match.exceptions import ApiException
+from blockout_contract_clients.match.models.bulk_matches_deactivate_internal_request import (
     BulkMatchesDeactivateInternalRequest,
+)
+from blockout_contract_clients.match.models.create_match_internal_request import (
     CreateMatchInternalRequest,
+)
+from blockout_contract_clients.match.models.match_internal_response import (
     MatchInternalResponse,
+)
+from blockout_contract_clients.match.models.update_match_internal_request import (
     UpdateMatchInternalRequest,
 )
-from scraper.infrastructure.blockout.response import handle_api_response
+
+from scraper.application.models import Match
+from scraper.config.settings import MATCH_API_URL
+from scraper.infrastructure.blockout.auth import _get_headers
 from scraper.observability.logging import log_event
 
+_MATCH_API_PATH = "/api/v1/matches"
 
-def _to_match_create_payload(match: MatchInternalResponse) -> dict:
-    request = CreateMatchInternalRequest(
-        **{
-            field: getattr(match, field)
-            for field in CreateMatchInternalRequest.__dataclass_fields__
-        }
+
+def build_match_api_client() -> ApiClient:
+    """Configure the generated HTTPX client from the existing service URL."""
+    if not MATCH_API_URL or not MATCH_API_URL.endswith(_MATCH_API_PATH):
+        raise ValueError(f"MATCH_API_URL must end with '{_MATCH_API_PATH}'.")
+    return ApiClient(
+        Configuration(
+            host=MATCH_API_URL.removesuffix(_MATCH_API_PATH),
+            verify_ssl=False,
+        )
     )
-    return to_dict(request)
 
 
-def _to_match_update_payload(match: MatchInternalResponse) -> dict:
-    request = UpdateMatchInternalRequest(
-        **{
-            field: getattr(match, field)
-            for field in UpdateMatchInternalRequest.__dataclass_fields__
-        }
+async def get_matches_by_pool(api: MatchApi, pool_id: int) -> list[Match]:
+    """Return every match currently owned by one pool."""
+    responses = await _call(
+        api.list_matches(
+            pool_id=pool_id,
+            _headers=_get_headers(),
+            _request_timeout=10,
+        )
     )
-    return to_dict(request)
+    return [_to_match(item) for item in responses]
 
 
-@handle_api_response(response_type=list[MatchInternalResponse])
-async def get_matches_by_pool(
-    session: aiohttp.ClientSession, poolId: int
-) -> list[MatchInternalResponse] | None:
-    """
-    Récupère tous les matchs d'une poule (filtre poolId).
-    """
-    headers = _get_headers()
-    params = {"poolId": poolId}
-    url = f"{MATCH_API_URL}"
-    response = await session.get(url, params=params, headers=headers)
-    return response
-
-
-@handle_api_response(response_type=MatchInternalResponse)
-async def create_match(
-    session: aiohttp.ClientSession, match: MatchInternalResponse
-) -> MatchInternalResponse:
-    """
-    Crée un nouveau match avec les informations fournies.
-    """
-    headers = _get_headers()
-    match_dict = _to_match_create_payload(match)
-    url = f"{MATCH_API_URL}"
-    response = await session.post(url, json=match_dict, headers=headers)
+async def create_match(api: MatchApi, match: Match) -> Match:
+    """Create one match through the generated owner boundary."""
+    response = await _call(
+        api.create_match(
+            CreateMatchInternalRequest(
+                match_code=match.match_code,
+                league_code=match.league_code,
+                pool_id=match.pool_id,
+                live_code=match.live_code,
+                team_id_a=match.team_id_a,
+                team_id_b=match.team_id_b,
+                match_date=match.match_date,
+                season=match.season,
+                set=match.set,
+                score=match.score,
+                venue=match.venue,
+                first_referee=match.first_referee,
+                second_referee=match.second_referee,
+                active=match.active,
+            ),
+            _headers=_get_headers(),
+            _request_timeout=10,
+        )
+    )
     log_event(
         action="create_match",
         level="info",
-        matchCode=match.matchCode,
-        poolId=match.poolId,
-        message=f"POST {url} - Création du match.",
+        match_code=match.match_code,
+        pool_id=match.pool_id,
+        message="Match created through matches-service.",
     )
-    return response
+    return _to_match(response)
 
 
-@handle_api_response(response_type=MatchInternalResponse)
 async def update_match(
-    session: aiohttp.ClientSession,
-    match: MatchInternalResponse,
-    changes_list: list[str] = [],
-) -> MatchInternalResponse:
-    """
-    Met à jour un match existant.
-    """
-    headers = _get_headers()
-    match_dict = _to_match_update_payload(match)
-    url = f"{MATCH_API_URL}/{match.id}"
-    response = await session.put(url, json=match_dict, headers=headers)
+    api: MatchApi,
+    match: Match,
+    changes_list: list[str] | None = None,
+) -> Match:
+    """Update one match through the generated owner boundary."""
+    if match.id is None:
+        raise ValueError("A match identifier is required for an update.")
+    response = await _call(
+        api.update_match(
+            match.id,
+            UpdateMatchInternalRequest(
+                match_code=match.match_code,
+                league_code=match.league_code,
+                pool_id=match.pool_id,
+                live_code=match.live_code,
+                team_id_a=match.team_id_a,
+                team_id_b=match.team_id_b,
+                match_date=match.match_date,
+                season=match.season,
+                set=match.set,
+                score=match.score,
+                venue=match.venue,
+                first_referee=match.first_referee,
+                second_referee=match.second_referee,
+            ),
+            _headers=_get_headers(),
+            _request_timeout=10,
+        )
+    )
     log_event(
         action="update_match",
         level="info",
-        matchCode=match.matchCode,
-        changes_list=changes_list,
-        message="Mise à jour du match.",
+        match_code=match.match_code,
+        changes_list=changes_list or [],
+        message="Match updated through matches-service.",
     )
-    return response
+    return _to_match(response)
 
 
-@handle_api_response(response_type=None)
 async def bulk_deactivate_matches(
-    session: aiohttp.ClientSession, poolId: int, missing_match_codes: set[str]
+    api: MatchApi, pool_id: int, missing_match_codes: set[str]
 ) -> None:
-    """
-    Désactive en masse les matchs correspondant aux codes fournis.
-    """
-    headers = _get_headers()
-    url = f"{MATCH_API_URL}/pools/{poolId}/bulk-deactivate"
-    payload = to_dict(
-        BulkMatchesDeactivateInternalRequest(
-            missingMatchCodes=list(missing_match_codes)
+    """Deactivate owner matches absent from one complete provider snapshot."""
+    await _call(
+        api.bulk_deactivate_matches(
+            pool_id,
+            BulkMatchesDeactivateInternalRequest(
+                missing_match_codes=sorted(missing_match_codes)
+            ),
+            _headers=_get_headers(),
+            _request_timeout=10,
         )
     )
-    response = await session.put(url, json=payload, headers=headers)
-    return response
+
+
+def _to_match(response: MatchInternalResponse) -> Match:
+    return Match(
+        id=response.id,
+        match_code=response.match_code,
+        league_code=response.league_code,
+        pool_id=response.pool_id,
+        live_code=response.live_code,
+        team_id_a=response.team_id_a,
+        team_id_b=response.team_id_b,
+        match_date=response.match_date,
+        season=response.season,
+        set=response.set,
+        score=response.score,
+        status=response.status.value,
+        venue=response.venue,
+        first_referee=response.first_referee,
+        second_referee=response.second_referee,
+        active=response.active,
+        created_at=response.created_at,
+        last_update=response.last_update,
+        live_url=response.live_url,
+        live_provider=response.live_provider.value if response.live_provider else None,
+        live_owner_auth0_id=response.live_owner_auth0_id,
+    )
+
+
+async def _call[T](request: Awaitable[T]) -> T:
+    try:
+        return await request
+    except ApiException as error:
+        detail = error.body or error.reason or "Unknown error"
+        raise RuntimeError(f"Erreur API {error.status}: {detail}") from error

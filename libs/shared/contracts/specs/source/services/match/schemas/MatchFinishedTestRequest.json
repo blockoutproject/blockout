@@ -1,0 +1,14 @@
+{
+  "MatchFinishedTestRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "teamIdA", "teamIdB", "poolId", "set"],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "teamIdA": { "type": "integer", "format": "int64" },
+      "teamIdB": { "type": "integer", "format": "int64" },
+      "poolId": { "type": "integer", "format": "int64" },
+      "set": { "type": "string" }
+    }
+  }
+}

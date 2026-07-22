@@ -15,16 +15,21 @@ from blockout_contract_clients.config.api.raw_division_mapping_api import (
 )
 from blockout_contract_clients.config.api.scraper_status_api import ScraperStatusApi
 from blockout_contract_clients.config.models.scraper_name_enum import ScraperNameEnum
+from blockout_contract_clients.match.api.match_api import MatchApi
 from blockout_contract_clients.pool.api.pool_api import PoolApi
 from blockout_contract_clients.team.api.team_api import TeamApi
-from scraper.application.models import AssociationStats, Pool, RawDivisionMapping, Team
+from scraper.application.models import (
+    AssociationStats,
+    Match,
+    Pool,
+    RawDivisionMapping,
+    Team,
+)
 from scraper.infrastructure.blockout import competitions as competitions_api
 from scraper.infrastructure.blockout import configuration as config_api
 from scraper.infrastructure.blockout import matches as matches_api
 from scraper.infrastructure.blockout import pools as pools_api
 from scraper.infrastructure.blockout import teams as teams_api
-from scraper.infrastructure.blockout.match import MatchInternalResponse
-from scraper.infrastructure.blockout.response import convert_to_dataclass
 
 
 class RecordingResponse:
@@ -224,54 +229,79 @@ def test_writes_only_the_pool_creation_boundary(monkeypatch):
     asyncio.run(scenario())
 
 
-def test_reads_the_complete_match_contract_and_writes_only_create_fields():
-    payload = {
-        "id": 1,
-        "matchCode": "M1",
-        "leagueCode": "L1",
-        "poolId": 2,
-        "liveCode": 3,
-        "teamIdA": 4,
-        "teamIdB": 5,
-        "matchDate": "2026-07-19T12:30:00+00:00",
-        "season": "2026",
-        "set": "3-0",
-        "score": "75-60",
-        "status": "FINISHED",
-        "venue": "Gym",
-        "firstReferee": "Ref A",
-        "secondReferee": "Ref B",
-        "active": True,
-        "createdAt": "2026-07-19T12:30:00+00:00",
-        "lastUpdate": "2026-07-19T12:30:00+00:00",
-        "liveUrl": "https://youtube.com/live/1",
-        "liveProvider": "YOUTUBE",
-        "liveOwnerAuth0Id": "auth0|1",
-    }
+def test_reads_and_writes_the_generated_match_contract(monkeypatch):
+    async def scenario():
+        monkeypatch.setattr(
+            matches_api, "MATCH_API_URL", "http://matches.local/api/v1/matches"
+        )
+        monkeypatch.setattr(
+            matches_api, "_get_headers", lambda: {"Authorization": "Bearer test"}
+        )
+        response_payload = {
+            "id": 1,
+            "matchCode": "M1",
+            "leagueCode": "L1",
+            "poolId": 2,
+            "liveCode": 3,
+            "teamIdA": 4,
+            "teamIdB": 5,
+            "matchDate": "2026-07-19T12:30:00Z",
+            "season": "2026",
+            "set": "3-0",
+            "score": "75-60",
+            "status": "FINISHED",
+            "venue": "Gym",
+            "firstReferee": "Ref A",
+            "secondReferee": "Ref B",
+            "active": True,
+            "createdAt": "2026-07-19T12:30:00Z",
+            "lastUpdate": "2026-07-19T12:30:00Z",
+            "liveUrl": "https://youtube.com/live/1",
+            "liveProvider": "YOUTUBE",
+            "liveOwnerAuth0Id": "auth0|1",
+        }
+        requests: list[httpx.Request] = []
 
-    match = convert_to_dataclass(payload, MatchInternalResponse)
-    write_payload = matches_api._to_match_create_payload(match)
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(201, json=response_payload)
 
-    assert set(payload) == set(MatchInternalResponse.__dataclass_fields__)
-    assert match.matchDate == datetime(2026, 7, 19, 12, 30, tzinfo=UTC)
-    assert set(write_payload) == {
-        "matchCode",
-        "leagueCode",
-        "poolId",
-        "liveCode",
-        "teamIdA",
-        "teamIdB",
-        "matchDate",
-        "season",
-        "set",
-        "score",
-        "venue",
-        "firstReferee",
-        "secondReferee",
-        "active",
-    }
-    assert "id" not in write_payload
-    assert "createdAt" not in write_payload
+        api_client = matches_api.build_match_api_client()
+        api_client.rest_client.pool_manager = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler)
+        )
+        try:
+            created = await matches_api.create_match(
+                MatchApi(api_client),
+                Match(
+                    match_code="M1",
+                    league_code="L1",
+                    pool_id=2,
+                    live_code=3,
+                    team_id_a=4,
+                    team_id_b=5,
+                    match_date=datetime(2026, 7, 19, 12, 30, tzinfo=UTC),
+                    season="2026",
+                    set="3-0",
+                    score="75-60",
+                    venue="Gym",
+                    first_referee="Ref A",
+                    second_referee="Ref B",
+                ),
+            )
+        finally:
+            await api_client.close()
+
+        payload = json.loads(requests[0].content)
+        assert payload["matchCode"] == "M1"
+        assert datetime.fromisoformat(payload["matchDate"]) == datetime(
+            2026, 7, 19, 12, 30, tzinfo=UTC
+        )
+        assert "createdAt" not in payload
+        assert created.status == "FINISHED"
+        assert created.live_provider == "YOUTUBE"
+
+    asyncio.run(scenario())
 
 
 def test_sends_native_camel_case_query_parameters(monkeypatch):

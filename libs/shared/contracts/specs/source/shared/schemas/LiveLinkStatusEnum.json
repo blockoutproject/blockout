@@ -1,0 +1,13 @@
+{
+  "LiveLinkStatusEnum": {
+    "type": "string",
+    "enum": [
+      "ACTIVE",
+      "PENDING",
+      "BANNED",
+      "DEACTIVATED",
+      "REJECTED",
+      "EXPIRED"
+    ]
+  }
+}

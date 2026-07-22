@@ -1,0 +1,409 @@
+{
+  "/api/v1/matches": {
+    "get": {
+      "tags": ["Match"],
+      "operationId": "listMatches",
+      "parameters": [
+        {
+          "name": "poolId",
+          "in": "query",
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "teamIds",
+          "in": "query",
+          "schema": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int64" }
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "schema": { "$ref": "#/components/schemas/MatchStatusEnum" }
+        },
+        { "name": "active", "in": "query", "schema": { "type": "boolean" } }
+      ],
+      "responses": {
+        "200": {
+          "description": "Matches",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MatchInternalResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "post": {
+      "tags": ["Match"],
+      "operationId": "createMatch",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateMatchInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Created",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MatchInternalResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/matches/day-groups": {
+    "get": {
+      "tags": ["Match"],
+      "operationId": "getMatchDayGroups",
+      "parameters": [
+        {
+          "name": "page",
+          "in": "query",
+          "schema": { "type": "integer", "default": 0 }
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "schema": { "type": "integer", "default": 4 }
+        },
+        {
+          "name": "poolIds",
+          "in": "query",
+          "schema": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int64" }
+          }
+        },
+        {
+          "name": "teamIds",
+          "in": "query",
+          "schema": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int64" }
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "schema": { "$ref": "#/components/schemas/MatchStatusEnum" }
+        },
+        { "name": "active", "in": "query", "schema": { "type": "boolean" } }
+      ],
+      "responses": {
+        "200": {
+          "description": "Day groups",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DayPageInternalResponse"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/matches/{id}": {
+    "get": {
+      "tags": ["Match"],
+      "operationId": "getMatchById",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Match",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MatchInternalResponse" }
+            }
+          }
+        }
+      }
+    },
+    "put": {
+      "tags": ["Match"],
+      "operationId": "updateMatch",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateMatchInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Updated",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MatchInternalResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/matches/pools/{poolId}/bulk-deactivate": {
+    "put": {
+      "tags": ["Match"],
+      "operationId": "bulkDeactivateMatches",
+      "parameters": [
+        {
+          "name": "poolId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BulkMatchesDeactivateInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": { "200": { "description": "Updated" } }
+    }
+  },
+  "/api/v1/matches/live-moderation": {
+    "get": {
+      "tags": ["Match"],
+      "operationId": "listMatchesForLiveModeration",
+      "parameters": [
+        {
+          "name": "status",
+          "in": "query",
+          "schema": { "$ref": "#/components/schemas/LiveLinkStatusEnum" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Moderation matches",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MatchLiveSummaryInternalResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/matches/{matchId}/live-links": {
+    "get": {
+      "tags": ["MatchLiveLink"],
+      "operationId": "getLiveLinksHistory",
+      "parameters": [
+        {
+          "name": "matchId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Live links",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MatchLiveLinkInternalResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/matches/{matchId}/live-link": {
+    "post": {
+      "tags": ["MatchLiveLink"],
+      "operationId": "upsertLiveLink",
+      "parameters": [
+        {
+          "name": "matchId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SetMatchLiveLinkInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Live link",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchLiveLinkResultInternalResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    "delete": {
+      "tags": ["MatchLiveLink"],
+      "operationId": "deleteLiveLink",
+      "parameters": [
+        {
+          "name": "matchId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Deleted" } }
+    }
+  },
+  "/api/v1/matches/{matchId}/live-link/report": {
+    "post": {
+      "tags": ["MatchLiveLink"],
+      "operationId": "reportLiveLink",
+      "parameters": [
+        {
+          "name": "matchId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ReportMatchLiveLinkInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": { "204": { "description": "Reported" } }
+    }
+  },
+  "/api/v1/matches/live-links/{liveLinkId}/approve": {
+    "post": {
+      "tags": ["MatchLiveLink"],
+      "operationId": "approvePendingLink",
+      "parameters": [
+        {
+          "name": "liveLinkId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Approved" } }
+    }
+  },
+  "/api/v1/matches/live-links/{liveLinkId}/reject": {
+    "post": {
+      "tags": ["MatchLiveLink"],
+      "operationId": "rejectPendingLink",
+      "parameters": [
+        {
+          "name": "liveLinkId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Rejected" } }
+    }
+  },
+  "/api/v1/matches/live-links/{liveLinkId}/reactivate": {
+    "post": {
+      "tags": ["MatchLiveLink"],
+      "operationId": "reactivateLiveLink",
+      "parameters": [
+        {
+          "name": "liveLinkId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Reactivated" } }
+    }
+  },
+  "/api/v1/matches/internal/test/{id}/emit-finished": {
+    "post": {
+      "tags": ["MatchTest"],
+      "operationId": "emitFinishedById",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "202": { "description": "Accepted" } }
+    }
+  },
+  "/api/v1/matches/internal/test/emit-finished": {
+    "post": {
+      "tags": ["MatchTest"],
+      "operationId": "emitFinishedCustom",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MatchFinishedTestRequest"
+            }
+          }
+        }
+      },
+      "responses": { "202": { "description": "Accepted" } }
+    }
+  }
+}

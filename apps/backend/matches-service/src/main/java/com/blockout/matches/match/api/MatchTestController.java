@@ -7,29 +7,29 @@ import com.blockout.matches.match.application.views.MatchView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
+/** Implements the generated internal Match event test API. */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/matches/internal/test")
-public class MatchTestController {
+public class MatchTestController implements MatchTestApi {
 
     private final MatchService matchService;
     private final MatchEventPublisher eventPublisher;
 
     @PreAuthorize("hasAuthority('SCOPE_publish:events')")
-    @PostMapping("/{id}/emit-finished")
-    public ResponseEntity<Void> emitFinishedById(@PathVariable Long id) {
+    @Override
+    public ResponseEntity<Void> emitFinishedById(Long id) {
         eventPublisher.publishMatchFinished(matchService.getMatchById(id));
         return ResponseEntity.accepted().build();
     }
 
     @PreAuthorize("hasAuthority('SCOPE_publish:events')")
-    @PostMapping("/emit-finished")
-    public ResponseEntity<Void> emitFinishedCustom(@RequestBody MatchFinishedTestRequest request) {
+    @Override
+    public ResponseEntity<Void> emitFinishedCustom(MatchFinishedTestRequest request) {
         eventPublisher.publishMatchFinished(new MatchView(
-            request.id(), null, null, request.poolId(), null, request.teamIdA(), request.teamIdB(), null,
-            null, request.set(), null, null, null, null, null, null, null, null, null, null, null));
+            request.getId(), null, null, request.getPoolId(), null, request.getTeamIdA(), request.getTeamIdB(), null,
+            null, request.getSet(), null, null, null, null, null, null, null, null, null, null, null));
         return ResponseEntity.accepted().build();
     }
 }

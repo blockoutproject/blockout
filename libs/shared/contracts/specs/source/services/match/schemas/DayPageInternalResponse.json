@@ -1,0 +1,15 @@
+{
+  "DayPageInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["dayMatches", "hasNext"],
+    "properties": {
+      "dayMatches": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/DayMatchesInternalResponse" }
+      },
+      "hasNext": { "type": "boolean" },
+      "nextPage": { "type": "integer", "nullable": true }
+    }
+  }
+}

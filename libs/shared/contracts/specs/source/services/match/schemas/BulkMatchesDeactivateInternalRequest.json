@@ -1,0 +1,10 @@
+{
+  "BulkMatchesDeactivateInternalRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["missingMatchCodes"],
+    "properties": {
+      "missingMatchCodes": { "type": "array", "items": { "type": "string" } }
+    }
+  }
+}

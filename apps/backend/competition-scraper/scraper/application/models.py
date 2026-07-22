@@ -71,6 +71,33 @@ class Pool:
 
 
 @dataclass(slots=True)
+class Match:
+    """Match state used by competition ingestion independently of HTTP transport."""
+
+    match_code: str
+    league_code: str
+    pool_id: int
+    team_id_a: int
+    team_id_b: int
+    match_date: datetime
+    season: str
+    status: str | None = None
+    id: int | None = None
+    set: str | None = None
+    score: str | None = None
+    venue: str | None = None
+    first_referee: str | None = None
+    second_referee: str | None = None
+    live_code: int | None = None
+    active: bool = True
+    created_at: datetime | None = None
+    last_update: datetime | None = None
+    live_url: str | None = None
+    live_provider: str | None = None
+    live_owner_auth0_id: str | None = None
+
+
+@dataclass(slots=True)
 class CompetitionAssociation:
     """Pool-Team association state used independently of HTTP transport."""
 

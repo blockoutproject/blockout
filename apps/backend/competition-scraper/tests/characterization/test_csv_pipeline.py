@@ -251,8 +251,8 @@ def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
         )
 
         match, prefix, priority = scraper.matches[0]
-        assert (match.poolId, match.teamIdA, match.teamIdB) == (10, 101, 102)
-        assert match.matchDate == datetime(2026, 10, 4, 16, 30, tzinfo=UTC)
+        assert (match.pool_id, match.team_id_a, match.team_id_b) == (10, 101, 102)
+        assert match.match_date == datetime(2026, 10, 4, 16, 30, tzinfo=UTC)
         assert match.set == "3-1"
         assert match.venue == "Gymnase Central"
         assert prefix == "CSV"

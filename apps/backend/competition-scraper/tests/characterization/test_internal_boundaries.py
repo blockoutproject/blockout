@@ -1,13 +1,22 @@
 import asyncio
+import json
 from dataclasses import fields, replace
 from datetime import UTC, datetime
 
+import httpx
 import scraper.application.match_changes as match_changes
 from blockout_contract_clients.config.models.create_raw_division_mapping_internal_request import (
     CreateRawDivisionMappingInternalRequest,
 )
 from blockout_contract_clients.config.models.scraper_status_internal_response import (
     ScraperStatusInternalResponse,
+)
+from blockout_contract_clients.match.api.match_api import MatchApi
+from blockout_contract_clients.match.models.create_match_internal_request import (
+    CreateMatchInternalRequest,
+)
+from blockout_contract_clients.match.models.update_match_internal_request import (
+    UpdateMatchInternalRequest,
 )
 from blockout_contract_clients.team.models.create_team_internal_request import (
     CreateTeamInternalRequest,
@@ -20,6 +29,7 @@ from scraper.application import team_writer as teams_service
 from scraper.application.models import (
     AssociationStats,
     CompetitionAssociation,
+    Match,
     Pool,
     RawDivisionMapping,
     Team,
@@ -27,12 +37,6 @@ from scraper.application.models import (
 from scraper.application.source import Scraper
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.infrastructure.blockout import matches as matches_api
-from scraper.infrastructure.blockout.match import (
-    BulkMatchesDeactivateInternalRequest,
-    CreateMatchInternalRequest,
-    MatchInternalResponse,
-    UpdateMatchInternalRequest,
-)
 from scraper.infrastructure.blockout.response import process_response
 
 
@@ -49,15 +53,6 @@ class RecordingResponse:
 
     async def text(self):
         return ""
-
-
-class RecordingSession:
-    def __init__(self) -> None:
-        self.calls: list[tuple] = []
-
-    async def put(self, url, **kwargs):
-        self.calls.append(("PUT", url, kwargs))
-        return RecordingResponse(url=url)
 
 
 class DummyScraper(Scraper):
@@ -100,19 +95,19 @@ def _team(**overrides) -> Team:
     return Team(**values)
 
 
-def _match(**overrides) -> MatchInternalResponse:
+def _match(**overrides) -> Match:
     values = {
         "id": 30,
-        "matchCode": "M001",
-        "leagueCode": "LNAQ",
-        "poolId": 10,
-        "teamIdA": 20,
-        "teamIdB": 21,
-        "matchDate": datetime(2026, 10, 4, 16, 30, tzinfo=UTC),
+        "match_code": "M001",
+        "league_code": "LNAQ",
+        "pool_id": 10,
+        "team_id_a": 20,
+        "team_id_b": 21,
+        "match_date": datetime(2026, 10, 4, 16, 30, tzinfo=UTC),
         "season": "2026/2027",
     }
     values.update(overrides)
-    return MatchInternalResponse(**values)
+    return Match(**values)
 
 
 def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
@@ -151,28 +146,28 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
         "created_at",
         "last_update",
     }
-    assert set(item.name for item in fields(MatchInternalResponse)) == {
+    assert set(item.name for item in fields(Match)) == {
         "id",
-        "matchCode",
-        "leagueCode",
-        "poolId",
-        "liveCode",
-        "teamIdA",
-        "teamIdB",
-        "matchDate",
+        "match_code",
+        "league_code",
+        "pool_id",
+        "live_code",
+        "team_id_a",
+        "team_id_b",
+        "match_date",
         "season",
         "set",
         "score",
         "status",
         "venue",
-        "firstReferee",
-        "secondReferee",
+        "first_referee",
+        "second_referee",
         "active",
-        "createdAt",
-        "lastUpdate",
-        "liveUrl",
-        "liveProvider",
-        "liveOwnerAuth0Id",
+        "created_at",
+        "last_update",
+        "live_url",
+        "live_provider",
+        "live_owner_auth0_id",
     }
     assert set(item.name for item in fields(CompetitionAssociation)) == {
         "id",
@@ -250,27 +245,25 @@ def test_write_contracts_mirror_java_owner_field_sets() -> None:
         "active",
     ]
     match_write_fields = [
-        "matchCode",
-        "leagueCode",
-        "poolId",
-        "liveCode",
-        "teamIdA",
-        "teamIdB",
-        "matchDate",
+        "match_code",
+        "league_code",
+        "pool_id",
+        "live_code",
+        "team_id_a",
+        "team_id_b",
+        "match_date",
         "season",
         "set",
         "score",
         "venue",
-        "firstReferee",
-        "secondReferee",
+        "first_referee",
+        "second_referee",
     ]
-    assert [item.name for item in fields(CreateMatchInternalRequest)] == [
+    assert list(CreateMatchInternalRequest.model_fields) == [
         *match_write_fields,
         "active",
     ]
-    assert [item.name for item in fields(UpdateMatchInternalRequest)] == (
-        match_write_fields
-    )
+    assert list(UpdateMatchInternalRequest.model_fields) == (match_write_fields)
     assert [
         field.alias or name
         for name, field in CreateRawDivisionMappingInternalRequest.model_fields.items()
@@ -281,9 +274,6 @@ def test_write_contracts_mirror_java_owner_field_sets() -> None:
         "gender",
         "leagueCode",
         "season",
-    ]
-    assert [item.name for item in fields(BulkMatchesDeactivateInternalRequest)] == [
-        "missingMatchCodes"
     ]
     assert {item.name for item in fields(AssociationStats)} == {
         "played",
@@ -306,30 +296,36 @@ def test_write_contracts_mirror_java_owner_field_sets() -> None:
     }
 
 
-def test_match_bulk_cleanup_uses_native_camel_case_request(monkeypatch) -> None:
-    """Protect the remaining handwritten Match cleanup command."""
+def test_match_bulk_cleanup_uses_generated_camel_case_request(monkeypatch) -> None:
+    """Protect the generated Match cleanup command."""
 
     async def scenario() -> None:
-        session = RecordingSession()
         monkeypatch.setattr(
-            matches_api, "MATCH_API_URL", "http://matches.local/v1/matches"
+            matches_api, "MATCH_API_URL", "http://matches.local/api/v1/matches"
         )
         monkeypatch.setattr(
             matches_api, "_get_headers", lambda: {"Authorization": "Bearer test"}
         )
 
-        await matches_api.bulk_deactivate_matches.__wrapped__(session, 10, {"M001"})
+        requests: list[httpx.Request] = []
 
-        assert session.calls == [
-            (
-                "PUT",
-                "http://matches.local/v1/matches/pools/10/bulk-deactivate",
-                {
-                    "json": {"missingMatchCodes": ["M001"]},
-                    "headers": {"Authorization": "Bearer test"},
-                },
-            ),
-        ]
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(200)
+
+        api_client = matches_api.build_match_api_client()
+        api_client.rest_client.pool_manager = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler)
+        )
+        try:
+            await matches_api.bulk_deactivate_matches(
+                MatchApi(api_client), 10, {"M001"}
+            )
+        finally:
+            await api_client.close()
+
+        assert requests[0].method == "PUT"
+        assert json.loads(requests[0].content) == {"missingMatchCodes": ["M001"]}
 
     asyncio.run(scenario())
 
@@ -392,29 +388,29 @@ def test_match_finalization_creates_updates_skips_and_isolates_failures(
         updates: list[str] = []
 
         async def create(_session, match):
-            creates.append(match.matchCode)
-            if match.matchCode == "FAIL":
+            creates.append(match.match_code)
+            if match.match_code == "FAIL":
                 raise RuntimeError("owner failure")
 
         async def update(_session, match, _changes):
-            updates.append(match.matchCode)
+            updates.append(match.match_code)
 
         monkeypatch.setattr(match_changes, "create_match", create)
         monkeypatch.setattr(match_changes, "update_match", update)
         monkeypatch.setattr(match_changes, "log_event", lambda **_event: None)
-        scraper = DummyScraper(None, None, "finalize")
-        existing = _match(matchCode="UPDATE")
-        unchanged = _match(matchCode="NOOP")
+        scraper = DummyScraper(None, None, "finalize", match_api=object())
+        existing = _match(match_code="UPDATE")
+        unchanged = _match(match_code="NOOP")
         scraper._matches_cache = {
             ("LNAQ", "CREATE"): (
                 None,
-                _match(matchCode="CREATE"),
+                _match(match_code="CREATE"),
                 [],
                 DataSourcePriority.FFVB,
             ),
             ("LNAQ", "FAIL"): (
                 None,
-                _match(matchCode="FAIL"),
+                _match(match_code="FAIL"),
                 [],
                 DataSourcePriority.FFVB,
             ),

@@ -1,0 +1,14 @@
+{
+  "PoolMatchesInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["poolId", "matches"],
+    "properties": {
+      "poolId": { "type": "integer", "format": "int64" },
+      "matches": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/MatchInternalResponse" }
+      }
+    }
+  }
+}

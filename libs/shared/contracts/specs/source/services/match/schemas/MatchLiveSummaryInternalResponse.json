@@ -1,0 +1,51 @@
+{
+  "MatchLiveSummaryInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "matchCode",
+      "leagueCode",
+      "poolId",
+      "teamIdA",
+      "teamIdB",
+      "matchDate",
+      "season",
+      "status"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "matchCode": { "type": "string" },
+      "leagueCode": { "type": "string" },
+      "poolId": { "type": "integer", "format": "int64" },
+      "teamIdA": { "type": "integer", "format": "int64" },
+      "teamIdB": { "type": "integer", "format": "int64" },
+      "matchDate": { "type": "string", "format": "date-time" },
+      "season": { "type": "string" },
+      "set": { "type": "string", "nullable": true },
+      "score": { "type": "string", "nullable": true },
+      "status": { "$ref": "#/components/schemas/MatchStatusEnum" },
+      "liveCode": { "type": "integer", "format": "int64", "nullable": true },
+      "lastLiveLinkId": {
+        "type": "integer",
+        "format": "int64",
+        "nullable": true
+      },
+      "lastLiveLinkStatus": {
+        "allOf": [{ "$ref": "#/components/schemas/LiveLinkStatusEnum" }],
+        "nullable": true
+      },
+      "lastLiveLinkProvider": {
+        "allOf": [{ "$ref": "#/components/schemas/LiveProviderEnum" }],
+        "nullable": true
+      },
+      "lastLiveLinkUrl": { "type": "string", "nullable": true },
+      "lastLiveLinkOwnerAuth0Id": { "type": "string", "nullable": true },
+      "lastLiveLinkCreatedAt": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      }
+    }
+  }
+}

@@ -5,19 +5,20 @@ import com.blockout.mobilegateway.match.api.models.*;
 import com.blockout.mobilegateway.shared.application.models.LiveLinkStatus;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
 
+/** Calls the generated matches-service contract through the shared HTTP adapter. */
 @Service
 @RequiredArgsConstructor
 public class MatchInternalClient {
 
     private final ApiClientProperties apiClientProperties;
     private final InternalApiClient internalApiClient;
+    private final MatchContractMapper contractMapper;
 
     private String baseUrl() {
         return apiClientProperties.getMatch().getUrl();
@@ -30,13 +31,14 @@ public class MatchInternalClient {
             .queryParam("size", size)
             .queryParamIfPresent("status", Optional.ofNullable(status))
             .queryParam("active", true)
-            .queryParamIfPresent("pool_ids", Optional.ofNullable(poolIds))
-            .queryParamIfPresent("team_ids", Optional.ofNullable(teamIds))
+            .queryParamIfPresent("poolIds", Optional.ofNullable(poolIds))
+            .queryParamIfPresent("teamIds", Optional.ofNullable(teamIds))
             .build()
             .toUriString();
 
-        ResponseEntity<DayPageInternalResponse> response = internalApiClient.get(url, DayPageInternalResponse.class);
-        return response.getBody();
+        var response = internalApiClient.get(url,
+            com.blockout.mobilegateway.match.infrastructure.contract.models.DayPageInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 
     public MatchInternalResponse getMatchById(Long matchId) {
@@ -45,8 +47,9 @@ public class MatchInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<MatchInternalResponse> response = internalApiClient.get(url, MatchInternalResponse.class);
-        return response.getBody();
+        var response = internalApiClient.get(url,
+            com.blockout.mobilegateway.match.infrastructure.contract.models.MatchInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 
     public List<MatchLiveSummaryInternalResponse> listMatchesForLiveModeration(LiveLinkStatus statusFilter) {
@@ -60,10 +63,11 @@ public class MatchInternalClient {
 
         String url = builder.build().toUriString();
 
-        ResponseEntity<MatchLiveSummaryInternalResponse[]> response = internalApiClient.get(url, MatchLiveSummaryInternalResponse[].class);
+        var response = internalApiClient.get(url,
+            com.blockout.mobilegateway.match.infrastructure.contract.models.MatchLiveSummaryInternalResponse[].class);
 
-        MatchLiveSummaryInternalResponse[] body = response.getBody();
-        return body != null ? List.of(body) : List.of();
+        var body = response.getBody();
+        return body != null ? java.util.Arrays.stream(body).map(contractMapper::toResponse).toList() : List.of();
     }
 
     public UpsertMatchLiveLinkResponse upsertLiveLink(Long matchId, UpsertMatchLiveLinkRequest request) {
@@ -72,12 +76,12 @@ public class MatchInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<UpsertMatchLiveLinkResponse> response = internalApiClient.post(
+        var response = internalApiClient.post(
             url,
-            request,
-            UpsertMatchLiveLinkResponse.class);
+            contractMapper.toInternalRequest(request),
+            com.blockout.mobilegateway.match.infrastructure.contract.models.MatchLiveLinkResultInternalResponse.class);
 
-        return response.getBody();
+        return contractMapper.toResponse(response.getBody());
     }
 
     public void deleteLiveLink(Long matchId) {
@@ -95,7 +99,7 @@ public class MatchInternalClient {
             .build()
             .toUriString();
 
-        internalApiClient.post(url, request, Void.class);
+        internalApiClient.post(url, contractMapper.toInternalRequest(request), Void.class);
     }
 
     public List<MatchLiveLinkInternalResponse> getLiveLinksHistory(Long matchId) {
@@ -104,10 +108,11 @@ public class MatchInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<MatchLiveLinkInternalResponse[]> response = internalApiClient.get(url, MatchLiveLinkInternalResponse[].class);
+        var response = internalApiClient.get(url,
+            com.blockout.mobilegateway.match.infrastructure.contract.models.MatchLiveLinkInternalResponse[].class);
 
-        MatchLiveLinkInternalResponse[] body = response.getBody();
-        return body != null ? List.of(body) : List.of();
+        var body = response.getBody();
+        return body != null ? java.util.Arrays.stream(body).map(contractMapper::toResponse).toList() : List.of();
     }
 
     public List<MatchLiveLinkInternalResponse> listPendingLiveLinks() {
@@ -116,10 +121,11 @@ public class MatchInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<MatchLiveLinkInternalResponse[]> response = internalApiClient.get(url, MatchLiveLinkInternalResponse[].class);
+        var response = internalApiClient.get(url,
+            com.blockout.mobilegateway.match.infrastructure.contract.models.MatchLiveLinkInternalResponse[].class);
 
-        MatchLiveLinkInternalResponse[] body = response.getBody();
-        return body != null ? List.of(body) : List.of();
+        var body = response.getBody();
+        return body != null ? java.util.Arrays.stream(body).map(contractMapper::toResponse).toList() : List.of();
     }
 
     public void approvePendingLiveLink(Long liveLinkId) {

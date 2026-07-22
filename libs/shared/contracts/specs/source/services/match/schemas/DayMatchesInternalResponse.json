@@ -1,0 +1,14 @@
+{
+  "DayMatchesInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["date", "pools"],
+    "properties": {
+      "date": { "type": "string", "format": "date" },
+      "pools": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/PoolMatchesInternalResponse" }
+      }
+    }
+  }
+}

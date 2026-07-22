@@ -80,6 +80,9 @@
                         <schemaMappings>
                             <schemaMapping>FormatEnum=com.blockout.shared.model.FormatEnum</schemaMapping>
                             <schemaMapping>GenderEnum=com.blockout.shared.model.GenderEnum</schemaMapping>
+                            <schemaMapping>LiveLinkStatusEnum=com.blockout.shared.model.LiveLinkStatusEnum</schemaMapping>
+                            <schemaMapping>LiveProviderEnum=com.blockout.shared.model.LiveProviderEnum</schemaMapping>
+                            <schemaMapping>MatchStatusEnum=com.blockout.shared.model.MatchStatusEnum</schemaMapping>
                             <schemaMapping>ScraperNameEnum=com.blockout.shared.model.ScraperNameEnum</schemaMapping>
                         </schemaMappings>
                         <!-- END generated schemaMappings -->

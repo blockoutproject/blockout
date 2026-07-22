@@ -1,0 +1,6 @@
+{
+  "LiveProviderEnum": {
+    "type": "string",
+    "enum": ["YOUTUBE", "TWITCH", "FACEBOOK"]
+  }
+}

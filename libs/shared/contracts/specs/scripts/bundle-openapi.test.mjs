@@ -55,6 +55,9 @@ test('workspace fragments produce the shared OpenAPI bundle', async () => {
   assert.deepEqual(Object.keys(bundle.components.schemas), [
     'FormatEnum',
     'GenderEnum',
+    'LiveLinkStatusEnum',
+    'LiveProviderEnum',
+    'MatchStatusEnum',
     'ScraperNameEnum',
   ]);
 });
@@ -136,6 +139,16 @@ test('schema roots include active multipart JSON models without fake endpoints',
     competitionBundle.paths['/api/v1/competitions/pools/{poolId}/teams/{teamId}/stats'].put
       .requestBody.content['application/json'].schema.$ref,
     '#/components/schemas/UpdateAssociationStatsInternalRequest',
+  );
+
+  const matchBundle = JSON.parse(
+    await readFile(path.join(contractsRoot, 'generated/specs/match.json'), 'utf8'),
+  );
+  assert.ok(matchBundle.components.schemas.CreateMatchInternalRequest);
+  assert.ok(matchBundle.components.schemas.MatchInternalResponse);
+  assert.equal(
+    matchBundle.paths['/api/v1/matches'].post.requestBody.content['application/json'].schema.$ref,
+    '#/components/schemas/CreateMatchInternalRequest',
   );
 });
 

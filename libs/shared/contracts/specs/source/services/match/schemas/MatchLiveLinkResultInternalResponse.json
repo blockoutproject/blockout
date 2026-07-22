@@ -1,0 +1,22 @@
+{
+  "MatchLiveLinkResultInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "matchId",
+      "provider",
+      "url",
+      "status",
+      "reportCount",
+      "ownerAuth0Id"
+    ],
+    "properties": {
+      "matchId": { "type": "integer", "format": "int64" },
+      "provider": { "$ref": "#/components/schemas/LiveProviderEnum" },
+      "url": { "type": "string" },
+      "status": { "$ref": "#/components/schemas/LiveLinkStatusEnum" },
+      "reportCount": { "type": "integer" },
+      "ownerAuth0Id": { "type": "string" }
+    }
+  }
+}

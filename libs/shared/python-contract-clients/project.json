@@ -20,7 +20,8 @@
           "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/config-openapi-generator.json",
           "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/team-openapi-generator.json",
           "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/pool-openapi-generator.json",
-          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/competition-openapi-generator.json"
+          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/competition-openapi-generator.json",
+          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/match-openapi-generator.json"
         ]
       }
     },

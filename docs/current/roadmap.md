@@ -516,10 +516,21 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     application-context test remains blocked by the pre-existing checksum of the local Competition Flyway database;
     no database repair was performed by this contract task.
 
-- [ ] **REF-048 — Migrate the Match contract**
+- [x] **REF-048 — Migrate the Match contract**
   - Generate Match requests, responses, enums, and clients from the authoritative `matches-service` model.
   - Preserve score, status, date, team, pool, ingestion, follow, and feed behavior across the competition scraper,
     services, gateway, and search consumers.
+  - Evidence: one Match OpenAPI source now owns every existing V1 match, day-group, live-link moderation, and internal
+    test route with native camelCase payloads. `matches-service` implements the generated server interfaces,
+    `mobile-gateway` maps generated adapter-local models, and the competition scraper uses the generated asynchronous
+    HTTPX client while keeping its idiomatic application Match model separate.
+  - Handwritten Match transport DTOs were removed from the owner and scraper. Match status, live provider, and live-link
+    status are generated shared transport enums; the services retain their distinct application enums behind explicit
+    mappers. Score, date, pool/team identity, live-link security, ingestion ordering, routes, and public gateway models
+    remain unchanged. Two clean generations have the same hash; `uv` 0.11.29 lock/sync, the wheel build, contract
+    guards, Ruff, 70 scraper tests, 8 generated-client tests, and 12 targeted Java 21 tests pass. Git tracks no generated
+    source. The complete reactor still stops on the pre-existing Club Flyway V1-V3 checksum mismatch; no database repair
+    was performed by this contract task.
 
 - [ ] **REF-049 — Migrate the User contract**
   - Generate the users-service transport boundary while keeping Auth0 identity, guest behavior, preferences, and public

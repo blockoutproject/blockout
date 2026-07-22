@@ -3,85 +3,85 @@ package com.blockout.matches.match.api;
 import com.blockout.matches.match.api.mappers.MatchApiMapper;
 import com.blockout.matches.match.api.models.*;
 import com.blockout.matches.match.application.MatchService;
-import com.blockout.matches.match.application.models.LiveLinkStatus;
-import com.blockout.matches.match.application.models.MatchStatus;
 import com.blockout.matches.match.application.views.MatchView;
+import com.blockout.shared.model.LiveLinkStatusEnum;
+import com.blockout.shared.model.MatchStatusEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 
+/** Implements the generated V1 internal Match API. */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/matches")
-public class MatchController {
+public class MatchController implements MatchApi {
 
     private final MatchService matchService;
     private final MatchApiMapper mapper;
 
-    @GetMapping
+    @Override
     public ResponseEntity<List<MatchInternalResponse>> listMatches(
-        @RequestParam(required = false) Long poolId,
-        @RequestParam(required = false) List<Long> teamIds,
-        @RequestParam(required = false) MatchStatus status,
-        @RequestParam(required = false) Boolean active) {
-        return ResponseEntity.ok(matchService.findMatches(poolId, teamIds, status, active).stream()
+        Long poolId,
+        List<Long> teamIds,
+        MatchStatusEnum status,
+        Boolean active) {
+        return ResponseEntity.ok(matchService.findMatches(poolId, teamIds, mapper.toApplication(status), active).stream()
             .map(mapper::toInternalResponse)
             .toList());
     }
 
-    @GetMapping("/day-groups")
-    public ResponseEntity<DayPageInternalResponse> dayGroups(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "4") int size,
-        @RequestParam(required = false) List<Long> poolIds,
-        @RequestParam(required = false) List<Long> teamIds,
-        @RequestParam(required = false) MatchStatus status,
-        @RequestParam(required = false) Boolean active) {
+    @Override
+    public ResponseEntity<DayPageInternalResponse> getMatchDayGroups(
+        Integer page,
+        Integer size,
+        List<Long> poolIds,
+        List<Long> teamIds,
+        MatchStatusEnum status,
+        Boolean active) {
         return ResponseEntity.ok(mapper.toInternalResponse(matchService.getMatchesByDay(
             poolIds == null ? Collections.emptyList() : poolIds,
             teamIds == null ? Collections.emptyList() : teamIds,
-            status, page, size, active)));
+            mapper.toApplication(status), page, size, active)));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<MatchInternalResponse> getMatchById(@PathVariable Long id) {
+    @Override
+    public ResponseEntity<MatchInternalResponse> getMatchById(Long id) {
         return ResponseEntity.ok(mapper.toInternalResponse(matchService.getMatchById(id)));
     }
 
     @PreAuthorize("hasAuthority('SCOPE_create:matches')")
-    @PostMapping
-    public ResponseEntity<MatchInternalResponse> createMatch(@RequestBody CreateMatchInternalRequest request) {
+    @Override
+    public ResponseEntity<MatchInternalResponse> createMatch(CreateMatchInternalRequest request) {
         MatchView created = matchService.createMatch(mapper.toCommand(request));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(created.id()).toUri();
         return ResponseEntity.created(location).body(mapper.toInternalResponse(created));
     }
 
     @PreAuthorize("hasAuthority('SCOPE_update:matches')")
-    @PutMapping("/{id}")
+    @Override
     public ResponseEntity<MatchInternalResponse> updateMatch(
-        @PathVariable Long id, @RequestBody UpdateMatchInternalRequest request) {
+        Long id, UpdateMatchInternalRequest request) {
         return ResponseEntity.ok(mapper.toInternalResponse(matchService.updateMatch(id, mapper.toCommand(request))));
     }
 
     @PreAuthorize("hasAuthority('SCOPE_delete:matches')")
-    @PutMapping("/pools/{poolId}/bulk-deactivate")
+    @Override
     public ResponseEntity<Void> bulkDeactivateMatches(
-        @PathVariable Long poolId, @RequestBody BulkMatchesDeactivateInternalRequest request) {
-        matchService.bulkDeactivateMatches(poolId, request.missingMatchCodes());
+        Long poolId, BulkMatchesDeactivateInternalRequest request) {
+        matchService.bulkDeactivateMatches(poolId, request.getMissingMatchCodes());
         return ResponseEntity.ok().build();
     }
 
     @PreAuthorize("hasAuthority('SCOPE_moderate:match_live_link')")
-    @GetMapping("/live-moderation")
+    @Override
     public ResponseEntity<List<MatchLiveSummaryInternalResponse>> listMatchesForLiveModeration(
-        @RequestParam(value = "status", required = false) LiveLinkStatus statusFilter) {
-        return ResponseEntity.ok(matchService.listMatchesForLiveModeration(statusFilter).stream()
+        LiveLinkStatusEnum status) {
+        return ResponseEntity.ok(matchService.listMatchesForLiveModeration(mapper.toApplication(status)).stream()
             .map(mapper::toInternalResponse)
             .toList());
     }

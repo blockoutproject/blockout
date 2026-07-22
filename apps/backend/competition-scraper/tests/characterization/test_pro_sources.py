@@ -4,9 +4,8 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-from scraper.application.models import Pool, Team
+from scraper.application.models import Match, Pool, Team
 from scraper.domain.data_source_priority import DataSourcePriority
-from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.lnv import professional as pro_module
 from scraper.infrastructure.lnv.professional import ProScraper
 
@@ -29,20 +28,20 @@ def _pool() -> Pool:
     )
 
 
-def _match(**overrides) -> MatchInternalResponse:
+def _match(**overrides) -> Match:
     values = {
         "id": 5,
-        "matchCode": "M001",
-        "leagueCode": "AALNV",
-        "poolId": 1,
-        "teamIdA": 101,
-        "teamIdB": 102,
-        "matchDate": datetime(2026, 10, 4, 16, 30, tzinfo=UTC),
+        "match_code": "M001",
+        "league_code": "AALNV",
+        "pool_id": 1,
+        "team_id_a": 101,
+        "team_id_b": 102,
+        "match_date": datetime(2026, 10, 4, 16, 30, tzinfo=UTC),
         "season": "2026/2027",
         "venue": "Arena",
     }
     values.update(overrides)
-    return MatchInternalResponse(**values)
+    return Match(**values)
 
 
 def _team(identifier: int, name: str) -> Team:
@@ -65,7 +64,7 @@ def test_professional_source_catalog_remains_explicit_and_season_bound() -> None
     scraper = ProScraper(None, None, None, object())
 
     assert scraper.raw_season == "2026/2027"
-    assert scraper.leagueCode == "AALNV"
+    assert scraper.league_code == "AALNV"
     assert scraper.priority_validation_enabled is True
     assert [pool["poolCode"] for pool in scraper.pools_json] == [
         "MSL",
@@ -124,8 +123,8 @@ def test_lnv_match_xml_updates_date_set_and_score_in_utc() -> None:
     async def scenario() -> None:
         scraper = ProScraper(None, None, None, object())
         existing = _match(
-            matchCode="LAM001",
-            matchDate=datetime(2020, 1, 1, tzinfo=UTC),
+            match_code="LAM001",
+            match_date=datetime(2020, 1, 1, tzinfo=UTC),
             set=None,
             score=None,
         )
@@ -140,11 +139,11 @@ def test_lnv_match_xml_updates_date_set_and_score_in_utc() -> None:
         await scraper.process_xml_matches(root, 1)
 
         _, updated, changes, priority = scraper._matches_cache[("AALNV", "LAM001")]
-        assert updated.matchDate == datetime(2022, 9, 30, 18, 0, tzinfo=UTC)
+        assert updated.match_date == datetime(2022, 9, 30, 18, 0, tzinfo=UTC)
         assert updated.set == "1-3"
         assert updated.score == "17-25,25-22,22-25,19-25"
         assert updated.venue == "Arena"
-        assert any("[LNV-XML] matchDate" in change for change in changes)
+        assert any("[LNV-XML] match_date" in change for change in changes)
         assert priority == DataSourcePriority.LNV_XML
 
     asyncio.run(scenario())
@@ -187,8 +186,8 @@ def test_lnv_live_html_resolves_teams_and_adds_only_the_live_code(monkeypatch) -
     async def scenario() -> None:
         scraper = ProScraper(object(), object(), None, object())
         existing = _match(
-            liveCode=None,
-            matchDate=datetime(2026, 3, 25, 18, 0, tzinfo=UTC),
+            live_code=None,
+            match_date=datetime(2026, 3, 25, 18, 0, tzinfo=UTC),
         )
         scraper._matches_cache[("AALNV", "M001")] = (
             existing,
@@ -214,10 +213,10 @@ def test_lnv_live_html_resolves_teams_and_adds_only_the_live_code(monkeypatch) -
         await scraper.add_match_live_code("https://live.invalid", _pool())
 
         _, updated, changes, priority = scraper._matches_cache[("AALNV", "M001")]
-        assert updated.liveCode == 9572
-        assert updated.matchDate == existing.matchDate
+        assert updated.live_code == 9572
+        assert updated.match_date == existing.match_date
         assert updated.venue == "Arena"
-        assert any("[LNV-Live] liveCode" in change for change in changes)
+        assert any("[LNV-Live] live_code" in change for change in changes)
         assert priority == DataSourcePriority.LNV_HTML
         assert team_reads == 1
 

@@ -2,10 +2,10 @@
 
 from dataclasses import replace
 
-import aiohttp
+from blockout_contract_clients.match.api.match_api import MatchApi
 
+from scraper.application.models import Match
 from scraper.domain.data_source_priority import DataSourcePriority
-from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.matches import (
     create_match,
     get_matches_by_pool,
@@ -14,8 +14,8 @@ from scraper.infrastructure.blockout.matches import (
 from scraper.observability.logging import log_event
 
 MatchEntry = tuple[
-    MatchInternalResponse | None,
-    MatchInternalResponse,
+    Match | None,
+    Match,
     list[str],
     DataSourcePriority,
 ]
@@ -26,19 +26,19 @@ class MatchChangeSet:
 
     def __init__(
         self,
-        session: aiohttp.ClientSession,
+        api: MatchApi | None,
         priority_validation_enabled: bool,
     ) -> None:
-        self._session = session
+        self._api = api
         self._priority_validation_enabled = priority_validation_enabled
         self.entries: dict[tuple[str, str], MatchEntry] = {}
 
     async def load(self, pool_id: int) -> None:
         """Load existing pool matches with database ownership priority."""
         try:
-            existing_matches = await get_matches_by_pool(self._session, pool_id) or []
+            existing_matches = await get_matches_by_pool(self._required_api(), pool_id)
             for match in existing_matches:
-                key = (match.leagueCode, match.matchCode)
+                key = (match.league_code, match.match_code)
                 self.entries.setdefault(
                     key,
                     (match, replace(match), [], DataSourcePriority.DB),
@@ -54,13 +54,13 @@ class MatchChangeSet:
 
     def schedule(
         self,
-        candidate: MatchInternalResponse,
+        candidate: Match,
         prefix: str,
         priority: DataSourcePriority,
     ) -> None:
         """Merge one provider candidate according to field ownership priority."""
         try:
-            key = (candidate.leagueCode, candidate.matchCode)
+            key = (candidate.league_code, candidate.match_code)
             self.entries.setdefault(key, (None, candidate, [], priority))
             existing, updated, changes, current_priority = self.entries[key]
 
@@ -68,15 +68,15 @@ class MatchChangeSet:
                 updated.active = True
                 changes.append(f"[{prefix}] Match réactivé")
 
-            lnv_xml_fields = ("matchDate", "score", "set")
-            lnv_html_field = "liveCode"
+            lnv_xml_fields = ("match_date", "score", "set")
+            lnv_html_field = "live_code"
             ffvb_fields = (
-                "poolId",
-                "teamIdA",
-                "teamIdB",
+                "pool_id",
+                "team_id_a",
+                "team_id_b",
                 "venue",
-                "firstReferee",
-                "secondReferee",
+                "first_referee",
+                "second_referee",
             )
 
             if not self._priority_validation_enabled:
@@ -116,10 +116,10 @@ class MatchChangeSet:
             log_event(
                 action="schedule_match_changes_error",
                 level="error",
-                matchCode=candidate.matchCode,
-                leagueCode=candidate.leagueCode,
+                match_code=candidate.match_code,
+                league_code=candidate.league_code,
                 error=str(error),
-                message=f"Erreur lors de la fusion de match {candidate.matchCode}",
+                message=f"Erreur lors de la fusion de match {candidate.match_code}",
             )
 
     async def flush(self) -> None:
@@ -132,24 +132,24 @@ class MatchChangeSet:
         ) in self.entries.items():
             try:
                 if existing is None:
-                    await create_match(self._session, updated)
+                    await create_match(self._required_api(), updated)
                 elif changes:
-                    await update_match(self._session, updated, changes)
+                    await update_match(self._required_api(), updated, changes)
             except Exception as error:
                 log_event(
                     action="finalize_matches_update_error",
                     level="error",
-                    matchCode=updated.matchCode,
-                    leagueCode=league_code,
+                    match_code=updated.match_code,
+                    league_code=league_code,
                     error=str(error),
-                    message=f"Erreur finalize match {updated.matchCode}",
+                    message=f"Erreur finalize match {updated.match_code}",
                 )
         self.entries.clear()
 
     @staticmethod
     def _replace_fields(
-        updated: MatchInternalResponse,
-        candidate: MatchInternalResponse,
+        updated: Match,
+        candidate: Match,
         field_names: tuple[str, ...],
         changes: list[str],
         prefix: str,
@@ -160,3 +160,10 @@ class MatchChangeSet:
             if new_value != old_value:
                 setattr(updated, field_name, new_value)
                 changes.append(f"[{prefix}] {field_name}: {old_value} -> {new_value}")
+
+    def _required_api(self) -> MatchApi:
+        if self._api is None:
+            raise RuntimeError(
+                "The generated matches-service client is not configured."
+            )
+        return self._api

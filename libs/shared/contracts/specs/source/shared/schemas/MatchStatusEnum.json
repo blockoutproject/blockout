@@ -1,0 +1,6 @@
+{
+  "MatchStatusEnum": {
+    "type": "string",
+    "enum": ["UPCOMING", "FINISHED"]
+  }
+}

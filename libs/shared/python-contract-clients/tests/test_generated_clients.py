@@ -1,5 +1,7 @@
 """Import and serialization checks for generated Python contract clients."""
 
+from datetime import UTC, datetime
+
 from blockout_contract_clients.club.api import ClubApi
 from blockout_contract_clients.club.models import (
     ClubInternalResponse,
@@ -19,7 +21,15 @@ from blockout_contract_clients.config.models import (
 from blockout_contract_clients.shared.models import (
     FormatEnum,
     GenderEnum,
+    LiveLinkStatusEnum,
+    LiveProviderEnum,
+    MatchStatusEnum,
     ScraperNameEnum,
+)
+from blockout_contract_clients.match.api import MatchApi
+from blockout_contract_clients.match.models import (
+    CreateMatchInternalRequest,
+    MatchInternalResponse,
 )
 from blockout_contract_clients.pool.api import PoolApi
 from blockout_contract_clients.pool.models import (
@@ -41,6 +51,9 @@ def test_shared_transport_enums_are_generated() -> None:
     """Expose shared transport enum values from the private wheel."""
     assert FormatEnum.SIX.value == "SIX"
     assert GenderEnum.F.value == "F"
+    assert MatchStatusEnum.FINISHED.value == "FINISHED"
+    assert LiveProviderEnum.YOUTUBE.value == "YOUTUBE"
+    assert LiveLinkStatusEnum.PENDING.value == "PENDING"
     assert ScraperNameEnum.SCRAPER_CLUBS.value == "SCRAPER_CLUBS"
 
 
@@ -177,3 +190,32 @@ def test_competition_models_and_async_api_are_generated() -> None:
     assert response is not None
     assert response.club_id == "club-1"
     assert CompetitionAssociationApi.list_pool_teams.__name__ == "list_pool_teams"
+
+
+def test_match_models_and_async_api_are_generated() -> None:
+    """Expose Match requests, responses, date-times, and its asynchronous API."""
+    match_date = datetime(2026, 7, 19, 12, 30, tzinfo=UTC)
+    request = CreateMatchInternalRequest(
+        match_code="M1",
+        league_code="L1",
+        pool_id=2,
+        team_id_a=3,
+        team_id_b=4,
+        match_date=match_date,
+        season="2026",
+        active=True,
+    )
+    response = MatchInternalResponse.from_dict(
+        {
+            **request.to_dict(),
+            "id": 1,
+            "status": "FINISHED",
+            "active": True,
+        }
+    )
+
+    assert request.to_dict()["matchCode"] == "M1"
+    assert request.to_dict()["matchDate"] == match_date
+    assert response is not None
+    assert response.status.value == "FINISHED"
+    assert MatchApi.list_matches.__name__ == "list_matches"

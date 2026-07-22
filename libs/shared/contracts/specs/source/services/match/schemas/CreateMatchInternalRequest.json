@@ -1,0 +1,32 @@
+{
+  "CreateMatchInternalRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "matchCode",
+      "leagueCode",
+      "poolId",
+      "teamIdA",
+      "teamIdB",
+      "matchDate",
+      "season",
+      "active"
+    ],
+    "properties": {
+      "matchCode": { "type": "string" },
+      "leagueCode": { "type": "string" },
+      "poolId": { "type": "integer", "format": "int64" },
+      "liveCode": { "type": "integer", "format": "int64", "nullable": true },
+      "teamIdA": { "type": "integer", "format": "int64" },
+      "teamIdB": { "type": "integer", "format": "int64" },
+      "matchDate": { "type": "string", "format": "date-time" },
+      "season": { "type": "string" },
+      "set": { "type": "string", "nullable": true },
+      "score": { "type": "string", "nullable": true },
+      "venue": { "type": "string", "nullable": true },
+      "firstReferee": { "type": "string", "nullable": true },
+      "secondReferee": { "type": "string", "nullable": true },
+      "active": { "type": "boolean" }
+    }
+  }
+}
