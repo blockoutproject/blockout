@@ -119,6 +119,40 @@
                 <artifactId>openapi-generator-maven-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>generate-notification-server</id>
+                        <phase>generate-sources</phase>
+                        <goals><goal>generate</goal></goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/notification.json</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources/openapi/notification-server</output>
+                            <apiPackage>com.blockout.notifications.notification.api</apiPackage>
+                            <modelPackage>com.blockout.notifications.notification.api.models</modelPackage>
+                            <invokerPackage>com.blockout.notifications.notification.api.invoker</invokerPackage>
+                            <configOptions>
+                                <interfaceOnly>true</interfaceOnly>
+                                <useTags>true</useTags>
+                                <dateLibrary>java8-localdatetime</dateLibrary>
+                            </configOptions>
+                            <typeMappings>
+                                <typeMapping>string+instant=Instant</typeMapping>
+                            </typeMappings>
+                            <importMappings>
+                                <importMapping>Instant=java.time.Instant</importMapping>
+                                <importMapping>JsonNode=com.fasterxml.jackson.databind.JsonNode</importMapping>
+                                <importMapping>DevicePlatformEnum=com.blockout.shared.model.DevicePlatformEnum</importMapping>
+                                <importMapping>NotificationTargetTypeEnum=com.blockout.shared.model.NotificationTargetTypeEnum</importMapping>
+                                <importMapping>NotificationTypeEnum=com.blockout.shared.model.NotificationTypeEnum</importMapping>
+                            </importMappings>
+                            <schemaMappings>
+                                <schemaMapping>NotificationMetadata=com.fasterxml.jackson.databind.JsonNode</schemaMapping>
+                                <schemaMapping>DevicePlatformEnum=com.blockout.shared.model.DevicePlatformEnum</schemaMapping>
+                                <schemaMapping>NotificationTargetTypeEnum=com.blockout.shared.model.NotificationTargetTypeEnum</schemaMapping>
+                                <schemaMapping>NotificationTypeEnum=com.blockout.shared.model.NotificationTypeEnum</schemaMapping>
+                            </schemaMappings>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>generate-user-client-models</id>
                         <phase>generate-sources</phase>
                         <goals><goal>generate</goal></goals>
@@ -155,6 +189,7 @@
                         <goals><goal>add-source</goal></goals>
                         <configuration>
                             <sources>
+                                <source>${project.build.directory}/generated-sources/openapi/notification-server/src/main/java</source>
                                 <source>${project.build.directory}/generated-sources/openapi/user-client/src/main/java</source>
                             </sources>
                         </configuration>

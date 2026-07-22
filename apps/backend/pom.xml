@@ -78,12 +78,15 @@
                         <generateModelTests>false</generateModelTests>
                         <!-- BEGIN generated schemaMappings -->
                         <schemaMappings>
+                            <schemaMapping>DevicePlatformEnum=com.blockout.shared.model.DevicePlatformEnum</schemaMapping>
                             <schemaMapping>EntityTypeEnum=com.blockout.shared.model.EntityTypeEnum</schemaMapping>
                             <schemaMapping>FormatEnum=com.blockout.shared.model.FormatEnum</schemaMapping>
                             <schemaMapping>GenderEnum=com.blockout.shared.model.GenderEnum</schemaMapping>
                             <schemaMapping>LiveLinkStatusEnum=com.blockout.shared.model.LiveLinkStatusEnum</schemaMapping>
                             <schemaMapping>LiveProviderEnum=com.blockout.shared.model.LiveProviderEnum</schemaMapping>
                             <schemaMapping>MatchStatusEnum=com.blockout.shared.model.MatchStatusEnum</schemaMapping>
+                            <schemaMapping>NotificationTargetTypeEnum=com.blockout.shared.model.NotificationTargetTypeEnum</schemaMapping>
+                            <schemaMapping>NotificationTypeEnum=com.blockout.shared.model.NotificationTypeEnum</schemaMapping>
                             <schemaMapping>ScraperNameEnum=com.blockout.shared.model.ScraperNameEnum</schemaMapping>
                         </schemaMappings>
                         <!-- END generated schemaMappings -->

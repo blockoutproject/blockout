@@ -53,12 +53,15 @@ test('workspace fragments produce the shared OpenAPI bundle', async () => {
   );
   assert.equal(bundle.openapi, '3.0.3');
   assert.deepEqual(Object.keys(bundle.components.schemas), [
+    'DevicePlatformEnum',
     'EntityTypeEnum',
     'FormatEnum',
     'GenderEnum',
     'LiveLinkStatusEnum',
     'LiveProviderEnum',
     'MatchStatusEnum',
+    'NotificationTargetTypeEnum',
+    'NotificationTypeEnum',
     'ScraperNameEnum',
   ]);
 });
@@ -161,6 +164,17 @@ test('schema roots include active multipart JSON models without fake endpoints',
     userBundle.paths['/api/v1/users/{auth0Id}'].put.requestBody.content['multipart/form-data']
       .schema.properties.data.type,
     'string',
+  );
+
+  const notificationBundle = JSON.parse(
+    await readFile(path.join(contractsRoot, 'generated/specs/notification.json'), 'utf8'),
+  );
+  assert.ok(notificationBundle.components.schemas.NotificationInternalResponse);
+  assert.ok(notificationBundle.components.schemas.RegisterPushTokenInternalRequest);
+  assert.equal(
+    notificationBundle.paths['/api/v1/notifications/users/{userId}/push-tokens'].post.requestBody
+      .content['application/json'].schema.$ref,
+    '#/components/schemas/RegisterPushTokenInternalRequest',
   );
 });
 

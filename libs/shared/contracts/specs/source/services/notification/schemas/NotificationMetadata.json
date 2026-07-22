@@ -1,0 +1,6 @@
+{
+  "NotificationMetadata": {
+    "type": "object",
+    "additionalProperties": true
+  }
+}

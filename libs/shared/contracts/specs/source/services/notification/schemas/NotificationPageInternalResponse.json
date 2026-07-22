@@ -1,0 +1,17 @@
+{
+  "NotificationPageInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["notifications", "hasNext"],
+    "properties": {
+      "notifications": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/NotificationInternalResponse"
+        }
+      },
+      "hasNext": { "type": "boolean" },
+      "nextPage": { "type": "integer", "nullable": true }
+    }
+  }
+}

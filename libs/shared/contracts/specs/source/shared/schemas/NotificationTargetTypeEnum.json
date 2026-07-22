@@ -1,0 +1,6 @@
+{
+  "NotificationTargetTypeEnum": {
+    "type": "string",
+    "enum": ["MATCH", "GENERIC"]
+  }
+}

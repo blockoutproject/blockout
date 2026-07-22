@@ -547,10 +547,20 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     providers remain unchanged. Two clean Java generations have the same hash; contract guards, targeted Java 21 tests,
     and consumer serialization tests pass. Git tracks no generated source.
 
-- [ ] **REF-050 — Migrate the Notification contract**
+- [x] **REF-050 — Migrate the Notification contract**
   - Generate notification requests, responses, preferences, and enums while retaining provider implementations behind
     handwritten adapters.
   - Preserve push registration, delivery decisions, read state, and error behavior without activating external sends.
+  - Evidence: one Notification OpenAPI source now owns all six existing V1 inbox and push-token routes with native
+    camelCase payloads. `notification-service` implements generated server interfaces and `mobile-gateway` consumes
+    generated adapter-local models, converting them to transport-independent application views before enrichment and
+    to the existing public mobile responses afterward. Handwritten internal Notification transport copies were removed.
+  - Device platform, notification type, and notification target type are generated shared transport enums; provider and
+    persistence-only status remains an application enum. The current application contains no preference endpoint or
+    preference transport model, so none was invented. Expo/Auth0 providers, delivery orchestration, token ownership,
+    read/open/delete semantics, routes, scopes, and error status behavior remain unchanged, and no external send was
+    performed. Two clean Java generations have the same hash; contract guards, targeted Java 21 tests, gateway mapper
+    tests, push-token behavior, and consumer serialization pass. Git tracks no generated source.
 
 - [ ] **REF-051 — Migrate the Report contract**
   - Generate report transport models and operations while keeping report destinations and external providers isolated.

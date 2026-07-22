@@ -1,27 +1,33 @@
 package com.blockout.mobilegateway.notification.infrastructure;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.notification.api.models.NotificationPageInternalResponse;
 import com.blockout.mobilegateway.notification.api.models.RegisterPushTokenRequest;
 import com.blockout.mobilegateway.notification.api.models.UnreadCountResponse;
+import com.blockout.mobilegateway.notification.application.views.NotificationPageView;
+import com.blockout.mobilegateway.notification.infrastructure.contract.models.NotificationPageInternalResponse;
+import com.blockout.mobilegateway.notification.infrastructure.contract.models.UnreadCountInternalResponse;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
+/**
+ * Calls the Notification internal API through generated transport models.
+ */
 @Service
 @RequiredArgsConstructor
 public class NotificationInternalClient {
 
     private final ApiClientProperties apiClientProperties;
     private final InternalApiClient internalApiClient;
+    private final NotificationContractMapper contractMapper;
 
     private String baseUrl() {
         return apiClientProperties.getNotification().getUrl();
     }
 
-    public NotificationPageInternalResponse getNotifications(int page, int size) {
+    public NotificationPageView getNotifications(int page, int size) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .queryParam("page", page)
             .queryParam("size", size)
@@ -29,7 +35,7 @@ public class NotificationInternalClient {
             .toUriString();
 
         ResponseEntity<NotificationPageInternalResponse> res = internalApiClient.get(url, NotificationPageInternalResponse.class);
-        return res.getBody();
+        return contractMapper.toView(res.getBody());
     }
 
     public UnreadCountResponse getUnreadNotificationsCount() {
@@ -38,8 +44,10 @@ public class NotificationInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<UnreadCountResponse> res = internalApiClient.get(url, UnreadCountResponse.class);
-        return res.getBody();
+        ResponseEntity<UnreadCountInternalResponse> res = internalApiClient.get(
+            url,
+            UnreadCountInternalResponse.class);
+        return contractMapper.toResponse(res.getBody());
     }
 
     public void markNotificationRead(Long id) {
@@ -75,6 +83,6 @@ public class NotificationInternalClient {
             .build()
             .toUriString();
 
-        internalApiClient.post(url, req, Void.class);
+        internalApiClient.post(url, contractMapper.toInternalRequest(req), Void.class);
     }
 }

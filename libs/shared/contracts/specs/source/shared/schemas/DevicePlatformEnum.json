@@ -1,0 +1,6 @@
+{
+  "DevicePlatformEnum": {
+    "type": "string",
+    "enum": ["IOS", "ANDROID", "WEB", "UNKNOWN"]
+  }
+}

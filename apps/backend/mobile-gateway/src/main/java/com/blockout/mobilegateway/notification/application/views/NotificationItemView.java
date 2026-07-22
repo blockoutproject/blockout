@@ -1,12 +1,15 @@
-package com.blockout.notifications.notification.api.models;
+package com.blockout.mobilegateway.notification.application.views;
 
-import com.blockout.notifications.notification.application.models.NotificationTargetType;
-import com.blockout.notifications.notification.application.models.NotificationType;
+import com.blockout.mobilegateway.shared.application.models.NotificationTargetType;
+import com.blockout.mobilegateway.shared.application.models.NotificationType;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 
-public record NotificationInternalResponse(
+/**
+ * Transport-independent notification data used by gateway enrichment.
+ */
+public record NotificationItemView(
     Long id,
     Long userId,
     NotificationType type,

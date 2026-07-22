@@ -1,0 +1,10 @@
+{
+  "UnreadCountInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["unread"],
+    "properties": {
+      "unread": { "type": "integer", "format": "int64", "minimum": 0 }
+    }
+  }
+}

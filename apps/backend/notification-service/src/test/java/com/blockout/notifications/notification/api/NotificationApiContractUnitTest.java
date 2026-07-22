@@ -4,9 +4,12 @@ import com.blockout.notifications.notification.api.models.NotificationInternalRe
 import com.blockout.notifications.notification.api.models.NotificationPageInternalResponse;
 import com.blockout.notifications.notification.api.models.RegisterPushTokenInternalRequest;
 import com.blockout.notifications.notification.api.models.UnreadCountInternalResponse;
-import com.blockout.notifications.notification.application.models.DevicePlatform;
-import com.blockout.notifications.notification.application.models.NotificationTargetType;
-import com.blockout.notifications.notification.application.models.NotificationType;
+import com.blockout.notifications.notification.api.mappers.NotificationApiMapper;
+import com.blockout.notifications.notification.application.views.NotificationPageView;
+import com.blockout.notifications.notification.application.views.NotificationView;
+import com.blockout.shared.model.DevicePlatformEnum;
+import com.blockout.shared.model.NotificationTargetTypeEnum;
+import com.blockout.shared.model.NotificationTypeEnum;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -24,9 +27,11 @@ class NotificationApiContractUnitTest {
     void exposesTheCompleteNotificationResourceInNativeCamelCase() {
         Instant now = Instant.parse("2026-07-19T12:00:00Z");
         NotificationInternalResponse notification = new NotificationInternalResponse(
-            1L, 2L, NotificationType.MATCH_FINISHED, "Result", "Won", "/match/3",
-            NotificationTargetType.MATCH, 3L, objectMapper.createObjectNode().put("divisionId", 4L),
-            false, false, now, null, null);
+            1L, 2L, NotificationTypeEnum.MATCH_FINISHED, "Result", "Won",
+            NotificationTargetTypeEnum.MATCH, false, false, now)
+            .deepLink("/match/3")
+            .targetId(3L)
+            .metadata(objectMapper.createObjectNode().put("divisionId", 4L));
 
         JsonNode json = objectMapper.valueToTree(notification);
 
@@ -38,14 +43,44 @@ class NotificationApiContractUnitTest {
 
     @Test
     void keepsPageUnreadCountAndRegistrationAsPurposeSpecificContracts() {
-        NotificationPageInternalResponse page = new NotificationPageInternalResponse(List.of(), false, null);
+        NotificationPageInternalResponse page = new NotificationPageInternalResponse(List.of(), false);
         RegisterPushTokenInternalRequest registration = new RegisterPushTokenInternalRequest(
-            "ExponentPushToken[test]", DevicePlatform.ANDROID, "device-1");
+            "ExponentPushToken[test]", DevicePlatformEnum.ANDROID)
+            .deviceId("device-1");
 
         assertThat(objectMapper.valueToTree(page).fieldNames()).toIterable()
             .containsExactlyInAnyOrder("notifications", "hasNext", "nextPage");
-        assertThat(objectMapper.valueToTree(new UnreadCountInternalResponse(3)).path("unread").asLong()).isEqualTo(3L);
+        assertThat(objectMapper.valueToTree(new UnreadCountInternalResponse(3L)).path("unread").asLong()).isEqualTo(3L);
         assertThat(objectMapper.valueToTree(registration).fieldNames()).toIterable()
             .containsExactlyInAnyOrder("expoPushToken", "platform", "deviceId");
+    }
+
+    @Test
+    void mapsApplicationEnumsAtTheGeneratedBoundary() {
+        Instant now = Instant.parse("2026-07-19T12:00:00Z");
+        var applicationNotification = new NotificationView(
+            1L,
+            2L,
+            com.blockout.notifications.notification.application.models.NotificationType.MATCH_FINISHED,
+            "Result",
+            "Won",
+            "/match/3",
+            com.blockout.notifications.notification.application.models.NotificationTargetType.MATCH,
+            3L,
+            objectMapper.createObjectNode(),
+            false,
+            false,
+            now,
+            null,
+            null);
+
+        var response = new NotificationApiMapper().toResponse(
+            new NotificationPageView(List.of(applicationNotification), false, null));
+
+        assertThat(response.getNotifications()).singleElement().satisfies(notification -> {
+            assertThat(notification.getType()).isEqualTo(NotificationTypeEnum.MATCH_FINISHED);
+            assertThat(notification.getTargetType()).isEqualTo(NotificationTargetTypeEnum.MATCH);
+            assertThat(notification.getCreatedAt()).isEqualTo(now);
+        });
     }
 }

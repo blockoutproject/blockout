@@ -1,0 +1,12 @@
+{
+  "RegisterPushTokenInternalRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["expoPushToken", "platform"],
+    "properties": {
+      "expoPushToken": { "type": "string", "minLength": 1 },
+      "platform": { "$ref": "#/components/schemas/DevicePlatformEnum" },
+      "deviceId": { "type": "string", "nullable": true }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "NotificationInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "userId",
+      "type",
+      "title",
+      "body",
+      "targetType",
+      "isRead",
+      "isOpened",
+      "createdAt"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "userId": { "type": "integer", "format": "int64" },
+      "type": { "$ref": "#/components/schemas/NotificationTypeEnum" },
+      "title": { "type": "string" },
+      "body": { "type": "string" },
+      "deepLink": { "type": "string", "nullable": true },
+      "targetType": {
+        "$ref": "#/components/schemas/NotificationTargetTypeEnum"
+      },
+      "targetId": { "type": "integer", "format": "int64", "nullable": true },
+      "metadata": {
+        "allOf": [{ "$ref": "#/components/schemas/NotificationMetadata" }],
+        "nullable": true
+      },
+      "isRead": { "type": "boolean" },
+      "isOpened": { "type": "boolean" },
+      "createdAt": { "type": "string", "format": "instant" },
+      "readAt": { "type": "string", "format": "instant", "nullable": true },
+      "openedAt": { "type": "string", "format": "instant", "nullable": true }
+    }
+  }
+}

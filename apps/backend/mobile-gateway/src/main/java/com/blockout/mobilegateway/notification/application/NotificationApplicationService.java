@@ -3,6 +3,8 @@ package com.blockout.mobilegateway.notification.application;
 import com.blockout.mobilegateway.config.api.models.DivisionResponse;
 import com.blockout.mobilegateway.config.infrastructure.ConfigInternalClient;
 import com.blockout.mobilegateway.notification.api.models.*;
+import com.blockout.mobilegateway.notification.application.views.NotificationItemView;
+import com.blockout.mobilegateway.notification.application.views.NotificationPageView;
 import com.blockout.mobilegateway.notification.infrastructure.NotificationInternalClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,9 @@ import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+/**
+ * Enriches internal notifications for the existing mobile-facing API.
+ */
 @Service
 @RequiredArgsConstructor
 public class NotificationApplicationService {
@@ -34,20 +39,20 @@ public class NotificationApplicationService {
             keyValue("page", page),
             keyValue("size", size));
 
-        NotificationPageInternalResponse base = notificationInternalClient.getNotifications(page, size);
+        NotificationPageView base = notificationInternalClient.getNotifications(page, size);
 
-        List<NotificationInternalResponse> rawItems = (base == null || base.getNotifications() == null)
+        List<NotificationItemView> rawItems = (base == null || base.notifications() == null)
             ? Collections.emptyList()
-            : base.getNotifications();
+            : base.notifications();
 
         logger.debug("Base notifications received",
             keyValue("action", "base_notifications_received"),
             keyValue("count", rawItems.size()),
-            keyValue("has_next", base != null && base.isHasNext()),
-            keyValue("next_page", base != null ? base.getNextPage() : null));
+            keyValue("has_next", base != null && base.hasNext()),
+            keyValue("next_page", base != null ? base.nextPage() : null));
 
         Set<Long> divisionIds = rawItems.stream()
-            .map(NotificationInternalResponse::getMetadata)
+            .map(NotificationItemView::metadata)
             .map(this::extractDivisionIdSafely)
             .flatMap(Optional::stream)
             .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -79,26 +84,26 @@ public class NotificationApplicationService {
         }
 
         List<NotificationResponse> enriched = new ArrayList<>(rawItems.size());
-        for (NotificationInternalResponse n : rawItems) {
-            String divisionLogoUrl = extractDivisionIdSafely(n.getMetadata())
+        for (NotificationItemView n : rawItems) {
+            String divisionLogoUrl = extractDivisionIdSafely(n.metadata())
                 .map(divisionLogoCache::get)
                 .orElse(null);
 
             enriched.add(NotificationResponse.builder()
-                .id(n.getId())
-                .userId(n.getUserId())
-                .type(n.getType())
-                .title(n.getTitle())
-                .body(n.getBody())
-                .deepLink(n.getDeepLink())
-                .targetType(n.getTargetType())
-                .targetId(n.getTargetId())
-                .metadata(n.getMetadata())
-                .isRead(n.getIsRead())
-                .isOpened(n.getIsOpened())
-                .createdAt(n.getCreatedAt())
-                .readAt(n.getReadAt())
-                .openedAt(n.getOpenedAt())
+                .id(n.id())
+                .userId(n.userId())
+                .type(n.type())
+                .title(n.title())
+                .body(n.body())
+                .deepLink(n.deepLink())
+                .targetType(n.targetType())
+                .targetId(n.targetId())
+                .metadata(n.metadata())
+                .isRead(n.isRead())
+                .isOpened(n.isOpened())
+                .createdAt(n.createdAt())
+                .readAt(n.readAt())
+                .openedAt(n.openedAt())
                 .divisionLogoUrl(divisionLogoUrl)
                 .build());
         }
@@ -107,8 +112,8 @@ public class NotificationApplicationService {
             keyValue("action", "build_enriched_notifications_page"),
             keyValue("enriched_count", enriched.size()));
 
-        boolean hasNext = base != null && base.isHasNext();
-        Integer nextPage = base != null ? base.getNextPage() : null;
+        boolean hasNext = base != null && base.hasNext();
+        Integer nextPage = base != null ? base.nextPage() : null;
 
         return NotificationPageResponse.builder()
             .notifications(enriched)

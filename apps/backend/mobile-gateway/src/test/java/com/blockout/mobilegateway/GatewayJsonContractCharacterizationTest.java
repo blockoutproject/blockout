@@ -4,7 +4,7 @@ import com.blockout.mobilegateway.club.api.models.ClubResponse;
 import com.blockout.mobilegateway.competition.infrastructure.competition.models.CompetitionAssociationInternalResponse;
 import com.blockout.mobilegateway.config.api.models.RawDivisionMappingResponse;
 import com.blockout.mobilegateway.match.api.models.MatchInternalResponse;
-import com.blockout.mobilegateway.notification.api.models.NotificationInternalResponse;
+import com.blockout.mobilegateway.notification.api.models.NotificationResponse;
 import com.blockout.mobilegateway.pool.api.models.PoolInternalResponse;
 import com.blockout.mobilegateway.report.api.models.ReportResponse;
 import com.blockout.mobilegateway.shared.application.models.*;
@@ -143,7 +143,7 @@ class GatewayJsonContractCharacterizationTest {
     @Test
     void mirrorsTheCompleteNotificationOwnedByNotificationService() {
         Instant now = Instant.parse("2026-07-19T12:00:00Z");
-        NotificationInternalResponse notification = NotificationInternalResponse.builder()
+        NotificationResponse notification = NotificationResponse.builder()
             .id(1L).userId(2L).type(NotificationType.MATCH_FINISHED).title("Result").body("Won")
             .deepLink("/match/3").targetType(NotificationTargetType.MATCH).targetId(3L)
             .metadata(objectMapper.createObjectNode().put("divisionId", 4L)).isRead(false).isOpened(false)
@@ -153,7 +153,7 @@ class GatewayJsonContractCharacterizationTest {
 
         assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrder(
             "id", "userId", "type", "title", "body", "deepLink", "targetType", "targetId",
-            "metadata", "isRead", "isOpened", "createdAt", "readAt", "openedAt");
+            "metadata", "isRead", "isOpened", "createdAt", "readAt", "openedAt", "divisionLogoUrl");
         assertThat(json.path("metadata").path("divisionId").asLong()).isEqualTo(4L);
     }
 

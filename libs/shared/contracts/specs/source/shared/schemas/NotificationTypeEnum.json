@@ -1,0 +1,6 @@
+{
+  "NotificationTypeEnum": {
+    "type": "string",
+    "enum": ["MATCH_FINISHED", "MATCH_LIVE_LINK_CREATED", "GENERIC"]
+  }
+}
