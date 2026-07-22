@@ -15,12 +15,14 @@ import java.util.List;
 public class ClubSearchController implements ClubSearchApi {
 
     private final SearchApplicationService searchApplicationService;
+    private final SearchApiMapper mapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<ClubSearchInternalResponse>> searchClubs(String query) {
         return ResponseEntity.ok(
             searchApplicationService.searchClubs(query).stream()
-                .map(SearchApiMapper::toInternalResponse)
+                .map(mapper::toInternalResponse)
                 .toList());
     }
 }

@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.report.api;
 
+import com.blockout.mobilegateway.report.api.mappers.ReportApiMapper;
 import com.blockout.mobilegateway.api.ReportPublicApi;
 import com.blockout.mobilegateway.api.models.CreateReportRequest;
 import com.blockout.mobilegateway.api.models.ReportResponse;
@@ -22,6 +23,7 @@ public class ReportPublicController implements ReportPublicApi {
     private final ReportApiMapper mapper;
     private final ObjectMapper objectMapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<ReportResponse> createReport(String data, List<MultipartFile> images) {
         try {

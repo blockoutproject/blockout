@@ -6,46 +6,42 @@ import com.blockout.notifications.notification.api.models.RegisterPushTokenInter
 import com.blockout.notifications.notification.application.commands.RegisterPushTokenCommand;
 import com.blockout.notifications.notification.application.views.NotificationPageView;
 import com.blockout.notifications.notification.application.views.NotificationView;
-import com.blockout.shared.model.NotificationTargetTypeEnum;
-import com.blockout.shared.model.NotificationTypeEnum;
-import org.springframework.stereotype.Component;
+import org.mapstruct.InjectionStrategy;
+import org.mapstruct.Mapper;
+import org.mapstruct.NullValueCheckStrategy;
+import org.mapstruct.ReportingPolicy;
 
 /**
- * Maps between generated Notification transport models and application-owned models.
+ * Maps Notification transport models to application contracts and back.
  */
-@Component
-public class NotificationApiMapper {
+@Mapper(
+    componentModel = "spring",
+    injectionStrategy = InjectionStrategy.CONSTRUCTOR,
+    nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS,
+    unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface NotificationApiMapper {
 
-    public NotificationPageInternalResponse toResponse(NotificationPageView page) {
-        return new NotificationPageInternalResponse(
-            page.notifications().stream().map(this::toResponse).toList(),
-            page.hasNext())
-            .nextPage(page.nextPage());
-    }
+    /**
+     * Maps an application page to the internal notification response.
+     *
+     * @param page application notification page.
+     * @return generated internal page response.
+     */
+    NotificationPageInternalResponse toResponse(NotificationPageView page);
 
-    public RegisterPushTokenCommand toCommand(RegisterPushTokenInternalRequest request) {
-        return new RegisterPushTokenCommand(
-            request.getExpoPushToken(),
-            com.blockout.notifications.notification.application.models.DevicePlatform.valueOf(
-                request.getPlatform().name()),
-            request.getDeviceId());
-    }
+    /**
+     * Maps an internal token request to the application command.
+     *
+     * @param request internal push-token request.
+     * @return application registration command.
+     */
+    RegisterPushTokenCommand toCommand(RegisterPushTokenInternalRequest request);
 
-    private NotificationInternalResponse toResponse(NotificationView notification) {
-        return new NotificationInternalResponse(
-            notification.id(),
-            notification.userId(),
-            NotificationTypeEnum.valueOf(notification.type().name()),
-            notification.title(),
-            notification.body(),
-            NotificationTargetTypeEnum.valueOf(notification.targetType().name()),
-            notification.isRead(),
-            notification.isOpened(),
-            notification.createdAt())
-            .deepLink(notification.deepLink())
-            .targetId(notification.targetId())
-            .metadata(notification.metadata())
-            .readAt(notification.readAt())
-            .openedAt(notification.openedAt());
-    }
+    /**
+     * Maps one application notification for nested page conversion.
+     *
+     * @param notification application notification view.
+     * @return generated internal notification response.
+     */
+    NotificationInternalResponse toResponse(NotificationView notification);
 }

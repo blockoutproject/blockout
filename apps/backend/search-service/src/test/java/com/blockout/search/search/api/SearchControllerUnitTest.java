@@ -1,6 +1,7 @@
 package com.blockout.search.search.api;
 
 import com.blockout.search.search.application.SearchApplicationService;
+import com.blockout.search.search.api.mappers.SearchApiMapper;
 import com.blockout.search.search.application.queries.FilteredSearchQuery;
 import com.blockout.search.search.application.views.ClubSearchResult;
 import com.blockout.search.search.application.views.TeamSearchResult;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mapstruct.factory.Mappers;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -29,10 +31,11 @@ class SearchControllerUnitTest {
 
     @BeforeEach
     void setUp() {
+        SearchApiMapper mapper = Mappers.getMapper(SearchApiMapper.class);
         mockMvc = MockMvcBuilders.standaloneSetup(
-                new ClubSearchController(searchApplicationService),
-                new TeamSearchController(searchApplicationService),
-                new PoolSearchController(searchApplicationService))
+                new ClubSearchController(searchApplicationService, mapper),
+                new TeamSearchController(searchApplicationService, mapper),
+                new PoolSearchController(searchApplicationService, mapper))
             .build();
     }
 

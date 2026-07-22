@@ -621,7 +621,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     with no Maaatch tracing, local-file, GitFlow, or product convention imported. Prettier and `git diff --check` pass;
     no runtime source or generated file changed.
 
-- [ ] **REF-055 — Apply policies and clean Java application structures**
+- [x] **REF-055 — Apply policies and clean Java application structures**
   - Audit every handwritten Java service and test against the documentation, logging, mapping, testing, and backend
     structure policies. Put API, application, persistence, provider, and generated-client mappings at their owning
     boundaries; use MapStruct for structural mappings and retain manual mapping for explicit aggregation or decisions.
@@ -629,6 +629,17 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     locations with `.gitkeep`. Preserve contracts, routes, events, persistence, provider behavior, and runtime semantics.
   - Compile and test each affected module, then run the backend reactor because the shared mapper build configuration is
     cross-service.
+  - Evidence: all handwritten Java trees and tests were inspected. Empty legacy packages were removed from the local
+    workspace and no speculative empty package justified a `.gitkeep`. Mobile-gateway API mappers now live in their
+    feature `api/mappers` packages; straightforward config, competition, notification, pool, and search mappings use
+    MapStruct 1.6.3, while aggregation, multipart, provider, and generated-constructor decisions remain explicit manual
+    mappings. Controller overrides and touched boundaries follow the documentation policy. Test class names now use the
+    declared `UnitTest` or `SmokeTest` suffixes. Logs no longer expose complete internal URLs, notification contents,
+    device tokens, attachment names, provider response bodies, or exception-message fields, and routine reads are kept
+    at `DEBUG`. The complete reactor compiles, including tests, and all non-smoke backend tests pass across 14 modules.
+    The full smoke invocation reaches PostgreSQL but the existing local clubs database is rejected by Flyway because its
+    applied V1-V3 checksums predate the current migration files; no destructive repair or data reset was performed.
+    Generated sources remain ignored and untracked, and `git diff --check` passes.
 
 - [ ] **REF-056 — Apply policies and clean Python scraper structures**
   - Audit both scrapers against the documentation, logging, mapping, testing, and scraper architecture policies.

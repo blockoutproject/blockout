@@ -1,4 +1,4 @@
-package com.blockout.mobilegateway.match.api;
+package com.blockout.mobilegateway.match.api.mappers;
 
 import com.blockout.mobilegateway.api.models.DayMatchesResponse;
 import com.blockout.mobilegateway.api.models.DayPageResponse;
@@ -18,8 +18,8 @@ import com.blockout.mobilegateway.match.application.views.MatchLiveSummaryView;
 import com.blockout.mobilegateway.match.application.views.MatchView;
 import com.blockout.mobilegateway.match.application.views.PoolMatchesView;
 import com.blockout.mobilegateway.match.application.views.UpsertMatchLiveLinkView;
-import com.blockout.mobilegateway.pool.api.PoolApiMapper;
-import com.blockout.mobilegateway.team.api.TeamApiMapper;
+import com.blockout.mobilegateway.pool.api.mappers.PoolApiMapper;
+import com.blockout.mobilegateway.team.api.mappers.TeamApiMapper;
 import com.blockout.shared.model.LiveLinkStatusEnum;
 import com.blockout.shared.model.LiveProviderEnum;
 import com.blockout.shared.model.MatchStatusEnum;
@@ -34,6 +34,12 @@ public class MatchApiMapper {
     private final TeamApiMapper teamMapper;
     private final PoolApiMapper poolMapper;
 
+    /**
+     * Maps an enriched match view to the public response.
+     *
+     * @param source application match view.
+     * @return generated public response.
+     */
     public MatchResponse toResponse(MatchView source) {
         return new MatchResponse(
             source.getId(), source.getMatchDate(), source.getSeason(), toStatus(source.getStatus()),
@@ -52,24 +58,48 @@ public class MatchApiMapper {
             .matchSheetPdfUrl(source.getMatchSheetPdfUrl());
     }
 
+    /**
+     * Maps a paged match-day view to the public response.
+     *
+     * @param source application match-day page.
+     * @return generated public page response.
+     */
     public DayPageResponse toResponse(MatchDayPageView source) {
         return new DayPageResponse(
             source.getDayMatches().stream().map(this::toResponse).toList(), source.isHasNext())
             .nextPage(source.getNextPage());
     }
 
+    /**
+     * Maps one day group for nested page conversion.
+     *
+     * @param source application day view.
+     * @return generated day response.
+     */
     private DayMatchesResponse toResponse(
             MatchDayView source) {
         return new DayMatchesResponse(
             source.getDate(), source.getPools().stream().map(this::toResponse).toList());
     }
 
+    /**
+     * Maps one pool group for nested day conversion.
+     *
+     * @param source application pool-match group.
+     * @return generated pool response.
+     */
     private PoolMatchesResponse toResponse(
             PoolMatchesView source) {
         return new PoolMatchesResponse(
             poolMapper.toResponse(source.getPool()), source.getMatches().stream().map(this::toResponse).toList());
     }
 
+    /**
+     * Maps an application live-link result to the public response.
+     *
+     * @param source application live-link result.
+     * @return generated public response.
+     */
     public UpsertMatchLiveLinkResponse toResponse(
             UpsertMatchLiveLinkView source) {
         return new UpsertMatchLiveLinkResponse(
@@ -77,6 +107,12 @@ public class MatchApiMapper {
             source.getReportCount(), source.getOwnerAuth0Id());
     }
 
+    /**
+     * Maps an application live-link history entry to the public response.
+     *
+     * @param source application live-link view.
+     * @return generated public history response.
+     */
     public MatchLiveLinkHistoryResponse toResponse(
             MatchLiveLinkView source) {
         return new MatchLiveLinkHistoryResponse(
@@ -85,6 +121,12 @@ public class MatchApiMapper {
             source.getCreatedAt(), source.getLastUpdate());
     }
 
+    /**
+     * Maps an enriched live summary to the public response.
+     *
+     * @param source application live-summary view.
+     * @return generated public response.
+     */
     public MatchLiveSummaryResponse toResponse(
             MatchLiveSummaryView source) {
         return new MatchLiveSummaryResponse(
@@ -103,6 +145,12 @@ public class MatchApiMapper {
             .lastLiveLinkCreatedAt(source.getLastLiveLinkCreatedAt());
     }
 
+    /**
+     * Maps a public live-link request to the application command.
+     *
+     * @param source generated public request.
+     * @return application upsert command.
+     */
     public UpsertMatchLiveLinkCommand toCommand(
             UpsertMatchLiveLinkRequest source) {
         return UpsertMatchLiveLinkCommand.builder()
@@ -110,6 +158,12 @@ public class MatchApiMapper {
             .build();
     }
 
+    /**
+     * Maps a public live-link report to the application command.
+     *
+     * @param source generated public request.
+     * @return application report command.
+     */
     public ReportMatchLiveLinkCommand toCommand(
             ReportMatchLiveLinkRequest source) {
         return ReportMatchLiveLinkCommand.builder()
@@ -117,15 +171,33 @@ public class MatchApiMapper {
             .build();
     }
 
+    /**
+     * Converts the application match status to its generated enum.
+     *
+     * @param source application match status.
+     * @return generated status, or {@code null}.
+     */
     private MatchStatusEnum toStatus(com.blockout.mobilegateway.shared.application.models.MatchStatus source) {
         return source == null ? null : MatchStatusEnum.valueOf(source.name());
     }
 
+    /**
+     * Converts the application live-link status to its generated enum.
+     *
+     * @param source application live-link status.
+     * @return generated status, or {@code null}.
+     */
     private LiveLinkStatusEnum toStatus(
             com.blockout.mobilegateway.shared.application.models.LiveLinkStatus source) {
         return source == null ? null : LiveLinkStatusEnum.valueOf(source.name());
     }
 
+    /**
+     * Converts the application live provider to its generated enum.
+     *
+     * @param source application live provider.
+     * @return generated provider, or {@code null}.
+     */
     private LiveProviderEnum toProvider(
             com.blockout.mobilegateway.shared.application.models.LiveProvider source) {
         return source == null ? null : LiveProviderEnum.valueOf(source.name());

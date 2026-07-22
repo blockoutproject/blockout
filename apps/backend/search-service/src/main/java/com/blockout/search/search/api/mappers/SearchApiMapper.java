@@ -6,47 +6,42 @@ import com.blockout.search.search.api.models.TeamSearchInternalResponse;
 import com.blockout.search.search.application.views.ClubSearchResult;
 import com.blockout.search.search.application.views.PoolSearchResult;
 import com.blockout.search.search.application.views.TeamSearchResult;
-import com.blockout.shared.model.FormatEnum;
-import com.blockout.shared.model.GenderEnum;
+import org.mapstruct.InjectionStrategy;
+import org.mapstruct.Mapper;
+import org.mapstruct.NullValueCheckStrategy;
+import org.mapstruct.ReportingPolicy;
 
-/** Maps application search results to generated transport models. */
-public final class SearchApiMapper {
+/**
+ * Maps application search results to generated internal responses.
+ */
+@Mapper(
+    componentModel = "spring",
+    injectionStrategy = InjectionStrategy.CONSTRUCTOR,
+    nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS,
+    unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface SearchApiMapper {
 
-    private SearchApiMapper() {
-    }
+    /**
+     * Maps a Club search result to the internal response.
+     *
+     * @param result application Club search result.
+     * @return generated internal response.
+     */
+    ClubSearchInternalResponse toInternalResponse(ClubSearchResult result);
 
-    public static ClubSearchInternalResponse toInternalResponse(ClubSearchResult result) {
-        return new ClubSearchInternalResponse(result.id(), result.name())
-            .logoUrl(result.logoUrl())
-            .city(result.city());
-    }
+    /**
+     * Maps a Team search result to the internal response.
+     *
+     * @param result application Team search result.
+     * @return generated internal response.
+     */
+    TeamSearchInternalResponse toInternalResponse(TeamSearchResult result);
 
-    public static TeamSearchInternalResponse toInternalResponse(TeamSearchResult result) {
-        return new TeamSearchInternalResponse(
-            result.id(),
-            result.name(),
-            result.clubId(),
-            FormatEnum.valueOf(result.format()),
-            GenderEnum.valueOf(result.gender()),
-            result.season())
-            .shortName(result.shortName())
-            .clubName(result.clubName())
-            .clubCity(result.clubCity())
-            .logoUrl(result.logoUrl())
-            .divisionName(result.divisionName());
-    }
-
-    public static PoolSearchInternalResponse toInternalResponse(PoolSearchResult result) {
-        return new PoolSearchInternalResponse(
-            result.id(),
-            result.name(),
-            result.season(),
-            FormatEnum.valueOf(result.format()),
-            GenderEnum.valueOf(result.gender()))
-            .shortName(result.shortName())
-            .divisionName(result.divisionName())
-            .leagueCode(result.leagueCode())
-            .leagueName(result.leagueName())
-            .logoUrl(result.logoUrl());
-    }
+    /**
+     * Maps a Pool search result to the internal response.
+     *
+     * @param result application Pool search result.
+     * @return generated internal response.
+     */
+    PoolSearchInternalResponse toInternalResponse(PoolSearchResult result);
 }

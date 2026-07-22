@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 
+/**
+ * Represents one user notification at the application boundary.
+ */
 public record NotificationView(
     Long id,
     Long userId,

@@ -61,11 +61,9 @@ public class PushTokenApplicationService {
 
             logger.info("Push token reattached",
                 keyValue("action", "register_push_token"),
-                keyValue("token", mask(newToken)),
                 keyValue("fromUserId", prevUser),
                 keyValue("toUserId", userId),
-                keyValue("platform", request.platform().name()),
-                keyValue("deviceId", deviceId));
+                keyValue("platform", request.platform().name()));
             return;
         }
 
@@ -85,8 +83,7 @@ public class PushTokenApplicationService {
                 logger.info("Push token rotated (by deviceId)",
                     keyValue("action", "register_push_token"),
                     keyValue("userId", userId),
-                    keyValue("platform", request.platform().name()),
-                    keyValue("deviceId", deviceId));
+                    keyValue("platform", request.platform().name()));
                 return;
             }
         }
@@ -104,8 +101,7 @@ public class PushTokenApplicationService {
         logger.info("Push token registered",
             keyValue("action", "register_push_token"),
             keyValue("userId", userId),
-            keyValue("platform", request.platform().name()),
-            keyValue("deviceId", deviceId));
+            keyValue("platform", request.platform().name()));
     }
 
     /**
@@ -168,9 +164,4 @@ public class PushTokenApplicationService {
             keyValue("deactivated", updated));
     }
 
-    private String mask(String token) {
-        if (token == null || token.length() < 8)
-            return "***";
-        return token.substring(0, 4) + "..." + token.substring(token.length() - 4);
-    }
 }

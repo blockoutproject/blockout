@@ -1,4 +1,4 @@
-package com.blockout.mobilegateway.notification.api;
+package com.blockout.mobilegateway.notification.api.mappers;
 
 import com.blockout.mobilegateway.api.models.NotificationPageResponse;
 import com.blockout.mobilegateway.api.models.NotificationResponse;
@@ -25,6 +25,12 @@ public class NotificationApiMapper {
 
     private final ObjectMapper objectMapper;
 
+    /**
+     * Maps an application notification page to the public response.
+     *
+     * @param source application notification page.
+     * @return generated public page response.
+     */
     public NotificationPageResponse toResponse(
             NotificationPageView source) {
         return new NotificationPageResponse(
@@ -32,6 +38,12 @@ public class NotificationApiMapper {
             .nextPage(source.nextPage());
     }
 
+    /**
+     * Maps one application notification for nested page conversion.
+     *
+     * @param source application notification view.
+     * @return generated public notification response.
+     */
     private NotificationResponse toResponse(
             NotificationItemView source) {
         return new NotificationResponse(
@@ -50,11 +62,23 @@ public class NotificationApiMapper {
             .divisionLogoUrl(source.divisionLogoUrl());
     }
 
+    /**
+     * Maps a public push-token request to the application command.
+     *
+     * @param source generated public request.
+     * @return application registration command.
+     */
     public RegisterPushTokenCommand toCommand(RegisterPushTokenRequest source) {
         return new RegisterPushTokenCommand(
             source.getExpoPushToken(), DevicePlatform.valueOf(source.getPlatform().name()), source.getDeviceId());
     }
 
+    /**
+     * Maps the unread-count view to the public response.
+     *
+     * @param source application unread-count view.
+     * @return generated public response.
+     */
     public UnreadCountResponse toResponse(
             UnreadCountView source) {
         return new UnreadCountResponse(source.unread());

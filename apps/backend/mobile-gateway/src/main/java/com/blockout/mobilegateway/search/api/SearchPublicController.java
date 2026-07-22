@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.search.api;
 
+import com.blockout.mobilegateway.search.api.mappers.SearchApiMapper;
 import com.blockout.mobilegateway.api.SearchPublicApi;
 import com.blockout.mobilegateway.api.models.ClubSearchResponse;
 import com.blockout.mobilegateway.api.models.PoolSearchResponse;
@@ -19,12 +20,14 @@ public class SearchPublicController implements SearchPublicApi {
     private final SearchApplicationService searchService;
     private final SearchApiMapper mapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<ClubSearchResponse>> searchClubs(String query) {
         List<ClubSearchResponse> results = searchService.searchClubs(query).stream().map(mapper::toResponse).toList();
         return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<TeamSearchResponse>> searchTeams(
             String query, String season, Long divisionId, String format, String gender) {
@@ -33,6 +36,7 @@ public class SearchPublicController implements SearchPublicApi {
         return results.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(results);
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<PoolSearchResponse>> searchPools(
             String query, String season, Long divisionId, String format, String gender) {

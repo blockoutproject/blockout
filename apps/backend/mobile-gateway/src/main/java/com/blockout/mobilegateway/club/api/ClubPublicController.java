@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.club.api;
 
+import com.blockout.mobilegateway.club.api.mappers.ClubApiMapper;
 import com.blockout.mobilegateway.api.ClubPublicApi;
 import com.blockout.mobilegateway.api.models.ClubResponse;
 import com.blockout.mobilegateway.club.application.ClubApplicationService;
@@ -15,6 +16,7 @@ public class ClubPublicController implements ClubPublicApi {
     private final ClubApplicationService clubService;
     private final ClubApiMapper mapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<ClubResponse> getClubById(String id) {
         return ResponseEntity.ok(mapper.toResponse(clubService.getClubById(id)));

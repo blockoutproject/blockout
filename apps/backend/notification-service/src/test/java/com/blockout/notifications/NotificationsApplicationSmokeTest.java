@@ -1,10 +1,10 @@
-package com.blockout.users;
+package com.blockout.notifications;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class UsersApplicationTests {
+class NotificationsApplicationSmokeTest {
 
     @Test
     void contextLoads() {

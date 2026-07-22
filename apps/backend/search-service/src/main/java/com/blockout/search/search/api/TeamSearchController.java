@@ -18,7 +18,9 @@ import java.util.List;
 public class TeamSearchController implements TeamSearchApi {
 
     private final SearchApplicationService searchApplicationService;
+    private final SearchApiMapper mapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<TeamSearchInternalResponse>> searchTeams(
         String query,
@@ -34,7 +36,7 @@ public class TeamSearchController implements TeamSearchApi {
             gender == null ? null : gender.name());
         return ResponseEntity.ok(
             searchApplicationService.searchTeams(searchQuery).stream()
-                .map(SearchApiMapper::toInternalResponse)
+                .map(mapper::toInternalResponse)
                 .toList());
     }
 }

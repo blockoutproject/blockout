@@ -18,7 +18,9 @@ import java.util.List;
 public class PoolSearchController implements PoolSearchApi {
 
     private final SearchApplicationService searchApplicationService;
+    private final SearchApiMapper mapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<PoolSearchInternalResponse>> searchPools(
         String query,
@@ -34,7 +36,7 @@ public class PoolSearchController implements PoolSearchApi {
             gender == null ? null : gender.name());
         return ResponseEntity.ok(
             searchApplicationService.searchPools(searchQuery).stream()
-                .map(SearchApiMapper::toInternalResponse)
+                .map(mapper::toInternalResponse)
                 .toList());
     }
 }

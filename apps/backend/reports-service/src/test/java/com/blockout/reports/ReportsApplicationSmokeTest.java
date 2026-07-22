@@ -1,10 +1,10 @@
-package com.blockout.matches;
+package com.blockout.reports;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class MatchesApplicationTests {
+class ReportsApplicationSmokeTest {
 
     @Test
     void contextLoads() {

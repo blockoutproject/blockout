@@ -17,6 +17,9 @@ import java.util.UUID;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+/**
+ * Orchestrates report issue creation, attachment storage, and best-effort notification.
+ */
 @Service
 @RequiredArgsConstructor
 public class ReportApplicationService {
@@ -29,6 +32,12 @@ public class ReportApplicationService {
 
     private final IssueDraftFactory issueDraftFactory = new IssueDraftFactory();
 
+    /**
+     * Creates a report and notifies the configured channel when possible.
+     *
+     * @param command validated report input.
+     * @return created issue details.
+     */
     public ReportView createReport(CreateReportCommand command) {
         String reportKey = UUID.randomUUID().toString().replace("-", "");
         logger.info("Start report flow", keyValue("reportKey", reportKey));
@@ -47,8 +56,7 @@ public class ReportApplicationService {
                     logger.error("Image upload failed",
                         keyValue("action", "upload_report_image"),
                         keyValue("reportKey", reportKey),
-                        keyValue("fileName", image.originalFilename()),
-                        keyValue("message", e.getMessage()), e);
+                        e);
                     throw new RuntimeException("Échec de l’upload de l’image");
                 }
             }
@@ -64,7 +72,6 @@ public class ReportApplicationService {
         logger.info("Report created",
             keyValue("action", "create_report"),
             keyValue("issueNumber", issueNumber),
-            keyValue("issueUrl", response.htmlUrl()),
             keyValue("reportKey", reportKey));
 
         try {
@@ -72,13 +79,18 @@ public class ReportApplicationService {
         } catch (Exception e) {
             logger.warn("Discord notification failed",
                 keyValue("action", "discord_notify"),
-                keyValue("issueNumber", issueNumber),
-                keyValue("message", e.getMessage()));
+                keyValue("issueNumber", issueNumber), e);
         }
 
         return response;
     }
 
+    /**
+     * Enforces the accepted image types and maximum attachment size.
+     *
+     * @param image attachment to validate.
+     * @throws IllegalArgumentException when the attachment cannot be accepted.
+     */
     private void validateImage(ReportAttachment image) {
         if (!"image/png".equals(image.contentType()) && !"image/jpeg".equals(image.contentType())) {
             throw new IllegalArgumentException("Seuls les formats PNG et JPEG sont autorisés.");

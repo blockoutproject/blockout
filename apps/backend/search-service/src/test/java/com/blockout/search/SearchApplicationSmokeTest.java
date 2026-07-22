@@ -1,10 +1,10 @@
-package com.blockout.competitions;
+package com.blockout.search;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class CompetitionsApplicationTests {
+class SearchApplicationSmokeTest {
 
     @Test
     void contextLoads() {

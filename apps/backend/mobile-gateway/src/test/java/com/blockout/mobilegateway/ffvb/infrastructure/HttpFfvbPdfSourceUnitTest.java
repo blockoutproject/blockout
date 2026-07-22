@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class HttpFfvbPdfSourceTest {
+class HttpFfvbPdfSourceUnitTest {
 
     private final RestTemplate restTemplate = mock(RestTemplate.class);
     private final HttpFfvbPdfSource pdfSource = new HttpFfvbPdfSource(restTemplate);

@@ -15,6 +15,9 @@ import org.springframework.web.client.RestTemplate;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+/**
+ * Executes authenticated calls from the mobile gateway to internal services.
+ */
 @Service
 public class InternalApiClient {
 
@@ -23,6 +26,12 @@ public class InternalApiClient {
     private final RestTemplate withUser;
     private final RestTemplate withM2M;
 
+    /**
+     * Creates an internal API client with user-forwarding and service-authenticated transports.
+     *
+     * @param withUser transport forwarding the current user token.
+     * @param withM2M transport using service credentials.
+     */
     public InternalApiClient(
         @Qualifier("internalAuthRestTemplate") RestTemplate withUser,
         @Qualifier("internalM2MRestTemplate") RestTemplate withM2M) {
@@ -43,42 +52,51 @@ public class InternalApiClient {
         return hasUserJwt() ? "user_forward" : "m2m_dumb";
     }
 
+    /**
+     * Executes an internal GET request.
+     *
+     * @param url internal endpoint.
+     * @param responseType expected response type.
+     * @return downstream response.
+     */
     public <T> ResponseEntity<T> get(String url, Class<T> responseType) {
         String chosen = mode();
-        logger.info("Performing external GET request",
+        logger.debug("Performing internal GET request",
             keyValue("action", "external_api_get"),
-            keyValue("url", url),
             keyValue("responseType", responseType.getSimpleName()),
             keyValue("auth_mode", chosen));
 
         try {
             ResponseEntity<T> response = pickRt().exchange(url, HttpMethod.GET, null, responseType);
-            logger.info("GET request successful",
+            logger.debug("Internal GET request successful",
                 keyValue("status", response.getStatusCode()),
-                keyValue("url", url),
                 keyValue("auth_mode", chosen));
             return response;
 
         } catch (HttpClientErrorException e) {
             logger.warn("Client error during GET request",
-                keyValue("url", url),
                 keyValue("status", e.getStatusCode()),
                 keyValue("auth_mode", chosen));
             throw e;
         } catch (Exception e) {
             logger.error("GET request failed",
-                keyValue("url", url),
-                keyValue("message", e.getMessage()),
                 keyValue("auth_mode", chosen), e);
-            throw new RuntimeException("GET request failed for " + url, e);
+            throw new RuntimeException("Internal GET request failed", e);
         }
     }
 
+    /**
+     * Executes an internal JSON POST request.
+     *
+     * @param url internal endpoint.
+     * @param body request body.
+     * @param responseType expected response type.
+     * @return downstream response.
+     */
     public <T, B> ResponseEntity<T> post(String url, B body, Class<T> responseType) {
         String chosen = mode();
-        logger.info("Performing external POST request",
+        logger.debug("Performing internal POST request",
             keyValue("action", "external_api_post"),
-            keyValue("url", url),
             keyValue("bodyType", body != null ? body.getClass().getSimpleName() : "null"),
             keyValue("responseType", responseType.getSimpleName()),
             keyValue("auth_mode", chosen));
@@ -90,32 +108,35 @@ public class InternalApiClient {
             HttpEntity<B> request = new HttpEntity<>(body, headers);
 
             ResponseEntity<T> response = pickRt().exchange(url, HttpMethod.POST, request, responseType);
-            logger.info("POST request successful",
+            logger.debug("Internal POST request successful",
                 keyValue("status", response.getStatusCode()),
-                keyValue("url", url),
                 keyValue("auth_mode", chosen));
             return response;
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             logger.error("POST upstream error",
-                keyValue("url", url),
                 keyValue("status", e.getStatusCode()),
                 keyValue("auth_mode", chosen), e);
             throw e;
         } catch (Exception e) {
             logger.error("POST request failed",
-                keyValue("url", url),
-                keyValue("message", e.getMessage()),
                 keyValue("auth_mode", chosen), e);
-            throw new RuntimeException("POST request failed for " + url, e);
+            throw new RuntimeException("Internal POST request failed", e);
         }
     }
 
+    /**
+     * Executes an internal JSON PUT request.
+     *
+     * @param url internal endpoint.
+     * @param body request body.
+     * @param responseType expected response type.
+     * @return downstream response.
+     */
     public <T, B> ResponseEntity<T> put(String url, B body, Class<T> responseType) {
         String chosen = mode();
-        logger.info("Performing external PUT request",
+        logger.debug("Performing internal PUT request",
             keyValue("action", "external_api_put"),
-            keyValue("url", url),
             keyValue("bodyType", body != null ? body.getClass().getSimpleName() : "null"),
             keyValue("responseType", responseType.getSimpleName()),
             keyValue("auth_mode", chosen));
@@ -126,34 +147,37 @@ public class InternalApiClient {
             HttpEntity<B> request = new HttpEntity<>(body, headers);
 
             ResponseEntity<T> response = pickRt().exchange(url, HttpMethod.PUT, request, responseType);
-            logger.info("PUT request successful",
+            logger.debug("Internal PUT request successful",
                 keyValue("status", response.getStatusCode()),
-                keyValue("url", url),
                 keyValue("auth_mode", chosen));
             return response;
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             logger.error("PUT upstream error",
-                keyValue("url", url),
                 keyValue("status", e.getStatusCode()),
                 keyValue("auth_mode", chosen), e);
             throw e;
         } catch (Exception e) {
             logger.error("PUT request failed",
-                keyValue("url", url),
-                keyValue("message", e.getMessage()),
                 keyValue("auth_mode", chosen), e);
-            throw new RuntimeException("PUT request failed for " + url, e);
+            throw new RuntimeException("Internal PUT request failed", e);
         }
     }
 
+    /**
+     * Executes an internal multipart PUT request.
+     *
+     * @param url internal endpoint.
+     * @param multipartBody multipart fields.
+     * @param responseType expected response type.
+     * @return downstream response.
+     */
     public <T> ResponseEntity<T> putMultipart(String url,
                                               MultiValueMap<String, Object> multipartBody,
                                               Class<T> responseType) {
         String chosen = mode();
-        logger.info("Performing external PUT multipart request",
+        logger.debug("Performing internal PUT multipart request",
             keyValue("action", "external_api_put_multipart"),
-            keyValue("url", url),
             keyValue("responseType", responseType.getSimpleName()),
             keyValue("auth_mode", chosen));
 
@@ -164,32 +188,34 @@ public class InternalApiClient {
             HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(multipartBody, headers);
             ResponseEntity<T> response = pickRt().exchange(url, HttpMethod.PUT, request, responseType);
 
-            logger.info("PUT multipart request successful",
+            logger.debug("Internal PUT multipart request successful",
                 keyValue("status", response.getStatusCode()),
-                keyValue("url", url),
                 keyValue("auth_mode", chosen));
             return response;
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             logger.error("PUT multipart upstream error",
-                keyValue("url", url),
                 keyValue("status", e.getStatusCode()),
                 keyValue("auth_mode", chosen), e);
             throw e;
         } catch (Exception e) {
             logger.error("PUT multipart request failed",
-                keyValue("url", url),
-                keyValue("message", e.getMessage()),
                 keyValue("auth_mode", chosen), e);
-            throw new RuntimeException("PUT multipart request failed for " + url, e);
+            throw new RuntimeException("Internal PUT multipart request failed", e);
         }
     }
 
+    /**
+     * Executes an internal DELETE request.
+     *
+     * @param url internal endpoint.
+     * @param responseType expected response type.
+     * @return downstream response.
+     */
     public <T> ResponseEntity<T> delete(String url, Class<T> responseType) {
         String chosen = mode();
-        logger.info("Performing external DELETE request",
+        logger.debug("Performing internal DELETE request",
             keyValue("action", "external_api_delete"),
-            keyValue("url", url),
             keyValue("responseType", responseType.getSimpleName()),
             keyValue("auth_mode", chosen));
         try {
@@ -198,35 +224,38 @@ public class InternalApiClient {
             HttpEntity<Void> request = new HttpEntity<>(headers);
 
             ResponseEntity<T> response = pickRt().exchange(url, HttpMethod.DELETE, request, responseType);
-            logger.info("DELETE request successful",
+            logger.debug("Internal DELETE request successful",
                 keyValue("status", response.getStatusCode()),
-                keyValue("url", url),
                 keyValue("auth_mode", chosen));
             return response;
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             logger.error("DELETE upstream error",
-                keyValue("url", url),
                 keyValue("status", e.getStatusCode()),
                 keyValue("auth_mode", chosen), e);
             throw e;
         } catch (Exception e) {
             logger.error("DELETE request failed",
-                keyValue("url", url),
-                keyValue("message", e.getMessage()),
                 keyValue("auth_mode", chosen), e);
-            throw new RuntimeException("DELETE request failed for " + url, e);
+            throw new RuntimeException("Internal DELETE request failed", e);
         }
     }
 
+    /**
+     * Executes an internal multipart POST request.
+     *
+     * @param url internal endpoint.
+     * @param multipartBody multipart fields.
+     * @param responseType expected response type.
+     * @return downstream response.
+     */
     public <T> ResponseEntity<T> postMultipart(
         String url,
         MultiValueMap<String, Object> multipartBody,
         Class<T> responseType) {
         String chosen = mode();
-        logger.info("Performing external POST multipart request",
+        logger.debug("Performing internal POST multipart request",
             keyValue("action", "external_api_post_multipart"),
-            keyValue("url", url),
             keyValue("responseType", responseType.getSimpleName()),
             keyValue("auth_mode", chosen));
 
@@ -237,24 +266,20 @@ public class InternalApiClient {
             HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(multipartBody, headers);
             ResponseEntity<T> response = pickRt().exchange(url, HttpMethod.POST, request, responseType);
 
-            logger.info("POST multipart request successful",
+            logger.debug("Internal POST multipart request successful",
                 keyValue("status", response.getStatusCode()),
-                keyValue("url", url),
                 keyValue("auth_mode", chosen));
             return response;
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             logger.error("POST multipart upstream error",
-                keyValue("url", url),
                 keyValue("status", e.getStatusCode()),
                 keyValue("auth_mode", chosen), e);
             throw e;
         } catch (Exception e) {
             logger.error("POST multipart request failed",
-                keyValue("url", url),
-                keyValue("message", e.getMessage()),
                 keyValue("auth_mode", chosen), e);
-            throw new RuntimeException("POST multipart request failed for " + url, e);
+            throw new RuntimeException("Internal POST multipart request failed", e);
         }
     }
 }

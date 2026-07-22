@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.team.api;
 
+import com.blockout.mobilegateway.team.api.mappers.TeamApiMapper;
 import com.blockout.mobilegateway.api.TeamPublicApi;
 import com.blockout.mobilegateway.api.models.TeamResponse;
 import com.blockout.mobilegateway.api.models.TeamSummaryResponse;
@@ -18,16 +19,19 @@ public class TeamPublicController implements TeamPublicApi {
     private final TeamApplicationService teamService;
     private final TeamApiMapper mapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<TeamResponse> getTeamById(Long id) {
         return ResponseEntity.ok(mapper.toResponse(teamService.getTeamById(id)));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<TeamSummaryResponse>> getTeamsByClubId(String clubId) {
         return ResponseEntity.ok(teamService.getTeamsByClubId(clubId).stream().map(mapper::toResponse).toList());
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<TeamSummaryResponse>> getTeamsByIds(List<Long> ids) {
         return ResponseEntity.ok(teamService.getTeamsByIds(ids).stream().map(mapper::toResponse).toList());

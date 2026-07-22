@@ -1,4 +1,4 @@
-package com.blockout.mobilegateway.club.api;
+package com.blockout.mobilegateway.club.api.mappers;
 
 import com.blockout.mobilegateway.api.models.ClubResponse;
 import com.blockout.mobilegateway.api.models.UpdateClubRequest;
@@ -10,6 +10,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class ClubApiMapper {
 
+    /**
+     * Maps an application Club view to the public response.
+     *
+     * @param source application Club view.
+     * @return generated public response.
+     */
     public ClubResponse toResponse(ClubView source) {
         return new ClubResponse(source.id(), source.rawName(), source.name(), source.active())
             .address(source.address())
@@ -25,6 +31,12 @@ public class ClubApiMapper {
             .lastUpdate(source.lastUpdate());
     }
 
+    /**
+     * Maps a public update request to the application command.
+     *
+     * @param source generated public request.
+     * @return application update command.
+     */
     public UpdateClubCommand toCommand(UpdateClubRequest source) {
         return new UpdateClubCommand(
             source.getRawName(), source.getName(), source.getAddress(), source.getCity(), source.getPostalCode(),

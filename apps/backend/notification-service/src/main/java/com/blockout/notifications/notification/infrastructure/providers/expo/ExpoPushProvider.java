@@ -121,8 +121,7 @@ public class ExpoPushProvider {
                 perUserErr.merge(userId, 1, Integer::sum);
                 logger.warn("Null ticket received",
                     keyValue("action", "expo_ticket_null"),
-                    keyValue("userId", userId),
-                    keyValue("token", mask(tokenUsed)));
+                    keyValue("userId", userId));
                 continue;
             }
 
@@ -154,9 +153,7 @@ public class ExpoPushProvider {
             logger.warn("Expo ticket error",
                 keyValue("action", "expo_ticket_error"),
                 keyValue("userId", userId),
-                keyValue("token", mask(candidate)),
-                keyValue("status", status != null ? status.name() : "null"),
-                keyValue("message", msg));
+                keyValue("status", status != null ? status.name() : "null"));
         }
 
         // Users OK = au moins un ticket OK dans ce lot
@@ -187,9 +184,4 @@ public class ExpoPushProvider {
             || m.contains("not registered");
     }
 
-    private String mask(String token) {
-        if (token == null || token.length() < 12)
-            return token;
-        return token.substring(0, 6) + "..." + token.substring(token.length() - 4);
-    }
 }

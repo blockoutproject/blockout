@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.config.api;
 
+import com.blockout.mobilegateway.config.api.mappers.ConfigApiMapper;
 import com.blockout.mobilegateway.api.ConfigPublicApi;
 import com.blockout.mobilegateway.api.models.AppStatusResponse;
 import com.blockout.mobilegateway.api.models.DivisionResponse;
@@ -19,21 +20,25 @@ public class ConfigPublicController implements ConfigPublicApi {
     private final ConfigApplicationService configService;
     private final ConfigApiMapper mapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<AppStatusResponse> getAppStatus() {
         return ResponseEntity.ok(mapper.toResponse(configService.getAppStatus()));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<DivisionResponse>> listDivisions() {
         return ResponseEntity.ok(configService.listDivisions().stream().map(mapper::toResponse).toList());
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<DivisionResponse> getDivisionById(Long id) {
         return ResponseEntity.ok(mapper.toResponse(configService.getDivisionById(id)));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<LegalDocumentResponse> getLegalDocument(String type) {
         return ResponseEntity.ok(mapper.toResponse(configService.getLegalDocument(type)));

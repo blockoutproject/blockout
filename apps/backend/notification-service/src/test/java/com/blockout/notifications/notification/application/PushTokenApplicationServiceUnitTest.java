@@ -17,7 +17,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class PushTokenApplicationServiceTest {
+class PushTokenApplicationServiceUnitTest {
 
     @Mock
     private PushTokenRepository repository;

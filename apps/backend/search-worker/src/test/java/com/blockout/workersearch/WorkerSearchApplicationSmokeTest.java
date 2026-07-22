@@ -14,7 +14,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     "spring.rabbitmq.listener.direct.auto-startup=false",
     "spring.rabbitmq.listener.simple.auto-startup=false"
 })
-class WorkerSearchApplicationTests {
+class WorkerSearchApplicationSmokeTest {
 
     @MockitoBean
     Auth0ServiceTokenProvider auth0ServiceTokenProvider;

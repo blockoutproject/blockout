@@ -107,9 +107,7 @@ public class NotificationOrchestratorApplicationService {
             keyValue("matchId", matchId),
             keyValue("reservedCount", reservedUserIds.size()),
             keyValue("resolvePageSize", RESOLVE_PAGE_SIZE),
-            keyValue("expoBatchSize", EXPO_BATCH_SIZE),
-            keyValue("title", content.title()),
-            keyValue("body", content.body()));
+            keyValue("expoBatchSize", EXPO_BATCH_SIZE));
 
         // 1) Inbox notifications
         List<UserNotificationEntity> bulk = new ArrayList<>(reservedUserIds.size());

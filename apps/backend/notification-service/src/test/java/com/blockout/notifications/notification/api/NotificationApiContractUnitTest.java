@@ -13,6 +13,7 @@ import com.blockout.shared.model.NotificationTypeEnum;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
 import java.time.Instant;
 import java.util.List;
@@ -74,7 +75,7 @@ class NotificationApiContractUnitTest {
             null,
             null);
 
-        var response = new NotificationApiMapper().toResponse(
+        var response = Mappers.getMapper(NotificationApiMapper.class).toResponse(
             new NotificationPageView(List.of(applicationNotification), false, null));
 
         assertThat(response.getNotifications()).singleElement().satisfies(notification -> {

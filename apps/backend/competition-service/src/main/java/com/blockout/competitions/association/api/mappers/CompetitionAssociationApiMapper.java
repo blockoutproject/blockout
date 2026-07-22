@@ -7,40 +7,51 @@ import com.blockout.competitions.association.api.models.UpdateAssociationStatsIn
 import com.blockout.competitions.association.application.commands.UpdateAssociationStatsCommand;
 import com.blockout.competitions.association.application.views.CompetitionAssociationView;
 import com.blockout.competitions.association.application.views.PoolWithRankingView;
-import org.springframework.stereotype.Component;
+import com.blockout.competitions.association.application.views.TeamRankingView;
+import org.mapstruct.InjectionStrategy;
+import org.mapstruct.Mapper;
+import org.mapstruct.NullValueCheckStrategy;
+import org.mapstruct.ReportingPolicy;
 
 /**
- * Maps generated Competition transport models and handwritten application contracts.
+ * Maps Competition association transport models to application contracts and back.
  */
-@Component
-public class CompetitionAssociationApiMapper {
+@Mapper(
+    componentModel = "spring",
+    injectionStrategy = InjectionStrategy.CONSTRUCTOR,
+    nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS,
+    unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface CompetitionAssociationApiMapper {
 
-    public UpdateAssociationStatsCommand toCommand(UpdateAssociationStatsInternalRequest request) {
-        return new UpdateAssociationStatsCommand(
-            request.getPlayed(), request.getWins(), request.getLosses(), request.getPoints(),
-            request.getWinsThreeToZero(), request.getWinsThreeToOne(), request.getWinsThreeToTwo(),
-            request.getLossesZeroToThree(), request.getLossesOneToThree(), request.getLossesTwoToThree(),
-            request.getWonSets(), request.getLostSets(), request.getWonPoints(), request.getLostPoints(),
-            request.getPointsPenalty(), request.getCoefSets(), request.getCoefPoints());
-    }
+    /**
+     * Maps an internal statistics request to the application command.
+     *
+     * @param request internal statistics request.
+     * @return application update command.
+     */
+    UpdateAssociationStatsCommand toCommand(UpdateAssociationStatsInternalRequest request);
 
-    public CompetitionAssociationInternalResponse toInternalResponse(CompetitionAssociationView view) {
-        return new CompetitionAssociationInternalResponse()
-            .id(view.id()).poolId(view.poolId()).teamId(view.teamId()).clubId(view.clubId()).active(view.active())
-            .points(view.points()).played(view.played()).wins(view.wins()).losses(view.losses())
-            .winsThreeToZero(view.winsThreeToZero()).winsThreeToOne(view.winsThreeToOne())
-            .winsThreeToTwo(view.winsThreeToTwo()).lossesZeroToThree(view.lossesZeroToThree())
-            .lossesOneToThree(view.lossesOneToThree()).lossesTwoToThree(view.lossesTwoToThree())
-            .wonSets(view.wonSets()).lostSets(view.lostSets()).wonPoints(view.wonPoints()).lostPoints(view.lostPoints())
-            .pointsPenalty(view.pointsPenalty()).coefSets(view.coefSets()).coefPoints(view.coefPoints())
-            .createdAt(view.createdAt()).lastUpdate(view.lastUpdate());
-    }
+    /**
+     * Maps the authoritative association view to the internal response.
+     *
+     * @param view application association view.
+     * @return generated internal response.
+     */
+    CompetitionAssociationInternalResponse toInternalResponse(CompetitionAssociationView view);
 
-    public PoolWithRankingInternalResponse toInternalResponse(PoolWithRankingView view) {
-        return new PoolWithRankingInternalResponse().poolId(view.poolId())
-            .ranking(view.ranking().stream().map(entry -> new TeamRankingInternalResponse()
-                .teamId(entry.teamId()).points(entry.points()).pointsPenalty(entry.pointsPenalty())
-                .played(entry.played()).wins(entry.wins()).losses(entry.losses())
-                .coefSets(entry.coefSets()).coefPoints(entry.coefPoints())).toList());
-    }
+    /**
+     * Maps a pool ranking view to the internal response.
+     *
+     * @param view application pool ranking view.
+     * @return generated internal response.
+     */
+    PoolWithRankingInternalResponse toInternalResponse(PoolWithRankingView view);
+
+    /**
+     * Maps one ranking entry for nested pool conversion.
+     *
+     * @param view application team ranking view.
+     * @return generated ranking entry.
+     */
+    TeamRankingInternalResponse toInternalResponse(TeamRankingView view);
 }

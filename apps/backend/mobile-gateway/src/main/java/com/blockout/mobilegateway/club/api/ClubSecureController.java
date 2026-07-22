@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.club.api;
 
+import com.blockout.mobilegateway.club.api.mappers.ClubApiMapper;
 import com.blockout.mobilegateway.api.ClubSecureApi;
 import com.blockout.mobilegateway.api.models.ClubResponse;
 import com.blockout.mobilegateway.api.models.UpdateClubRequest;
@@ -20,6 +21,7 @@ public class ClubSecureController implements ClubSecureApi {
     private final ClubApiMapper mapper;
     private final ObjectMapper objectMapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<ClubResponse> updateClub(String id, String data, MultipartFile image) {
         try {

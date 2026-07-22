@@ -1,11 +1,11 @@
-package com.blockout.mobilegateway.pool.api;
+package com.blockout.mobilegateway.pool.api.mappers;
 
 import com.blockout.mobilegateway.api.models.PoolDetailsResponse;
 import com.blockout.mobilegateway.api.models.PoolResponse;
 import com.blockout.mobilegateway.api.models.PoolSummaryResponse;
 import com.blockout.mobilegateway.api.models.TeamWithStatsResponse;
 import com.blockout.mobilegateway.api.models.UpdatePoolRequest;
-import com.blockout.mobilegateway.config.api.ConfigApiMapper;
+import com.blockout.mobilegateway.config.api.mappers.ConfigApiMapper;
 import com.blockout.mobilegateway.pool.application.commands.UpdatePoolCommand;
 import com.blockout.mobilegateway.pool.application.views.PoolDetailsView;
 import com.blockout.mobilegateway.pool.application.views.PoolSummaryView;
@@ -25,6 +25,12 @@ public class PoolApiMapper {
 
     private final ConfigApiMapper configMapper;
 
+    /**
+     * Maps an internal pool view to the public detail response.
+     *
+     * @param source internal pool detail view.
+     * @return generated public detail response.
+     */
     public PoolDetailsResponse toDetailsResponse(
             PoolDetailsView source) {
         return new PoolDetailsResponse(
@@ -34,6 +40,12 @@ public class PoolApiMapper {
             source.getFollowersCount(), source.getActive(), source.getCreatedAt(), source.getLastUpdate());
     }
 
+    /**
+     * Maps an enriched pool view to the public response.
+     *
+     * @param source application pool view.
+     * @return generated public response.
+     */
     public PoolResponse toResponse(PoolView source) {
         return new PoolResponse(
             source.getId(), source.getSeason(), source.getPoolCode(), source.getLeagueCode(), source.getLeagueName(),
@@ -43,6 +55,12 @@ public class PoolApiMapper {
             configMapper.toResponse(source.getDivision()));
     }
 
+    /**
+     * Maps a pool summary view to the public response.
+     *
+     * @param source application pool summary.
+     * @return generated public summary response.
+     */
     public PoolSummaryResponse toResponse(
             PoolSummaryView source) {
         return new PoolSummaryResponse(
@@ -51,6 +69,12 @@ public class PoolApiMapper {
             configMapper.toResponse(source.getDivision()), source.getLeagueCode(), source.getLeagueName());
     }
 
+    /**
+     * Maps one ranked team view to the public response.
+     *
+     * @param source application ranked-team view.
+     * @return generated ranked-team response.
+     */
     public TeamWithStatsResponse toResponse(
             TeamWithStatsView source) {
         return new TeamWithStatsResponse(
@@ -62,6 +86,12 @@ public class PoolApiMapper {
             .latitude(source.getLatitude());
     }
 
+    /**
+     * Maps a public pool update request to the application command.
+     *
+     * @param source generated public request.
+     * @return application update command.
+     */
     public UpdatePoolCommand toCommand(UpdatePoolRequest source) {
         return UpdatePoolCommand.builder()
             .poolCode(source.getPoolCode())
@@ -78,18 +108,42 @@ public class PoolApiMapper {
             .build();
     }
 
+    /**
+     * Converts a generated Format enum to the application enum.
+     *
+     * @param source generated Format value.
+     * @return application Format value, or {@code null}.
+     */
     private Format toFormat(FormatEnum source) {
         return source == null ? null : Format.valueOf(source.name());
     }
 
+    /**
+     * Converts a generated Gender enum to the application enum.
+     *
+     * @param source generated Gender value.
+     * @return application Gender value, or {@code null}.
+     */
     private Gender toGender(GenderEnum source) {
         return source == null ? null : Gender.valueOf(source.name());
     }
 
+    /**
+     * Converts an application Format enum to the generated enum.
+     *
+     * @param source application Format value.
+     * @return generated Format value, or {@code null}.
+     */
     private FormatEnum toFormatEnum(Format source) {
         return source == null ? null : FormatEnum.valueOf(source.name());
     }
 
+    /**
+     * Converts an application Gender enum to the generated enum.
+     *
+     * @param source application Gender value.
+     * @return generated Gender value, or {@code null}.
+     */
     private GenderEnum toGenderEnum(Gender source) {
         return source == null ? null : GenderEnum.valueOf(source.name());
     }

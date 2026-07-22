@@ -1,4 +1,4 @@
-package com.blockout.mobilegateway.search.api;
+package com.blockout.mobilegateway.search.api.mappers;
 
 import com.blockout.mobilegateway.api.models.ClubSearchResponse;
 import com.blockout.mobilegateway.api.models.PoolSearchResponse;
@@ -14,11 +14,23 @@ import org.springframework.stereotype.Component;
 @Component
 public class SearchApiMapper {
 
+    /**
+     * Maps a Club search view to the public response.
+     *
+     * @param source application Club search view.
+     * @return generated public response.
+     */
     public ClubSearchResponse toResponse(
             ClubSearchView source) {
         return new ClubSearchResponse(source.id(), source.name(), source.city()).logoUrl(source.logoUrl());
     }
 
+    /**
+     * Maps a Team search view to the public response.
+     *
+     * @param source application Team search view.
+     * @return generated public response.
+     */
     public TeamSearchResponse toResponse(
             TeamSearchView source) {
         return new TeamSearchResponse(
@@ -27,6 +39,12 @@ public class SearchApiMapper {
             source.season()).logoUrl(source.logoUrl());
     }
 
+    /**
+     * Maps a Pool search view to the public response.
+     *
+     * @param source application Pool search view.
+     * @return generated public response.
+     */
     public PoolSearchResponse toResponse(
             PoolSearchView source) {
         return new PoolSearchResponse(

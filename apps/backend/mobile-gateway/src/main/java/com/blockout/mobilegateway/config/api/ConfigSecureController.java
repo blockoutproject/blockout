@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.config.api;
 
+import com.blockout.mobilegateway.config.api.mappers.ConfigApiMapper;
 import com.blockout.mobilegateway.api.ConfigSecureApi;
 import com.blockout.mobilegateway.api.models.AppStatusResponse;
 import com.blockout.mobilegateway.api.models.CreateRawDivisionMappingRequest;
@@ -32,12 +33,14 @@ public class ConfigSecureController implements ConfigSecureApi {
     private final ConfigApiMapper mapper;
     private final ObjectMapper objectMapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<AppStatusResponse> updateAppStatus(UpdateAppStatusRequest request) {
         return ResponseEntity.ok(mapper.toResponse(
             configService.updateAppStatus(mapper.toCommand(request))));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<DivisionResponse> createDivision(String data, MultipartFile image) {
         UpsertDivisionRequest request = read(data, UpsertDivisionRequest.class);
@@ -50,6 +53,7 @@ public class ConfigSecureController implements ConfigSecureApi {
         return ResponseEntity.created(location).body(created);
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<DivisionResponse> updateDivision(Long id, String data, MultipartFile image) {
         UpsertDivisionRequest request = read(data, UpsertDivisionRequest.class);
@@ -57,12 +61,14 @@ public class ConfigSecureController implements ConfigSecureApi {
             configService.updateDivision(id, mapper.toCommand(request), image)));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<Void> deactivateDivision(Long id) {
         configService.deactivateDivision(id);
         return ResponseEntity.noContent().build();
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<RawDivisionMappingResponse> createRawDivisionMapping(
             CreateRawDivisionMappingRequest request) {
@@ -75,6 +81,7 @@ public class ConfigSecureController implements ConfigSecureApi {
         return ResponseEntity.created(location).body(created);
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<LegalDocumentResponse> updateLegalDocument(
             String type, UpdateLegalDocumentRequest request) {
@@ -82,6 +89,7 @@ public class ConfigSecureController implements ConfigSecureApi {
             configService.updateLegalDocument(type, mapper.toCommand(request))));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<RawDivisionMappingResponse>> listRawDivisions(String leagueCode, String season) {
         return ResponseEntity.ok(configService.listRawDivisionMappings(leagueCode, season).stream()
@@ -89,11 +97,13 @@ public class ConfigSecureController implements ConfigSecureApi {
             .toList());
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<RawDivisionMappingResponse> getRawDivisionById(Long id) {
         return ResponseEntity.ok(mapper.toResponse(configService.getRawDivisionMappingById(id)));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<RawDivisionMappingResponse> updateRawDivision(
             Long id, UpdateRawDivisionMappingRequest request) {
@@ -101,11 +111,13 @@ public class ConfigSecureController implements ConfigSecureApi {
             configService.updateRawDivisionMapping(id, mapper.toCommand(request))));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<ScraperStatusResponse> updateScraperStatus(String name, Boolean enabled) {
         return ResponseEntity.ok(mapper.toResponse(configService.updateScraperStatus(name, enabled)));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<List<ScraperStatusResponse>> listScraperStatuses() {
         return ResponseEntity.ok(configService.listScraperStatuses().stream().map(mapper::toResponse).toList());

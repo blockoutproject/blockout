@@ -15,7 +15,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ReportApplicationServiceTest {
+class ReportApplicationServiceUnitTest {
 
     @Test
     void assemblesStorageIssueAndNotificationWithoutExposingProviderModels() {

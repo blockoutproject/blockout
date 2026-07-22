@@ -1,10 +1,10 @@
-package com.blockout.reports;
+package com.blockout.mobilegateway;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ReportsApplicationTests {
+class MobileGatewayApplicationSmokeTest {
 
     @Test
     void contextLoads() {

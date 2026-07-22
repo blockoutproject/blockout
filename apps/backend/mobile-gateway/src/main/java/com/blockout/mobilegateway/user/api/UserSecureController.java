@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.user.api;
 
+import com.blockout.mobilegateway.user.api.mappers.UserApiMapper;
 import com.blockout.mobilegateway.api.UserSecureApi;
 import com.blockout.mobilegateway.api.models.UpdateUserRequest;
 import com.blockout.mobilegateway.api.models.UserResponse;
@@ -20,6 +21,7 @@ public class UserSecureController implements UserSecureApi {
     private final UserApiMapper mapper;
     private final ObjectMapper objectMapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<UserResponse> updateUser(String auth0Id, String data, MultipartFile image) {
         try {
@@ -31,23 +33,27 @@ public class UserSecureController implements UserSecureApi {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<UserResponse> ensureCurrentUser() {
         return ResponseEntity.ok(mapper.toResponse(userService.ensureCurrentUser()));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<Void> deleteCurrentUser() {
         userService.deleteCurrentUser();
         return ResponseEntity.noContent().build();
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<Void> followFavorite(String entityType, Long entityId) {
         userService.follow(entityType, entityId);
         return ResponseEntity.noContent().build();
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<Void> unfollowFavorite(String entityType, Long entityId) {
         userService.unfollow(entityType, entityId);

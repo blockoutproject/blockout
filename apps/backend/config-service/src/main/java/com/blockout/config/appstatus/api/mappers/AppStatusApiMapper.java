@@ -4,36 +4,28 @@ import com.blockout.config.appstatus.application.commands.UpdateAppStatusCommand
 import com.blockout.config.appstatus.application.views.AppStatusView;
 import com.blockout.config.contract.model.AppStatusInternalResponse;
 import com.blockout.config.contract.model.UpdateAppStatusInternalRequest;
-import org.springframework.stereotype.Component;
+import com.blockout.config.shared.api.mappers.ConfigMapperConfig;
+import org.mapstruct.Mapper;
 
 /**
- * Maps app-status HTTP models to and from the application boundary.
+ * Maps app-status transport models to application contracts and back.
  */
-@Component
-public class AppStatusApiMapper {
+@Mapper(config = ConfigMapperConfig.class)
+public interface AppStatusApiMapper {
 
     /**
-     * Maps an update request to its application command.
+     * Maps an internal update request to the application command.
+     *
+     * @param request internal app-status request.
+     * @return application update command.
      */
-    public UpdateAppStatusCommand toCommand(UpdateAppStatusInternalRequest request) {
-        return new UpdateAppStatusCommand(
-            request.getMaintenance(), request.getMessage(), request.getImageUrl(), request.getMinVersionIos(),
-            request.getMinVersionAndroid(), request.getStoreUrlIos(), request.getStoreUrlAndroid(),
-            request.getForceUpdateMessage());
-    }
+    UpdateAppStatusCommand toCommand(UpdateAppStatusInternalRequest request);
 
     /**
-     * Maps the authoritative view to the V1 response.
+     * Maps the authoritative application view to the internal response.
+     *
+     * @param view application app-status view.
+     * @return generated internal response.
      */
-    public AppStatusInternalResponse toInternalResponse(AppStatusView view) {
-        return new AppStatusInternalResponse(view.maintenance())
-            .message(view.message())
-            .imageUrl(view.imageUrl())
-            .minVersionIos(view.minVersionIos())
-            .minVersionAndroid(view.minVersionAndroid())
-            .storeUrlIos(view.storeUrlIos())
-            .storeUrlAndroid(view.storeUrlAndroid())
-            .forceUpdateMessage(view.forceUpdateMessage())
-            .lastUpdate(view.lastUpdate());
-    }
+    AppStatusInternalResponse toInternalResponse(AppStatusView view);
 }

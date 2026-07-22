@@ -10,7 +10,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Verifies that browser access is limited to the explicitly configured local origins. */
-class SecurityConfigTest {
+class SecurityConfigUnitTest {
 
     @Test
     void configuresOnlyDeclaredOriginsAndRequiredHeaders() {

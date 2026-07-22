@@ -34,8 +34,7 @@ public class DiscordReportNotifier implements ReportNotifier {
         }
 
         logger.info("Posting to Discord webhook",
-            keyValue("action", "discord_webhook_post"),
-            keyValue("url", webhook));
+            keyValue("action", "discord_webhook_post"));
 
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -53,14 +52,11 @@ public class DiscordReportNotifier implements ReportNotifier {
         } catch (HttpClientErrorException e) {
             logger.warn("Discord client error",
                 keyValue("status", e.getStatusCode()),
-                keyValue("url", webhook),
-                keyValue("responseBody", e.getResponseBodyAsString()));
+                e);
             throw e;
         } catch (Exception e) {
-            logger.error("Discord webhook failed",
-                keyValue("url", webhook),
-                keyValue("message", e.getMessage()), e);
-            throw new RuntimeException("Discord webhook failed for " + webhook, e);
+            logger.error("Discord webhook failed", e);
+            throw new RuntimeException("Discord webhook failed", e);
         }
     }
 

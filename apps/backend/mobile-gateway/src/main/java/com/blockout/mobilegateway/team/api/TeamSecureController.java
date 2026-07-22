@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.team.api;
 
+import com.blockout.mobilegateway.team.api.mappers.TeamApiMapper;
 import com.blockout.mobilegateway.api.TeamSecureApi;
 import com.blockout.mobilegateway.api.models.TeamDetailsResponse;
 import com.blockout.mobilegateway.api.models.UpdateTeamRequest;
@@ -20,6 +21,7 @@ public class TeamSecureController implements TeamSecureApi {
     private final TeamApiMapper mapper;
     private final ObjectMapper objectMapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<TeamDetailsResponse> updateTeam(Long id, String data, MultipartFile image) {
         try {

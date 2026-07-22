@@ -27,13 +27,11 @@ public class GitHubIssueProvider implements IssueProvider {
     private final GitHub gitHub;
     private final GitHubProperties props;
 
-    /**
-     * Crée une issue GitHub (sans modifier le titre).
-     */
+    /** {@inheritDoc} */
     @Override
     public ReportView create(IssueDraft request) {
         String fullRepo = props.getOwner() + "/" + props.getRepo();
-        logger.info("Creating GitHub issue", keyValue("repo", fullRepo), keyValue("title", request.title()));
+        logger.info("Creating GitHub issue", keyValue("repo", fullRepo));
 
         try {
             GHRepository repo = gitHub.getRepository(fullRepo);
@@ -52,23 +50,19 @@ public class GitHubIssueProvider implements IssueProvider {
                 issue.getId(), issue.getNumber(), issue.getHtmlUrl().toString(), issue.getTitle(), issue.getState().name());
 
             logger.info("GitHub issue created",
-                keyValue("issueNumber", result.number()),
-                keyValue("url", result.htmlUrl()));
+                keyValue("issueNumber", result.number()));
             return result;
 
         } catch (Exception e) {
             logger.error("GitHub issue creation failed",
                 keyValue("owner", props.getOwner()),
                 keyValue("repo", props.getRepo()),
-                keyValue("message", e.getMessage()), e);
+                e);
             throw new RuntimeException("GitHub create issue failed", e);
         }
     }
 
-    /**
-     * Ajoute une section "Pièces jointes" à la fin du body en conservant l'ordre
-     * des URLs.
-     */
+    /** {@inheritDoc} */
     @Override
     public void appendImages(int issueNumber, List<String> imageUrls) {
         if (imageUrls == null || imageUrls.isEmpty())
@@ -97,7 +91,7 @@ public class GitHubIssueProvider implements IssueProvider {
         } catch (Exception e) {
             logger.warn("Failed to append images to issue body",
                 keyValue("issueNumber", issueNumber),
-                keyValue("message", e.getMessage()));
+                e);
         }
     }
 }

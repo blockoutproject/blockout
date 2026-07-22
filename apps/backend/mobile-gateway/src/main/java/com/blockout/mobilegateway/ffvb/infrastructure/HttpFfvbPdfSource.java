@@ -70,7 +70,7 @@ public class HttpFfvbPdfSource implements FfvbPdfSource {
     }
 
     private FfvbPdfDownload exchange(String url, HttpMethod method, HttpEntity<?> request) {
-        logger.info("Calling FFVB PDF source", keyValue("method", method), keyValue("url", url));
+        logger.debug("Calling FFVB PDF source", keyValue("method", method));
 
         try {
             ResponseEntity<byte[]> response = restTemplate.exchange(url, method, request, byte[].class);
@@ -79,7 +79,6 @@ public class HttpFfvbPdfSource implements FfvbPdfSource {
             logger.error(
                 "FFVB PDF source returned an HTTP error",
                 keyValue("status", exception.getStatusCode().value()),
-                keyValue("body", exception.getResponseBodyAsString()),
                 exception);
             return new FfvbPdfDownload(exception.getStatusCode().value(), null, true);
         }

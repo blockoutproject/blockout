@@ -1,5 +1,6 @@
 package com.blockout.mobilegateway.notification.api;
 
+import com.blockout.mobilegateway.notification.api.mappers.NotificationApiMapper;
 import com.blockout.mobilegateway.api.NotificationSecureApi;
 import com.blockout.mobilegateway.api.models.NotificationPageResponse;
 import com.blockout.mobilegateway.api.models.RegisterPushTokenRequest;
@@ -17,34 +18,40 @@ public class NotificationSecureController implements NotificationSecureApi {
     private final NotificationApplicationService notificationService;
     private final NotificationApiMapper mapper;
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<NotificationPageResponse> getNotifications(Integer page, Integer size) {
         return ResponseEntity.ok(mapper.toResponse(notificationService.getNotifications(page, size)));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<UnreadCountResponse> getUnreadNotificationsCount() {
         return ResponseEntity.ok(mapper.toResponse(notificationService.getUnreadNotificationsCount()));
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<Void> markNotificationRead(Long id) {
         notificationService.markNotificationRead(id);
         return ResponseEntity.noContent().build();
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<Void> markNotificationOpened(Long id) {
         notificationService.markNotificationOpened(id);
         return ResponseEntity.noContent().build();
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<Void> deleteNotification(Long id) {
         notificationService.deleteNotification(id);
         return ResponseEntity.noContent().build();
     }
 
+    /** {@inheritDoc} */
     @Override
     public ResponseEntity<Void> registerPushToken(Long userId, RegisterPushTokenRequest request) {
         notificationService.registerPushToken(userId, mapper.toCommand(request));

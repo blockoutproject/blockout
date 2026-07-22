@@ -8,26 +8,41 @@ import com.blockout.search.search.application.views.ClubSearchResult;
 import com.blockout.search.search.application.views.PoolSearchResult;
 import com.blockout.search.search.application.views.TeamSearchResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Verifies the generated Search transport shapes produced by the API mapper.
+ */
+@DisplayName("Search API contract mapping")
 class SearchApiContractUnitTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SearchApiMapper mapper = Mappers.getMapper(SearchApiMapper.class);
 
+    /**
+     * Verifies the established camelCase Club search response.
+     */
     @Test
+    @DisplayName("serializes the existing Club search shape")
     void mapsAndSerializesClubResultWithTheExistingCamelCaseShape() throws Exception {
-        ClubSearchInternalResponse response = SearchApiMapper.toInternalResponse(
+        ClubSearchInternalResponse response = mapper.toInternalResponse(
             new ClubSearchResult("club-1", "Block Club", "logo.png", "Paris"));
 
         assertThat(objectMapper.writeValueAsString(response))
             .isEqualTo("{\"id\":\"club-1\",\"name\":\"Block Club\",\"logoUrl\":\"logo.png\",\"city\":\"Paris\"}");
     }
 
+    /**
+     * Verifies that Team index-only fields remain outside the API response.
+     */
     @Test
+    @DisplayName("omits Team index-only fields")
     void mapsAndSerializesTeamResultWithoutLeakingIndexOnlyFields() throws Exception {
-        TeamSearchInternalResponse response = SearchApiMapper.toInternalResponse(new TeamSearchResult(
+        TeamSearchInternalResponse response = mapper.toInternalResponse(new TeamSearchResult(
             12L,
             "Block Club One",
             "BC1",
@@ -46,9 +61,13 @@ class SearchApiContractUnitTest {
         assertThat(json).doesNotContain("divisionId");
     }
 
+    /**
+     * Verifies that Pool index-only fields remain outside the API response.
+     */
     @Test
+    @DisplayName("omits Pool index-only fields")
     void mapsAndSerializesPoolResultWithoutLeakingIndexOnlyFields() throws Exception {
-        PoolSearchInternalResponse response = SearchApiMapper.toInternalResponse(new PoolSearchResult(
+        PoolSearchInternalResponse response = mapper.toInternalResponse(new PoolSearchResult(
             42L,
             "Pool A",
             "A",
