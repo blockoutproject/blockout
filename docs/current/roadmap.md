@@ -798,7 +798,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     behavior changed. Full ownership and validation evidence is recorded in
     [the REF-063 Figma component library record](./ref-063-figma-components.md).
 
-- [ ] **REF-064 — Reconstruct and certify the mobile screens in Figma**
+- [x] **REF-064 — Reconstruct and certify the mobile screens in Figma**
   - Reconstruct every screen and state from the REF-061 matrix using the approved foundations and components. Preserve
     the current product, copy, information hierarchy, navigation intent, and native identity while resolving accidental
     spacing, alignment, sizing, and component inconsistencies.
@@ -806,6 +806,15 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     but do not design a 1920-by-1080 desktop application.
   - Review the complete screen set against the running native application and close every unexplained gap. At completion,
     Figma becomes the visual authority for the implementation refactor; the application remains the functional authority.
+  - Evidence: `30 - Ready for Development` now contains all 39 screen rows and 210 named states from REF-061, grouped
+    into five mobile domains. Twenty-one frames use `iOS 393` and eighteen use `Android 411`; every frame records its
+    observed, certified, or source-reconstructed evidence and follows the canonical domain/screen/viewport/state name.
+    The consent, map, and PDF surfaces are explicit provider boundaries, Auth0 remains a handoff, and no desktop product
+    was invented. The final 1,440-by-9,006 audit reports no placeholder, duplicate screen key, or immediate overflow.
+    Figma now controls visual composition while the application retains functional and platform authority. No Expo
+    source, API contract, generated artifact, provider configuration, deployment, or production state changed. Full
+    scope and validation evidence is recorded in
+    [the REF-064 Figma screen certification](./ref-064-figma-screen-certification.md).
 
 - [ ] **REF-065 — Establish the Expo UI and component policy**
   - Rewrite the mobile policy from the certified Figma system, current Expo and React Native guidance, and the existing

@@ -8,6 +8,7 @@
 - [Mobile visual baseline](current/ref-061-mobile-visual-baseline.md)
 - [Figma foundations](current/ref-062-figma-foundations.md)
 - [Figma component library](current/ref-063-figma-components.md)
+- [Figma screen certification](current/ref-064-figma-screen-certification.md)
 - [Contract-first certification](current/ref-059-certification.md)
 - [Public release readiness](current/ref-060-public-release-readiness.md)
 - [Completed roadmap](current/roadmap.md)

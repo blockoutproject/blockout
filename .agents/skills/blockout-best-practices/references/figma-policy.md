@@ -10,12 +10,14 @@ Figma-to-code implementation, and visual reconciliation.
 - Runtime source and the running iOS and Android application control behavior, routes, authorization, data flow, copy,
   accessibility, platform integration, and available states. Figma cannot activate or redefine them.
 - [`ref-061-mobile-visual-baseline.md`](../../../../docs/current/ref-061-mobile-visual-baseline.md) controls the visual
-  inventory and the approved foundation, component, and screen scope until REF-064 is complete.
+  inventory and the approved foundation, component, and screen scope.
+- [`ref-064-figma-screen-certification.md`](../../../../docs/current/ref-064-figma-screen-certification.md) records the
+  certified screen coverage and the boundary between visual and functional authority.
 - The only canonical design file is
   [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) in the Blockout Figma team
   (`NwDQmiXqSjKVzQ6gwry0zb`). Do not create a parallel canonical file.
-- After REF-064 certification, the canonical Figma file controls visual composition. The application remains the
-  authority for behavior and platform functionality.
+- The canonical Figma file controls visual composition. The application remains the authority for behavior and platform
+  functionality.
 
 ## Entry Gate
 

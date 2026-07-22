@@ -1,0 +1,70 @@
+# REF-064 Figma Screen Certification
+
+## Visual authority
+
+The [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) file is now the visual
+authority for the Blockout mobile refactor. The running application and runtime source remain authoritative for
+behavior, navigation, authorization, data flow, copy, accessibility, and native provider integration.
+
+The certified screen set lives on `30 - Ready for Development`. Nothing moved to `40 - Shipped`: that lifecycle step
+belongs to the later Expo implementation and native verification tasks.
+
+## Certified scope
+
+REF-064 reconstructs all 39 rows of the REF-061 matrix as mobile specification frames. Each frame contains the approved
+composition, reusable component instances, sanitized representative content, evidence origin, and an explicit instance
+for every required state. The set contains 210 named states across five groups:
+
+| Group                                    | Screen frames |
+| ---------------------------------------- | ------------: |
+| Bootstrap, access, and application shell |             7 |
+| Feed, search, and notifications          |             7 |
+| Profile and internal tools               |             8 |
+| Clubs and teams                          |             7 |
+| Pools, matches, and cross-feature flows  |            10 |
+
+Frame names follow `Domain / Screen / Viewport / State`. Twenty-one frames use the representative `iOS 393` viewport
+and eighteen use `Android 411`. The compositions preserve the current dark native identity and use the REF-062
+foundations and REF-063 component masters. They do not define a 1,920-by-1,080 product or a separate Web design.
+
+## Evidence and provider boundaries
+
+Every frame identifies whether its source was observed, previously certified, reconstructed from current source, or a
+combination of those forms of evidence. Authenticated administrator compositions use only sanitized labels; no account
+identifier, credential, token, or private payload is present.
+
+Three provider-owned surfaces are explicit reference boundaries rather than imitations of Blockout UI:
+
+- advertising consent;
+- the native pool map and its Web-unavailable state;
+- native and Web PDF rendering.
+
+Auth0 remains an external handoff state on the sign-in composition. Store opening, confirmations, safe areas, gestures,
+keyboard behavior, maps, documents, and provider screens remain runtime responsibilities that static Figma frames
+cannot prove.
+
+## Normalization
+
+The screen set resolves accidental spacing, alignment, radius, control, list, feedback, and sheet differences through
+the approved variables and component instances. It does not alter information hierarchy, permissions, feature
+ownership, routes, or product behavior. Screen-specific composition stays local; shared masters remain limited to the
+nine families certified by REF-063.
+
+## Validation
+
+The final Figma audit reports:
+
+- 39 uniquely keyed screen frames and 210 named state instances;
+- 21 `iOS 393` and 18 `Android 411` frames;
+- section counts of 7, 7, 8, 7, and 10, matching the authoritative matrix;
+- zero unfinished placeholder;
+- zero duplicate screen key;
+- zero immediate child overflow;
+- exactly three documented provider boundaries.
+
+The complete `Ready for Development` root renders at 1,440 by 9,006 pixels. Each section was also reviewed at a legible
+scale while it was built, and the canonical cover now records the certified mobile screen set. Temporary captures remain
+outside Git.
+
+REF-064 changes no Expo source, API contract, generated artifact, provider configuration, deployment, or production
+state. The next task may use these designs to establish the Expo UI policy; implementation remains separately scoped.
