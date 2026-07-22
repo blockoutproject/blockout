@@ -781,7 +781,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     architecture and durable node evidence are recorded in
     [the REF-062 Figma foundations record](./ref-062-figma-foundations.md).
 
-- [ ] **REF-063 — Build the Blockout component library in Figma**
+- [x] **REF-063 — Build the Blockout component library in Figma**
   - Create only the component families proven by REF-061, in dependency order. Cover the required variants and states
     for controls, pills, fields, cards, feedback, navigation, sheets, and other repeated patterns without reproducing
     feature-specific screens as generic components.
@@ -789,6 +789,14 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     variant sets. Avoid boolean-prop matrices, cosmetic one-off variants, detached copies, and speculative components.
   - Document usage and validate the structure and rendered appearance of each component before proceeding to the next.
     The result is Blockout's own small mobile component library, not a React Native imitation of shadcn.
+  - Evidence: the canonical Figma file now contains nine documented component sets and 48 bounded variants for actions,
+    chips, fields, cards, feedback, entity rows, navigation items, screen headers, and sheets. All families use Auto
+    Layout, semantic foundation variables, and explicit component properties; `Sheet` composes the existing `Field`
+    and `Action` masters. The final 1,440-by-5,605 page audit reports no placeholder, unnamed generic node, or duplicate
+    component-set name. Visual review also removed a default frame fill and loading-metadata leak from `Entity Row`.
+    No feature-specific screen, desktop variant, runtime source, generated artifact, provider setting, or production
+    behavior changed. Full ownership and validation evidence is recorded in
+    [the REF-063 Figma component library record](./ref-063-figma-components.md).
 
 - [ ] **REF-064 — Reconstruct and certify the mobile screens in Figma**
   - Reconstruct every screen and state from the REF-061 matrix using the approved foundations and components. Preserve
