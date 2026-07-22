@@ -1,0 +1,72 @@
+{
+  "RegisterPushTokenRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "expoPushToken": { "type": "string" },
+      "platform": { "$ref": "#/components/schemas/DevicePlatformEnum" },
+      "deviceId": { "type": "string", "nullable": true }
+    }
+  },
+  "NotificationResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "userId",
+      "type",
+      "title",
+      "body",
+      "isRead",
+      "isOpened",
+      "createdAt"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "userId": { "type": "integer", "format": "int64" },
+      "type": { "$ref": "#/components/schemas/NotificationTypeEnum" },
+      "title": { "type": "string" },
+      "body": { "type": "string" },
+      "deepLink": { "type": "string", "nullable": true },
+      "targetType": {
+        "allOf": [
+          { "$ref": "#/components/schemas/NotificationTargetTypeEnum" }
+        ],
+        "nullable": true
+      },
+      "targetId": { "type": "integer", "format": "int64", "nullable": true },
+      "metadata": {
+        "type": "object",
+        "nullable": true,
+        "additionalProperties": true
+      },
+      "isRead": { "type": "boolean" },
+      "isOpened": { "type": "boolean" },
+      "createdAt": { "type": "string", "format": "instant" },
+      "readAt": { "type": "string", "format": "instant", "nullable": true },
+      "openedAt": { "type": "string", "format": "instant", "nullable": true },
+      "divisionLogoUrl": { "type": "string", "nullable": true }
+    }
+  },
+  "NotificationPageResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["notifications", "hasNext"],
+    "properties": {
+      "notifications": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/NotificationResponse" }
+      },
+      "hasNext": { "type": "boolean" },
+      "nextPage": { "type": "integer", "format": "int32", "nullable": true }
+    }
+  },
+  "UnreadCountResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["unread"],
+    "properties": {
+      "unread": { "type": "integer", "format": "int64" }
+    }
+  }
+}

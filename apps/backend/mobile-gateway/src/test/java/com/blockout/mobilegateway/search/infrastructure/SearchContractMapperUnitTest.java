@@ -29,8 +29,8 @@ class SearchContractMapperUnitTest {
             .leagueName("League")
             .logoUrl("pool.png");
 
-        assertThat(mapper.toResponse(club).getCity()).isEqualTo("Paris");
-        assertThat(mapper.toResponse(team).getFormat()).isEqualTo("SIX");
-        assertThat(mapper.toResponse(pool).getLeagueCode()).isEqualTo("LNV");
+        assertThat(mapper.toResponse(club).city()).isEqualTo("Paris");
+        assertThat(mapper.toResponse(team).format()).isEqualTo("SIX");
+        assertThat(mapper.toResponse(pool).leagueCode()).isEqualTo("LNV");
     }
 }

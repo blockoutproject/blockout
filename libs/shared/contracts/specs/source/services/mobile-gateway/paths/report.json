@@ -1,0 +1,37 @@
+{
+  "/api/v1/mobile/public/reports": {
+    "post": {
+      "tags": ["ReportPublic"],
+      "operationId": "createReport",
+      "security": [],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "images": {
+                  "type": "array",
+                  "items": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Report created",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ReportResponse" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "/api/v1/mobile/secure/notifications": {
+    "get": {
+      "tags": ["NotificationSecure"],
+      "operationId": "getNotifications",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "page",
+          "in": "query",
+          "schema": { "type": "integer", "format": "int32", "default": 0 }
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "schema": { "type": "integer", "format": "int32", "default": 20 }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Notifications",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPageResponse"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/notifications/unread-count": {
+    "get": {
+      "tags": ["NotificationSecure"],
+      "operationId": "getUnreadNotificationsCount",
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": {
+          "description": "Unread notification count",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UnreadCountResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/notifications/{id}/read": {
+    "post": {
+      "tags": ["NotificationSecure"],
+      "operationId": "markNotificationRead",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Notification marked as read" } }
+    }
+  },
+  "/api/v1/mobile/secure/notifications/{id}/opened": {
+    "post": {
+      "tags": ["NotificationSecure"],
+      "operationId": "markNotificationOpened",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Notification marked as opened" } }
+    }
+  },
+  "/api/v1/mobile/secure/notifications/{id}": {
+    "delete": {
+      "tags": ["NotificationSecure"],
+      "operationId": "deleteNotification",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Notification deleted" } }
+    }
+  },
+  "/api/v1/mobile/secure/notifications/users/{userId}/push-tokens": {
+    "post": {
+      "tags": ["NotificationSecure"],
+      "operationId": "registerPushToken",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "userId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RegisterPushTokenRequest"
+            }
+          }
+        }
+      },
+      "responses": { "202": { "description": "Push token accepted" } }
+    }
+  }
+}

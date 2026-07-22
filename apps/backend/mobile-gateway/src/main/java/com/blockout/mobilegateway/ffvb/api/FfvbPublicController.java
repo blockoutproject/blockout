@@ -1,26 +1,26 @@
 package com.blockout.mobilegateway.ffvb.api;
 
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
+import com.blockout.mobilegateway.api.FfvbPublicApi;
 import com.blockout.mobilegateway.ffvb.application.FfvbPdfApplicationService;
 import com.blockout.mobilegateway.ffvb.application.FfvbPdfDownload;
 import io.jsonwebtoken.JwtException;
-import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/mobile/public/ffvb")
-public class FfvbPublicController {
+public class FfvbPublicController implements FfvbPublicApi {
 
     private static final Logger logger = LoggerFactory.getLogger(FfvbPublicController.class);
 
@@ -30,63 +30,37 @@ public class FfvbPublicController {
         this.pdfService = pdfService;
     }
 
-    @GetMapping("/pdf/{token}")
-    public void proxySigned(@PathVariable String token, HttpServletResponse resp) throws Exception {
+    @Override
+    public ResponseEntity<Resource> proxySignedFfvbPdf(String token) {
         Instant start = Instant.now();
-
-        logger.info("FFVB PDF request received");
-
         try {
-            FfvbPdfDownload download;
-
-            try {
-                download = pdfService.download(token);
-            } catch (JwtException e) {
-                logger.warn("Invalid or expired FFVB PDF link");
-                resp.sendError(401, "Invalid or expired link");
-                return;
-            } catch (IllegalArgumentException e) {
-                logger.warn("Invalid PDF kind", e);
-                resp.sendError(400, "Invalid kind");
-                return;
-            }
-
+            FfvbPdfDownload download = pdfService.download(token);
             if (download.transportError()) {
-                resp.sendError(502, "Upstream error");
-                return;
+                return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
             }
-
             if (!HttpStatus.valueOf(download.statusCode()).is2xxSuccessful() || download.content() == null) {
-                logger.error("Upstream non-success response",
-                    keyValue("status", download.statusCode()));
-
-                resp.setStatus(download.statusCode());
-                resp.setContentType("text/plain; charset=utf-8");
-                resp.getOutputStream()
-                    .write(("Upstream error: " + download.statusCode())
-                        .getBytes(StandardCharsets.UTF_8));
-                return;
+                logger.error("Upstream non-success response", keyValue("status", download.statusCode()));
+                return ResponseEntity.status(download.statusCode()).build();
             }
 
-            resp.setStatus(200);
-            resp.setHeader("Content-Type", "application/pdf");
-            resp.setHeader("Content-Disposition", "inline; filename=\"document.pdf\"");
-            resp.setHeader("Cache-Control", "private, no-store");
-            resp.getOutputStream().write(download.content());
-
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(ContentDisposition.inline().filename("document.pdf").build());
+            headers.setCacheControl("private, no-store");
             logger.info("FFVB PDF success",
                 keyValue("size", download.content().length),
                 keyValue("ms", Duration.between(start, Instant.now()).toMillis()));
-
-        } catch (Exception e) {
-            logger.error("Unhandled exception in proxySigned", e);
-
-            if (!resp.isCommitted()) {
-                resp.sendError(500, "Internal error");
-            }
-
-            logger.error("Request failed",
+            return new ResponseEntity<>(new ByteArrayResource(download.content()), headers, HttpStatus.OK);
+        } catch (JwtException error) {
+            logger.warn("Invalid or expired FFVB PDF link");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (IllegalArgumentException error) {
+            logger.warn("Invalid PDF kind", error);
+            return ResponseEntity.badRequest().build();
+        } catch (Exception error) {
+            logger.error("Unhandled exception in FFVB PDF proxy", error,
                 keyValue("ms", Duration.between(start, Instant.now()).toMillis()));
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

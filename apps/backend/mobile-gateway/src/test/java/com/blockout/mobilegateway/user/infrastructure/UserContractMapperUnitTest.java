@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.user.infrastructure;
 
 import com.blockout.mobilegateway.shared.application.models.EntityType;
-import com.blockout.mobilegateway.user.api.models.UpdateUserRequest;
+import com.blockout.mobilegateway.user.application.commands.UpdateUserCommand;
 import com.blockout.mobilegateway.user.infrastructure.contract.models.UserFavoriteSummaryInternalResponse;
 import com.blockout.mobilegateway.user.infrastructure.contract.models.UserInternalResponse;
 import com.blockout.shared.model.EntityTypeEnum;
@@ -32,21 +32,18 @@ class UserContractMapperUnitTest {
 
         var response = mapper.toResponse(internal);
 
-        assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getAuth0Id()).isEqualTo("auth0|1");
-        assertThat(response.getCreatedAt()).isEqualTo(now);
-        assertThat(response.getFavorites()).singleElement().satisfies(favorite -> {
-            assertThat(favorite.getEntityType()).isEqualTo(EntityType.TEAM);
-            assertThat(favorite.getEntityId()).isEqualTo(2L);
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.auth0Id()).isEqualTo("auth0|1");
+        assertThat(response.createdAt()).isEqualTo(now);
+        assertThat(response.favorites()).singleElement().satisfies(favorite -> {
+            assertThat(favorite.entityType()).isEqualTo(EntityType.TEAM);
+            assertThat(favorite.entityId()).isEqualTo(2L);
         });
     }
 
     @Test
     void mapsOnlyEditableFieldsToTheInternalRequest() {
-        UpdateUserRequest request = UpdateUserRequest.builder()
-            .pseudo("new-pseudo")
-            .pictureUrl("picture")
-            .build();
+        UpdateUserCommand request = new UpdateUserCommand("new-pseudo", "picture");
 
         var internal = mapper.toInternalRequest(request);
 

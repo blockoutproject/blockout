@@ -3,8 +3,8 @@ package com.blockout.mobilegateway.user.infrastructure;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.shared.infrastructure.http.MultipartBodyBuilder;
-import com.blockout.mobilegateway.user.api.models.UpdateUserRequest;
-import com.blockout.mobilegateway.user.api.models.UserResponse;
+import com.blockout.mobilegateway.user.application.commands.UpdateUserCommand;
+import com.blockout.mobilegateway.user.application.views.UserView;
 import com.blockout.mobilegateway.user.infrastructure.contract.models.UserInternalResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class UserInternalClient {
         return apiClientProperties.getUser().getUrl();
     }
 
-    public UserResponse updateUser(String auth0Id, UpdateUserRequest dto, MultipartFile image) {
+    public UserView updateUser(String auth0Id, UpdateUserCommand command, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(auth0Id)
             .build()
@@ -40,7 +40,7 @@ public class UserInternalClient {
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(
             objectMapper,
-            contractMapper.toInternalRequest(dto),
+            contractMapper.toInternalRequest(command),
             image);
 
         ResponseEntity<UserInternalResponse> response = internalApiClient.putMultipart(
@@ -50,7 +50,7 @@ public class UserInternalClient {
         return contractMapper.toResponse(response.getBody());
     }
 
-    public UserResponse ensureCurrentUser() {
+    public UserView ensureCurrentUser() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("me")
             .build()
@@ -73,7 +73,7 @@ public class UserInternalClient {
         @CacheEvict(value = "teamById", key = "#entityId", condition = "#entityType == 'TEAM'"),
         @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType == 'POOL'")
     })
-    public void follow(String auth0Id, String entityType, Long entityId) {
+    public void follow(String entityType, Long entityId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("favorites", "follow")
             .queryParam("entityType", entityType)
@@ -88,7 +88,7 @@ public class UserInternalClient {
         @CacheEvict(value = "teamById", key = "#entityId", condition = "#entityType == 'TEAM'"),
         @CacheEvict(value = "poolById", key = "#entityId", condition = "#entityType == 'POOL'")
     })
-    public void unfollow(String auth0Id, String entityType, Long entityId) {
+    public void unfollow(String entityType, Long entityId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("favorites", "follow")
             .queryParam("entityType", entityType)

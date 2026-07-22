@@ -1,6 +1,15 @@
 package com.blockout.mobilegateway.config.application;
 
-import com.blockout.mobilegateway.config.api.models.*;
+import com.blockout.mobilegateway.config.application.commands.CreateRawDivisionMappingCommand;
+import com.blockout.mobilegateway.config.application.commands.UpdateAppStatusCommand;
+import com.blockout.mobilegateway.config.application.commands.UpdateLegalDocumentCommand;
+import com.blockout.mobilegateway.config.application.commands.UpdateRawDivisionMappingCommand;
+import com.blockout.mobilegateway.config.application.commands.UpsertDivisionCommand;
+import com.blockout.mobilegateway.config.application.views.AppStatusView;
+import com.blockout.mobilegateway.config.application.views.DivisionView;
+import com.blockout.mobilegateway.config.application.views.LegalDocumentView;
+import com.blockout.mobilegateway.config.application.views.RawDivisionMappingView;
+import com.blockout.mobilegateway.config.application.views.ScraperStatusView;
 import com.blockout.mobilegateway.config.infrastructure.ConfigInternalClient;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -19,46 +28,46 @@ public class ConfigApplicationService {
     private static final Logger logger = LoggerFactory.getLogger(ConfigApplicationService.class);
     private final ConfigInternalClient configInternalClient;
 
-    public AppStatusResponse getAppStatus() {
+    public AppStatusView getAppStatus() {
         logger.info("Fetching app status", keyValue("action", "get_app_status"));
-        AppStatusResponse dto = configInternalClient.getAppStatus();
+        AppStatusView dto = configInternalClient.getAppStatus();
         return dto;
     }
 
-    public AppStatusResponse updateAppStatus(UpdateAppStatusRequest dto) {
+    public AppStatusView updateAppStatus(UpdateAppStatusCommand command) {
         logger.info("Updating app status",
             keyValue("action", "update_app_status"),
-            keyValue("maintenance", dto.getMaintenance()));
-        AppStatusResponse updated = configInternalClient.updateAppStatus(dto);
+            keyValue("maintenance", command.maintenance()));
+        AppStatusView updated = configInternalClient.updateAppStatus(command);
         return updated;
     }
 
-    public List<DivisionResponse> listDivisions() {
+    public List<DivisionView> listDivisions() {
         logger.info("Listing all divisions", keyValue("action", "list_all_divisions"));
-        List<DivisionResponse> list = configInternalClient.listDivisions();
+        List<DivisionView> list = configInternalClient.listDivisions();
         return list;
     }
 
-    public DivisionResponse getDivisionById(Long id) {
+    public DivisionView getDivisionById(Long id) {
         logger.info("Fetching division", keyValue("action", "get_division_by_id"), keyValue("division_id", id));
         return configInternalClient.getDivisionById(id);
     }
 
-    public DivisionResponse createDivision(UpsertDivisionRequest dto, MultipartFile image) {
+    public DivisionView createDivision(UpsertDivisionCommand command, MultipartFile image) {
         logger.info("Creating division",
             keyValue("action", "create_division"),
             keyValue("has_image", image != null),
-            keyValue("name", dto.getName()));
-        return configInternalClient.createDivision(dto, image);
+            keyValue("name", command.name()));
+        return configInternalClient.createDivision(command, image);
     }
 
-    public DivisionResponse updateDivision(Long id, UpsertDivisionRequest dto, MultipartFile image) {
+    public DivisionView updateDivision(Long id, UpsertDivisionCommand command, MultipartFile image) {
         logger.info("Updating division",
             keyValue("action", "update_division"),
             keyValue("division_id", id),
             keyValue("has_image", image != null),
-            keyValue("name", dto.getName()));
-        return configInternalClient.updateDivision(id, dto, image);
+            keyValue("name", command.name()));
+        return configInternalClient.updateDivision(id, command, image);
     }
 
     public void deactivateDivision(Long id) {
@@ -66,24 +75,24 @@ public class ConfigApplicationService {
         configInternalClient.deactivateDivision(id);
     }
 
-    public LegalDocumentResponse getLegalDocument(String type) {
+    public LegalDocumentView getLegalDocument(String type) {
         logger.info("Fetching legal document", keyValue("action", "get_legal_document"), keyValue("type", type));
         return configInternalClient.getLegalDocument(type);
     }
 
-    public LegalDocumentResponse updateLegalDocument(String type, UpdateLegalDocumentRequest dto) {
+    public LegalDocumentView updateLegalDocument(String type, UpdateLegalDocumentCommand command) {
         logger.info("Updating legal document",
             keyValue("action", "update_legal_document"),
             keyValue("type", type));
-        return configInternalClient.updateLegalDocument(type, dto);
+        return configInternalClient.updateLegalDocument(type, command);
     }
 
-    public RawDivisionMappingResponse createRawDivisionMapping(RawDivisionMappingResponse dto) {
+    public RawDivisionMappingView createRawDivisionMapping(CreateRawDivisionMappingCommand command) {
         logger.info("Creating raw division mapping", keyValue("action", "create_raw_division_mapping"));
-        return configInternalClient.createRawDivisionMapping(dto);
+        return configInternalClient.createRawDivisionMapping(command);
     }
 
-    public List<RawDivisionMappingResponse> listRawDivisionMappings(String leagueCode, String season) {
+    public List<RawDivisionMappingView> listRawDivisionMappings(String leagueCode, String season) {
         logger.info("Listing raw division mappings",
             keyValue("action", "list_raw_division_mappings"),
             keyValue("league_code", leagueCode),
@@ -91,21 +100,21 @@ public class ConfigApplicationService {
         return configInternalClient.listRawDivisionMappings(leagueCode, season);
     }
 
-    public RawDivisionMappingResponse getRawDivisionMappingById(Long id) {
+    public RawDivisionMappingView getRawDivisionMappingById(Long id) {
         logger.info("Fetching raw division mapping",
             keyValue("action", "get_raw_division_mapping_by_id"),
             keyValue("mapping_id", id));
         return configInternalClient.getRawDivisionMappingById(id);
     }
 
-    public RawDivisionMappingResponse updateRawDivisionMapping(Long id, UpdateRawDivisionMappingRequest dto) {
+    public RawDivisionMappingView updateRawDivisionMapping(Long id, UpdateRawDivisionMappingCommand command) {
         logger.info("Updating raw division mapping",
             keyValue("action", "update_raw_division_mapping"),
             keyValue("mapping_id", id));
-        return configInternalClient.updateRawDivisionMapping(id, dto);
+        return configInternalClient.updateRawDivisionMapping(id, command);
     }
 
-    public ScraperStatusResponse updateScraperStatus(String name, boolean enabled) {
+    public ScraperStatusView updateScraperStatus(String name, boolean enabled) {
         logger.info("Updating scraper status",
             keyValue("action", "update_scraper_status"),
             keyValue("scraper_name", name),
@@ -113,7 +122,7 @@ public class ConfigApplicationService {
         return configInternalClient.updateScraperStatus(name, enabled);
     }
 
-    public List<ScraperStatusResponse> listScraperStatuses() {
+    public List<ScraperStatusView> listScraperStatuses() {
         logger.info("Listing scraper statuses", keyValue("action", "list_scraper_statuses"));
         return configInternalClient.listScraperStatuses();
     }

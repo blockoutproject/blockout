@@ -1,33 +1,33 @@
 package com.blockout.mobilegateway.team.api;
 
-import com.blockout.mobilegateway.team.api.models.TeamInternalResponse;
-import com.blockout.mobilegateway.team.api.models.UpdateTeamRequest;
+import com.blockout.mobilegateway.api.TeamSecureApi;
+import com.blockout.mobilegateway.api.models.TeamDetailsResponse;
+import com.blockout.mobilegateway.api.models.UpdateTeamRequest;
 import com.blockout.mobilegateway.team.application.TeamApplicationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+/** Exposes secured Team operations through the generated mobile contract. */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/secure/teams")
-public class TeamSecureController {
+public class TeamSecureController implements TeamSecureApi {
 
     private final TeamApplicationService teamService;
+    private final TeamApiMapper mapper;
     private final ObjectMapper objectMapper;
 
-    @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<TeamInternalResponse> updateTeam(
-        @PathVariable Long id,
-        @RequestPart("data") String json,
-        @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
-
-        UpdateTeamRequest dto = objectMapper.readValue(json, UpdateTeamRequest.class);
-        TeamInternalResponse updated = teamService.updateTeam(id, dto, image);
-        return ResponseEntity.ok(updated);
+    @Override
+    public ResponseEntity<TeamDetailsResponse> updateTeam(Long id, String data, MultipartFile image) {
+        try {
+            UpdateTeamRequest request = objectMapper.readValue(data, UpdateTeamRequest.class);
+            return ResponseEntity.ok(mapper.toDetailsResponse(
+                teamService.updateTeam(id, mapper.toCommand(request), image)));
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Invalid multipart JSON data", exception);
+        }
     }
 }

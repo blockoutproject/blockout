@@ -3,8 +3,8 @@ package com.blockout.mobilegateway.team.infrastructure;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.shared.infrastructure.http.MultipartBodyBuilder;
-import com.blockout.mobilegateway.team.api.models.TeamInternalResponse;
-import com.blockout.mobilegateway.team.api.models.UpdateTeamRequest;
+import com.blockout.mobilegateway.team.application.commands.UpdateTeamCommand;
+import com.blockout.mobilegateway.team.application.views.TeamDetailsView;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -35,7 +35,7 @@ public class TeamInternalClient {
     }
 
     @Cacheable(value = "teamById", key = "#id")
-    public TeamInternalResponse getTeamById(Long id) {
+    public TeamDetailsView getTeamById(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(id.toString())
             .build()
@@ -46,7 +46,7 @@ public class TeamInternalClient {
         return contractMapper.toResponse(response.getBody());
     }
 
-    public List<TeamInternalResponse> getTeamsByIds(Set<Long> ids) {
+    public List<TeamDetailsView> getTeamsByIds(Set<Long> ids) {
         if (ids == null || ids.isEmpty())
             return Collections.emptyList();
 
@@ -63,7 +63,7 @@ public class TeamInternalClient {
     }
 
     @Cacheable(value = "teamsByClubId", key = "#clubId")
-    public List<TeamInternalResponse> getTeamsByClubId(String clubId) {
+    public List<TeamDetailsView> getTeamsByClubId(String clubId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .queryParam("clubId", clubId)
             .queryParam("active", true)
@@ -81,14 +81,14 @@ public class TeamInternalClient {
     }, evict = {
         @CacheEvict(value = "teamsByClubId", key = "#result.clubId", condition = "#result != null")
     })
-    public TeamInternalResponse updateTeam(Long id, UpdateTeamRequest dto, MultipartFile image) {
+    public TeamDetailsView updateTeam(Long id, UpdateTeamCommand command, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(id.toString())
             .build()
             .toUriString();
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(
-            objectMapper, contractMapper.toInternalRequest(dto), image);
+            objectMapper, contractMapper.toInternalRequest(command), image);
 
         var response = internalApiClient.putMultipart(
             url, body, com.blockout.mobilegateway.team.infrastructure.contract.models.TeamInternalResponse.class);

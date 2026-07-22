@@ -1,0 +1,69 @@
+{
+  "ClubSearchResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "name", "city"],
+    "properties": {
+      "id": { "type": "string" },
+      "name": { "type": "string" },
+      "logoUrl": { "type": "string", "nullable": true },
+      "city": { "type": "string" }
+    }
+  },
+  "TeamSearchResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "name",
+      "shortName",
+      "clubId",
+      "clubName",
+      "clubCity",
+      "divisionName",
+      "format",
+      "gender",
+      "season"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "name": { "type": "string" },
+      "shortName": { "type": "string" },
+      "clubId": { "type": "string" },
+      "clubName": { "type": "string" },
+      "clubCity": { "type": "string" },
+      "logoUrl": { "type": "string", "nullable": true },
+      "divisionName": { "type": "string" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "season": { "type": "string" }
+    }
+  },
+  "PoolSearchResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "name",
+      "shortName",
+      "divisionName",
+      "leagueCode",
+      "leagueName",
+      "season",
+      "format",
+      "gender"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "name": { "type": "string" },
+      "shortName": { "type": "string" },
+      "divisionName": { "type": "string" },
+      "leagueCode": { "type": "string" },
+      "leagueName": { "type": "string" },
+      "season": { "type": "string" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "logoUrl": { "type": "string", "nullable": true }
+    }
+  }
+}

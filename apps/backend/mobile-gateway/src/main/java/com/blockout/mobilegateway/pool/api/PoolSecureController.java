@@ -1,26 +1,24 @@
 package com.blockout.mobilegateway.pool.api;
 
-import com.blockout.mobilegateway.pool.api.models.PoolInternalResponse;
-import com.blockout.mobilegateway.pool.api.models.UpdatePoolRequest;
+import com.blockout.mobilegateway.api.PoolSecureApi;
+import com.blockout.mobilegateway.api.models.PoolDetailsResponse;
+import com.blockout.mobilegateway.api.models.UpdatePoolRequest;
 import com.blockout.mobilegateway.pool.application.PoolApplicationService;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
+/** Exposes secured Pool operations through the generated mobile contract. */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/secure/pools")
-public class PoolSecureController {
+public class PoolSecureController implements PoolSecureApi {
 
     private final PoolApplicationService poolService;
+    private final PoolApiMapper mapper;
 
-    @PutMapping("/{id}")
-    public ResponseEntity<PoolInternalResponse> updatePool(
-        @PathVariable Long id,
-        @RequestBody UpdatePoolRequest dto) {
-
-        PoolInternalResponse updated = poolService.updatePool(id, dto);
-        return ResponseEntity.ok(updated);
+    @Override
+    public ResponseEntity<PoolDetailsResponse> updatePool(Long id, UpdatePoolRequest request) {
+        return ResponseEntity.ok(mapper.toDetailsResponse(
+            poolService.updatePool(id, mapper.toCommand(request))));
     }
 }

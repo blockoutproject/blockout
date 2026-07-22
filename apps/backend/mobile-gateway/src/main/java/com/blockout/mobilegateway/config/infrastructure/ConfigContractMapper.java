@@ -1,14 +1,15 @@
 package com.blockout.mobilegateway.config.infrastructure;
 
-import com.blockout.mobilegateway.config.api.models.AppStatusResponse;
-import com.blockout.mobilegateway.config.api.models.DivisionResponse;
-import com.blockout.mobilegateway.config.api.models.LegalDocumentResponse;
-import com.blockout.mobilegateway.config.api.models.RawDivisionMappingResponse;
-import com.blockout.mobilegateway.config.api.models.ScraperStatusResponse;
-import com.blockout.mobilegateway.config.api.models.UpdateAppStatusRequest;
-import com.blockout.mobilegateway.config.api.models.UpdateLegalDocumentRequest;
-import com.blockout.mobilegateway.config.api.models.UpdateRawDivisionMappingRequest;
-import com.blockout.mobilegateway.config.api.models.UpsertDivisionRequest;
+import com.blockout.mobilegateway.config.application.commands.CreateRawDivisionMappingCommand;
+import com.blockout.mobilegateway.config.application.commands.UpdateAppStatusCommand;
+import com.blockout.mobilegateway.config.application.commands.UpdateLegalDocumentCommand;
+import com.blockout.mobilegateway.config.application.commands.UpdateRawDivisionMappingCommand;
+import com.blockout.mobilegateway.config.application.commands.UpsertDivisionCommand;
+import com.blockout.mobilegateway.config.application.views.AppStatusView;
+import com.blockout.mobilegateway.config.application.views.DivisionView;
+import com.blockout.mobilegateway.config.application.views.LegalDocumentView;
+import com.blockout.mobilegateway.config.application.views.RawDivisionMappingView;
+import com.blockout.mobilegateway.config.application.views.ScraperStatusView;
 import com.blockout.mobilegateway.config.infrastructure.contract.models.AppStatusInternalResponse;
 import com.blockout.mobilegateway.config.infrastructure.contract.models.CreateDivisionInternalRequest;
 import com.blockout.mobilegateway.config.infrastructure.contract.models.CreateRawDivisionMappingInternalRequest;
@@ -26,121 +27,104 @@ import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
 import org.springframework.stereotype.Component;
 
-/**
- * Maps generated config-service models at the internal HTTP adapter boundary.
- */
+/** Maps generated config-service models at the internal HTTP adapter boundary. */
 @Component
 public class ConfigContractMapper {
 
-    public AppStatusResponse toResponse(AppStatusInternalResponse source) {
-        return AppStatusResponse.builder()
-            .maintenance(source.getMaintenance())
-            .message(source.getMessage())
-            .imageUrl(source.getImageUrl())
-            .minVersionIos(source.getMinVersionIos())
-            .minVersionAndroid(source.getMinVersionAndroid())
-            .storeUrlIos(source.getStoreUrlIos())
-            .storeUrlAndroid(source.getStoreUrlAndroid())
-            .forceUpdateMessage(source.getForceUpdateMessage())
-            .lastUpdate(source.getLastUpdate())
-            .build();
+    public AppStatusView toResponse(AppStatusInternalResponse source) {
+        return new AppStatusView(
+            source.getMaintenance(), source.getMessage(), source.getImageUrl(), source.getMinVersionIos(),
+            source.getMinVersionAndroid(), source.getStoreUrlIos(), source.getStoreUrlAndroid(),
+            source.getForceUpdateMessage(), source.getLastUpdate());
     }
 
-    public UpdateAppStatusInternalRequest toInternalRequest(UpdateAppStatusRequest source) {
+    public UpdateAppStatusInternalRequest toInternalRequest(UpdateAppStatusCommand command) {
         return new UpdateAppStatusInternalRequest()
-            .maintenance(source.getMaintenance())
-            .message(source.getMessage())
-            .imageUrl(source.getImageUrl())
-            .minVersionIos(source.getMinVersionIos())
-            .minVersionAndroid(source.getMinVersionAndroid())
-            .storeUrlIos(source.getStoreUrlIos())
-            .storeUrlAndroid(source.getStoreUrlAndroid())
-            .forceUpdateMessage(source.getForceUpdateMessage());
+            .maintenance(command.maintenance())
+            .message(command.message())
+            .imageUrl(command.imageUrl())
+            .minVersionIos(command.minVersionIos())
+            .minVersionAndroid(command.minVersionAndroid())
+            .storeUrlIos(command.storeUrlIos())
+            .storeUrlAndroid(command.storeUrlAndroid())
+            .forceUpdateMessage(command.forceUpdateMessage());
     }
 
-    public DivisionResponse toResponse(DivisionInternalResponse source) {
-        return DivisionResponse.builder()
-            .id(source.getId())
-            .name(source.getName())
-            .mainColor(source.getMainColor())
-            .firstGradientColor(source.getFirstGradientColor())
-            .secondGradientColor(source.getSecondGradientColor())
-            .thirdGradientColor(source.getThirdGradientColor())
-            .logoUrl(source.getLogoUrl())
-            .active(source.getActive())
-            .createdAt(source.getCreatedAt())
-            .lastUpdate(source.getLastUpdate())
-            .build();
+    public DivisionView toResponse(DivisionInternalResponse source) {
+        return new DivisionView(
+            source.getId(), source.getName(), source.getMainColor(), source.getFirstGradientColor(),
+            source.getSecondGradientColor(), source.getThirdGradientColor(), source.getLogoUrl(), source.getActive(),
+            source.getCreatedAt(), source.getLastUpdate());
     }
 
-    public CreateDivisionInternalRequest toCreateRequest(UpsertDivisionRequest source) {
+    public CreateDivisionInternalRequest toCreateRequest(UpsertDivisionCommand command) {
         return new CreateDivisionInternalRequest(
-            source.getName(), source.getMainColor(), source.getFirstGradientColor(),
-            source.getSecondGradientColor(), source.getThirdGradientColor());
+            command.name(), command.mainColor(), command.firstGradientColor(),
+            command.secondGradientColor(), command.thirdGradientColor());
     }
 
-    public UpdateDivisionInternalRequest toUpdateRequest(UpsertDivisionRequest source) {
+    public UpdateDivisionInternalRequest toUpdateRequest(UpsertDivisionCommand command) {
         return new UpdateDivisionInternalRequest()
-            .name(source.getName())
-            .mainColor(source.getMainColor())
-            .firstGradientColor(source.getFirstGradientColor())
-            .secondGradientColor(source.getSecondGradientColor())
-            .thirdGradientColor(source.getThirdGradientColor());
+            .name(command.name())
+            .mainColor(command.mainColor())
+            .firstGradientColor(command.firstGradientColor())
+            .secondGradientColor(command.secondGradientColor())
+            .thirdGradientColor(command.thirdGradientColor());
     }
 
-    public LegalDocumentResponse toResponse(LegalDocumentInternalResponse source) {
-        return new LegalDocumentResponse(
+    public LegalDocumentView toResponse(LegalDocumentInternalResponse source) {
+        return new LegalDocumentView(
             source.getId(), source.getType(), source.getTitle(), source.getVersion(), source.getContent(),
             source.getCreatedAt(), source.getLastUpdate());
     }
 
-    public UpdateLegalDocumentInternalRequest toInternalRequest(UpdateLegalDocumentRequest source) {
+    public UpdateLegalDocumentInternalRequest toInternalRequest(UpdateLegalDocumentCommand command) {
         return new UpdateLegalDocumentInternalRequest()
-            .title(source.getTitle())
-            .version(source.getVersion())
-            .content(source.getContent());
+            .title(command.title())
+            .version(command.version())
+            .content(command.content());
     }
 
-    public RawDivisionMappingResponse toResponse(RawDivisionMappingInternalResponse source) {
-        return new RawDivisionMappingResponse(
+    public RawDivisionMappingView toResponse(RawDivisionMappingInternalResponse source) {
+        return new RawDivisionMappingView(
             source.getId(), source.getRawDivisionName(), source.getDivisionId(), toFormat(source.getFormat()),
             toGender(source.getGender()), source.getLeagueCode(), source.getSeason(), source.getCreatedAt(),
             source.getLastUpdate(), source.getMapped());
     }
 
-    public CreateRawDivisionMappingInternalRequest toCreateRequest(RawDivisionMappingResponse source) {
+    public CreateRawDivisionMappingInternalRequest toCreateRequest(CreateRawDivisionMappingCommand command) {
         return new CreateRawDivisionMappingInternalRequest(
-            source.getRawDivisionName(), source.getLeagueCode(), source.getSeason())
-            .divisionId(source.getDivisionId())
-            .format(toFormatEnum(source.getFormat()))
-            .gender(toGenderEnum(source.getGender()));
+            command.rawDivisionName(), command.leagueCode(), command.season())
+            .divisionId(command.divisionId())
+            .format(toFormatEnum(command.format()))
+            .gender(toGenderEnum(command.gender()));
     }
 
-    public UpdateRawDivisionMappingInternalRequest toInternalRequest(UpdateRawDivisionMappingRequest source) {
+    public UpdateRawDivisionMappingInternalRequest toInternalRequest(UpdateRawDivisionMappingCommand command) {
         return new UpdateRawDivisionMappingInternalRequest()
-            .divisionId(source.getDivisionId())
-            .format(toFormatEnum(source.getFormat()))
-            .gender(toGenderEnum(source.getGender()));
+            .divisionId(command.divisionId())
+            .format(toFormatEnum(command.format()))
+            .gender(toGenderEnum(command.gender()));
     }
 
-    public ScraperStatusResponse toResponse(ScraperStatusInternalResponse source) {
-        return new ScraperStatusResponse(
+    public ScraperStatusView toResponse(ScraperStatusInternalResponse source) {
+        return new ScraperStatusView(
             source.getId(), source.getName().getValue(), source.getEnabled(), source.getLastUpdate());
     }
 
-    private Format toFormat(FormatEnum format) {
-        return format == null ? null : Format.valueOf(format.name());
+    private Format toFormat(FormatEnum source) {
+        return source == null ? null : Format.valueOf(source.name());
     }
 
-    private Gender toGender(GenderEnum gender) {
-        return gender == null ? null : Gender.valueOf(gender.name());
+    private Gender toGender(GenderEnum source) {
+        return source == null ? null : Gender.valueOf(source.name());
     }
 
-    private FormatEnum toFormatEnum(Format format) {
-        return format == null ? null : FormatEnum.valueOf(format.name());
+    private FormatEnum toFormatEnum(Format source) {
+        return source == null ? null : FormatEnum.valueOf(source.name());
     }
 
-    private GenderEnum toGenderEnum(Gender gender) {
-        return gender == null ? null : GenderEnum.valueOf(gender.name());
+    private GenderEnum toGenderEnum(Gender source) {
+        return source == null ? null : GenderEnum.valueOf(source.name());
     }
 }

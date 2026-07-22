@@ -1,24 +1,22 @@
 package com.blockout.mobilegateway.club.api;
 
-import com.blockout.mobilegateway.club.api.models.ClubResponse;
+import com.blockout.mobilegateway.api.ClubPublicApi;
+import com.blockout.mobilegateway.api.models.ClubResponse;
 import com.blockout.mobilegateway.club.application.ClubApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Exposes public Club operations through the generated mobile contract. */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/public/clubs")
-public class ClubPublicController {
+public class ClubPublicController implements ClubPublicApi {
 
     private final ClubApplicationService clubService;
+    private final ClubApiMapper mapper;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ClubResponse> getClubById(@PathVariable("id") String id) {
-        var club = clubService.getClubById(id);
-        return ResponseEntity.ok(club);
+    @Override
+    public ResponseEntity<ClubResponse> getClubById(String id) {
+        return ResponseEntity.ok(mapper.toResponse(clubService.getClubById(id)));
     }
 }

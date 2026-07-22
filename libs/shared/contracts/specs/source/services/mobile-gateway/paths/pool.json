@@ -1,0 +1,91 @@
+{
+  "/api/v1/mobile/public/pools/{id}": {
+    "get": {
+      "tags": ["PoolPublic"],
+      "operationId": "getPoolById",
+      "security": [],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Pool found",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PoolResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/public/pools/by-ids": {
+    "get": {
+      "tags": ["PoolPublic"],
+      "operationId": "getPoolsByIds",
+      "security": [],
+      "parameters": [
+        {
+          "name": "ids",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int64" }
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Pools found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/PoolSummaryResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/pools/{id}": {
+    "put": {
+      "tags": ["PoolSecure"],
+      "operationId": "updatePool",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/UpdatePoolRequest" }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Pool updated",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PoolDetailsResponse" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

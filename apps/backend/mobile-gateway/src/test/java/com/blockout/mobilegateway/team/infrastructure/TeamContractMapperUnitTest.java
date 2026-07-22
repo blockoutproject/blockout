@@ -2,7 +2,7 @@ package com.blockout.mobilegateway.team.infrastructure;
 
 import com.blockout.mobilegateway.shared.application.models.Format;
 import com.blockout.mobilegateway.shared.application.models.Gender;
-import com.blockout.mobilegateway.team.api.models.UpdateTeamRequest;
+import com.blockout.mobilegateway.team.application.commands.UpdateTeamCommand;
 import com.blockout.mobilegateway.team.infrastructure.contract.models.TeamInternalResponse;
 import com.blockout.shared.model.FormatEnum;
 import com.blockout.shared.model.GenderEnum;
@@ -15,7 +15,7 @@ class TeamContractMapperUnitTest {
     private final TeamContractMapper mapper = new TeamContractMapper();
 
     @Test
-    void mapsTheGeneratedResponseToTheExistingGatewayModel() {
+    void mapsTheGeneratedResponseToTheApplicationView() {
         var internal = new TeamInternalResponse(
             1L, "club-1", "RAW", "Team", "T", "LNV", 2L, "2026/2027",
             FormatEnum.SIX, GenderEnum.F, 3L, true).logoUrl("logo");
@@ -30,7 +30,7 @@ class TeamContractMapperUnitTest {
 
     @Test
     void mapsEveryExistingUpdateFieldToTheGeneratedRequest() {
-        var request = UpdateTeamRequest.builder()
+        var request = UpdateTeamCommand.builder()
             .clubId("club-1")
             .rawName("RAW")
             .name("Team")

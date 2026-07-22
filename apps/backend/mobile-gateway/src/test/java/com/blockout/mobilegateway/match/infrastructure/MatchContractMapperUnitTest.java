@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.match.infrastructure;
 
-import com.blockout.mobilegateway.match.api.models.ReportMatchLiveLinkRequest;
-import com.blockout.mobilegateway.match.api.models.UpsertMatchLiveLinkRequest;
+import com.blockout.mobilegateway.match.application.commands.ReportMatchLiveLinkCommand;
+import com.blockout.mobilegateway.match.application.commands.UpsertMatchLiveLinkCommand;
 import com.blockout.mobilegateway.shared.application.models.LiveLinkStatus;
 import com.blockout.mobilegateway.shared.application.models.LiveProvider;
 import com.blockout.mobilegateway.shared.application.models.MatchStatus;
@@ -65,8 +65,8 @@ class MatchContractMapperUnitTest {
             1L, LiveProviderEnum.TWITCH, "https://twitch.tv/blockout", LiveLinkStatusEnum.PENDING, 0, "auth0|1");
 
         var response = mapper.toResponse(contract);
-        var upsert = mapper.toInternalRequest(UpsertMatchLiveLinkRequest.builder().url(contract.getUrl()).build());
-        var report = mapper.toInternalRequest(ReportMatchLiveLinkRequest.builder().reason("broken").build());
+        var upsert = mapper.toInternalRequest(UpsertMatchLiveLinkCommand.builder().url(contract.getUrl()).build());
+        var report = mapper.toInternalRequest(ReportMatchLiveLinkCommand.builder().reason("broken").build());
 
         assertThat(response.getProvider()).isEqualTo(LiveProvider.TWITCH);
         assertThat(response.getStatus()).isEqualTo(LiveLinkStatus.PENDING);

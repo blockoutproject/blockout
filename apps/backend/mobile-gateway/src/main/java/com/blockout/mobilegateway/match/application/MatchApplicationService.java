@@ -4,18 +4,31 @@ import com.blockout.mobilegateway.club.infrastructure.ClubInternalClient;
 import com.blockout.mobilegateway.competition.infrastructure.competition.CompetitionInternalClient;
 import com.blockout.mobilegateway.competition.infrastructure.competition.models.CompetitionAssociationInternalResponse;
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.config.api.models.DivisionResponse;
+import com.blockout.mobilegateway.config.application.views.DivisionView;
 import com.blockout.mobilegateway.config.infrastructure.ConfigInternalClient;
 import com.blockout.mobilegateway.ffvb.application.PdfLinkTokenService;
-import com.blockout.mobilegateway.match.api.models.*;
+import com.blockout.mobilegateway.match.application.commands.ReportMatchLiveLinkCommand;
+import com.blockout.mobilegateway.match.application.commands.UpsertMatchLiveLinkCommand;
+import com.blockout.mobilegateway.match.application.views.MatchData;
+import com.blockout.mobilegateway.match.application.views.MatchDayData;
+import com.blockout.mobilegateway.match.application.views.MatchDayPageData;
+import com.blockout.mobilegateway.match.application.views.MatchDayPageView;
+import com.blockout.mobilegateway.match.application.views.MatchDayView;
+import com.blockout.mobilegateway.match.application.views.MatchLiveLinkView;
+import com.blockout.mobilegateway.match.application.views.MatchLiveSummaryData;
+import com.blockout.mobilegateway.match.application.views.MatchLiveSummaryView;
+import com.blockout.mobilegateway.match.application.views.MatchView;
+import com.blockout.mobilegateway.match.application.views.PoolMatchesData;
+import com.blockout.mobilegateway.match.application.views.PoolMatchesView;
+import com.blockout.mobilegateway.match.application.views.UpsertMatchLiveLinkView;
 import com.blockout.mobilegateway.match.infrastructure.MatchInternalClient;
-import com.blockout.mobilegateway.pool.api.models.PoolInternalResponse;
-import com.blockout.mobilegateway.pool.api.models.PoolResponse;
+import com.blockout.mobilegateway.pool.application.views.PoolDetailsView;
+import com.blockout.mobilegateway.pool.application.views.PoolView;
 import com.blockout.mobilegateway.pool.infrastructure.PoolInternalClient;
 import com.blockout.mobilegateway.shared.api.errors.InconsistentStateException;
 import com.blockout.mobilegateway.shared.application.models.LiveLinkStatus;
-import com.blockout.mobilegateway.team.api.models.TeamInternalResponse;
-import com.blockout.mobilegateway.team.api.models.TeamWithStatsResponse;
+import com.blockout.mobilegateway.team.application.views.TeamDetailsView;
+import com.blockout.mobilegateway.team.application.views.TeamWithStatsView;
 import com.blockout.mobilegateway.team.infrastructure.TeamInternalClient;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -44,7 +57,7 @@ public class MatchApplicationService {
     private final ApiClientProperties apiClientProperties;
     private final PdfLinkTokenService pdfLinkTokenService;
 
-    public DayPageResponse getMatchList(String status, int page, int size, List<Long> poolFilterIds,
+    public MatchDayPageView getMatchList(String status, int page, int size, List<Long> poolFilterIds,
                                         List<Long> teamFilterIds) {
         long t0 = System.nanoTime();
         logger.info("Fetching match list",
@@ -55,35 +68,35 @@ public class MatchApplicationService {
             keyValue("pool_filter_ids_count", poolFilterIds != null ? poolFilterIds.size() : 0),
             keyValue("team_filter_ids_count", teamFilterIds != null ? teamFilterIds.size() : 0));
 
-        DayPageInternalResponse dayPage = matchInternalClient.getMatchesByDay(page, size, poolFilterIds, teamFilterIds, status);
+        MatchDayPageData dayPage = matchInternalClient.getMatchesByDay(page, size, poolFilterIds, teamFilterIds, status);
         if (dayPage == null || dayPage.getDayMatches() == null || dayPage.getDayMatches().isEmpty()) {
             logger.warn("No match data returned",
                 keyValue("action", "fetch_match_list"),
                 keyValue("page", page),
                 keyValue("size", size));
-            return DayPageResponse.builder()
+            return MatchDayPageView.builder()
                 .dayMatches(Collections.emptyList())
                 .hasNext(false)
                 .nextPage(null)
                 .build();
         }
 
-        List<DayMatchesInternalResponse> dayGroups = dayPage.getDayMatches();
+        List<MatchDayData> dayGroups = dayPage.getDayMatches();
 
         Set<Long> poolIds = new HashSet<>(64);
         Set<Long> teamIds = new HashSet<>(128);
-        for (DayMatchesInternalResponse day : dayGroups) {
-            List<PoolMatchesInternalResponse> pools = day.getPools();
+        for (MatchDayData day : dayGroups) {
+            List<PoolMatchesData> pools = day.getPools();
             if (pools == null) {
                 continue;
             }
-            for (PoolMatchesInternalResponse pool : pools) {
+            for (PoolMatchesData pool : pools) {
                 poolIds.add(pool.getPoolId());
-                List<MatchInternalResponse> matches = pool.getMatches();
+                List<MatchData> matches = pool.getMatches();
                 if (matches == null) {
                     continue;
                 }
-                for (MatchInternalResponse m : matches) {
+                for (MatchData m : matches) {
                     teamIds.add(m.getTeamIdA());
                     teamIds.add(m.getTeamIdB());
                 }
@@ -96,9 +109,9 @@ public class MatchApplicationService {
             keyValue("unique_team_ids", teamIds.size()));
 
         // Pools
-        Map<Long, PoolInternalResponse> poolById = new HashMap<>(poolIds.size() * 2);
+        Map<Long, PoolDetailsView> poolById = new HashMap<>(poolIds.size() * 2);
         for (Long poolId : poolIds) {
-            PoolInternalResponse pool = poolInternalClient.getPoolById(poolId);
+            PoolDetailsView pool = poolInternalClient.getPoolById(poolId);
             if (pool != null) {
                 poolById.put(poolId, pool);
             } else {
@@ -108,13 +121,13 @@ public class MatchApplicationService {
         }
 
         Set<Long> divisionIds = poolById.values().stream()
-            .map(PoolInternalResponse::getDivisionId)
+            .map(PoolDetailsView::getDivisionId)
             .collect(Collectors.toSet());
 
         // Teams
-        Map<Long, TeamInternalResponse> teamsMap = new HashMap<>(teamIds.size() * 2);
+        Map<Long, TeamDetailsView> teamsMap = new HashMap<>(teamIds.size() * 2);
         for (Long teamId : teamIds) {
-            TeamInternalResponse team = teamInternalClient.getTeamById(teamId);
+            TeamDetailsView team = teamInternalClient.getTeamById(teamId);
             if (team != null) {
                 teamsMap.put(teamId, team);
             } else {
@@ -127,9 +140,9 @@ public class MatchApplicationService {
         enrichTeamsWithClubData(teamsMap.values(), clubInternalClient);
 
         // Divisions
-        Map<Long, DivisionResponse> divisionById = new HashMap<>(divisionIds.size() * 2);
+        Map<Long, DivisionView> divisionById = new HashMap<>(divisionIds.size() * 2);
         for (Long divisionId : divisionIds) {
-            DivisionResponse division = configInternalClient.getDivisionById(divisionId);
+            DivisionView division = configInternalClient.getDivisionById(divisionId);
             if (division != null) {
                 divisionById.put(divisionId, division);
             } else {
@@ -138,13 +151,13 @@ public class MatchApplicationService {
             }
         }
 
-        Map<Long, PoolResponse> enrichedPoolById = new HashMap<>(poolById.size() * 2);
-        for (PoolInternalResponse p : poolById.values()) {
-            DivisionResponse division = divisionById.get(p.getDivisionId());
-            if (division == null || !Boolean.TRUE.equals(division.getActive())) {
+        Map<Long, PoolView> enrichedPoolById = new HashMap<>(poolById.size() * 2);
+        for (PoolDetailsView p : poolById.values()) {
+            DivisionView division = divisionById.get(p.getDivisionId());
+            if (division == null || !Boolean.TRUE.equals(division.active())) {
                 continue;
             }
-            enrichedPoolById.put(p.getId(), PoolResponse.builder()
+            enrichedPoolById.put(p.getId(), PoolView.builder()
                 .id(p.getId())
                 .season(p.getSeason())
                 .leagueCode(p.getLeagueCode())
@@ -164,28 +177,28 @@ public class MatchApplicationService {
             keyValue("teams", teamsMap.size()),
             keyValue("active_divisions", divisionById.size()));
 
-        List<DayMatchesResponse> enrichedDayMatches = new ArrayList<>(dayGroups.size());
-        for (DayMatchesInternalResponse day : dayGroups) {
-            List<PoolMatchesInternalResponse> pools = day.getPools();
+        List<MatchDayView> enrichedDayMatches = new ArrayList<>(dayGroups.size());
+        for (MatchDayData day : dayGroups) {
+            List<PoolMatchesData> pools = day.getPools();
             if (pools == null || pools.isEmpty()) {
                 continue;
             }
 
-            List<PoolMatchesResponse> enrichedPoolMatches = new ArrayList<>(pools.size());
-            for (PoolMatchesInternalResponse pool : pools) {
-                PoolResponse enrichedPool = enrichedPoolById.get(pool.getPoolId());
+            List<PoolMatchesView> enrichedPoolMatches = new ArrayList<>(pools.size());
+            for (PoolMatchesData pool : pools) {
+                PoolView enrichedPool = enrichedPoolById.get(pool.getPoolId());
                 if (enrichedPool == null) {
                     continue;
                 }
 
-                List<MatchInternalResponse> matches = pool.getMatches();
+                List<MatchData> matches = pool.getMatches();
                 if (matches == null || matches.isEmpty()) {
                     continue;
                 }
 
-                List<MatchResponse> enrichedMatches = new ArrayList<>(matches.size());
-                for (MatchInternalResponse m : matches) {
-                    enrichedMatches.add(MatchResponse.builder()
+                List<MatchView> enrichedMatches = new ArrayList<>(matches.size());
+                for (MatchData m : matches) {
+                    enrichedMatches.add(MatchView.builder()
                         .id(m.getId())
                         .matchDate(m.getMatchDate())
                         .status(m.getStatus())
@@ -202,7 +215,7 @@ public class MatchApplicationService {
                 }
 
                 if (!enrichedMatches.isEmpty()) {
-                    enrichedPoolMatches.add(PoolMatchesResponse.builder()
+                    enrichedPoolMatches.add(PoolMatchesView.builder()
                         .pool(enrichedPool)
                         .matches(enrichedMatches)
                         .build());
@@ -210,7 +223,7 @@ public class MatchApplicationService {
             }
 
             if (!enrichedPoolMatches.isEmpty()) {
-                enrichedDayMatches.add(DayMatchesResponse.builder()
+                enrichedDayMatches.add(MatchDayView.builder()
                     .date(day.getDate())
                     .pools(enrichedPoolMatches)
                     .build());
@@ -225,30 +238,30 @@ public class MatchApplicationService {
             keyValue("next_page", dayPage.getNextPage()),
             keyValue("duration_ms", (t1 - t0) / 1_000_000));
 
-        return DayPageResponse.builder()
+        return MatchDayPageView.builder()
             .dayMatches(enrichedDayMatches)
             .hasNext(dayPage.isHasNext())
             .nextPage(dayPage.getNextPage())
             .build();
     }
 
-    public MatchResponse getMatchById(Long id) {
+    public MatchView getMatchById(Long id) {
         long t0 = System.nanoTime();
         logger.info("Fetching match by id",
             keyValue("action", "get_match_by_id"),
             keyValue("match_id", id));
 
-        MatchInternalResponse match = matchInternalClient.getMatchById(id);
+        MatchData match = matchInternalClient.getMatchById(id);
         if (match == null) {
             throw new InconsistentStateException("Match not found with ID " + id);
         }
 
-        PoolInternalResponse rawPool = poolInternalClient.getPoolById(match.getPoolId());
+        PoolDetailsView rawPool = poolInternalClient.getPoolById(match.getPoolId());
         if (rawPool == null) {
             throw new InconsistentStateException("Pool not found with ID " + match.getPoolId());
         }
 
-        DivisionResponse division = configInternalClient.getDivisionById(rawPool.getDivisionId());
+        DivisionView division = configInternalClient.getDivisionById(rawPool.getDivisionId());
         if (division == null) {
             throw new InconsistentStateException("Division not found for pool with ID " + match.getPoolId());
         }
@@ -262,9 +275,9 @@ public class MatchApplicationService {
         teamIds.add(match.getTeamIdA());
         teamIds.add(match.getTeamIdB());
 
-        Map<Long, TeamInternalResponse> teamsMap = new HashMap<>(teamIds.size() * 2);
+        Map<Long, TeamDetailsView> teamsMap = new HashMap<>(teamIds.size() * 2);
         for (Long teamId : teamIds) {
-            TeamInternalResponse team = teamInternalClient.getTeamById(teamId);
+            TeamDetailsView team = teamInternalClient.getTeamById(teamId);
             if (team != null) {
                 teamsMap.put(teamId, team);
             } else {
@@ -277,24 +290,24 @@ public class MatchApplicationService {
         // Enrich every team involved in the ranking and in the match.
         enrichTeamsWithClubData(teamsMap.values(), clubInternalClient);
 
-        TeamInternalResponse teamA = teamsMap.get(match.getTeamIdA());
+        TeamDetailsView teamA = teamsMap.get(match.getTeamIdA());
         if (teamA == null) {
             throw new InconsistentStateException("Team A not found with ID " + match.getTeamIdA());
         }
 
-        TeamInternalResponse teamB = teamsMap.get(match.getTeamIdB());
+        TeamDetailsView teamB = teamsMap.get(match.getTeamIdB());
         if (teamB == null) {
             throw new InconsistentStateException("Team B not found with ID " + match.getTeamIdB());
         }
 
-        List<TeamWithStatsResponse> ranking = associations.stream()
+        List<TeamWithStatsView> ranking = associations.stream()
             .map(assoc -> {
-                TeamInternalResponse t = teamsMap.get(assoc.getTeamId());
+                TeamDetailsView t = teamsMap.get(assoc.getTeamId());
                 if (t == null) {
                     throw new InconsistentStateException(
                         "Missing team with ID " + assoc.getTeamId() + " for pool " + rawPool.getId());
                 }
-                return TeamWithStatsResponse.builder()
+                return TeamWithStatsView.builder()
                     .id(t.getId())
                     .name(t.getName())
                     .shortName(t.getShortName())
@@ -309,14 +322,14 @@ public class MatchApplicationService {
                     .build();
             })
             .sorted(
-                Comparator.comparingInt(TeamWithStatsResponse::getPoints).reversed()
-                    .thenComparingInt(TeamWithStatsResponse::getPointsPenalty)
-                    .thenComparing(Comparator.comparingInt(TeamWithStatsResponse::getWins).reversed())
-                    .thenComparing(Comparator.comparingDouble(TeamWithStatsResponse::getCoefSets).reversed())
-                    .thenComparing(Comparator.comparingDouble(TeamWithStatsResponse::getCoefPoints).reversed()))
+                Comparator.comparingInt(TeamWithStatsView::getPoints).reversed()
+                    .thenComparingInt(TeamWithStatsView::getPointsPenalty)
+                    .thenComparing(Comparator.comparingInt(TeamWithStatsView::getWins).reversed())
+                    .thenComparing(Comparator.comparingDouble(TeamWithStatsView::getCoefSets).reversed())
+                    .thenComparing(Comparator.comparingDouble(TeamWithStatsView::getCoefPoints).reversed()))
             .toList();
 
-        PoolResponse enrichedPool = PoolResponse.builder()
+        PoolView enrichedPool = PoolView.builder()
             .id(rawPool.getId())
             .season(rawPool.getSeason())
             .leagueCode(rawPool.getLeagueCode())
@@ -351,11 +364,11 @@ public class MatchApplicationService {
             keyValue("action", "build_enriched_match"),
             keyValue("match_id", id),
             keyValue("pool_id", rawPool.getId()),
-            keyValue("division_id", division.getId()),
+            keyValue("division_id", division.id()),
             keyValue("ranking_count", ranking.size()),
             keyValue("duration_ms", (t1 - t0) / 1_000_000));
 
-        return MatchResponse.builder()
+        return MatchView.builder()
             .id(match.getId())
             .matchDate(match.getMatchDate())
             .status(match.getStatus())
@@ -376,48 +389,44 @@ public class MatchApplicationService {
             .build();
     }
 
-    public UpsertMatchLiveLinkResponse upsertLiveLink(Long matchId, UpsertMatchLiveLinkRequest request, String auth0Id) {
+    public UpsertMatchLiveLinkView upsertLiveLink(Long matchId, UpsertMatchLiveLinkCommand command) {
         logger.info("Upsert live link",
             keyValue("action", "upsert_match_live_link"),
-            keyValue("match_id", matchId),
-            keyValue("auth0_id", auth0Id));
+            keyValue("match_id", matchId));
 
-        return matchInternalClient.upsertLiveLink(matchId, request);
+        return matchInternalClient.upsertLiveLink(matchId, command);
     }
 
-    public void deleteLiveLink(Long matchId, String auth0Id) {
+    public void deleteLiveLink(Long matchId) {
         logger.info("Delete live link",
             keyValue("action", "delete_match_live_link"),
-            keyValue("match_id", matchId),
-            keyValue("auth0_id", auth0Id));
+            keyValue("match_id", matchId));
 
         matchInternalClient.deleteLiveLink(matchId);
     }
 
-    public void reportLiveLink(Long matchId, ReportMatchLiveLinkRequest request, String auth0Id) {
+    public void reportLiveLink(Long matchId, ReportMatchLiveLinkCommand command) {
         logger.info("Report live link",
             keyValue("action", "report_match_live_link"),
-            keyValue("match_id", matchId),
-            keyValue("auth0_id", auth0Id));
+            keyValue("match_id", matchId));
 
-        matchInternalClient.reportLiveLink(matchId, request);
+        matchInternalClient.reportLiveLink(matchId, command);
     }
 
-    public List<MatchLiveLinkInternalResponse> getLiveLinksHistory(Long matchId, String auth0Id) {
+    public List<MatchLiveLinkView> getLiveLinksHistory(Long matchId) {
         logger.info("Get live links history",
             keyValue("action", "get_match_live_links_history"),
-            keyValue("match_id", matchId),
-            keyValue("auth0_id", auth0Id));
+            keyValue("match_id", matchId));
 
         return matchInternalClient.getLiveLinksHistory(matchId);
     }
 
-    public List<MatchLiveSummaryResponse> listMatchesForLiveModeration(LiveLinkStatus statusFilter) {
+    public List<MatchLiveSummaryView> listMatchesForLiveModeration(LiveLinkStatus statusFilter) {
         logger.info("List live links for moderation",
             keyValue("action", "list_match_live_links_for_moderation"),
             keyValue("status_filter", statusFilter));
 
-        List<MatchLiveSummaryInternalResponse> summaries = matchInternalClient.listMatchesForLiveModeration(statusFilter);
+        List<MatchLiveSummaryData> summaries = matchInternalClient.listMatchesForLiveModeration(statusFilter);
         if (summaries == null || summaries.isEmpty()) {
             logger.info("No matches returned for live moderation",
                 keyValue("action", "list_match_live_links_for_moderation_empty"));
@@ -426,7 +435,7 @@ public class MatchApplicationService {
 
         Set<Long> poolIds = new HashSet<>(summaries.size());
         Set<Long> teamIds = new HashSet<>(summaries.size() * 2);
-        for (MatchLiveSummaryInternalResponse m : summaries) {
+        for (MatchLiveSummaryData m : summaries) {
             poolIds.add(m.getPoolId());
             teamIds.add(m.getTeamIdA());
             teamIds.add(m.getTeamIdB());
@@ -437,9 +446,9 @@ public class MatchApplicationService {
             keyValue("unique_pool_ids", poolIds.size()),
             keyValue("unique_team_ids", teamIds.size()));
 
-        Map<Long, PoolInternalResponse> poolById = new HashMap<>(poolIds.size() * 2);
+        Map<Long, PoolDetailsView> poolById = new HashMap<>(poolIds.size() * 2);
         for (Long poolId : poolIds) {
-            PoolInternalResponse pool = poolInternalClient.getPoolById(poolId);
+            PoolDetailsView pool = poolInternalClient.getPoolById(poolId);
             if (pool != null) {
                 poolById.put(poolId, pool);
             } else {
@@ -449,12 +458,12 @@ public class MatchApplicationService {
         }
 
         Set<Long> divisionIds = poolById.values().stream()
-            .map(PoolInternalResponse::getDivisionId)
+            .map(PoolDetailsView::getDivisionId)
             .collect(Collectors.toSet());
 
-        Map<Long, DivisionResponse> divisionById = new HashMap<>(divisionIds.size() * 2);
+        Map<Long, DivisionView> divisionById = new HashMap<>(divisionIds.size() * 2);
         for (Long divisionId : divisionIds) {
-            DivisionResponse division = configInternalClient.getDivisionById(divisionId);
+            DivisionView division = configInternalClient.getDivisionById(divisionId);
             if (division != null) {
                 divisionById.put(divisionId, division);
             } else {
@@ -463,13 +472,13 @@ public class MatchApplicationService {
             }
         }
 
-        Map<Long, PoolResponse> enrichedPoolById = new HashMap<>(poolById.size() * 2);
-        for (PoolInternalResponse p : poolById.values()) {
-            DivisionResponse division = divisionById.get(p.getDivisionId());
-            if (division == null || !Boolean.TRUE.equals(division.getActive())) {
+        Map<Long, PoolView> enrichedPoolById = new HashMap<>(poolById.size() * 2);
+        for (PoolDetailsView p : poolById.values()) {
+            DivisionView division = divisionById.get(p.getDivisionId());
+            if (division == null || !Boolean.TRUE.equals(division.active())) {
                 continue;
             }
-            PoolResponse enrichedPool = PoolResponse.builder()
+            PoolView enrichedPool = PoolView.builder()
                 .id(p.getId())
                 .season(p.getSeason())
                 .leagueCode(p.getLeagueCode())
@@ -486,9 +495,9 @@ public class MatchApplicationService {
             enrichedPoolById.put(p.getId(), enrichedPool);
         }
 
-        Map<Long, TeamInternalResponse> teamsMap = new HashMap<>(teamIds.size() * 2);
+        Map<Long, TeamDetailsView> teamsMap = new HashMap<>(teamIds.size() * 2);
         for (Long teamId : teamIds) {
-            TeamInternalResponse team = teamInternalClient.getTeamById(teamId);
+            TeamDetailsView team = teamInternalClient.getTeamById(teamId);
             if (team != null) {
                 teamsMap.put(teamId, team);
             } else {
@@ -499,9 +508,9 @@ public class MatchApplicationService {
 
         enrichTeamsWithClubData(teamsMap.values(), clubInternalClient);
 
-        List<MatchLiveSummaryResponse> result = new ArrayList<>(summaries.size());
-        for (MatchLiveSummaryInternalResponse m : summaries) {
-            PoolResponse enrichedPool = enrichedPoolById.get(m.getPoolId());
+        List<MatchLiveSummaryView> result = new ArrayList<>(summaries.size());
+        for (MatchLiveSummaryData m : summaries) {
+            PoolView enrichedPool = enrichedPoolById.get(m.getPoolId());
             if (enrichedPool == null) {
                 logger.warn("Skipping match in moderation view because enriched pool is missing or inactive",
                     keyValue("match_id", m.getId()),
@@ -509,8 +518,8 @@ public class MatchApplicationService {
                 continue;
             }
 
-            TeamInternalResponse teamA = teamsMap.get(m.getTeamIdA());
-            TeamInternalResponse teamB = teamsMap.get(m.getTeamIdB());
+            TeamDetailsView teamA = teamsMap.get(m.getTeamIdA());
+            TeamDetailsView teamB = teamsMap.get(m.getTeamIdB());
             if (teamA == null || teamB == null) {
                 logger.warn("Skipping match in moderation view because team is missing",
                     keyValue("match_id", m.getId()),
@@ -519,7 +528,7 @@ public class MatchApplicationService {
                 continue;
             }
 
-            MatchLiveSummaryResponse dto = MatchLiveSummaryResponse.builder()
+            MatchLiveSummaryView dto = MatchLiveSummaryView.builder()
                 .id(m.getId())
                 .matchDate(m.getMatchDate())
                 .season(m.getSeason())
@@ -548,29 +557,26 @@ public class MatchApplicationService {
         return result;
     }
 
-    public void approvePendingLiveLink(Long liveLinkId, String auth0Id) {
+    public void approvePendingLiveLink(Long liveLinkId) {
         logger.info("Approve pending live link",
             keyValue("action", "approve_pending_match_live_link"),
-            keyValue("live_link_id", liveLinkId),
-            keyValue("auth0_id", auth0Id));
+            keyValue("live_link_id", liveLinkId));
 
         matchInternalClient.approvePendingLiveLink(liveLinkId);
     }
 
-    public void rejectPendingLiveLink(Long liveLinkId, String auth0Id) {
+    public void rejectPendingLiveLink(Long liveLinkId) {
         logger.info("Reject pending live link",
             keyValue("action", "reject_pending_match_live_link"),
-            keyValue("live_link_id", liveLinkId),
-            keyValue("auth0_id", auth0Id));
+            keyValue("live_link_id", liveLinkId));
 
         matchInternalClient.rejectPendingLiveLink(liveLinkId);
     }
 
-    public void reactivateLiveLink(Long liveLinkId, String auth0Id) {
+    public void reactivateLiveLink(Long liveLinkId) {
         logger.info("Reactivate live link",
             keyValue("action", "reactivate_match_live_link"),
-            keyValue("live_link_id", liveLinkId),
-            keyValue("auth0_id", auth0Id));
+            keyValue("live_link_id", liveLinkId));
 
         matchInternalClient.reactivateLiveLink(liveLinkId);
     }

@@ -198,7 +198,7 @@ remain local; transport enums defined by OpenAPI are generated.
 ## Current boundary inventory
 
 | Application            | Blockout-owned JSON to migrate                                                 | External JSON to preserve                      |
-|------------------------|--------------------------------------------------------------------------------|------------------------------------------------|
+| ---------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------- |
 | `club-scraper`         | Config status responses and club/competition API writes                        | Auth0 and FFVB responses                       |
 | `competition-scraper`  | Config, competition, team, pool, and match API payloads                        | Auth0, FFVB, and LNV inputs                    |
 | `clubs-service`        | REST bodies and club lifecycle events                                          | Mapbox responses                               |
@@ -259,4 +259,19 @@ provider adapter; the public controller only translates application results to t
 The V1 mobile routes, native camelCase payloads and query parameters, caches, internal endpoint selection, FFVB proxy,
 signed-link behavior, security matchers, and provider request formats remain unchanged. The diagnostic JWT filter and
 obsolete generic `controllers`, `services`, `models`, and `utils` package organization are removed. Contract generation
-remains deferred until these handwritten boundaries are reviewed as stable.
+was deliberately deferred by REF-020 until these handwritten boundaries had been reviewed as stable.
+
+## Generated mobile BFF boundary after REF-053
+
+`mobile-gateway` now implements one authoritative generated OpenAPI V1 boundary. Its mobile request and response names
+are the official product-facing names and never contain `Internal`. Feature API mappers translate those generated DTOs
+to handwritten application commands and views; aggregation and enrichment remain explicit application behavior.
+
+Generated service clients retain owner-side `*InternalRequest` and `*InternalResponse` names and remain confined to the
+gateway infrastructure adapters. Python scrapers follow the same rule because they call the owning backend services
+directly: their generated Blockout transports are internal contracts, not mobile BFF models. The implementation
+language does not change the boundary's ownership.
+
+No generated source is tracked. Java generation writes below Maven `target`, the future mobile TypeScript client will
+be generated from this mobile-gateway contract only, and the scraper clients continue to be generated from the internal
+owner contracts only.

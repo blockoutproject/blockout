@@ -591,11 +591,20 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     cutover, or production operation was performed. Two clean Java generations have the same hash; contract guards and
     25 targeted Java 21 tests pass. Git tracks no generated source.
 
-- [ ] **REF-053 — Migrate the mobile gateway contract**
+- [x] **REF-053 — Migrate the mobile gateway contract**
   - Define the authoritative mobile-facing OpenAPI contract and make `mobile-gateway` implement its generated Java
     interfaces and DTOs while keeping aggregation logic handwritten and explicit.
   - Preserve every mobile route and camelCase payload. Reuse internal generated clients without exposing internal DTOs
     directly through the mobile boundary.
+  - Evidence: one mobile-gateway OpenAPI V1 source now owns all 44 existing routes and 50 operations. The 15 feature
+    controllers implement generated interfaces and expose only official public request and response names; no public
+    schema contains `Internal`. Generated DTOs map to small application commands and views before orchestration, while
+    generated owner-service `*InternalRequest` and `*InternalResponse` types remain confined to infrastructure
+    adapters. All superseded handwritten public gateway DTOs were removed.
+  - Routes, camelCase fields, multipart part names, aggregation, caches, Auth0 enforcement, signed FFVB links, and
+    provider behavior remain unchanged. Two complete generations have the same hash; six contract guards and all 40
+    gateway Java 21 tests pass. Both scraper suites also pass all 108 tests, including their generated-internal-contract
+    architecture guards. Generated files remain ignored and untracked.
 
 - [ ] **REF-054 — Adopt the generated mobile TypeScript client**
   - Generate the mobile client and models with Orval from the gateway contract into

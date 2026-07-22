@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.pool.infrastructure;
 
-import com.blockout.mobilegateway.pool.api.models.PoolInternalResponse;
-import com.blockout.mobilegateway.pool.api.models.UpdatePoolRequest;
+import com.blockout.mobilegateway.pool.application.commands.UpdatePoolCommand;
+import com.blockout.mobilegateway.pool.application.views.PoolDetailsView;
 import com.blockout.mobilegateway.pool.infrastructure.contract.models.UpdatePoolInternalRequest;
 import org.springframework.stereotype.Component;
 
@@ -10,10 +10,10 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class PoolContractMapper {
-    public PoolInternalResponse toResponse(
+    public PoolDetailsView toResponse(
         com.blockout.mobilegateway.pool.infrastructure.contract.models.PoolInternalResponse pool) {
         if (pool == null) return null;
-        return PoolInternalResponse.builder()
+        return PoolDetailsView.builder()
             .id(pool.getId()).poolCode(pool.getPoolCode()).leagueCode(pool.getLeagueCode()).season(pool.getSeason())
             .leagueName(pool.getLeagueName()).rawName(pool.getRawName()).name(pool.getName())
             .shortName(pool.getShortName()).divisionId(pool.getDivisionId())
@@ -23,7 +23,7 @@ public class PoolContractMapper {
             .createdAt(pool.getCreatedAt()).lastUpdate(pool.getLastUpdate()).build();
     }
 
-    public UpdatePoolInternalRequest toInternalRequest(UpdatePoolRequest request) {
+    public UpdatePoolInternalRequest toInternalRequest(UpdatePoolCommand request) {
         return new UpdatePoolInternalRequest()
             .poolCode(request.getPoolCode()).leagueCode(request.getLeagueCode()).season(request.getSeason())
             .leagueName(request.getLeagueName()).rawName(request.getRawName()).name(request.getName())

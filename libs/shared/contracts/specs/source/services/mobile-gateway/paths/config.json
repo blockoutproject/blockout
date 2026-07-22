@@ -1,0 +1,403 @@
+{
+  "/api/v1/mobile/public/config/app-status": {
+    "get": {
+      "tags": ["ConfigPublic"],
+      "operationId": "getAppStatus",
+      "security": [],
+      "responses": {
+        "200": {
+          "description": "Application status",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AppStatusResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/public/config/divisions": {
+    "get": {
+      "tags": ["ConfigPublic"],
+      "operationId": "listDivisions",
+      "security": [],
+      "responses": {
+        "200": {
+          "description": "Divisions",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/DivisionResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/public/config/divisions/{id}": {
+    "get": {
+      "tags": ["ConfigPublic"],
+      "operationId": "getDivisionById",
+      "security": [],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Division found",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DivisionResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/public/config/legal/{type}": {
+    "get": {
+      "tags": ["ConfigPublic"],
+      "operationId": "getLegalDocument",
+      "security": [],
+      "parameters": [
+        {
+          "name": "type",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Legal document",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LegalDocumentResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/config/app-status": {
+    "put": {
+      "tags": ["ConfigSecure"],
+      "operationId": "updateAppStatus",
+      "security": [{ "bearerAuth": [] }],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/UpdateAppStatusRequest" }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Application status updated",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AppStatusResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/config/divisions": {
+    "post": {
+      "tags": ["ConfigSecure"],
+      "operationId": "createDivision",
+      "security": [{ "bearerAuth": [] }],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "image": { "type": "string", "format": "binary" }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Division created",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DivisionResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/config/divisions/{id}": {
+    "put": {
+      "tags": ["ConfigSecure"],
+      "operationId": "updateDivision",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "image": { "type": "string", "format": "binary" }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Division updated",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DivisionResponse" }
+            }
+          }
+        }
+      }
+    },
+    "delete": {
+      "tags": ["ConfigSecure"],
+      "operationId": "deactivateDivision",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Division deactivated" } }
+    }
+  },
+  "/api/v1/mobile/secure/config/raw-divisions": {
+    "get": {
+      "tags": ["ConfigSecure"],
+      "operationId": "listRawDivisions",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        { "name": "leagueCode", "in": "query", "schema": { "type": "string" } },
+        { "name": "season", "in": "query", "schema": { "type": "string" } }
+      ],
+      "responses": {
+        "200": {
+          "description": "Raw division mappings",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RawDivisionMappingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "post": {
+      "tags": ["ConfigSecure"],
+      "operationId": "createRawDivisionMapping",
+      "security": [{ "bearerAuth": [] }],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateRawDivisionMappingRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Raw division mapping created",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawDivisionMappingResponse"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/config/raw-divisions/{id}": {
+    "get": {
+      "tags": ["ConfigSecure"],
+      "operationId": "getRawDivisionById",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Raw division mapping",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawDivisionMappingResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    "put": {
+      "tags": ["ConfigSecure"],
+      "operationId": "updateRawDivision",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateRawDivisionMappingRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Raw division mapping updated",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawDivisionMappingResponse"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/config/legal/{type}": {
+    "put": {
+      "tags": ["ConfigSecure"],
+      "operationId": "updateLegalDocument",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "type",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateLegalDocumentRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Legal document updated",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LegalDocumentResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/config/scrapers/{name}/enabled": {
+    "put": {
+      "tags": ["ConfigSecure"],
+      "operationId": "updateScraperStatus",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        },
+        {
+          "name": "enabled",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "boolean" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Scraper status updated",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ScraperStatusResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/config/scrapers/status": {
+    "get": {
+      "tags": ["ConfigSecure"],
+      "operationId": "listScraperStatuses",
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": {
+          "description": "Scraper statuses",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScraperStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

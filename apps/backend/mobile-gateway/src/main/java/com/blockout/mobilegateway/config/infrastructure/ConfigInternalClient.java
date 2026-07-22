@@ -1,7 +1,16 @@
 package com.blockout.mobilegateway.config.infrastructure;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.config.api.models.*;
+import com.blockout.mobilegateway.config.application.commands.CreateRawDivisionMappingCommand;
+import com.blockout.mobilegateway.config.application.commands.UpdateAppStatusCommand;
+import com.blockout.mobilegateway.config.application.commands.UpdateLegalDocumentCommand;
+import com.blockout.mobilegateway.config.application.commands.UpdateRawDivisionMappingCommand;
+import com.blockout.mobilegateway.config.application.commands.UpsertDivisionCommand;
+import com.blockout.mobilegateway.config.application.views.AppStatusView;
+import com.blockout.mobilegateway.config.application.views.DivisionView;
+import com.blockout.mobilegateway.config.application.views.LegalDocumentView;
+import com.blockout.mobilegateway.config.application.views.RawDivisionMappingView;
+import com.blockout.mobilegateway.config.application.views.ScraperStatusView;
 import com.blockout.mobilegateway.config.infrastructure.contract.models.AppStatusInternalResponse;
 import com.blockout.mobilegateway.config.infrastructure.contract.models.DivisionInternalResponse;
 import com.blockout.mobilegateway.config.infrastructure.contract.models.LegalDocumentInternalResponse;
@@ -37,7 +46,7 @@ public class ConfigInternalClient {
         return apiClientProperties.getConfig().getUrl();
     }
 
-    public AppStatusResponse getAppStatus() {
+    public AppStatusView getAppStatus() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("app-status")
             .build()
@@ -47,19 +56,19 @@ public class ConfigInternalClient {
         return body == null ? null : contractMapper.toResponse(body);
     }
 
-    public AppStatusResponse updateAppStatus(UpdateAppStatusRequest dto) {
+    public AppStatusView updateAppStatus(UpdateAppStatusCommand command) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("app-status")
             .build()
             .toUriString();
 
         AppStatusInternalResponse body = internalApiClient.put(
-            url, contractMapper.toInternalRequest(dto), AppStatusInternalResponse.class).getBody();
+            url, contractMapper.toInternalRequest(command), AppStatusInternalResponse.class).getBody();
         return body == null ? null : contractMapper.toResponse(body);
     }
 
     @Cacheable(value = "divisions")
-    public List<DivisionResponse> listDivisions() {
+    public List<DivisionView> listDivisions() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("divisions")
             .build()
@@ -70,7 +79,7 @@ public class ConfigInternalClient {
     }
 
     @Cacheable(value = "divisionById", key = "#id")
-    public DivisionResponse getDivisionById(Long id) {
+    public DivisionView getDivisionById(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("divisions", id.toString())
             .build()
@@ -80,14 +89,14 @@ public class ConfigInternalClient {
         return body == null ? null : contractMapper.toResponse(body);
     }
 
-    public DivisionResponse createDivision(UpsertDivisionRequest dto, MultipartFile image) {
+    public DivisionView createDivision(UpsertDivisionCommand command, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("divisions")
             .build()
             .toUriString();
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(
-            objectMapper, contractMapper.toCreateRequest(dto), image);
+            objectMapper, contractMapper.toCreateRequest(command), image);
 
         DivisionInternalResponse response = internalApiClient.postMultipart(
             url, body, DivisionInternalResponse.class).getBody();
@@ -99,14 +108,14 @@ public class ConfigInternalClient {
     }, evict = {
         @CacheEvict(value = "divisions")
     })
-    public DivisionResponse updateDivision(Long id, UpsertDivisionRequest dto, MultipartFile image) {
+    public DivisionView updateDivision(Long id, UpsertDivisionCommand command, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("divisions", id.toString())
             .build()
             .toUriString();
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(
-            objectMapper, contractMapper.toUpdateRequest(dto), image);
+            objectMapper, contractMapper.toUpdateRequest(command), image);
 
         DivisionInternalResponse response = internalApiClient.putMultipart(
             url, body, DivisionInternalResponse.class).getBody();
@@ -126,7 +135,7 @@ public class ConfigInternalClient {
         internalApiClient.delete(url, Void.class);
     }
 
-    public LegalDocumentResponse getLegalDocument(String type) {
+    public LegalDocumentView getLegalDocument(String type) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("legal", type)
             .build()
@@ -136,29 +145,29 @@ public class ConfigInternalClient {
         return body == null ? null : contractMapper.toResponse(body);
     }
 
-    public LegalDocumentResponse updateLegalDocument(String type, UpdateLegalDocumentRequest dto) {
+    public LegalDocumentView updateLegalDocument(String type, UpdateLegalDocumentCommand command) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("legal", type)
             .build()
             .toUriString();
 
         LegalDocumentInternalResponse body = internalApiClient.put(
-            url, contractMapper.toInternalRequest(dto), LegalDocumentInternalResponse.class).getBody();
+            url, contractMapper.toInternalRequest(command), LegalDocumentInternalResponse.class).getBody();
         return body == null ? null : contractMapper.toResponse(body);
     }
 
-    public RawDivisionMappingResponse createRawDivisionMapping(RawDivisionMappingResponse dto) {
+    public RawDivisionMappingView createRawDivisionMapping(CreateRawDivisionMappingCommand command) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("raw-divisions")
             .build()
             .toUriString();
 
         RawDivisionMappingInternalResponse body = internalApiClient.post(
-            url, contractMapper.toCreateRequest(dto), RawDivisionMappingInternalResponse.class).getBody();
+            url, contractMapper.toCreateRequest(command), RawDivisionMappingInternalResponse.class).getBody();
         return body == null ? null : contractMapper.toResponse(body);
     }
 
-    public List<RawDivisionMappingResponse> listRawDivisionMappings(String leagueCode, String season) {
+    public List<RawDivisionMappingView> listRawDivisionMappings(String leagueCode, String season) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("raw-divisions")
             .queryParamIfPresent("leagueCode", java.util.Optional.ofNullable(leagueCode))
@@ -171,7 +180,7 @@ public class ConfigInternalClient {
         return body == null ? Collections.emptyList() : Arrays.stream(body).map(contractMapper::toResponse).toList();
     }
 
-    public RawDivisionMappingResponse getRawDivisionMappingById(Long id) {
+    public RawDivisionMappingView getRawDivisionMappingById(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("raw-divisions", id.toString())
             .build()
@@ -182,18 +191,18 @@ public class ConfigInternalClient {
         return body == null ? null : contractMapper.toResponse(body);
     }
 
-    public RawDivisionMappingResponse updateRawDivisionMapping(Long id, UpdateRawDivisionMappingRequest dto) {
+    public RawDivisionMappingView updateRawDivisionMapping(Long id, UpdateRawDivisionMappingCommand command) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("raw-divisions", id.toString())
             .build()
             .toUriString();
 
         RawDivisionMappingInternalResponse body = internalApiClient.put(
-            url, contractMapper.toInternalRequest(dto), RawDivisionMappingInternalResponse.class).getBody();
+            url, contractMapper.toInternalRequest(command), RawDivisionMappingInternalResponse.class).getBody();
         return body == null ? null : contractMapper.toResponse(body);
     }
 
-    public ScraperStatusResponse updateScraperStatus(String name, boolean enabled) {
+    public ScraperStatusView updateScraperStatus(String name, boolean enabled) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("scrapers", name, "enabled")
             .queryParam("enabled", enabled)
@@ -205,7 +214,7 @@ public class ConfigInternalClient {
         return body == null ? null : contractMapper.toResponse(body);
     }
 
-    public List<ScraperStatusResponse> listScraperStatuses() {
+    public List<ScraperStatusView> listScraperStatuses() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("scrapers", "status")
             .build()

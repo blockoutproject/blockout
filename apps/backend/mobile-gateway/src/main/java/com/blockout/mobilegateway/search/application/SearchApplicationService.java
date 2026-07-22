@@ -1,8 +1,8 @@
 package com.blockout.mobilegateway.search.application;
 
-import com.blockout.mobilegateway.search.api.models.ClubSearchResponse;
-import com.blockout.mobilegateway.search.api.models.PoolSearchResponse;
-import com.blockout.mobilegateway.search.api.models.TeamSearchResponse;
+import com.blockout.mobilegateway.search.application.views.ClubSearchView;
+import com.blockout.mobilegateway.search.application.views.PoolSearchView;
+import com.blockout.mobilegateway.search.application.views.TeamSearchView;
 import com.blockout.mobilegateway.search.infrastructure.SearchInternalClient;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -20,15 +20,15 @@ public class SearchApplicationService {
     private static final Logger logger = LoggerFactory.getLogger(SearchApplicationService.class);
     private final SearchInternalClient searchInternalClient;
 
-    public List<ClubSearchResponse> searchClubs(String query) {
+    public List<ClubSearchView> searchClubs(String query) {
         logger.info("Searching clubs",
             keyValue("action", "search_clubs"),
             keyValue("query", query));
-        List<ClubSearchResponse> results = searchInternalClient.searchClubs(query);
+        List<ClubSearchView> results = searchInternalClient.searchClubs(query);
         return results;
     }
 
-    public List<PoolSearchResponse> searchPools(String query, String season, Long divisionId, String format,
+    public List<PoolSearchView> searchPools(String query, String season, Long divisionId, String format,
                                                 String gender) {
         logger.info("Searching pools",
             keyValue("action", "search_pools"),
@@ -40,7 +40,7 @@ public class SearchApplicationService {
         return searchInternalClient.searchPools(query, season, divisionId, format, gender);
     }
 
-    public List<TeamSearchResponse> searchTeams(String query, String season, Long divisionId, String format,
+    public List<TeamSearchView> searchTeams(String query, String season, Long divisionId, String format,
                                                 String gender) {
         logger.info("Searching teams",
             keyValue("action", "search_teams"),

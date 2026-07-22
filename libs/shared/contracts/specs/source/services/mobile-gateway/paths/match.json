@@ -1,0 +1,262 @@
+{
+  "/api/v1/mobile/public/matches/{id}": {
+    "get": {
+      "tags": ["MatchPublic"],
+      "operationId": "getMatchById",
+      "security": [],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Match found",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MatchResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/public/matches": {
+    "get": {
+      "tags": ["MatchPublic"],
+      "operationId": "getMatchList",
+      "security": [],
+      "parameters": [
+        {
+          "name": "page",
+          "in": "query",
+          "schema": { "type": "integer", "format": "int32", "default": 0 }
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "schema": { "type": "integer", "format": "int32", "default": 4 }
+        },
+        {
+          "name": "poolIds",
+          "in": "query",
+          "schema": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int64" }
+          }
+        },
+        {
+          "name": "teamIds",
+          "in": "query",
+          "schema": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int64" }
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Match page",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DayPageResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/matches/{matchId}/live-link": {
+    "post": {
+      "tags": ["MatchSecure"],
+      "operationId": "upsertLiveLink",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "matchId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpsertMatchLiveLinkRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Live link upserted",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertMatchLiveLinkResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    "delete": {
+      "tags": ["MatchSecure"],
+      "operationId": "deleteLiveLink",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "matchId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Live link deleted" } }
+    }
+  },
+  "/api/v1/mobile/secure/matches/{matchId}/live-link/report": {
+    "post": {
+      "tags": ["MatchSecure"],
+      "operationId": "reportLiveLink",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "matchId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ReportMatchLiveLinkRequest"
+            }
+          }
+        }
+      },
+      "responses": { "204": { "description": "Live link reported" } }
+    }
+  },
+  "/api/v1/mobile/secure/matches/{matchId}/live-links": {
+    "get": {
+      "tags": ["MatchSecure"],
+      "operationId": "getLiveLinksHistory",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "matchId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Live link history",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MatchLiveLinkHistoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/matches/live-moderation": {
+    "get": {
+      "tags": ["MatchSecure"],
+      "operationId": "listMatchesForLiveModeration",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "status",
+          "in": "query",
+          "schema": { "$ref": "#/components/schemas/LiveLinkStatusEnum" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Matches requiring live moderation",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MatchLiveSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/matches/live-links/{liveLinkId}/approve": {
+    "post": {
+      "tags": ["MatchSecure"],
+      "operationId": "approvePendingLink",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "liveLinkId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Live link approved" } }
+    }
+  },
+  "/api/v1/mobile/secure/matches/live-links/{liveLinkId}/reject": {
+    "post": {
+      "tags": ["MatchSecure"],
+      "operationId": "rejectPendingLink",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "liveLinkId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Live link rejected" } }
+    }
+  },
+  "/api/v1/mobile/secure/matches/live-links/{liveLinkId}/reactivate": {
+    "post": {
+      "tags": ["MatchSecure"],
+      "operationId": "reactivateLiveLink",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "liveLinkId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Live link reactivated" } }
+    }
+  }
+}

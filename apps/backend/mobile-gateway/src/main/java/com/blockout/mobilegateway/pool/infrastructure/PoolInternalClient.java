@@ -1,8 +1,8 @@
 package com.blockout.mobilegateway.pool.infrastructure;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.pool.api.models.PoolInternalResponse;
-import com.blockout.mobilegateway.pool.api.models.UpdatePoolRequest;
+import com.blockout.mobilegateway.pool.application.commands.UpdatePoolCommand;
+import com.blockout.mobilegateway.pool.application.views.PoolDetailsView;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CachePut;
@@ -29,7 +29,7 @@ public class PoolInternalClient {
     }
 
     @Cacheable(value = "poolById", key = "#id")
-    public PoolInternalResponse getPoolById(Long id) {
+    public PoolDetailsView getPoolById(Long id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(id.toString())
             .build()
@@ -40,7 +40,7 @@ public class PoolInternalClient {
         return contractMapper.toResponse(response.getBody());
     }
 
-    public List<PoolInternalResponse> getPoolsByIds(Set<Long> ids) {
+    public List<PoolDetailsView> getPoolsByIds(Set<Long> ids) {
         if (ids == null || ids.isEmpty())
             return Collections.emptyList();
 
@@ -59,13 +59,13 @@ public class PoolInternalClient {
     @Caching(put = {
         @CachePut(value = "poolById", key = "#id")
     })
-    public PoolInternalResponse updatePool(Long id, UpdatePoolRequest dto) {
+    public PoolDetailsView updatePool(Long id, UpdatePoolCommand command) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(id.toString())
             .build()
             .toUriString();
 
-        var response = internalApiClient.put(url, contractMapper.toInternalRequest(dto),
+        var response = internalApiClient.put(url, contractMapper.toInternalRequest(command),
             com.blockout.mobilegateway.pool.infrastructure.contract.models.PoolInternalResponse.class);
         return contractMapper.toResponse(response.getBody());
     }

@@ -1,21 +1,21 @@
-import assert from 'node:assert/strict';
-import {execFileSync, spawnSync} from 'node:child_process';
-import {readdir, readFile} from 'node:fs/promises';
-import path from 'node:path';
-import test from 'node:test';
-import {fileURLToPath} from 'node:url';
+import assert from "node:assert/strict";
+import { execFileSync, spawnSync } from "node:child_process";
+import { readdir, readFile } from "node:fs/promises";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const workspaceRoot = path.resolve(scriptDir, '../../../../..');
-const contractsRoot = path.resolve(scriptDir, '../..');
-const bundleScript = path.join(scriptDir, 'bundle-openapi.mjs');
+const workspaceRoot = path.resolve(scriptDir, "../../../../..");
+const contractsRoot = path.resolve(scriptDir, "../..");
+const bundleScript = path.join(scriptDir, "bundle-openapi.mjs");
 
 async function jsonFiles(dir) {
   let entries;
   try {
-    entries = await readdir(dir, {withFileTypes: true});
+    entries = await readdir(dir, { withFileTypes: true });
   } catch (error) {
-    if (error.code === 'ENOENT') {
+    if (error.code === "ENOENT") {
       return [];
     }
     throw error;
@@ -27,193 +27,286 @@ async function jsonFiles(dir) {
       return entry.isDirectory() ? jsonFiles(entryPath) : [entryPath];
     }),
   );
-  return files.flat().filter((file) => file.endsWith('.json')).sort();
+  return files
+    .flat()
+    .filter((file) => file.endsWith(".json"))
+    .sort();
 }
 
-function enumLocations(value, pointer = '') {
+function enumLocations(value, pointer = "") {
   if (Array.isArray(value)) {
-    return value.flatMap((item, index) => enumLocations(item, `${pointer}/${index}`));
+    return value.flatMap((item, index) =>
+      enumLocations(item, `${pointer}/${index}`),
+    );
   }
-  if (!value || typeof value !== 'object') {
+  if (!value || typeof value !== "object") {
     return [];
   }
 
-  const current = Object.hasOwn(value, 'enum') ? [pointer] : [];
+  const current = Object.hasOwn(value, "enum") ? [pointer] : [];
   return current.concat(
-    Object.entries(value).flatMap(([key, child]) => enumLocations(child, `${pointer}/${key}`)),
+    Object.entries(value).flatMap(([key, child]) =>
+      enumLocations(child, `${pointer}/${key}`),
+    ),
   );
 }
 
-test('workspace fragments produce the shared OpenAPI bundle', async () => {
-  const result = spawnSync(process.execPath, [bundleScript], {cwd: workspaceRoot, encoding: 'utf8'});
+test("workspace fragments produce the shared OpenAPI bundle", async () => {
+  const result = spawnSync(process.execPath, [bundleScript], {
+    cwd: workspaceRoot,
+    encoding: "utf8",
+  });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
 
   const bundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/shared.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/shared.json"),
+      "utf8",
+    ),
   );
-  assert.equal(bundle.openapi, '3.0.3');
+  assert.equal(bundle.openapi, "3.0.3");
   assert.deepEqual(Object.keys(bundle.components.schemas), [
-    'DevicePlatformEnum',
-    'EntityTypeEnum',
-    'FormatEnum',
-    'GenderEnum',
-    'LiveLinkStatusEnum',
-    'LiveProviderEnum',
-    'MatchStatusEnum',
-    'NotificationTargetTypeEnum',
-    'NotificationTypeEnum',
-    'ReportTypeEnum',
-    'ScraperNameEnum',
+    "DevicePlatformEnum",
+    "EntityTypeEnum",
+    "FormatEnum",
+    "GenderEnum",
+    "LiveLinkStatusEnum",
+    "LiveProviderEnum",
+    "MatchStatusEnum",
+    "NotificationTargetTypeEnum",
+    "NotificationTypeEnum",
+    "ReportTypeEnum",
+    "ScraperNameEnum",
   ]);
 });
 
-test('shared schemas contain only reusable named transport enums', async () => {
-  const sharedDir = path.join(contractsRoot, 'specs/source/shared/schemas');
+test("shared schemas contain only reusable named transport enums", async () => {
+  const sharedDir = path.join(contractsRoot, "specs/source/shared/schemas");
   for (const file of await jsonFiles(sharedDir)) {
-    const document = JSON.parse(await readFile(file, 'utf8'));
-    const name = path.basename(file, '.json');
+    const document = JSON.parse(await readFile(file, "utf8"));
+    const name = path.basename(file, ".json");
     assert.deepEqual(Object.keys(document), [name]);
-    assert.ok(name.endsWith('Enum'));
+    assert.ok(name.endsWith("Enum"));
     assert.deepEqual(enumLocations(document), [`/${name}`]);
   }
 });
 
-test('service schemas contain no handwritten inline transport enum', async () => {
-  const servicesDir = path.join(contractsRoot, 'specs/source/services');
+test("service schemas contain no handwritten inline transport enum", async () => {
+  const servicesDir = path.join(contractsRoot, "specs/source/services");
   const inlineEnums = [];
   for (const file of await jsonFiles(servicesDir)) {
     if (!file.includes(`${path.sep}schemas${path.sep}`)) {
       continue;
     }
-    const document = JSON.parse(await readFile(file, 'utf8'));
-    inlineEnums.push(...enumLocations(document).map((pointer) => `${file}${pointer}`));
+    const document = JSON.parse(await readFile(file, "utf8"));
+    inlineEnums.push(
+      ...enumLocations(document).map((pointer) => `${file}${pointer}`),
+    );
   }
   assert.deepEqual(inlineEnums, []);
 });
 
-test('schema roots include active multipart JSON models without fake endpoints', async () => {
+test("schema roots include active multipart JSON models without fake endpoints", async () => {
   const clubBundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/club.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/club.json"),
+      "utf8",
+    ),
   );
   assert.ok(clubBundle.components.schemas.CreateClubInternalRequest);
   assert.ok(clubBundle.components.schemas.UpdateClubInternalRequest);
   assert.equal(
-    clubBundle.paths['/api/v1/clubs'].post.requestBody.content['multipart/form-data'].schema.properties.data.type,
-    'string',
+    clubBundle.paths["/api/v1/clubs"].post.requestBody.content[
+      "multipart/form-data"
+    ].schema.properties.data.type,
+    "string",
   );
 
   const configBundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/config.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/config.json"),
+      "utf8",
+    ),
   );
   assert.ok(configBundle.components.schemas.CreateDivisionInternalRequest);
   assert.ok(configBundle.components.schemas.UpdateDivisionInternalRequest);
   assert.equal(
-    configBundle.paths['/api/v1/config/divisions'].post.requestBody.content[
-      'multipart/form-data'
+    configBundle.paths["/api/v1/config/divisions"].post.requestBody.content[
+      "multipart/form-data"
     ].schema.properties.data.type,
-    'string',
+    "string",
   );
 
   const teamBundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/team.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/team.json"),
+      "utf8",
+    ),
   );
   assert.ok(teamBundle.components.schemas.CreateTeamInternalRequest);
   assert.ok(teamBundle.components.schemas.UpdateTeamInternalRequest);
   assert.equal(
-    teamBundle.paths['/api/v1/teams/{id}'].put.requestBody.content['multipart/form-data'].schema
-      .properties.data.type,
-    'string',
+    teamBundle.paths["/api/v1/teams/{id}"].put.requestBody.content[
+      "multipart/form-data"
+    ].schema.properties.data.type,
+    "string",
   );
 
   const poolBundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/pool.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/pool.json"),
+      "utf8",
+    ),
   );
   assert.ok(poolBundle.components.schemas.CreatePoolInternalRequest);
   assert.ok(poolBundle.components.schemas.UpdatePoolInternalRequest);
   assert.equal(
-    poolBundle.paths['/api/v1/pools'].post.requestBody.content['application/json'].schema.$ref,
-    '#/components/schemas/CreatePoolInternalRequest',
+    poolBundle.paths["/api/v1/pools"].post.requestBody.content[
+      "application/json"
+    ].schema.$ref,
+    "#/components/schemas/CreatePoolInternalRequest",
   );
 
   const competitionBundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/competition.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/competition.json"),
+      "utf8",
+    ),
   );
-  assert.ok(competitionBundle.components.schemas.UpdateAssociationStatsInternalRequest);
-  assert.ok(competitionBundle.components.schemas.CompetitionAssociationInternalResponse);
+  assert.ok(
+    competitionBundle.components.schemas.UpdateAssociationStatsInternalRequest,
+  );
+  assert.ok(
+    competitionBundle.components.schemas.CompetitionAssociationInternalResponse,
+  );
   assert.equal(
-    competitionBundle.paths['/api/v1/competitions/pools/{poolId}/teams/{teamId}/stats'].put
-      .requestBody.content['application/json'].schema.$ref,
-    '#/components/schemas/UpdateAssociationStatsInternalRequest',
+    competitionBundle.paths[
+      "/api/v1/competitions/pools/{poolId}/teams/{teamId}/stats"
+    ].put.requestBody.content["application/json"].schema.$ref,
+    "#/components/schemas/UpdateAssociationStatsInternalRequest",
   );
 
   const matchBundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/match.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/match.json"),
+      "utf8",
+    ),
   );
   assert.ok(matchBundle.components.schemas.CreateMatchInternalRequest);
   assert.ok(matchBundle.components.schemas.MatchInternalResponse);
   assert.equal(
-    matchBundle.paths['/api/v1/matches'].post.requestBody.content['application/json'].schema.$ref,
-    '#/components/schemas/CreateMatchInternalRequest',
+    matchBundle.paths["/api/v1/matches"].post.requestBody.content[
+      "application/json"
+    ].schema.$ref,
+    "#/components/schemas/CreateMatchInternalRequest",
   );
 
   const userBundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/user.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/user.json"),
+      "utf8",
+    ),
   );
   assert.ok(userBundle.components.schemas.UpdateUserInternalRequest);
   assert.ok(userBundle.components.schemas.UserInternalResponse);
   assert.equal(
-    userBundle.paths['/api/v1/users/{auth0Id}'].put.requestBody.content['multipart/form-data']
-      .schema.properties.data.type,
-    'string',
+    userBundle.paths["/api/v1/users/{auth0Id}"].put.requestBody.content[
+      "multipart/form-data"
+    ].schema.properties.data.type,
+    "string",
   );
 
   const notificationBundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/notification.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/notification.json"),
+      "utf8",
+    ),
   );
   assert.ok(notificationBundle.components.schemas.NotificationInternalResponse);
-  assert.ok(notificationBundle.components.schemas.RegisterPushTokenInternalRequest);
+  assert.ok(
+    notificationBundle.components.schemas.RegisterPushTokenInternalRequest,
+  );
   assert.equal(
-    notificationBundle.paths['/api/v1/notifications/users/{userId}/push-tokens'].post.requestBody
-      .content['application/json'].schema.$ref,
-    '#/components/schemas/RegisterPushTokenInternalRequest',
+    notificationBundle.paths["/api/v1/notifications/users/{userId}/push-tokens"]
+      .post.requestBody.content["application/json"].schema.$ref,
+    "#/components/schemas/RegisterPushTokenInternalRequest",
   );
 
   const reportBundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/report.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/report.json"),
+      "utf8",
+    ),
   );
   assert.ok(reportBundle.components.schemas.CreateReportInternalRequest);
   assert.ok(reportBundle.components.schemas.ReportInternalResponse);
   assert.equal(
-    reportBundle.paths['/api/v1/reports'].post.requestBody.content['multipart/form-data'].schema
-      .properties.data.type,
-    'string',
+    reportBundle.paths["/api/v1/reports"].post.requestBody.content[
+      "multipart/form-data"
+    ].schema.properties.data.type,
+    "string",
   );
 
   const searchBundle = JSON.parse(
-    await readFile(path.join(contractsRoot, 'generated/specs/search.json'), 'utf8'),
+    await readFile(
+      path.join(contractsRoot, "generated/specs/search.json"),
+      "utf8",
+    ),
   );
   assert.ok(searchBundle.components.schemas.ClubSearchInternalResponse);
   assert.ok(searchBundle.components.schemas.TeamSearchInternalResponse);
   assert.ok(searchBundle.components.schemas.PoolSearchInternalResponse);
   assert.equal(
-    searchBundle.paths['/api/v1/search/teams'].get.parameters.find(
-      (parameter) => parameter.name === 'divisionId',
+    searchBundle.paths["/api/v1/search/teams"].get.parameters.find(
+      (parameter) => parameter.name === "divisionId",
     ).schema.format,
-    'int64',
+    "int64",
   );
 });
 
-test('generated artifacts are not tracked by Git', () => {
-  const tracked = execFileSync('git', ['ls-files'], {cwd: workspaceRoot, encoding: 'utf8'})
+test("mobile gateway exposes only the public V1 contract", async () => {
+  const bundle = JSON.parse(
+    await readFile(
+      path.join(contractsRoot, "generated/specs/mobile-gateway.json"),
+      "utf8",
+    ),
+  );
+  const operations = Object.values(bundle.paths).flatMap((pathItem) =>
+    Object.values(pathItem).filter((operation) => operation?.operationId),
+  );
+
+  assert.equal(Object.keys(bundle.paths).length, 44);
+  assert.equal(operations.length, 50);
+  assert.ok(
+    Object.keys(bundle.paths).every((route) =>
+      route.startsWith("/api/v1/mobile/"),
+    ),
+  );
+  assert.deepEqual(
+    Object.keys(bundle.components.schemas).filter((name) =>
+      name.includes("Internal"),
+    ),
+    [],
+  );
+  assert.equal(JSON.stringify(bundle.paths).includes("Internal"), false);
+});
+
+test("generated artifacts are not tracked by Git", () => {
+  const tracked = execFileSync("git", ["ls-files"], {
+    cwd: workspaceRoot,
+    encoding: "utf8",
+  })
     .trim()
-    .split('\n')
+    .split("\n")
     .filter(Boolean);
   const generated = tracked.filter(
     (file) =>
-      file.startsWith('libs/shared/contracts/generated/') ||
-      /^libs\/shared\/python-contract-clients\/src\/blockout_contract_clients\/[^/]+\//.test(file) ||
-      file.startsWith('apps/frontend/mobile/src/shared/generated/') ||
-      file.includes('/target/generated-sources/openapi/'),
+      file.startsWith("libs/shared/contracts/generated/") ||
+      /^libs\/shared\/python-contract-clients\/src\/blockout_contract_clients\/[^/]+\//.test(
+        file,
+      ) ||
+      file.startsWith("apps/frontend/mobile/src/shared/generated/") ||
+      file.includes("/target/generated-sources/openapi/"),
   );
   assert.deepEqual(generated, []);
 });

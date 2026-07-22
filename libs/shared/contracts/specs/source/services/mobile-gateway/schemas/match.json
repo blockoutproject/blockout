@@ -1,0 +1,168 @@
+{
+  "MatchResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "matchDate",
+      "season",
+      "status",
+      "teamA",
+      "teamB",
+      "pool"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "liveCode": { "type": "integer", "format": "int64", "nullable": true },
+      "matchDate": { "type": "string", "format": "instant" },
+      "season": { "type": "string" },
+      "set": { "type": "string", "nullable": true },
+      "score": { "type": "string", "nullable": true },
+      "status": { "$ref": "#/components/schemas/MatchStatusEnum" },
+      "venue": { "type": "string", "nullable": true },
+      "firstReferee": { "type": "string", "nullable": true },
+      "secondReferee": { "type": "string", "nullable": true },
+      "liveUrl": { "type": "string", "nullable": true },
+      "liveProvider": {
+        "allOf": [{ "$ref": "#/components/schemas/LiveProviderEnum" }],
+        "nullable": true
+      },
+      "liveOwnerAuth0Id": { "type": "string", "nullable": true },
+      "teamA": { "$ref": "#/components/schemas/TeamDetailsResponse" },
+      "teamB": { "$ref": "#/components/schemas/TeamDetailsResponse" },
+      "matchAddressPdfUrl": { "type": "string", "nullable": true },
+      "matchSheetPdfUrl": { "type": "string", "nullable": true },
+      "pool": { "$ref": "#/components/schemas/PoolResponse" }
+    }
+  },
+  "PoolMatchesResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["pool", "matches"],
+    "properties": {
+      "pool": { "$ref": "#/components/schemas/PoolResponse" },
+      "matches": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/MatchResponse" }
+      }
+    }
+  },
+  "DayMatchesResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["date", "pools"],
+    "properties": {
+      "date": { "type": "string" },
+      "pools": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/PoolMatchesResponse" }
+      }
+    }
+  },
+  "DayPageResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["dayMatches", "hasNext"],
+    "properties": {
+      "dayMatches": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/DayMatchesResponse" }
+      },
+      "hasNext": { "type": "boolean" },
+      "nextPage": { "type": "integer", "format": "int32", "nullable": true }
+    }
+  },
+  "UpsertMatchLiveLinkRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": { "url": { "type": "string" } }
+  },
+  "UpsertMatchLiveLinkResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "matchId",
+      "provider",
+      "url",
+      "status",
+      "reportCount",
+      "ownerAuth0Id"
+    ],
+    "properties": {
+      "matchId": { "type": "integer", "format": "int64" },
+      "provider": { "$ref": "#/components/schemas/LiveProviderEnum" },
+      "url": { "type": "string" },
+      "status": { "$ref": "#/components/schemas/LiveLinkStatusEnum" },
+      "reportCount": { "type": "integer", "format": "int32" },
+      "ownerAuth0Id": { "type": "string" }
+    }
+  },
+  "ReportMatchLiveLinkRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": { "reason": { "type": "string" } }
+  },
+  "MatchLiveLinkHistoryResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "matchId",
+      "provider",
+      "url",
+      "status",
+      "reportCount",
+      "ownerAuth0Id",
+      "createdAt",
+      "lastUpdate"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "matchId": { "type": "integer", "format": "int64" },
+      "provider": { "$ref": "#/components/schemas/LiveProviderEnum" },
+      "url": { "type": "string" },
+      "status": { "$ref": "#/components/schemas/LiveLinkStatusEnum" },
+      "reportCount": { "type": "integer", "format": "int32" },
+      "ownerAuth0Id": { "type": "string" },
+      "createdAt": { "type": "string", "format": "instant" },
+      "lastUpdate": { "type": "string", "format": "instant" }
+    }
+  },
+  "MatchLiveSummaryResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "status", "teamA", "teamB", "pool"],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "matchDate": { "type": "string", "format": "instant", "nullable": true },
+      "season": { "type": "string", "nullable": true },
+      "set": { "type": "string", "nullable": true },
+      "score": { "type": "string", "nullable": true },
+      "status": { "$ref": "#/components/schemas/MatchStatusEnum" },
+      "liveCode": { "type": "integer", "format": "int64", "nullable": true },
+      "lastLiveLinkId": {
+        "type": "integer",
+        "format": "int64",
+        "nullable": true
+      },
+      "lastLiveLinkStatus": {
+        "allOf": [{ "$ref": "#/components/schemas/LiveLinkStatusEnum" }],
+        "nullable": true
+      },
+      "lastLiveLinkProvider": {
+        "allOf": [{ "$ref": "#/components/schemas/LiveProviderEnum" }],
+        "nullable": true
+      },
+      "lastLiveLinkUrl": { "type": "string", "nullable": true },
+      "lastLiveLinkOwnerAuth0Id": { "type": "string", "nullable": true },
+      "lastLiveLinkCreatedAt": {
+        "type": "string",
+        "format": "instant",
+        "nullable": true
+      },
+      "teamA": { "$ref": "#/components/schemas/TeamDetailsResponse" },
+      "teamB": { "$ref": "#/components/schemas/TeamDetailsResponse" },
+      "pool": { "$ref": "#/components/schemas/PoolResponse" }
+    }
+  }
+}

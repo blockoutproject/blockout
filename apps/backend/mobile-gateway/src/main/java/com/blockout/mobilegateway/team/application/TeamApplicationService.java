@@ -1,17 +1,21 @@
 package com.blockout.mobilegateway.team.application;
 
-import com.blockout.mobilegateway.club.api.models.ClubResponse;
+import com.blockout.mobilegateway.club.application.views.ClubView;
 import com.blockout.mobilegateway.club.infrastructure.ClubInternalClient;
 import com.blockout.mobilegateway.competition.infrastructure.competition.CompetitionInternalClient;
 import com.blockout.mobilegateway.competition.infrastructure.competition.models.PoolWithRankingInternalResponse;
 import com.blockout.mobilegateway.competition.infrastructure.competition.models.TeamRankingInternalResponse;
-import com.blockout.mobilegateway.config.api.models.DivisionResponse;
+import com.blockout.mobilegateway.config.application.views.DivisionView;
 import com.blockout.mobilegateway.config.infrastructure.ConfigInternalClient;
-import com.blockout.mobilegateway.pool.api.models.PoolInternalResponse;
-import com.blockout.mobilegateway.pool.api.models.PoolResponse;
+import com.blockout.mobilegateway.pool.application.views.PoolDetailsView;
+import com.blockout.mobilegateway.pool.application.views.PoolView;
 import com.blockout.mobilegateway.pool.infrastructure.PoolInternalClient;
 import com.blockout.mobilegateway.shared.api.errors.InconsistentStateException;
-import com.blockout.mobilegateway.team.api.models.*;
+import com.blockout.mobilegateway.team.application.commands.UpdateTeamCommand;
+import com.blockout.mobilegateway.team.application.views.TeamDetailsView;
+import com.blockout.mobilegateway.team.application.views.TeamSummaryView;
+import com.blockout.mobilegateway.team.application.views.TeamView;
+import com.blockout.mobilegateway.team.application.views.TeamWithStatsView;
 import com.blockout.mobilegateway.team.infrastructure.TeamInternalClient;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -38,18 +42,18 @@ public class TeamApplicationService {
     private final CompetitionInternalClient competitionInternalClient;
     private final PoolInternalClient poolInternalClient;
 
-    private static List<TeamWithStatsResponse> buildRanking(List<TeamRankingInternalResponse> rawRanking, Map<Long, TeamInternalResponse> teamsMap) {
+    private static List<TeamWithStatsView> buildRanking(List<TeamRankingInternalResponse> rawRanking, Map<Long, TeamDetailsView> teamsMap) {
         if (rawRanking == null || rawRanking.isEmpty()) {
             return Collections.emptyList();
         }
 
         return rawRanking.stream()
             .map(r -> {
-                TeamInternalResponse t = teamsMap.get(r.getTeamId());
+                TeamDetailsView t = teamsMap.get(r.getTeamId());
                 if (t == null) {
                     throw new InconsistentStateException("Missing team with ID " + r.getTeamId());
                 }
-                return TeamWithStatsResponse.builder()
+                return TeamWithStatsView.builder()
                     .id(t.getId())
                     .name(t.getName())
                     .shortName(t.getShortName())
@@ -64,26 +68,26 @@ public class TeamApplicationService {
                     .build();
             })
             .sorted(
-                Comparator.comparingInt(TeamWithStatsResponse::getPoints).reversed()
-                    .thenComparingInt(TeamWithStatsResponse::getPointsPenalty)
-                    .thenComparing(Comparator.comparingInt(TeamWithStatsResponse::getWins).reversed())
-                    .thenComparing(Comparator.comparingDouble(TeamWithStatsResponse::getCoefSets).reversed())
-                    .thenComparing(Comparator.comparingDouble(TeamWithStatsResponse::getCoefPoints).reversed()))
+                Comparator.comparingInt(TeamWithStatsView::getPoints).reversed()
+                    .thenComparingInt(TeamWithStatsView::getPointsPenalty)
+                    .thenComparing(Comparator.comparingInt(TeamWithStatsView::getWins).reversed())
+                    .thenComparing(Comparator.comparingDouble(TeamWithStatsView::getCoefSets).reversed())
+                    .thenComparing(Comparator.comparingDouble(TeamWithStatsView::getCoefPoints).reversed()))
             .toList();
     }
 
-    public TeamResponse getTeamById(Long id) {
+    public TeamView getTeamById(Long id) {
         long t0 = System.nanoTime();
         logger.info("Fetch team by id",
             keyValue("action", "get_team_by_id"),
             keyValue("team_id", id));
 
-        TeamInternalResponse team = teamInternalClient.getTeamById(id);
+        TeamDetailsView team = teamInternalClient.getTeamById(id);
         if (team == null) {
             throw new InconsistentStateException("Team not found with ID " + id);
         }
 
-        DivisionResponse division = configInternalClient.getDivisionById(team.getDivisionId());
+        DivisionView division = configInternalClient.getDivisionById(team.getDivisionId());
         if (division == null) {
             throw new InconsistentStateException("Division not found for team with ID " + id);
         }
@@ -100,9 +104,9 @@ public class TeamApplicationService {
             .collect(Collectors.toCollection(() -> new HashSet<>(64)));
         allTeamIds.add(id);
 
-        Map<Long, TeamInternalResponse> teamsMap = new HashMap<>(allTeamIds.size() * 2);
+        Map<Long, TeamDetailsView> teamsMap = new HashMap<>(allTeamIds.size() * 2);
         for (Long teamId : allTeamIds) {
-            TeamInternalResponse t = teamInternalClient.getTeamById(teamId);
+            TeamDetailsView t = teamInternalClient.getTeamById(teamId);
             if (t != null) {
                 teamsMap.put(teamId, t);
             } else {
@@ -118,9 +122,9 @@ public class TeamApplicationService {
             .map(PoolWithRankingInternalResponse::getPoolId)
             .collect(Collectors.toSet());
 
-        Map<Long, PoolInternalResponse> poolMap = new HashMap<>(poolIds.size() * 2);
+        Map<Long, PoolDetailsView> poolMap = new HashMap<>(poolIds.size() * 2);
         for (Long poolId : poolIds) {
-            PoolInternalResponse pool = poolInternalClient.getPoolById(poolId);
+            PoolDetailsView pool = poolInternalClient.getPoolById(poolId);
             if (pool != null) {
                 poolMap.put(poolId, pool);
             } else {
@@ -130,14 +134,14 @@ public class TeamApplicationService {
             }
         }
 
-        List<PoolResponse> enrichedPools = poolsWithRankings.stream()
+        List<PoolView> enrichedPools = poolsWithRankings.stream()
             .map(p -> {
-                PoolInternalResponse basePool = poolMap.get(p.getPoolId());
+                PoolDetailsView basePool = poolMap.get(p.getPoolId());
                 if (basePool == null) {
                     throw new InconsistentStateException("Missing pool with ID " + p.getPoolId());
                 }
-                List<TeamWithStatsResponse> ranking = buildRanking(p.getRanking(), teamsMap);
-                return PoolResponse.builder()
+                List<TeamWithStatsView> ranking = buildRanking(p.getRanking(), teamsMap);
+                return PoolView.builder()
                     .id(basePool.getId())
                     .leagueCode(basePool.getLeagueCode())
                     .leagueName(basePool.getLeagueName())
@@ -153,13 +157,13 @@ public class TeamApplicationService {
             })
             .toList();
 
-        ClubResponse club = clubInternalClient.getClubById(team.getClubId());
+        ClubView club = clubInternalClient.getClubById(team.getClubId());
 
         String finalLogoUrl = StringUtils.isNotBlank(team.getLogoUrl())
             ? team.getLogoUrl()
-            : (club != null ? club.getLogoUrl() : null);
+            : (club != null ? club.logoUrl() : null);
 
-        TeamResponse result = TeamResponse.builder()
+        TeamView result = TeamView.builder()
             .id(team.getId())
             .name(team.getName())
             .clubId(team.getClubId())
@@ -186,7 +190,7 @@ public class TeamApplicationService {
         return result;
     }
 
-    public List<TeamSummaryResponse> getTeamsByClubId(String clubId) {
+    public List<TeamSummaryView> getTeamsByClubId(String clubId) {
         if (StringUtils.isBlank(clubId)) {
             throw new InconsistentStateException("clubId must be a non-empty string");
         }
@@ -195,19 +199,19 @@ public class TeamApplicationService {
             keyValue("action", "get_teams_by_club"),
             keyValue("club_id", clubId));
 
-        List<TeamInternalResponse> teams = teamInternalClient.getTeamsByClubId(clubId);
+        List<TeamDetailsView> teams = teamInternalClient.getTeamsByClubId(clubId);
         if (teams == null || teams.isEmpty()) {
             return Collections.emptyList();
         }
 
         Set<Long> divisionIds = teams.stream()
-            .map(TeamInternalResponse::getDivisionId)
+            .map(TeamDetailsView::getDivisionId)
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
 
-        Map<Long, DivisionResponse> divisionsById = new HashMap<>(divisionIds.size() * 2);
+        Map<Long, DivisionView> divisionsById = new HashMap<>(divisionIds.size() * 2);
         for (Long divisionId : divisionIds) {
-            DivisionResponse division = configInternalClient.getDivisionById(divisionId);
+            DivisionView division = configInternalClient.getDivisionById(divisionId);
             if (division != null) {
                 divisionsById.put(divisionId, division);
             } else {
@@ -217,15 +221,15 @@ public class TeamApplicationService {
             }
         }
 
-        ClubResponse club = clubInternalClient.getClubById(clubId);
+        ClubView club = clubInternalClient.getClubById(clubId);
 
-        List<TeamSummaryResponse> result = teams.stream()
+        List<TeamSummaryView> result = teams.stream()
             .map(t -> {
                 String finalLogoUrl = StringUtils.isNotBlank(t.getLogoUrl())
                     ? t.getLogoUrl()
-                    : club.getLogoUrl();
+                    : club.logoUrl();
 
-                return TeamSummaryResponse.builder()
+                return TeamSummaryView.builder()
                     .id(t.getId())
                     .name(t.getName())
                     .shortName(t.getShortName())
@@ -249,7 +253,7 @@ public class TeamApplicationService {
         return result;
     }
 
-    public List<TeamSummaryResponse> getTeamsByIds(List<Long> ids) {
+    public List<TeamSummaryView> getTeamsByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new InconsistentStateException("ids must be a non-empty list");
         }
@@ -259,9 +263,9 @@ public class TeamApplicationService {
             keyValue("ids_count", ids.size()));
 
         Set<Long> uniqueIds = new HashSet<>(ids);
-        List<TeamInternalResponse> teams = new ArrayList<>(uniqueIds.size());
+        List<TeamDetailsView> teams = new ArrayList<>(uniqueIds.size());
         for (Long teamId : uniqueIds) {
-            TeamInternalResponse team = teamInternalClient.getTeamById(teamId);
+            TeamDetailsView team = teamInternalClient.getTeamById(teamId);
             if (team != null && team.getActive()) {
                 teams.add(team);
             } else {
@@ -275,13 +279,13 @@ public class TeamApplicationService {
         }
 
         Set<Long> divisionIds = teams.stream()
-            .map(TeamInternalResponse::getDivisionId)
+            .map(TeamDetailsView::getDivisionId)
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
 
-        Map<Long, DivisionResponse> divisionsById = new HashMap<>(divisionIds.size() * 2);
+        Map<Long, DivisionView> divisionsById = new HashMap<>(divisionIds.size() * 2);
         for (Long divisionId : divisionIds) {
-            DivisionResponse division = configInternalClient.getDivisionById(divisionId);
+            DivisionView division = configInternalClient.getDivisionById(divisionId);
             if (division != null) {
                 divisionsById.put(divisionId, division);
             } else {
@@ -291,13 +295,13 @@ public class TeamApplicationService {
         }
 
         Set<String> clubIds = teams.stream()
-            .map(TeamInternalResponse::getClubId)
+            .map(TeamDetailsView::getClubId)
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
 
-        Map<String, ClubResponse> clubById = new HashMap<>(clubIds.size() * 2);
+        Map<String, ClubView> clubById = new HashMap<>(clubIds.size() * 2);
         for (String clubId : clubIds) {
-            ClubResponse club = clubInternalClient.getClubById(clubId);
+            ClubView club = clubInternalClient.getClubById(clubId);
             if (club != null) {
                 clubById.put(clubId, club);
             } else {
@@ -306,15 +310,15 @@ public class TeamApplicationService {
             }
         }
 
-        List<TeamSummaryResponse> result = teams.stream()
+        List<TeamSummaryView> result = teams.stream()
             .map(t -> {
-                ClubResponse club = clubById.get(t.getClubId());
+                ClubView club = clubById.get(t.getClubId());
 
                 String finalLogoUrl = StringUtils.isNotBlank(t.getLogoUrl())
                     ? t.getLogoUrl()
-                    : (club != null ? club.getLogoUrl() : null);
+                    : (club != null ? club.logoUrl() : null);
 
-                return TeamSummaryResponse.builder()
+                return TeamSummaryView.builder()
                     .id(t.getId())
                     .name(t.getName())
                     .shortName(t.getShortName())
@@ -338,12 +342,12 @@ public class TeamApplicationService {
         return result;
     }
 
-    public TeamInternalResponse updateTeam(Long id, UpdateTeamRequest dto, MultipartFile image) {
+    public TeamDetailsView updateTeam(Long id, UpdateTeamCommand command, MultipartFile image) {
         logger.info("Update team",
             keyValue("action", "update_team"),
             keyValue("team_id", id),
-            keyValue("has_payload", dto != null),
+            keyValue("has_payload", command != null),
             keyValue("has_image", image != null));
-        return teamInternalClient.updateTeam(id, dto, image);
+        return teamInternalClient.updateTeam(id, command, image);
     }
 }

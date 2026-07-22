@@ -1,19 +1,19 @@
 package com.blockout.mobilegateway.pool.application;
 
-import com.blockout.mobilegateway.club.api.models.ClubResponse;
+import com.blockout.mobilegateway.club.application.views.ClubView;
 import com.blockout.mobilegateway.club.infrastructure.ClubInternalClient;
 import com.blockout.mobilegateway.competition.infrastructure.competition.CompetitionInternalClient;
 import com.blockout.mobilegateway.competition.infrastructure.competition.models.CompetitionAssociationInternalResponse;
-import com.blockout.mobilegateway.config.api.models.DivisionResponse;
+import com.blockout.mobilegateway.config.application.views.DivisionView;
 import com.blockout.mobilegateway.config.infrastructure.ConfigInternalClient;
-import com.blockout.mobilegateway.pool.api.models.PoolInternalResponse;
-import com.blockout.mobilegateway.pool.api.models.PoolResponse;
-import com.blockout.mobilegateway.pool.api.models.PoolSummaryResponse;
-import com.blockout.mobilegateway.pool.api.models.UpdatePoolRequest;
+import com.blockout.mobilegateway.pool.application.commands.UpdatePoolCommand;
+import com.blockout.mobilegateway.pool.application.views.PoolDetailsView;
+import com.blockout.mobilegateway.pool.application.views.PoolSummaryView;
+import com.blockout.mobilegateway.pool.application.views.PoolView;
 import com.blockout.mobilegateway.pool.infrastructure.PoolInternalClient;
 import com.blockout.mobilegateway.shared.api.errors.InconsistentStateException;
-import com.blockout.mobilegateway.team.api.models.TeamInternalResponse;
-import com.blockout.mobilegateway.team.api.models.TeamWithStatsResponse;
+import com.blockout.mobilegateway.team.application.views.TeamDetailsView;
+import com.blockout.mobilegateway.team.application.views.TeamWithStatsView;
 import com.blockout.mobilegateway.team.infrastructure.TeamInternalClient;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -38,18 +38,18 @@ public class PoolApplicationService {
     private final TeamInternalClient teamInternalClient;
     private final ClubInternalClient clubInternalClient;
 
-    public PoolResponse getPoolById(Long poolId) {
+    public PoolView getPoolById(Long poolId) {
         long t0 = System.nanoTime();
         logger.info("Fetch enriched pool",
             keyValue("action", "get_pool_by_id"),
             keyValue("pool_id", poolId));
 
-        PoolInternalResponse rawPool = poolInternalClient.getPoolById(poolId);
+        PoolDetailsView rawPool = poolInternalClient.getPoolById(poolId);
         if (rawPool == null) {
             throw new InconsistentStateException("Pool not found with ID " + poolId);
         }
 
-        DivisionResponse division = configInternalClient.getDivisionById(rawPool.getDivisionId());
+        DivisionView division = configInternalClient.getDivisionById(rawPool.getDivisionId());
         if (division == null) {
             throw new InconsistentStateException("Division not found for pool with ID " + poolId);
         }
@@ -59,9 +59,9 @@ public class PoolApplicationService {
             .map(CompetitionAssociationInternalResponse::getTeamId)
             .collect(Collectors.toSet());
 
-        Map<Long, TeamInternalResponse> teamsMap = new HashMap<>(teamIds.size() * 2);
+        Map<Long, TeamDetailsView> teamsMap = new HashMap<>(teamIds.size() * 2);
         for (Long teamId : teamIds) {
-            TeamInternalResponse team = teamInternalClient.getTeamById(teamId);
+            TeamDetailsView team = teamInternalClient.getTeamById(teamId);
             if (team != null) {
                 teamsMap.put(teamId, team);
             } else {
@@ -73,27 +73,27 @@ public class PoolApplicationService {
 
         // Pour les logs : combien de clubs distincts
         Set<String> clubIds = teamsMap.values().stream()
-            .map(TeamInternalResponse::getClubId)
+            .map(TeamDetailsView::getClubId)
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
 
-        Map<String, ClubResponse> clubById = enrichTeamsWithClubData(teamsMap.values(), clubInternalClient);
+        Map<String, ClubView> clubById = enrichTeamsWithClubData(teamsMap.values(), clubInternalClient);
 
-        Comparator<TeamWithStatsResponse> rankingComparator = Comparator.comparingInt(TeamWithStatsResponse::getPoints).reversed()
-            .thenComparingInt(TeamWithStatsResponse::getPointsPenalty)
-            .thenComparing(Comparator.comparingInt(TeamWithStatsResponse::getWins).reversed())
-            .thenComparing(Comparator.comparingDouble(TeamWithStatsResponse::getCoefSets).reversed())
-            .thenComparing(Comparator.comparingDouble(TeamWithStatsResponse::getCoefPoints).reversed());
+        Comparator<TeamWithStatsView> rankingComparator = Comparator.comparingInt(TeamWithStatsView::getPoints).reversed()
+            .thenComparingInt(TeamWithStatsView::getPointsPenalty)
+            .thenComparing(Comparator.comparingInt(TeamWithStatsView::getWins).reversed())
+            .thenComparing(Comparator.comparingDouble(TeamWithStatsView::getCoefSets).reversed())
+            .thenComparing(Comparator.comparingDouble(TeamWithStatsView::getCoefPoints).reversed());
 
-        List<TeamWithStatsResponse> ranking = associations.stream()
+        List<TeamWithStatsView> ranking = associations.stream()
             .map(assoc -> {
-                TeamInternalResponse team = teamsMap.get(assoc.getTeamId());
+                TeamDetailsView team = teamsMap.get(assoc.getTeamId());
                 if (team == null) {
                     throw new InconsistentStateException(
                         "Missing team with ID " + assoc.getTeamId() + " for pool " + poolId);
                 }
-                ClubResponse club = clubById.get(team.getClubId());
-                return TeamWithStatsResponse.builder()
+                ClubView club = clubById.get(team.getClubId());
+                return TeamWithStatsView.builder()
                     .id(team.getId())
                     .name(team.getName())
                     .shortName(team.getShortName())
@@ -105,14 +105,14 @@ public class PoolApplicationService {
                     .pointsPenalty(assoc.getPointsPenalty())
                     .coefSets(assoc.getCoefSets())
                     .coefPoints(assoc.getCoefPoints())
-                    .latitude(club == null ? null : club.getLatitude())
-                    .longitude(club == null ? null : club.getLongitude())
+                    .latitude(club == null ? null : club.latitude())
+                    .longitude(club == null ? null : club.longitude())
                     .build();
             })
             .sorted(rankingComparator)
             .toList();
 
-        PoolResponse enriched = PoolResponse.builder()
+        PoolView enriched = PoolView.builder()
             .id(rawPool.getId())
             .season(rawPool.getSeason())
             .leagueCode(rawPool.getLeagueCode())
@@ -139,7 +139,7 @@ public class PoolApplicationService {
         return enriched;
     }
 
-    public List<PoolSummaryResponse> getPoolsByIds(List<Long> ids) {
+    public List<PoolSummaryView> getPoolsByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new InconsistentStateException("ids must be a non-empty list");
         }
@@ -149,9 +149,9 @@ public class PoolApplicationService {
             keyValue("ids_count", ids.size()));
 
         Set<Long> uniqueIds = new HashSet<>(ids);
-        List<PoolInternalResponse> pools = new ArrayList<>(uniqueIds.size());
+        List<PoolDetailsView> pools = new ArrayList<>(uniqueIds.size());
         for (Long id : uniqueIds) {
-            PoolInternalResponse pool = poolInternalClient.getPoolById(id);
+            PoolDetailsView pool = poolInternalClient.getPoolById(id);
             if (pool != null && pool.getActive()) {
                 pools.add(pool);
             } else {
@@ -168,12 +168,12 @@ public class PoolApplicationService {
         }
 
         Set<Long> divisionIds = pools.stream()
-            .map(PoolInternalResponse::getDivisionId)
+            .map(PoolDetailsView::getDivisionId)
             .collect(Collectors.toSet());
 
-        Map<Long, DivisionResponse> divisionsById = new HashMap<>(divisionIds.size() * 2);
+        Map<Long, DivisionView> divisionsById = new HashMap<>(divisionIds.size() * 2);
         for (Long divisionId : divisionIds) {
-            DivisionResponse division = configInternalClient.getDivisionById(divisionId);
+            DivisionView division = configInternalClient.getDivisionById(divisionId);
             if (division != null) {
                 divisionsById.put(divisionId, division);
             } else {
@@ -182,8 +182,8 @@ public class PoolApplicationService {
             }
         }
 
-        List<PoolSummaryResponse> result = pools.stream()
-            .map(p -> PoolSummaryResponse.builder()
+        List<PoolSummaryView> result = pools.stream()
+            .map(p -> PoolSummaryView.builder()
                 .id(p.getId())
                 .leagueCode(p.getLeagueCode())
                 .leagueName(p.getLeagueName())
@@ -205,10 +205,10 @@ public class PoolApplicationService {
         return result;
     }
 
-    public PoolInternalResponse updatePool(Long id, UpdatePoolRequest dto) {
+    public PoolDetailsView updatePool(Long id, UpdatePoolCommand command) {
         logger.info("Update pool",
             keyValue("action", "update_pool"),
             keyValue("pool_id", id));
-        return poolInternalClient.updatePool(id, dto);
+        return poolInternalClient.updatePool(id, command);
     }
 }

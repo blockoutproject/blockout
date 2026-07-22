@@ -1,36 +1,35 @@
 package com.blockout.mobilegateway.team.api;
 
-import com.blockout.mobilegateway.team.api.models.TeamResponse;
-import com.blockout.mobilegateway.team.api.models.TeamSummaryResponse;
+import com.blockout.mobilegateway.api.TeamPublicApi;
+import com.blockout.mobilegateway.api.models.TeamResponse;
+import com.blockout.mobilegateway.api.models.TeamSummaryResponse;
 import com.blockout.mobilegateway.team.application.TeamApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/** Exposes public Team operations through the generated mobile contract. */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/public/teams")
-public class TeamPublicController {
+public class TeamPublicController implements TeamPublicApi {
 
     private final TeamApplicationService teamService;
+    private final TeamApiMapper mapper;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<TeamResponse> getEnrichedTeam(@PathVariable("id") Long id) {
-        var team = teamService.getTeamById(id);
-        return ResponseEntity.ok(team);
+    @Override
+    public ResponseEntity<TeamResponse> getTeamById(Long id) {
+        return ResponseEntity.ok(mapper.toResponse(teamService.getTeamById(id)));
     }
 
-    @GetMapping("/by-club/{clubId}")
-    public ResponseEntity<List<TeamSummaryResponse>> getTeamsByClubId(@PathVariable("clubId") String clubId) {
-        var teams = teamService.getTeamsByClubId(clubId);
-        return ResponseEntity.ok(teams);
+    @Override
+    public ResponseEntity<List<TeamSummaryResponse>> getTeamsByClubId(String clubId) {
+        return ResponseEntity.ok(teamService.getTeamsByClubId(clubId).stream().map(mapper::toResponse).toList());
     }
 
-    @GetMapping("/by-ids")
-    public ResponseEntity<List<TeamSummaryResponse>> getTeamsByIds(@RequestParam("ids") List<Long> ids) {
-        var teams = teamService.getTeamsByIds(ids);
-        return ResponseEntity.ok(teams);
+    @Override
+    public ResponseEntity<List<TeamSummaryResponse>> getTeamsByIds(List<Long> ids) {
+        return ResponseEntity.ok(teamService.getTeamsByIds(ids).stream().map(mapper::toResponse).toList());
     }
 }

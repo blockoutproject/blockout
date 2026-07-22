@@ -1,0 +1,107 @@
+{
+  "/api/v1/mobile/secure/users/{auth0Id}": {
+    "put": {
+      "tags": ["UserSecure"],
+      "operationId": "updateUser",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "auth0Id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "image": { "type": "string", "format": "binary" }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "User updated",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/users/me": {
+    "put": {
+      "tags": ["UserSecure"],
+      "operationId": "ensureCurrentUser",
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": {
+          "description": "Current user",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserResponse" }
+            }
+          }
+        }
+      }
+    },
+    "delete": {
+      "tags": ["UserSecure"],
+      "operationId": "deleteCurrentUser",
+      "security": [{ "bearerAuth": [] }],
+      "responses": { "204": { "description": "Current user deleted" } }
+    }
+  },
+  "/api/v1/mobile/secure/favorites/follow": {
+    "post": {
+      "tags": ["UserSecure"],
+      "operationId": "followFavorite",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "entityType",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "string" }
+        },
+        {
+          "name": "entityId",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Favorite followed" } }
+    },
+    "delete": {
+      "tags": ["UserSecure"],
+      "operationId": "unfollowFavorite",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "entityType",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "string" }
+        },
+        {
+          "name": "entityId",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": { "204": { "description": "Favorite unfollowed" } }
+    }
+  }
+}

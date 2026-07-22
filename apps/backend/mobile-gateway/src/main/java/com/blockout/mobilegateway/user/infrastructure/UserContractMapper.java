@@ -1,9 +1,9 @@
 package com.blockout.mobilegateway.user.infrastructure;
 
 import com.blockout.mobilegateway.shared.application.models.EntityType;
-import com.blockout.mobilegateway.user.api.models.UpdateUserRequest;
-import com.blockout.mobilegateway.user.api.models.UserFavoriteResponse;
-import com.blockout.mobilegateway.user.api.models.UserResponse;
+import com.blockout.mobilegateway.user.application.commands.UpdateUserCommand;
+import com.blockout.mobilegateway.user.application.views.UserFavoriteView;
+import com.blockout.mobilegateway.user.application.views.UserView;
 import com.blockout.mobilegateway.user.infrastructure.contract.models.UpdateUserInternalRequest;
 import com.blockout.mobilegateway.user.infrastructure.contract.models.UserInternalResponse;
 import org.springframework.stereotype.Component;
@@ -17,37 +17,25 @@ public class UserContractMapper {
     /**
      * Converts the public update input to the generated internal request.
      */
-    public UpdateUserInternalRequest toInternalRequest(UpdateUserRequest request) {
+    public UpdateUserInternalRequest toInternalRequest(UpdateUserCommand command) {
         return new UpdateUserInternalRequest()
-            .pseudo(request.getPseudo())
-            .pictureUrl(request.getPictureUrl());
+            .pseudo(command.pseudo())
+            .pictureUrl(command.pictureUrl());
     }
 
     /**
-     * Converts an internal User response to the existing public gateway response.
+     * Converts an internal User response to an application view.
      */
-    public UserResponse toResponse(UserInternalResponse user) {
+    public UserView toResponse(UserInternalResponse user) {
         if (user == null) {
             return null;
         }
-        return UserResponse.builder()
-            .id(user.getId())
-            .auth0Id(user.getAuth0Id())
-            .email(user.getEmail())
-            .pseudo(user.getPseudo())
-            .firstName(user.getFirstName())
-            .lastName(user.getLastName())
-            .pictureUrl(user.getPictureUrl())
-            .phoneNumber(user.getPhoneNumber())
-            .active(user.getActive())
-            .createdAt(user.getCreatedAt())
-            .lastUpdate(user.getLastUpdate())
-            .favorites(user.getFavorites() == null ? null : user.getFavorites().stream()
-                .map(favorite -> UserFavoriteResponse.builder()
-                    .entityType(EntityType.valueOf(favorite.getEntityType().name()))
-                    .entityId(favorite.getEntityId())
-                    .build())
-                .toList())
-            .build();
+        return new UserView(
+            user.getId(), user.getAuth0Id(), user.getEmail(), user.getPseudo(), user.getFirstName(),
+            user.getLastName(), user.getPictureUrl(), user.getPhoneNumber(), user.getActive(), user.getCreatedAt(),
+            user.getLastUpdate(), user.getFavorites() == null ? null : user.getFavorites().stream()
+                .map(favorite -> new UserFavoriteView(
+                    EntityType.valueOf(favorite.getEntityType().name()), favorite.getEntityId()))
+                .toList());
     }
 }

@@ -1,14 +1,14 @@
 package com.blockout.mobilegateway.match.infrastructure;
 
-import com.blockout.mobilegateway.match.api.models.DayMatchesInternalResponse;
-import com.blockout.mobilegateway.match.api.models.DayPageInternalResponse;
-import com.blockout.mobilegateway.match.api.models.MatchInternalResponse;
-import com.blockout.mobilegateway.match.api.models.MatchLiveLinkInternalResponse;
-import com.blockout.mobilegateway.match.api.models.MatchLiveSummaryInternalResponse;
-import com.blockout.mobilegateway.match.api.models.PoolMatchesInternalResponse;
-import com.blockout.mobilegateway.match.api.models.ReportMatchLiveLinkRequest;
-import com.blockout.mobilegateway.match.api.models.UpsertMatchLiveLinkRequest;
-import com.blockout.mobilegateway.match.api.models.UpsertMatchLiveLinkResponse;
+import com.blockout.mobilegateway.match.application.commands.ReportMatchLiveLinkCommand;
+import com.blockout.mobilegateway.match.application.commands.UpsertMatchLiveLinkCommand;
+import com.blockout.mobilegateway.match.application.views.MatchData;
+import com.blockout.mobilegateway.match.application.views.MatchDayData;
+import com.blockout.mobilegateway.match.application.views.MatchDayPageData;
+import com.blockout.mobilegateway.match.application.views.MatchLiveLinkView;
+import com.blockout.mobilegateway.match.application.views.MatchLiveSummaryData;
+import com.blockout.mobilegateway.match.application.views.PoolMatchesData;
+import com.blockout.mobilegateway.match.application.views.UpsertMatchLiveLinkView;
 import com.blockout.mobilegateway.shared.application.models.LiveLinkStatus;
 import com.blockout.mobilegateway.shared.application.models.LiveProvider;
 import com.blockout.mobilegateway.shared.application.models.MatchStatus;
@@ -22,24 +22,24 @@ import java.util.List;
 @Component
 public class MatchContractMapper {
 
-    public DayPageInternalResponse toResponse(
+    public MatchDayPageData toResponse(
         com.blockout.mobilegateway.match.infrastructure.contract.models.DayPageInternalResponse page) {
         if (page == null) return null;
-        List<DayMatchesInternalResponse> days = page.getDayMatches().stream()
-            .map(day -> new DayMatchesInternalResponse(
+        List<MatchDayData> days = page.getDayMatches().stream()
+            .map(day -> new MatchDayData(
                 day.getDate().toString(),
                 day.getPools().stream()
-                    .map(pool -> new PoolMatchesInternalResponse(
+                    .map(pool -> new PoolMatchesData(
                         pool.getPoolId(), pool.getMatches().stream().map(this::toResponse).toList()))
                     .toList()))
             .toList();
-        return new DayPageInternalResponse(days, page.getHasNext(), page.getNextPage());
+        return new MatchDayPageData(days, page.getHasNext(), page.getNextPage());
     }
 
-    public MatchInternalResponse toResponse(
+    public MatchData toResponse(
         com.blockout.mobilegateway.match.infrastructure.contract.models.MatchInternalResponse match) {
         if (match == null) return null;
-        return MatchInternalResponse.builder()
+        return MatchData.builder()
             .id(match.getId())
             .matchCode(match.getMatchCode())
             .leagueCode(match.getLeagueCode())
@@ -64,10 +64,10 @@ public class MatchContractMapper {
             .build();
     }
 
-    public MatchLiveSummaryInternalResponse toResponse(
+    public MatchLiveSummaryData toResponse(
         com.blockout.mobilegateway.match.infrastructure.contract.models.MatchLiveSummaryInternalResponse match) {
         if (match == null) return null;
-        return MatchLiveSummaryInternalResponse.builder()
+        return MatchLiveSummaryData.builder()
             .id(match.getId())
             .matchCode(match.getMatchCode())
             .leagueCode(match.getLeagueCode())
@@ -91,10 +91,10 @@ public class MatchContractMapper {
             .build();
     }
 
-    public MatchLiveLinkInternalResponse toResponse(
+    public MatchLiveLinkView toResponse(
         com.blockout.mobilegateway.match.infrastructure.contract.models.MatchLiveLinkInternalResponse link) {
         if (link == null) return null;
-        return MatchLiveLinkInternalResponse.builder()
+        return MatchLiveLinkView.builder()
             .id(link.getId())
             .matchId(link.getMatchId())
             .provider(LiveProvider.valueOf(link.getProvider().name()))
@@ -107,10 +107,10 @@ public class MatchContractMapper {
             .build();
     }
 
-    public UpsertMatchLiveLinkResponse toResponse(
+    public UpsertMatchLiveLinkView toResponse(
         com.blockout.mobilegateway.match.infrastructure.contract.models.MatchLiveLinkResultInternalResponse link) {
         if (link == null) return null;
-        return UpsertMatchLiveLinkResponse.builder()
+        return UpsertMatchLiveLinkView.builder()
             .matchId(link.getMatchId())
             .provider(LiveProvider.valueOf(link.getProvider().name()))
             .url(link.getUrl())
@@ -120,11 +120,11 @@ public class MatchContractMapper {
             .build();
     }
 
-    public SetMatchLiveLinkInternalRequest toInternalRequest(UpsertMatchLiveLinkRequest request) {
+    public SetMatchLiveLinkInternalRequest toInternalRequest(UpsertMatchLiveLinkCommand request) {
         return new SetMatchLiveLinkInternalRequest(request.getUrl());
     }
 
-    public ReportMatchLiveLinkInternalRequest toInternalRequest(ReportMatchLiveLinkRequest request) {
+    public ReportMatchLiveLinkInternalRequest toInternalRequest(ReportMatchLiveLinkCommand request) {
         return new ReportMatchLiveLinkInternalRequest(request.getReason());
     }
 }

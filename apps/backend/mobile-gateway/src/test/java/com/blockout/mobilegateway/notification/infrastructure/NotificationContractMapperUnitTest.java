@@ -1,6 +1,6 @@
 package com.blockout.mobilegateway.notification.infrastructure;
 
-import com.blockout.mobilegateway.notification.api.models.RegisterPushTokenRequest;
+import com.blockout.mobilegateway.notification.application.commands.RegisterPushTokenCommand;
 import com.blockout.mobilegateway.notification.infrastructure.contract.models.NotificationInternalResponse;
 import com.blockout.mobilegateway.notification.infrastructure.contract.models.NotificationPageInternalResponse;
 import com.blockout.mobilegateway.notification.infrastructure.contract.models.UnreadCountInternalResponse;
@@ -46,13 +46,10 @@ class NotificationContractMapperUnitTest {
     @Test
     void mapsUnreadCountAndPushTokenBoundaries() {
         var count = mapper.toResponse(new UnreadCountInternalResponse(3L));
-        var request = mapper.toInternalRequest(RegisterPushTokenRequest.builder()
-            .expoPushToken("ExponentPushToken[test]")
-            .platform(DevicePlatform.ANDROID)
-            .deviceId("device-1")
-            .build());
+        var request = mapper.toInternalRequest(new RegisterPushTokenCommand(
+            "ExponentPushToken[test]", DevicePlatform.ANDROID, "device-1"));
 
-        assertThat(count.getUnread()).isEqualTo(3L);
+        assertThat(count.unread()).isEqualTo(3L);
         assertThat(request.getExpoPushToken()).isEqualTo("ExponentPushToken[test]");
         assertThat(request.getPlatform().name()).isEqualTo("ANDROID");
         assertThat(request.getDeviceId()).isEqualTo("device-1");

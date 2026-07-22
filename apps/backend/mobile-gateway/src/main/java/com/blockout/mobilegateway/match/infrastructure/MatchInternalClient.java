@@ -1,7 +1,13 @@
 package com.blockout.mobilegateway.match.infrastructure;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.match.api.models.*;
+import com.blockout.mobilegateway.match.application.commands.ReportMatchLiveLinkCommand;
+import com.blockout.mobilegateway.match.application.commands.UpsertMatchLiveLinkCommand;
+import com.blockout.mobilegateway.match.application.views.MatchData;
+import com.blockout.mobilegateway.match.application.views.MatchDayPageData;
+import com.blockout.mobilegateway.match.application.views.MatchLiveLinkView;
+import com.blockout.mobilegateway.match.application.views.MatchLiveSummaryData;
+import com.blockout.mobilegateway.match.application.views.UpsertMatchLiveLinkView;
 import com.blockout.mobilegateway.shared.application.models.LiveLinkStatus;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +30,7 @@ public class MatchInternalClient {
         return apiClientProperties.getMatch().getUrl();
     }
 
-    public DayPageInternalResponse getMatchesByDay(int page, int size, List<Long> poolIds, List<Long> teamIds, String status) {
+    public MatchDayPageData getMatchesByDay(int page, int size, List<Long> poolIds, List<Long> teamIds, String status) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("day-groups")
             .queryParam("page", page)
@@ -41,7 +47,7 @@ public class MatchInternalClient {
         return contractMapper.toResponse(response.getBody());
     }
 
-    public MatchInternalResponse getMatchById(Long matchId) {
+    public MatchData getMatchById(Long matchId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(matchId.toString())
             .build()
@@ -52,7 +58,7 @@ public class MatchInternalClient {
         return contractMapper.toResponse(response.getBody());
     }
 
-    public List<MatchLiveSummaryInternalResponse> listMatchesForLiveModeration(LiveLinkStatus statusFilter) {
+    public List<MatchLiveSummaryData> listMatchesForLiveModeration(LiveLinkStatus statusFilter) {
         UriComponentsBuilder builder = UriComponentsBuilder
             .fromUriString(baseUrl())
             .pathSegment("live-moderation");
@@ -70,7 +76,7 @@ public class MatchInternalClient {
         return body != null ? java.util.Arrays.stream(body).map(contractMapper::toResponse).toList() : List.of();
     }
 
-    public UpsertMatchLiveLinkResponse upsertLiveLink(Long matchId, UpsertMatchLiveLinkRequest request) {
+    public UpsertMatchLiveLinkView upsertLiveLink(Long matchId, UpsertMatchLiveLinkCommand request) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(matchId.toString(), "live-link")
             .build()
@@ -93,7 +99,7 @@ public class MatchInternalClient {
         internalApiClient.delete(url, Void.class);
     }
 
-    public void reportLiveLink(Long matchId, ReportMatchLiveLinkRequest request) {
+    public void reportLiveLink(Long matchId, ReportMatchLiveLinkCommand request) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(matchId.toString(), "live-link", "report")
             .build()
@@ -102,7 +108,7 @@ public class MatchInternalClient {
         internalApiClient.post(url, contractMapper.toInternalRequest(request), Void.class);
     }
 
-    public List<MatchLiveLinkInternalResponse> getLiveLinksHistory(Long matchId) {
+    public List<MatchLiveLinkView> getLiveLinksHistory(Long matchId) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(matchId.toString(), "live-links")
             .build()
@@ -115,7 +121,7 @@ public class MatchInternalClient {
         return body != null ? java.util.Arrays.stream(body).map(contractMapper::toResponse).toList() : List.of();
     }
 
-    public List<MatchLiveLinkInternalResponse> listPendingLiveLinks() {
+    public List<MatchLiveLinkView> listPendingLiveLinks() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("live-links", "pending")
             .build()

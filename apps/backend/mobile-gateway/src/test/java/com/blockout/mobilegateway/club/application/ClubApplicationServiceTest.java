@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.club.application;
 
-import com.blockout.mobilegateway.club.api.models.ClubResponse;
-import com.blockout.mobilegateway.club.api.models.UpdateClubRequest;
+import com.blockout.mobilegateway.club.application.commands.UpdateClubCommand;
+import com.blockout.mobilegateway.club.application.views.ClubView;
 import com.blockout.mobilegateway.club.infrastructure.ClubInternalClient;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,27 +24,28 @@ class ClubApplicationServiceTest {
 
     @Test
     void hidesThePhoneNumberFromThePublicMobileView() {
-        ClubResponse club = ClubResponse.builder()
-            .id("club-1")
-            .name("Blockout")
-            .phoneNumber("0102030405")
-            .build();
+        ClubView club = new ClubView(
+            "club-1", "RAW", "Blockout", null, null, null, null, "0102030405",
+            null, null, null, null, true, null, null);
         when(clubInternalClient.getClubById("club-1")).thenReturn(club);
 
-        ClubResponse response = clubService.getClubById("club-1");
+        ClubView response = clubService.getClubById("club-1");
 
-        assertThat(response).isSameAs(club);
-        assertThat(response.getPhoneNumber()).isNull();
+        assertThat(response).isNotSameAs(club);
+        assertThat(response.phoneNumber()).isNull();
     }
 
     @Test
     void delegatesClubUpdatesWithoutChangingTheOwnerResponse() {
-        UpdateClubRequest request = UpdateClubRequest.builder().name("Blockout Paris").build();
+        UpdateClubCommand request = new UpdateClubCommand(
+            null, "Blockout Paris", null, null, null, null, null, null, null);
         MultipartFile image = mock(MultipartFile.class);
-        ClubResponse updated = ClubResponse.builder().id("club-1").name("Blockout Paris").build();
+        ClubView updated = new ClubView(
+            "club-1", null, "Blockout Paris", null, null, null, null, null,
+            null, null, null, null, true, null, null);
         when(clubInternalClient.updateClub("club-1", request, image)).thenReturn(updated);
 
-        ClubResponse response = clubService.updateClub("club-1", request, image);
+        ClubView response = clubService.updateClub("club-1", request, image);
 
         assertThat(response).isSameAs(updated);
         verify(clubInternalClient).updateClub("club-1", request, image);

@@ -1,35 +1,30 @@
 package com.blockout.mobilegateway.match.api;
 
-import com.blockout.mobilegateway.match.api.models.DayPageResponse;
-import com.blockout.mobilegateway.match.api.models.MatchResponse;
+import com.blockout.mobilegateway.api.MatchPublicApi;
+import com.blockout.mobilegateway.api.models.DayPageResponse;
+import com.blockout.mobilegateway.api.models.MatchResponse;
 import com.blockout.mobilegateway.match.application.MatchApplicationService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/public/matches")
-public class MatchPublicController {
+public class MatchPublicController implements MatchPublicApi {
 
     private final MatchApplicationService matchService;
+    private final MatchApiMapper mapper;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<MatchResponse> getMatchById(@PathVariable("id") Long id) {
-        var match = matchService.getMatchById(id);
-        return ResponseEntity.ok(match);
+    @Override
+    public ResponseEntity<MatchResponse> getMatchById(Long id) {
+        return ResponseEntity.ok(mapper.toResponse(matchService.getMatchById(id)));
     }
 
-    @GetMapping
+    @Override
     public ResponseEntity<DayPageResponse> getMatchList(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "4") int size,
-        @RequestParam(required = false, name = "poolIds") List<Long> poolIds,
-        @RequestParam(required = false, name = "teamIds") List<Long> teamIds,
-        @RequestParam String status) {
-        var matches = matchService.getMatchList(status, page, size, poolIds, teamIds);
-        return ResponseEntity.ok(matches);
+            String status, Integer page, Integer size, List<Long> poolIds, List<Long> teamIds) {
+        return ResponseEntity.ok(
+            mapper.toResponse(matchService.getMatchList(status, page, size, poolIds, teamIds)));
     }
 }

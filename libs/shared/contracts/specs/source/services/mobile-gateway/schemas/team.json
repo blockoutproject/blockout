@@ -1,0 +1,150 @@
+{
+  "TeamDetailsResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "clubId",
+      "rawName",
+      "name",
+      "shortName",
+      "leagueCode",
+      "divisionId",
+      "format",
+      "gender",
+      "season",
+      "followersCount",
+      "active",
+      "createdAt",
+      "lastUpdate"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "clubId": { "type": "string" },
+      "rawName": { "type": "string" },
+      "name": { "type": "string" },
+      "shortName": { "type": "string" },
+      "leagueCode": { "type": "string" },
+      "divisionId": { "type": "integer", "format": "int64" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "season": { "type": "string" },
+      "followersCount": { "type": "integer", "format": "int64" },
+      "logoUrl": { "type": "string", "nullable": true },
+      "active": { "type": "boolean" },
+      "createdAt": { "type": "string", "format": "date-time" },
+      "lastUpdate": { "type": "string", "format": "date-time" }
+    }
+  },
+  "UpdateTeamRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "clubId": { "type": "string" },
+      "rawName": { "type": "string" },
+      "name": { "type": "string" },
+      "shortName": { "type": "string" },
+      "leagueCode": { "type": "string" },
+      "divisionId": { "type": "integer", "format": "int64" },
+      "logoUrl": { "type": "string", "nullable": true },
+      "season": { "type": "string" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "active": { "type": "boolean" }
+    }
+  },
+  "TeamWithStatsResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "name",
+      "shortName",
+      "points",
+      "played",
+      "wins",
+      "losses",
+      "pointsPenalty",
+      "coefSets",
+      "coefPoints"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "name": { "type": "string" },
+      "shortName": { "type": "string" },
+      "logoUrl": { "type": "string", "nullable": true },
+      "points": { "type": "integer", "format": "int32" },
+      "played": { "type": "integer", "format": "int32" },
+      "wins": { "type": "integer", "format": "int32" },
+      "losses": { "type": "integer", "format": "int32" },
+      "pointsPenalty": { "type": "integer", "format": "int32" },
+      "longitude": { "type": "number", "format": "double", "nullable": true },
+      "latitude": { "type": "number", "format": "double", "nullable": true },
+      "coefSets": { "type": "number", "format": "double" },
+      "coefPoints": { "type": "number", "format": "double" }
+    }
+  },
+  "TeamResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "name",
+      "clubId",
+      "shortName",
+      "rawName",
+      "format",
+      "gender",
+      "season",
+      "followersCount",
+      "division",
+      "pools"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "name": { "type": "string" },
+      "clubId": { "type": "string" },
+      "shortName": { "type": "string" },
+      "rawName": { "type": "string" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "season": { "type": "string" },
+      "followersCount": { "type": "integer", "format": "int64" },
+      "logoUrl": { "type": "string", "nullable": true },
+      "club": {
+        "allOf": [{ "$ref": "#/components/schemas/ClubResponse" }],
+        "nullable": true
+      },
+      "division": { "$ref": "#/components/schemas/DivisionResponse" },
+      "pools": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/PoolResponse" }
+      }
+    }
+  },
+  "TeamSummaryResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "name",
+      "season",
+      "gender",
+      "format",
+      "division",
+      "club",
+      "shortName"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "name": { "type": "string" },
+      "season": { "type": "string" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "logoUrl": { "type": "string", "nullable": true },
+      "division": { "$ref": "#/components/schemas/DivisionResponse" },
+      "club": { "$ref": "#/components/schemas/ClubResponse" },
+      "shortName": { "type": "string" }
+    }
+  }
+}

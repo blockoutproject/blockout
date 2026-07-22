@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.club.infrastructure;
 
-import com.blockout.mobilegateway.club.api.models.ClubResponse;
-import com.blockout.mobilegateway.club.api.models.UpdateClubRequest;
+import com.blockout.mobilegateway.club.application.commands.UpdateClubCommand;
+import com.blockout.mobilegateway.club.application.views.ClubView;
 import com.blockout.mobilegateway.club.infrastructure.contract.models.ClubInternalResponse;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
@@ -33,7 +33,7 @@ public class ClubInternalClient {
     }
 
     @Cacheable(value = "clubById", key = "#id")
-    public ClubResponse getClubById(String id) {
+    public ClubView getClubById(String id) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(id)
             .build().toUriString();
@@ -59,14 +59,14 @@ public class ClubInternalClient {
     }, evict = {
         @CacheEvict(value = "clubLogoById", key = "#id")
     })
-    public ClubResponse updateClub(String id, UpdateClubRequest dto, MultipartFile image) {
+    public ClubView updateClub(String id, UpdateClubCommand command, MultipartFile image) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment(id)
             .build().toUriString();
 
         MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(
             objectMapper,
-            contractMapper.toInternalRequest(dto),
+            contractMapper.toInternalRequest(command),
             image);
 
         ResponseEntity<ClubInternalResponse> response = internalApiClient.putMultipart(

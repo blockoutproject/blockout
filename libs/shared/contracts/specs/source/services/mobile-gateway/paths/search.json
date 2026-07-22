@@ -1,0 +1,105 @@
+{
+  "/api/v1/mobile/public/search/clubs": {
+    "get": {
+      "tags": ["SearchPublic"],
+      "operationId": "searchClubs",
+      "security": [],
+      "parameters": [
+        {
+          "name": "query",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Club results",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/ClubSearchResponse" }
+              }
+            }
+          }
+        },
+        "204": { "description": "No club result" }
+      }
+    }
+  },
+  "/api/v1/mobile/public/search/teams": {
+    "get": {
+      "tags": ["SearchPublic"],
+      "operationId": "searchTeams",
+      "security": [],
+      "parameters": [
+        {
+          "name": "query",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "string" }
+        },
+        { "name": "season", "in": "query", "schema": { "type": "string" } },
+        {
+          "name": "divisionId",
+          "in": "query",
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        { "name": "format", "in": "query", "schema": { "type": "string" } },
+        { "name": "gender", "in": "query", "schema": { "type": "string" } }
+      ],
+      "responses": {
+        "200": {
+          "description": "Team results",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/TeamSearchResponse" }
+              }
+            }
+          }
+        },
+        "204": { "description": "No team result" }
+      }
+    }
+  },
+  "/api/v1/mobile/public/search/pools": {
+    "get": {
+      "tags": ["SearchPublic"],
+      "operationId": "searchPools",
+      "security": [],
+      "parameters": [
+        {
+          "name": "query",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "string" }
+        },
+        { "name": "season", "in": "query", "schema": { "type": "string" } },
+        {
+          "name": "divisionId",
+          "in": "query",
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        { "name": "format", "in": "query", "schema": { "type": "string" } },
+        { "name": "gender", "in": "query", "schema": { "type": "string" } }
+      ],
+      "responses": {
+        "200": {
+          "description": "Pool results",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/PoolSearchResponse" }
+              }
+            }
+          }
+        },
+        "204": { "description": "No pool result" }
+      }
+    }
+  }
+}

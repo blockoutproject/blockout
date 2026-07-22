@@ -1,9 +1,9 @@
 package com.blockout.mobilegateway.search.infrastructure;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.search.api.models.ClubSearchResponse;
-import com.blockout.mobilegateway.search.api.models.PoolSearchResponse;
-import com.blockout.mobilegateway.search.api.models.TeamSearchResponse;
+import com.blockout.mobilegateway.search.application.views.ClubSearchView;
+import com.blockout.mobilegateway.search.application.views.PoolSearchView;
+import com.blockout.mobilegateway.search.application.views.TeamSearchView;
 import com.blockout.mobilegateway.search.infrastructure.contract.models.ClubSearchInternalResponse;
 import com.blockout.mobilegateway.search.infrastructure.contract.models.PoolSearchInternalResponse;
 import com.blockout.mobilegateway.search.infrastructure.contract.models.TeamSearchInternalResponse;
@@ -30,7 +30,7 @@ public class SearchInternalClient {
         return apiClientProperties.getSearch().getUrl();
     }
 
-    public List<ClubSearchResponse> searchClubs(String query) {
+    public List<ClubSearchView> searchClubs(String query) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("clubs")
             .queryParam("query", query)
@@ -44,7 +44,7 @@ public class SearchInternalClient {
         return body != null ? Arrays.stream(body).map(mapper::toResponse).toList() : Collections.emptyList();
     }
 
-    public List<PoolSearchResponse> searchPools(String query, String season, Long divisionId, String format,
+    public List<PoolSearchView> searchPools(String query, String season, Long divisionId, String format,
                                                 String gender) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("pools")
@@ -72,7 +72,7 @@ public class SearchInternalClient {
         return body != null ? Arrays.stream(body).map(mapper::toResponse).toList() : Collections.emptyList();
     }
 
-    public List<TeamSearchResponse> searchTeams(String query, String season, Long divisionId, String format,
+    public List<TeamSearchView> searchTeams(String query, String season, Long divisionId, String format,
                                                 String gender) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("teams")

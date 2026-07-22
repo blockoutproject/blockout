@@ -1,6 +1,6 @@
 package com.blockout.mobilegateway.report.infrastructure;
 
-import com.blockout.mobilegateway.report.api.models.CreateReportRequest;
+import com.blockout.mobilegateway.report.application.commands.CreateReportCommand;
 import com.blockout.mobilegateway.report.infrastructure.contract.models.ReportInternalResponse;
 import com.blockout.mobilegateway.shared.application.models.ReportType;
 import org.junit.jupiter.api.Test;
@@ -15,18 +15,9 @@ class ReportContractMapperUnitTest {
 
     @Test
     void mapsTheCompletePublicCreationRequest() {
-        CreateReportRequest request = CreateReportRequest.builder()
-            .type(ReportType.DATA_ERROR)
-            .title("Broken score")
-            .description("Description")
-            .appVersion("1.0")
-            .userId("user-1")
-            .userName("User")
-            .screen("Match")
-            .deviceModel("iPhone")
-            .os("iOS")
-            .attachmentImageUrls(List.of("https://images.invalid/1"))
-            .build();
+        CreateReportCommand request = new CreateReportCommand(
+            ReportType.DATA_ERROR, "Broken score", "Description", "1.0", "user-1", "User",
+            "Match", "iPhone", "iOS", List.of("https://images.invalid/1"));
 
         var internal = mapper.toInternalRequest(request);
 
@@ -40,9 +31,9 @@ class ReportContractMapperUnitTest {
         var response = mapper.toResponse(new ReportInternalResponse(
             1L, 2, "https://github.invalid/issues/2", "Broken score", "OPEN"));
 
-        assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getNumber()).isEqualTo(2);
-        assertThat(response.getHtmlUrl()).isEqualTo("https://github.invalid/issues/2");
-        assertThat(response.getState()).isEqualTo("OPEN");
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.number()).isEqualTo(2);
+        assertThat(response.htmlUrl()).isEqualTo("https://github.invalid/issues/2");
+        assertThat(response.state()).isEqualTo("OPEN");
     }
 }

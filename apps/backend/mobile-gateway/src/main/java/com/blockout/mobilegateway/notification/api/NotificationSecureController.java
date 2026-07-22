@@ -1,59 +1,53 @@
 package com.blockout.mobilegateway.notification.api;
 
-import com.blockout.mobilegateway.notification.api.models.NotificationPageResponse;
-import com.blockout.mobilegateway.notification.api.models.RegisterPushTokenRequest;
-import com.blockout.mobilegateway.notification.api.models.UnreadCountResponse;
+import com.blockout.mobilegateway.api.NotificationSecureApi;
+import com.blockout.mobilegateway.api.models.NotificationPageResponse;
+import com.blockout.mobilegateway.api.models.RegisterPushTokenRequest;
+import com.blockout.mobilegateway.api.models.UnreadCountResponse;
 import com.blockout.mobilegateway.notification.application.NotificationApplicationService;
-
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
+/** Exposes secured Notification operations through the generated mobile contract. */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/secure/notifications")
-public class NotificationSecureController {
+public class NotificationSecureController implements NotificationSecureApi {
 
     private final NotificationApplicationService notificationService;
+    private final NotificationApiMapper mapper;
 
-    @GetMapping
-    public ResponseEntity<NotificationPageResponse> getEnrichedNotifications(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size) {
-        var dto = notificationService.getNotifications(page, size);
-        return ResponseEntity.ok(dto);
+    @Override
+    public ResponseEntity<NotificationPageResponse> getNotifications(Integer page, Integer size) {
+        return ResponseEntity.ok(mapper.toResponse(notificationService.getNotifications(page, size)));
     }
 
-    @GetMapping("/unread-count")
+    @Override
     public ResponseEntity<UnreadCountResponse> getUnreadNotificationsCount() {
-        var dto = notificationService.getUnreadNotificationsCount();
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(mapper.toResponse(notificationService.getUnreadNotificationsCount()));
     }
 
-    @PostMapping("/{id}/read")
-    public ResponseEntity<Void> markNotificationRead(@PathVariable Long id) {
+    @Override
+    public ResponseEntity<Void> markNotificationRead(Long id) {
         notificationService.markNotificationRead(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{id}/opened")
-    public ResponseEntity<Void> markNotificationOpened(@PathVariable Long id) {
+    @Override
+    public ResponseEntity<Void> markNotificationOpened(Long id) {
         notificationService.markNotificationOpened(id);
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
+    @Override
+    public ResponseEntity<Void> deleteNotification(Long id) {
         notificationService.deleteNotification(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/users/{userId}/push-tokens")
-    public ResponseEntity<Void> registerPushToken(
-        @PathVariable Long userId,
-        @Valid @RequestBody RegisterPushTokenRequest req) {
-        notificationService.registerPushToken(userId, req);
+    @Override
+    public ResponseEntity<Void> registerPushToken(Long userId, RegisterPushTokenRequest request) {
+        notificationService.registerPushToken(userId, mapper.toCommand(request));
         return ResponseEntity.accepted().build();
     }
 }

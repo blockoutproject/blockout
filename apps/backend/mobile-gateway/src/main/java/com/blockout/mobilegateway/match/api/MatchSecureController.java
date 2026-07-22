@@ -1,99 +1,74 @@
 package com.blockout.mobilegateway.match.api;
 
-import com.blockout.mobilegateway.match.api.models.*;
+import com.blockout.mobilegateway.api.MatchSecureApi;
+import com.blockout.mobilegateway.api.models.MatchLiveLinkHistoryResponse;
+import com.blockout.mobilegateway.api.models.MatchLiveSummaryResponse;
+import com.blockout.mobilegateway.api.models.ReportMatchLiveLinkRequest;
+import com.blockout.mobilegateway.api.models.UpsertMatchLiveLinkRequest;
+import com.blockout.mobilegateway.api.models.UpsertMatchLiveLinkResponse;
 import com.blockout.mobilegateway.match.application.MatchApplicationService;
 import com.blockout.mobilegateway.shared.application.models.LiveLinkStatus;
+import com.blockout.shared.model.LiveLinkStatusEnum;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/secure/matches")
-public class MatchSecureController {
+public class MatchSecureController implements MatchSecureApi {
 
     private final MatchApplicationService matchService;
+    private final MatchApiMapper mapper;
 
-    @PostMapping(path = "/{matchId}/live-link")
+    @Override
     public ResponseEntity<UpsertMatchLiveLinkResponse> upsertLiveLink(
-        @PathVariable Long matchId,
-        @RequestBody UpsertMatchLiveLinkRequest request,
-        @AuthenticationPrincipal Jwt jwt) {
-
-        String auth0Id = jwt.getSubject();
-        UpsertMatchLiveLinkResponse dto = matchService.upsertLiveLink(matchId, request, auth0Id);
-        return ResponseEntity.ok(dto);
+            Long matchId, UpsertMatchLiveLinkRequest request) {
+        return ResponseEntity.ok(
+            mapper.toResponse(matchService.upsertLiveLink(matchId, mapper.toCommand(request))));
     }
 
-    @DeleteMapping(path = "/{matchId}/live-link")
-    public ResponseEntity<Void> deleteLiveLink(
-        @PathVariable Long matchId,
-        @AuthenticationPrincipal Jwt jwt) {
-
-        String auth0Id = jwt.getSubject();
-        matchService.deleteLiveLink(matchId, auth0Id);
+    @Override
+    public ResponseEntity<Void> deleteLiveLink(Long matchId) {
+        matchService.deleteLiveLink(matchId);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{matchId}/live-link/report")
-    public ResponseEntity<Void> reportLiveLink(
-        @PathVariable Long matchId,
-        @RequestBody ReportMatchLiveLinkRequest request,
-        @AuthenticationPrincipal Jwt jwt) {
-
-        String auth0Id = jwt.getSubject();
-        matchService.reportLiveLink(matchId, request, auth0Id);
+    @Override
+    public ResponseEntity<Void> reportLiveLink(Long matchId, ReportMatchLiveLinkRequest request) {
+        matchService.reportLiveLink(matchId, mapper.toCommand(request));
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{matchId}/live-links")
-    public ResponseEntity<List<MatchLiveLinkInternalResponse>> getLiveLinksHistory(
-        @PathVariable Long matchId,
-        @AuthenticationPrincipal Jwt jwt) {
-
-        String auth0Id = jwt.getSubject();
-        List<MatchLiveLinkInternalResponse> dtos = matchService.getLiveLinksHistory(matchId, auth0Id);
-        return ResponseEntity.ok(dtos);
+    @Override
+    public ResponseEntity<List<MatchLiveLinkHistoryResponse>> getLiveLinksHistory(Long matchId) {
+        return ResponseEntity.ok(
+            matchService.getLiveLinksHistory(matchId).stream().map(mapper::toResponse).toList());
     }
 
-    @GetMapping("/live-moderation")
+    @Override
     public ResponseEntity<List<MatchLiveSummaryResponse>> listMatchesForLiveModeration(
-        @RequestParam(value = "status", required = false) LiveLinkStatus statusFilter) {
-        List<MatchLiveSummaryResponse> dtos = matchService.listMatchesForLiveModeration(statusFilter);
-        return ResponseEntity.ok(dtos);
+            LiveLinkStatusEnum status) {
+        LiveLinkStatus filter = status == null ? null : LiveLinkStatus.valueOf(status.name());
+        return ResponseEntity.ok(
+            matchService.listMatchesForLiveModeration(filter).stream().map(mapper::toResponse).toList());
     }
 
-    @PostMapping("/live-links/{liveLinkId}/approve")
-    public ResponseEntity<Void> approvePendingLink(
-        @PathVariable Long liveLinkId,
-        @AuthenticationPrincipal Jwt jwt) {
-
-        String auth0Id = jwt.getSubject();
-        matchService.approvePendingLiveLink(liveLinkId, auth0Id);
+    @Override
+    public ResponseEntity<Void> approvePendingLink(Long liveLinkId) {
+        matchService.approvePendingLiveLink(liveLinkId);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/live-links/{liveLinkId}/reject")
-    public ResponseEntity<Void> rejectPendingLink(
-        @PathVariable Long liveLinkId,
-        @AuthenticationPrincipal Jwt jwt) {
-
-        String auth0Id = jwt.getSubject();
-        matchService.rejectPendingLiveLink(liveLinkId, auth0Id);
+    @Override
+    public ResponseEntity<Void> rejectPendingLink(Long liveLinkId) {
+        matchService.rejectPendingLiveLink(liveLinkId);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/live-links/{liveLinkId}/reactivate")
-    public ResponseEntity<Void> reactivateLiveLink(
-        @PathVariable Long liveLinkId,
-        @AuthenticationPrincipal Jwt jwt) {
-
-        String auth0Id = jwt.getSubject();
-        matchService.reactivateLiveLink(liveLinkId, auth0Id);
+    @Override
+    public ResponseEntity<Void> reactivateLiveLink(Long liveLinkId) {
+        matchService.reactivateLiveLink(liveLinkId);
         return ResponseEntity.noContent().build();
     }
 }

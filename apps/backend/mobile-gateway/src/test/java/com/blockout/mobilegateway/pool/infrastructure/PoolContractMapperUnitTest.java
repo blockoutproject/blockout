@@ -1,6 +1,6 @@
 package com.blockout.mobilegateway.pool.infrastructure;
 
-import com.blockout.mobilegateway.pool.api.models.UpdatePoolRequest;
+import com.blockout.mobilegateway.pool.application.commands.UpdatePoolCommand;
 import com.blockout.mobilegateway.shared.application.models.Format;
 import com.blockout.mobilegateway.shared.application.models.Gender;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ class PoolContractMapperUnitTest {
 
     @Test
     void mapsEveryUpdateFieldToGeneratedRequest() {
-        var request = UpdatePoolRequest.builder().poolCode("A").leagueCode("LNV").season("2026/2027")
+        var request = UpdatePoolCommand.builder().poolCode("A").leagueCode("LNV").season("2026/2027")
             .leagueName("League").rawName("RAW").name("Pool").shortName("P").divisionId(2L)
             .format(Format.SIX).gender(Gender.F).active(true).build();
 

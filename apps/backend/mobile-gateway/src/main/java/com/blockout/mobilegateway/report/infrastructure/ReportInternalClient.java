@@ -1,8 +1,8 @@
 package com.blockout.mobilegateway.report.infrastructure;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.report.api.models.CreateReportRequest;
-import com.blockout.mobilegateway.report.api.models.ReportResponse;
+import com.blockout.mobilegateway.report.application.commands.CreateReportCommand;
+import com.blockout.mobilegateway.report.application.views.ReportView;
 import com.blockout.mobilegateway.report.infrastructure.contract.models.ReportInternalResponse;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,12 +35,12 @@ public class ReportInternalClient {
         return apiClientProperties.getReport().getUrl();
     }
 
-    public ReportResponse createReport(CreateReportRequest dto, List<MultipartFile> images) {
+    public ReportView createReport(CreateReportCommand command, List<MultipartFile> images) {
         String url = baseUrl();
 
         final String jsonString;
         try {
-            jsonString = objectMapper.writeValueAsString(contractMapper.toInternalRequest(dto));
+            jsonString = objectMapper.writeValueAsString(contractMapper.toInternalRequest(command));
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize CreateReportRequest", e);
         }

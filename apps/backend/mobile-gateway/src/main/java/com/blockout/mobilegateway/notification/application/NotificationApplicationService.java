@@ -1,10 +1,11 @@
 package com.blockout.mobilegateway.notification.application;
 
-import com.blockout.mobilegateway.config.api.models.DivisionResponse;
+import com.blockout.mobilegateway.config.application.views.DivisionView;
 import com.blockout.mobilegateway.config.infrastructure.ConfigInternalClient;
-import com.blockout.mobilegateway.notification.api.models.*;
+import com.blockout.mobilegateway.notification.application.commands.RegisterPushTokenCommand;
 import com.blockout.mobilegateway.notification.application.views.NotificationItemView;
 import com.blockout.mobilegateway.notification.application.views.NotificationPageView;
+import com.blockout.mobilegateway.notification.application.views.UnreadCountView;
 import com.blockout.mobilegateway.notification.infrastructure.NotificationInternalClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +34,7 @@ public class NotificationApplicationService {
 
     private final ConcurrentMap<Long, String> divisionLogoCache = new ConcurrentHashMap<>();
 
-    public NotificationPageResponse getNotifications(int page, int size) {
+    public NotificationPageView getNotifications(int page, int size) {
         logger.info("Fetching notifications",
             keyValue("action", "fetch_notifications"),
             keyValue("page", page),
@@ -67,8 +68,8 @@ public class NotificationApplicationService {
 
         for (Long divisionId : toResolve) {
             try {
-                DivisionResponse division = configInternalClient.getDivisionById(divisionId);
-                String logoUrl = (division != null) ? division.getLogoUrl() : null;
+                DivisionView division = configInternalClient.getDivisionById(divisionId);
+                String logoUrl = (division != null) ? division.logoUrl() : null;
                 divisionLogoCache.put(divisionId, (logoUrl != null && !logoUrl.isBlank()) ? logoUrl : null);
                 logger.debug("Division logo resolved",
                     keyValue("action", "division_logo_resolved"),
@@ -83,29 +84,15 @@ public class NotificationApplicationService {
             }
         }
 
-        List<NotificationResponse> enriched = new ArrayList<>(rawItems.size());
+        List<NotificationItemView> enriched = new ArrayList<>(rawItems.size());
         for (NotificationItemView n : rawItems) {
             String divisionLogoUrl = extractDivisionIdSafely(n.metadata())
                 .map(divisionLogoCache::get)
                 .orElse(null);
 
-            enriched.add(NotificationResponse.builder()
-                .id(n.id())
-                .userId(n.userId())
-                .type(n.type())
-                .title(n.title())
-                .body(n.body())
-                .deepLink(n.deepLink())
-                .targetType(n.targetType())
-                .targetId(n.targetId())
-                .metadata(n.metadata())
-                .isRead(n.isRead())
-                .isOpened(n.isOpened())
-                .createdAt(n.createdAt())
-                .readAt(n.readAt())
-                .openedAt(n.openedAt())
-                .divisionLogoUrl(divisionLogoUrl)
-                .build());
+            enriched.add(new NotificationItemView(
+                n.id(), n.userId(), n.type(), n.title(), n.body(), n.deepLink(), n.targetType(), n.targetId(),
+                n.metadata(), n.isRead(), n.isOpened(), n.createdAt(), n.readAt(), n.openedAt(), divisionLogoUrl));
         }
 
         logger.debug("Built enriched notifications page",
@@ -115,14 +102,10 @@ public class NotificationApplicationService {
         boolean hasNext = base != null && base.hasNext();
         Integer nextPage = base != null ? base.nextPage() : null;
 
-        return NotificationPageResponse.builder()
-            .notifications(enriched)
-            .hasNext(hasNext)
-            .nextPage(nextPage)
-            .build();
+        return new NotificationPageView(enriched, hasNext, nextPage);
     }
 
-    public UnreadCountResponse getUnreadNotificationsCount() {
+    public UnreadCountView getUnreadNotificationsCount() {
         logger.info("Fetching unread notifications count",
             keyValue("action", "fetch_unread_count"));
         return notificationInternalClient.getUnreadNotificationsCount();
@@ -149,12 +132,12 @@ public class NotificationApplicationService {
         notificationInternalClient.deleteNotification(id);
     }
 
-    public void registerPushToken(Long userId, RegisterPushTokenRequest req) {
+    public void registerPushToken(Long userId, RegisterPushTokenCommand command) {
         logger.info("Register push token",
             keyValue("action", "register_push_token"),
             keyValue("user_id", userId),
-            keyValue("platform", req.getPlatform()));
-        notificationInternalClient.registerPushToken(userId, req);
+            keyValue("platform", command.platform()));
+        notificationInternalClient.registerPushToken(userId, command);
     }
 
     private Optional<Long> extractDivisionIdSafely(JsonNode metadata) {

@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.team.infrastructure;
 
-import com.blockout.mobilegateway.team.api.models.TeamInternalResponse;
-import com.blockout.mobilegateway.team.api.models.UpdateTeamRequest;
+import com.blockout.mobilegateway.team.application.commands.UpdateTeamCommand;
+import com.blockout.mobilegateway.team.application.views.TeamDetailsView;
 import com.blockout.mobilegateway.team.infrastructure.contract.models.UpdateTeamInternalRequest;
 import org.springframework.stereotype.Component;
 
@@ -11,12 +11,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class TeamContractMapper {
 
-    public TeamInternalResponse toResponse(
+    public TeamDetailsView toResponse(
         com.blockout.mobilegateway.team.infrastructure.contract.models.TeamInternalResponse team) {
         if (team == null) {
             return null;
         }
-        return TeamInternalResponse.builder()
+        return TeamDetailsView.builder()
             .id(team.getId())
             .clubId(team.getClubId())
             .rawName(team.getRawName())
@@ -35,7 +35,7 @@ public class TeamContractMapper {
             .build();
     }
 
-    public UpdateTeamInternalRequest toInternalRequest(UpdateTeamRequest request) {
+    public UpdateTeamInternalRequest toInternalRequest(UpdateTeamCommand request) {
         return new UpdateTeamInternalRequest()
             .clubId(request.getClubId())
             .rawName(request.getRawName())

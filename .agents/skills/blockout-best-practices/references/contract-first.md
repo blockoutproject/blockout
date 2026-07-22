@@ -58,6 +58,9 @@ DTOs, Jackson naming aliases, or case-conversion layers.
 
 - DTOs are boundary-local by default.
 - Internal service DTO component names include `Internal`; mobile-gateway DTO component names do not.
+- The consumer language does not change ownership: Python scrapers call the owning backend services directly, so their
+  generated transport DTOs also use the internal service names. They never substitute mobile-gateway DTOs for those
+  contracts.
 - Place `Internal` immediately before the shape suffix: `ClubInternalResponse`, `ClubInternalPageResponse`,
   `CreateClubInternalRequest`, or `UpdateClubInternalRequest`.
 - Use `*ListResponse` only for complete unpaginated list wrappers: `items` only, with no `pageInfo`, `page`, or

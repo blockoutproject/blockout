@@ -4,7 +4,6 @@ import com.blockout.mobilegateway.ffvb.application.FfvbPdfApplicationService;
 import com.blockout.mobilegateway.ffvb.application.FfvbPdfDownload;
 import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -19,34 +18,29 @@ class FfvbPublicControllerTest {
     void streamsSuccessfulDownloadsWithTheExistingMobileHeaders() throws Exception {
         byte[] pdf = new byte[]{1, 2, 3};
         when(pdfService.download("signed-token")).thenReturn(new FfvbPdfDownload(200, pdf, false));
-        MockHttpServletResponse response = new MockHttpServletResponse();
+        var response = controller.proxySignedFfvbPdf("signed-token");
 
-        controller.proxySigned("signed-token", response);
-
-        assertThat(response.getStatus()).isEqualTo(200);
-        assertThat(response.getContentType()).isEqualTo("application/pdf");
-        assertThat(response.getHeader("Content-Disposition")).isEqualTo("inline; filename=\"document.pdf\"");
-        assertThat(response.getHeader("Cache-Control")).isEqualTo("private, no-store");
-        assertThat(response.getContentAsByteArray()).containsExactly(pdf);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getContentType().toString()).isEqualTo("application/pdf");
+        assertThat(response.getHeaders().getFirst("Content-Disposition"))
+            .isEqualTo("inline; filename=\"document.pdf\"");
+        assertThat(response.getHeaders().getFirst("Cache-Control")).isEqualTo("private, no-store");
+        assertThat(response.getBody().getContentAsByteArray()).containsExactly(pdf);
     }
 
     @Test
     void returnsUnauthorizedForInvalidOrExpiredLinks() throws Exception {
         when(pdfService.download("invalid-token")).thenThrow(new JwtException("expired"));
-        MockHttpServletResponse response = new MockHttpServletResponse();
+        var response = controller.proxySignedFfvbPdf("invalid-token");
 
-        controller.proxySigned("invalid-token", response);
-
-        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getStatusCode().value()).isEqualTo(401);
     }
 
     @Test
     void mapsProviderHttpFailuresToBadGateway() throws Exception {
         when(pdfService.download("signed-token")).thenReturn(new FfvbPdfDownload(503, null, true));
-        MockHttpServletResponse response = new MockHttpServletResponse();
+        var response = controller.proxySignedFfvbPdf("signed-token");
 
-        controller.proxySigned("signed-token", response);
-
-        assertThat(response.getStatus()).isEqualTo(502);
+        assertThat(response.getStatusCode().value()).isEqualTo(502);
     }
 }

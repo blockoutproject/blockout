@@ -1,7 +1,7 @@
 package com.blockout.mobilegateway.club.infrastructure;
 
-import com.blockout.mobilegateway.club.api.models.ClubResponse;
-import com.blockout.mobilegateway.club.api.models.UpdateClubRequest;
+import com.blockout.mobilegateway.club.application.commands.UpdateClubCommand;
+import com.blockout.mobilegateway.club.application.views.ClubView;
 import com.blockout.mobilegateway.club.infrastructure.contract.models.ClubInternalResponse;
 import com.blockout.mobilegateway.club.infrastructure.contract.models.UpdateClubInternalRequest;
 import org.springframework.stereotype.Component;
@@ -13,44 +13,31 @@ import org.springframework.stereotype.Component;
 public class ClubContractMapper {
 
     /**
-     * Converts an internal Club response to the existing public gateway response.
+     * Converts an internal Club response to an application view.
      */
-    public ClubResponse toResponse(ClubInternalResponse club) {
+    public ClubView toResponse(ClubInternalResponse club) {
         if (club == null) {
             return null;
         }
-        return ClubResponse.builder()
-            .id(club.getId())
-            .rawName(club.getRawName())
-            .name(club.getName())
-            .address(club.getAddress())
-            .city(club.getCity())
-            .postalCode(club.getPostalCode())
-            .email(club.getEmail())
-            .phoneNumber(club.getPhoneNumber())
-            .website(club.getWebsite())
-            .logoUrl(club.getLogoUrl())
-            .active(club.getActive())
-            .latitude(club.getLatitude())
-            .longitude(club.getLongitude())
-            .createdAt(club.getCreatedAt())
-            .lastUpdate(club.getLastUpdate())
-            .build();
+        return new ClubView(
+            club.getId(), club.getRawName(), club.getName(), club.getAddress(), club.getCity(),
+            club.getPostalCode(), club.getEmail(), club.getPhoneNumber(), club.getWebsite(), club.getLogoUrl(),
+            club.getLatitude(), club.getLongitude(), club.getActive(), club.getCreatedAt(), club.getLastUpdate());
     }
 
     /**
      * Converts the public update input to the generated internal request.
      */
-    public UpdateClubInternalRequest toInternalRequest(UpdateClubRequest request) {
+    public UpdateClubInternalRequest toInternalRequest(UpdateClubCommand command) {
         return new UpdateClubInternalRequest()
-            .rawName(request.getRawName())
-            .name(request.getName())
-            .address(request.getAddress())
-            .city(request.getCity())
-            .postalCode(request.getPostalCode())
-            .email(request.getEmail())
-            .phoneNumber(request.getPhoneNumber())
-            .website(request.getWebsite())
-            .logoUrl(request.getLogoUrl());
+            .rawName(command.rawName())
+            .name(command.name())
+            .address(command.address())
+            .city(command.city())
+            .postalCode(command.postalCode())
+            .email(command.email())
+            .phoneNumber(command.phoneNumber())
+            .website(command.website())
+            .logoUrl(command.logoUrl());
     }
 }

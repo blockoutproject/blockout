@@ -1,120 +1,121 @@
 package com.blockout.mobilegateway.config.api;
 
-import com.blockout.mobilegateway.config.api.models.*;
+import com.blockout.mobilegateway.api.ConfigSecureApi;
+import com.blockout.mobilegateway.api.models.AppStatusResponse;
+import com.blockout.mobilegateway.api.models.CreateRawDivisionMappingRequest;
+import com.blockout.mobilegateway.api.models.DivisionResponse;
+import com.blockout.mobilegateway.api.models.LegalDocumentResponse;
+import com.blockout.mobilegateway.api.models.RawDivisionMappingResponse;
+import com.blockout.mobilegateway.api.models.ScraperStatusResponse;
+import com.blockout.mobilegateway.api.models.UpdateAppStatusRequest;
+import com.blockout.mobilegateway.api.models.UpdateLegalDocumentRequest;
+import com.blockout.mobilegateway.api.models.UpdateRawDivisionMappingRequest;
+import com.blockout.mobilegateway.api.models.UpsertDivisionRequest;
 import com.blockout.mobilegateway.config.application.ConfigApplicationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
 
+/** Exposes secured configuration operations through the generated mobile contract. */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/secure/config")
-public class ConfigSecureController {
+public class ConfigSecureController implements ConfigSecureApi {
 
     private final ConfigApplicationService configService;
+    private final ConfigApiMapper mapper;
     private final ObjectMapper objectMapper;
 
-    @PutMapping("/app-status")
-    public ResponseEntity<AppStatusResponse> updateAppStatus(@RequestBody UpdateAppStatusRequest dto) {
-        AppStatusResponse updated = configService.updateAppStatus(dto);
-        return ResponseEntity.ok(updated);
+    @Override
+    public ResponseEntity<AppStatusResponse> updateAppStatus(UpdateAppStatusRequest request) {
+        return ResponseEntity.ok(mapper.toResponse(
+            configService.updateAppStatus(mapper.toCommand(request))));
     }
 
-    @PostMapping(path = "/divisions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DivisionResponse> createDivision(
-        @RequestPart("data") String json,
-        @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
-
-        UpsertDivisionRequest dto = objectMapper.readValue(json, UpsertDivisionRequest.class);
-        DivisionResponse created = configService.createDivision(dto, image);
-
+    @Override
+    public ResponseEntity<DivisionResponse> createDivision(String data, MultipartFile image) {
+        UpsertDivisionRequest request = read(data, UpsertDivisionRequest.class);
+        DivisionResponse created = mapper.toResponse(
+            configService.createDivision(mapper.toCommand(request), image));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{id}")
             .buildAndExpand(created.getId())
             .toUri();
-
         return ResponseEntity.created(location).body(created);
     }
 
-    @PutMapping(path = "/divisions/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DivisionResponse> updateDivision(
-        @PathVariable Long id,
-        @RequestPart("data") String json,
-        @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
-
-        UpsertDivisionRequest dto = objectMapper.readValue(json, UpsertDivisionRequest.class);
-        DivisionResponse updated = configService.updateDivision(id, dto, image);
-        return ResponseEntity.ok(updated);
+    @Override
+    public ResponseEntity<DivisionResponse> updateDivision(Long id, String data, MultipartFile image) {
+        UpsertDivisionRequest request = read(data, UpsertDivisionRequest.class);
+        return ResponseEntity.ok(mapper.toResponse(
+            configService.updateDivision(id, mapper.toCommand(request), image)));
     }
 
-    @DeleteMapping("/divisions/{id}")
-    public ResponseEntity<Void> deactivateDivision(@PathVariable Long id) {
+    @Override
+    public ResponseEntity<Void> deactivateDivision(Long id) {
         configService.deactivateDivision(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/raw-divisions")
-    public ResponseEntity<RawDivisionMappingResponse> createRawDivisionMapping(@RequestBody RawDivisionMappingResponse dto) {
-        RawDivisionMappingResponse created = configService.createRawDivisionMapping(dto);
-
+    @Override
+    public ResponseEntity<RawDivisionMappingResponse> createRawDivisionMapping(
+            CreateRawDivisionMappingRequest request) {
+        RawDivisionMappingResponse created = mapper.toResponse(
+            configService.createRawDivisionMapping(mapper.toCommand(request)));
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{id}")
             .buildAndExpand(created.getId())
             .toUri();
-
         return ResponseEntity.created(location).body(created);
     }
 
-    @PutMapping("/legal/{type}")
-    public ResponseEntity<LegalDocumentResponse> updateLegal(
-        @PathVariable String type,
-        @RequestBody UpdateLegalDocumentRequest dto) {
-
-        LegalDocumentResponse updated = configService.updateLegalDocument(type, dto);
-        return ResponseEntity.ok(updated);
+    @Override
+    public ResponseEntity<LegalDocumentResponse> updateLegalDocument(
+            String type, UpdateLegalDocumentRequest request) {
+        return ResponseEntity.ok(mapper.toResponse(
+            configService.updateLegalDocument(type, mapper.toCommand(request))));
     }
 
-    @GetMapping("/raw-divisions")
-    public ResponseEntity<List<RawDivisionMappingResponse>> listRawDivisions(
-        @RequestParam(required = false, name = "leagueCode") String leagueCode,
-        @RequestParam(required = false) String season) {
-        List<RawDivisionMappingResponse> list = configService.listRawDivisionMappings(leagueCode, season);
-        return ResponseEntity.ok(list);
+    @Override
+    public ResponseEntity<List<RawDivisionMappingResponse>> listRawDivisions(String leagueCode, String season) {
+        return ResponseEntity.ok(configService.listRawDivisionMappings(leagueCode, season).stream()
+            .map(mapper::toResponse)
+            .toList());
     }
 
-    @GetMapping("/raw-divisions/{id}")
-    public ResponseEntity<RawDivisionMappingResponse> getRawDivisionById(@PathVariable Long id) {
-        RawDivisionMappingResponse dto = configService.getRawDivisionMappingById(id);
-        return ResponseEntity.ok(dto);
+    @Override
+    public ResponseEntity<RawDivisionMappingResponse> getRawDivisionById(Long id) {
+        return ResponseEntity.ok(mapper.toResponse(configService.getRawDivisionMappingById(id)));
     }
 
-    @PutMapping("/raw-divisions/{id}")
+    @Override
     public ResponseEntity<RawDivisionMappingResponse> updateRawDivision(
-        @PathVariable Long id,
-        @RequestBody UpdateRawDivisionMappingRequest dto) {
-        RawDivisionMappingResponse updated = configService.updateRawDivisionMapping(id, dto);
-        return ResponseEntity.ok(updated);
+            Long id, UpdateRawDivisionMappingRequest request) {
+        return ResponseEntity.ok(mapper.toResponse(
+            configService.updateRawDivisionMapping(id, mapper.toCommand(request))));
     }
 
-    @PutMapping("/scrapers/{name}/enabled")
-    public ResponseEntity<ScraperStatusResponse> updateScraperStatus(
-        @PathVariable String name,
-        @RequestParam boolean enabled) {
-        ScraperStatusResponse updated = configService.updateScraperStatus(name, enabled);
-        return ResponseEntity.ok(updated);
+    @Override
+    public ResponseEntity<ScraperStatusResponse> updateScraperStatus(String name, Boolean enabled) {
+        return ResponseEntity.ok(mapper.toResponse(configService.updateScraperStatus(name, enabled)));
     }
 
-    @GetMapping("/scrapers/status")
+    @Override
     public ResponseEntity<List<ScraperStatusResponse>> listScraperStatuses() {
-        List<ScraperStatusResponse> list = configService.listScraperStatuses();
-        return ResponseEntity.ok(list);
+        return ResponseEntity.ok(configService.listScraperStatuses().stream().map(mapper::toResponse).toList());
+    }
+
+    private <T> T read(String data, Class<T> type) {
+        try {
+            return objectMapper.readValue(data, type);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Invalid multipart JSON data", exception);
+        }
     }
 }

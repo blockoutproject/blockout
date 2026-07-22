@@ -1,0 +1,45 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Mobile Gateway API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080"
+    }
+  ],
+  "tags": [
+    { "name": "ClubPublic" },
+    { "name": "ClubSecure" },
+    { "name": "ConfigPublic" },
+    { "name": "ConfigSecure" },
+    { "name": "FfvbPublic" },
+    { "name": "MatchPublic" },
+    { "name": "MatchSecure" },
+    { "name": "NotificationSecure" },
+    { "name": "PoolPublic" },
+    { "name": "PoolSecure" },
+    { "name": "ReportPublic" },
+    { "name": "SearchPublic" },
+    { "name": "TeamPublic" },
+    { "name": "TeamSecure" },
+    { "name": "UserSecure" }
+  ],
+  "x-contract-schema-roots": [
+    "UpdateClubRequest",
+    "UpsertDivisionRequest",
+    "CreateReportRequest",
+    "UpdateTeamRequest",
+    "UpdateUserRequest"
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

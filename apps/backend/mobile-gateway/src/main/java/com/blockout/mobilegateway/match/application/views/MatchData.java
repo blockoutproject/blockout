@@ -1,0 +1,56 @@
+package com.blockout.mobilegateway.match.application.views;
+
+import com.blockout.mobilegateway.shared.application.models.LiveProvider;
+import com.blockout.mobilegateway.shared.application.models.MatchStatus;
+import lombok.*;
+
+import java.time.Instant;
+
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class MatchData {
+    private Long id;
+
+    private String matchCode;
+
+    private String leagueCode;
+
+    private Long poolId;
+
+    private Long liveCode;
+
+    private Long teamIdA;
+
+    private Long teamIdB;
+
+    private Instant matchDate;
+
+    private String season;
+
+    private String set;
+
+    private String score;
+
+    private MatchStatus status;
+
+    private String venue;
+
+    private String firstReferee;
+
+    private String secondReferee;
+
+    private Boolean active;
+
+    private Instant createdAt;
+
+    private Instant lastUpdate;
+
+    private String liveUrl;
+
+    private LiveProvider liveProvider;
+
+    private String liveOwnerAuth0Id;
+}

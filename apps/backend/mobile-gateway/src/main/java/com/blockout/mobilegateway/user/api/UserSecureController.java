@@ -1,66 +1,56 @@
 package com.blockout.mobilegateway.user.api;
 
-import com.blockout.mobilegateway.user.api.models.UpdateUserRequest;
-import com.blockout.mobilegateway.user.api.models.UserResponse;
+import com.blockout.mobilegateway.api.UserSecureApi;
+import com.blockout.mobilegateway.api.models.UpdateUserRequest;
+import com.blockout.mobilegateway.api.models.UserResponse;
 import com.blockout.mobilegateway.user.application.UserApplicationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+/** Exposes secured User operations through the generated mobile contract. */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/secure")
-public class UserSecureController {
+public class UserSecureController implements UserSecureApi {
 
     private final UserApplicationService userService;
+    private final UserApiMapper mapper;
     private final ObjectMapper objectMapper;
 
-    @PutMapping(path = "/users/{auth0Id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<UserResponse> updateUser(
-        @PathVariable String auth0Id,
-        @RequestPart("data") String json,
-        @RequestPart(value = "image", required = false) MultipartFile image) throws JsonProcessingException {
-
-        UpdateUserRequest dto = objectMapper.readValue(json, UpdateUserRequest.class);
-        UserResponse updated = userService.updateUser(auth0Id, dto, image);
-        return ResponseEntity.ok(updated);
+    @Override
+    public ResponseEntity<UserResponse> updateUser(String auth0Id, String data, MultipartFile image) {
+        try {
+            UpdateUserRequest request = objectMapper.readValue(data, UpdateUserRequest.class);
+            return ResponseEntity.ok(mapper.toResponse(
+                userService.updateUser(auth0Id, mapper.toCommand(request), image)));
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Invalid multipart JSON data", exception);
+        }
     }
 
-    @PutMapping("/users/me")
+    @Override
     public ResponseEntity<UserResponse> ensureCurrentUser() {
-        UserResponse user = userService.ensureCurrentUser();
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(mapper.toResponse(userService.ensureCurrentUser()));
     }
 
-    @DeleteMapping("/users/me")
+    @Override
     public ResponseEntity<Void> deleteCurrentUser() {
         userService.deleteCurrentUser();
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/favorites/follow")
-    public ResponseEntity<Void> follow(
-        @AuthenticationPrincipal Jwt jwt,
-        @RequestParam(name = "entityType") String entityType,
-        @RequestParam(name = "entityId") Long entityId) {
-
-        userService.follow(jwt.getSubject(), entityType, entityId);
+    @Override
+    public ResponseEntity<Void> followFavorite(String entityType, Long entityId) {
+        userService.follow(entityType, entityId);
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/favorites/follow")
-    public ResponseEntity<Void> unfollow(
-        @AuthenticationPrincipal Jwt jwt,
-        @RequestParam(name = "entityType") String entityType,
-        @RequestParam(name = "entityId") Long entityId) {
-
-        userService.unfollow(jwt.getSubject(), entityType, entityId);
+    @Override
+    public ResponseEntity<Void> unfollowFavorite(String entityType, Long entityId) {
+        userService.unfollow(entityType, entityId);
         return ResponseEntity.noContent().build();
     }
 }

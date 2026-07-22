@@ -1,30 +1,30 @@
 package com.blockout.mobilegateway.search.infrastructure;
 
-import com.blockout.mobilegateway.search.api.models.ClubSearchResponse;
-import com.blockout.mobilegateway.search.api.models.PoolSearchResponse;
-import com.blockout.mobilegateway.search.api.models.TeamSearchResponse;
+import com.blockout.mobilegateway.search.application.views.ClubSearchView;
+import com.blockout.mobilegateway.search.application.views.PoolSearchView;
+import com.blockout.mobilegateway.search.application.views.TeamSearchView;
 import org.springframework.stereotype.Component;
 
 /** Maps generated Search transport models to the gateway's public models. */
 @Component
 public class SearchContractMapper {
 
-    public ClubSearchResponse toResponse(
+    public ClubSearchView toResponse(
         com.blockout.mobilegateway.search.infrastructure.contract.models.ClubSearchInternalResponse response) {
-        return new ClubSearchResponse(response.getId(), response.getName(), response.getLogoUrl(), response.getCity());
+        return new ClubSearchView(response.getId(), response.getName(), response.getLogoUrl(), response.getCity());
     }
 
-    public TeamSearchResponse toResponse(
+    public TeamSearchView toResponse(
         com.blockout.mobilegateway.search.infrastructure.contract.models.TeamSearchInternalResponse response) {
-        return new TeamSearchResponse(
+        return new TeamSearchView(
             response.getId(), response.getName(), response.getShortName(), response.getClubId(), response.getClubName(),
             response.getClubCity(), response.getLogoUrl(), response.getDivisionName(), response.getFormat().name(),
             response.getGender().name(), response.getSeason());
     }
 
-    public PoolSearchResponse toResponse(
+    public PoolSearchView toResponse(
         com.blockout.mobilegateway.search.infrastructure.contract.models.PoolSearchInternalResponse response) {
-        return new PoolSearchResponse(
+        return new PoolSearchView(
             response.getId(), response.getName(), response.getShortName(), response.getDivisionName(),
             response.getLeagueCode(), response.getLeagueName(), response.getSeason(), response.getFormat().name(),
             response.getGender().name(), response.getLogoUrl());

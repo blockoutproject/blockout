@@ -1,9 +1,9 @@
 package com.blockout.mobilegateway.notification.infrastructure;
 
 import com.blockout.mobilegateway.config.ApiClientProperties;
-import com.blockout.mobilegateway.notification.api.models.RegisterPushTokenRequest;
-import com.blockout.mobilegateway.notification.api.models.UnreadCountResponse;
+import com.blockout.mobilegateway.notification.application.commands.RegisterPushTokenCommand;
 import com.blockout.mobilegateway.notification.application.views.NotificationPageView;
+import com.blockout.mobilegateway.notification.application.views.UnreadCountView;
 import com.blockout.mobilegateway.notification.infrastructure.contract.models.NotificationPageInternalResponse;
 import com.blockout.mobilegateway.notification.infrastructure.contract.models.UnreadCountInternalResponse;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
@@ -38,7 +38,7 @@ public class NotificationInternalClient {
         return contractMapper.toView(res.getBody());
     }
 
-    public UnreadCountResponse getUnreadNotificationsCount() {
+    public UnreadCountView getUnreadNotificationsCount() {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("unread-count")
             .build()
@@ -77,12 +77,12 @@ public class NotificationInternalClient {
         internalApiClient.delete(url, Void.class);
     }
 
-    public void registerPushToken(Long userId, RegisterPushTokenRequest req) {
+    public void registerPushToken(Long userId, RegisterPushTokenCommand command) {
         String url = UriComponentsBuilder.fromUriString(baseUrl())
             .pathSegment("users", userId.toString(), "push-tokens")
             .build()
             .toUriString();
 
-        internalApiClient.post(url, contractMapper.toInternalRequest(req), Void.class);
+        internalApiClient.post(url, contractMapper.toInternalRequest(command), Void.class);
     }
 }

@@ -23,5 +23,6 @@ public record NotificationItemView(
     Boolean isOpened,
     Instant createdAt,
     Instant readAt,
-    Instant openedAt) {
+    Instant openedAt,
+    String divisionLogoUrl) {
 }

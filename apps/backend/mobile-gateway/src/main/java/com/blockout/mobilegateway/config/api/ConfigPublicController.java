@@ -1,44 +1,41 @@
 package com.blockout.mobilegateway.config.api;
 
-import com.blockout.mobilegateway.config.api.models.AppStatusResponse;
-import com.blockout.mobilegateway.config.api.models.DivisionResponse;
-import com.blockout.mobilegateway.config.api.models.LegalDocumentResponse;
+import com.blockout.mobilegateway.api.ConfigPublicApi;
+import com.blockout.mobilegateway.api.models.AppStatusResponse;
+import com.blockout.mobilegateway.api.models.DivisionResponse;
+import com.blockout.mobilegateway.api.models.LegalDocumentResponse;
 import com.blockout.mobilegateway.config.application.ConfigApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/** Exposes public configuration operations through the generated mobile contract. */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mobile/public/config")
-public class ConfigPublicController {
+public class ConfigPublicController implements ConfigPublicApi {
 
     private final ConfigApplicationService configService;
+    private final ConfigApiMapper mapper;
 
-    @GetMapping("/app-status")
+    @Override
     public ResponseEntity<AppStatusResponse> getAppStatus() {
-        AppStatusResponse status = configService.getAppStatus();
-        return ResponseEntity.ok(status);
+        return ResponseEntity.ok(mapper.toResponse(configService.getAppStatus()));
     }
 
-    @GetMapping("/divisions")
-    public ResponseEntity<List<DivisionResponse>> listAll() {
-        return ResponseEntity.ok(configService.listDivisions());
+    @Override
+    public ResponseEntity<List<DivisionResponse>> listDivisions() {
+        return ResponseEntity.ok(configService.listDivisions().stream().map(mapper::toResponse).toList());
     }
 
-    @GetMapping("/divisions/{id}")
-    public ResponseEntity<DivisionResponse> getDivisionById(@PathVariable Long id) {
-        return ResponseEntity.ok(configService.getDivisionById(id));
+    @Override
+    public ResponseEntity<DivisionResponse> getDivisionById(Long id) {
+        return ResponseEntity.ok(mapper.toResponse(configService.getDivisionById(id)));
     }
 
-    @GetMapping("/legal/{type}")
-    public ResponseEntity<LegalDocumentResponse> getLegalDocument(@PathVariable String type) {
-        LegalDocumentResponse doc = configService.getLegalDocument(type);
-        return ResponseEntity.ok(doc);
+    @Override
+    public ResponseEntity<LegalDocumentResponse> getLegalDocument(String type) {
+        return ResponseEntity.ok(mapper.toResponse(configService.getLegalDocument(type)));
     }
 }

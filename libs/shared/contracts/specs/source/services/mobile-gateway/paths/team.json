@@ -1,0 +1,126 @@
+{
+  "/api/v1/mobile/public/teams/{id}": {
+    "get": {
+      "tags": ["TeamPublic"],
+      "operationId": "getTeamById",
+      "security": [],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Team found",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TeamResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/public/teams/by-club/{clubId}": {
+    "get": {
+      "tags": ["TeamPublic"],
+      "operationId": "getTeamsByClubId",
+      "security": [],
+      "parameters": [
+        {
+          "name": "clubId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Club teams",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/TeamSummaryResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/public/teams/by-ids": {
+    "get": {
+      "tags": ["TeamPublic"],
+      "operationId": "getTeamsByIds",
+      "security": [],
+      "parameters": [
+        {
+          "name": "ids",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int64" }
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Teams found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/TeamSummaryResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/mobile/secure/teams/{id}": {
+    "put": {
+      "tags": ["TeamSecure"],
+      "operationId": "updateTeam",
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "image": { "type": "string", "format": "binary" }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Team updated",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TeamDetailsResponse" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,9 +1,9 @@
 package com.blockout.mobilegateway.notification.infrastructure;
 
-import com.blockout.mobilegateway.notification.api.models.RegisterPushTokenRequest;
-import com.blockout.mobilegateway.notification.api.models.UnreadCountResponse;
+import com.blockout.mobilegateway.notification.application.commands.RegisterPushTokenCommand;
 import com.blockout.mobilegateway.notification.application.views.NotificationItemView;
 import com.blockout.mobilegateway.notification.application.views.NotificationPageView;
+import com.blockout.mobilegateway.notification.application.views.UnreadCountView;
 import com.blockout.mobilegateway.notification.infrastructure.contract.models.NotificationInternalResponse;
 import com.blockout.mobilegateway.notification.infrastructure.contract.models.NotificationPageInternalResponse;
 import com.blockout.mobilegateway.notification.infrastructure.contract.models.RegisterPushTokenInternalRequest;
@@ -33,20 +33,20 @@ public class NotificationContractMapper {
     }
 
     /**
-     * Converts a generated unread count to the existing public response.
+     * Converts a generated unread count to an application view.
      */
-    public UnreadCountResponse toResponse(UnreadCountInternalResponse unreadCount) {
-        return unreadCount == null ? null : new UnreadCountResponse(unreadCount.getUnread());
+    public UnreadCountView toResponse(UnreadCountInternalResponse unreadCount) {
+        return unreadCount == null ? null : new UnreadCountView(unreadCount.getUnread());
     }
 
     /**
-     * Converts the public push-token request to the generated internal request.
+     * Converts the application command to the generated internal request.
      */
-    public RegisterPushTokenInternalRequest toInternalRequest(RegisterPushTokenRequest request) {
+    public RegisterPushTokenInternalRequest toInternalRequest(RegisterPushTokenCommand command) {
         return new RegisterPushTokenInternalRequest(
-            request.getExpoPushToken(),
-            DevicePlatformEnum.valueOf(request.getPlatform().name()))
-            .deviceId(request.getDeviceId());
+            command.expoPushToken(),
+            DevicePlatformEnum.valueOf(command.platform().name()))
+            .deviceId(command.deviceId());
     }
 
     private NotificationItemView toView(NotificationInternalResponse notification) {
@@ -57,13 +57,16 @@ public class NotificationContractMapper {
             notification.getTitle(),
             notification.getBody(),
             notification.getDeepLink(),
-            NotificationTargetType.valueOf(notification.getTargetType().name()),
+            notification.getTargetType() == null
+                ? null
+                : NotificationTargetType.valueOf(notification.getTargetType().name()),
             notification.getTargetId(),
             notification.getMetadata(),
             notification.getIsRead(),
             notification.getIsOpened(),
             notification.getCreatedAt(),
             notification.getReadAt(),
-            notification.getOpenedAt());
+            notification.getOpenedAt(),
+            null);
     }
 }
