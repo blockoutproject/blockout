@@ -11,8 +11,9 @@ Figma-to-code implementation, and visual reconciliation.
   accessibility, platform integration, and available states. Figma cannot activate or redefine them.
 - [`ref-061-mobile-visual-baseline.md`](../../../../docs/current/ref-061-mobile-visual-baseline.md) controls the visual
   inventory and the approved foundation, component, and screen scope until REF-064 is complete.
-- The only canonical design file is `Blockout - Product Design` in the Blockout Figma team. Record its link and file key
-  here when REF-062 creates it. Do not create a parallel canonical file.
+- The only canonical design file is
+  [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) in the Blockout Figma team
+  (`NwDQmiXqSjKVzQ6gwry0zb`). Do not create a parallel canonical file.
 - After REF-064 certification, the canonical Figma file controls visual composition. The application remains the
   authority for behavior and platform functionality.
 

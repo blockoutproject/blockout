@@ -762,7 +762,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     scope, feature-versus-shared ownership, and remaining external evidence gaps are recorded in
     [the REF-061 mobile visual baseline](./ref-061-mobile-visual-baseline.md). No Figma object changed.
 
-- [ ] **REF-062 — Build the Blockout foundations in Figma**
+- [x] **REF-062 — Build the Blockout foundations in Figma**
   - Create or select one Blockout mobile design-system file and implement the approved primitive and semantic variables
     for the existing dark experience: color, typography, spacing, sizing, radii, borders, effects, icon sizes, safe areas,
     touch targets, and mobile layout constraints.
@@ -770,6 +770,16 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     invent a light theme, desktop product, new brand, or speculative token taxonomy.
   - Document foundations in Figma, bind semantic variables to primitives, set appropriate scopes and code syntax, and
     validate every foundation page before any component is created.
+  - Evidence: the canonical
+    [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) file now owns the five policy
+    lifecycle pages. Its documented dark-only foundation contains 40 exact color primitives, 41 semantic aliases, 36
+    dimension variables, 27 typography variables, 12 text styles, five elevation styles, and eight gradient or pool
+    paint styles. All 144 variables have platform code syntax; non-primitive scopes are complete, every semantic alias
+    resolves, all 81 swatches are variable-bound, the 1,280-pixel documentation grids wrap without overflow, and no
+    placeholder remains. Safe areas stay runtime inputs, Inter is only the neutral Figma representation of platform
+    system fonts, and no light theme, desktop product, runtime source, generated file, or provider state changed. The
+    architecture and durable node evidence are recorded in
+    [the REF-062 Figma foundations record](./ref-062-figma-foundations.md).
 
 - [ ] **REF-063 — Build the Blockout component library in Figma**
   - Create only the component families proven by REF-061, in dependency order. Cover the required variants and states
