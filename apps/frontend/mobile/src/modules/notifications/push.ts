@@ -15,6 +15,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
+/** Open the supported deep link carried by a notification payload. */
 export function openNotificationUrlIfAny(
   data?: Record<string, unknown>,
   handleNavigationWithAd?: (navigate: () => void) => void,
@@ -23,8 +24,8 @@ export function openNotificationUrlIfAny(
   if (!url) return;
 
   const navigate = () => {
-    Linking.openURL(url).catch((error) => {
-      console.warn("[notifications] openURL failed", error);
+    Linking.openURL(url).catch(() => {
+      console.warn("[notifications] openURL failed");
     });
   };
 
@@ -35,6 +36,7 @@ export function openNotificationUrlIfAny(
   }
 }
 
+/** Map the active React Native platform to the internal notification contract. */
 export function platformToNotificationDevice(): DevicePlatform {
   if (Platform.OS === "ios") return "IOS";
   if (Platform.OS === "android") return "ANDROID";
@@ -42,6 +44,7 @@ export function platformToNotificationDevice(): DevicePlatform {
   return "UNKNOWN";
 }
 
+/** Request native notification permission and return the Expo push token. */
 export async function registerForPushNotificationsAsync(): Promise<
   string | null
 > {
@@ -81,6 +84,7 @@ export async function registerForPushNotificationsAsync(): Promise<
   return data ?? null;
 }
 
+/** Subscribe to foreground notifications and user responses. */
 export function addNotificationListeners({
   onReceive,
   onRespond,

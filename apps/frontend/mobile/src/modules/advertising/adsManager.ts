@@ -10,6 +10,7 @@ let adsReady = false;
 let initializing: Promise<void> | null = null;
 const listeners: (() => void)[] = [];
 
+/** Register a callback that runs once the native advertising SDK is ready. */
 export function onAdsReady(listener: () => void) {
   if (adsReady) {
     listener();
@@ -50,13 +51,14 @@ async function runInitFlow() {
     adsReady = true;
     listeners.forEach((fn) => fn());
     listeners.length = 0;
-  } catch (e) {
-    console.warn("[Ads] init failed", e);
+  } catch {
+    console.warn("[Ads] initialization failed");
   } finally {
     initializing = null;
   }
 }
 
+/** Initialize consent and the native advertising SDK at most once. */
 export function initAdsOnce(): Promise<void> {
   if (adsReady) return Promise.resolve();
   if (!initializing) {

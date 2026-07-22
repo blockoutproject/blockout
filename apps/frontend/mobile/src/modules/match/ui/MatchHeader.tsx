@@ -59,7 +59,6 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
       const {season, leagueCode, poolCode} = headerContent;
 
       if (!season || !leagueCode || !poolCode) {
-        console.warn("handleOpenFfvbCalendar: paramètres manquants");
         return;
       }
 
@@ -77,9 +76,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
         enableBarCollapsing: true,
         showTitle: true,
       });
-    } catch (err) {
-      console.error("[FFVB] Erreur ouverture calendrier :", err);
-    }
+    } catch {}
   };
 
   const bgOpacity = scrollY.interpolate({

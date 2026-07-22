@@ -659,7 +659,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     pass, the 37 club tests and 71 competition tests pass, including both architecture guards and all authentic provider
     fixtures. Generated sources remain ignored and untracked, and `git diff --check` passes.
 
-- [ ] **REF-057 — Apply policies and clean Expo mobile structure**
+- [x] **REF-057 — Apply policies and clean Expo mobile structure**
   - Audit the mobile application against the documentation, logging, mapping, testing, and Expo policies. Keep route
     files thin, feature presentation models local, transport mapping at the API boundary, and shared code limited to
     active cross-feature use.
@@ -667,6 +667,14 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     accepted location awaiting implementation; do not prepare speculative feature trees.
   - Preserve navigation, Auth0, native behavior, API traffic, styling, accessibility, and tests. Run format, lint,
     typecheck, Jest, and Web export; run a native check only if a native boundary changes.
+  - Evidence: all 298 TypeScript source files and 26 co-located test suites were included in the structure audit. No
+    empty source, asset, plugin, or test directory remains, and no speculative location justifies a `.gitkeep`; ignored
+    application-local Expo and Web export caches were removed after validation. Route ownership, active feature-local
+    presentation models, and boundary-local handwritten transport mapping remain unchanged pending REF-058. Routine UI
+    diagnostics and the duplicate advertising failure log were removed; the two remaining console warnings belong to
+    native provider boundaries and expose no URL, payload, credential, or raw exception. No generic logger or mapping
+    abstraction was introduced. Nx lint and typecheck pass, all 26 Jest suites and 52 tests pass, and the 3,148-module
+    Expo Web export succeeds. No native boundary changed, so no native rebuild was required; `git diff --check` passes.
 
 - [ ] **REF-058 — Adopt the generated mobile TypeScript client**
   - Generate the mobile client and models with Orval from the gateway contract into
