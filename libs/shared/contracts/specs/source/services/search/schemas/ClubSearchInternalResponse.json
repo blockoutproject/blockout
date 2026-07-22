@@ -1,0 +1,13 @@
+{
+  "ClubSearchInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "name"],
+    "properties": {
+      "id": { "type": "string" },
+      "name": { "type": "string" },
+      "logoUrl": { "type": "string", "nullable": true },
+      "city": { "type": "string", "nullable": true }
+    }
+  }
+}

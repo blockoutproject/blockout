@@ -1,0 +1,19 @@
+{
+  "PoolSearchInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "name", "season", "format", "gender"],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "name": { "type": "string" },
+      "shortName": { "type": "string", "nullable": true },
+      "divisionName": { "type": "string", "nullable": true },
+      "leagueCode": { "type": "string", "nullable": true },
+      "leagueName": { "type": "string", "nullable": true },
+      "season": { "type": "string" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "logoUrl": { "type": "string", "nullable": true }
+    }
+  }
+}

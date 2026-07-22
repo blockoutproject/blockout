@@ -574,11 +574,22 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     no external report was sent. Two clean Java generations have the same hash; contract guards and 15 targeted Java 21
     tests pass. Git tracks no generated source.
 
-- [ ] **REF-052 — Migrate the Search contract and worker consumers**
+- [x] **REF-052 — Migrate the Search contract and worker consumers**
   - Generate the search-service API boundary and replace search-worker transport copies with models derived from the
     same Club, Team, Pool, Competition, and Match schema sources.
   - Preserve indexing, filtering, ranking, reconciliation, and error behavior; do not perform an index cutover or any
     production Elasticsearch operation.
+  - Evidence: one Search OpenAPI source now owns the three existing V1 Club, Team, and Pool search routes and their
+    camelCase response models. `search-service` implements the generated server interfaces; `mobile-gateway` reads
+    generated adapter-local models and maps them to its unchanged public responses. The shared generated Format and
+    Gender enums retain the same JSON values at the transport boundary.
+  - `search-worker` keeps its generated Club, Team, Pool, and Division HTTP models from the corresponding authoritative
+    service contracts. It has no Competition or Match HTTP projection source, so no unused client or speculative model
+    was added. Its application projection models and messaging payloads remain handwritten behind the adapter boundary.
+    Handwritten Search response copies were removed from the owner. Index documents, filters, ranking, caches,
+    reconciliation, listeners, error handling, and Elasticsearch configuration remain unchanged; no live index,
+    cutover, or production operation was performed. Two clean Java generations have the same hash; contract guards and
+    25 targeted Java 21 tests pass. Git tracks no generated source.
 
 - [ ] **REF-053 — Migrate the mobile gateway contract**
   - Define the authoritative mobile-facing OpenAPI contract and make `mobile-gateway` implement its generated Java

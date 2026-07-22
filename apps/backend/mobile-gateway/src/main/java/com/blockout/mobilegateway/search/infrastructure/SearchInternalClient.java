@@ -4,6 +4,9 @@ import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.search.api.models.ClubSearchResponse;
 import com.blockout.mobilegateway.search.api.models.PoolSearchResponse;
 import com.blockout.mobilegateway.search.api.models.TeamSearchResponse;
+import com.blockout.mobilegateway.search.infrastructure.contract.models.ClubSearchInternalResponse;
+import com.blockout.mobilegateway.search.infrastructure.contract.models.PoolSearchInternalResponse;
+import com.blockout.mobilegateway.search.infrastructure.contract.models.TeamSearchInternalResponse;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,12 +17,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/** Reads the generated internal Search contract and exposes gateway public models. */
 @Service
 @RequiredArgsConstructor
 public class SearchInternalClient {
 
     private final ApiClientProperties apiClientProperties;
     private final InternalApiClient internalApiClient;
+    private final SearchContractMapper mapper;
 
     private String baseUrl() {
         return apiClientProperties.getSearch().getUrl();
@@ -32,10 +37,11 @@ public class SearchInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<ClubSearchResponse[]> response = internalApiClient.get(url, ClubSearchResponse[].class);
+        ResponseEntity<ClubSearchInternalResponse[]> response =
+            internalApiClient.get(url, ClubSearchInternalResponse[].class);
 
-        ClubSearchResponse[] body = response.getBody();
-        return body != null ? Arrays.asList(body) : Collections.emptyList();
+        ClubSearchInternalResponse[] body = response.getBody();
+        return body != null ? Arrays.stream(body).map(mapper::toResponse).toList() : Collections.emptyList();
     }
 
     public List<PoolSearchResponse> searchPools(String query, String season, Long divisionId, String format,
@@ -59,10 +65,11 @@ public class SearchInternalClient {
 
         String url = builder.build().toUriString();
 
-        ResponseEntity<PoolSearchResponse[]> response = internalApiClient.get(url, PoolSearchResponse[].class);
+        ResponseEntity<PoolSearchInternalResponse[]> response =
+            internalApiClient.get(url, PoolSearchInternalResponse[].class);
 
-        PoolSearchResponse[] body = response.getBody();
-        return body != null ? Arrays.asList(body) : Collections.emptyList();
+        PoolSearchInternalResponse[] body = response.getBody();
+        return body != null ? Arrays.stream(body).map(mapper::toResponse).toList() : Collections.emptyList();
     }
 
     public List<TeamSearchResponse> searchTeams(String query, String season, Long divisionId, String format,
@@ -86,9 +93,10 @@ public class SearchInternalClient {
 
         String url = builder.build().toUriString();
 
-        ResponseEntity<TeamSearchResponse[]> response = internalApiClient.get(url, TeamSearchResponse[].class);
+        ResponseEntity<TeamSearchInternalResponse[]> response =
+            internalApiClient.get(url, TeamSearchInternalResponse[].class);
 
-        TeamSearchResponse[] body = response.getBody();
-        return body != null ? Arrays.asList(body) : Collections.emptyList();
+        TeamSearchInternalResponse[] body = response.getBody();
+        return body != null ? Arrays.stream(body).map(mapper::toResponse).toList() : Collections.emptyList();
     }
 }

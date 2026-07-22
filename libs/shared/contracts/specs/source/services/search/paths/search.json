@@ -1,0 +1,76 @@
+{
+  "/api/v1/search/clubs": {
+    "get": {
+      "tags": ["ClubSearch"],
+      "operationId": "searchClubs",
+      "parameters": [
+        { "name": "query", "in": "query", "required": true, "schema": { "type": "string" } }
+      ],
+      "responses": {
+        "200": {
+          "description": "Club search completed",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/ClubSearchInternalResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/search/teams": {
+    "get": {
+      "tags": ["TeamSearch"],
+      "operationId": "searchTeams",
+      "parameters": [
+        { "name": "query", "in": "query", "required": true, "schema": { "type": "string" } },
+        { "name": "season", "in": "query", "schema": { "type": "string" } },
+        { "name": "divisionId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+        { "name": "format", "in": "query", "schema": { "$ref": "#/components/schemas/FormatEnum" } },
+        { "name": "gender", "in": "query", "schema": { "$ref": "#/components/schemas/GenderEnum" } }
+      ],
+      "responses": {
+        "200": {
+          "description": "Team search completed",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/TeamSearchInternalResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/search/pools": {
+    "get": {
+      "tags": ["PoolSearch"],
+      "operationId": "searchPools",
+      "parameters": [
+        { "name": "query", "in": "query", "required": true, "schema": { "type": "string" } },
+        { "name": "season", "in": "query", "schema": { "type": "string" } },
+        { "name": "divisionId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+        { "name": "format", "in": "query", "schema": { "$ref": "#/components/schemas/FormatEnum" } },
+        { "name": "gender", "in": "query", "schema": { "$ref": "#/components/schemas/GenderEnum" } }
+      ],
+      "responses": {
+        "200": {
+          "description": "Pool search completed",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/PoolSearchInternalResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

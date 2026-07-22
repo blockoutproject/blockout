@@ -6,13 +6,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.5</version>
-        <relativePath/>
+        <groupId>com.blockout</groupId>
+        <artifactId>backend</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>com.blockout</groupId>
     <artifactId>search</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>search</name>
@@ -24,6 +23,10 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.blockout</groupId>
+            <artifactId>shared-models</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -88,6 +91,53 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-search-server</id>
+                        <phase>generate-sources</phase>
+                        <goals><goal>generate</goal></goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/search.json</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources/openapi/search-server</output>
+                            <apiPackage>com.blockout.search.search.api</apiPackage>
+                            <modelPackage>com.blockout.search.search.api.models</modelPackage>
+                            <invokerPackage>com.blockout.search.search.api.invoker</invokerPackage>
+                            <configOptions>
+                                <interfaceOnly>true</interfaceOnly>
+                                <dateLibrary>java8-localdatetime</dateLibrary>
+                            </configOptions>
+                            <importMappings>
+                                <importMapping>FormatEnum=com.blockout.shared.model.FormatEnum</importMapping>
+                                <importMapping>GenderEnum=com.blockout.shared.model.GenderEnum</importMapping>
+                            </importMappings>
+                            <schemaMappings>
+                                <schemaMapping>FormatEnum=com.blockout.shared.model.FormatEnum</schemaMapping>
+                                <schemaMapping>GenderEnum=com.blockout.shared.model.GenderEnum</schemaMapping>
+                            </schemaMappings>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>add-generated-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals><goal>add-source</goal></goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/openapi/search-server/src/main/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

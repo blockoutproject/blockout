@@ -331,6 +331,29 @@
                             </schemaMappings>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>generate-search-client-models</id>
+                        <phase>generate-sources</phase>
+                        <goals><goal>generate</goal></goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../../libs/shared/contracts/generated/specs/search.json</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources/openapi/search-client</output>
+                            <modelPackage>com.blockout.mobilegateway.search.infrastructure.contract.models</modelPackage>
+                            <generateApis>false</generateApis>
+                            <generateModels>true</generateModels>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <configOptions><dateLibrary>java8-localdatetime</dateLibrary></configOptions>
+                            <importMappings>
+                                <importMapping>FormatEnum=com.blockout.shared.model.FormatEnum</importMapping>
+                                <importMapping>GenderEnum=com.blockout.shared.model.GenderEnum</importMapping>
+                            </importMappings>
+                            <schemaMappings>
+                                <schemaMapping>FormatEnum=com.blockout.shared.model.FormatEnum</schemaMapping>
+                                <schemaMapping>GenderEnum=com.blockout.shared.model.GenderEnum</schemaMapping>
+                            </schemaMappings>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -371,6 +394,9 @@
                                 </source>
                                 <source>
                                     ${project.build.directory}/generated-sources/openapi/report-client/src/main/java
+                                </source>
+                                <source>
+                                    ${project.build.directory}/generated-sources/openapi/search-client/src/main/java
                                 </source>
                             </sources>
                         </configuration>

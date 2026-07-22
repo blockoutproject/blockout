@@ -188,6 +188,19 @@ test('schema roots include active multipart JSON models without fake endpoints',
       .properties.data.type,
     'string',
   );
+
+  const searchBundle = JSON.parse(
+    await readFile(path.join(contractsRoot, 'generated/specs/search.json'), 'utf8'),
+  );
+  assert.ok(searchBundle.components.schemas.ClubSearchInternalResponse);
+  assert.ok(searchBundle.components.schemas.TeamSearchInternalResponse);
+  assert.ok(searchBundle.components.schemas.PoolSearchInternalResponse);
+  assert.equal(
+    searchBundle.paths['/api/v1/search/teams'].get.parameters.find(
+      (parameter) => parameter.name === 'divisionId',
+    ).schema.format,
+    'int64',
+  );
 });
 
 test('generated artifacts are not tracked by Git', () => {
