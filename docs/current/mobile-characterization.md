@@ -1,5 +1,7 @@
 # Mobile Application Characterization
 
+> Historical evidence: this predates the completed mobile refactor and generated Orval boundary.
+
 ## Scope
 
 REF-028 records the current behavior of the Expo application before any product or contract refactor. Android and iOS

@@ -1,5 +1,7 @@
 # Competition Scraper Characterization
 
+> Historical evidence: this predates the completed scraper refactor and generated contract-client adoption.
+
 REF-024 records the imported competition scraper as an executable oracle before any structural replacement. REF-025
 keeps that behavior behind an application-local `scraper` package. The test suite uses real source-derived FFVB/LNV
 HTML, XML, and CSV excerpts plus recording adapters. It does not contact FFVB, LNV, Auth0, production Blockout APIs, or

@@ -51,7 +51,6 @@ auth0:
   client-id: ${AUTH0_CLIENT_ID}
   client-secret: ${AUTH0_CLIENT_SECRET}
   audience: ${AUTH0_AUDIENCE}
-  default-user-role-id: ${AUTH0_DEFAULT_ROLE_ID}
   token-refresh-delay: 24h
 
 api:
@@ -63,4 +62,4 @@ api:
     url: ${TEAM_API_URL}
 
 expo:
-  access-token: ${EXPO_PUSH_ACCESS_TOKEN}
+  access-token: ${EXPO_PUSH_ACCESS_TOKEN:}

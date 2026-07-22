@@ -1,5 +1,7 @@
 # Scraper Functional Validation
 
+> Historical evidence: this records the pre-refactor local validation. REF-059 contains the certified current flow.
+
 ## Scope
 
 REF-004 validated both Python scrapers against the local Blockout application

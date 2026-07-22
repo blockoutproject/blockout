@@ -9,7 +9,7 @@
       "continuous": true,
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python main.py",
+        "command": "python main.py local",
         "installDependenciesIfNotExists": true
       }
     },

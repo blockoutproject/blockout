@@ -1,15 +1,25 @@
 # Documentation
 
-- [Bootstrap design](current/blockout-clean-bootstrap-design.md)
-- [Refactor direction](current/refactor-direction.md)
-- [Mobile application characterization](current/mobile-characterization.md)
-- [Mobile architecture](current/mobile-architecture.md)
-- [Mobile consolidation register](current/mobile-consolidation.md)
-- [Mobile Expo and React Native audit](current/mobile-audit.md)
-- [Scraper functional validation](current/scraper-functional-validation.md)
-- [Source baseline](current/source-baseline.md)
-- [Roadmap](current/roadmap.md)
-- [Local development](runbooks/local-development.md)
+## Current reference
 
-The bootstrap documents remain the historical baseline. The refactor direction and roadmap describe the current work.
-Contract generation, CI, deployment, and public-repository publication remain separate future decisions.
+- [Local development](runbooks/local-development.md)
+- [Architecture and refactor direction](current/refactor-direction.md)
+- [Mobile architecture](current/mobile-architecture.md)
+- [Contract-first certification](current/ref-059-certification.md)
+- [Public release readiness](current/ref-060-public-release-readiness.md)
+- [Completed roadmap](current/roadmap.md)
+
+## Completed migration evidence
+
+- [Bootstrap design](current/blockout-clean-bootstrap-design.md)
+- [Imported source baseline](current/source-baseline.md)
+- [Club scraper characterization](current/club-scraper-characterization.md)
+- [Competition scraper characterization](current/competition-scraper-characterization.md)
+- [Scraper functional validation](current/scraper-functional-validation.md)
+- [Mobile characterization](current/mobile-characterization.md)
+- [Mobile audit](current/mobile-audit.md)
+- [Mobile consolidation register](current/mobile-consolidation.md)
+
+The migration evidence records the state and decisions at the time of each completed task. Where sequencing language
+describes code generation or another refactor as deferred, the current source, repository policies, completed roadmap,
+and REF-059 certification are authoritative. GitFlow, CI, deployment, and production changes remain deferred.

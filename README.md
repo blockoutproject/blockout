@@ -1,42 +1,84 @@
 # Blockout
 
-Blockout is an Nx monorepo that keeps each application on its native toolchain.
+Blockout is a volleyball companion application that collects FFVB and LNV competition data and exposes it through an
+Expo mobile application. This repository contains the complete application as one Nx monorepo while preserving each
+ecosystem's native toolchain.
 
-- Java backend applications use Maven.
-- The mobile application uses Expo.
-- Python scrapers use Python 3.12 and their own runtime dependencies.
-- Local databases and shared dependencies use Docker Compose.
-
-Nx provides one project graph without replacing Maven, Expo, Python, or Docker.
-
-## Structure
+## Architecture
 
 ```text
 apps/
-  backend/   Java services, workers, gateway, and Python scrapers
-  frontend/  Expo mobile application
+  backend/   Spring Boot services, workers, gateway, and Python scrapers
+  frontend/  Expo and React Native mobile application
+libs/shared/
+  contracts/ OpenAPI sources and ignored generated bundles
+  python-contract-clients/ Ignored generated Python models and HTTPX clients
 infra/
-  compose/   Local application databases and shared third-party services
-docs/        Current baseline, roadmap, and runbooks
+  compose/   Local PostgreSQL, RabbitMQ, Elasticsearch, and pgAdmin services
+docs/        Architecture records, completed refactor evidence, and runbooks
 ```
 
-## Start here
+Nx 23 provides the project graph and task orchestration. Maven remains authoritative for Java, uv for Python, Expo for
+the mobile application, and Docker Compose for local infrastructure. OpenAPI Generator and Orval produce transport
+models and clients from the V1 contracts; generated sources remain outside Git.
+
+## Prerequisites
+
+- Node.js 22 and npm 10
+- Java 21 and Maven 3.9
+- Python 3.12 and uv 0.11.29
+- Docker with Compose
+- Xcode or Android Studio only for native mobile builds
+
+## Bootstrap
+
+Install the JavaScript and Python workspaces, inspect the Nx projects, and build the backend:
 
 ```bash
 npm ci
-npm exec nx show projects
+uv sync --locked --all-packages
+npm exec -- nx run @blockout/contracts:generate-openapi-bundles
+npm exec -- nx show projects
 mvn -f pom.xml clean package -DskipTests
 ```
 
-Local infrastructure is split into two Compose files:
+Each deployable application owns a safe `.env.example`. Copy only the applications you want to run to an ignored
+`.env.local`, then replace the documented `replace-me` values with development credentials. Never commit local
+environment files, tokens, private keys, or production data.
+
+Start the shared local infrastructure under the stable `blockout` Compose project:
 
 ```bash
-docker compose \
+docker compose --project-name blockout \
   -f infra/compose/docker-compose.app.yml \
   -f infra/compose/docker-compose.third-party.yml \
   up -d
 ```
 
-Application processes run outside Compose through their native commands or Nx targets.
-See [local development](docs/runbooks/local-development.md), the [source baseline](docs/current/source-baseline.md), and
-the [roadmap](docs/current/roadmap.md).
+Application processes run outside Compose through their native commands or Nx targets. The complete environment and
+run commands are documented in [local development](docs/runbooks/local-development.md).
+
+## Verification
+
+```bash
+npm exec -- nx run @blockout/contracts:test
+npm exec -- nx run @blockout/club-scraper:test
+npm exec -- nx run @blockout/competition-scraper:test
+npm exec -- nx run @blockout/mobile:typecheck
+npm exec -- nx run @blockout/mobile:test
+mvn -f pom.xml test
+```
+
+See the [documentation index](docs/README.md), the [completed roadmap](docs/current/roadmap.md), and the
+[contract-first certification](docs/current/ref-059-certification.md) for the validated application baseline.
+
+## Security
+
+Use [SECURITY.md](SECURITY.md) to report a vulnerability privately. OAuth client IDs and the mobile Google service
+configuration are public application identifiers; OAuth client secrets, provider credentials, signing keys, and user
+credentials must never be committed.
+
+## License
+
+No open-source license is currently granted. A clean snapshot can be published for inspection, but reuse and
+redistribution remain reserved until the owner explicitly selects and adds a license.

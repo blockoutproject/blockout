@@ -67,11 +67,12 @@ install their Next.js, deployment, web-design, or writing skills for Blockout mo
 - Preserve existing runtime behavior unless the active roadmap task explicitly authorizes a behavior correction.
 - Maaatch is a read-only structural reference. Reuse its policies and vocabulary patterns, never its business code.
 
-## Staged Contract Adoption
+## Contract-First Baseline
 
-REF-041 activates the OpenAPI generation foundation. Contract ownership now follows
-`references/contract-first.md`, but each vertical remains handwritten until its ordered roadmap task proves DTO
-readiness and adopts the generated boundary. Do not generate or migrate a later vertical by continuity.
+REF-041 through REF-059 established and certified the generated V1 transport boundaries. Contract ownership follows
+`references/contract-first.md`: OpenAPI sources are authoritative, generated output remains ignored, Java generated
+models stay within adapters, Python scrapers use the shared generated models and HTTPX clients, and the mobile uses its
+generated Orval client. A future contract change still requires an explicit task and proportional parity evidence.
 
 Blockout does not use GitFlow or a GitHub Project roadmap yet:
 

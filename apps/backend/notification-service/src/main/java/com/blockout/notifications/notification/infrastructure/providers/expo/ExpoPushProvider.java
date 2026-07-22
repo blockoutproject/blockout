@@ -10,19 +10,14 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
-/**
- * Service d’envoi Expo via le SDK "expo-server-sdk-java" (hlspablo).
- * - Construit 1 PushNotification par token pour conserver le mapping
- * index→(userId, token)
- * - Envoie en lots (≤100) comme recommandé par Expo
- * - Agrège les tickets → { users OK, users KO, tokens invalides }
- */
+/** Sends notification batches through the Expo Push Service and maps tickets back to users and device tokens. */
 @Service
 public class ExpoPushProvider {
 
@@ -31,14 +26,21 @@ public class ExpoPushProvider {
 
     private final ExpoPushNotificationClient client;
 
+    /**
+     * Creates the Expo client with enhanced push security only when an access token is configured.
+     *
+     * @param expoClientProperties optional enhanced-security configuration.
+     */
     public ExpoPushProvider(ExpoClientProperties expoClientProperties) {
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
-        this.client = ExpoPushNotificationClient
+        ExpoPushNotificationClient.Builder clientBuilder = ExpoPushNotificationClient
             .builder()
-            .setHttpClient(httpClient)
-            .setAccessToken(expoClientProperties.getAccessToken())
-            .build();
+            .setHttpClient(httpClient);
+        if (StringUtils.hasText(expoClientProperties.getAccessToken())) {
+            clientBuilder.setAccessToken(expoClientProperties.getAccessToken());
+        }
+        this.client = clientBuilder.build();
 
         logger.info("ExpoPushService initialized",
             keyValue("action", "expo_service_init"));

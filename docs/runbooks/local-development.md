@@ -88,6 +88,7 @@ Start the application databases and the shared third-party services:
 
 ```bash
 docker compose \
+  --project-name blockout \
   -f infra/compose/docker-compose.app.yml \
   -f infra/compose/docker-compose.third-party.yml \
   up -d
@@ -97,6 +98,7 @@ Stop them without deleting local database volumes:
 
 ```bash
 docker compose \
+  --project-name blockout \
   -f infra/compose/docker-compose.app.yml \
   -f infra/compose/docker-compose.third-party.yml \
   down
@@ -193,6 +195,8 @@ Nx activates that environment for the application targets:
 ```bash
 npm exec nx run @blockout/python-contract-clients:sync
 npm exec nx run @blockout/python-contract-clients:build
+npm exec nx run @blockout/club-scraper:serve
+npm exec nx run @blockout/competition-scraper:serve
 npm exec nx run @blockout/club-scraper:syntax-check
 npm exec nx run @blockout/competition-scraper:syntax-check
 npm exec nx run @blockout/club-scraper:docker-build
@@ -203,3 +207,6 @@ Each Dockerfile uses a Python 3.12 builder, the pinned official uv binary, one l
 runtime containing only the copied virtual environment and application. Nx and uv are not part of the final image.
 Use non-secret development values for `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_AUDIENCE`, and
 the required `*_API_URL` variables.
+
+The two Nx `serve` targets select `.env.local`. Docker and direct production-style launches continue to read process
+environment variables and the scraper's default `.env` selection.

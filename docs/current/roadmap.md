@@ -717,6 +717,27 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     afterward; existing volumes were untouched. Signed-device and production evidence remains unavailable and no bypass
     was added. Full evidence is recorded in [the REF-059 certification](./ref-059-certification.md).
 
+- [x] **REF-060 — Prepare the repository for public release**
+  - Audit the tracked tree, ignored local environments, generated outputs, signing material, public mobile identifiers,
+    documentation, and repository history without exposing secret values.
+  - Provide a concise public README, documentation index, vulnerability reporting path, and honest license boundary.
+  - Correct only concrete public-bootstrap and local-environment gaps. Keep GitFlow, CI, deployment, production behavior,
+    repository visibility, external credential rotation, and destructive history rewriting outside this task.
+  - Prove lockfile installation, the Nx graph, contract guards, the complete Maven package, affected tests, documentation
+    formatting, ignored-file ownership, and a secret scan from a clean tracked-tree export.
+  - Evidence: all 15 deployables have aligned safe examples and ignored owner-readable local environments. The obsolete
+    notification Auth0 role variable was removed; Expo enhanced push security is optional and covered by a focused test;
+    both scraper `serve` targets now select `.env.local`. The current tracked tree contains no private credential and
+    Gitleaks reports only eight expected public mobile identifiers. The construction history contains one legacy Auth0
+    credential candidate, so publication requires the planned clean repository initialization and provider rotation if
+    that registration still exists; REF-060 performs neither destructive operation. The public README, documentation
+    index, security reporting path, history boundary, and no-license status are explicit. From an indexed clean-tree
+    export, `npm ci`, uv lock and sync, OpenAPI generation, all 20 Nx projects, six contract guards, and all 13 Maven
+    artifacts pass. Both scraper suites retain 108 passing tests, documentation and diff checks pass, and npm audit has
+    no high or critical finding. Full evidence is recorded in
+    [the REF-060 public release readiness record](./ref-060-public-release-readiness.md).
+
 The Java and Python scraper refactors and their local persistence certification are complete.
-The mobile behavior baseline and handwritten architecture are complete. REF-038 through REF-059 now define the
-sequential contract-first adoption path. GitFlow, CI, deployment, and production changes remain deferred.
+The mobile behavior baseline and handwritten architecture are complete. REF-038 through REF-059 define the completed
+contract-first adoption path, and REF-060 certifies the source tree for a clean-history public release. GitFlow, CI,
+deployment, production changes, repository publication, credential rotation, and license selection remain deferred.

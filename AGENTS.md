@@ -11,6 +11,6 @@ Global rules:
 - Treat the imported standalone applications as the behavioral baseline.
 - Use Maaatch as a read-only structural and naming reference; never copy its business code.
 - Preserve runtime behavior unless the active task explicitly authorizes a correction.
-- Apply contract-first/code generation only through the active ordered roadmap; keep GitFlow/GitHub Project governance
-  dormant until a separate user-authorized task.
+- Treat the generated V1 contracts as the active transport authority; change them only through an explicit task and keep
+  GitFlow/GitHub Project governance dormant until a separate user-authorized task.
 - Keep generated output, secrets, local environments, caches, logs, and build artifacts out of Git.

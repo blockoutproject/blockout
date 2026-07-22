@@ -1,5 +1,8 @@
 # Blockout Clean Monorepo Bootstrap
 
+> Historical evidence: BOOT-001 completed this bootstrap before the subsequent service, scraper, mobile, and
+> contract-first refactors.
+
 ## Status
 
 Approved design for the temporary bootstrap repository.

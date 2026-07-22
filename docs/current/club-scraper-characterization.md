@@ -1,5 +1,7 @@
 # Club Scraper Characterization
 
+> Historical evidence: this predates the completed scraper refactor and generated contract-client adoption.
+
 REF-022 records the supported behavior of the imported club scraper before structural replacement. The tests use
 sanitized FFVB address-book fixtures and recording internal clients. They do not contact FFVB, Auth0, production
 Blockout

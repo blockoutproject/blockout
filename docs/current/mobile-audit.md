@@ -1,5 +1,7 @@
 # Mobile Expo and React Native audit
 
+> Historical evidence: the findings became inputs to the completed REF-032 through REF-058 mobile work.
+
 ## Purpose
 
 This audit establishes the next mobile work from the live application rather than proposing a rewrite. It applies the

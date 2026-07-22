@@ -12,10 +12,21 @@ coverage/
 .env
 .env.*
 !.env.example
+.envrc
+.direnv/
 .venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Private keys and signing credentials
+*.jks
+*.keystore
+*.key
+*.pem
+*.p8
+*.p12
+*.mobileprovision
 libs/shared/contracts/generated/
 libs/shared/python-contract-clients/src/.openapi-generator/
 libs/shared/python-contract-clients/src/blockout_contract_clients/*

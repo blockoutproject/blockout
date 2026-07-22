@@ -1,5 +1,8 @@
 # Blockout Refactor Direction
 
+> Status: completed through REF-059. Sequencing language below records the migration path; the generated V1 contracts
+> and the REF-059 certification describe the current transport baseline.
+
 ## Objective
 
 Modernize Blockout incrementally while keeping the imported applications functional. Maaatch is the read-only reference
