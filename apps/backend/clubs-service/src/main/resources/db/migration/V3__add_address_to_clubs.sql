@@ -1,2 +1,2 @@
 ALTER TABLE clubs
-  ADD COLUMN address VARCHAR(255);
+ADD COLUMN address VARCHAR(255);
