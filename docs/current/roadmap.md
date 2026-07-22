@@ -501,10 +501,20 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     ingestion retain their existing behavior. Clean contract/client generation, uv lock, Ruff, 70 scraper tests,
     6 generated-client tests, contract guards, and the targeted Java 21 reactor pass. Git tracks no generated output.
 
-- [ ] **REF-047 — Migrate the Competition contract**
+- [x] **REF-047 — Migrate the Competition contract**
   - Generate the competition-service boundary used by ingestion and downstream services from one authoritative contract.
   - Preserve cascade commands, external identifiers, season semantics, transaction boundaries, and existing routes; do
     not introduce a parallel API version or speculative event redesign.
+  - Evidence: one Competition OpenAPI source owns all existing V1 association routes, cascade requests, ranking models,
+    and camelCase payloads. `competition-service` implements the generated server interface, `mobile-gateway` maps
+    generated adapter-local models, and the competition scraper uses the generated asynchronous HTTPX client.
+    Handwritten transport DTOs were removed; scraper association state and calculated statistics are now idiomatic,
+    transport-independent Python application models.
+  - Association creation, lookup, ranking updates, bulk cascade commands, season behavior, and existing Rabbit messages
+    remain unchanged. Contract guards, deterministic generation, the locked uv workspace, Ruff, 70 scraper tests,
+    7 generated-client tests, and the targeted Java 21 reactor pass. Git tracks no generated source. The unrelated
+    application-context test remains blocked by the pre-existing checksum of the local Competition Flyway database;
+    no database repair was performed by this contract task.
 
 - [ ] **REF-048 — Migrate the Match contract**
   - Generate Match requests, responses, enums, and clients from the authoritative `matches-service` model.

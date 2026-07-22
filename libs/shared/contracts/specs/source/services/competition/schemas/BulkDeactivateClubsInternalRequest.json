@@ -1,0 +1,10 @@
+{
+  "BulkDeactivateClubsInternalRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["missingClubIds"],
+    "properties": {
+      "missingClubIds": { "type": "array", "items": { "type": "string" } }
+    }
+  }
+}

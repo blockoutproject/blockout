@@ -4,6 +4,9 @@ import asyncio
 
 import aiohttp
 import httpx
+from blockout_contract_clients.competition.api.competition_association_api import (
+    CompetitionAssociationApi,
+)
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
@@ -30,6 +33,7 @@ class RegionalScraper(Scraper):
         raw_division_mapping_api: RawDivisionMappingApi | None = None,
         team_api: TeamApi | None = None,
         pool_api: PoolApi | None = None,
+        competition_api: CompetitionAssociationApi | None = None,
     ) -> None:
         super().__init__(
             session,
@@ -38,6 +42,7 @@ class RegionalScraper(Scraper):
             raw_division_mapping_api=raw_division_mapping_api,
             team_api=team_api,
             pool_api=pool_api,
+            competition_api=competition_api,
             url="https://www.ffvb.org/120-37-1-Championnats-Regionaux",
             priority_validation_enabled=False,
         )

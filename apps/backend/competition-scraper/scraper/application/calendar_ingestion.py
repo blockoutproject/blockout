@@ -2,16 +2,13 @@
 
 from dataclasses import dataclass
 
-from scraper.application.models import Pool, Team
+from scraper.application.models import AssociationStats, Pool, Team
 from scraper.application.pool_writer import add_or_update_pool
 from scraper.application.source import Scraper
 from scraper.application.team_writer import add_or_update_team
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.domain.normalization import capitalize_words, parse_date
 from scraper.domain.team import get_full_name, get_short_name, normalize
-from scraper.infrastructure.blockout.association_stats import (
-    UpdateAssociationStatsInternalRequest,
-)
 from scraper.infrastructure.blockout.competitions import (
     add_team_to_pool,
     bulk_deactivate_teams_by_pool,
@@ -217,14 +214,17 @@ async def handle_csv_download_and_parse(
             for team_obj in [new_team_a, new_team_b]:
                 if team_obj.id not in active_team_ids:
                     await add_team_to_pool(
-                        scraper.session, new_pool.id, team_obj.id, team_obj.club_id
+                        scraper.competitions_api(),
+                        new_pool.id,
+                        team_obj.id,
+                        team_obj.club_id,
                     )
                     log_event(
                         "add_team_to_pool",
                         "info",
-                        poolId=new_pool.id,
-                        teamId=team_obj.id,
-                        clubId=team_obj.club_id,
+                        pool_id=new_pool.id,
+                        team_id=team_obj.id,
+                        club_id=team_obj.club_id,
                     )
                     active_team_ids.add(team_obj.id)
 
@@ -250,7 +250,7 @@ async def handle_csv_download_and_parse(
                     log_event(
                         "team_stats_match_fail",
                         "warning",
-                        poolId=new_pool.id,
+                        pool_id=new_pool.id,
                         team_name=ranking.team_name,
                         message="Aucune équipe existante ne correspond à ce nom",
                     )
@@ -282,7 +282,7 @@ async def handle_csv_download_and_parse(
         missing_teams = list(active_team_ids - scraped_team_ids)
         if observation_complete and missing_teams:
             await bulk_deactivate_teams_by_pool(
-                scraper.session, new_pool.id, missing_teams
+                scraper.competitions_api(), new_pool.id, set(missing_teams)
             )
 
         missing_matches = {
@@ -314,23 +314,23 @@ async def handle_csv_download_and_parse(
         raise
 
 
-def _ranking_stats(ranking: FfvbRanking) -> UpdateAssociationStatsInternalRequest:
-    return UpdateAssociationStatsInternalRequest(
+def _ranking_stats(ranking: FfvbRanking) -> AssociationStats:
+    return AssociationStats(
         points=ranking.points,
         played=ranking.played,
         wins=ranking.wins,
         losses=ranking.losses,
-        winsThreeToZero=ranking.wins_three_to_zero,
-        winsThreeToOne=ranking.wins_three_to_one,
-        winsThreeToTwo=ranking.wins_three_to_two,
-        lossesTwoToThree=ranking.losses_two_to_three,
-        lossesOneToThree=ranking.losses_one_to_three,
-        lossesZeroToThree=ranking.losses_zero_to_three,
-        wonSets=ranking.won_sets,
-        lostSets=ranking.lost_sets,
-        coefSets=ranking.coefficient_sets,
-        wonPoints=ranking.won_points,
-        lostPoints=ranking.lost_points,
-        coefPoints=ranking.coefficient_points,
-        pointsPenalty=0,
+        wins_three_to_zero=ranking.wins_three_to_zero,
+        wins_three_to_one=ranking.wins_three_to_one,
+        wins_three_to_two=ranking.wins_three_to_two,
+        losses_two_to_three=ranking.losses_two_to_three,
+        losses_one_to_three=ranking.losses_one_to_three,
+        losses_zero_to_three=ranking.losses_zero_to_three,
+        won_sets=ranking.won_sets,
+        lost_sets=ranking.lost_sets,
+        coefficient_sets=ranking.coefficient_sets,
+        won_points=ranking.won_points,
+        lost_points=ranking.lost_points,
+        coefficient_points=ranking.coefficient_points,
+        points_penalty=0,
     )

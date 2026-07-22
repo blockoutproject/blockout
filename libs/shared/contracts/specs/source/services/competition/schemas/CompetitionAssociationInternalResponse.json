@@ -1,0 +1,41 @@
+{
+  "CompetitionAssociationInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "poolId", "teamId", "clubId", "active"],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "poolId": { "type": "integer", "format": "int64" },
+      "teamId": { "type": "integer", "format": "int64" },
+      "clubId": { "type": "string" },
+      "active": { "type": "boolean" },
+      "points": { "type": "integer", "nullable": true },
+      "played": { "type": "integer", "nullable": true },
+      "wins": { "type": "integer", "nullable": true },
+      "losses": { "type": "integer", "nullable": true },
+      "winsThreeToZero": { "type": "integer", "nullable": true },
+      "winsThreeToOne": { "type": "integer", "nullable": true },
+      "winsThreeToTwo": { "type": "integer", "nullable": true },
+      "lossesZeroToThree": { "type": "integer", "nullable": true },
+      "lossesOneToThree": { "type": "integer", "nullable": true },
+      "lossesTwoToThree": { "type": "integer", "nullable": true },
+      "wonSets": { "type": "integer", "nullable": true },
+      "lostSets": { "type": "integer", "nullable": true },
+      "wonPoints": { "type": "integer", "nullable": true },
+      "lostPoints": { "type": "integer", "nullable": true },
+      "pointsPenalty": { "type": "integer", "nullable": true },
+      "coefSets": { "type": "number", "format": "double", "nullable": true },
+      "coefPoints": { "type": "number", "format": "double", "nullable": true },
+      "createdAt": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      },
+      "lastUpdate": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      }
+    }
+  }
+}

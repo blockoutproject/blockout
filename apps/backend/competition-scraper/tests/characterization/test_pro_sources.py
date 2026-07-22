@@ -173,10 +173,10 @@ def test_lnv_rank_xml_replaces_complete_association_stats(monkeypatch) -> None:
         original, stats = scraper._associations_cache[(1, 101)]
         assert original is None
         assert (stats.played, stats.wins, stats.losses, stats.points) == (18, 15, 3, 44)
-        assert (stats.wonSets, stats.lostSets) == (48, 18)
-        assert (stats.wonPoints, stats.lostPoints) == (1584, 1453)
+        assert (stats.won_sets, stats.lost_sets) == (48, 18)
+        assert (stats.won_points, stats.lost_points) == (1584, 1453)
         # The cache replacement copies raw counters; finalization recomputes coefficients.
-        assert (stats.coefSets, stats.coefPoints) == (0.0, 0.0)
+        assert (stats.coefficient_sets, stats.coefficient_points) == (0.0, 0.0)
 
     asyncio.run(scenario())
 

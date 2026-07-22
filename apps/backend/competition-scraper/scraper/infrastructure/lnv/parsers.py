@@ -8,10 +8,8 @@ from zoneinfo import ZoneInfo
 
 from bs4 import BeautifulSoup, Tag
 
+from scraper.application.models import AssociationStats
 from scraper.domain.match import validate_set_format, validate_set_score_format
-from scraper.infrastructure.blockout.association_stats import (
-    UpdateAssociationStatsInternalRequest,
-)
 
 
 @dataclass(frozen=True)
@@ -29,7 +27,7 @@ class LnvRanking:
     """Provider-owned ranking values read from one LNV XML element."""
 
     team_name: str
-    stats: UpdateAssociationStatsInternalRequest
+    stats: AssociationStats
 
 
 @dataclass(frozen=True)
@@ -77,24 +75,24 @@ def parse_rankings(root: ET.Element) -> list[LnvRanking]:
     rankings = []
     for competition in root.findall(".//Competition"):
         for team in competition.findall(".//Equipe"):
-            stats = UpdateAssociationStatsInternalRequest(
+            stats = AssociationStats(
                 played=_integer(team, "MatchsJoues"),
                 wins=_integer(team, "MatchsGagnes"),
                 losses=_integer(team, "MatchsPerdus"),
                 points=_integer(team, "Points"),
-                winsThreeToZero=_integer(team, "Resultat_3_0"),
-                winsThreeToOne=_integer(team, "Resultat_3_1"),
-                winsThreeToTwo=_integer(team, "Resultat_3_2"),
-                lossesZeroToThree=_integer(team, "Resultat_0_3"),
-                lossesOneToThree=_integer(team, "Resultat_1_3"),
-                lossesTwoToThree=_integer(team, "Resultat_2_3"),
-                wonSets=_integer(team, "SetPour"),
-                lostSets=_integer(team, "SetContre"),
-                wonPoints=_integer(team, "PointsPour"),
-                lostPoints=_integer(team, "PointsContre"),
-                pointsPenalty=0,
-                coefSets=_decimal(team, "RatioSet"),
-                coefPoints=_decimal(team, "RatioPoints"),
+                wins_three_to_zero=_integer(team, "Resultat_3_0"),
+                wins_three_to_one=_integer(team, "Resultat_3_1"),
+                wins_three_to_two=_integer(team, "Resultat_3_2"),
+                losses_zero_to_three=_integer(team, "Resultat_0_3"),
+                losses_one_to_three=_integer(team, "Resultat_1_3"),
+                losses_two_to_three=_integer(team, "Resultat_2_3"),
+                won_sets=_integer(team, "SetPour"),
+                lost_sets=_integer(team, "SetContre"),
+                won_points=_integer(team, "PointsPour"),
+                lost_points=_integer(team, "PointsContre"),
+                points_penalty=0,
+                coefficient_sets=_decimal(team, "RatioSet"),
+                coefficient_points=_decimal(team, "RatioPoints"),
             )
             rankings.append(
                 LnvRanking(

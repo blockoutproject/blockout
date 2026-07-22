@@ -1,5 +1,8 @@
 import aiohttp
 import httpx
+from blockout_contract_clients.competition.api.competition_association_api import (
+    CompetitionAssociationApi,
+)
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
@@ -22,22 +25,43 @@ class ScraperFactory:
         raw_division_mapping_api: RawDivisionMappingApi | None = None,
         team_api: TeamApi | None = None,
         pool_api: PoolApi | None = None,
+        competition_api: CompetitionAssociationApi | None = None,
     ) -> Scraper:
         if scraper_type == "pro":
             return ProScraper(
-                session, provider_client, raw_division_mapping_api, team_api, pool_api
+                session,
+                provider_client,
+                raw_division_mapping_api,
+                team_api,
+                pool_api,
+                competition_api,
             )
         elif scraper_type == "national":
             return NationalScraper(
-                session, provider_client, raw_division_mapping_api, team_api, pool_api
+                session,
+                provider_client,
+                raw_division_mapping_api,
+                team_api,
+                pool_api,
+                competition_api,
             )
         elif scraper_type == "regional":
             return RegionalScraper(
-                session, provider_client, raw_division_mapping_api, team_api, pool_api
+                session,
+                provider_client,
+                raw_division_mapping_api,
+                team_api,
+                pool_api,
+                competition_api,
             )
         elif scraper_type == "departmental":
             return DepartmentalScraper(
-                session, provider_client, raw_division_mapping_api, team_api, pool_api
+                session,
+                provider_client,
+                raw_division_mapping_api,
+                team_api,
+                pool_api,
+                competition_api,
             )
         else:
             raise ValueError(f"Type de scraper inconnu: {scraper_type}")

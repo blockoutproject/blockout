@@ -1,0 +1,17 @@
+{
+  "TeamRankingInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["teamId"],
+    "properties": {
+      "teamId": { "type": "integer", "format": "int64" },
+      "points": { "type": "integer", "nullable": true },
+      "pointsPenalty": { "type": "integer", "nullable": true },
+      "played": { "type": "integer", "nullable": true },
+      "wins": { "type": "integer", "nullable": true },
+      "losses": { "type": "integer", "nullable": true },
+      "coefSets": { "type": "number", "format": "double", "nullable": true },
+      "coefPoints": { "type": "number", "format": "double", "nullable": true }
+    }
+  }
+}

@@ -6,6 +6,9 @@ from datetime import UTC, datetime
 
 import aiohttp
 import httpx
+from blockout_contract_clients.competition.api.competition_association_api import (
+    CompetitionAssociationApi,
+)
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
@@ -18,6 +21,7 @@ from prometheus_client import Gauge, start_http_server
 from scraper.application.factory import ScraperFactory
 from scraper.config.settings import SCRAPER_TYPES
 from scraper.infrastructure.blockout.auth import refresh_token_task
+from scraper.infrastructure.blockout.competitions import build_competition_api_client
 from scraper.infrastructure.blockout.configuration import (
     build_config_api_client,
     get_scraper_status,
@@ -44,6 +48,7 @@ async def _run_one_scraper(
     raw_division_mapping_api: RawDivisionMappingApi | None = None,
     team_api: TeamApi | None = None,
     pool_api: PoolApi | None = None,
+    competition_api: CompetitionAssociationApi | None = None,
 ):
     current_scraper.set(scraper_type)
     scraper = ScraperFactory.create_scraper(
@@ -53,6 +58,7 @@ async def _run_one_scraper(
         raw_division_mapping_api,
         team_api,
         pool_api,
+        competition_api,
     )
     await scraper.scrape()
 
@@ -64,6 +70,7 @@ async def run_scrapers_with_max_concurrency(
     raw_division_mapping_api: RawDivisionMappingApi | None = None,
     team_api: TeamApi | None = None,
     pool_api: PoolApi | None = None,
+    competition_api: CompetitionAssociationApi | None = None,
     max_concurrency: int = 2,
 ):
     pending_types = list(scraper_types)
@@ -80,6 +87,7 @@ async def run_scrapers_with_max_concurrency(
                     raw_division_mapping_api,
                     team_api,
                     pool_api,
+                    competition_api,
                 )
             )
         )
@@ -100,6 +108,7 @@ async def run_scrapers_with_max_concurrency(
                         raw_division_mapping_api,
                         team_api,
                         pool_api,
+                        competition_api,
                     )
                 )
             )
@@ -151,6 +160,7 @@ async def main() -> bool:
                     build_config_api_client() as config_api_client,
                     build_team_api_client() as team_api_client,
                     build_pool_api_client() as pool_api_client,
+                    build_competition_api_client() as competition_api_client,
                 ):
                     scraper_types = SCRAPER_TYPES
                     await run_scrapers_with_max_concurrency(
@@ -161,6 +171,9 @@ async def main() -> bool:
                         ),
                         team_api=TeamApi(team_api_client),
                         pool_api=PoolApi(pool_api_client),
+                        competition_api=CompetitionAssociationApi(
+                            competition_api_client
+                        ),
                         scraper_types=scraper_types,
                     )
 

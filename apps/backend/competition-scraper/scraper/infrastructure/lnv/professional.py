@@ -5,6 +5,9 @@ from datetime import date
 
 import aiohttp
 import httpx
+from blockout_contract_clients.competition.api.competition_association_api import (
+    CompetitionAssociationApi,
+)
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
@@ -43,6 +46,7 @@ class ProScraper(Scraper):
         raw_division_mapping_api: RawDivisionMappingApi | None = None,
         team_api: TeamApi | None = None,
         pool_api: PoolApi | None = None,
+        competition_api: CompetitionAssociationApi | None = None,
     ) -> None:
         super().__init__(
             session,
@@ -51,6 +55,7 @@ class ProScraper(Scraper):
             raw_division_mapping_api=raw_division_mapping_api,
             team_api=team_api,
             pool_api=pool_api,
+            competition_api=competition_api,
             priority_validation_enabled=True,
         )
         self.raw_season = "2026/2027"
@@ -326,8 +331,8 @@ class ProScraper(Scraper):
                     )
                     continue
                 self.schedule_association_replace(
-                    poolId=pool.id,
-                    teamId=team.id,
+                    pool_id=pool.id,
+                    team_id=team.id,
                     team_stats=ranking.stats,
                 )
 

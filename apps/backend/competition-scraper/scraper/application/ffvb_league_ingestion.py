@@ -121,7 +121,7 @@ async def _ingest_season(
         if pool.active and pool.id not in observed_ids
     }
     if missing_ids:
-        await bulk_deactivate_pools(scraper.session, missing_ids)
+        await bulk_deactivate_pools(scraper.competitions_api(), missing_ids)
 
 
 def _config_api(scraper: Scraper):

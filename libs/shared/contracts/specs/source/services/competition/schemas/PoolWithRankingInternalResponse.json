@@ -1,0 +1,14 @@
+{
+  "PoolWithRankingInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["poolId", "ranking"],
+    "properties": {
+      "poolId": { "type": "integer", "format": "int64" },
+      "ranking": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/TeamRankingInternalResponse" }
+      }
+    }
+  }
+}

@@ -5,6 +5,9 @@ from datetime import UTC, datetime
 
 import aiohttp
 import httpx
+from blockout_contract_clients.competition.api.competition_association_api import (
+    CompetitionAssociationApi,
+)
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
@@ -14,10 +17,10 @@ from prometheus_client import Gauge
 
 from scraper.application.association_changes import AssociationChangeSet
 from scraper.application.match_changes import MatchChangeSet, MatchEntry
-from scraper.domain.data_source_priority import DataSourcePriority
-from scraper.infrastructure.blockout.association_stats import (
-    UpdateAssociationStatsInternalRequest,
+from scraper.application.models import (
+    AssociationStats,
 )
+from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.provider_http import ProviderHttpClient
 from scraper.observability.logging import current_scraper, log_event
@@ -36,6 +39,7 @@ class Scraper(ABC):
         raw_division_mapping_api: RawDivisionMappingApi | None = None,
         team_api: TeamApi | None = None,
         pool_api: PoolApi | None = None,
+        competition_api: CompetitionAssociationApi | None = None,
         url: str | None = None,
         priority_validation_enabled: bool = False,
         max_concurrency: int = 10,
@@ -45,12 +49,13 @@ class Scraper(ABC):
         self.raw_division_mapping_api = raw_division_mapping_api
         self.team_api = team_api
         self.pool_api = pool_api
+        self.competition_api = competition_api
         self.url = url
         self.priority_validation_enabled = priority_validation_enabled
         self._max_concurrency = max_concurrency
         self._provider_http = ProviderHttpClient(provider_client, max_concurrency)
         self._match_changes = MatchChangeSet(session, priority_validation_enabled)
-        self._association_changes = AssociationChangeSet(session)
+        self._association_changes = AssociationChangeSet(competition_api)
 
         # These aliases remain public within the application because provider workflows
         # resolve dependencies from the pending writes before the final flush.
@@ -78,6 +83,14 @@ class Scraper(ABC):
         if self.pool_api is None:
             raise RuntimeError("The generated pools-service client is not configured.")
         return self.pool_api
+
+    def competitions_api(self) -> CompetitionAssociationApi:
+        """Return the configured generated competition-service client."""
+        if self.competition_api is None:
+            raise RuntimeError(
+                "The generated competition-service client is not configured."
+            )
+        return self.competition_api
 
     @abstractmethod
     async def run_scraping(self) -> None:
@@ -119,10 +132,10 @@ class Scraper(ABC):
         await self._match_changes.load(poolId)
         self._matches_cache = self._match_changes.entries
 
-    async def init_associations_cache(self, poolId: int) -> None:
+    async def init_associations_cache(self, pool_id: int) -> None:
         """Load current owner associations for one pool."""
         self._association_changes.entries = self._associations_cache
-        await self._association_changes.load(poolId)
+        await self._association_changes.load(pool_id)
         self._associations_cache = self._association_changes.entries
 
     def schedule_match_changes(
@@ -138,24 +151,24 @@ class Scraper(ABC):
 
     def schedule_association_update(
         self,
-        poolId: int,
-        teamId: int,
-        team_stats: UpdateAssociationStatsInternalRequest,
+        pool_id: int,
+        team_id: int,
+        team_stats: AssociationStats,
     ) -> None:
         """Accumulate one match's statistics for a pool-team association."""
         self._association_changes.entries = self._associations_cache
-        self._association_changes.accumulate(poolId, teamId, team_stats)
+        self._association_changes.accumulate(pool_id, team_id, team_stats)
         self._associations_cache = self._association_changes.entries
 
     def schedule_association_replace(
         self,
-        poolId: int,
-        teamId: int,
-        team_stats: UpdateAssociationStatsInternalRequest,
+        pool_id: int,
+        team_id: int,
+        team_stats: AssociationStats,
     ) -> None:
         """Replace association statistics with an authoritative provider row."""
         self._association_changes.entries = self._associations_cache
-        self._association_changes.replace(poolId, teamId, team_stats)
+        self._association_changes.replace(pool_id, team_id, team_stats)
         self._associations_cache = self._association_changes.entries
 
     async def finalize_associations_updates(self) -> None:

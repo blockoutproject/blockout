@@ -1,0 +1,25 @@
+{
+  "UpdateAssociationStatsInternalRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "played": { "type": "integer" },
+      "wins": { "type": "integer" },
+      "losses": { "type": "integer" },
+      "points": { "type": "integer" },
+      "winsThreeToZero": { "type": "integer" },
+      "winsThreeToOne": { "type": "integer" },
+      "winsThreeToTwo": { "type": "integer" },
+      "lossesZeroToThree": { "type": "integer" },
+      "lossesOneToThree": { "type": "integer" },
+      "lossesTwoToThree": { "type": "integer" },
+      "wonSets": { "type": "integer" },
+      "lostSets": { "type": "integer" },
+      "wonPoints": { "type": "integer" },
+      "lostPoints": { "type": "integer" },
+      "pointsPenalty": { "type": "integer" },
+      "coefSets": { "type": "number", "format": "double" },
+      "coefPoints": { "type": "number", "format": "double" }
+    }
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "/api/v1/competitions/pools/{poolId}/teams": {
+    "get": {
+      "tags": ["CompetitionAssociation"],
+      "operationId": "listPoolTeams",
+      "parameters": [
+        {
+          "name": "poolId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Associations",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CompetitionAssociationInternalResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/competitions/pools/{poolId}/teams/{teamId}": {
+    "post": {
+      "tags": ["CompetitionAssociation"],
+      "operationId": "addTeamToPool",
+      "parameters": [
+        {
+          "name": "poolId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "teamId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "clubId",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Association",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompetitionAssociationInternalResponse"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/competitions/teams/{teamId}/pools": {
+    "get": {
+      "tags": ["CompetitionAssociation"],
+      "operationId": "listAssociationsByTeam",
+      "parameters": [
+        {
+          "name": "teamId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Associations",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CompetitionAssociationInternalResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/competitions/pools/{poolId}/teams/bulk-deactivate": {
+    "put": {
+      "tags": ["CompetitionAssociation"],
+      "operationId": "bulkDeactivateTeams",
+      "parameters": [
+        {
+          "name": "poolId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BulkDeactivateTeamsInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": { "200": { "description": "Updated" } }
+    }
+  },
+  "/api/v1/competitions/pools/bulk-deactivate": {
+    "put": {
+      "tags": ["CompetitionAssociation"],
+      "operationId": "bulkDeactivatePools",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BulkDeactivatePoolsInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": { "200": { "description": "Updated" } }
+    }
+  },
+  "/api/v1/competitions/clubs/bulk-deactivate": {
+    "put": {
+      "tags": ["CompetitionAssociation"],
+      "operationId": "bulkDeactivateClubs",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BulkDeactivateClubsInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": { "200": { "description": "Updated" } }
+    }
+  },
+  "/api/v1/competitions/pools/{poolId}/teams/{teamId}/stats": {
+    "put": {
+      "tags": ["CompetitionAssociation"],
+      "operationId": "updateStats",
+      "parameters": [
+        {
+          "name": "poolId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "teamId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateAssociationStatsInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Association",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompetitionAssociationInternalResponse"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/competitions/teams/{teamId}/pools-with-ranking": {
+    "get": {
+      "tags": ["CompetitionAssociation"],
+      "operationId": "getPoolsAndRankingsByTeam",
+      "parameters": [
+        {
+          "name": "teamId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Pools and rankings",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PoolWithRankingInternalResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

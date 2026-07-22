@@ -1,0 +1,13 @@
+{
+  "BulkDeactivateTeamsInternalRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["missingTeamIds"],
+    "properties": {
+      "missingTeamIds": {
+        "type": "array",
+        "items": { "type": "integer", "format": "int64" }
+      }
+    }
+  }
+}

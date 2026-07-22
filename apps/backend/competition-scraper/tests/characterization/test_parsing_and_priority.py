@@ -5,6 +5,9 @@ from pathlib import Path
 
 import scraper.application.association_changes as association_changes
 from bs4 import BeautifulSoup
+from scraper.application.models import (
+    AssociationStats,
+)
 from scraper.application.source import Scraper
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.domain.match import (
@@ -15,9 +18,6 @@ from scraper.domain.match import (
 )
 from scraper.domain.normalization import parse_date, strip_department_code
 from scraper.domain.team import get_full_name, get_short_name, normalize
-from scraper.infrastructure.blockout.association_stats import (
-    UpdateAssociationStatsInternalRequest,
-)
 from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.ffvb.calendar import (
     parse_csv_from_content,
@@ -138,8 +138,8 @@ def test_match_stat_calculation_preserves_ranking_and_point_totals() -> None:
 
     assert (home.played, home.wins, home.points) == (1, 1, 2)
     assert (away.played, away.losses, away.points) == (1, 1, 1)
-    assert (home.wonPoints, home.lostPoints) == (60, 57)
-    assert (away.wonPoints, away.lostPoints) == (57, 60)
+    assert (home.won_points, home.lost_points) == (60, 57)
+    assert (away.won_points, away.lost_points) == (57, 60)
 
 
 def test_data_source_priority_updates_only_the_owned_match_fields() -> None:
@@ -234,17 +234,15 @@ def test_association_finalization_computes_coefficients_and_clears_cache(
         monkeypatch.setattr(
             association_changes, "update_team_association_stats", update
         )
-        scraper = DummyScraper(None, None, "stats")
-        stats = UpdateAssociationStatsInternalRequest(
-            wonSets=9, lostSets=3, wonPoints=250, lostPoints=0
-        )
+        scraper = DummyScraper(None, None, "stats", competition_api=object())
+        stats = AssociationStats(won_sets=9, lost_sets=3, won_points=250, lost_points=0)
         scraper.schedule_association_update(10, 20, stats)
 
         await scraper.finalize_associations_updates()
 
         assert writes[0][:2] == (10, 20)
-        assert writes[0][2].coefSets == 3.0
-        assert writes[0][2].coefPoints == 1000.0
+        assert writes[0][2].coefficient_sets == 3.0
+        assert writes[0][2].coefficient_points == 1000.0
         assert scraper._associations_cache == {}
 
     asyncio.run(scenario())
@@ -263,15 +261,15 @@ def test_association_finalization_preserves_untouched_owner_stats(monkeypatch) -
             association_changes, "update_team_association_stats", update
         )
         scraper = DummyScraper(None, None, "stats")
-        original = UpdateAssociationStatsInternalRequest(
+        original = AssociationStats(
             played=10,
             points=20,
-            coefSets=1.5,
-            coefPoints=1.2,
+            coefficient_sets=1.5,
+            coefficient_points=1.2,
         )
         scraper._associations_cache[(10, 20)] = (
             original,
-            UpdateAssociationStatsInternalRequest(),
+            AssociationStats(),
         )
 
         await scraper.finalize_associations_updates()

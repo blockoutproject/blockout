@@ -6,6 +6,11 @@ from blockout_contract_clients.club.models import (
     CreateClubInternalRequest,
     UpdateClubInternalRequest,
 )
+from blockout_contract_clients.competition.api import CompetitionAssociationApi
+from blockout_contract_clients.competition.models import (
+    CompetitionAssociationInternalResponse,
+    UpdateAssociationStatsInternalRequest,
+)
 from blockout_contract_clients.config.api import RawDivisionMappingApi, ScraperStatusApi
 from blockout_contract_clients.config.models import (
     CreateRawDivisionMappingInternalRequest,
@@ -144,3 +149,31 @@ def test_pool_models_and_async_api_are_generated() -> None:
     assert response is not None
     assert response.pool_code == "A"
     assert PoolApi.list_pools.__name__ == "list_pools"
+
+
+def test_competition_models_and_async_api_are_generated() -> None:
+    """Expose the complete Competition association boundary and async API."""
+    request = UpdateAssociationStatsInternalRequest(
+        played=3,
+        wins=2,
+        losses=1,
+        points=7,
+        won_sets=7,
+        lost_sets=4,
+        won_points=240,
+        lost_points=220,
+    )
+    response = CompetitionAssociationInternalResponse.from_dict(
+        {
+            "id": 1,
+            "poolId": 2,
+            "teamId": 3,
+            "clubId": "club-1",
+            "active": True,
+        }
+    )
+
+    assert request.to_dict()["wonSets"] == 7
+    assert response is not None
+    assert response.club_id == "club-1"
+    assert CompetitionAssociationApi.list_pool_teams.__name__ == "list_pool_teams"

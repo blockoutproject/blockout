@@ -149,6 +149,9 @@ class RecordingScraper:
     def pools_api(self):
         return object()
 
+    def competitions_api(self):
+        return object()
+
 
 def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
     monkeypatch,

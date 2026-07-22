@@ -2,10 +2,12 @@
 
 import asyncio
 
-import aiohttp
+from blockout_contract_clients.competition.api.competition_association_api import (
+    CompetitionAssociationApi,
+)
 
-from scraper.infrastructure.blockout.association_stats import (
-    UpdateAssociationStatsInternalRequest,
+from scraper.application.models import (
+    AssociationStats,
 )
 from scraper.infrastructure.blockout.competitions import (
     get_active_team_associations_by_pool,
@@ -14,16 +16,16 @@ from scraper.infrastructure.blockout.competitions import (
 from scraper.observability.logging import log_event
 
 AssociationEntry = tuple[
-    UpdateAssociationStatsInternalRequest | None,
-    UpdateAssociationStatsInternalRequest,
+    AssociationStats | None,
+    AssociationStats,
 ]
 
 
 class AssociationChangeSet:
     """Accumulate or replace ranking statistics before one owner write."""
 
-    def __init__(self, session: aiohttp.ClientSession) -> None:
-        self._session = session
+    def __init__(self, api: CompetitionAssociationApi | None) -> None:
+        self._api = api
         self.entries: dict[tuple[int, int], AssociationEntry] = {}
         self._touched: set[tuple[int, int]] = set()
 
@@ -31,37 +33,40 @@ class AssociationChangeSet:
         """Load active owner associations and reset their candidate statistics."""
         try:
             associations = (
-                await get_active_team_associations_by_pool(self._session, pool_id) or []
+                await get_active_team_associations_by_pool(
+                    self._required_api(), pool_id
+                )
+                or []
             )
             for association in associations:
-                original = UpdateAssociationStatsInternalRequest(
+                original = AssociationStats(
                     played=association.played,
                     wins=association.wins,
                     losses=association.losses,
                     points=association.points,
-                    winsThreeToZero=association.winsThreeToZero,
-                    winsThreeToOne=association.winsThreeToOne,
-                    winsThreeToTwo=association.winsThreeToTwo,
-                    lossesZeroToThree=association.lossesZeroToThree,
-                    lossesOneToThree=association.lossesOneToThree,
-                    lossesTwoToThree=association.lossesTwoToThree,
-                    wonPoints=association.wonPoints,
-                    lostPoints=association.lostPoints,
-                    wonSets=association.wonSets,
-                    lostSets=association.lostSets,
-                    pointsPenalty=association.pointsPenalty,
-                    coefSets=association.coefSets,
-                    coefPoints=association.coefPoints,
+                    wins_three_to_zero=association.wins_three_to_zero,
+                    wins_three_to_one=association.wins_three_to_one,
+                    wins_three_to_two=association.wins_three_to_two,
+                    losses_zero_to_three=association.losses_zero_to_three,
+                    losses_one_to_three=association.losses_one_to_three,
+                    losses_two_to_three=association.losses_two_to_three,
+                    won_points=association.won_points,
+                    lost_points=association.lost_points,
+                    won_sets=association.won_sets,
+                    lost_sets=association.lost_sets,
+                    points_penalty=association.points_penalty,
+                    coefficient_sets=association.coefficient_sets,
+                    coefficient_points=association.coefficient_points,
                 )
-                self.entries[(association.poolId, association.teamId)] = (
+                self.entries[(association.pool_id, association.team_id)] = (
                     original,
-                    UpdateAssociationStatsInternalRequest(),
+                    AssociationStats(),
                 )
         except Exception as error:
             log_event(
                 action="init_associations_cache_error",
                 level="error",
-                poolId=pool_id,
+                pool_id=pool_id,
                 error=str(error),
                 message="Erreur lors du chargement des associations existantes",
             )
@@ -70,35 +75,19 @@ class AssociationChangeSet:
         self,
         pool_id: int,
         team_id: int,
-        stats: UpdateAssociationStatsInternalRequest,
+        stats: AssociationStats,
     ) -> None:
         """Accumulate one match statistic line for an association."""
         _, updated = self._entry(pool_id, team_id)
         try:
-            updated.add(
-                played=stats.played,
-                wins=stats.wins,
-                losses=stats.losses,
-                points=stats.points,
-                winsThreeToZero=stats.winsThreeToZero,
-                winsThreeToOne=stats.winsThreeToOne,
-                winsThreeToTwo=stats.winsThreeToTwo,
-                lossesZeroToThree=stats.lossesZeroToThree,
-                lossesOneToThree=stats.lossesOneToThree,
-                lossesTwoToThree=stats.lossesTwoToThree,
-                wonPoints=stats.wonPoints,
-                lostPoints=stats.lostPoints,
-                wonSets=stats.wonSets,
-                lostSets=stats.lostSets,
-                pointsPenalty=stats.pointsPenalty,
-            )
+            updated.add(stats)
             self._touched.add((pool_id, team_id))
         except Exception as error:
             log_event(
                 action="schedule_association_update_error",
                 level="error",
-                poolId=pool_id,
-                teamId=team_id,
+                pool_id=pool_id,
+                team_id=team_id,
                 error=str(error),
                 message="Erreur lors de l'ajout des statistiques pour l'association.",
             )
@@ -107,7 +96,7 @@ class AssociationChangeSet:
         self,
         pool_id: int,
         team_id: int,
-        stats: UpdateAssociationStatsInternalRequest,
+        stats: AssociationStats,
     ) -> None:
         """Replace all owner statistics with an authoritative provider row."""
         _, updated = self._entry(pool_id, team_id)
@@ -116,21 +105,21 @@ class AssociationChangeSet:
             "wins",
             "losses",
             "points",
-            "winsThreeToZero",
-            "winsThreeToOne",
-            "winsThreeToTwo",
-            "lossesZeroToThree",
-            "lossesOneToThree",
-            "lossesTwoToThree",
-            "wonPoints",
-            "lostPoints",
-            "wonSets",
-            "lostSets",
-            "pointsPenalty",
+            "wins_three_to_zero",
+            "wins_three_to_one",
+            "wins_three_to_two",
+            "losses_zero_to_three",
+            "losses_one_to_three",
+            "losses_two_to_three",
+            "won_points",
+            "lost_points",
+            "won_sets",
+            "lost_sets",
+            "points_penalty",
         )
         for field_name in raw_fields:
             setattr(updated, field_name, getattr(stats, field_name))
-        updated.pointsPenalty = abs(stats.points - updated.points)
+        updated.points_penalty = abs(stats.points - updated.points)
         self._touched.add((pool_id, team_id))
 
     async def flush(self) -> None:
@@ -139,20 +128,20 @@ class AssociationChangeSet:
         for (pool_id, team_id), (original, updated) in self.entries.items():
             if (pool_id, team_id) not in self._touched:
                 continue
-            updated.coefSets = (
-                round(updated.wonSets / updated.lostSets, 3)
-                if updated.lostSets > 0
+            updated.coefficient_sets = (
+                round(updated.won_sets / updated.lost_sets, 3)
+                if updated.lost_sets > 0
                 else 1000.0
             )
-            updated.coefPoints = (
-                round(updated.wonPoints / updated.lostPoints, 3)
-                if updated.lostPoints > 0
+            updated.coefficient_points = (
+                round(updated.won_points / updated.lost_points, 3)
+                if updated.lost_points > 0
                 else 1000.0
             )
             if original is None or original != updated:
                 updates.append(
                     update_team_association_stats(
-                        self._session, pool_id, team_id, updated
+                        self._required_api(), pool_id, team_id, updated
                     )
                 )
         if updates:
@@ -164,6 +153,13 @@ class AssociationChangeSet:
         key = (pool_id, team_id)
         self.entries.setdefault(
             key,
-            (None, UpdateAssociationStatsInternalRequest()),
+            (None, AssociationStats()),
         )
         return self.entries[key]
+
+    def _required_api(self) -> CompetitionAssociationApi:
+        if self._api is None:
+            raise RuntimeError(
+                "The generated competition-service client is not configured."
+            )
+        return self._api

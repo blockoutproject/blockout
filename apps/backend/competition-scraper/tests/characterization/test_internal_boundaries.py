@@ -17,19 +17,16 @@ from blockout_contract_clients.team.models.update_team_internal_request import (
 )
 from scraper.application import pool_writer as pools_service
 from scraper.application import team_writer as teams_service
-from scraper.application.models import Pool, RawDivisionMapping, Team
+from scraper.application.models import (
+    AssociationStats,
+    CompetitionAssociation,
+    Pool,
+    RawDivisionMapping,
+    Team,
+)
 from scraper.application.source import Scraper
 from scraper.domain.data_source_priority import DataSourcePriority
-from scraper.infrastructure.blockout import competitions as competitions_api
 from scraper.infrastructure.blockout import matches as matches_api
-from scraper.infrastructure.blockout.association_stats import (
-    UpdateAssociationStatsInternalRequest,
-)
-from scraper.infrastructure.blockout.competition_association import (
-    BulkDeactivatePoolsInternalRequest,
-    BulkDeactivateTeamsInternalRequest,
-    CompetitionAssociationInternalResponse,
-)
 from scraper.infrastructure.blockout.match import (
     BulkMatchesDeactivateInternalRequest,
     CreateMatchInternalRequest,
@@ -177,33 +174,31 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
         "liveProvider",
         "liveOwnerAuth0Id",
     }
-    assert set(
-        item.name for item in fields(CompetitionAssociationInternalResponse)
-    ) == {
+    assert set(item.name for item in fields(CompetitionAssociation)) == {
         "id",
-        "poolId",
-        "teamId",
-        "clubId",
+        "pool_id",
+        "team_id",
+        "club_id",
         "active",
         "points",
         "played",
         "wins",
         "losses",
-        "winsThreeToZero",
-        "winsThreeToOne",
-        "winsThreeToTwo",
-        "lossesZeroToThree",
-        "lossesOneToThree",
-        "lossesTwoToThree",
-        "wonSets",
-        "lostSets",
-        "wonPoints",
-        "lostPoints",
-        "pointsPenalty",
-        "coefSets",
-        "coefPoints",
-        "createdAt",
-        "lastUpdate",
+        "wins_three_to_zero",
+        "wins_three_to_one",
+        "wins_three_to_two",
+        "losses_zero_to_three",
+        "losses_one_to_three",
+        "losses_two_to_three",
+        "won_sets",
+        "lost_sets",
+        "won_points",
+        "lost_points",
+        "points_penalty",
+        "coefficient_sets",
+        "coefficient_points",
+        "created_at",
+        "last_update",
     }
     assert set(item.name for item in fields(RawDivisionMapping)) == {
         "id",
@@ -287,77 +282,45 @@ def test_write_contracts_mirror_java_owner_field_sets() -> None:
         "leagueCode",
         "season",
     ]
-    assert [item.name for item in fields(BulkDeactivateTeamsInternalRequest)] == [
-        "missingTeamIds"
-    ]
-    assert [item.name for item in fields(BulkDeactivatePoolsInternalRequest)] == [
-        "missingPoolIds"
-    ]
     assert [item.name for item in fields(BulkMatchesDeactivateInternalRequest)] == [
         "missingMatchCodes"
     ]
-    assert {item.name for item in fields(UpdateAssociationStatsInternalRequest)} == {
+    assert {item.name for item in fields(AssociationStats)} == {
         "played",
         "wins",
         "losses",
         "points",
-        "winsThreeToZero",
-        "winsThreeToOne",
-        "winsThreeToTwo",
-        "lossesZeroToThree",
-        "lossesOneToThree",
-        "lossesTwoToThree",
-        "wonSets",
-        "lostSets",
-        "wonPoints",
-        "lostPoints",
-        "pointsPenalty",
-        "coefSets",
-        "coefPoints",
+        "wins_three_to_zero",
+        "wins_three_to_one",
+        "wins_three_to_two",
+        "losses_zero_to_three",
+        "losses_one_to_three",
+        "losses_two_to_three",
+        "won_sets",
+        "lost_sets",
+        "won_points",
+        "lost_points",
+        "points_penalty",
+        "coefficient_sets",
+        "coefficient_points",
     }
 
 
-def test_bulk_cleanup_routes_use_native_camel_case_requests(monkeypatch) -> None:
-    """Protect team, pool, and match cleanup commands."""
+def test_match_bulk_cleanup_uses_native_camel_case_request(monkeypatch) -> None:
+    """Protect the remaining handwritten Match cleanup command."""
 
     async def scenario() -> None:
         session = RecordingSession()
         monkeypatch.setattr(
-            competitions_api, "COMPETITION_API_URL", "http://competition.local/v1"
-        )
-        monkeypatch.setattr(
             matches_api, "MATCH_API_URL", "http://matches.local/v1/matches"
-        )
-        monkeypatch.setattr(
-            competitions_api, "_get_headers", lambda: {"Authorization": "Bearer test"}
         )
         monkeypatch.setattr(
             matches_api, "_get_headers", lambda: {"Authorization": "Bearer test"}
         )
 
-        await competitions_api.bulk_deactivate_teams_by_pool.__wrapped__(
-            session, 10, {20}
-        )
-        await competitions_api.bulk_deactivate_pools.__wrapped__(session, {10})
         await matches_api.bulk_deactivate_matches.__wrapped__(session, 10, {"M001"})
 
         assert session.calls == [
-            (
-                "PUT",
-                "http://competition.local/v1/pools/10/teams/bulk-deactivate",
-                {
-                    "json": {"missingTeamIds": [20]},
-                    "headers": {"Authorization": "Bearer test"},
-                },
-            ),
-            (
-                "PUT",
-                "http://competition.local/v1/pools/bulk-deactivate",
-                {
-                    "json": {"missingPoolIds": [10]},
-                    "headers": {"Authorization": "Bearer test"},
-                },
-            ),
             (
                 "PUT",
                 "http://matches.local/v1/matches/pools/10/bulk-deactivate",

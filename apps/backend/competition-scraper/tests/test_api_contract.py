@@ -4,6 +4,12 @@ from datetime import UTC, datetime
 from urllib.parse import parse_qs
 
 import httpx
+from blockout_contract_clients.competition.api.competition_association_api import (
+    CompetitionAssociationApi,
+)
+from blockout_contract_clients.competition.models.competition_association_internal_response import (
+    CompetitionAssociationInternalResponse,
+)
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
@@ -11,18 +17,12 @@ from blockout_contract_clients.config.api.scraper_status_api import ScraperStatu
 from blockout_contract_clients.config.models.scraper_name_enum import ScraperNameEnum
 from blockout_contract_clients.pool.api.pool_api import PoolApi
 from blockout_contract_clients.team.api.team_api import TeamApi
-from scraper.application.models import Pool, RawDivisionMapping, Team
+from scraper.application.models import AssociationStats, Pool, RawDivisionMapping, Team
 from scraper.infrastructure.blockout import competitions as competitions_api
 from scraper.infrastructure.blockout import configuration as config_api
 from scraper.infrastructure.blockout import matches as matches_api
 from scraper.infrastructure.blockout import pools as pools_api
 from scraper.infrastructure.blockout import teams as teams_api
-from scraper.infrastructure.blockout.association_stats import (
-    UpdateAssociationStatsInternalRequest,
-)
-from scraper.infrastructure.blockout.competition_association import (
-    CompetitionAssociationInternalResponse,
-)
 from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.response import convert_to_dataclass
 
@@ -399,55 +399,73 @@ def test_reads_the_complete_competition_association_contract():
         "lastUpdate": "2026-07-19T12:30:00",
     }
 
-    association = convert_to_dataclass(payload, CompetitionAssociationInternalResponse)
+    response = CompetitionAssociationInternalResponse.from_dict(payload)
+    assert response is not None
+    association = competitions_api._to_association(response)
 
-    assert set(payload) == set(
-        CompetitionAssociationInternalResponse.__dataclass_fields__
-    )
-    assert association.clubId == "club-1"
-    assert association.createdAt.isoformat() == "2026-07-19T12:30:00"
+    assert association.club_id == "club-1"
+    assert association.created_at.isoformat() == "2026-07-19T12:30:00"
 
 
 def test_writes_only_the_competition_stats_boundary(monkeypatch):
     async def scenario():
         monkeypatch.setattr(
-            competitions_api, "COMPETITION_API_URL", "http://competition.local/v1"
+            competitions_api,
+            "COMPETITION_API_URL",
+            "http://competition.local/api/v1/competitions",
         )
         monkeypatch.setattr(
             competitions_api, "_get_headers", lambda: {"Authorization": "Bearer test"}
         )
-        session = RecordingSession()
-        stats = UpdateAssociationStatsInternalRequest(
+        requests: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(
+                200,
+                json={
+                    "id": 1,
+                    "poolId": 10,
+                    "teamId": 20,
+                    "clubId": "club-1",
+                    "active": True,
+                },
+            )
+
+        stats = AssociationStats(
             played=3,
             wins=2,
             losses=1,
             points=7,
-            winsThreeToZero=1,
-            winsThreeToOne=1,
-            winsThreeToTwo=0,
-            lossesZeroToThree=0,
-            lossesOneToThree=1,
-            lossesTwoToThree=0,
-            wonSets=7,
-            lostSets=4,
-            wonPoints=240,
-            lostPoints=220,
-            pointsPenalty=0,
-            coefSets=1.75,
-            coefPoints=1.09,
+            wins_three_to_zero=1,
+            wins_three_to_one=1,
+            wins_three_to_two=0,
+            losses_zero_to_three=0,
+            losses_one_to_three=1,
+            losses_two_to_three=0,
+            won_sets=7,
+            lost_sets=4,
+            won_points=240,
+            lost_points=220,
+            points_penalty=0,
+            coefficient_sets=1.75,
+            coefficient_points=1.09,
         )
 
-        await competitions_api.update_team_association_stats.__wrapped__(
-            session, 10, 20, stats
+        api_client = competitions_api.build_competition_api_client()
+        api_client.rest_client.pool_manager = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler)
         )
+        try:
+            await competitions_api.update_team_association_stats(
+                CompetitionAssociationApi(api_client), 10, 20, stats
+            )
+        finally:
+            await api_client.close()
 
-        method, url, kwargs = session.calls[0]
-        assert method == "PUT"
-        assert url == "http://competition.local/v1/pools/10/teams/20/stats"
-        assert set(kwargs["json"]) == set(
-            competitions_api.ASSOCIATION_STATS_WRITE_FIELDS
-        )
-        assert kwargs["json"]["winsThreeToZero"] == 1
-        assert "wins_three_to_zero" not in kwargs["json"]
+        assert requests[0].method == "PUT"
+        payload = json.loads(requests[0].content)
+        assert payload["winsThreeToZero"] == 1
+        assert "wins_three_to_zero" not in payload
 
     asyncio.run(scenario())

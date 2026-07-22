@@ -68,3 +68,74 @@ class Pool:
     id: int | None = None
     created_at: datetime | None = None
     last_update: datetime | None = None
+
+
+@dataclass(slots=True)
+class CompetitionAssociation:
+    """Pool-Team association state used independently of HTTP transport."""
+
+    pool_id: int
+    team_id: int
+    club_id: str
+    id: int | None = None
+    active: bool = True
+    played: int = 0
+    wins: int = 0
+    losses: int = 0
+    points: int = 0
+    wins_three_to_zero: int = 0
+    wins_three_to_one: int = 0
+    wins_three_to_two: int = 0
+    losses_zero_to_three: int = 0
+    losses_one_to_three: int = 0
+    losses_two_to_three: int = 0
+    won_sets: int = 0
+    lost_sets: int = 0
+    won_points: int = 0
+    lost_points: int = 0
+    points_penalty: int = 0
+    coefficient_sets: float = 0.0
+    coefficient_points: float = 0.0
+    created_at: datetime | None = None
+    last_update: datetime | None = None
+
+
+@dataclass(slots=True)
+class AssociationStats:
+    """Ranking totals calculated by ingestion before a service write."""
+
+    played: int = 0
+    wins: int = 0
+    losses: int = 0
+    points: int = 0
+    wins_three_to_zero: int = 0
+    wins_three_to_one: int = 0
+    wins_three_to_two: int = 0
+    losses_zero_to_three: int = 0
+    losses_one_to_three: int = 0
+    losses_two_to_three: int = 0
+    won_sets: int = 0
+    lost_sets: int = 0
+    won_points: int = 0
+    lost_points: int = 0
+    coefficient_sets: float = 0.0
+    coefficient_points: float = 0.0
+    points_penalty: int = 0
+
+    def add(self, other: "AssociationStats") -> None:
+        """Accumulate one match contribution into these ranking totals."""
+        self.played += other.played
+        self.wins += other.wins
+        self.losses += other.losses
+        self.points += other.points
+        self.wins_three_to_zero += other.wins_three_to_zero
+        self.wins_three_to_one += other.wins_three_to_one
+        self.wins_three_to_two += other.wins_three_to_two
+        self.losses_zero_to_three += other.losses_zero_to_three
+        self.losses_one_to_three += other.losses_one_to_three
+        self.losses_two_to_three += other.losses_two_to_three
+        self.won_sets += other.won_sets
+        self.lost_sets += other.lost_sets
+        self.won_points += other.won_points
+        self.lost_points += other.lost_points
+        self.points_penalty += other.points_penalty

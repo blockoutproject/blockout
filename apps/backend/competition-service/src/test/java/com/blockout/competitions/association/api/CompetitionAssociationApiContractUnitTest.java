@@ -25,9 +25,9 @@ class CompetitionAssociationApiContractUnitTest {
     @Test
     @DisplayName("exposes the complete association shape in native camelCase")
     void exposesCompleteAssociationShapeInNativeCamelCase() {
-        CompetitionAssociationInternalResponse response = new CompetitionAssociationInternalResponse(
-            1L, 2L, 3L, "club-1", true, 9, 3, 3, 0, 1, 1, 1, 0, 0, 0,
-            9, 3, 250, 210, 0, 3.0, 1.19, null, null);
+        CompetitionAssociationInternalResponse response = new CompetitionAssociationInternalResponse()
+            .id(1L).poolId(2L).teamId(3L).clubId("club-1").active(true)
+            .points(9).played(3).wins(3).losses(0);
 
         JsonNode json = objectMapper.valueToTree(response);
 
@@ -46,10 +46,15 @@ class CompetitionAssociationApiContractUnitTest {
              "coefSets":1.75,"coefPoints":1.09}
             """, UpdateAssociationStatsInternalRequest.class);
 
-        assertThat(stats.winsThreeToZero()).isEqualTo(1);
-        assertThat(new BulkDeactivateTeamsInternalRequest(List.of(1L)).missingTeamIds()).containsExactly(1L);
-        assertThat(new BulkDeactivatePoolsInternalRequest(List.of(2L)).missingPoolIds()).containsExactly(2L);
-        assertThat(new BulkDeactivateClubsInternalRequest(List.of("club-1")).missingClubIds())
+        assertThat(stats.getWinsThreeToZero()).isEqualTo(1);
+        assertThat(new BulkDeactivateTeamsInternalRequest(List.of(1L)).getMissingTeamIds()).containsExactly(1L);
+        assertThat(new BulkDeactivatePoolsInternalRequest(List.of(2L)).getMissingPoolIds()).containsExactly(2L);
+        assertThat(new BulkDeactivateClubsInternalRequest(List.of("club-1")).getMissingClubIds())
             .containsExactly("club-1");
+    }
+
+    @Test
+    void controllerImplementsGeneratedApi() {
+        assertThat(CompetitionAssociationApi.class).isAssignableFrom(CompetitionAssociationController.class);
     }
 }

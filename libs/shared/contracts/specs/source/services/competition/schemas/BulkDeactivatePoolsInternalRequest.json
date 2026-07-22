@@ -1,0 +1,13 @@
+{
+  "BulkDeactivatePoolsInternalRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["missingPoolIds"],
+    "properties": {
+      "missingPoolIds": {
+        "type": "array",
+        "items": { "type": "integer", "format": "int64" }
+      }
+    }
+  }
+}

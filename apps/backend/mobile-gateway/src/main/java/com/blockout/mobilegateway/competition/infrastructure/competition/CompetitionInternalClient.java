@@ -5,7 +5,6 @@ import com.blockout.mobilegateway.competition.infrastructure.competition.models.
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -20,6 +19,7 @@ public class CompetitionInternalClient {
 
     private final ApiClientProperties apiClientProperties;
     private final InternalApiClient internalApiClient;
+    private final CompetitionContractMapper mapper;
 
     private String baseUrl() {
         return apiClientProperties.getCompetition().getUrl();
@@ -30,8 +30,8 @@ public class CompetitionInternalClient {
             .pathSegment("teams", teamId.toString(), "pools")
             .build().toUriString();
 
-        ResponseEntity<CompetitionAssociationInternalResponse[]> response = internalApiClient.get(url, CompetitionAssociationInternalResponse[].class);
-        return Optional.ofNullable(response.getBody()).map(Arrays::asList).orElse(Collections.emptyList());
+        var response = internalApiClient.get(url, com.blockout.mobilegateway.competition.infrastructure.competition.contract.models.CompetitionAssociationInternalResponse[].class);
+        return Optional.ofNullable(response.getBody()).stream().flatMap(Arrays::stream).map(mapper::toResponse).toList();
     }
 
     public List<CompetitionAssociationInternalResponse> getAssociationsByPool(Long poolId) {
@@ -39,8 +39,8 @@ public class CompetitionInternalClient {
             .pathSegment("pools", poolId.toString(), "teams")
             .build().toUriString();
 
-        ResponseEntity<CompetitionAssociationInternalResponse[]> response = internalApiClient.get(url, CompetitionAssociationInternalResponse[].class);
-        return Optional.ofNullable(response.getBody()).map(Arrays::asList).orElse(Collections.emptyList());
+        var response = internalApiClient.get(url, com.blockout.mobilegateway.competition.infrastructure.competition.contract.models.CompetitionAssociationInternalResponse[].class);
+        return Optional.ofNullable(response.getBody()).stream().flatMap(Arrays::stream).map(mapper::toResponse).toList();
     }
 
     public List<PoolWithRankingInternalResponse> getPoolsWithRankingByTeam(Long teamId) {
@@ -48,7 +48,7 @@ public class CompetitionInternalClient {
             .pathSegment("teams", teamId.toString(), "pools-with-ranking")
             .build().toUriString();
 
-        ResponseEntity<PoolWithRankingInternalResponse[]> response = internalApiClient.get(url, PoolWithRankingInternalResponse[].class);
-        return Optional.ofNullable(response.getBody()).map(Arrays::asList).orElse(Collections.emptyList());
+        var response = internalApiClient.get(url, com.blockout.mobilegateway.competition.infrastructure.competition.contract.models.PoolWithRankingInternalResponse[].class);
+        return Optional.ofNullable(response.getBody()).stream().flatMap(Arrays::stream).map(mapper::toResponse).toList();
     }
 }

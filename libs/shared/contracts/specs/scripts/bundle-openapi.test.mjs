@@ -126,6 +126,17 @@ test('schema roots include active multipart JSON models without fake endpoints',
     poolBundle.paths['/api/v1/pools'].post.requestBody.content['application/json'].schema.$ref,
     '#/components/schemas/CreatePoolInternalRequest',
   );
+
+  const competitionBundle = JSON.parse(
+    await readFile(path.join(contractsRoot, 'generated/specs/competition.json'), 'utf8'),
+  );
+  assert.ok(competitionBundle.components.schemas.UpdateAssociationStatsInternalRequest);
+  assert.ok(competitionBundle.components.schemas.CompetitionAssociationInternalResponse);
+  assert.equal(
+    competitionBundle.paths['/api/v1/competitions/pools/{poolId}/teams/{teamId}/stats'].put
+      .requestBody.content['application/json'].schema.$ref,
+    '#/components/schemas/UpdateAssociationStatsInternalRequest',
+  );
 });
 
 test('generated artifacts are not tracked by Git', () => {

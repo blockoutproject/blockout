@@ -10,36 +10,37 @@ import com.blockout.competitions.association.application.views.PoolWithRankingVi
 import org.springframework.stereotype.Component;
 
 /**
- * Maps handwritten Competition Association transport models and application contracts.
+ * Maps generated Competition transport models and handwritten application contracts.
  */
 @Component
 public class CompetitionAssociationApiMapper {
 
     public UpdateAssociationStatsCommand toCommand(UpdateAssociationStatsInternalRequest request) {
         return new UpdateAssociationStatsCommand(
-            request.played(), request.wins(), request.losses(), request.points(),
-            request.winsThreeToZero(), request.winsThreeToOne(), request.winsThreeToTwo(),
-            request.lossesZeroToThree(), request.lossesOneToThree(), request.lossesTwoToThree(),
-            request.wonSets(), request.lostSets(), request.wonPoints(), request.lostPoints(),
-            request.pointsPenalty(), request.coefSets(), request.coefPoints());
+            request.getPlayed(), request.getWins(), request.getLosses(), request.getPoints(),
+            request.getWinsThreeToZero(), request.getWinsThreeToOne(), request.getWinsThreeToTwo(),
+            request.getLossesZeroToThree(), request.getLossesOneToThree(), request.getLossesTwoToThree(),
+            request.getWonSets(), request.getLostSets(), request.getWonPoints(), request.getLostPoints(),
+            request.getPointsPenalty(), request.getCoefSets(), request.getCoefPoints());
     }
 
     public CompetitionAssociationInternalResponse toInternalResponse(CompetitionAssociationView view) {
-        return new CompetitionAssociationInternalResponse(
-            view.id(), view.poolId(), view.teamId(), view.clubId(), view.active(), view.points(), view.played(),
-            view.wins(), view.losses(), view.winsThreeToZero(), view.winsThreeToOne(), view.winsThreeToTwo(),
-            view.lossesZeroToThree(), view.lossesOneToThree(), view.lossesTwoToThree(), view.wonSets(),
-            view.lostSets(), view.wonPoints(), view.lostPoints(), view.pointsPenalty(), view.coefSets(),
-            view.coefPoints(), view.createdAt(), view.lastUpdate());
+        return new CompetitionAssociationInternalResponse()
+            .id(view.id()).poolId(view.poolId()).teamId(view.teamId()).clubId(view.clubId()).active(view.active())
+            .points(view.points()).played(view.played()).wins(view.wins()).losses(view.losses())
+            .winsThreeToZero(view.winsThreeToZero()).winsThreeToOne(view.winsThreeToOne())
+            .winsThreeToTwo(view.winsThreeToTwo()).lossesZeroToThree(view.lossesZeroToThree())
+            .lossesOneToThree(view.lossesOneToThree()).lossesTwoToThree(view.lossesTwoToThree())
+            .wonSets(view.wonSets()).lostSets(view.lostSets()).wonPoints(view.wonPoints()).lostPoints(view.lostPoints())
+            .pointsPenalty(view.pointsPenalty()).coefSets(view.coefSets()).coefPoints(view.coefPoints())
+            .createdAt(view.createdAt()).lastUpdate(view.lastUpdate());
     }
 
     public PoolWithRankingInternalResponse toInternalResponse(PoolWithRankingView view) {
-        return new PoolWithRankingInternalResponse(
-            view.poolId(),
-            view.ranking().stream()
-                .map(entry -> new TeamRankingInternalResponse(
-                    entry.teamId(), entry.points(), entry.pointsPenalty(), entry.played(), entry.wins(),
-                    entry.losses(), entry.coefSets(), entry.coefPoints()))
-                .toList());
+        return new PoolWithRankingInternalResponse().poolId(view.poolId())
+            .ranking(view.ranking().stream().map(entry -> new TeamRankingInternalResponse()
+                .teamId(entry.teamId()).points(entry.points()).pointsPenalty(entry.pointsPenalty())
+                .played(entry.played()).wins(entry.wins()).losses(entry.losses())
+                .coefSets(entry.coefSets()).coefPoints(entry.coefPoints())).toList());
     }
 }

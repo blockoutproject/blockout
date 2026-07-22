@@ -1,0 +1,22 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Competition Service Internal API", "version": "1.0.0" },
+  "servers": [{ "url": "http://localhost:8085" }],
+  "tags": [{ "name": "CompetitionAssociation" }],
+  "security": [{ "bearerAuth": [] }],
+  "x-contract-schema-roots": [
+    "BulkDeactivateClubsInternalRequest",
+    "BulkDeactivatePoolsInternalRequest",
+    "BulkDeactivateTeamsInternalRequest",
+    "UpdateAssociationStatsInternalRequest"
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
