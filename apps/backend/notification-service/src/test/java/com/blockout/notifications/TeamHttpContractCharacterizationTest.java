@@ -2,7 +2,7 @@ package com.blockout.notifications;
 
 import com.blockout.notifications.notification.infrastructure.http.models.PoolInternalResponse;
 import com.blockout.notifications.notification.infrastructure.http.models.TeamInternalResponse;
-import com.blockout.notifications.notification.infrastructure.http.models.UserInternalResponse;
+import com.blockout.notifications.notification.infrastructure.http.contract.models.UserInternalResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 

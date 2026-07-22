@@ -1,0 +1,10 @@
+{
+  "UpdateUserInternalRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "pseudo": { "type": "string", "nullable": true },
+      "pictureUrl": { "type": "string", "nullable": true }
+    }
+  }
+}

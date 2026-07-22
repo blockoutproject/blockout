@@ -53,6 +53,7 @@ test('workspace fragments produce the shared OpenAPI bundle', async () => {
   );
   assert.equal(bundle.openapi, '3.0.3');
   assert.deepEqual(Object.keys(bundle.components.schemas), [
+    'EntityTypeEnum',
     'FormatEnum',
     'GenderEnum',
     'LiveLinkStatusEnum',
@@ -149,6 +150,17 @@ test('schema roots include active multipart JSON models without fake endpoints',
   assert.equal(
     matchBundle.paths['/api/v1/matches'].post.requestBody.content['application/json'].schema.$ref,
     '#/components/schemas/CreateMatchInternalRequest',
+  );
+
+  const userBundle = JSON.parse(
+    await readFile(path.join(contractsRoot, 'generated/specs/user.json'), 'utf8'),
+  );
+  assert.ok(userBundle.components.schemas.UpdateUserInternalRequest);
+  assert.ok(userBundle.components.schemas.UserInternalResponse);
+  assert.equal(
+    userBundle.paths['/api/v1/users/{auth0Id}'].put.requestBody.content['multipart/form-data']
+      .schema.properties.data.type,
+    'string',
   );
 });
 

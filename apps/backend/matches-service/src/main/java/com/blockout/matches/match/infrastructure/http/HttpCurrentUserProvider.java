@@ -3,13 +3,16 @@ package com.blockout.matches.match.infrastructure.http;
 import com.blockout.matches.config.ApiClientProperties;
 import com.blockout.matches.match.application.ports.CurrentUserProvider;
 import com.blockout.matches.match.application.views.CurrentUserView;
-import com.blockout.matches.match.infrastructure.http.models.UserInternalResponse;
+import com.blockout.matches.match.infrastructure.http.contract.models.UserInternalResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * Resolves the current user through the generated User transport model.
+ */
 @Component
 public class HttpCurrentUserProvider implements CurrentUserProvider {
 
@@ -29,6 +32,6 @@ public class HttpCurrentUserProvider implements CurrentUserProvider {
         ResponseEntity<UserInternalResponse> response = restTemplate.exchange(
             url, HttpMethod.GET, null, UserInternalResponse.class);
         UserInternalResponse user = response.getBody();
-        return user == null ? null : new CurrentUserView(user.id(), user.auth0Id(), user.createdAt());
+        return user == null ? null : new CurrentUserView(user.getId(), user.getAuth0Id(), user.getCreatedAt());
     }
 }

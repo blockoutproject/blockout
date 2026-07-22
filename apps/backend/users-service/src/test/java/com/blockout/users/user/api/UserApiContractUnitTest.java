@@ -4,7 +4,7 @@ import com.blockout.users.user.api.models.UpdateUserInternalRequest;
 import com.blockout.users.user.api.models.UserFavoriteInternalResponse;
 import com.blockout.users.user.api.models.UserFavoriteSummaryInternalResponse;
 import com.blockout.users.user.api.models.UserInternalResponse;
-import com.blockout.users.user.application.models.EntityType;
+import com.blockout.shared.model.EntityTypeEnum;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -24,10 +24,16 @@ class UserApiContractUnitTest {
     @Test
     @DisplayName("exposes the same complete User shape for every User endpoint")
     void exposesTheCompleteUserShape() {
-        UserInternalResponse response = new UserInternalResponse(
-            1L, "auth0|1", "user@example.com", "user", "First", "Last", "picture", "phone",
-            true, Instant.parse("2026-07-19T12:00:00Z"), Instant.parse("2026-07-19T12:00:00Z"),
-            List.of(new UserFavoriteSummaryInternalResponse(EntityType.TEAM, 2L)));
+        UserInternalResponse response = new UserInternalResponse(1L, "auth0|1", true)
+            .email("user@example.com")
+            .pseudo("user")
+            .firstName("First")
+            .lastName("Last")
+            .pictureUrl("picture")
+            .phoneNumber("phone")
+            .createdAt(Instant.parse("2026-07-19T12:00:00Z"))
+            .lastUpdate(Instant.parse("2026-07-19T12:00:00Z"))
+            .favorites(List.of(new UserFavoriteSummaryInternalResponse(EntityTypeEnum.TEAM, 2L)));
 
         JsonNode json = objectMapper.valueToTree(response);
 
@@ -44,13 +50,13 @@ class UserApiContractUnitTest {
     @DisplayName("keeps dedicated favorite and update boundaries explicit")
     void keepsDedicatedBoundariesExplicit() throws Exception {
         UserFavoriteInternalResponse favorite = new UserFavoriteInternalResponse(
-            1L, EntityType.POOL, 2L, LocalDateTime.of(2026, 7, 19, 12, 0));
+            1L, EntityTypeEnum.POOL, 2L, LocalDateTime.of(2026, 7, 19, 12, 0));
         UpdateUserInternalRequest update = objectMapper.readValue(
             "{\"pseudo\":\"new-pseudo\",\"pictureUrl\":null}", UpdateUserInternalRequest.class);
 
         assertThat(objectMapper.valueToTree(favorite).fieldNames()).toIterable()
             .containsExactlyInAnyOrder("id", "entityType", "entityId", "createdAt");
-        assertThat(update.pseudo()).isEqualTo("new-pseudo");
-        assertThat(update.pictureUrl()).isNull();
+        assertThat(update.getPseudo()).isEqualTo("new-pseudo");
+        assertThat(update.getPictureUrl()).isNull();
     }
 }

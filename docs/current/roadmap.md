@@ -532,10 +532,20 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     source. The complete reactor still stops on the pre-existing Club Flyway V1-V3 checksum mismatch; no database repair
     was performed by this contract task.
 
-- [ ] **REF-049 — Migrate the User contract**
+- [x] **REF-049 — Migrate the User contract**
   - Generate the users-service transport boundary while keeping Auth0 identity, guest behavior, preferences, and public
     repository safety unchanged.
   - Remove handwritten User transport copies only after service, gateway, and mobile-facing behavior passes unchanged.
+  - Evidence: one User OpenAPI source now owns every existing V1 profile and favorite route, including the multipart
+    update boundary and native camelCase payloads. `users-service` implements the generated server interfaces;
+    `mobile-gateway`, `matches-service`, and `notification-service` consume generated adapter-local models. The gateway
+    still exposes its existing public User DTOs through an explicit mapper, so internal contracts do not leak into the
+    mobile boundary.
+  - Handwritten internal User transport copies were removed after the owner and all active consumers passed. The shared
+    generated `EntityTypeEnum` owns the transport values while each application's business enum remains local behind a
+    mapper. Auth0 subjects, guest creation, preferences, favorite behavior, routes, security scopes, and external
+    providers remain unchanged. Two clean Java generations have the same hash; contract guards, targeted Java 21 tests,
+    and consumer serialization tests pass. Git tracks no generated source.
 
 - [ ] **REF-050 — Migrate the Notification contract**
   - Generate notification requests, responses, preferences, and enums while retaining provider implementations behind

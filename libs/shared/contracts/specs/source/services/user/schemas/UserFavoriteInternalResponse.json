@@ -1,0 +1,13 @@
+{
+  "UserFavoriteInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "entityType", "entityId", "createdAt"],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "entityType": { "$ref": "#/components/schemas/EntityTypeEnum" },
+      "entityId": { "type": "integer", "format": "int64" },
+      "createdAt": { "type": "string", "format": "date-time" }
+    }
+  }
+}

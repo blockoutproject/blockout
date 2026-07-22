@@ -5,6 +5,7 @@ import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.shared.infrastructure.http.MultipartBodyBuilder;
 import com.blockout.mobilegateway.user.api.models.UpdateUserRequest;
 import com.blockout.mobilegateway.user.api.models.UserResponse;
+import com.blockout.mobilegateway.user.infrastructure.contract.models.UserInternalResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -15,6 +16,9 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
+/**
+ * Calls the User internal API and maps its generated contracts to gateway models.
+ */
 @Service
 @RequiredArgsConstructor
 public class UserInternalClient {
@@ -22,6 +26,7 @@ public class UserInternalClient {
     private final ApiClientProperties apiClientProperties;
     private final InternalApiClient internalApiClient;
     private final ObjectMapper objectMapper;
+    private final UserContractMapper contractMapper;
 
     private String baseUrl() {
         return apiClientProperties.getUser().getUrl();
@@ -33,10 +38,16 @@ public class UserInternalClient {
             .build()
             .toUriString();
 
-        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(
+            objectMapper,
+            contractMapper.toInternalRequest(dto),
+            image);
 
-        ResponseEntity<UserResponse> response = internalApiClient.putMultipart(url, body, UserResponse.class);
-        return response.getBody();
+        ResponseEntity<UserInternalResponse> response = internalApiClient.putMultipart(
+            url,
+            body,
+            UserInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 
     public UserResponse ensureCurrentUser() {
@@ -45,8 +56,8 @@ public class UserInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<UserResponse> response = internalApiClient.put(url, null, UserResponse.class);
-        return response.getBody();
+        ResponseEntity<UserInternalResponse> response = internalApiClient.put(url, null, UserInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 
     public void deleteCurrentUser() {

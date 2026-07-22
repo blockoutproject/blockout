@@ -5,7 +5,7 @@ import com.blockout.notifications.notification.application.models.NotificationTy
 import com.blockout.notifications.notification.application.views.NotificationPageView;
 import com.blockout.notifications.notification.application.views.NotificationView;
 import com.blockout.notifications.notification.infrastructure.http.UserHttpClient;
-import com.blockout.notifications.notification.infrastructure.http.models.UserInternalResponse;
+import com.blockout.notifications.notification.infrastructure.http.contract.models.UserInternalResponse;
 import com.blockout.notifications.notification.infrastructure.persistence.entities.UserNotificationEntity;
 import com.blockout.notifications.notification.infrastructure.persistence.repositories.UserNotificationRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,6 +25,9 @@ import java.util.List;
 
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+/**
+ * Manages the authenticated user's notification inbox.
+ */
 @Service
 @RequiredArgsConstructor
 public class UserNotificationApplicationService {

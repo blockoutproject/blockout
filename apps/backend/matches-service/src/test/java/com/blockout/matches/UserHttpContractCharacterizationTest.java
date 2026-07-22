@@ -1,6 +1,6 @@
 package com.blockout.matches;
 
-import com.blockout.matches.match.infrastructure.http.models.UserInternalResponse;
+import com.blockout.matches.match.infrastructure.http.contract.models.UserInternalResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
@@ -20,8 +20,8 @@ class UserHttpContractCharacterizationTest {
              "favorites":[{"entityType":"POOL","entityId":2}]}
             """, UserInternalResponse.class);
 
-        assertThat(user.auth0Id()).isEqualTo("auth0|1");
-        assertThat(user.favorites()).hasSize(1);
-        assertThat(user.createdAt()).isEqualTo(user.lastUpdate());
+        assertThat(user.getAuth0Id()).isEqualTo("auth0|1");
+        assertThat(user.getFavorites()).hasSize(1);
+        assertThat(user.getCreatedAt()).isEqualTo(user.getLastUpdate());
     }
 }

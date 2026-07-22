@@ -1,0 +1,11 @@
+{
+  "UserFavoriteSummaryInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["entityType", "entityId"],
+    "properties": {
+      "entityType": { "$ref": "#/components/schemas/EntityTypeEnum" },
+      "entityId": { "type": "integer", "format": "int64" }
+    }
+  }
+}

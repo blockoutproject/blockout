@@ -7,68 +7,76 @@ import com.blockout.users.user.application.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-
 /**
- * Exposes the handwritten V1 User API.
+ * Implements the generated V1 internal User API.
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/users")
-public class UserController {
+public class UserController implements UserApi {
 
     private final UserService userService;
     private final UserApiMapper mapper;
     private final ObjectMapper objectMapper;
 
+    @Override
     @PreAuthorize("hasAuthority('SCOPE_read:users')")
-    @GetMapping("/{auth0Id}")
-    public ResponseEntity<UserInternalResponse> getUserByAuth0Id(@PathVariable String auth0Id) {
+    public ResponseEntity<UserInternalResponse> getUserByAuth0Id(String auth0Id) {
         return ResponseEntity.ok(mapper.toInternalResponse(userService.getUserByAuth0Id(auth0Id)));
     }
 
+    @Override
     @PreAuthorize("hasAuthority('SCOPE_read:current_user')")
-    @GetMapping("/me")
-    public ResponseEntity<UserInternalResponse> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(mapper.toInternalResponse(userService.getUserByAuth0Id(jwt.getSubject())));
+    public ResponseEntity<UserInternalResponse> getCurrentUser() {
+        return ResponseEntity.ok(mapper.toInternalResponse(userService.getUserByAuth0Id(currentSubject())));
     }
 
+    @Override
     @PreAuthorize("hasAuthority('SCOPE_update:current_user')")
-    @PutMapping(path = "/{auth0Id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserInternalResponse> updateUser(
-        @PathVariable String auth0Id,
-        @RequestPart("data") String json,
-        @RequestPart(value = "image", required = false) MultipartFile image)
-        throws JsonProcessingException, IOException {
-        UpdateUserInternalRequest request = objectMapper.readValue(json, UpdateUserInternalRequest.class);
+        String auth0Id,
+        String data,
+        MultipartFile image) {
+        UpdateUserInternalRequest request = readData(data);
         return ResponseEntity.ok(mapper.toInternalResponse(
             userService.updateUser(auth0Id, mapper.toCommand(request, image))));
     }
 
+    @Override
     @PreAuthorize("hasAuthority('SCOPE_create:current_user')")
-    @PutMapping("/me")
-    public ResponseEntity<UserInternalResponse> ensureCurrentUser(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(mapper.toInternalResponse(userService.ensureCurrentUser(jwt.getSubject())));
+    public ResponseEntity<UserInternalResponse> ensureCurrentUser() {
+        return ResponseEntity.ok(mapper.toInternalResponse(userService.ensureCurrentUser(currentSubject())));
     }
 
+    @Override
     @PreAuthorize("hasAuthority('SCOPE_delete:current_user')")
-    @DeleteMapping("/me")
-    public ResponseEntity<Void> deleteUser(@AuthenticationPrincipal Jwt jwt) {
-        userService.deleteUser(jwt.getSubject());
+    public ResponseEntity<Void> deleteUser() {
+        userService.deleteUser(currentSubject());
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/internal/{auth0Id}/assign-default-role")
-    public ResponseEntity<Void> assignDefaultRole(@PathVariable String auth0Id) {
+    @Override
+    public ResponseEntity<Void> assignDefaultRole(String auth0Id) {
         userService.assignDefaultRole(auth0Id);
         return ResponseEntity.noContent().build();
+    }
+
+    private String currentSubject() {
+        Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return jwt.getSubject();
+    }
+
+    private UpdateUserInternalRequest readData(String data) {
+        try {
+            return objectMapper.readValue(data, UpdateUserInternalRequest.class);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("The multipart data field is invalid.", exception);
+        }
     }
 }

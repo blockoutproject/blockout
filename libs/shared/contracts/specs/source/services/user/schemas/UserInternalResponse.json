@@ -1,0 +1,25 @@
+{
+  "UserInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "auth0Id", "active"],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "auth0Id": { "type": "string" },
+      "email": { "type": "string", "nullable": true },
+      "pseudo": { "type": "string", "nullable": true },
+      "firstName": { "type": "string", "nullable": true },
+      "lastName": { "type": "string", "nullable": true },
+      "pictureUrl": { "type": "string", "nullable": true },
+      "phoneNumber": { "type": "string", "nullable": true },
+      "active": { "type": "boolean" },
+      "createdAt": { "type": "string", "format": "instant", "nullable": true },
+      "lastUpdate": { "type": "string", "format": "instant", "nullable": true },
+      "favorites": {
+        "type": "array",
+        "nullable": true,
+        "items": { "$ref": "#/components/schemas/UserFavoriteSummaryInternalResponse" }
+      }
+    }
+  }
+}

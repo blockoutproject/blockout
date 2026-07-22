@@ -1,0 +1,6 @@
+{
+  "EntityTypeEnum": {
+    "type": "string",
+    "enum": ["TEAM", "POOL"]
+  }
+}

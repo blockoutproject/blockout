@@ -78,6 +78,7 @@
                         <generateModelTests>false</generateModelTests>
                         <!-- BEGIN generated schemaMappings -->
                         <schemaMappings>
+                            <schemaMapping>EntityTypeEnum=com.blockout.shared.model.EntityTypeEnum</schemaMapping>
                             <schemaMapping>FormatEnum=com.blockout.shared.model.FormatEnum</schemaMapping>
                             <schemaMapping>GenderEnum=com.blockout.shared.model.GenderEnum</schemaMapping>
                             <schemaMapping>LiveLinkStatusEnum=com.blockout.shared.model.LiveLinkStatusEnum</schemaMapping>

@@ -1,0 +1,169 @@
+{
+  "/api/v1/users/{auth0Id}": {
+    "parameters": [
+      {
+        "name": "auth0Id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    ],
+    "get": {
+      "tags": ["User"],
+      "operationId": "getUserByAuth0Id",
+      "responses": {
+        "200": {
+          "description": "User",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserInternalResponse" }
+            }
+          }
+        }
+      }
+    },
+    "put": {
+      "tags": ["User"],
+      "operationId": "updateUser",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "image": {
+                  "type": "string",
+                  "format": "binary",
+                  "nullable": true
+                }
+              }
+            },
+            "encoding": { "data": { "contentType": "application/json" } }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Updated user",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserInternalResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/users/me": {
+    "get": {
+      "tags": ["User"],
+      "operationId": "getCurrentUser",
+      "responses": {
+        "200": {
+          "description": "Current user",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserInternalResponse" }
+            }
+          }
+        }
+      }
+    },
+    "put": {
+      "tags": ["User"],
+      "operationId": "ensureCurrentUser",
+      "responses": {
+        "200": {
+          "description": "Current user",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserInternalResponse" }
+            }
+          }
+        }
+      }
+    },
+    "delete": {
+      "tags": ["User"],
+      "operationId": "deleteUser",
+      "responses": { "204": { "description": "Deleted" } }
+    }
+  },
+  "/api/v1/users/internal/{auth0Id}/assign-default-role": {
+    "post": {
+      "tags": ["User"],
+      "operationId": "assignDefaultRole",
+      "parameters": [
+        {
+          "name": "auth0Id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "responses": { "204": { "description": "Default role assigned" } }
+    }
+  },
+  "/api/v1/users/{userId}/favorites": {
+    "get": {
+      "tags": ["UserFavorite"],
+      "operationId": "listFavorites",
+      "parameters": [
+        {
+          "name": "userId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "entityType",
+          "in": "query",
+          "required": false,
+          "schema": { "$ref": "#/components/schemas/EntityTypeEnum" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Favorites",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/UserFavoriteInternalResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/users/favorites/follow": {
+    "parameters": [
+      {
+        "name": "entityType",
+        "in": "query",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/EntityTypeEnum" }
+      },
+      {
+        "name": "entityId",
+        "in": "query",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      }
+    ],
+    "post": {
+      "tags": ["UserFavorite"],
+      "operationId": "follow",
+      "responses": { "204": { "description": "Followed" } }
+    },
+    "delete": {
+      "tags": ["UserFavorite"],
+      "operationId": "unfollow",
+      "responses": { "204": { "description": "Unfollowed" } }
+    }
+  }
+}
