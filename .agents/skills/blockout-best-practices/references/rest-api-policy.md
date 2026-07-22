@@ -19,8 +19,7 @@ collection, or service-to-service HTTP boundary.
 ## Controllers And Mapping
 
 - Controllers authenticate, validate transport input, call one application boundary, and map the result.
-- Keep transport/application mapping explicit at the API boundary. Small constructor-based mappers are preferable to a
-  framework or reflection-based abstraction.
+- Keep transport/application mapping explicit at the API boundary and follow `mapping-policy.md`.
 - Never expose a JPA entity, provider payload, or message model as an HTTP response.
 - Keep complete resource mirrors aligned with the owning service. Purpose-specific summaries and search results may be
   smaller when their names make that role explicit.

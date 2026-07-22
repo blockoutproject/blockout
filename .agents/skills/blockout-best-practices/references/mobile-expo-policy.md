@@ -18,6 +18,8 @@ mobile transport models.
 - Complete resource mirrors must match the owning backend service. UI-specific view state may be smaller and should not
   masquerade as the complete transport resource.
 - Keep provider and native-framework values at their own boundary.
+- Remove obsolete or empty feature directories. Keep a `.gitkeep` only for an explicitly accepted route or feature
+  location that must exist before implementation; do not pre-create speculative module trees.
 
 ## React Native Rules
 

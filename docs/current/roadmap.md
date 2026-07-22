@@ -606,14 +606,55 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     gateway Java 21 tests pass. Both scraper suites also pass all 108 tests, including their generated-internal-contract
     architecture guards. Generated files remain ignored and untracked.
 
-- [ ] **REF-054 — Adopt the generated mobile TypeScript client**
+- [x] **REF-054 — Align documentation, logging, mapping, and testing policies**
+  - Align Blockout code-documentation, Java testing, and mapping guidance with the corresponding Maaatch policies while
+    preserving Python and Expo-specific testing rules.
+  - Add one explicit Blockout logging policy for the current Java JSON-console, Python scraper observability, and Expo
+    error-handling boundaries. Do not import Maaatch tracing, file logging, GitFlow, or product-specific conventions.
+  - Route the four policy families from `blockout-best-practices` and define one conservative empty-directory rule:
+    remove stale packages and use `.gitkeep` only for an explicitly accepted architectural location awaiting its first
+    implementation.
+  - Evidence: the Blockout skill now routes mapping as a first-class boundary. Code documentation and Java testing use
+    the Maaatch contract and naming discipline adapted to Java 21, Python 3.12, and Expo; the new cross-language mapping
+    policy defines boundary-local ownership and structural MapStruct use without forcing it over aggregation. Logging is
+    explicitly Blockout-owned: Java structured JSON stdout, scraper observability, and safe Expo provider diagnostics,
+    with no Maaatch tracing, local-file, GitFlow, or product convention imported. Prettier and `git diff --check` pass;
+    no runtime source or generated file changed.
+
+- [ ] **REF-055 — Apply policies and clean Java application structures**
+  - Audit every handwritten Java service and test against the documentation, logging, mapping, testing, and backend
+    structure policies. Put API, application, persistence, provider, and generated-client mappings at their owning
+    boundaries; use MapStruct for structural mappings and retain manual mapping for explicit aggregation or decisions.
+  - Remove empty legacy packages and obsolete mapper locations. Keep only intentionally empty current-architecture
+    locations with `.gitkeep`. Preserve contracts, routes, events, persistence, provider behavior, and runtime semantics.
+  - Compile and test each affected module, then run the backend reactor because the shared mapper build configuration is
+    cross-service.
+
+- [ ] **REF-056 — Apply policies and clean Python scraper structures**
+  - Audit both scrapers against the documentation, logging, mapping, testing, and scraper architecture policies.
+    Generated internal DTOs remain confined to `infrastructure/blockout`; provider records, domain values, and
+    application orchestration remain distinct and explicitly mapped.
+  - Remove empty or obsolete directories and retain no speculative provider/test package skeleton. Preserve parsing,
+    scheduling, retries, ordering, writes, fixtures, and all runtime behavior.
+  - Run Ruff checks, syntax checks, both complete suites, architecture guards, and disabled-startup/import checks.
+
+- [ ] **REF-057 — Apply policies and clean Expo mobile structure**
+  - Audit the mobile application against the documentation, logging, mapping, testing, and Expo policies. Keep route
+    files thin, feature presentation models local, transport mapping at the API boundary, and shared code limited to
+    active cross-feature use.
+  - Remove obsolete or empty route, module, model, utility, and test directories. Keep a `.gitkeep` only for an explicit
+    accepted location awaiting implementation; do not prepare speculative feature trees.
+  - Preserve navigation, Auth0, native behavior, API traffic, styling, accessibility, and tests. Run format, lint,
+    typecheck, Jest, and Web export; run a native check only if a native boundary changes.
+
+- [ ] **REF-058 — Adopt the generated mobile TypeScript client**
   - Generate the mobile client and models with Orval from the gateway contract into
     `apps/frontend/mobile/src/shared/generated/**`, then replace handwritten Axios transport and duplicate mobile DTOs
     feature by feature.
   - Keep TanStack Query ownership, Expo session behavior, error presentation, accessibility, and all existing tests;
     generated source remains application-local and outside Git.
 
-- [ ] **REF-055 — Certify and clean the complete contract-first application**
+- [ ] **REF-059 — Certify and clean the complete contract-first application**
   - Remove superseded handwritten transport DTOs, internal HTTP clients, obsolete dependencies, and compatibility-only
     names only after every consumer uses the generated boundary.
   - Prove clean deterministic generation, zero tracked generated files, wheel and Java artifact builds, both scraper
@@ -623,5 +664,5 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     production bypasses.
 
 The Java and Python scraper refactors and their local persistence certification are complete.
-The mobile behavior baseline and handwritten architecture are complete. REF-038 through REF-055 now define the
+The mobile behavior baseline and handwritten architecture are complete. REF-038 through REF-059 now define the
 sequential contract-first adoption path. GitFlow, CI, deployment, and production changes remain deferred.

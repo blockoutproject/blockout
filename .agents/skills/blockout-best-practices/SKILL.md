@@ -22,22 +22,23 @@ the current task. Detailed rules live in the references rather than in this entr
 
 ## Source Router
 
-| Task signal                                                                   | Read                                                                                    |
-| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Java package structure, Spring service, Maven module, or application boundary | `references/backend-java-policy.md`                                                     |
-| Javadoc, source comments, or a handwritten public/local contract              | `references/code-documentation-policy.md`                                               |
-| Backend Java tests                                                            | `references/java-testing-policy.md`                                                     |
-| JPA entity, repository, migration, or PostgreSQL schema                       | `references/persistence-policy.md`                                                      |
-| Request, response, controller, mapping, error, collection, or pagination      | `references/rest-api-policy.md`                                                         |
-| OpenAPI contract, DTO, endpoint, generated client/server, or transport enum   | `references/contract-first.md`, then `references/rest-api-policy.md` when relevant      |
-| Java, Python, or mobile logging                                               | `references/logging-policy.md`                                                          |
-| Python scraper code, model, dependency, or fixture                            | `references/python-scraper-policy.md` and `references/python-scraper-testing-policy.md` |
+| Task signal                                                                   | Read                                                                                                        |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Java package structure, Spring service, Maven module, or application boundary | `references/backend-java-policy.md`                                                                         |
+| Javadoc, source comments, or a handwritten public/local contract              | `references/code-documentation-policy.md`                                                                   |
+| Mapping between transport, application, domain, provider, and persistence     | `references/mapping-policy.md`                                                                              |
+| Backend Java tests                                                            | `references/java-testing-policy.md`                                                                         |
+| JPA entity, repository, migration, or PostgreSQL schema                       | `references/persistence-policy.md`                                                                          |
+| Request, response, controller, mapping, error, collection, or pagination      | `references/rest-api-policy.md`                                                                             |
+| OpenAPI contract, DTO, endpoint, generated client/server, or transport enum   | `references/contract-first.md`, then `references/rest-api-policy.md` when relevant                          |
+| Java, Python, or mobile logging                                               | `references/logging-policy.md`                                                                              |
+| Python scraper code, model, dependency, or fixture                            | `references/python-scraper-policy.md` and `references/python-scraper-testing-policy.md`                     |
 | Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | `references/mobile-expo-policy.md`, `references/mobile-testing-policy.md`, and `vercel-react-native-skills` |
-| Mobile Jest or React Native Testing Library test                              | `references/mobile-testing-policy.md`                                                   |
-| React component API, provider composition, or reusable mobile UI architecture | `vercel-composition-patterns` in addition to the applicable mobile policy               |
-| Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md`                                                    |
-| Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                       |
-| Business model ownership or current refactor scope                            | `docs/current/refactor-direction.md` and the owning application sources                 |
+| Mobile Jest or React Native Testing Library test                              | `references/mobile-testing-policy.md`                                                                       |
+| React component API, provider composition, or reusable mobile UI architecture | `vercel-composition-patterns` in addition to the applicable mobile policy                                   |
+| Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md`                                                                        |
+| Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                                           |
+| Business model ownership or current refactor scope                            | `docs/current/refactor-direction.md` and the owning application sources                                     |
 
 When current sources do not justify a proposed behavior, stop the runtime change and request a product or architecture
 decision. Historical code and deferred plans do not activate work by continuity.
@@ -60,6 +61,9 @@ install their Next.js, deployment, web-design, or writing skills for Blockout mo
   cross-module
   Java validation.
 - Keep generated output, build artifacts, local environments, caches, logs, and secrets out of Git.
+- Remove obsolete and accidentally empty directories. Keep an otherwise empty directory with `.gitkeep` only when the
+  current architecture explicitly requires that location before its first implementation; never preserve speculative
+  package skeletons.
 - Preserve existing runtime behavior unless the active roadmap task explicitly authorizes a behavior correction.
 - Maaatch is a read-only structural reference. Reuse its policies and vocabulary patterns, never its business code.
 

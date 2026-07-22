@@ -34,6 +34,9 @@ generic `utils`, `helpers`, `common`, `manager`, `processor`, or `services` pack
 role:
 parser, normalizer, policy, client, source, writer, scheduler, or use case.
 
+Delete empty legacy directories. Keep a `.gitkeep` only when the accepted scraper architecture requires an empty
+location before its first implementation; never create a complete provider or test skeleton for hypothetical work.
+
 Each application uses the succinct local package name `scraper`. The owning application directory already supplies the
 necessary context: both `club-scraper` and `competition-scraper` therefore contain their own sibling `scraper` and
 `tests` directories. Run and test each application from its own root; do not combine both local `scraper` packages on

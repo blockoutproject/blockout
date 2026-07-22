@@ -28,8 +28,9 @@ service-root
 ```
 
 A small single-feature service may use flat `api`, `application`, `domain`, `infrastructure`, `config`, and `shared`
-packages while that remains clearer. Do not create empty architecture folders. Do not use generic `impl`, `utils`,
-`helpers`, `common`, or `support` packages.
+packages while that remains clearer. Do not use generic `impl`, `utils`, `helpers`, `common`, or `support` packages.
+Remove empty legacy packages. Retain an empty architectural package with `.gitkeep` only when a current accepted design
+requires the location before its first implementation; do not create complete speculative package trees.
 
 ## Roles
 
@@ -72,16 +73,9 @@ events and query projections may be smaller when their role is explicit.
 
 ## Mappers And Reusable Logic
 
-Put a mapper where the translated boundary lives:
-
-- transport to application and application to transport: `api/mappers`;
-- simple entity-to-view mapping: beside `application/views` or in the application service while genuinely local;
-- persistence-local conversion: `infrastructure/persistence/mappers`;
-- repository-backed read assembly: `application/projection` as a projector, not a mapper.
-
-Prefer explicit construction for small handwritten shapes. Introduce MapStruct only when repeated structural mapping
-creates enough mechanical code to justify it. Do not create static utility bags; promote shared behavior to a named
-policy, validator, parser, mapper, gateway, projector, or provider.
+Follow `mapping-policy.md`. Put each mapper at the boundary it translates, prefer MapStruct for structural Java
+mapping, and keep aggregation or decision-making explicit. Do not create static utility bags; promote shared behavior
+to a named policy, validator, parser, mapper, gateway, projector, or provider.
 
 ## Review Triggers
 
