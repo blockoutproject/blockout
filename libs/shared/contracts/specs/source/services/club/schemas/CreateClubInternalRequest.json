@@ -1,0 +1,20 @@
+{
+  "CreateClubInternalRequest": {
+    "type": "object",
+    "description": "Internal request used to create a Club.",
+    "additionalProperties": false,
+    "required": ["id", "rawName", "name"],
+    "properties": {
+      "id": { "type": "string" },
+      "rawName": { "type": "string" },
+      "name": { "type": "string" },
+      "address": { "type": "string", "nullable": true },
+      "city": { "type": "string", "nullable": true },
+      "postalCode": { "type": "string", "nullable": true },
+      "email": { "type": "string", "nullable": true },
+      "phoneNumber": { "type": "string", "nullable": true },
+      "website": { "type": "string", "nullable": true },
+      "logoUrl": { "type": "string", "nullable": true }
+    }
+  }
+}

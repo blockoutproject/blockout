@@ -79,6 +79,18 @@ test('service schemas contain no handwritten inline transport enum', async () =>
   assert.deepEqual(inlineEnums, []);
 });
 
+test('schema roots include active multipart JSON models without fake endpoints', async () => {
+  const bundle = JSON.parse(
+    await readFile(path.join(contractsRoot, 'generated/specs/club.json'), 'utf8'),
+  );
+  assert.ok(bundle.components.schemas.CreateClubInternalRequest);
+  assert.ok(bundle.components.schemas.UpdateClubInternalRequest);
+  assert.equal(
+    bundle.paths['/api/v1/clubs'].post.requestBody.content['multipart/form-data'].schema.properties.data.type,
+    'string',
+  );
+});
+
 test('generated artifacts are not tracked by Git', () => {
   const tracked = execFileSync('git', ['ls-files'], {cwd: workspaceRoot, encoding: 'utf8'})
     .trim()

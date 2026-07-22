@@ -2,7 +2,7 @@ package com.blockout.workersearch.projection;
 
 import com.blockout.workersearch.projection.application.models.Format;
 import com.blockout.workersearch.projection.application.models.Gender;
-import com.blockout.workersearch.projection.infrastructure.http.models.ClubInternalResponse;
+import com.blockout.workersearch.projection.infrastructure.http.contract.models.ClubInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.PoolInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.TeamInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.messaging.messages.TeamUpsertMessage;
@@ -44,10 +44,10 @@ class ProjectionTransportContractUnitTest {
             }
             """, ClubInternalResponse.class);
 
-        assertThat(club.address()).isEqualTo("1 Club Street");
-        assertThat(club.latitude()).isEqualTo(48.0);
-        assertThat(club.createdAt()).isEqualTo(club.lastUpdate());
-        assertThat(club.active()).isTrue();
+        assertThat(club.getAddress()).isEqualTo("1 Club Street");
+        assertThat(club.getLatitude()).isEqualTo(48.0);
+        assertThat(club.getCreatedAt()).isEqualTo(club.getLastUpdate());
+        assertThat(club.getActive()).isTrue();
     }
 
     @Test

@@ -7,8 +7,8 @@ from datetime import UTC, datetime
 from prometheus_client import Gauge
 
 from scraper.application.club_writer import ClubWriter
+from scraper.application.models import Club
 from scraper.application.ports import BlockoutPort, FfvbPort
-from scraper.infrastructure.blockout.contracts import ClubInternalResponse
 from scraper.infrastructure.ffvb.models import FfvbClubRecord
 from scraper.infrastructure.ffvb.parser import parse_club_page
 from scraper.observability.logging import current_scraper, log_event
@@ -27,9 +27,7 @@ class ClubIngestion:
         self._ffvb = ffvb
         self._duration_gauge = duration_gauge
         self._writer = ClubWriter(blockout)
-        self._clubs: dict[
-            str, tuple[ClubInternalResponse | None, ClubInternalResponse]
-        ] = {}
+        self._clubs: dict[str, tuple[Club | None, Club]] = {}
         self.scraped_club_ids: set[str] = set()
         self.scrape_success = 0
 
@@ -147,27 +145,25 @@ class ClubIngestion:
             )
 
 
-def _new_candidate(club: FfvbClubRecord) -> ClubInternalResponse:
-    return ClubInternalResponse(
+def _new_candidate(club: FfvbClubRecord) -> Club:
+    return Club(
         id=club.identifier,
-        rawName=club.raw_name,
+        raw_name=club.raw_name,
         name=club.name,
         address=club.address,
         city=club.city,
-        postalCode=club.postal_code,
+        postal_code=club.postal_code,
         email=club.email,
-        phoneNumber=club.phone_number,
+        phone_number=club.phone_number,
         website=club.website,
     )
 
 
-def _merge_provider_fields(
-    candidate: ClubInternalResponse, provider: FfvbClubRecord
-) -> None:
+def _merge_provider_fields(candidate: Club, provider: FfvbClubRecord) -> None:
     candidate.name = provider.name
     candidate.city = provider.city
-    candidate.postalCode = provider.postal_code
+    candidate.postal_code = provider.postal_code
     candidate.email = provider.email
-    candidate.phoneNumber = provider.phone_number
+    candidate.phone_number = provider.phone_number
     candidate.website = provider.website
     candidate.address = provider.address

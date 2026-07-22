@@ -1,0 +1,310 @@
+{
+  "/api/v1/clubs": {
+    "get": {
+      "tags": ["Club"],
+      "operationId": "listClubs",
+      "summary": "List Clubs using the existing optional filters",
+      "parameters": [
+        {
+          "name": "ids",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "style": "form",
+          "explode": true
+        },
+        {
+          "name": "active",
+          "in": "query",
+          "required": false,
+          "schema": { "type": "boolean" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Clubs returned in deterministic name order",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/ClubInternalResponse" }
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication is missing or invalid",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "403": {
+          "description": "The caller cannot read Clubs",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        }
+      }
+    },
+    "post": {
+      "tags": ["Club"],
+      "operationId": "createClub",
+      "summary": "Create a Club from multipart JSON and an optional image",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "image": {
+                  "type": "string",
+                  "format": "binary",
+                  "nullable": true
+                }
+              }
+            },
+            "encoding": {
+              "data": { "contentType": "application/json" }
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Club created",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClubInternalResponse" }
+            }
+          }
+        },
+        "400": {
+          "description": "The request is invalid",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication is missing or invalid",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "403": {
+          "description": "The caller cannot create Clubs",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/clubs/{id}": {
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    ],
+    "get": {
+      "tags": ["Club"],
+      "operationId": "getClubById",
+      "summary": "Read one Club by identifier",
+      "responses": {
+        "200": {
+          "description": "Club found",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClubInternalResponse" }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication is missing or invalid",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "403": {
+          "description": "The caller cannot read Clubs",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "404": {
+          "description": "Club not found",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        }
+      }
+    },
+    "put": {
+      "tags": ["Club"],
+      "operationId": "updateClub",
+      "summary": "Update a Club from multipart JSON and an optional image",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "image": {
+                  "type": "string",
+                  "format": "binary",
+                  "nullable": true
+                }
+              }
+            },
+            "encoding": {
+              "data": { "contentType": "application/json" }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Club updated",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClubInternalResponse" }
+            }
+          }
+        },
+        "400": {
+          "description": "The request is invalid",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication is missing or invalid",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "403": {
+          "description": "The caller cannot update Clubs",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "404": {
+          "description": "Club not found",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        }
+      }
+    },
+    "delete": {
+      "tags": ["Club"],
+      "operationId": "deactivateClub",
+      "summary": "Deactivate one Club",
+      "responses": {
+        "204": { "description": "Club deactivated" },
+        "401": {
+          "description": "Authentication is missing or invalid",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "403": {
+          "description": "The caller cannot deactivate Clubs",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "404": {
+          "description": "Club not found",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/clubs/{id}/logo": {
+    "get": {
+      "tags": ["Club"],
+      "operationId": "getClubLogo",
+      "summary": "Read the configured Club logo URL",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Logo URL returned",
+          "content": {
+            "text/plain": {
+              "schema": { "type": "string" }
+            }
+          }
+        },
+        "204": { "description": "No logo is configured" },
+        "401": {
+          "description": "Authentication is missing or invalid",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        },
+        "404": {
+          "description": "Club not found",
+          "content": {
+            "application/problem+json": {
+              "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

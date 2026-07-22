@@ -441,7 +441,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     confirms that the contract targets, native Maven generation, declarative Python generation, ignored outputs, and
     future Orval boundary already conform, so no additional codegen abstraction or script is introduced.
 
-- [ ] **REF-043 — Migrate the Club contract as the first generated vertical**
+- [x] **REF-043 — Migrate the Club contract as the first generated vertical**
   - Define the single authoritative Club schemas and internal operations from the behavior already established by the
     club refactor, resolving every active handwritten copy against the owner model.
   - Make `clubs-service` implement generated Java interfaces and models, and replace the club scraper's handwritten
@@ -449,6 +449,15 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Migrate active Java internal consumers in the same vertical so they derive from the same schema source. Preserve
     routes, camelCase JSON, persistence, error behavior, and scraper results; the mobile keeps consuming only its
     gateway boundary until REF-053/054.
+  - Evidence: one Club OpenAPI source now generates the `clubs-service` server interface and models, adapter-local
+    models for `mobile-gateway` and `search-worker`, and the private wheel's asynchronous HTTPX client. Handwritten
+    Club transport mirrors are removed; the scraper maps generated transport models immediately to its idiomatic
+    application model, while the gateway retains its separate public response until REF-053.
+  - Two clean generations have identical hashes, the generated wheel builds and installs in an isolated Python 3.12
+    environment, uv lock/sync passes, all 38 club-scraper tests pass, and all 52 impacted Java non-context tests pass on
+    Java 21. The Club context smoke remains blocked only by the pre-existing local Flyway V1-V3 checksum mismatch
+    already recorded by REF-041/042; no database repair or migration change is part of this task. Git tracks no
+    generated output.
 
 - [ ] **REF-044 — Migrate the Config and Division contracts**
   - Generate the configuration and Division internal boundaries owned by `config-service`, including the Python clients

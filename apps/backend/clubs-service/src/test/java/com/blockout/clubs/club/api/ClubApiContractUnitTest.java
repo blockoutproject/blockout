@@ -13,7 +13,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Protects the complete handwritten Club transport shape and native camelCase names.
+ * Protects the complete generated Club transport shape and native camelCase names.
  */
 @DisplayName("Club API contract")
 class ClubApiContractUnitTest {
@@ -38,27 +38,31 @@ class ClubApiContractUnitTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
+     * Verifies that Spring routes come from the generated server interface.
+     */
+    @DisplayName("implements the generated Club API")
+    @Test
+    void implementsTheGeneratedClubApi() {
+        assertThat(ClubApi.class).isAssignableFrom(ClubController.class);
+    }
+
+    /**
      * Verifies that the owner exposes every complete Club field without naming conversion.
      */
     @DisplayName("exposes the complete Club shape in native camelCase")
     @Test
     void exposesTheCompleteAuthoritativeClubShapeInNativeCamelCase() {
         ClubInternalResponse response = new ClubInternalResponse(
-            "club-1",
-            "RAW CLUB",
-            "Blockout Club",
-            "1 Club Street",
-            "Paris",
-            "75001",
-            "club@example.invalid",
-            "0102030405",
-            "https://example.invalid",
-            "https://example.invalid/logo.png",
-            true,
-            48.8566,
-            2.3522,
-            null,
-            null);
+            "club-1", "RAW CLUB", "Blockout Club", true)
+            .address("1 Club Street")
+            .city("Paris")
+            .postalCode("75001")
+            .email("club@example.invalid")
+            .phoneNumber("0102030405")
+            .website("https://example.invalid")
+            .logoUrl("https://example.invalid/logo.png")
+            .latitude(48.8566)
+            .longitude(2.3522);
 
         JsonNode json = objectMapper.valueToTree(response);
         assertThat(json.fieldNames()).toIterable().containsExactlyInAnyOrderElementsOf(COMPLETE_CLUB_FIELDS);
@@ -67,7 +71,7 @@ class ClubApiContractUnitTest {
     }
 
     /**
-     * Verifies that creation and update remain distinct handwritten transport inputs.
+     * Verifies that creation and update remain distinct generated transport inputs.
      */
     @DisplayName("keeps creation and update requests explicit")
     @Test
@@ -90,10 +94,10 @@ class ClubApiContractUnitTest {
             {"name":"New name","address":"2 Club Street","logoUrl":null}
             """, UpdateClubInternalRequest.class);
 
-        assertThat(create.address()).isEqualTo("1 Club Street");
-        assertThat(create.logoUrl()).isEqualTo("https://example.invalid/logo.png");
-        assertThat(update.name()).isEqualTo("New name");
-        assertThat(update.address()).isEqualTo("2 Club Street");
-        assertThat(update.logoUrl()).isNull();
+        assertThat(create.getAddress()).isEqualTo("1 Club Street");
+        assertThat(create.getLogoUrl()).isEqualTo("https://example.invalid/logo.png");
+        assertThat(update.getName()).isEqualTo("New name");
+        assertThat(update.getAddress()).isEqualTo("2 Club Street");
+        assertThat(update.getLogoUrl()).isNull();
     }
 }

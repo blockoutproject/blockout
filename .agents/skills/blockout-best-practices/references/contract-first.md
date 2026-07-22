@@ -27,6 +27,8 @@ DTOs, Jackson naming aliases, or case-conversion layers.
 - Endpoint: model the REST resource first, then the operation.
 - Complete bounded collection: return an `items` wrapper named `*ListResponse`; do not include `pageInfo`, `page`, or
   `pageSize`; document the bounded source and deterministic order.
+- During an import-only V1 adoption, preserve an established bare array response unless the roadmap task explicitly
+  authorizes the compatible migration to a wrapper.
 - Paginated collection: return an `items` and `pageInfo` wrapper named `*PageResponse`; guarantee `hasNext`; do not
   require `totalItems` without a product need and a reliable count.
 - Shared transport enum: every OpenAPI `*Enum` schema belongs in `source/shared/schemas`.
@@ -80,6 +82,16 @@ DTOs, Jackson naming aliases, or case-conversion layers.
 - Require the discriminator field on the parent and subtypes.
 - Keep the parent and subtypes on the same Java discriminator type; prefer a shared named transport enum.
 - Validate Java, Python, and impacted mobile generation before combining `oneOf`, `allOf`, and a discriminator.
+
+## Schema-Only Bridge
+
+`x-contract-schema-roots` may include active schemas that an existing wire shape cannot reference directly.
+
+- Use it only as a temporary bridge for an active boundary, such as a V1 multipart JSON string.
+- Do not create fake endpoints.
+- Put roots on the owning service base contract.
+- Remove a root when a real operation can reference the schema directly without changing compatibility.
+- Never present this bridge as API behavior.
 
 ## Endpoints And Errors
 

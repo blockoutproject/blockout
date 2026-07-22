@@ -25,9 +25,14 @@ class ClubApiMapperUnitTest {
     @DisplayName("maps multipart input without leaking the framework type")
     @Test
     void mapsTheApiBoundaryWithoutLeakingMultipartIntoTheApplication() throws Exception {
-        CreateClubInternalRequest request = new CreateClubInternalRequest(
-            "club-1", "RAW", "Club", "Address", "Paris", "75001",
-            "mail", "phone", "website", "logo");
+        CreateClubInternalRequest request = new CreateClubInternalRequest("club-1", "RAW", "Club")
+            .address("Address")
+            .city("Paris")
+            .postalCode("75001")
+            .email("mail")
+            .phoneNumber("phone")
+            .website("website")
+            .logoUrl("logo");
         MockMultipartFile image = new MockMultipartFile(
             "image", "club.png", "image/png", new byte[]{1, 2, 3});
 
@@ -51,6 +56,20 @@ class ClubApiMapperUnitTest {
 
         var response = mapper.toInternalResponse(view);
 
-        assertThat(response).usingRecursiveComparison().isEqualTo(view);
+        assertThat(response.getId()).isEqualTo(view.id());
+        assertThat(response.getRawName()).isEqualTo(view.rawName());
+        assertThat(response.getName()).isEqualTo(view.name());
+        assertThat(response.getAddress()).isEqualTo(view.address());
+        assertThat(response.getCity()).isEqualTo(view.city());
+        assertThat(response.getPostalCode()).isEqualTo(view.postalCode());
+        assertThat(response.getEmail()).isEqualTo(view.email());
+        assertThat(response.getPhoneNumber()).isEqualTo(view.phoneNumber());
+        assertThat(response.getWebsite()).isEqualTo(view.website());
+        assertThat(response.getLogoUrl()).isEqualTo(view.logoUrl());
+        assertThat(response.getActive()).isEqualTo(view.active());
+        assertThat(response.getLatitude()).isEqualTo(view.latitude());
+        assertThat(response.getLongitude()).isEqualTo(view.longitude());
+        assertThat(response.getCreatedAt()).isEqualTo(view.createdAt());
+        assertThat(response.getLastUpdate()).isEqualTo(view.lastUpdate());
     }
 }

@@ -6,7 +6,7 @@ import com.blockout.workersearch.projection.application.models.DivisionProjectio
 import com.blockout.workersearch.projection.application.models.PoolProjectionSource;
 import com.blockout.workersearch.projection.application.models.TeamProjectionSource;
 import com.blockout.workersearch.projection.application.ports.ProjectionSource;
-import com.blockout.workersearch.projection.infrastructure.http.models.ClubInternalResponse;
+import com.blockout.workersearch.projection.infrastructure.http.contract.models.ClubInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.DivisionInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.PoolInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.TeamInternalResponse;
@@ -32,7 +32,8 @@ public class HttpProjectionSource implements ProjectionSource {
         return body == null
             ? Collections.emptyList()
             : Arrays.stream(body)
-            .map(club -> new ClubProjectionSource(club.id(), club.name(), club.logoUrl(), club.city()))
+            .map(club -> new ClubProjectionSource(
+                club.getId(), club.getName(), club.getLogoUrl(), club.getCity()))
             .toList();
     }
 

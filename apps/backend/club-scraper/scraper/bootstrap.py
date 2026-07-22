@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 import aiohttp
 import httpx
+from blockout_contract_clients.club.api.club_api import ClubApi
 from prometheus_client import start_http_server
 
 from scraper.application.club_ingestion import ClubIngestion
@@ -14,7 +15,10 @@ from scraper.infrastructure.blockout.auth import (
     TokenStore,
     token_store,
 )
-from scraper.infrastructure.blockout.clients import BlockoutClients
+from scraper.infrastructure.blockout.clients import (
+    BlockoutClients,
+    build_club_api_client,
+)
 from scraper.infrastructure.ffvb.client import FfvbClubClient
 from scraper.infrastructure.scheduling.scheduler import run_hourly
 from scraper.observability.logging import configure_logging, log_event
@@ -38,11 +42,15 @@ class ClubScraperRuntime:
         """Fail closed when config-service is unavailable or disables ingestion."""
         try:
             timeout = aiohttp.ClientTimeout(total=10)
-            async with aiohttp.ClientSession(
-                timeout=timeout, trust_env=True
-            ) as session:
+            async with (
+                aiohttp.ClientSession(timeout=timeout, trust_env=True) as session,
+                build_club_api_client(self.settings) as club_api_client,
+            ):
                 status = await BlockoutClients(
-                    session, self.settings, self.tokens
+                    session,
+                    self.settings,
+                    self.tokens,
+                    ClubApi(club_api_client),
                 ).get_scraper_status(SCRAPER_NAME)
             if not status.enabled:
                 log_event(
@@ -72,6 +80,7 @@ class ClubScraperRuntime:
                     trust_env=True,
                     connector=connector,
                 ) as blockout_session,
+                build_club_api_client(self.settings) as club_api_client,
                 httpx.AsyncClient(
                     timeout=60,
                     trust_env=True,
@@ -81,7 +90,12 @@ class ClubScraperRuntime:
                 ) as ffvb_client,
             ):
                 ingestion = ClubIngestion(
-                    BlockoutClients(blockout_session, self.settings, self.tokens),
+                    BlockoutClients(
+                        blockout_session,
+                        self.settings,
+                        self.tokens,
+                        ClubApi(club_api_client),
+                    ),
                     FfvbClubClient(ffvb_client),
                     club_scraping_duration,
                 )

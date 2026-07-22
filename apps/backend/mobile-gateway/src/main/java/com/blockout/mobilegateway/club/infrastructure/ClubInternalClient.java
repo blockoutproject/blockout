@@ -2,6 +2,7 @@ package com.blockout.mobilegateway.club.infrastructure;
 
 import com.blockout.mobilegateway.club.api.models.ClubResponse;
 import com.blockout.mobilegateway.club.api.models.UpdateClubRequest;
+import com.blockout.mobilegateway.club.infrastructure.contract.models.ClubInternalResponse;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.blockout.mobilegateway.shared.infrastructure.http.MultipartBodyBuilder;
@@ -25,6 +26,7 @@ public class ClubInternalClient {
     private final ApiClientProperties apiClientProperties;
     private final InternalApiClient internalApiClient;
     private final ObjectMapper objectMapper;
+    private final ClubContractMapper contractMapper;
 
     private String baseUrl() {
         return apiClientProperties.getClub().getUrl();
@@ -36,8 +38,8 @@ public class ClubInternalClient {
             .pathSegment(id)
             .build().toUriString();
 
-        ResponseEntity<ClubResponse> response = internalApiClient.get(url, ClubResponse.class);
-        return response.getBody();
+        ResponseEntity<ClubInternalResponse> response = internalApiClient.get(url, ClubInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 
     @Cacheable(value = "clubLogoById", key = "#id")
@@ -62,9 +64,15 @@ public class ClubInternalClient {
             .pathSegment(id)
             .build().toUriString();
 
-        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(
+            objectMapper,
+            contractMapper.toInternalRequest(dto),
+            image);
 
-        ResponseEntity<ClubResponse> response = internalApiClient.putMultipart(url, body, ClubResponse.class);
-        return response.getBody();
+        ResponseEntity<ClubInternalResponse> response = internalApiClient.putMultipart(
+            url,
+            body,
+            ClubInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 }

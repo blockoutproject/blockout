@@ -1,0 +1,18 @@
+{
+  "UpdateClubInternalRequest": {
+    "type": "object",
+    "description": "Internal request used to update a Club.",
+    "additionalProperties": false,
+    "properties": {
+      "rawName": { "type": "string", "nullable": true },
+      "name": { "type": "string", "nullable": true },
+      "address": { "type": "string", "nullable": true },
+      "city": { "type": "string", "nullable": true },
+      "postalCode": { "type": "string", "nullable": true },
+      "email": { "type": "string", "nullable": true },
+      "phoneNumber": { "type": "string", "nullable": true },
+      "website": { "type": "string", "nullable": true },
+      "logoUrl": { "type": "string", "nullable": true }
+    }
+  }
+}

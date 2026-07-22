@@ -13,7 +13,11 @@
         }
       ],
       "options": {
-        "command": "openapi-generator-cli batch --clean --fail-fast libs/shared/python-contract-clients/openapi-generator.json"
+        "parallel": false,
+        "commands": [
+          "openapi-generator-cli batch --clean --fail-fast libs/shared/python-contract-clients/openapi-generator.json",
+          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/club-openapi-generator.json"
+        ]
       }
     },
     "sync": {
@@ -37,7 +41,7 @@
       "executor": "@nxlv/python:run-commands",
       "dependsOn": ["generate"],
       "options": {
-        "command": "python -c \"from blockout_contract_clients.shared.models import FormatEnum, GenderEnum; assert FormatEnum.SIX.value == 'SIX'; assert GenderEnum.F.value == 'F'\""
+        "command": "python -m pytest -q libs/shared/python-contract-clients/tests"
       }
     }
   },

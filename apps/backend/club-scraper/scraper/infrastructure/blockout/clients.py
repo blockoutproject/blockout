@@ -1,43 +1,59 @@
 from __future__ import annotations
 
-import json
-from collections.abc import Iterable
+from collections.abc import Awaitable, Iterable
 
 import aiohttp
+from blockout_contract_clients.club.api.club_api import ClubApi
+from blockout_contract_clients.club.api_client import ApiClient
+from blockout_contract_clients.club.configuration import Configuration
+from blockout_contract_clients.club.exceptions import ApiException
+from blockout_contract_clients.club.models.club_internal_response import (
+    ClubInternalResponse,
+)
+from blockout_contract_clients.club.models.create_club_internal_request import (
+    CreateClubInternalRequest,
+)
+from blockout_contract_clients.club.models.update_club_internal_request import (
+    UpdateClubInternalRequest,
+)
 
+from scraper.application.models import Club
 from scraper.config.settings import Settings
 from scraper.infrastructure.blockout.auth import TokenStore
 from scraper.infrastructure.blockout.contracts import (
     BulkDeactivateClubsInternalRequest,
-    ClubInternalResponse,
-    CreateClubInternalRequest,
     ScraperStatusInternalResponse,
-    UpdateClubInternalRequest,
 )
 from scraper.infrastructure.blockout.response import read_json
+
+_CLUB_API_PATH = "/api/v1/clubs"
+# The generated HTTPX transport needs one file tuple to retain multipart encoding.
+_EMPTY_IMAGE_PART = ("image", b"")
 
 
 class BlockoutClients:
     """Typed access to the four internal APIs used by club ingestion."""
 
     def __init__(
-        self, session: aiohttp.ClientSession, settings: Settings, tokens: TokenStore
+        self,
+        session: aiohttp.ClientSession,
+        settings: Settings,
+        tokens: TokenStore,
+        club_api: ClubApi,
     ) -> None:
         self._session = session
         self._settings = settings
         self._tokens = tokens
+        self._club_api = club_api
 
-    async def get_all_clubs(self) -> list[ClubInternalResponse]:
-        response = await self._session.get(
-            self._settings.club_api_url,
-            headers=self._tokens.headers(),
+    async def get_all_clubs(self) -> list[Club]:
+        clubs = await _club_call(
+            self._club_api.list_clubs(
+                _headers=self._tokens.headers(),
+                _request_timeout=60,
+            )
         )
-        data = await read_json(response)
-        return (
-            []
-            if data is None
-            else [ClubInternalResponse.from_json(item) for item in data]
-        )
+        return [_to_club(club) for club in clubs]
 
     async def get_unique_club_ids(self) -> list[str]:
         response = await self._session.get(
@@ -56,35 +72,34 @@ class BlockoutClients:
 
     async def create_club(
         self,
-        club: ClubInternalResponse,
-    ) -> ClubInternalResponse:
+        club: Club,
+    ) -> Club:
         request = _create_request(club)
-        form = aiohttp.FormData()
-        form.add_field(
-            "data", json.dumps(request.to_json()), content_type="application/json"
+        response = await _club_call(
+            self._club_api.create_club(
+                data=request.to_json(),
+                image=_EMPTY_IMAGE_PART,
+                _headers=self._tokens.headers(),
+                _request_timeout=60,
+            )
         )
-        response = await self._session.post(
-            self._settings.club_api_url,
-            data=form,
-            headers=self._tokens.headers(),
-        )
-        return ClubInternalResponse.from_json(await read_json(response))
+        return _to_club(response)
 
     async def update_club(
         self,
-        club: ClubInternalResponse,
-    ) -> ClubInternalResponse:
+        club: Club,
+    ) -> Club:
         request = _update_request(club)
-        form = aiohttp.FormData()
-        form.add_field(
-            "data", json.dumps(request.to_json()), content_type="application/json"
+        response = await _club_call(
+            self._club_api.update_club(
+                id=club.id,
+                data=request.to_json(),
+                image=_EMPTY_IMAGE_PART,
+                _headers=self._tokens.headers(),
+                _request_timeout=60,
+            )
         )
-        response = await self._session.put(
-            f"{self._settings.club_api_url}/{club.id}",
-            data=form,
-            headers=self._tokens.headers(),
-        )
-        return ClubInternalResponse.from_json(await read_json(response))
+        return _to_club(response)
 
     async def bulk_deactivate_clubs(self, identifiers: Iterable[str]) -> None:
         request = BulkDeactivateClubsInternalRequest(list(identifiers))
@@ -96,30 +111,70 @@ class BlockoutClients:
         await read_json(response)
 
 
-def _create_request(club: ClubInternalResponse) -> CreateClubInternalRequest:
+def build_club_api_client(settings: Settings) -> ApiClient:
+    """Configure the generated HTTPX client from the existing service URL."""
+    if not settings.club_api_url.endswith(_CLUB_API_PATH):
+        raise ValueError(f"CLUB_API_URL must end with '{_CLUB_API_PATH}'.")
+    configuration = Configuration(
+        host=settings.club_api_url.removesuffix(_CLUB_API_PATH),
+        connection_pool_maxsize=20,
+        verify_ssl=False,
+    )
+    return ApiClient(configuration)
+
+
+def _create_request(club: Club) -> CreateClubInternalRequest:
     return CreateClubInternalRequest(
         id=club.id,
-        rawName=club.rawName,
+        raw_name=club.raw_name,
         name=club.name,
         address=club.address,
         city=club.city,
-        postalCode=club.postalCode,
+        postal_code=club.postal_code,
         email=club.email,
-        phoneNumber=club.phoneNumber,
+        phone_number=club.phone_number,
         website=club.website,
-        logoUrl=club.logoUrl,
+        logo_url=club.logo_url,
     )
 
 
-def _update_request(club: ClubInternalResponse) -> UpdateClubInternalRequest:
+def _update_request(club: Club) -> UpdateClubInternalRequest:
     return UpdateClubInternalRequest(
-        rawName=club.rawName,
+        raw_name=club.raw_name,
         name=club.name,
         address=club.address,
         city=club.city,
-        postalCode=club.postalCode,
+        postal_code=club.postal_code,
         email=club.email,
-        phoneNumber=club.phoneNumber,
+        phone_number=club.phone_number,
         website=club.website,
-        logoUrl=club.logoUrl,
+        logo_url=club.logo_url,
     )
+
+
+def _to_club(response: ClubInternalResponse) -> Club:
+    return Club(
+        id=response.id,
+        raw_name=response.raw_name,
+        name=response.name,
+        address=response.address,
+        city=response.city,
+        postal_code=response.postal_code,
+        email=response.email,
+        phone_number=response.phone_number,
+        website=response.website,
+        logo_url=response.logo_url,
+        active=response.active,
+        latitude=response.latitude,
+        longitude=response.longitude,
+        created_at=response.created_at,
+        last_update=response.last_update,
+    )
+
+
+async def _club_call[T](request: Awaitable[T]) -> T:
+    try:
+        return await request
+    except ApiException as error:
+        detail = error.body or error.reason or "Unknown error"
+        raise RuntimeError(f"Erreur API {error.status}: {detail}") from error

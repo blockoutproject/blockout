@@ -150,11 +150,13 @@ async function bundle() {
     const serviceSchemas = await loadJsonDirectory(path.join(serviceDir, 'schemas'));
     const base = await readJson(path.join(serviceDir, 'base.json'));
     const availableSchemas = {...sharedSchemas, ...serviceSchemas};
+    const schemaRoots = (base['x-contract-schema-roots'] ?? [])
+      .map((name) => ({$ref: `#/components/schemas/${name}`}));
 
     await writeContract({
       baseFile: path.join(serviceDir, 'base.json'),
       paths,
-      schemas: resolveSchemas([paths, base.components ?? {}], availableSchemas),
+      schemas: resolveSchemas([paths, base.components ?? {}, schemaRoots], availableSchemas),
       outputFile: path.join(generatedSpecsDir, `${service}.json`),
     });
   }

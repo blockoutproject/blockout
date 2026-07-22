@@ -5,30 +5,28 @@ from pathlib import Path
 import pytest
 from scraper.application.club_ingestion import ClubIngestion
 from scraper.application.club_writer import ClubWriter
-from scraper.infrastructure.blockout.contracts import (
-    ClubInternalResponse,
-)
+from scraper.application.models import Club
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "ffvb"
 
 
-def _club(**overrides) -> ClubInternalResponse:
+def _club(**overrides) -> Club:
     """Build a complete-enough owner response for decision tests."""
     values = {
         "id": "club-1",
-        "rawName": "RAW CLUB",
+        "raw_name": "RAW CLUB",
         "name": "Club",
         "address": "1 Street",
         "city": "Paris",
-        "postalCode": "75001",
+        "postal_code": "75001",
         "email": "mail@example.invalid",
-        "phoneNumber": "0102030405",
+        "phone_number": "0102030405",
         "website": "https://club.example.invalid",
-        "logoUrl": "logo.png",
+        "logo_url": "logo.png",
         "active": True,
     }
     values.update(overrides)
-    return ClubInternalResponse(**values)
+    return Club(**values)
 
 
 class RecordingBlockout:
@@ -37,8 +35,8 @@ class RecordingBlockout:
     def __init__(self, clubs=None, identifiers=None) -> None:
         self.clubs = [] if clubs is None else clubs
         self.identifiers = [] if identifiers is None else identifiers
-        self.creates: list[ClubInternalResponse] = []
-        self.updates: list[ClubInternalResponse] = []
+        self.creates: list[Club] = []
+        self.updates: list[Club] = []
         self.deactivations: list[set[str]] = []
 
     async def get_all_clubs(self):
@@ -117,9 +115,9 @@ def test_updates_changed_fields_and_reactivates_an_inactive_club() -> None:
 
     async def scenario() -> None:
         blockout = RecordingBlockout()
-        existing = _club(name="Old", logoUrl="owner-logo.png", active=False)
+        existing = _club(name="Old", logo_url="owner-logo.png", active=False)
         candidate = _club(
-            id="provider-id", name="New", logoUrl="provider-logo.png", active=False
+            id="provider-id", name="New", logo_url="provider-logo.png", active=False
         )
 
         await ClubWriter(blockout).save(candidate, existing)
@@ -127,7 +125,7 @@ def test_updates_changed_fields_and_reactivates_an_inactive_club() -> None:
         updated = blockout.updates[0]
         assert updated.id == "club-1"
         assert updated.name == "New"
-        assert updated.logoUrl == "owner-logo.png"
+        assert updated.logo_url == "owner-logo.png"
         assert candidate.active is True
 
     asyncio.run(scenario())
@@ -135,8 +133,8 @@ def test_updates_changed_fields_and_reactivates_an_inactive_club() -> None:
 
 def test_rejects_a_club_without_owner_required_fields() -> None:
     """Protect validation before any Blockout write."""
-    with pytest.raises(ValueError, match="rawName"):
-        asyncio.run(ClubWriter(RecordingBlockout()).save(_club(rawName=""), None))
+    with pytest.raises(ValueError, match="raw_name"):
+        asyncio.run(ClubWriter(RecordingBlockout()).save(_club(raw_name=""), None))
 
 
 def test_deactivates_only_missing_clubs_after_a_successful_contact() -> None:
@@ -178,7 +176,7 @@ def test_provider_merge_preserves_owner_only_fields() -> None:
     async def scenario() -> None:
         existing = _club(
             name="Old",
-            logoUrl="owner-logo.png",
+            logo_url="owner-logo.png",
             latitude=48.0,
             longitude=2.0,
         )
@@ -193,7 +191,7 @@ def test_provider_merge_preserves_owner_only_fields() -> None:
         assert updated.id == "club-1"
         assert updated.name == "L'ENVOLLEY 01"
         assert updated.city == "St Etienne Du Bois"
-        assert updated.logoUrl == "owner-logo.png"
+        assert updated.logo_url == "owner-logo.png"
         assert existing.latitude == 48.0
         assert existing.longitude == 2.0
 

@@ -1,5 +1,5 @@
+from scraper.application.models import Club
 from scraper.application.ports import BlockoutPort
-from scraper.infrastructure.blockout.contracts import ClubInternalResponse
 from scraper.observability.logging import log_event
 
 
@@ -7,13 +7,13 @@ class ClubWriter:
     """Decide whether an observed club requires an internal owner write."""
 
     _compared_fields = (
-        "rawName",
+        "raw_name",
         "name",
         "address",
         "city",
-        "postalCode",
+        "postal_code",
         "email",
-        "phoneNumber",
+        "phone_number",
         "website",
     )
 
@@ -22,12 +22,12 @@ class ClubWriter:
 
     async def save(
         self,
-        club: ClubInternalResponse,
-        existing: ClubInternalResponse | None,
-    ) -> ClubInternalResponse:
+        club: Club,
+        existing: Club | None,
+    ) -> Club:
         """Create, update, reactivate, or retain the owner resource."""
         missing = [
-            field for field in ("id", "rawName") if not getattr(club, field, None)
+            field for field in ("id", "raw_name") if not getattr(club, field, None)
         ]
         if missing:
             raise ValueError(
@@ -45,7 +45,7 @@ class ClubWriter:
             return created
 
         club.id = existing.id
-        club.logoUrl = existing.logoUrl
+        club.logo_url = existing.logo_url
         changes = [
             f"{field}: {getattr(existing, field)} -> {getattr(club, field)}"
             for field in self._compared_fields
