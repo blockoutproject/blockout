@@ -1,0 +1,38 @@
+{
+  "/api/v1/reports": {
+    "post": {
+      "tags": ["Report"],
+      "operationId": "createReport",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "images": {
+                  "type": "array",
+                  "nullable": true,
+                  "items": { "type": "string", "format": "binary" }
+                }
+              }
+            },
+            "encoding": { "data": { "contentType": "application/json" } }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Report created",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ReportInternalResponse" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

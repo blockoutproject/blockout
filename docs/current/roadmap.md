@@ -562,9 +562,17 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     performed. Two clean Java generations have the same hash; contract guards, targeted Java 21 tests, gateway mapper
     tests, push-token behavior, and consumer serialization pass. Git tracks no generated source.
 
-- [ ] **REF-051 — Migrate the Report contract**
+- [x] **REF-051 — Migrate the Report contract**
   - Generate report transport models and operations while keeping report destinations and external providers isolated.
   - Preserve creation, validation, attachment, status, and gateway behavior without sending production reports.
+  - Evidence: one Report OpenAPI source now owns the existing V1 multipart creation route with native camelCase data.
+    `reports-service` implements the generated server interface and `mobile-gateway` consumes generated adapter-local
+    models through an explicit mapper while retaining its existing public request and response models.
+  - The shared generated `ReportTypeEnum` owns the transport values. The provider-derived report state remains a string
+    instead of introducing a speculative enum. Handwritten internal Report transport copies were removed; GitHub,
+    Discord, and S3 adapters, validation, attachments, route, status mapping, and error behavior remain unchanged, and
+    no external report was sent. Two clean Java generations have the same hash; contract guards and 15 targeted Java 21
+    tests pass. Git tracks no generated source.
 
 - [ ] **REF-052 — Migrate the Search contract and worker consumers**
   - Generate the search-service API boundary and replace search-worker transport copies with models derived from the

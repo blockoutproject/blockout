@@ -11,6 +11,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Maps between generated Report transport models and application-owned models.
+ */
 @Component
 public class ReportApiMapper {
 
@@ -19,8 +22,10 @@ public class ReportApiMapper {
             ? Collections.emptyList()
             : images.stream().filter(image -> image != null && !image.isEmpty()).map(this::toAttachment).toList();
         return new CreateReportCommand(
-            request.type(), request.title(), request.description(), request.appVersion(), request.userId(),
-            request.userName(), request.screen(), request.deviceModel(), request.os(), request.attachmentImageUrls(),
+            com.blockout.reports.report.application.models.ReportType.valueOf(request.getType().name()),
+            request.getTitle(), request.getDescription(), request.getAppVersion(), request.getUserId(),
+            request.getUserName(), request.getScreen(), request.getDeviceModel(), request.getOs(),
+            request.getAttachmentImageUrls(),
             attachments);
     }
 

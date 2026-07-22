@@ -1,0 +1,17 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Report Service Internal API", "version": "1.0.0" },
+  "servers": [{ "url": "http://localhost:8088" }],
+  "tags": [{ "name": "Report" }],
+  "security": [{ "bearerAuth": [] }],
+  "x-contract-schema-roots": ["CreateReportInternalRequest"],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

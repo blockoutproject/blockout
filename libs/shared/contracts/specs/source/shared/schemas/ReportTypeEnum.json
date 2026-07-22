@@ -1,0 +1,6 @@
+{
+  "ReportTypeEnum": {
+    "type": "string",
+    "enum": ["DISPLAY_BUG", "DATA_ERROR", "LOGO", "LIVE", "OTHER"]
+  }
+}

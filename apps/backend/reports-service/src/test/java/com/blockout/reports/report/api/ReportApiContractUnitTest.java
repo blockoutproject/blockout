@@ -2,7 +2,7 @@ package com.blockout.reports.report.api;
 
 import com.blockout.reports.report.api.models.CreateReportInternalRequest;
 import com.blockout.reports.report.api.models.ReportInternalResponse;
-import com.blockout.reports.report.application.models.ReportType;
+import com.blockout.shared.model.ReportTypeEnum;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -26,8 +26,14 @@ class ReportApiContractUnitTest {
     @Test
     void keepsCreationInputSeparateFromTheResult() {
         CreateReportInternalRequest request = new CreateReportInternalRequest(
-            ReportType.DATA_ERROR, "Broken score", "Description", "1.0", "user-1", "User",
-            "Match", "iPhone", "iOS", null);
+            ReportTypeEnum.DATA_ERROR, "Broken score")
+            .description("Description")
+            .appVersion("1.0")
+            .userId("user-1")
+            .userName("User")
+            .screen("Match")
+            .deviceModel("iPhone")
+            .os("iOS");
 
         JsonNode json = objectMapper.valueToTree(request);
 

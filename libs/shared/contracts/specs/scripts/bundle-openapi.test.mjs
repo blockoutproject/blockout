@@ -62,6 +62,7 @@ test('workspace fragments produce the shared OpenAPI bundle', async () => {
     'MatchStatusEnum',
     'NotificationTargetTypeEnum',
     'NotificationTypeEnum',
+    'ReportTypeEnum',
     'ScraperNameEnum',
   ]);
 });
@@ -175,6 +176,17 @@ test('schema roots include active multipart JSON models without fake endpoints',
     notificationBundle.paths['/api/v1/notifications/users/{userId}/push-tokens'].post.requestBody
       .content['application/json'].schema.$ref,
     '#/components/schemas/RegisterPushTokenInternalRequest',
+  );
+
+  const reportBundle = JSON.parse(
+    await readFile(path.join(contractsRoot, 'generated/specs/report.json'), 'utf8'),
+  );
+  assert.ok(reportBundle.components.schemas.CreateReportInternalRequest);
+  assert.ok(reportBundle.components.schemas.ReportInternalResponse);
+  assert.equal(
+    reportBundle.paths['/api/v1/reports'].post.requestBody.content['multipart/form-data'].schema
+      .properties.data.type,
+    'string',
   );
 });
 

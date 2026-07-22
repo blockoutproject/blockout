@@ -3,6 +3,7 @@ package com.blockout.mobilegateway.report.infrastructure;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.report.api.models.CreateReportRequest;
 import com.blockout.mobilegateway.report.api.models.ReportResponse;
+import com.blockout.mobilegateway.report.infrastructure.contract.models.ReportInternalResponse;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+/**
+ * Calls the Report internal API through generated transport models.
+ */
 @Service
 @RequiredArgsConstructor
 public class ReportInternalClient {
@@ -25,6 +29,7 @@ public class ReportInternalClient {
     private final ApiClientProperties apiClientProperties;
     private final InternalApiClient internalApiClient;
     private final ObjectMapper objectMapper;
+    private final ReportContractMapper contractMapper;
 
     private String baseUrl() {
         return apiClientProperties.getReport().getUrl();
@@ -35,7 +40,7 @@ public class ReportInternalClient {
 
         final String jsonString;
         try {
-            jsonString = objectMapper.writeValueAsString(dto);
+            jsonString = objectMapper.writeValueAsString(contractMapper.toInternalRequest(dto));
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize CreateReportRequest", e);
         }
@@ -67,8 +72,8 @@ public class ReportInternalClient {
             }
         }
 
-        ResponseEntity<ReportResponse> response =
-            internalApiClient.postMultipart(url, body, ReportResponse.class);
-        return response.getBody();
+        ResponseEntity<ReportInternalResponse> response =
+            internalApiClient.postMultipart(url, body, ReportInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 }

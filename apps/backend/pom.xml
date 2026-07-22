@@ -87,6 +87,7 @@
                             <schemaMapping>MatchStatusEnum=com.blockout.shared.model.MatchStatusEnum</schemaMapping>
                             <schemaMapping>NotificationTargetTypeEnum=com.blockout.shared.model.NotificationTargetTypeEnum</schemaMapping>
                             <schemaMapping>NotificationTypeEnum=com.blockout.shared.model.NotificationTypeEnum</schemaMapping>
+                            <schemaMapping>ReportTypeEnum=com.blockout.shared.model.ReportTypeEnum</schemaMapping>
                             <schemaMapping>ScraperNameEnum=com.blockout.shared.model.ScraperNameEnum</schemaMapping>
                         </schemaMappings>
                         <!-- END generated schemaMappings -->

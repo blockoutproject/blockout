@@ -1,0 +1,14 @@
+{
+  "ReportInternalResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "number", "htmlUrl", "title", "state"],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "number": { "type": "integer" },
+      "htmlUrl": { "type": "string" },
+      "title": { "type": "string" },
+      "state": { "type": "string" }
+    }
+  }
+}
