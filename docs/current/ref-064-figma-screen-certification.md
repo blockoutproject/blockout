@@ -4,8 +4,9 @@
 
 > **Reconciliation note:** REF-064 established complete specification coverage, not pixel-complete screen certification.
 > Its 39 compact frames document composition intent and required states, but they are not full-height runtime screen
-> reproductions. REF-064A owns the visual reconciliation and may certify only complete compositions backed by current
-> runtime evidence.
+> reproductions. REF-064A added five complete authenticated iOS compositions backed by current runtime evidence. Their
+> exact nodes, validation, corrections, and limits are recorded in
+> [the canonical runtime reconciliation](./ref-064a-canonical-runtime-reconciliation.md).
 
 The [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) file is now the visual
 authority for the Blockout mobile refactor. The running application and runtime source remain authoritative for
@@ -68,9 +69,9 @@ The final REF-064 structural audit reports:
 - zero immediate child overflow;
 - exactly three documented provider boundaries.
 
-The complete `Ready for Development` root renders at 1,440 by 9,006 pixels. Each section was reviewed as a legible
-specification catalog. REF-064A must add full-height canonical compositions and runtime comparisons before any screen is
-described as visually certified. Temporary captures remain outside Git.
+REF-064 originally produced a `Ready for Development` root of 1,440 by 9,006 pixels. REF-064A extended that root with
+runtime-backed canonical compositions; its current dimensions and node-level audit live in the reconciliation record.
+Temporary captures remain outside Git.
 
 REF-064 changes no Expo source, API contract, generated artifact, provider configuration, deployment, or production
 state. The next task may use these designs to establish the Expo UI policy; implementation remains separately scoped.

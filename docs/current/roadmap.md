@@ -816,7 +816,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     scope and validation evidence is recorded in
     [the REF-064 Figma screen certification](./ref-064-figma-screen-certification.md).
 
-- [ ] **REF-064A — Reconcile the canonical Web mobile and iOS screens in Figma**
+- [x] **REF-064A — Reconcile the canonical Web mobile and iOS screens in Figma**
   - Compare the running application with the canonical file and replace specification-only claims with complete,
     implementation-ready screen compositions. Preserve current behavior, copy, information hierarchy, native identity,
     provider ownership, and the small local Blockout component system.
@@ -829,6 +829,13 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Certify only full compositions with matching runtime evidence. Record inaccessible data, authentication, provider,
     or native states as blocked instead of manufacturing fixtures or visual proof. Update the Figma policy and this
     roadmap with the exact nodes, viewports, states, validation results, and remaining limitations.
+  - Evidence: five complete authenticated iOS compositions now cover populated home, club information, team empty,
+    pool ranking, and finished match states in canonical rows `114:1218`, `114:1228`, `116:1275`, `116:1285`, and
+    `116:1295`. Every `393 x 852` screen has zero descendant overflow and uses semantic color variables. The filtered
+    match endpoint returns HTTP `200` after a focused contract-completeness correction; the bottom-sheet native crash
+    is resolved by the compatible patch release. Web evidence unavailable after restart is marked rather than invented,
+    Android was not launched, and the subsequent native-only decision is isolated in REF-065A. Full evidence is in
+    [the REF-064A canonical runtime reconciliation](./ref-064a-canonical-runtime-reconciliation.md).
 
 - [ ] **REF-065 — Establish the Expo UI and component policy**
   - Rewrite the mobile policy from the certified Figma system, current Expo and React Native guidance, and the existing
@@ -843,6 +850,21 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     Native Testing Library, while Figma comparisons and platform captures prove appearance. Do not add pixel snapshots,
     test-only production branches, or a second UI/test framework.
 
+- [ ] **REF-065A — Remove the React Native Web surface**
+  - Make Android and iOS the only supported product surfaces before implementing the Figma system. Remove the Expo Web
+    target, Web-only scripts, dependencies, configuration, OAuth environment values, platform adapters, fallbacks,
+    tests, and active documentation when they have no native consumer. Keep Metro and every dependency required by the
+    native Expo toolchain; determine removals from the current Expo dependency graph instead of guessing.
+  - Delete Web-specific branches and files only after their native behavior is represented directly and simply. Keep
+    shared generated API clients, feature boundaries, Auth0 native login, provider ownership, and Android/iOS behavior
+    unchanged. Do not replace removed Web code with compatibility helpers or dormant abstractions.
+  - Remove Web lanes and Web certification claims from the canonical Figma file and current visual documentation.
+    Preserve only truthful historical notes needed to explain the removal. Update `.env.example` files and ignored
+    `.env.local` files together without committing credentials.
+  - Validate Expo Doctor, formatting, lint, typecheck, Jest, an unsigned iOS build/launch, and an unsigned Android build.
+    Prove that no supported Nx target, application dependency, runtime branch, environment variable, test, or current
+    policy still advertises React Native Web. Commit and push this task separately before REF-066.
+
 - [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
     approved shared primitives. Migrate real consumers as each primitive is introduced; do not add unused component
@@ -856,9 +878,8 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Apply the certified tokens and components to navigation, session, sign-in, onboarding, app-status, loading, and other
     application-shell states. Preserve Auth0, redirects, tabs, safe areas, keyboard behavior, haptics, and native
     navigation semantics.
-  - Correct the corresponding React Native Web mobile-viewport defects without introducing desktop-only layouts or
-    changing native product behavior. Compare every migrated state with its Figma frame and retain focused behavior
-    tests.
+  - Compare every migrated state with its Figma frame on iOS and Android, preserve platform-specific safe areas and
+    system presentation, and retain focused behavior tests.
 
 - [ ] **REF-068 — Align discovery and competition reading flows**
   - Migrate feed, search, followed content, clubs, teams, pools, matches, rankings, and their loading, empty, error, list,
@@ -866,7 +887,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Consolidate repeated read-pattern components only where REF-061 and Figma prove the same responsibility. Keep
     feature composition local when data or interaction semantics differ despite a similar appearance.
   - Preserve generated API clients, TanStack Query behavior, list performance, navigation, advertising boundaries, and
-    native map behavior while correcting Web mobile rendering and validating each slice against Figma.
+    native map behavior while validating each slice against Figma on iOS and Android.
 
 - [ ] **REF-069 — Align account, write, moderation, and support flows**
   - Migrate profile, notifications, entity forms, follow actions, reports, live-link moderation, raw division mapping,
@@ -874,21 +895,33 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Reuse the certified field, action, feedback, sheet, and pill families without flattening distinct business actions
     into generic prop-heavy components. Preserve Formik/Yup behavior, permissions, provider boundaries, mutation and
     rollback semantics, and accessibility.
-  - Validate success, validation, loading, error, disabled, cancellation, and destructive states against Figma on native
-    and React Native Web mobile viewports.
+  - Validate success, validation, loading, error, disabled, cancellation, and destructive states against Figma on iOS
+    and Android.
 
 - [ ] **REF-070 — Certify and clean the complete mobile design system**
-  - Exercise the full REF-061 matrix against the final Figma frames on representative iOS and Android simulators and
-    React Native Web mobile viewports. Resolve unexplained alignment, clipping, safe-area, keyboard, typography, and
-    responsive differences without expanding the product to desktop.
+  - Exercise the full native screen matrix against the final Figma frames on representative iOS and Android simulators.
+    Resolve unexplained alignment, clipping, safe-area, keyboard, typography, and responsive differences between the
+    two native platforms.
   - Remove obsolete styles, tokens, duplicate components, incompatible file names, unused props, temporary comparison
     artifacts, and empty directories. Prove that every remaining shared component has active consumers and one clear
     responsibility.
-  - Run mobile formatting, lint, typecheck, Jest, Web export, Expo Doctor, and the relevant unsigned native builds. Record
-    unavailable physical-device or provider evidence honestly and do not add production bypasses.
+  - Run mobile formatting, lint, typecheck, Jest, Expo Doctor, and the relevant unsigned native builds. Record unavailable
+    physical-device or provider evidence honestly and do not add production bypasses.
+
+- [ ] **REF-071 — Make the search projection cache idempotent**
+  - Correct the `search-worker` cache ownership defect that currently passes a cache-owned team list to `upsertTeams`
+    and then appends to that same list while iterating it, causing a `ConcurrentModificationException` during club
+    reprojection and scheduled index rebuilds.
+  - Keep one cached team per identifier, return stable read snapshots, separate cache mutation from dependency
+    reprojection, and remove deactivated teams from both the index and the cache. Do not redesign search contracts,
+    messaging, Elasticsearch documents, or production scheduling in this task.
+  - Prove repeated team upserts, club reprojection, team deactivation, startup cache initialization, scheduled full
+    rebuilds, and RabbitMQ failure routing with the real in-memory cache rather than mocks alone. Verify that rebuilds
+    complete without duplicates or partially refreshed indexes.
 
 The Java and Python scraper refactors and their local persistence certification are complete.
 The mobile behavior and contract-first transport baselines are complete. REF-061 through REF-070 now define the visual
 capture, Figma design-system, policy, implementation, and certification path that must finish before public release.
+REF-071 records the deferred `search-worker` cache correction discovered while restoring representative local data.
 GitFlow, CI, deployment, production changes, repository publication, credential rotation, and license selection remain
 deferred.

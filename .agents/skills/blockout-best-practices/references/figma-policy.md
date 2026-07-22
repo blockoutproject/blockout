@@ -13,6 +13,8 @@ Figma-to-code implementation, and visual reconciliation.
   inventory and the approved foundation, component, and screen scope.
 - [`ref-064-figma-screen-certification.md`](../../../../docs/current/ref-064-figma-screen-certification.md) records the
   certified screen coverage and the boundary between visual and functional authority.
+- [`ref-064a-canonical-runtime-reconciliation.md`](../../../../docs/current/ref-064a-canonical-runtime-reconciliation.md)
+  records the complete runtime-backed canonical compositions, exact node identifiers, and remaining evidence limits.
 - The only canonical design file is
   [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) in the Blockout Figma team
   (`NwDQmiXqSjKVzQ6gwry0zb`). Do not create a parallel canonical file.

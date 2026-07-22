@@ -167,6 +167,7 @@ public class MatchApplicationService {
                 .format(p.getFormat())
                 .gender(p.getGender())
                 .followersCount(p.getFollowersCount())
+                .ranking(Collections.emptyList())
                 .division(division)
                 .build());
         }
@@ -201,6 +202,7 @@ public class MatchApplicationService {
                     enrichedMatches.add(MatchView.builder()
                         .id(m.getId())
                         .matchDate(m.getMatchDate())
+                        .season(m.getSeason())
                         .status(m.getStatus())
                         .set(m.getSet())
                         .score(m.getScore())
@@ -210,7 +212,10 @@ public class MatchApplicationService {
                         .liveCode(m.getLiveCode())
                         .teamA(teamsMap.get(m.getTeamIdA()))
                         .teamB(teamsMap.get(m.getTeamIdB()))
+                        .pool(enrichedPool)
                         .liveUrl(m.getLiveUrl())
+                        .liveProvider(m.getLiveProvider())
+                        .liveOwnerAuth0Id(m.getLiveOwnerAuth0Id())
                         .build());
                 }
 
