@@ -1,6 +1,6 @@
-import {useEffect, useMemo, useState} from 'react';
-import {useAuth0} from 'react-native-auth0';
-import {jwtDecode} from 'jwt-decode';
+import { useEffect, useMemo, useState } from "react";
+import { useAuth0 } from "@/src/modules/session/auth/AuthProvider";
+import { jwtDecode } from "jwt-decode";
 
 type JwtPayloadWithPermissions = { permissions?: string[] };
 
@@ -10,8 +10,10 @@ export type UseAuthScopesResult = {
   error?: unknown;
 };
 
-export default function useHasScopes(requiredScopes: string[]): UseAuthScopesResult {
-  const {getCredentials, user} = useAuth0();
+export default function useHasScopes(
+  requiredScopes: string[],
+): UseAuthScopesResult {
+  const { getCredentials, user } = useAuth0();
   const [perms, setPerms] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<unknown>(undefined);
@@ -25,7 +27,9 @@ export default function useHasScopes(requiredScopes: string[]): UseAuthScopesRes
         const cred = await getCredentials(undefined, 60);
         const token = cred?.accessToken ?? null;
 
-        const decoded = token ? jwtDecode<JwtPayloadWithPermissions>(token) : undefined;
+        const decoded = token
+          ? jwtDecode<JwtPayloadWithPermissions>(token)
+          : undefined;
         const p = new Set(decoded?.permissions ?? []);
 
         if (mounted) setPerms(p);
@@ -49,5 +53,5 @@ export default function useHasScopes(requiredScopes: string[]): UseAuthScopesRes
     return requiredScopes.every((s) => perms.has(s));
   }, [requiredScopes, perms]);
 
-  return {allowed, loading, error: err};
+  return { allowed, loading, error: err };
 }

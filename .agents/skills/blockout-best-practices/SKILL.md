@@ -34,6 +34,7 @@ the current task. Detailed rules live in the references rather than in this entr
 | Java, Python, or mobile logging                                               | `references/logging-policy.md`                                                                              |
 | Python scraper code, model, dependency, or fixture                            | `references/python-scraper-policy.md` and `references/python-scraper-testing-policy.md`                     |
 | Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | `references/mobile-expo-policy.md`, `references/mobile-testing-policy.md`, and `vercel-react-native-skills` |
+| Figma read/write, mobile visual design, design tokens, or visual comparison   | `references/figma-policy.md`, then the applicable mobile policy and Figma skill                             |
 | Mobile Jest or React Native Testing Library test                              | `references/mobile-testing-policy.md`                                                                       |
 | React component API, provider composition, or reusable mobile UI architecture | `vercel-composition-patterns` in addition to the applicable mobile policy                                   |
 | Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md`                                                                        |
@@ -66,6 +67,8 @@ install their Next.js, deployment, web-design, or writing skills for Blockout mo
   package skeletons.
 - Preserve existing runtime behavior unless the active roadmap task explicitly authorizes a behavior correction.
 - Maaatch is a read-only structural reference. Reuse its policies and vocabulary patterns, never its business code.
+- Follow `references/figma-policy.md` for every task that reads, changes, compares against, or makes a decision in
+  Figma. Never create a parallel canonical Blockout design file.
 
 ## Contract-First Baseline
 

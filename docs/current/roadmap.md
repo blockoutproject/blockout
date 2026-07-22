@@ -752,10 +752,15 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     the existing theme, visual values, shared component consumers, prop pressure, duplication, file naming, and exports
     were measured from handwritten production source. Chrome exercised sanitized guest, search, feedback, and Auth0
     handoff states at `390 x 844`; fresh official Expo 55 clients built and launched on a Pixel 7 and iPhone 17 Pro and
-    exposed the native consent entry without changing consent. Existing local Flyway checksum drift prevented a full
-    authenticated dataset, so no database, provider, or authentication bypass was introduced. The approved Figma
-    foundation/component scope, feature-versus-shared ownership, and remaining external evidence gaps are recorded in
-    [the REF-061 mobile visual baseline](./ref-061-mobile-visual-baseline.md). No application or Figma object changed.
+    exposed the native consent entry without changing consent. A later authenticated revalidation ran with every local
+    Java service available and proved the official Auth0 administrator flow, all four internal-tool permissions, and
+    the raw-division mapping search/empty state. It corrected only two Web adapter defects: permission discovery now
+    uses the platform Auth0 adapter, and sheet searches use the regular React Native input on Web while keeping the
+    native bottom-sheet input on iOS and Android. Focused permission tests and a browser smoke cover the corrections.
+    The Chrome extension did not honor the requested phone viewport for the authenticated pass, so it is structural
+    evidence rather than a replacement for the existing mobile captures. The approved Figma foundation/component
+    scope, feature-versus-shared ownership, and remaining external evidence gaps are recorded in
+    [the REF-061 mobile visual baseline](./ref-061-mobile-visual-baseline.md). No Figma object changed.
 
 - [ ] **REF-062 — Build the Blockout foundations in Figma**
   - Create or select one Blockout mobile design-system file and implement the approved primitive and semantic variables
