@@ -878,7 +878,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     bundles, and the ignored `.env.local` contains no browser client setting. Figma contains zero Web code syntax across
     146 variables, zero Web comparison lane, and only the native map states that remain supported.
 
-- [ ] **REF-065B — Rebuild the faithful native Figma system**
+- [x] **REF-065B — Rebuild the faithful native Figma system**
   - Use the current authenticated iOS application at `393 x 852` and its runtime source as the visual evidence for the
     native product. Use only the iOS simulator for capture, comparison, and Figma synchronization. Android remains a
     supported runtime with technical validation, but do not launch it or treat it as a second visual authority here.
@@ -895,6 +895,14 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Audit variables, styles, components, variants, bindings, instance linkage, names, bounds, fonts, placeholders, and
     representative iOS screenshots. Record exact node IDs, intentional normalization, remaining provider or physical-
     device limits, and sanitized evidence. Commit and push this task separately, then stop before REF-066.
+  - Evidence: the canonical file retains 146 scoped native variables, 12 text styles, five effect styles, and eight
+    paint styles; `20 - Components` now contains 14 component sets and 71 variants with no standalone component,
+    duplicate family, unstyled text, or unbound solid paint. Five authenticated `393 x 852` compositions use 18 linked
+    instances across `Hero`, `Match Row`, `Ranking Row`, `Feedback`, and `Bottom Navigation`; all canonical text uses
+    `SF Pro` or the intentional `Outfit` wordmark, and no screen overflows. Only the iOS simulator and existing
+    authenticated iOS evidence informed the visual synchronization; Android was not launched. Provider overlays and the
+    physical-device-only notification path remain explicit limits. Exact nodes and normalization decisions are recorded
+    in [the REF-065B faithful native Figma system record](./ref-065b-faithful-native-figma-system.md).
 
 - [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the

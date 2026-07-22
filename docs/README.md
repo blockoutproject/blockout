@@ -9,6 +9,7 @@
 - [Figma foundations](current/ref-062-figma-foundations.md)
 - [Figma component library](current/ref-063-figma-components.md)
 - [Figma screen certification](current/ref-064-figma-screen-certification.md)
+- [Faithful native Figma system](current/ref-065b-faithful-native-figma-system.md)
 - [Contract-first certification](current/ref-059-certification.md)
 - [Public release readiness](current/ref-060-public-release-readiness.md)
 - [Completed roadmap](current/roadmap.md)
@@ -26,4 +27,5 @@
 
 The migration evidence records the state and decisions at the time of each completed task. Where sequencing language
 describes code generation or another refactor as deferred, the current source, repository policies, completed roadmap,
-and REF-059 certification are authoritative. GitFlow, CI, deployment, and production changes remain deferred.
+REF-059 certification, and the latest task-specific reconciliation are authoritative. GitFlow, CI, deployment, and
+production changes remain deferred.

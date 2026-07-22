@@ -14,7 +14,9 @@ Figma-to-code implementation, and visual reconciliation.
 - [`ref-064-figma-screen-certification.md`](../../../../docs/current/ref-064-figma-screen-certification.md) records the
   certified screen coverage and the boundary between visual and functional authority.
 - [`ref-064a-canonical-runtime-reconciliation.md`](../../../../docs/current/ref-064a-canonical-runtime-reconciliation.md)
-  records the complete runtime-backed canonical compositions, exact node identifiers, and remaining evidence limits.
+  records the authenticated runtime evidence used to establish the complete canonical compositions.
+- [`ref-065b-faithful-native-figma-system.md`](../../../../docs/current/ref-065b-faithful-native-figma-system.md)
+  records the current foundations, component library, canonical iOS node identifiers, and remaining evidence limits.
 - The only canonical design file is
   [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) in the Blockout Figma team
   (`NwDQmiXqSjKVzQ6gwry0zb`). Do not create a parallel canonical file.
@@ -59,6 +61,8 @@ Figma-to-code implementation, and visual reconciliation.
   native evidence pass.
 - iOS and Android are the only supported product surfaces. Historical React Native Web evidence may explain an earlier
   decision, but it does not define a current frame, platform variant, or certification requirement.
+- Use only the iOS simulator for capture, comparison, and Figma synchronization. Android remains a supported technical
+  target, but it is not a second visual authority and must not be launched for Figma work.
 
 ## Inspection And Mutation
 
