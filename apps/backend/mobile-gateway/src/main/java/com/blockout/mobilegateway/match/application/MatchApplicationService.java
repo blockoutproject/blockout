@@ -2,7 +2,7 @@ package com.blockout.mobilegateway.match.application;
 
 import com.blockout.mobilegateway.club.infrastructure.ClubInternalClient;
 import com.blockout.mobilegateway.competition.infrastructure.competition.CompetitionInternalClient;
-import com.blockout.mobilegateway.competition.infrastructure.competition.models.CompetitionAssociationInternalResponse;
+import com.blockout.mobilegateway.competition.application.views.CompetitionAssociationView;
 import com.blockout.mobilegateway.config.ApiClientProperties;
 import com.blockout.mobilegateway.config.application.views.DivisionView;
 import com.blockout.mobilegateway.config.infrastructure.ConfigInternalClient;
@@ -266,11 +266,11 @@ public class MatchApplicationService {
             throw new InconsistentStateException("Division not found for pool with ID " + match.getPoolId());
         }
 
-        List<CompetitionAssociationInternalResponse> associations = competitionInternalClient.getAssociationsByPool(rawPool.getId());
+        List<CompetitionAssociationView> associations = competitionInternalClient.getAssociationsByPool(rawPool.getId());
 
         Set<Long> teamIds = new HashSet<>(associations.size() + 2);
-        for (CompetitionAssociationInternalResponse a : associations) {
-            teamIds.add(a.getTeamId());
+        for (CompetitionAssociationView association : associations) {
+            teamIds.add(association.teamId());
         }
         teamIds.add(match.getTeamIdA());
         teamIds.add(match.getTeamIdB());
@@ -302,23 +302,23 @@ public class MatchApplicationService {
 
         List<TeamWithStatsView> ranking = associations.stream()
             .map(assoc -> {
-                TeamDetailsView t = teamsMap.get(assoc.getTeamId());
+                TeamDetailsView t = teamsMap.get(assoc.teamId());
                 if (t == null) {
                     throw new InconsistentStateException(
-                        "Missing team with ID " + assoc.getTeamId() + " for pool " + rawPool.getId());
+                        "Missing team with ID " + assoc.teamId() + " for pool " + rawPool.getId());
                 }
                 return TeamWithStatsView.builder()
                     .id(t.getId())
                     .name(t.getName())
                     .shortName(t.getShortName())
                     .logoUrl(t.getLogoUrl())
-                    .points(assoc.getPoints())
-                    .played(assoc.getPlayed())
-                    .wins(assoc.getWins())
-                    .losses(assoc.getLosses())
-                    .pointsPenalty(assoc.getPointsPenalty())
-                    .coefSets(assoc.getCoefSets())
-                    .coefPoints(assoc.getCoefPoints())
+                    .points(assoc.points())
+                    .played(assoc.played())
+                    .wins(assoc.wins())
+                    .losses(assoc.losses())
+                    .pointsPenalty(assoc.pointsPenalty())
+                    .coefSets(assoc.coefSets())
+                    .coefPoints(assoc.coefPoints())
                     .build();
             })
             .sorted(

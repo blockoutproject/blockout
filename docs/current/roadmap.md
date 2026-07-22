@@ -697,7 +697,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     typecheck, 27 Jest suites and 56 tests pass; the 3,138-module Expo Web export succeeds. No generated file is tracked,
     no empty legacy model directory remains, and `git diff --check` passes.
 
-- [ ] **REF-059 — Certify and clean the complete contract-first application**
+- [x] **REF-059 — Certify and clean the complete contract-first application**
   - Remove superseded handwritten transport DTOs, internal HTTP clients, obsolete dependencies, and compatibility-only
     names only after every consumer uses the generated boundary.
   - Prove clean deterministic generation, zero tracked generated files, wheel and Java artifact builds, both scraper
@@ -705,6 +705,17 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     flow from providers through persistence to the mobile application.
   - Record unavailable signed-device or external-provider evidence without adding authentication, network, storage, or
     production bypasses.
+  - Evidence: the remaining handwritten Competition ranking mirrors in `mobile-gateway` and Team and Pool HTTP mirrors
+    in `notification-service` were removed. Generated transport types stay confined to adapters and are reduced to
+    application-owned views. Two clean generations produced the same
+    `0ee68453658c644cd9db579a5008f6793f99c23c332db3545f751fc11ad7a7ce` aggregate hash, and no generated file is tracked.
+    Contract tests, the Python wheel and isolated import, all 108 scraper tests, all 13 Java artifacts and backend test
+    reports, mobile lint/typecheck, all 27 Jest suites and 56 tests, Web export, Expo Doctor, clean native prebuild, and
+    unsigned Android and iOS Simulator builds pass. A disposable-database flow proved an authentic FFVB fixture through
+    generated Python clients, fresh Flyway persistence, Java adapters backed by generated contract models, the gateway,
+    generated Orval transport, and the Expo Web team screen. The databases and generated native projects were removed
+    afterward; existing volumes were untouched. Signed-device and production evidence remains unavailable and no bypass
+    was added. Full evidence is recorded in [the REF-059 certification](./ref-059-certification.md).
 
 The Java and Python scraper refactors and their local persistence certification are complete.
 The mobile behavior baseline and handwritten architecture are complete. REF-038 through REF-059 now define the

@@ -3,10 +3,10 @@ package com.blockout.notifications.notification.application;
 import com.blockout.notifications.notification.application.models.NotificationTargetType;
 import com.blockout.notifications.notification.application.models.NotificationType;
 import com.blockout.notifications.notification.application.views.ResolvedPushTokensPage;
+import com.blockout.notifications.notification.application.views.PoolNotificationView;
+import com.blockout.notifications.notification.application.views.TeamNotificationView;
 import com.blockout.notifications.notification.infrastructure.http.PoolHttpClient;
 import com.blockout.notifications.notification.infrastructure.http.TeamHttpClient;
-import com.blockout.notifications.notification.infrastructure.http.models.PoolInternalResponse;
-import com.blockout.notifications.notification.infrastructure.http.models.TeamInternalResponse;
 import com.blockout.notifications.notification.infrastructure.persistence.entities.UserNotificationEntity;
 import com.blockout.notifications.notification.infrastructure.providers.expo.ExpoBatchResult;
 import com.blockout.notifications.notification.infrastructure.providers.expo.ExpoMessage;
@@ -265,13 +265,13 @@ public class NotificationOrchestratorApplicationService {
         String teamBName = "Équipe B";
 
         try {
-            PoolInternalResponse pool = poolClientService.getPoolById(poolId);
+            PoolNotificationView pool = poolClientService.getPoolById(poolId);
             if (pool != null) {
-                if (pool.getName() != null && !pool.getName().isBlank()) {
-                    poolName = pool.getName();
+                if (pool.name() != null && !pool.name().isBlank()) {
+                    poolName = pool.name();
                 }
-                if (pool.getDivisionId() != null) {
-                    divisionId = pool.getDivisionId();
+                if (pool.divisionId() != null) {
+                    divisionId = pool.divisionId();
                 }
             }
         } catch (Exception ex) {
@@ -282,14 +282,14 @@ public class NotificationOrchestratorApplicationService {
         }
 
         try {
-            TeamInternalResponse ta = teamClientService.getTeamById(teamIdA);
-            if (ta != null && ta.getShortName() != null && !ta.getShortName().isBlank()) {
-                teamAName = ta.getShortName();
+            TeamNotificationView ta = teamClientService.getTeamById(teamIdA);
+            if (ta != null && ta.shortName() != null && !ta.shortName().isBlank()) {
+                teamAName = ta.shortName();
             }
 
-            TeamInternalResponse tb = teamClientService.getTeamById(teamIdB);
-            if (tb != null && tb.getShortName() != null && !tb.getShortName().isBlank()) {
-                teamBName = tb.getShortName();
+            TeamNotificationView tb = teamClientService.getTeamById(teamIdB);
+            if (tb != null && tb.shortName() != null && !tb.shortName().isBlank()) {
+                teamBName = tb.shortName();
             }
 
         } catch (Exception ex) {
@@ -319,13 +319,13 @@ public class NotificationOrchestratorApplicationService {
         String teamBName = "Équipe B";
 
         try {
-            PoolInternalResponse pool = poolClientService.getPoolById(poolId);
+            PoolNotificationView pool = poolClientService.getPoolById(poolId);
             if (pool != null) {
-                if (pool.getName() != null && !pool.getName().isBlank()) {
-                    poolName = pool.getName();
+                if (pool.name() != null && !pool.name().isBlank()) {
+                    poolName = pool.name();
                 }
-                if (pool.getDivisionId() != null) {
-                    divisionId = pool.getDivisionId();
+                if (pool.divisionId() != null) {
+                    divisionId = pool.divisionId();
                 }
             }
         } catch (Exception ex) {
@@ -336,14 +336,14 @@ public class NotificationOrchestratorApplicationService {
         }
 
         try {
-            TeamInternalResponse ta = teamClientService.getTeamById(teamIdA);
-            if (ta != null && ta.getShortName() != null && !ta.getShortName().isBlank()) {
-                teamAName = ta.getShortName();
+            TeamNotificationView ta = teamClientService.getTeamById(teamIdA);
+            if (ta != null && ta.shortName() != null && !ta.shortName().isBlank()) {
+                teamAName = ta.shortName();
             }
 
-            TeamInternalResponse tb = teamClientService.getTeamById(teamIdB);
-            if (tb != null && tb.getShortName() != null && !tb.getShortName().isBlank()) {
-                teamBName = tb.getShortName();
+            TeamNotificationView tb = teamClientService.getTeamById(teamIdB);
+            if (tb != null && tb.shortName() != null && !tb.shortName().isBlank()) {
+                teamBName = tb.shortName();
             }
 
         } catch (Exception ex) {

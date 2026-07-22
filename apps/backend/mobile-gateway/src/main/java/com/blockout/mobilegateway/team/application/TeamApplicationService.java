@@ -3,8 +3,8 @@ package com.blockout.mobilegateway.team.application;
 import com.blockout.mobilegateway.club.application.views.ClubView;
 import com.blockout.mobilegateway.club.infrastructure.ClubInternalClient;
 import com.blockout.mobilegateway.competition.infrastructure.competition.CompetitionInternalClient;
-import com.blockout.mobilegateway.competition.infrastructure.competition.models.PoolWithRankingInternalResponse;
-import com.blockout.mobilegateway.competition.infrastructure.competition.models.TeamRankingInternalResponse;
+import com.blockout.mobilegateway.competition.application.views.PoolRankingView;
+import com.blockout.mobilegateway.competition.application.views.TeamRankingView;
 import com.blockout.mobilegateway.config.application.views.DivisionView;
 import com.blockout.mobilegateway.config.infrastructure.ConfigInternalClient;
 import com.blockout.mobilegateway.pool.application.views.PoolDetailsView;
@@ -42,29 +42,29 @@ public class TeamApplicationService {
     private final CompetitionInternalClient competitionInternalClient;
     private final PoolInternalClient poolInternalClient;
 
-    private static List<TeamWithStatsView> buildRanking(List<TeamRankingInternalResponse> rawRanking, Map<Long, TeamDetailsView> teamsMap) {
+    private static List<TeamWithStatsView> buildRanking(List<TeamRankingView> rawRanking, Map<Long, TeamDetailsView> teamsMap) {
         if (rawRanking == null || rawRanking.isEmpty()) {
             return Collections.emptyList();
         }
 
         return rawRanking.stream()
             .map(r -> {
-                TeamDetailsView t = teamsMap.get(r.getTeamId());
+                TeamDetailsView t = teamsMap.get(r.teamId());
                 if (t == null) {
-                    throw new InconsistentStateException("Missing team with ID " + r.getTeamId());
+                    throw new InconsistentStateException("Missing team with ID " + r.teamId());
                 }
                 return TeamWithStatsView.builder()
                     .id(t.getId())
                     .name(t.getName())
                     .shortName(t.getShortName())
                     .logoUrl(t.getLogoUrl())
-                    .points(r.getPoints())
-                    .played(r.getPlayed())
-                    .wins(r.getWins())
-                    .losses(r.getLosses())
-                    .pointsPenalty(r.getPointsPenalty())
-                    .coefSets(r.getCoefSets())
-                    .coefPoints(r.getCoefPoints())
+                    .points(r.points())
+                    .played(r.played())
+                    .wins(r.wins())
+                    .losses(r.losses())
+                    .pointsPenalty(r.pointsPenalty())
+                    .coefSets(r.coefSets())
+                    .coefPoints(r.coefPoints())
                     .build();
             })
             .sorted(
@@ -92,15 +92,15 @@ public class TeamApplicationService {
             throw new InconsistentStateException("Division not found for team with ID " + id);
         }
 
-        List<PoolWithRankingInternalResponse> poolsWithRankings = competitionInternalClient.getPoolsWithRankingByTeam(id);
+        List<PoolRankingView> poolsWithRankings = competitionInternalClient.getPoolsWithRankingByTeam(id);
         logger.debug("Pools with ranking fetched",
             keyValue("action", "fetch_pools_with_ranking"),
             keyValue("team_id", id),
             keyValue("pools_count", poolsWithRankings != null ? poolsWithRankings.size() : 0));
 
         Set<Long> allTeamIds = poolsWithRankings.stream()
-            .flatMap(p -> p.getRanking().stream())
-            .map(TeamRankingInternalResponse::getTeamId)
+            .flatMap(pool -> pool.ranking().stream())
+            .map(TeamRankingView::teamId)
             .collect(Collectors.toCollection(() -> new HashSet<>(64)));
         allTeamIds.add(id);
 
@@ -119,7 +119,7 @@ public class TeamApplicationService {
         enrichTeamsWithClubData(teamsMap.values(), clubInternalClient);
 
         Set<Long> poolIds = poolsWithRankings.stream()
-            .map(PoolWithRankingInternalResponse::getPoolId)
+            .map(PoolRankingView::poolId)
             .collect(Collectors.toSet());
 
         Map<Long, PoolDetailsView> poolMap = new HashMap<>(poolIds.size() * 2);
@@ -136,11 +136,11 @@ public class TeamApplicationService {
 
         List<PoolView> enrichedPools = poolsWithRankings.stream()
             .map(p -> {
-                PoolDetailsView basePool = poolMap.get(p.getPoolId());
+                PoolDetailsView basePool = poolMap.get(p.poolId());
                 if (basePool == null) {
-                    throw new InconsistentStateException("Missing pool with ID " + p.getPoolId());
+                    throw new InconsistentStateException("Missing pool with ID " + p.poolId());
                 }
-                List<TeamWithStatsView> ranking = buildRanking(p.getRanking(), teamsMap);
+                List<TeamWithStatsView> ranking = buildRanking(p.ranking(), teamsMap);
                 return PoolView.builder()
                     .id(basePool.getId())
                     .leagueCode(basePool.getLeagueCode())

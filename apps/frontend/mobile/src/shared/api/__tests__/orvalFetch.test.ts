@@ -1,4 +1,3 @@
-import {ApiError} from "@/src/shared/api/ApiError";
 import {
   orvalFetch,
   setMobileGatewayAuthContext,
@@ -84,7 +83,7 @@ describe("generated mobile-gateway fetch boundary", () => {
 
     await expect(
       orvalFetch("/api/v1/mobile/secure/users/me"),
-    ).rejects.toMatchObject<ApiError>({
+    ).rejects.toMatchObject({
       status: 401,
       code: "AUTHENTICATION_REQUIRED",
       requestId: "request-123",
@@ -98,7 +97,7 @@ describe("generated mobile-gateway fetch boundary", () => {
 
     await expect(
       orvalFetch("/api/v1/mobile/public/config/app-status"),
-    ).rejects.toMatchObject<ApiError>({
+    ).rejects.toMatchObject({
       status: 0,
       code: "ERR_NETWORK",
       message: "Serveur injoignable.",

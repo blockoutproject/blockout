@@ -1,7 +1,7 @@
 package com.blockout.notifications;
 
-import com.blockout.notifications.notification.infrastructure.http.models.PoolInternalResponse;
-import com.blockout.notifications.notification.infrastructure.http.models.TeamInternalResponse;
+import com.blockout.notifications.notification.infrastructure.http.contract.pool.models.PoolInternalResponse;
+import com.blockout.notifications.notification.infrastructure.http.contract.team.models.TeamInternalResponse;
 import com.blockout.notifications.notification.infrastructure.http.contract.models.UserInternalResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Protects the complete Team HTTP mirror used by notification orchestration.
+ * Protects the generated internal resources consumed by notification orchestration.
  */
 class TeamHttpContractCharacterizationTest {
 

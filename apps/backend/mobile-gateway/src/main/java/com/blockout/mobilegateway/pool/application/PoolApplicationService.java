@@ -3,7 +3,7 @@ package com.blockout.mobilegateway.pool.application;
 import com.blockout.mobilegateway.club.application.views.ClubView;
 import com.blockout.mobilegateway.club.infrastructure.ClubInternalClient;
 import com.blockout.mobilegateway.competition.infrastructure.competition.CompetitionInternalClient;
-import com.blockout.mobilegateway.competition.infrastructure.competition.models.CompetitionAssociationInternalResponse;
+import com.blockout.mobilegateway.competition.application.views.CompetitionAssociationView;
 import com.blockout.mobilegateway.config.application.views.DivisionView;
 import com.blockout.mobilegateway.config.infrastructure.ConfigInternalClient;
 import com.blockout.mobilegateway.pool.application.commands.UpdatePoolCommand;
@@ -54,9 +54,9 @@ public class PoolApplicationService {
             throw new InconsistentStateException("Division not found for pool with ID " + poolId);
         }
 
-        List<CompetitionAssociationInternalResponse> associations = competitionInternalClient.getAssociationsByPool(poolId);
+        List<CompetitionAssociationView> associations = competitionInternalClient.getAssociationsByPool(poolId);
         Set<Long> teamIds = associations.stream()
-            .map(CompetitionAssociationInternalResponse::getTeamId)
+            .map(CompetitionAssociationView::teamId)
             .collect(Collectors.toSet());
 
         Map<Long, TeamDetailsView> teamsMap = new HashMap<>(teamIds.size() * 2);
@@ -87,10 +87,10 @@ public class PoolApplicationService {
 
         List<TeamWithStatsView> ranking = associations.stream()
             .map(assoc -> {
-                TeamDetailsView team = teamsMap.get(assoc.getTeamId());
+                TeamDetailsView team = teamsMap.get(assoc.teamId());
                 if (team == null) {
                     throw new InconsistentStateException(
-                        "Missing team with ID " + assoc.getTeamId() + " for pool " + poolId);
+                        "Missing team with ID " + assoc.teamId() + " for pool " + poolId);
                 }
                 ClubView club = clubById.get(team.getClubId());
                 return TeamWithStatsView.builder()
@@ -98,13 +98,13 @@ public class PoolApplicationService {
                     .name(team.getName())
                     .shortName(team.getShortName())
                     .logoUrl(team.getLogoUrl())
-                    .points(assoc.getPoints())
-                    .played(assoc.getPlayed())
-                    .wins(assoc.getWins())
-                    .losses(assoc.getLosses())
-                    .pointsPenalty(assoc.getPointsPenalty())
-                    .coefSets(assoc.getCoefSets())
-                    .coefPoints(assoc.getCoefPoints())
+                    .points(assoc.points())
+                    .played(assoc.played())
+                    .wins(assoc.wins())
+                    .losses(assoc.losses())
+                    .pointsPenalty(assoc.pointsPenalty())
+                    .coefSets(assoc.coefSets())
+                    .coefPoints(assoc.coefPoints())
                     .latitude(club == null ? null : club.latitude())
                     .longitude(club == null ? null : club.longitude())
                     .build();

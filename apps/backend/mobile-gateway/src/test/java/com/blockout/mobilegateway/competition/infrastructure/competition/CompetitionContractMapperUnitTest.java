@@ -14,11 +14,10 @@ class CompetitionContractMapperUnitTest {
         var contract = new com.blockout.mobilegateway.competition.infrastructure.competition.contract.models.CompetitionAssociationInternalResponse()
             .id(1L).poolId(2L).teamId(3L).clubId("club-1").active(true).points(9);
 
-        var result = mapper.toResponse(contract);
+        var result = mapper.toView(contract);
 
-        assertThat(result.getPoolId()).isEqualTo(2L);
-        assertThat(result.getClubId()).isEqualTo("club-1");
-        assertThat(result.getPoints()).isEqualTo(9);
+        assertThat(result.teamId()).isEqualTo(3L);
+        assertThat(result.points()).isEqualTo(9);
     }
 
     @Test
@@ -29,12 +28,12 @@ class CompetitionContractMapperUnitTest {
         var contract = new com.blockout.mobilegateway.competition.infrastructure.competition.contract.models.PoolWithRankingInternalResponse()
             .poolId(2L).ranking(List.of(ranking));
 
-        var result = mapper.toResponse(contract);
+        var result = mapper.toView(contract);
 
-        assertThat(result.getPoolId()).isEqualTo(2L);
-        assertThat(result.getRanking()).singleElement().satisfies(item -> {
-            assertThat(item.getTeamId()).isEqualTo(3L);
-            assertThat(item.getPoints()).isEqualTo(9);
+        assertThat(result.poolId()).isEqualTo(2L);
+        assertThat(result.ranking()).singleElement().satisfies(item -> {
+            assertThat(item.teamId()).isEqualTo(3L);
+            assertThat(item.points()).isEqualTo(9);
         });
     }
 }
