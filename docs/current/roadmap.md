@@ -737,7 +737,104 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     no high or critical finding. Full evidence is recorded in
     [the REF-060 public release readiness record](./ref-060-public-release-readiness.md).
 
+- [ ] **REF-061 — Capture the complete mobile visual baseline**
+  - Treat the currently shipped native application as the visual and behavioral baseline. Exercise iOS and Android,
+    then inspect React Native Web only at representative mobile viewports to catalogue platform gaps rather than infer a
+    desktop design.
+  - Record every reachable screen and meaningful loading, empty, error, disabled, sheet, toast, authenticated, and guest
+    state with sanitized test data. Use the authenticated test account without recording credentials or personal data.
+  - Inventory existing visual values, theme tokens, component families, duplicate buttons, pills, cards, fields,
+    feedback patterns, component props, file names, and exports. Distinguish feature-owned composition from genuinely
+    shared primitives.
+  - Produce the authoritative screen/state matrix and the proposed Figma token and component scope. Do not change the
+    application, correct Web rendering, or create Figma foundations before this discovery record is complete.
+
+- [ ] **REF-062 — Build the Blockout foundations in Figma**
+  - Create or select one Blockout mobile design-system file and implement the approved primitive and semantic variables
+    for the existing dark experience: color, typography, spacing, sizing, radii, borders, effects, icon sizes, safe areas,
+    touch targets, and mobile layout constraints.
+  - Normalize accidental near-duplicates using a small coherent scale while preserving Blockout's identity. Do not
+    invent a light theme, desktop product, new brand, or speculative token taxonomy.
+  - Document foundations in Figma, bind semantic variables to primitives, set appropriate scopes and code syntax, and
+    validate every foundation page before any component is created.
+
+- [ ] **REF-063 — Build the Blockout component library in Figma**
+  - Create only the component families proven by REF-061, in dependency order. Cover the required variants and states
+    for controls, pills, fields, cards, feedback, navigation, sheets, and other repeated patterns without reproducing
+    feature-specific screens as generic components.
+  - Use Auto Layout, Figma variables, explicit component properties, accessible contrast and touch targets, and bounded
+    variant sets. Avoid boolean-prop matrices, cosmetic one-off variants, detached copies, and speculative components.
+  - Document usage and validate the structure and rendered appearance of each component before proceeding to the next.
+    The result is Blockout's own small mobile component library, not a React Native imitation of shadcn.
+
+- [ ] **REF-064 — Reconstruct and certify the mobile screens in Figma**
+  - Reconstruct every screen and state from the REF-061 matrix using the approved foundations and components. Preserve
+    the current product, copy, information hierarchy, navigation intent, and native identity while resolving accidental
+    spacing, alignment, sizing, and component inconsistencies.
+  - Model representative mobile widths and the real iOS/Android distinctions. Record Web compatibility expectations,
+    but do not design a 1920-by-1080 desktop application.
+  - Review the complete screen set against the running native application and close every unexplained gap. At completion,
+    Figma becomes the visual authority for the implementation refactor; the application remains the functional authority.
+
+- [ ] **REF-065 — Establish the Expo UI and component policy**
+  - Rewrite the mobile policy from the certified Figma system, current Expo and React Native guidance, and the existing
+    Blockout architecture. Define token ownership, local versus shared components, component composition, styling,
+    accessibility, responsive behavior, exports, and visual validation without introducing a generic design framework.
+  - Standardize handwritten file names as kebab-case, exported React components and types as PascalCase, and hooks,
+    functions, props, and variables as camelCase. Preserve Expo Router special names and generated-source ownership.
+  - Prefer direct named component exports and explicit imports over a global registry or large barrel. Require small
+    finite variants instead of prop proliferation, keep one-off layout composition local, and promote UI to
+    `src/shared/ui` only when active reuse or an application-wide invariant is proven.
+  - Align the mobile testing policy with the new visual boundary: user-visible behavior remains covered by Jest and React
+    Native Testing Library, while Figma comparisons and platform captures prove appearance. Do not add pixel snapshots,
+    test-only production branches, or a second UI/test framework.
+
+- [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
+  - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
+    approved shared primitives. Migrate real consumers as each primitive is introduced; do not add unused component
+    skeletons or a code-generation layer for styles.
+  - Keep component APIs small and composable, preserve accessibility and interaction behavior, and rename touched files
+    according to REF-065. Remove superseded token values and duplicate components only after every consumer is migrated.
+  - Validate each shared component against Figma and its previous native rendering, then run focused tests, the complete
+    mobile static/test baseline, and the Web export.
+
+- [ ] **REF-067 — Align the application shell and entry flows**
+  - Apply the certified tokens and components to navigation, session, sign-in, onboarding, app-status, loading, and other
+    application-shell states. Preserve Auth0, redirects, tabs, safe areas, keyboard behavior, haptics, and native
+    navigation semantics.
+  - Correct the corresponding React Native Web mobile-viewport defects without introducing desktop-only layouts or
+    changing native product behavior. Compare every migrated state with its Figma frame and retain focused behavior
+    tests.
+
+- [ ] **REF-068 — Align discovery and competition reading flows**
+  - Migrate feed, search, followed content, clubs, teams, pools, matches, rankings, and their loading, empty, error, list,
+    card, profile, map, and tab states to the certified design system.
+  - Consolidate repeated read-pattern components only where REF-061 and Figma prove the same responsibility. Keep
+    feature composition local when data or interaction semantics differ despite a similar appearance.
+  - Preserve generated API clients, TanStack Query behavior, list performance, navigation, advertising boundaries, and
+    native map behavior while correcting Web mobile rendering and validating each slice against Figma.
+
+- [ ] **REF-069 — Align account, write, moderation, and support flows**
+  - Migrate profile, notifications, entity forms, follow actions, reports, live-link moderation, raw division mapping,
+    administration, legal documents, PDF, subscriptions, sheets, validation, toasts, and destructive confirmations.
+  - Reuse the certified field, action, feedback, sheet, and pill families without flattening distinct business actions
+    into generic prop-heavy components. Preserve Formik/Yup behavior, permissions, provider boundaries, mutation and
+    rollback semantics, and accessibility.
+  - Validate success, validation, loading, error, disabled, cancellation, and destructive states against Figma on native
+    and React Native Web mobile viewports.
+
+- [ ] **REF-070 — Certify and clean the complete mobile design system**
+  - Exercise the full REF-061 matrix against the final Figma frames on representative iOS and Android simulators and
+    React Native Web mobile viewports. Resolve unexplained alignment, clipping, safe-area, keyboard, typography, and
+    responsive differences without expanding the product to desktop.
+  - Remove obsolete styles, tokens, duplicate components, incompatible file names, unused props, temporary comparison
+    artifacts, and empty directories. Prove that every remaining shared component has active consumers and one clear
+    responsibility.
+  - Run mobile formatting, lint, typecheck, Jest, Web export, Expo Doctor, and the relevant unsigned native builds. Record
+    unavailable physical-device or provider evidence honestly and do not add production bypasses.
+
 The Java and Python scraper refactors and their local persistence certification are complete.
-The mobile behavior baseline and handwritten architecture are complete. REF-038 through REF-059 define the completed
-contract-first adoption path, and REF-060 certifies the source tree for a clean-history public release. GitFlow, CI,
-deployment, production changes, repository publication, credential rotation, and license selection remain deferred.
+The mobile behavior and contract-first transport baselines are complete. REF-061 through REF-070 now define the visual
+capture, Figma design-system, policy, implementation, and certification path that must finish before public release.
+GitFlow, CI, deployment, production changes, repository publication, credential rotation, and license selection remain
+deferred.
