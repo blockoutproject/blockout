@@ -5,8 +5,8 @@ mobile transport models.
 
 ## Product And Design Authority
 
-- Blockout mobile supports iOS and Android. React Native Web is not a product surface; REF-065A owns removal of its
-  remaining code and configuration before design-system implementation begins.
+- Blockout mobile supports iOS and Android only. Do not add a Web target, Web compatibility adapter, browser OAuth
+  client, or browser-only verification path.
 - The running application and current source own behavior, navigation, authorization, data, accessibility, and native
   provider integration. The canonical `Blockout - Product Design` Figma file owns visual composition within those
   boundaries.
@@ -109,8 +109,9 @@ mobile transport models.
   exported sessions, personal test data, or device-specific files.
 - Use the official provider SDK, Authorization Code with PKCE, exact callback allowlists, and issuer and audience
   validation. Never add an authentication bypass for local or automated tests.
-- For every visual slice, inspect the exact approved Figma nodes and compare the changed states on the relevant iOS and
-  Android viewports. Unit tests prove behavior; native captures and Figma comparison prove appearance.
+- Use the iOS simulator as the visual source and comparison surface for Figma synchronization. Android remains a
+  supported runtime and must keep its technical validation, but it is not a second visual capture or Figma authority.
+  Unit tests prove behavior; iOS captures and Figma comparison prove appearance.
 - Run formatting, lint, typecheck, the focused tests, the complete mobile Jest suite, and `git diff --check` before
   publishing a mobile slice. Add Expo Doctor or an unsigned native build/launch when dependencies, configuration, or a
   native boundary changes.

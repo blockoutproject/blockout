@@ -38,20 +38,18 @@ The mobile examples use `localhost`. Replace it with the host machine address wh
 
 ### Authenticated local mobile testing
 
-Local browser authentication uses the tenant's dedicated `Blockout Local Web` SPA and the official Auth0 React SDK.
-The native application keeps its existing native client. Set both public client IDs in the ignored mobile `.env.local`:
+The native application uses the tenant's native Auth0 client through the official Auth0 React Native SDK. Set its
+public configuration in the ignored mobile `.env.local`:
 
 ```dotenv
 EXPO_PUBLIC_AUTH0_DOMAIN=login.blockoutproject.com
 EXPO_PUBLIC_AUTH0_CLIENT_ID=<native-public-client-id>
-EXPO_PUBLIC_AUTH0_WEB_CLIENT_ID=<spa-public-client-id>
 EXPO_PUBLIC_AUTH0_AUDIENCE=https://api.blockoutproject.com/
 ```
 
-The SPA accepts only `http://localhost:19006` and `http://localhost:8081` as callback, logout, and Web origin URLs.
-The gateway `.env.local` must use the same issuer and audience and explicitly allow those browser origins with
-`CORS_ALLOWED_ORIGINS`. Spring Security validates both token issuer and audience. Do not add an authentication bypass,
-wildcard origin, client secret, access token, password, session export, or real user data to the repository.
+The gateway `.env.local` must use the same issuer and audience. Spring Security validates both token issuer and
+audience. Do not add an authentication bypass, client secret, access token, password, session export, or real user data
+to the repository.
 
 Use a dedicated least-privilege test user when one is available. Because local testing shares the existing tenant and
 API audience, it is not an isolated security environment: keep writes disposable, avoid privileged scopes, and never
@@ -160,15 +158,7 @@ Verify the mobile TypeScript sources through Nx:
 ```bash
 npm exec -- nx run @blockout/mobile:typecheck
 npm exec -- nx run @blockout/mobile:test
-npm exec -- nx run @blockout/mobile:web-export
 ```
-
-React Native Web is a local characterization aid, not a supported desktop product. When inspecting it in a browser,
-use a phone-sized viewport such as 390 x 844 rather than treating a 1920 x 1080 layout as an acceptance target.
-
-For an authenticated Web check, start the config service, users service, mobile gateway, and Expo Web. Sign in through
-Universal Login, verify a secure gateway request returns the current user, then sign out locally and through SSO. The
-browser flow is a verification aid only and does not make Web a deployed product surface.
 
 Run native debug builds from the mobile application directory when the matching SDK is installed:
 

@@ -5,7 +5,7 @@
 REF-064A replaces representative specification-only claims with complete canonical compositions backed by the running
 authenticated iOS application. The canonical file remains
 [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb), on
-`30 - Ready for Development` under frame `78:957` (`Canonical Web + iOS Screens`). Runtime source remains authoritative
+`30 - Ready for Development` under frame `78:957` (`Canonical Native Screens`). Runtime source remains authoritative
 for behavior, navigation, authorization, data, copy, accessibility, and provider behavior.
 
 The workstation was restarted during the task. Docker infrastructure, all twelve Java applications, the Expo development
@@ -30,11 +30,9 @@ boundaries, and feature ownership. They normalize only incidental spacing and pr
 that currently overflows on iOS is represented as a bounded `Classement · M15` tab; the runtime defect is deferred to
 REF-068 rather than reproduced as a design rule.
 
-The existing Web canonical rows remained available from earlier runtime observation. After the workstation restart,
-the Chrome extension was not exposed to this session, so the five new rows mark their Web lane as unavailable instead
-of manufacturing evidence. The product direction then changed to native-only. REF-065A is the isolated removal task for
-React Native Web code, configuration, environment values, tests, documentation, and Figma lanes. Android was not
-launched in REF-064A and is not reported as observed.
+The original REF-064A comparison rows also contained historical React Native Web evidence. REF-065A later removed
+those lanes after the product direction became native-only. Android was not launched in REF-064A and is not reported
+as observed by this record.
 
 ## Blocking corrections
 
@@ -61,7 +59,7 @@ The structural audit reports:
 - zero descendant overflow in the five iOS compositions;
 - semantic color-variable bindings throughout every screen (37 to 65 bound nodes per composition);
 - sanitized content only;
-- explicit unavailable evidence instead of a fabricated Web rendering;
+- one centered iOS reference per row after the REF-065A native-only cleanup;
 - no Android certification claim.
 
 Rendered screenshots of all five rows were inspected after mutation. The canonical screens remain on
@@ -75,7 +73,7 @@ Expo and was not applied. Expo's local dependency check also records the pre-exi
 
 ## Deferred findings
 
-- REF-065A removes React Native Web before the design-system implementation starts.
+- REF-065B rebuilds the foundations, component library, and native compositions from current iOS runtime evidence.
 - REF-068 owns the observed team-tab overflow and the corresponding native discovery-screen alignment.
 - REF-071 owns the search projection cache concurrency defect discovered while restoring representative data.
 - Physical-device notifications, purchases, advertising consent, maps, PDFs, and other provider-owned behavior remain

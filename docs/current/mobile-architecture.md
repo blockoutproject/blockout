@@ -4,8 +4,7 @@
 
 Blockout keeps the current Expo application behavior while moving toward the same simple ownership model used by
 Maaatch: routes coordinate, feature modules own product screens, and shared code contains only proven cross-feature
-foundations. Android and iOS remain the supported product surfaces. React Native Web remains a phone-sized local
-verification surface, not a deployed product.
+foundations. Android and iOS are the only supported product surfaces.
 
 This is a handwritten architecture. OpenAPI, generated clients, generated models, and contract-first ownership remain
 deferred until the mobile and gateway boundaries are stable.
@@ -26,8 +25,8 @@ The mobile source tree uses three top-level roles:
 - `hooks`: domain-neutral hooks used by multiple features;
 - `lib`: small cross-feature functions with concrete active consumers;
 - `model`: shared handwritten value types and transport enums used by more than one feature;
-- `providers`: application-wide React providers, including platform-specific adapters;
-- `storage`: the common secure-storage adapter and its Web implementation;
+- `providers`: application-wide React providers, including native platform adapters;
+- `storage`: the common native secure-storage adapter;
 - `theme`: theme tokens and theme integration;
 - `ui`: reusable visual and navigation primitives.
 
@@ -51,10 +50,9 @@ permitted.
   connectivity to Query lifecycle state.
 - Required common and platform-specific public configuration is validated when the application starts. Optional
   provider configuration remains owned by the feature that uses it.
-- Platform differences use Expo and React Native file resolution such as `.web.tsx`; runtime platform conditionals are
-  kept only when file-level adapters cannot express the boundary clearly.
-- Native and local Web authentication use separate public Auth0 clients against the same issuer and API audience. The
-  Web adapter delegates to the official SPA SDK, keeps tokens in memory, and never introduces an application bypass.
+- Platform differences use Expo and React Native file resolution such as `.ios.tsx` and `.android.tsx`; runtime
+  conditionals are kept only when file-level adapters cannot express the boundary clearly.
+- Native authentication uses the official Auth0 native SDK and never introduces an application bypass.
 - UI, route names, gateway calls, persistence keys, authentication, notifications, purchases, ads, maps, and media
   behavior remain unchanged during structural moves.
 
@@ -102,9 +100,7 @@ Every structural slice must keep the REF-028 baseline green:
 
 - the Nx mobile TypeScript target;
 - the focused Jest characterization tests;
-- the Expo Web export;
-- phone-sized Web inspection when rendered output or navigation composition changes;
-- iOS and Android builds or launches when a native or platform-specific boundary changes.
+- the iOS and Android builds or launches when a native or platform-specific boundary changes.
 
 Touched slices follow the repository mobile testing policy: production code stays testable through focused components,
 explicit commands, pure logic where justified, and existing I/O boundaries. Tests exercise visible behavior through

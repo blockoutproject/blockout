@@ -857,7 +857,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     Library responsible for observable behavior while exact Figma nodes and native captures own visual proof. The Figma
     policy now excludes React Native Web from current certification.
 
-- [ ] **REF-065A — Remove the React Native Web surface**
+- [x] **REF-065A — Remove the React Native Web surface**
   - Make Android and iOS the only supported product surfaces before implementing the Figma system. Remove the Expo Web
     target, Web-only scripts, dependencies, configuration, OAuth environment values, platform adapters, fallbacks,
     tests, and active documentation when they have no native consumer. Keep Metro and every dependency required by the
@@ -871,6 +871,30 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Validate Expo Doctor, formatting, lint, typecheck, Jest, an unsigned iOS build/launch, and an unsigned Android build.
     Prove that no supported Nx target, application dependency, runtime branch, environment variable, test, or current
     policy still advertises React Native Web. Commit and push this task separately before REF-066.
+  - Evidence: Expo now declares only iOS and Android; Nx exposes a native dev-client `serve` target and no Web export;
+    browser-only Auth0, storage, notification, consent, interstitial, map, dependency, script, environment, and test
+    surfaces are removed without replacing them with compatibility code. Expo Doctor passes all 19 checks, the mobile
+    lint/typecheck/Jest baseline passes 27 suites and 53 tests, both unsigned native builds install and load their Metro
+    bundles, and the ignored `.env.local` contains no browser client setting. Figma contains zero Web code syntax across
+    146 variables, zero Web comparison lane, and only the native map states that remain supported.
+
+- [ ] **REF-065B — Rebuild the faithful native Figma system**
+  - Use the current authenticated iOS application at `393 x 852` and its runtime source as the visual evidence for the
+    native product. Use only the iOS simulator for capture, comparison, and Figma synchronization. Android remains a
+    supported runtime with technical validation, but do not launch it or treat it as a second visual authority here.
+  - Rebuild `10 - Foundations`, `20 - Components`, and the canonical compositions on `30 - Ready for Development` as an
+    editable native design system: exact semantic palettes, typography, spacing, radii, borders, effects, gradients,
+    assets, component responsibilities, variants, states, safe areas, and layouts. Match Maaatch's disciplined library
+    structure without importing shadcn, copying Maaatch product UI, or adding a generic component framework.
+  - Treat fidelity as the default. Normalize only small incidental differences to reusable tokens; when normalization
+    would visibly change the shipped application, preserve the current native result and document the exception.
+    Reuse safe repository assets when practical and use explicit image placeholders otherwise.
+  - Build screens from component instances where a reusable responsibility is proven. Keep one-off business
+    composition local, keep component APIs finite and understandable, and remove inaccurate, duplicated, obsolete, or
+    detached Figma structures only after the replacement is verified.
+  - Audit variables, styles, components, variants, bindings, instance linkage, names, bounds, fonts, placeholders, and
+    representative iOS screenshots. Record exact node IDs, intentional normalization, remaining provider or physical-
+    device limits, and sanitized evidence. Commit and push this task separately, then stop before REF-066.
 
 - [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
@@ -878,15 +902,15 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     skeletons or a code-generation layer for styles.
   - Keep component APIs small and composable, preserve accessibility and interaction behavior, and rename touched files
     according to REF-065. Remove superseded token values and duplicate components only after every consumer is migrated.
-  - Validate each shared component against Figma and its previous native rendering on iOS and Android, then run focused
-    tests and the complete mobile static/test baseline.
+  - Validate each shared component against Figma and its previous iOS rendering, then run focused tests, the complete
+    mobile static/test baseline, and the relevant Android technical checks without Android visual synchronization.
 
 - [ ] **REF-067 — Align the application shell and entry flows**
   - Apply the certified tokens and components to navigation, session, sign-in, onboarding, app-status, loading, and other
     application-shell states. Preserve Auth0, redirects, tabs, safe areas, keyboard behavior, haptics, and native
     navigation semantics.
-  - Compare every migrated state with its Figma frame on iOS and Android, preserve platform-specific safe areas and
-    system presentation, and retain focused behavior tests.
+  - Compare every migrated state with its Figma frame on iOS. Preserve native safe areas and system presentation, keep
+    Android behavior technically validated, and retain focused behavior tests.
 
 - [ ] **REF-068 — Align discovery and competition reading flows**
   - Migrate feed, search, followed content, clubs, teams, pools, matches, rankings, and their loading, empty, error, list,
@@ -894,7 +918,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Consolidate repeated read-pattern components only where REF-061 and Figma prove the same responsibility. Keep
     feature composition local when data or interaction semantics differ despite a similar appearance.
   - Preserve generated API clients, TanStack Query behavior, list performance, navigation, advertising boundaries, and
-    native map behavior while validating each slice against Figma on iOS and Android.
+    native map behavior while validating each slice against Figma on iOS and keeping Android technically green.
 
 - [ ] **REF-069 — Align account, write, moderation, and support flows**
   - Migrate profile, notifications, entity forms, follow actions, reports, live-link moderation, raw division mapping,
@@ -902,13 +926,13 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Reuse the certified field, action, feedback, sheet, and pill families without flattening distinct business actions
     into generic prop-heavy components. Preserve Formik/Yup behavior, permissions, provider boundaries, mutation and
     rollback semantics, and accessibility.
-  - Validate success, validation, loading, error, disabled, cancellation, and destructive states against Figma on iOS
-    and Android.
+  - Validate success, validation, loading, error, disabled, cancellation, and destructive states against Figma on iOS;
+    retain the Android technical baseline without a second visual synchronization pass.
 
 - [ ] **REF-070 — Certify and clean the complete mobile design system**
-  - Exercise the full native screen matrix against the final Figma frames on representative iOS and Android simulators.
-    Resolve unexplained alignment, clipping, safe-area, keyboard, typography, and responsive differences between the
-    two native platforms.
+  - Exercise the full screen matrix against the final Figma frames on the representative iOS simulator. Resolve
+    unexplained alignment, clipping, safe-area, keyboard, typography, and responsive differences on that visual
+    authority while retaining Android build and behavior validation.
   - Remove obsolete styles, tokens, duplicate components, incompatible file names, unused props, temporary comparison
     artifacts, and empty directories. Prove that every remaining shared component has active consumers and one clear
     responsibility.

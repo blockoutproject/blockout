@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { AppState, Platform } from "react-native";
+import { AppState } from "react-native";
 import {
   focusManager,
   onlineManager,
@@ -29,8 +29,6 @@ export const QueryProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
   useEffect(() => {
-    if (Platform.OS === "web") return;
-
     focusManager.setFocused(AppState.currentState === "active");
     const subscription = AppState.addEventListener("change", (status) => {
       focusManager.setFocused(status === "active");
@@ -43,8 +41,6 @@ export const QueryProvider: React.FC<React.PropsWithChildren> = ({
   }, []);
 
   useEffect(() => {
-    if (Platform.OS === "web") return;
-
     let receivedEvent = false;
     const subscription = Network.addNetworkStateListener((state) => {
       receivedEvent = true;

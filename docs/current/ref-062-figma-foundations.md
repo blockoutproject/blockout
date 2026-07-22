@@ -36,8 +36,8 @@ theme, desktop product, provider UI, or new brand layer was introduced.
 ## Ownership and handoff
 
 Components must consume semantic variables rather than primitives. Primitive colors are hidden from ordinary pickers,
-except the black effect color required by the existing shadows. Every variable has a targeted scope and Web, Android,
-and iOS code syntax. The syntax establishes the intended future handoff names; it does not modify the current Expo
+except the black effect color required by the existing shadows. Every variable has a targeted scope and native code
+syntax. The syntax establishes the intended future handoff names; it does not modify the current Expo
 runtime or introduce automatic Figma-to-code synchronization.
 
 The durable foundation nodes are:

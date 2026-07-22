@@ -1,9 +1,6 @@
-import { Platform } from "react-native";
-
 export const CONFIG = {
   AUTH0_DOMAIN: process.env.EXPO_PUBLIC_AUTH0_DOMAIN || "",
   AUTH0_CLIENT_ID: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID || "",
-  AUTH0_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_AUTH0_WEB_CLIENT_ID || "",
   AUTH0_AUDIENCE: process.env.EXPO_PUBLIC_AUTH0_AUDIENCE || "",
   API_MATCHES_BASE_URL: process.env.EXPO_PUBLIC_API_MATCHES_BASE_URL || "",
   API_POOLS_BASE_URL: process.env.EXPO_PUBLIC_API_POOLS_BASE_URL || "",
@@ -29,33 +26,21 @@ export const CONFIG = {
 
 export const AUTH0_CONFIG = {
   domain: CONFIG.AUTH0_DOMAIN,
-  clientId:
-    Platform.OS === "web" && CONFIG.AUTH0_WEB_CLIENT_ID
-      ? CONFIG.AUTH0_WEB_CLIENT_ID
-      : CONFIG.AUTH0_CLIENT_ID,
+  clientId: CONFIG.AUTH0_CLIENT_ID,
   audience: CONFIG.AUTH0_AUDIENCE,
 };
 
 type RequiredPublicConfig = Pick<
   typeof CONFIG,
-  | "AUTH0_DOMAIN"
-  | "AUTH0_CLIENT_ID"
-  | "AUTH0_WEB_CLIENT_ID"
-  | "AUTH0_AUDIENCE"
-  | "API_GATEWAY_BASE_URL"
+  "AUTH0_DOMAIN" | "AUTH0_CLIENT_ID" | "AUTH0_AUDIENCE" | "API_GATEWAY_BASE_URL"
 >;
 
-export function validateRequiredConfig(
-  config: RequiredPublicConfig = CONFIG,
-  platform = Platform.OS,
-) {
+export function validateRequiredConfig(config: RequiredPublicConfig = CONFIG) {
   const requiredValues = [
     ["EXPO_PUBLIC_AUTH0_DOMAIN", config.AUTH0_DOMAIN],
     ["EXPO_PUBLIC_AUTH0_AUDIENCE", config.AUTH0_AUDIENCE],
     ["EXPO_PUBLIC_API_GATEWAY_BASE_URL", config.API_GATEWAY_BASE_URL],
-    platform === "web"
-      ? ["EXPO_PUBLIC_AUTH0_WEB_CLIENT_ID", config.AUTH0_WEB_CLIENT_ID]
-      : ["EXPO_PUBLIC_AUTH0_CLIENT_ID", config.AUTH0_CLIENT_ID],
+    ["EXPO_PUBLIC_AUTH0_CLIENT_ID", config.AUTH0_CLIENT_ID],
   ] as const;
 
   const missingVariables = requiredValues

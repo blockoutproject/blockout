@@ -43,8 +43,8 @@ identifier, credential, token, or private payload is present.
 Three provider-owned surfaces are explicit reference boundaries rather than imitations of Blockout UI:
 
 - advertising consent;
-- the native pool map and its Web-unavailable state;
-- native and Web PDF rendering.
+- the native pool map;
+- native PDF rendering.
 
 Auth0 remains an external handoff state on the sign-in composition. Store opening, confirmations, safe areas, gestures,
 keyboard behavior, maps, documents, and provider screens remain runtime responsibilities that static Figma frames

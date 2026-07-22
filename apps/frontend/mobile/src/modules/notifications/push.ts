@@ -40,7 +40,6 @@ export function openNotificationUrlIfAny(
 export function platformToNotificationDevice(): DevicePlatformEnum {
   if (Platform.OS === "ios") return "IOS";
   if (Platform.OS === "android") return "ANDROID";
-  if (Platform.OS === "web") return "WEB";
   return "UNKNOWN";
 }
 

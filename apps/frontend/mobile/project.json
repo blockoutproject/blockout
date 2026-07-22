@@ -4,6 +4,14 @@
   "projectType": "application",
   "sourceRoot": "apps/frontend/mobile/src",
   "targets": {
+    "serve": {
+      "continuous": true,
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/frontend/mobile",
+        "command": "expo start --dev-client"
+      }
+    },
     "codegen": {
       "executor": "nx:run-commands",
       "dependsOn": [
@@ -53,15 +61,6 @@
       "options": {
         "cwd": "apps/frontend/mobile",
         "command": "tsc --noEmit --pretty false"
-      }
-    },
-    "web-export": {
-      "executor": "nx:run-commands",
-      "dependsOn": ["codegen"],
-      "outputs": ["{workspaceRoot}/dist/apps/frontend/mobile/web"],
-      "options": {
-        "cwd": "apps/frontend/mobile",
-        "command": "npm run web:export"
       }
     }
   },

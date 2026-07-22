@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
@@ -32,8 +32,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   testID,
 }) => {
   const theme = useAppTheme();
-  const Input =
-    inSheet && Platform.OS !== "web" ? BottomSheetTextInput : TextInput;
+  const Input = inSheet ? BottomSheetTextInput : TextInput;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.surface }]}>
