@@ -1,3 +1,5 @@
+"""Load club-scraper settings from the selected local environment file."""
+
 from __future__ import annotations
 
 import os
@@ -28,7 +30,6 @@ def load_settings(arguments: Sequence[str] | None = None) -> Settings:
     """Load the same environment file selected by the imported application."""
     arguments = sys.argv if arguments is None else arguments
     environment_file = _environment_file(arguments)
-    print(f"Chargement des variables depuis {environment_file}")
     load_dotenv(Path(environment_file), override=True)
 
     return Settings(
@@ -45,6 +46,7 @@ def load_settings(arguments: Sequence[str] | None = None) -> Settings:
 
 
 def _environment_file(arguments: Sequence[str]) -> str:
+    """Resolve the environment filename from the supported process argument."""
     if len(arguments) <= 1:
         return ".env"
     if arguments[1] == "dev":

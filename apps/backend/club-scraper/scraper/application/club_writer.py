@@ -1,3 +1,5 @@
+"""Apply detected club changes through the Blockout application port."""
+
 from scraper.application.ports import BlockoutPort
 from scraper.domain.models import Club
 from scraper.observability.logging import log_event
@@ -40,7 +42,7 @@ class ClubWriter:
                 action="create_club",
                 level="info",
                 clubId=created.id,
-                message=f"Création du club : {created.name}",
+                message="Club created.",
             )
             return created
 
@@ -64,6 +66,6 @@ class ClubWriter:
             level="info",
             clubId=club.id,
             changes_list=changes,
-            message=f"Mise à jour du club : {club.name}",
+            message="Club updated.",
         )
         return updated

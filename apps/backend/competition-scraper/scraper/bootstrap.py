@@ -9,13 +9,13 @@ import httpx
 from prometheus_client import Gauge, start_http_server
 
 from scraper.application.ports import BlockoutPort, ProviderHttpPort
-from scraper.config.settings import SCRAPER_TYPES
+from scraper.config.settings import LOG_LEVEL, SCRAPER_TYPES
 from scraper.infrastructure.blockout.auth import refresh_token_task
 from scraper.infrastructure.blockout.clients import open_blockout_clients
 from scraper.infrastructure.provider_http import ProviderHttpClient
 from scraper.infrastructure.scheduling.scheduler import schedule_scraper
 from scraper.infrastructure.sources import create_scraper
-from scraper.observability.logging import log_event
+from scraper.observability.logging import configure_logging, log_event
 
 lock = asyncio.Lock()
 
@@ -69,7 +69,7 @@ async def main() -> bool:
                     action="scraper_status_fetch_failed",
                     level="error",
                     message="Impossible de récupérer le statut du scraper 'SCRAPER'.",
-                    error=str(error),
+                    error_type=type(error).__name__,
                 )
                 skipped = True
 
@@ -98,7 +98,7 @@ async def main() -> bool:
             action="scraping_error",
             level="error",
             message="Erreur lors du scraping",
-            error=str(error),
+            error_type=type(error).__name__,
         )
     finally:
         execution_duration_gauge.set((datetime.now(UTC) - start_time).total_seconds())
@@ -108,6 +108,7 @@ async def main() -> bool:
 
 async def app() -> None:
     """Start metrics, token refresh and the scheduled scraper loop."""
+    configure_logging(LOG_LEVEL)
     start_http_server(8000)
 
     asyncio.create_task(refresh_token_task())

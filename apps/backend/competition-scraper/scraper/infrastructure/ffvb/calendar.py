@@ -78,7 +78,7 @@ def parse_csv_from_content(content: str) -> FfvbCalendarSnapshot:
                 action="parse_csv_row",
                 level="error",
                 line_number=line_number,
-                error=repr(error),
+                error_type=type(error).__name__,
                 message="Ligne FFVB inutilisable.",
             )
             continue
@@ -137,7 +137,7 @@ async def download_and_parse_csv(
                     level="error",
                     leagueCode=pool.league_code,
                     poolCode=pool.pool_code,
-                    error=repr(error),
+                    error_type=type(error).__name__,
                     message=f"CSV invalide pour {name}.",
                 )
                 return None
@@ -170,5 +170,5 @@ def _log_download_failure(
         attempt=attempt,
         leagueCode=pool.league_code,
         poolCode=pool.pool_code,
-        error=repr(error),
+        error_type=type(error).__name__,
     )

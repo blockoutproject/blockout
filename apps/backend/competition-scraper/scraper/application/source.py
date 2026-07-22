@@ -64,7 +64,7 @@ class Scraper(ABC):
             log_event(
                 action="scraping_error",
                 level="error",
-                error=str(error),
+                error_type=type(error).__name__,
                 message=f"Erreur dans le scraper {self.name}",
             )
             raise

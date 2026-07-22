@@ -284,7 +284,7 @@ async def handle_csv_download_and_parse(
         log_event(
             "parse_csv_error",
             "error",
-            error=str(e),
+            error_type=type(e).__name__,
             message="Erreur lors du parsing CSV",
         )
         raise

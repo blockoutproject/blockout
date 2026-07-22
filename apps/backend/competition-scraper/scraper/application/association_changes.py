@@ -53,7 +53,7 @@ class AssociationChangeSet:
                 action="init_associations_cache_error",
                 level="error",
                 pool_id=pool_id,
-                error=str(error),
+                error_type=type(error).__name__,
                 message="Erreur lors du chargement des associations existantes",
             )
 
@@ -74,7 +74,7 @@ class AssociationChangeSet:
                 level="error",
                 pool_id=pool_id,
                 team_id=team_id,
-                error=str(error),
+                error_type=type(error).__name__,
                 message="Erreur lors de l'ajout des statistiques pour l'association.",
             )
 

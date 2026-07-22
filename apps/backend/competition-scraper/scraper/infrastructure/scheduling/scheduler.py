@@ -1,3 +1,5 @@
+"""Schedule competition ingestion on the established daily cadence."""
+
 from __future__ import annotations
 
 import asyncio

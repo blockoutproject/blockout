@@ -1,4 +1,5 @@
-# file: api/auth0.py
+"""Acquire and refresh the Auth0 service token used by Blockout clients."""
+
 from __future__ import annotations
 
 import asyncio
@@ -88,7 +89,7 @@ async def refresh_token_task() -> None:
             log_event(
                 action="refresh_token_error",
                 level="error",
-                error=str(e),
+                error_type=type(e).__name__,
                 message="Erreur lors de la mise à jour du token.",
             )
             await asyncio.sleep(60)

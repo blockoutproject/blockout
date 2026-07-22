@@ -1,3 +1,5 @@
+"""Schedule club ingestion on the established hourly cadence."""
+
 from __future__ import annotations
 
 import asyncio

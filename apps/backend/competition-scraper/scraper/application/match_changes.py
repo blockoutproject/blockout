@@ -42,7 +42,7 @@ class MatchChangeSet:
                 action="init_matches_cache_error",
                 level="error",
                 poolId=pool_id,
-                error=str(error),
+                error_type=type(error).__name__,
                 message="Erreur lors du chargement des matchs existants",
             )
 
@@ -112,7 +112,7 @@ class MatchChangeSet:
                 level="error",
                 match_code=candidate.match_code,
                 league_code=candidate.league_code,
-                error=str(error),
+                error_type=type(error).__name__,
                 message=f"Erreur lors de la fusion de match {candidate.match_code}",
             )
 
@@ -135,7 +135,7 @@ class MatchChangeSet:
                     level="error",
                     match_code=updated.match_code,
                     league_code=league_code,
-                    error=str(error),
+                    error_type=type(error).__name__,
                     message=f"Erreur finalize match {updated.match_code}",
                 )
         self.entries.clear()

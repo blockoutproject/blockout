@@ -1,3 +1,5 @@
+"""Coordinate one complete FFVB club ingestion cycle."""
+
 from __future__ import annotations
 
 import asyncio
@@ -43,7 +45,7 @@ class ClubIngestion:
             log_event(
                 action="scraping_error",
                 level="error",
-                error=str(error),
+                error_type=type(error).__name__,
                 message="Erreur dans le scraper club_scraper",
             )
             raise
@@ -59,7 +61,7 @@ class ClubIngestion:
             log_event(
                 action="init_clubs_cache_error",
                 level="error",
-                error=str(error),
+                error_type=type(error).__name__,
                 message="Erreur lors du chargement des clubs existants",
             )
 
@@ -100,7 +102,7 @@ class ClubIngestion:
             log_event(
                 action="club_scraper_critical_error",
                 level="error",
-                error=str(error),
+                error_type=type(error).__name__,
                 message="Erreur critique lors du scraping des clubs.",
             )
 
@@ -111,13 +113,8 @@ class ClubIngestion:
                 log_event(
                     action="club_scraper_fetch_html_error",
                     level="error",
-                    url=(
-                        "https://www.ffvbbeach.org/ffvbapp/adressier/rech_aff_club.php"
-                    ),
-                    message=(
-                        "https://www.ffvbbeach.org/ffvbapp/adressier/rech_aff_club.php "
-                        "- Contenu HTML vide ou inexistant."
-                    ),
+                    provider="ffvb_address_directory",
+                    message="The provider returned no club HTML.",
                 )
                 return
 
@@ -135,13 +132,11 @@ class ClubIngestion:
             saved = await self._writer.save(candidate, existing)
             self.scraped_club_ids.add(saved.id)
         except Exception as error:
-            url = "https://www.ffvbbeach.org/ffvbapp/adressier/rech_aff_club.php"
             log_event(
                 action="club_scraper_error",
                 level="error",
-                url=url,
-                error=str(error),
-                message=f"{url} - Erreur lors du scraping d'un club.",
+                error_type=type(error).__name__,
+                message="Club provider page processing failed.",
             )
 
 

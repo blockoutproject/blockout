@@ -64,7 +64,7 @@ async def create_team(api: TeamApi, team: Team) -> Team:
     log_event(
         action="create_team",
         level="info",
-        rawName=team.raw_name,
+        teamId=response.id,
         clubId=team.club_id,
     )
     return _to_team(response)
@@ -102,7 +102,7 @@ async def update_team(
     log_event(
         action="update_team",
         level="info",
-        rawName=team.raw_name,
+        teamId=team.id,
         changes_list=changes_list or [],
     )
     return _to_team(response)

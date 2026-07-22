@@ -1,3 +1,5 @@
+"""Fetch FFVB club pages with bounded retry behavior."""
+
 from __future__ import annotations
 
 import asyncio
@@ -50,11 +52,8 @@ class FfvbClubClient:
                             action="http_request_retry_success",
                             level="info",
                             attempt=attempt,
-                            url=url,
                             method="POST",
-                            message=(
-                                f"Succès après retry {attempt}/{retries} pour l'URL {url}."
-                            ),
+                            message="Provider POST succeeded after a retry.",
                         )
                     return content
                 except httpx.ConnectError as error:
@@ -66,10 +65,9 @@ class FfvbClubClient:
                     log_event(
                         action="http_request_http_error",
                         level="warning",
-                        url=url,
                         attempt=attempt,
                         status=status,
-                        error=str(error),
+                        error_type=type(error).__name__,
                         message=(
                             f"Erreur HTTP {status} lors du POST '{url}' "
                             f"(tentative {attempt}/{retries})."
@@ -88,10 +86,9 @@ class FfvbClubClient:
                     log_event(
                         action="http_request_retry",
                         level="warning",
-                        url=url,
                         attempt=attempt,
                         delay=delay,
-                        message=f"Nouvelle tentative POST pour '{url}' après {delay} secondes.",
+                        message="Retrying the provider POST after a delay.",
                     )
                     await asyncio.sleep(delay)
                     continue
@@ -99,9 +96,8 @@ class FfvbClubClient:
                 log_event(
                     action="http_request_failed",
                     level="error",
-                    url=url,
                     attempt=retries,
-                    message=f"Échec complet après {retries} tentatives pour '{url}'.",
+                    message="Provider POST failed after all attempts.",
                 )
                 raise RuntimeError(
                     f"Échec complet du POST '{url}' après {retries} tentatives."
@@ -128,8 +124,7 @@ class FfvbClubClient:
         log_event(
             action=f"http_request_{action}",
             level=level,
-            url=url,
             attempt=attempt,
-            error=str(error),
-            message=f"{message} lors du POST '{url}' (tentative {attempt}/{retries}).",
+            error_type=type(error).__name__,
+            message=message,
         )

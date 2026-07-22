@@ -641,13 +641,23 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     applied V1-V3 checksums predate the current migration files; no destructive repair or data reset was performed.
     Generated sources remain ignored and untracked, and `git diff --check` passes.
 
-- [ ] **REF-056 — Apply policies and clean Python scraper structures**
+- [x] **REF-056 — Apply policies and clean Python scraper structures**
   - Audit both scrapers against the documentation, logging, mapping, testing, and scraper architecture policies.
     Generated internal DTOs remain confined to `infrastructure/blockout`; provider records, domain values, and
     application orchestration remain distinct and explicitly mapped.
   - Remove empty or obsolete directories and retain no speculative provider/test package skeleton. Preserve parsing,
     scheduling, retries, ordering, writes, fixtures, and all runtime behavior.
   - Run Ruff checks, syntax checks, both complete suites, architecture guards, and disabled-startup/import checks.
+  - Evidence: both scraper trees now use the same documented process, application, domain, provider, Blockout adapter,
+    scheduling, and observability boundaries. Generated internal models and clients remain confined to
+    `infrastructure/blockout`; mapping to handwritten domain values stays explicit and local to that adapter. Touched
+    modules now carry concise PEP 257 documentation, environment selection no longer prints local file paths, and both
+    processes configure their existing JSON logger from bootstrap. Logs retain actions, provider families, technical
+    identifiers, status, attempts, and durations without serializing provider URLs, club/team names, payloads, or raw
+    exception messages. The unused arbitrary-object log serializer was removed. No empty or speculative directory
+    remains and no `.gitkeep` is justified. Ruff format and lint checks pass, compileall and import-only startup checks
+    pass, the 37 club tests and 71 competition tests pass, including both architecture guards and all authentic provider
+    fixtures. Generated sources remain ignored and untracked, and `git diff --check` passes.
 
 - [ ] **REF-057 — Apply policies and clean Expo mobile structure**
   - Audit the mobile application against the documentation, logging, mapping, testing, and Expo policies. Keep route

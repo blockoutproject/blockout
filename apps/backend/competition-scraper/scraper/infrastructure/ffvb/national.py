@@ -40,6 +40,6 @@ class NationalScraper(Scraper):
                 action="critical_error",
                 level="error",
                 leagueName=self.leagueName,
-                error=repr(error),
+                error_type=type(error).__name__,
                 message="Erreur critique lors du scraping des poules nationales.",
             )

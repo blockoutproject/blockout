@@ -1,3 +1,5 @@
+"""Ingest professional competitions from the LNV provider surfaces."""
+
 import asyncio
 import xml.etree.ElementTree as ET
 from dataclasses import replace
@@ -155,8 +157,7 @@ class ProScraper(Scraper):
                     log_event(
                         action="pool_processing_error",
                         level="error",
-                        name=pool_json.get("name"),
-                        error=repr(e),
+                        error_type=type(e).__name__,
                     )
 
             if tasks:
@@ -169,7 +170,7 @@ class ProScraper(Scraper):
             log_event(
                 action="critical_error",
                 level="error",
-                error=repr(e),
+                error_type=type(e).__name__,
                 message="Erreur critique lors du scraping des poules professionnelles.",
             )
 
@@ -195,7 +196,7 @@ class ProScraper(Scraper):
                 action="task_chain_error",
                 level="error",
                 poolCode=pool.pool_code,
-                error=repr(e),
+                error_type=type(e).__name__,
                 message="Erreur lors de l'exécution de la chaîne de tâches pour une poule.",
             )
 
@@ -214,7 +215,6 @@ class ProScraper(Scraper):
                     action="fetch_xml_matches_error",
                     level="error",
                     poolId=pool.id,
-                    url=lnv_xml_matches_url,
                     message="Erreur lors de la récupération du flux XML pour les matchs.",
                 )
                 return
@@ -224,7 +224,6 @@ class ProScraper(Scraper):
                     action="fetch_xml_rank_error",
                     level="error",
                     poolId=pool.id,
-                    url=lnv_xml_rank_url,
                     message="Erreur lors de la récupération du flux XML pour le classement.",
                 )
                 return
@@ -240,7 +239,7 @@ class ProScraper(Scraper):
                 action="parse_and_update_matches_error",
                 level="error",
                 poolId=pool.id,
-                message=repr(e),
+                error_type=type(e).__name__,
             )
 
     async def process_xml_matches(self, matches_root: ET.Element, poolId: int):
@@ -270,7 +269,7 @@ class ProScraper(Scraper):
                 action="process_xml_matches_error",
                 level="error",
                 poolId=poolId,
-                message=repr(e),
+                error_type=type(e).__name__,
             )
 
     async def process_xml_rank(self, rank_root: ET.Element, pool: Pool):
@@ -292,7 +291,6 @@ class ProScraper(Scraper):
                         action="team_not_found",
                         level="error",
                         poolId=pool.id,
-                        name=full_name,
                         message="Aucune équipe trouvée pour ce nom.",
                     )
                     continue
@@ -307,7 +305,7 @@ class ProScraper(Scraper):
                 action="process_xml_rank_error",
                 level="error",
                 poolId=pool.id,
-                message=repr(e),
+                error_type=type(e).__name__,
             )
 
     async def add_match_live_code(self, url: str, pool: Pool) -> None:
@@ -318,7 +316,6 @@ class ProScraper(Scraper):
                 action="fetch_html_error",
                 level="error",
                 poolId=pool.id,
-                url=url,
                 message="Erreur lors de la récupération de la page HTML pour les live codes.",
             )
             return
@@ -330,7 +327,7 @@ class ProScraper(Scraper):
                 action="parse_live_html_error",
                 level="error",
                 poolId=pool.id,
-                error=repr(error),
+                error_type=type(error).__name__,
             )
             return
         teams = (
@@ -381,7 +378,6 @@ class ProScraper(Scraper):
                 action="missing_name",
                 level="error",
                 poolId=pool.id,
-                rawName=provider_match.home_name,
                 message="Nom d'équipe domicile non trouvé dans les alias.",
             )
         if not guest_team_full:
@@ -389,7 +385,6 @@ class ProScraper(Scraper):
                 action="missing_name",
                 level="error",
                 poolId=pool.id,
-                rawName=provider_match.guest_name,
                 message="Nom d'équipe visiteur non trouvé dans les alias.",
             )
 

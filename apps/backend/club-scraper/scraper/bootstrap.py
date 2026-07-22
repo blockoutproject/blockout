@@ -1,3 +1,5 @@
+"""Compose and run the club scraper process."""
+
 from __future__ import annotations
 
 import asyncio
@@ -53,7 +55,7 @@ class ClubScraperRuntime:
                 action="scraper_status_fetch_failed",
                 level="error",
                 message=f"Impossible de récupérer le statut du scraper '{SCRAPER_NAME}'.",
-                error=str(error),
+                error_type=type(error).__name__,
             )
             return False
 
@@ -88,7 +90,7 @@ class ClubScraperRuntime:
                 action="scraping_error",
                 level="error",
                 message="Erreur lors du scraping",
-                error=str(error),
+                error_type=type(error).__name__,
             )
         finally:
             duration = (datetime.now(UTC) - started_at).total_seconds()
@@ -117,7 +119,7 @@ def start() -> None:
             action="startup_error",
             level="error",
             message="Erreur lors du démarrage",
-            error=str(error),
+            error_type=type(error).__name__,
         )
     finally:
         loop.run_until_complete(asyncio.sleep(0))

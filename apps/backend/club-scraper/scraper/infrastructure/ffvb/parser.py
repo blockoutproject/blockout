@@ -1,3 +1,5 @@
+"""Parse one FFVB club detail page into a domain club."""
+
 from __future__ import annotations
 
 import re
@@ -31,7 +33,7 @@ def parse_club_page(html_content: str, identifier: str) -> FfvbClubRecord | None
             action="club_scraper_parse_error",
             level="error",
             clubId=identifier,
-            error=str(error),
+            error_type=type(error).__name__,
             message=f"Erreur lors du parsing HTML du club {identifier}.",
         )
         return None

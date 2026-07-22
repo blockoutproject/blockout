@@ -1,19 +1,23 @@
+"""Structured JSON logging boundary for the competition scraper."""
+
 import json
 import logging
 from contextvars import ContextVar
-
-from scraper.config.settings import LOG_LEVEL
-
-log_level = getattr(logging, LOG_LEVEL, logging.INFO)
-
-logging.basicConfig(level=log_level, format="%(message)s")
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 current_scraper = ContextVar("current_scraper", default="unknown_scraper")
 
 
-def log_event(action: str, level: str = "info", **kwargs) -> None:
+def configure_logging(level: str) -> None:
+    """Configure the process-wide JSON log threshold."""
+    logging.basicConfig(
+        level=getattr(logging, level, logging.INFO), format="%(message)s"
+    )
+
+
+def log_event(action: str, level: str = "info", **kwargs: Any) -> None:
     """Write one JSON event enriched with the current scraper name."""
     scraper_name = current_scraper.get()
 
@@ -27,11 +31,4 @@ def log_event(action: str, level: str = "info", **kwargs) -> None:
 
     log_message_json = json.dumps(log_message, ensure_ascii=False)
 
-    if level == "info":
-        logger.info(log_message_json)
-    elif level == "warning":
-        logger.warning(log_message_json)
-    elif level == "error":
-        logger.error(log_message_json)
-    elif level == "debug":
-        logger.debug(log_message_json)
+    getattr(logger, level, logger.info)(log_message_json)

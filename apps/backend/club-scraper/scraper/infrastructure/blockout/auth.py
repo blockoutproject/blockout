@@ -1,3 +1,5 @@
+"""Acquire and refresh the Auth0 service token used by Blockout clients."""
+
 from __future__ import annotations
 
 import asyncio
@@ -59,7 +61,7 @@ class Auth0TokenRefresher:
                 log_event(
                     action="refresh_token_error",
                     level="error",
-                    error=str(error),
+                    error_type=type(error).__name__,
                     message="Erreur lors de la mise à jour du token.",
                 )
                 await asyncio.sleep(60)

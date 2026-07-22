@@ -1,3 +1,5 @@
+"""Structured JSON logging boundary for the club scraper."""
+
 from __future__ import annotations
 
 import json
@@ -25,5 +27,12 @@ def log_event(action: str, level: str = "info", **details: Any) -> None:
         "scraper": current_scraper.get(),
         **details,
     }
-    serialized = json.dumps(message, ensure_ascii=False, default=str)
+    serialized = json.dumps(message, ensure_ascii=False, default=_encode_log_value)
     getattr(logger, level, logger.info)(serialized)
+
+
+def _encode_log_value(value: Any) -> Any:
+    """Encode the one non-JSON collection intentionally used by scraper logs."""
+    if isinstance(value, set):
+        return sorted(value)
+    raise TypeError(f"Unsupported log value type: {type(value).__name__}")

@@ -1,3 +1,5 @@
+"""Normalize provider values into stable competition domain values."""
+
 import json
 import re
 import uuid
@@ -21,7 +23,7 @@ except Exception as e:
         action="load_standardized_divisions",
         level="error",
         message="Erreur lors du chargement de 'standardized_divisions.json'",
-        error=str(e),
+        error_type=type(e).__name__,
     )
     standardized_divisions = {}
 
@@ -83,15 +85,15 @@ def extract_season_from_url(url: str) -> str | None:
         log_event(
             action="extract_season_from_url",
             level="warning",
-            message=f"Aucune saison trouvée dans l'URL: {url}",
+            message="No season was found in the provider URL.",
         )
         return None
     except Exception as e:
         log_event(
             action="extract_season_from_url",
             level="error",
-            message=f"Erreur lors de l'extraction de la saison depuis l'URL '{url}'",
-            error=str(e),
+            message="Season extraction failed for the provider URL.",
+            error_type=type(e).__name__,
         )
         raise
 
@@ -137,4 +139,5 @@ def to_dict(object) -> dict:
 
 
 def generate_correlation_id() -> str:
+    """Create the correlation identifier used by one bulk ingestion."""
     return f"bulk-{uuid.uuid4()}"

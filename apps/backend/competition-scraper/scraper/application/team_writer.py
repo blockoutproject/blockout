@@ -1,3 +1,5 @@
+"""Apply detected team changes through the Blockout application port."""
+
 from scraper.application.ports import BlockoutPort
 from scraper.domain.models import Team
 

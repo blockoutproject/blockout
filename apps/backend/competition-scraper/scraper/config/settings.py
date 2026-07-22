@@ -1,17 +1,19 @@
+"""Load competition-scraper settings from the selected environment file."""
+
 import os
 import sys
 
 from dotenv import load_dotenv
 
 
-def load_environment():
+def load_environment() -> None:
+    """Load the environment file selected by the process argument."""
     env_file = ".env"
     if len(sys.argv) > 1:
         if sys.argv[1] == "dev":
             env_file = ".env.dev"
         elif sys.argv[1] == "local":
             env_file = ".env.local"
-    print(f"Chargement des variables depuis {env_file}")
     load_dotenv(env_file, override=True)
 
 

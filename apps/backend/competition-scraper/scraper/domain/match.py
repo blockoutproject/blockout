@@ -1,3 +1,5 @@
+"""Represent and normalize competition matches."""
+
 import re
 
 from scraper.domain.models import (

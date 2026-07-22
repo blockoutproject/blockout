@@ -1,3 +1,5 @@
+"""Expose the club scraper Prometheus measurements."""
+
 from prometheus_client import Gauge
 
 execution_duration = Gauge(

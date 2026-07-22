@@ -1,3 +1,5 @@
+"""Declare the external boundaries required by club ingestion."""
+
 from collections.abc import Iterable
 from typing import Protocol
 

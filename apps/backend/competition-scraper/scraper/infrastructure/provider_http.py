@@ -33,11 +33,7 @@ class ProviderHttpClient:
                             action="http_request_retry_success",
                             level="info",
                             attempt=attempt,
-                            url=url,
-                            message=(
-                                f"Succès après retry {attempt}/{retries}: "
-                                f"Contenu récupéré pour l'URL {url}."
-                            ),
+                            message="Provider request succeeded after a retry.",
                         )
                     return content
                 except httpx.ConnectError as error:
@@ -63,13 +59,9 @@ class ProviderHttpClient:
                     log_event(
                         action="http_request_retry",
                         level="debug",
-                        url=url,
                         attempt=attempt,
                         delay=delay,
-                        message=(
-                            f"Nouvelle tentative pour l'URL '{url}' après un délai "
-                            f"de {delay} secondes."
-                        ),
+                        message="Retrying the provider request after a delay.",
                     )
                     await asyncio.sleep(delay)
                     continue
@@ -77,17 +69,12 @@ class ProviderHttpClient:
                 log_event(
                     action="http_request_failed",
                     level="error",
-                    url=url,
                     attempt=retries,
-                    message=(
-                        f"Échec complet après {retries} tentatives pour l'URL '{url}'."
-                    ),
+                    message="Provider request failed after all attempts.",
                 )
-                raise RuntimeError(
-                    f"Échec complet pour l'URL '{url}' après {retries} tentatives."
-                )
+                raise RuntimeError(f"Échec complet après {retries} tentatives.")
 
-        raise RuntimeError(f"No provider request was attempted for '{url}'.")
+        raise RuntimeError("No provider request was attempted.")
 
     async def post_form(
         self,
@@ -135,12 +122,9 @@ class ProviderHttpClient:
         details = {
             "action": f"http_request_{kind}",
             "level": level,
-            "url": url,
             "attempt": attempt,
-            "error": str(error),
-            "message": (
-                f"Provider request failed for '{url}' (attempt {attempt}/{retries})."
-            ),
+            "error_type": type(error).__name__,
+            "message": "Provider request attempt failed.",
         }
         if status is not None:
             details["status"] = status

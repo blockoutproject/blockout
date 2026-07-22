@@ -1,3 +1,5 @@
+"""Represent the FFVB address-directory form and page results."""
+
 from dataclasses import dataclass
 
 

@@ -51,7 +51,7 @@ class DepartmentalScraper(Scraper):
                 action="critical_error",
                 level="error",
                 scope="departmental_pools",
-                error=repr(error),
+                error_type=type(error).__name__,
                 message="Erreur critique lors du scraping départemental.",
             )
 
@@ -68,5 +68,5 @@ class DepartmentalScraper(Scraper):
                 action="critical_league_error",
                 level="error",
                 leagueCode=leagueCode,
-                error=repr(error),
+                error_type=type(error).__name__,
             )
