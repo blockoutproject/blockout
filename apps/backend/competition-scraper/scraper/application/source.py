@@ -8,6 +8,7 @@ import httpx
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
+from blockout_contract_clients.team.api.team_api import TeamApi
 from prometheus_client import Gauge
 
 from scraper.application.association_changes import AssociationChangeSet
@@ -32,6 +33,7 @@ class Scraper(ABC):
         provider_client: httpx.AsyncClient,
         name: str,
         raw_division_mapping_api: RawDivisionMappingApi | None = None,
+        team_api: TeamApi | None = None,
         url: str | None = None,
         priority_validation_enabled: bool = False,
         max_concurrency: int = 10,
@@ -39,6 +41,7 @@ class Scraper(ABC):
         self.session = session
         self.name = name
         self.raw_division_mapping_api = raw_division_mapping_api
+        self.team_api = team_api
         self.url = url
         self.priority_validation_enabled = priority_validation_enabled
         self._max_concurrency = max_concurrency
@@ -60,6 +63,12 @@ class Scraper(ABC):
                 f"Scraping duration for {class_name}",
             )
         self.scraping_duration_gauge = self._gauges[class_name]
+
+    def teams_api(self) -> TeamApi:
+        """Return the configured generated teams-service client."""
+        if self.team_api is None:
+            raise RuntimeError("The generated teams-service client is not configured.")
+        return self.team_api
 
     @abstractmethod
     async def run_scraping(self) -> None:

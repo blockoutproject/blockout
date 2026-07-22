@@ -7,6 +7,7 @@ import httpx
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
+from blockout_contract_clients.team.api.team_api import TeamApi
 
 from scraper.application.ffvb_league_ingestion import ingest_league_pools
 from scraper.application.source import Scraper
@@ -26,12 +27,14 @@ class RegionalScraper(Scraper):
         session: aiohttp.ClientSession,
         provider_client: httpx.AsyncClient,
         raw_division_mapping_api: RawDivisionMappingApi | None = None,
+        team_api: TeamApi | None = None,
     ) -> None:
         super().__init__(
             session,
             provider_client,
             name="regional_scraper",
             raw_division_mapping_api=raw_division_mapping_api,
+            team_api=team_api,
             url="https://www.ffvb.org/120-37-1-Championnats-Regionaux",
             priority_validation_enabled=False,
         )

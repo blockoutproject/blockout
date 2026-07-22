@@ -1,6 +1,7 @@
 import asyncio
 import json
 from datetime import UTC, datetime
+from urllib.parse import parse_qs
 
 import httpx
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
@@ -8,7 +9,8 @@ from blockout_contract_clients.config.api.raw_division_mapping_api import (
 )
 from blockout_contract_clients.config.api.scraper_status_api import ScraperStatusApi
 from blockout_contract_clients.config.models.scraper_name_enum import ScraperNameEnum
-from scraper.application.models import RawDivisionMapping
+from blockout_contract_clients.team.api.team_api import TeamApi
+from scraper.application.models import RawDivisionMapping, Team
 from scraper.infrastructure.blockout import competitions as competitions_api
 from scraper.infrastructure.blockout import configuration as config_api
 from scraper.infrastructure.blockout import matches as matches_api
@@ -23,7 +25,6 @@ from scraper.infrastructure.blockout.competition_association import (
 from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.response import convert_to_dataclass
-from scraper.infrastructure.blockout.team import TeamInternalResponse
 
 
 class RecordingResponse:
@@ -89,35 +90,73 @@ def test_requests_scraper_status_from_the_config_api(monkeypatch):
 
 def test_writes_the_camel_case_team_payload(monkeypatch):
     async def scenario():
-        monkeypatch.setattr(teams_api, "TEAM_API_URL", "http://teams.local/v1/teams")
+        monkeypatch.setattr(
+            teams_api, "TEAM_API_URL", "http://teams.local/api/v1/teams"
+        )
         monkeypatch.setattr(
             teams_api, "_get_headers", lambda: {"Authorization": "Bearer test"}
         )
-        session = RecordingSession()
-        team = TeamInternalResponse(
-            clubId="club-1",
-            rawName="RAW TEAM",
+        requests: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(
+                201 if request.method == "POST" else 200,
+                json={
+                    "id": 1,
+                    "clubId": "club-1",
+                    "rawName": "RAW TEAM",
+                    "name": "Blockout",
+                    "shortName": "BO",
+                    "leagueCode": "LNV",
+                    "divisionId": 10,
+                    "season": "2026/2027",
+                    "format": "SIX",
+                    "gender": "F",
+                    "followersCount": 0,
+                    "logoUrl": None,
+                    "active": True,
+                },
+            )
+
+        team = Team(
+            club_id="club-1",
+            raw_name="RAW TEAM",
             name="Blockout",
-            shortName="BO",
-            leagueCode="LNV",
-            divisionId=10,
+            short_name="BO",
+            league_code="LNV",
+            division_id=10,
             season="2026/2027",
+            format="SIX",
+            gender="F",
         )
 
-        await teams_api.create_team.__wrapped__(session, team)
+        api_client = teams_api.build_team_api_client()
+        api_client.rest_client.pool_manager = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler)
+        )
+        try:
+            created = await teams_api.create_team(TeamApi(api_client), team)
+            team.id = created.id
+            await teams_api.update_team(TeamApi(api_client), team)
+        finally:
+            await api_client.close()
 
-        method, url, kwargs = session.calls[0]
-        assert method == "POST"
-        assert url == "http://teams.local/v1/teams"
-        assert kwargs["json"]["clubId"] == "club-1"
-        assert kwargs["json"]["rawName"] == "RAW TEAM"
-        assert kwargs["json"]["shortName"] == "BO"
-        assert kwargs["json"]["divisionId"] == 10
-        assert kwargs["json"]["logoUrl"] is None
-        assert set(kwargs["json"]) == set(teams_api.TEAM_CREATE_WRITE_FIELDS)
-        assert kwargs["json"]["followersCount"] == 0
-        assert "createdAt" not in kwargs["json"]
-        assert "club_id" not in kwargs["json"]
+        payload = json.loads(requests[0].content)
+        assert requests[0].method == "POST"
+        assert requests[0].url.path == "/api/v1/teams"
+        assert payload["clubId"] == "club-1"
+        assert payload["rawName"] == "RAW TEAM"
+        assert payload["shortName"] == "BO"
+        assert payload["divisionId"] == 10
+        assert payload["followersCount"] == 0
+        assert "createdAt" not in payload
+        assert "club_id" not in payload
+        assert created.raw_name == "RAW TEAM"
+        assert requests[1].method == "PUT"
+        update_payload = json.loads(parse_qs(requests[1].content.decode())["data"][0])
+        assert update_payload["clubId"] == "club-1"
+        assert "club_id" not in update_payload
 
     asyncio.run(scenario())
 
@@ -205,18 +244,35 @@ def test_reads_the_complete_match_contract_and_writes_only_create_fields():
 
 def test_sends_native_camel_case_query_parameters(monkeypatch):
     async def scenario():
-        monkeypatch.setattr(teams_api, "TEAM_API_URL", "http://teams.local/v1/teams")
+        monkeypatch.setattr(
+            teams_api, "TEAM_API_URL", "http://teams.local/api/v1/teams"
+        )
         monkeypatch.setattr(
             teams_api, "_get_headers", lambda: {"Authorization": "Bearer test"}
         )
-        session = RecordingSession()
+        requests: list[httpx.Request] = []
 
-        await teams_api.get_teams.__wrapped__(session, divisionId=10, clubId="club-1")
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(200, json=[])
 
-        method, url, kwargs = session.calls[0]
-        assert method == "GET"
-        assert url == "http://teams.local/v1/teams"
-        assert kwargs["params"] == {"divisionId": 10, "clubId": "club-1"}
+        api_client = teams_api.build_team_api_client()
+        api_client.rest_client.pool_manager = httpx.AsyncClient(
+            transport=httpx.MockTransport(handler)
+        )
+        try:
+            await teams_api.get_teams(
+                TeamApi(api_client), division_id=10, club_id="club-1"
+            )
+        finally:
+            await api_client.close()
+
+        assert requests[0].method == "GET"
+        assert requests[0].url.path == "/api/v1/teams"
+        assert dict(requests[0].url.params) == {
+            "divisionId": "10",
+            "clubId": "club-1",
+        }
 
     asyncio.run(scenario())
 

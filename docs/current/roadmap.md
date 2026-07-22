@@ -475,10 +475,19 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     39 club-scraper tests, 70 competition-scraper tests, Ruff checks, and the targeted Java 21 reactor pass. Git tracks
     no generated source.
 
-- [ ] **REF-045 — Migrate the Team contract**
+- [x] **REF-045 — Migrate the Team contract**
   - Establish Team schemas from the authoritative `teams-service` model and shared Club and Division references.
   - Adopt generated Java models/interfaces and the competition scraper's generated asynchronous client while preserving
     create, update, deactivate, follow, lookup, and ingestion behavior.
+  - Evidence: one Team OpenAPI source now owns the existing V1 routes and camelCase create, update, and response models.
+    `teams-service` implements the generated server interface, `mobile-gateway` and `search-worker` consume generated
+    adapter-local models, and the competition scraper uses the generated asynchronous HTTPX client while keeping its
+    idiomatic application model separate. Handwritten Team transport mirrors were removed; shared format and gender
+    enums remain generated from their existing shared schemas.
+  - Team creation, multipart update, lookup, deactivation, follower operations, ingestion, and gateway/search mappings
+    retain their existing behavior. Two clean generations have identical hashes; uv lock, Ruff, the contract guards,
+    70 competition-scraper tests, 5 generated-client tests, and the targeted clean Java 21 reactor pass. Git tracks no
+    generated source.
 
 - [ ] **REF-046 — Migrate the Pool contract**
   - Establish Pool schemas from the authoritative `pools-service` model and shared Division, format, and gender schemas.

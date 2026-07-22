@@ -1,0 +1,20 @@
+{
+  "UpdateTeamInternalRequest": {
+    "type": "object",
+    "description": "Internal request used to update a Team.",
+    "additionalProperties": false,
+    "properties": {
+      "clubId": { "type": "string", "nullable": true },
+      "rawName": { "type": "string", "nullable": true },
+      "name": { "type": "string", "nullable": true },
+      "shortName": { "type": "string", "nullable": true },
+      "leagueCode": { "type": "string", "nullable": true },
+      "divisionId": { "type": "integer", "format": "int64", "nullable": true },
+      "logoUrl": { "type": "string", "nullable": true },
+      "season": { "type": "string", "nullable": true },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "active": { "type": "boolean", "nullable": true }
+    }
+  }
+}

@@ -17,7 +17,8 @@
         "commands": [
           "openapi-generator-cli batch --clean --fail-fast libs/shared/python-contract-clients/openapi-generator.json",
           "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/club-openapi-generator.json",
-          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/config-openapi-generator.json"
+          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/config-openapi-generator.json",
+          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/team-openapi-generator.json"
         ]
       }
     },

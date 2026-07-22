@@ -4,8 +4,8 @@ import com.blockout.workersearch.projection.application.models.Format;
 import com.blockout.workersearch.projection.application.models.Gender;
 import com.blockout.workersearch.projection.infrastructure.http.contract.config.models.DivisionInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.contract.models.ClubInternalResponse;
+import com.blockout.workersearch.projection.infrastructure.http.contract.team.models.TeamInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.PoolInternalResponse;
-import com.blockout.workersearch.projection.infrastructure.http.models.TeamInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.messaging.messages.TeamUpsertMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -73,9 +73,9 @@ class ProjectionTransportContractUnitTest {
              "createdAt":"2026-07-19T12:00:00","lastUpdate":"2026-07-19T12:00:00"}
             """, TeamInternalResponse.class);
 
-        assertThat(team.rawName()).isEqualTo("RAW");
-        assertThat(team.logoUrl()).isEqualTo("logo");
-        assertThat(team.createdAt()).isEqualTo(team.lastUpdate());
+        assertThat(team.getRawName()).isEqualTo("RAW");
+        assertThat(team.getLogoUrl()).isEqualTo("logo");
+        assertThat(team.getCreatedAt()).isEqualTo(team.getLastUpdate());
     }
 
     @Test

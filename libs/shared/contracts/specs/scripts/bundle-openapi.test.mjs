@@ -105,6 +105,17 @@ test('schema roots include active multipart JSON models without fake endpoints',
     ].schema.properties.data.type,
     'string',
   );
+
+  const teamBundle = JSON.parse(
+    await readFile(path.join(contractsRoot, 'generated/specs/team.json'), 'utf8'),
+  );
+  assert.ok(teamBundle.components.schemas.CreateTeamInternalRequest);
+  assert.ok(teamBundle.components.schemas.UpdateTeamInternalRequest);
+  assert.equal(
+    teamBundle.paths['/api/v1/teams/{id}'].put.requestBody.content['multipart/form-data'].schema
+      .properties.data.type,
+    'string',
+  );
 });
 
 test('generated artifacts are not tracked by Git', () => {

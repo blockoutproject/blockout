@@ -11,7 +11,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,6 +28,7 @@ public class TeamInternalClient {
     private final ApiClientProperties apiClientProperties;
     private final InternalApiClient internalApiClient;
     private final ObjectMapper objectMapper;
+    private final TeamContractMapper contractMapper;
 
     private String baseUrl() {
         return apiClientProperties.getTeam().getUrl();
@@ -41,8 +41,9 @@ public class TeamInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<TeamInternalResponse> response = internalApiClient.get(url, TeamInternalResponse.class);
-        return response.getBody();
+        var response = internalApiClient.get(
+            url, com.blockout.mobilegateway.team.infrastructure.contract.models.TeamInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 
     public List<TeamInternalResponse> getTeamsByIds(Set<Long> ids) {
@@ -55,9 +56,10 @@ public class TeamInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<TeamInternalResponse[]> response = internalApiClient.get(url, TeamInternalResponse[].class);
-        TeamInternalResponse[] body = response.getBody();
-        return body != null ? Arrays.asList(body) : Collections.emptyList();
+        var response = internalApiClient.get(url,
+            com.blockout.mobilegateway.team.infrastructure.contract.models.TeamInternalResponse[].class);
+        var body = response.getBody();
+        return body != null ? Arrays.stream(body).map(contractMapper::toResponse).toList() : Collections.emptyList();
     }
 
     @Cacheable(value = "teamsByClubId", key = "#clubId")
@@ -68,9 +70,10 @@ public class TeamInternalClient {
             .build()
             .toUriString();
 
-        ResponseEntity<TeamInternalResponse[]> response = internalApiClient.get(url, TeamInternalResponse[].class);
-        TeamInternalResponse[] body = response.getBody();
-        return body != null ? Arrays.asList(body) : Collections.emptyList();
+        var response = internalApiClient.get(url,
+            com.blockout.mobilegateway.team.infrastructure.contract.models.TeamInternalResponse[].class);
+        var body = response.getBody();
+        return body != null ? Arrays.stream(body).map(contractMapper::toResponse).toList() : Collections.emptyList();
     }
 
     @Caching(put = {
@@ -84,9 +87,11 @@ public class TeamInternalClient {
             .build()
             .toUriString();
 
-        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(objectMapper, dto, image);
+        MultiValueMap<String, Object> body = MultipartBodyBuilder.buildMultipart(
+            objectMapper, contractMapper.toInternalRequest(dto), image);
 
-        ResponseEntity<TeamInternalResponse> response = internalApiClient.putMultipart(url, body, TeamInternalResponse.class);
-        return response.getBody();
+        var response = internalApiClient.putMultipart(
+            url, body, com.blockout.mobilegateway.team.infrastructure.contract.models.TeamInternalResponse.class);
+        return contractMapper.toResponse(response.getBody());
     }
 }

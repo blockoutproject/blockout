@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from scraper.application.models import Team
 from scraper.application.pool_writer import add_or_update_pool
 from scraper.application.source import Scraper
 from scraper.application.team_writer import add_or_update_team
@@ -19,7 +20,6 @@ from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.matches import bulk_deactivate_matches
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.pools import update_pool
-from scraper.infrastructure.blockout.team import TeamInternalResponse
 from scraper.infrastructure.blockout.teams import get_teams
 from scraper.infrastructure.ffvb.calendar import download_and_parse_csv
 from scraper.infrastructure.ffvb.models import FfvbRanking
@@ -107,7 +107,7 @@ async def handle_csv_download_and_parse(
 
         existing_teams = (
             await get_teams(
-                scraper.session,
+                scraper.teams_api(),
                 new_pool.divisionId,
                 new_pool.format,
                 new_pool.gender,
@@ -122,7 +122,7 @@ async def handle_csv_download_and_parse(
         }
 
         existing_teams_dict = {
-            (t.clubId, t.divisionId, t.format, t.gender, normalize(t.rawName)): t
+            (t.club_id, t.division_id, t.format, t.gender, normalize(t.raw_name)): t
             for t in existing_teams
         }
 
@@ -149,20 +149,20 @@ async def handle_csv_download_and_parse(
             )
             existing_team_a = existing_teams_dict.get(team_a_key)
 
-            team_a_obj = TeamInternalResponse(
-                rawName=team_a_full,
+            team_a_obj = Team(
+                raw_name=team_a_full,
                 name=team_a_full,
-                shortName=team_a_short,
-                clubId=row.home_club_id,
+                short_name=team_a_short,
+                club_id=row.home_club_id,
                 season=new_pool.season,
-                leagueCode=new_pool.leagueCode,
-                divisionId=new_pool.divisionId,
+                league_code=new_pool.leagueCode,
+                division_id=new_pool.divisionId,
                 format=new_pool.format,
                 gender=new_pool.gender,
             )
 
             new_team_a = await add_or_update_team(
-                scraper.session, team_a_obj, existing_team_a
+                scraper.teams_api(), team_a_obj, existing_team_a
             )
             existing_teams_dict[team_a_key] = new_team_a
             scraped_team_ids.add(new_team_a.id)
@@ -178,20 +178,20 @@ async def handle_csv_download_and_parse(
             )
             existing_team_b = existing_teams_dict.get(team_b_key)
 
-            team_b_obj = TeamInternalResponse(
-                rawName=team_b_full,
+            team_b_obj = Team(
+                raw_name=team_b_full,
                 name=team_b_full,
-                shortName=team_b_short,
-                clubId=row.away_club_id,
+                short_name=team_b_short,
+                club_id=row.away_club_id,
                 season=new_pool.season,
-                leagueCode=new_pool.leagueCode,
-                divisionId=new_pool.divisionId,
+                league_code=new_pool.leagueCode,
+                division_id=new_pool.divisionId,
                 format=new_pool.format,
                 gender=new_pool.gender,
             )
 
             new_team_b = await add_or_update_team(
-                scraper.session, team_b_obj, existing_team_b
+                scraper.teams_api(), team_b_obj, existing_team_b
             )
             existing_teams_dict[team_b_key] = new_team_b
             scraped_team_ids.add(new_team_b.id)
@@ -216,14 +216,14 @@ async def handle_csv_download_and_parse(
             for team_obj in [new_team_a, new_team_b]:
                 if team_obj.id not in active_team_ids:
                     await add_team_to_pool(
-                        scraper.session, new_pool.id, team_obj.id, team_obj.clubId
+                        scraper.session, new_pool.id, team_obj.id, team_obj.club_id
                     )
                     log_event(
                         "add_team_to_pool",
                         "info",
                         poolId=new_pool.id,
                         teamId=team_obj.id,
-                        clubId=team_obj.clubId,
+                        clubId=team_obj.club_id,
                     )
                     active_team_ids.add(team_obj.id)
 
@@ -236,9 +236,9 @@ async def handle_csv_download_and_parse(
         if has_anomalous_match or is_nat_or_pro:
             stats_list = await extract_club_stats_list(scraper, raw_season, new_pool)
             fallback_teams = (
-                await get_teams(scraper.session, ids=list(active_team_ids)) or []
+                await get_teams(scraper.teams_api(), ids=list(active_team_ids)) or []
             )
-            team_lookup = {normalize(t.rawName): t for t in fallback_teams}
+            team_lookup = {normalize(t.raw_name): t for t in fallback_teams}
 
             for ranking in stats_list:
                 normalized_name = normalize(

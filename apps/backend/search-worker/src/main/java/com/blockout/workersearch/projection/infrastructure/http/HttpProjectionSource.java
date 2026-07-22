@@ -9,7 +9,7 @@ import com.blockout.workersearch.projection.application.ports.ProjectionSource;
 import com.blockout.workersearch.projection.infrastructure.http.contract.models.ClubInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.contract.config.models.DivisionInternalResponse;
 import com.blockout.workersearch.projection.infrastructure.http.models.PoolInternalResponse;
-import com.blockout.workersearch.projection.infrastructure.http.models.TeamInternalResponse;
+import com.blockout.workersearch.projection.infrastructure.http.contract.team.models.TeamInternalResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -45,8 +45,10 @@ public class HttpProjectionSource implements ProjectionSource {
             ? Collections.emptyList()
             : Arrays.stream(body)
             .map(team -> new TeamProjectionSource(
-                team.id(), team.name(), team.shortName(), team.clubId(), team.divisionId(),
-                team.format(), team.gender(), team.season(), team.logoUrl()))
+                team.getId(), team.getName(), team.getShortName(), team.getClubId(), team.getDivisionId(),
+                com.blockout.workersearch.projection.application.models.Format.valueOf(team.getFormat().name()),
+                com.blockout.workersearch.projection.application.models.Gender.valueOf(team.getGender().name()),
+                team.getSeason(), team.getLogoUrl()))
             .toList();
     }
 

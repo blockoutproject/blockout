@@ -1,6 +1,8 @@
 package com.blockout.teams.team.api.mappers;
 
 import com.blockout.teams.team.api.models.UpdateTeamInternalRequest;
+import com.blockout.shared.model.FormatEnum;
+import com.blockout.shared.model.GenderEnum;
 import com.blockout.teams.team.application.models.Format;
 import com.blockout.teams.team.application.models.Gender;
 import com.blockout.teams.team.application.views.TeamView;
@@ -23,8 +25,7 @@ class TeamApiMapperUnitTest {
     @Test
     @DisplayName("copies multipart bytes into an application command")
     void copiesMultipartBytesIntoAnApplicationCommand() throws Exception {
-        UpdateTeamInternalRequest request = new UpdateTeamInternalRequest(
-            null, null, "Team", null, null, null, null, null, null, null, null);
+        UpdateTeamInternalRequest request = new UpdateTeamInternalRequest().name("Team");
         MockMultipartFile image = new MockMultipartFile("image", "team.png", "image/png", new byte[]{1, 2});
 
         var command = mapper.toCommand(request, image);
@@ -43,6 +44,20 @@ class TeamApiMapperUnitTest {
 
         var response = mapper.toInternalResponse(view);
 
-        assertThat(response).usingRecursiveComparison().isEqualTo(view);
+        assertThat(response.getId()).isEqualTo(view.id());
+        assertThat(response.getClubId()).isEqualTo(view.clubId());
+        assertThat(response.getRawName()).isEqualTo(view.rawName());
+        assertThat(response.getName()).isEqualTo(view.name());
+        assertThat(response.getShortName()).isEqualTo(view.shortName());
+        assertThat(response.getLeagueCode()).isEqualTo(view.leagueCode());
+        assertThat(response.getDivisionId()).isEqualTo(view.divisionId());
+        assertThat(response.getSeason()).isEqualTo(view.season());
+        assertThat(response.getFormat()).isEqualTo(FormatEnum.SIX);
+        assertThat(response.getGender()).isEqualTo(GenderEnum.F);
+        assertThat(response.getFollowersCount()).isEqualTo(view.followersCount());
+        assertThat(response.getLogoUrl()).isEqualTo(view.logoUrl());
+        assertThat(response.getActive()).isEqualTo(view.active());
+        assertThat(response.getCreatedAt()).isEqualTo(view.createdAt());
+        assertThat(response.getLastUpdate()).isEqualTo(view.lastUpdate());
     }
 }

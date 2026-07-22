@@ -1,0 +1,38 @@
+{
+  "TeamInternalResponse": {
+    "type": "object",
+    "description": "Complete internal Team representation owned by teams-service.",
+    "additionalProperties": false,
+    "required": [
+      "id",
+      "clubId",
+      "rawName",
+      "name",
+      "shortName",
+      "leagueCode",
+      "divisionId",
+      "season",
+      "format",
+      "gender",
+      "followersCount",
+      "active"
+    ],
+    "properties": {
+      "id": { "type": "integer", "format": "int64" },
+      "clubId": { "type": "string" },
+      "rawName": { "type": "string" },
+      "name": { "type": "string" },
+      "shortName": { "type": "string" },
+      "leagueCode": { "type": "string" },
+      "divisionId": { "type": "integer", "format": "int64" },
+      "season": { "type": "string" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "followersCount": { "type": "integer", "format": "int64" },
+      "logoUrl": { "type": "string", "nullable": true },
+      "active": { "type": "boolean" },
+      "createdAt": { "type": "string", "format": "date-time", "nullable": true },
+      "lastUpdate": { "type": "string", "format": "date-time", "nullable": true }
+    }
+  }
+}

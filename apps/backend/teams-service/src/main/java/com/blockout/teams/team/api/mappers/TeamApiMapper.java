@@ -13,31 +13,47 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 
 /**
- * Maps handwritten Team transport models to application contracts and back.
+ * Maps generated Team API models to application contracts and back.
  */
 @Component
 public class TeamApiMapper {
 
     public CreateTeamCommand toCommand(CreateTeamInternalRequest request) {
-        return new CreateTeamCommand(request.clubId(), request.rawName(), request.name(), request.shortName(),
-            request.leagueCode(), request.divisionId(), request.season(), request.format(), request.gender(),
-            request.followersCount(), request.logoUrl(), request.active());
+        return new CreateTeamCommand(request.getClubId(), request.getRawName(), request.getName(), request.getShortName(),
+            request.getLeagueCode(), request.getDivisionId(), request.getSeason(), toFormat(request.getFormat()),
+            toGender(request.getGender()), request.getFollowersCount(), request.getLogoUrl(), request.getActive());
     }
 
-    public UpdateTeamCommand toCommand(UpdateTeamInternalRequest request, MultipartFile image) throws IOException {
-        return new UpdateTeamCommand(request.clubId(), request.rawName(), request.name(), request.shortName(),
-            request.leagueCode(), request.divisionId(), request.logoUrl(), request.season(), request.format(),
-            request.gender(), request.active(), toImageCommand(image));
+    public UpdateTeamCommand toCommand(UpdateTeamInternalRequest request, MultipartFile image) {
+        return new UpdateTeamCommand(request.getClubId(), request.getRawName(), request.getName(), request.getShortName(),
+            request.getLeagueCode(), request.getDivisionId(), request.getLogoUrl(), request.getSeason(),
+            toFormat(request.getFormat()), toGender(request.getGender()), request.getActive(), toImageCommand(image));
     }
 
     public TeamInternalResponse toInternalResponse(TeamView view) {
         return new TeamInternalResponse(view.id(), view.clubId(), view.rawName(), view.name(), view.shortName(),
-            view.leagueCode(), view.divisionId(), view.season(), view.format(), view.gender(),
-            view.followersCount(), view.logoUrl(), view.active(), view.createdAt(), view.lastUpdate());
+            view.leagueCode(), view.divisionId(), view.season(),
+            com.blockout.shared.model.FormatEnum.valueOf(view.format().name()),
+            com.blockout.shared.model.GenderEnum.valueOf(view.gender().name()), view.followersCount(), view.active())
+            .logoUrl(view.logoUrl())
+            .createdAt(view.createdAt())
+            .lastUpdate(view.lastUpdate());
     }
 
-    private TeamImageCommand toImageCommand(MultipartFile image) throws IOException {
+    public com.blockout.teams.team.application.models.Format toFormat(com.blockout.shared.model.FormatEnum format) {
+        return format == null ? null : com.blockout.teams.team.application.models.Format.valueOf(format.name());
+    }
+
+    public com.blockout.teams.team.application.models.Gender toGender(com.blockout.shared.model.GenderEnum gender) {
+        return gender == null ? null : com.blockout.teams.team.application.models.Gender.valueOf(gender.name());
+    }
+
+    private TeamImageCommand toImageCommand(MultipartFile image) {
         if (image == null || image.isEmpty()) return null;
-        return new TeamImageCommand(image.getBytes(), image.getOriginalFilename(), image.getContentType());
+        try {
+            return new TeamImageCommand(image.getBytes(), image.getOriginalFilename(), image.getContentType());
+        } catch (IOException exception) {
+            throw new IllegalArgumentException("The multipart image could not be read.", exception);
+        }
     }
 }

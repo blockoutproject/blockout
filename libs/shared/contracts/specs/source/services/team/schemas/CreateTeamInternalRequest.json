@@ -1,0 +1,32 @@
+{
+  "CreateTeamInternalRequest": {
+    "type": "object",
+    "description": "Internal request used to create a Team.",
+    "additionalProperties": false,
+    "required": [
+      "clubId",
+      "rawName",
+      "name",
+      "shortName",
+      "leagueCode",
+      "divisionId",
+      "season",
+      "format",
+      "gender"
+    ],
+    "properties": {
+      "clubId": { "type": "string" },
+      "rawName": { "type": "string" },
+      "name": { "type": "string" },
+      "shortName": { "type": "string" },
+      "leagueCode": { "type": "string" },
+      "divisionId": { "type": "integer", "format": "int64" },
+      "season": { "type": "string" },
+      "format": { "$ref": "#/components/schemas/FormatEnum" },
+      "gender": { "$ref": "#/components/schemas/GenderEnum" },
+      "followersCount": { "type": "integer", "format": "int64", "nullable": true },
+      "logoUrl": { "type": "string", "nullable": true },
+      "active": { "type": "boolean", "nullable": true }
+    }
+  }
+}

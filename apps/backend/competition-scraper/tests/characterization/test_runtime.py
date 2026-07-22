@@ -111,7 +111,11 @@ def test_top_level_runner_limits_scraper_concurrency_to_two(monkeypatch) -> None
         started: list[str] = []
 
         async def run_one(
-            _session, _provider_client, scraper_type, _raw_division_mapping_api=None
+            _session,
+            _provider_client,
+            scraper_type,
+            _raw_division_mapping_api=None,
+            _team_api=None,
         ):
             nonlocal active, maximum
             active += 1
@@ -205,6 +209,7 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
             provider_client,
             scraper_types,
             raw_division_mapping_api=None,
+            team_api=None,
             max_concurrency=2,
         ):
             observed["run"] = (
@@ -212,6 +217,7 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
                 provider_client,
                 list(scraper_types),
                 raw_division_mapping_api,
+                team_api,
                 max_concurrency,
             )
 
@@ -236,7 +242,8 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
         }
         assert observed["run"][2] == ["regional", "departmental", "national", "pro"]
         assert observed["run"][3] is not None
-        assert observed["run"][4] == 2
+        assert observed["run"][4] is not None
+        assert observed["run"][5] == 2
 
     asyncio.run(scenario())
 

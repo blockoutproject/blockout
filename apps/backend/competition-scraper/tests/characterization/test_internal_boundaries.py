@@ -9,9 +9,15 @@ from blockout_contract_clients.config.models.create_raw_division_mapping_interna
 from blockout_contract_clients.config.models.scraper_status_internal_response import (
     ScraperStatusInternalResponse,
 )
+from blockout_contract_clients.team.models.create_team_internal_request import (
+    CreateTeamInternalRequest,
+)
+from blockout_contract_clients.team.models.update_team_internal_request import (
+    UpdateTeamInternalRequest,
+)
 from scraper.application import pool_writer as pools_service
 from scraper.application import team_writer as teams_service
-from scraper.application.models import RawDivisionMapping
+from scraper.application.models import RawDivisionMapping, Team
 from scraper.application.source import Scraper
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.infrastructure.blockout import competitions as competitions_api
@@ -36,11 +42,6 @@ from scraper.infrastructure.blockout.pool import (
     UpdatePoolInternalRequest,
 )
 from scraper.infrastructure.blockout.response import process_response
-from scraper.infrastructure.blockout.team import (
-    CreateTeamInternalRequest,
-    TeamInternalResponse,
-    UpdateTeamInternalRequest,
-)
 
 
 class RecordingResponse:
@@ -90,21 +91,21 @@ def _pool(**overrides) -> PoolInternalResponse:
     return PoolInternalResponse(**values)
 
 
-def _team(**overrides) -> TeamInternalResponse:
+def _team(**overrides) -> Team:
     values = {
         "id": 20,
-        "clubId": "club-1",
-        "rawName": "Raw Team",
+        "club_id": "club-1",
+        "raw_name": "Raw Team",
         "name": "Team",
-        "shortName": "T",
-        "leagueCode": "LNAQ",
-        "divisionId": 7,
+        "short_name": "T",
+        "league_code": "LNAQ",
+        "division_id": 7,
         "season": "2026/2027",
         "format": "SIX",
         "gender": "M",
     }
     values.update(overrides)
-    return TeamInternalResponse(**values)
+    return Team(**values)
 
 
 def _match(**overrides) -> MatchInternalResponse:
@@ -124,22 +125,22 @@ def _match(**overrides) -> MatchInternalResponse:
 
 def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
     """Protect every complete owner mirror before later contract generation."""
-    assert [item.name for item in fields(TeamInternalResponse)] == [
-        "clubId",
-        "rawName",
+    assert [item.name for item in fields(Team)] == [
+        "club_id",
+        "raw_name",
         "name",
-        "shortName",
-        "leagueCode",
-        "divisionId",
+        "short_name",
+        "league_code",
+        "division_id",
         "season",
         "gender",
         "format",
         "id",
-        "followersCount",
-        "logoUrl",
+        "followers_count",
+        "logo_url",
         "active",
-        "createdAt",
-        "lastUpdate",
+        "created_at",
+        "last_update",
     ]
     assert set(item.name for item in fields(PoolInternalResponse)) == {
         "id",
@@ -231,28 +232,28 @@ def test_complete_transport_mirrors_match_java_owner_field_sets() -> None:
 
 def test_write_contracts_mirror_java_owner_field_sets() -> None:
     """Protect every handwritten request until shared generation replaces it."""
-    assert [item.name for item in fields(CreateTeamInternalRequest)] == [
-        "clubId",
-        "rawName",
+    assert list(CreateTeamInternalRequest.model_fields) == [
+        "club_id",
+        "raw_name",
         "name",
-        "shortName",
-        "leagueCode",
-        "divisionId",
+        "short_name",
+        "league_code",
+        "division_id",
         "season",
         "format",
         "gender",
-        "followersCount",
-        "logoUrl",
+        "followers_count",
+        "logo_url",
         "active",
     ]
-    assert [item.name for item in fields(UpdateTeamInternalRequest)] == [
-        "clubId",
-        "rawName",
+    assert list(UpdateTeamInternalRequest.model_fields) == [
+        "club_id",
+        "raw_name",
         "name",
-        "shortName",
-        "leagueCode",
-        "divisionId",
-        "logoUrl",
+        "short_name",
+        "league_code",
+        "division_id",
+        "logo_url",
         "season",
         "format",
         "gender",
@@ -430,7 +431,7 @@ def test_pool_and_team_decisions_preserve_identity_noop_and_reactivation(
         assert any("Pool réactivée" in change for change in pool_updates[0][1])
 
         current_team = _team(active=False)
-        team_candidate = _team(id=999, rawName="Changed", active=False)
+        team_candidate = _team(id=999, raw_name="Changed", active=False)
         await teams_service.add_or_update_team(None, team_candidate, current_team)
         assert team_candidate.id == 20
         assert team_candidate.active is True
@@ -513,7 +514,7 @@ def test_response_handler_preserves_no_content_list_semantics() -> None:
     """Protect empty-list decoding used by owner collection clients."""
     result = asyncio.run(
         process_response(
-            RecordingResponse(), list[TeamInternalResponse], "get_teams", (), {}
+            RecordingResponse(), list[PoolInternalResponse], "get_pools", (), {}
         )
     )
     assert result == []

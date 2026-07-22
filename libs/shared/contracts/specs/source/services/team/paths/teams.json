@@ -1,0 +1,214 @@
+{
+  "/api/v1/teams": {
+    "get": {
+      "tags": ["Team"],
+      "operationId": "listTeams",
+      "parameters": [
+        {
+          "name": "divisionId",
+          "in": "query",
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "format",
+          "in": "query",
+          "schema": { "$ref": "#/components/schemas/FormatEnum" }
+        },
+        {
+          "name": "gender",
+          "in": "query",
+          "schema": { "$ref": "#/components/schemas/GenderEnum" }
+        },
+        { "name": "season", "in": "query", "schema": { "type": "string" } },
+        { "name": "clubId", "in": "query", "schema": { "type": "string" } },
+        {
+          "name": "ids",
+          "in": "query",
+          "style": "form",
+          "explode": true,
+          "schema": {
+            "type": "array",
+            "items": { "type": "integer", "format": "int64" }
+          }
+        },
+        { "name": "active", "in": "query", "schema": { "type": "boolean" } }
+      ],
+      "responses": {
+        "200": {
+          "description": "Teams returned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/TeamInternalResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "post": {
+      "tags": ["Team"],
+      "operationId": "createTeam",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateTeamInternalRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Team created",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TeamInternalResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/teams/club-ids": {
+    "get": {
+      "tags": ["Team"],
+      "operationId": "getUniqueClubIds",
+      "responses": {
+        "200": {
+          "description": "Unique Club identifiers returned",
+          "content": {
+            "application/json": {
+              "schema": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/teams/{id}": {
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "format": "int64" }
+      }
+    ],
+    "get": {
+      "tags": ["Team"],
+      "operationId": "getTeamById",
+      "responses": {
+        "200": {
+          "description": "Team found",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TeamInternalResponse" }
+            }
+          }
+        }
+      }
+    },
+    "put": {
+      "tags": ["Team"],
+      "operationId": "updateTeam",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "type": "object",
+              "required": ["data"],
+              "properties": {
+                "data": { "type": "string" },
+                "image": {
+                  "type": "string",
+                  "format": "binary",
+                  "nullable": true
+                }
+              }
+            },
+            "encoding": { "data": { "contentType": "application/json" } }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Team updated",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TeamInternalResponse" }
+            }
+          }
+        }
+      }
+    },
+    "delete": {
+      "tags": ["Team"],
+      "operationId": "deactivateTeam",
+      "responses": { "204": { "description": "Team deactivated" } }
+    }
+  },
+  "/api/v1/teams/{teamId}/followers/increment": {
+    "post": {
+      "tags": ["Team"],
+      "operationId": "incrementFollowers",
+      "parameters": [
+        {
+          "name": "teamId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "userId",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Follower count incremented",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TeamInternalResponse" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/teams/{teamId}/followers/decrement": {
+    "post": {
+      "tags": ["Team"],
+      "operationId": "decrementFollowers",
+      "parameters": [
+        {
+          "name": "teamId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "userId",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "integer", "format": "int64" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Follower count decremented",
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TeamInternalResponse" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

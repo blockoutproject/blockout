@@ -1,0 +1,23 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Team Service Internal API",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "http://localhost:8087" }],
+  "tags": [{ "name": "Team" }],
+  "security": [{ "bearerAuth": [] }],
+  "x-contract-schema-roots": [
+    "CreateTeamInternalRequest",
+    "UpdateTeamInternalRequest"
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

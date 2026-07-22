@@ -16,6 +16,13 @@ from blockout_contract_clients.shared.models import (
     GenderEnum,
     ScraperNameEnum,
 )
+from blockout_contract_clients.team.api import TeamApi
+from blockout_contract_clients.team.models import (
+    CreateTeamInternalRequest,
+    FormatEnum as TeamFormatEnum,
+    GenderEnum as TeamGenderEnum,
+    TeamInternalResponse,
+)
 
 
 def test_shared_transport_enums_are_generated() -> None:
@@ -78,3 +85,31 @@ def test_config_models_and_async_apis_are_generated() -> None:
         "list_raw_division_mappings"
     )
     assert ScraperStatusApi.get_scraper_status.__name__ == "get_scraper_status"
+
+
+def test_team_models_and_async_api_are_generated() -> None:
+    """Expose the complete Team boundary and its asynchronous API."""
+    request = CreateTeamInternalRequest(
+        club_id="club-1",
+        raw_name="RAW",
+        name="Team",
+        short_name="T",
+        league_code="LNV",
+        division_id=2,
+        season="2026/2027",
+        format=TeamFormatEnum.SIX,
+        gender=TeamGenderEnum.F,
+    )
+    response = TeamInternalResponse.from_dict(
+        {
+            **request.to_dict(),
+            "id": 1,
+            "followersCount": 0,
+            "active": True,
+        }
+    )
+
+    assert request.to_dict()["clubId"] == "club-1"
+    assert response is not None
+    assert response.raw_name == "RAW"
+    assert TeamApi.list_teams.__name__ == "list_teams"

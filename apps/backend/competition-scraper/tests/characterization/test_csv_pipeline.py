@@ -4,8 +4,8 @@ from pathlib import Path
 
 import httpx
 from scraper.application import calendar_ingestion as pipeline
+from scraper.application.models import Team
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
-from scraper.infrastructure.blockout.team import TeamInternalResponse
 from scraper.infrastructure.ffvb import calendar as file_utils
 from scraper.infrastructure.ffvb.calendar import download_and_parse_csv
 from scraper.infrastructure.ffvb.models import (
@@ -144,6 +144,9 @@ class RecordingScraper:
     def schedule_association_update(self, pool_id, team_id, stats):
         self.stats.append((pool_id, team_id, stats))
 
+    def teams_api(self):
+        return object()
+
 
 def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
     monkeypatch,
@@ -172,7 +175,7 @@ def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
                 second_referee="ARBITRE B",
             ),
         )
-        teams: list[TeamInternalResponse] = []
+        teams: list[Team] = []
         associations: list[tuple] = []
         deactivations: list[tuple] = []
 
@@ -189,7 +192,7 @@ def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
             return []
 
         async def save_team(_session, candidate, _existing):
-            candidate.id = 101 if candidate.clubId == "club-a" else 102
+            candidate.id = 101 if candidate.club_id == "club-a" else 102
             teams.append(candidate)
             return candidate
 

@@ -8,9 +8,10 @@ import httpx
 from blockout_contract_clients.config.api.raw_division_mapping_api import (
     RawDivisionMappingApi,
 )
+from blockout_contract_clients.team.api.team_api import TeamApi
 
 from scraper.application.calendar_ingestion import handle_csv_download_and_parse
-from scraper.application.models import RawDivisionMapping
+from scraper.application.models import RawDivisionMapping, Team
 from scraper.application.source import Scraper
 from scraper.application.team_writer import (
     find_team_by_name_in_division_format_gender_season,
@@ -24,7 +25,6 @@ from scraper.infrastructure.blockout.configuration import (
 from scraper.infrastructure.blockout.match import MatchInternalResponse
 from scraper.infrastructure.blockout.pool import PoolInternalResponse
 from scraper.infrastructure.blockout.pools import get_pools_by_league_and_season
-from scraper.infrastructure.blockout.team import TeamInternalResponse
 from scraper.infrastructure.blockout.teams import get_teams
 from scraper.infrastructure.lnv.parsers import (
     LnvLiveMatch,
@@ -41,12 +41,14 @@ class ProScraper(Scraper):
         session: aiohttp.ClientSession,
         provider_client: httpx.AsyncClient,
         raw_division_mapping_api: RawDivisionMappingApi | None = None,
+        team_api: TeamApi | None = None,
     ) -> None:
         super().__init__(
             session,
             provider_client,
             name="pro_scraper",
             raw_division_mapping_api=raw_division_mapping_api,
+            team_api=team_api,
             priority_validation_enabled=True,
         )
         self.raw_season = "2026/2027"
@@ -305,7 +307,7 @@ class ProScraper(Scraper):
                 if not full_name:
                     continue
                 team = await find_team_by_name_in_division_format_gender_season(
-                    self.session,
+                    self.teams_api(),
                     pool.divisionId,
                     pool.format,
                     pool.gender,
@@ -360,7 +362,7 @@ class ProScraper(Scraper):
             return
         teams = (
             await get_teams(
-                self.session,
+                self.teams_api(),
                 pool.divisionId,
                 pool.format,
                 pool.gender,
@@ -368,7 +370,7 @@ class ProScraper(Scraper):
             )
             or []
         )
-        teams_by_name = {team.rawName.strip().casefold(): team for team in teams}
+        teams_by_name = {team.raw_name.strip().casefold(): team for team in teams}
         matches_by_identity = {
             (
                 candidate.poolId,
@@ -396,7 +398,7 @@ class ProScraper(Scraper):
         self,
         provider_match: LnvLiveMatch,
         pool: PoolInternalResponse,
-        teams_by_name: dict[str, TeamInternalResponse],
+        teams_by_name: dict[str, Team],
         matches_by_identity: dict[
             tuple[int | None, int, int, date], MatchInternalResponse
         ],
