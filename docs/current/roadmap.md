@@ -837,7 +837,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     Android was not launched, and the subsequent native-only decision is isolated in REF-065A. Full evidence is in
     [the REF-064A canonical runtime reconciliation](./ref-064a-canonical-runtime-reconciliation.md).
 
-- [ ] **REF-065 — Establish the Expo UI and component policy**
+- [x] **REF-065 — Establish the Expo UI and component policy**
   - Rewrite the mobile policy from the certified Figma system, current Expo and React Native guidance, and the existing
     Blockout architecture. Define token ownership, local versus shared components, component composition, styling,
     accessibility, responsive behavior, exports, and visual validation without introducing a generic design framework.
@@ -849,6 +849,13 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Align the mobile testing policy with the new visual boundary: user-visible behavior remains covered by Jest and React
     Native Testing Library, while Figma comparisons and platform captures prove appearance. Do not add pixel snapshots,
     test-only production branches, or a second UI/test framework.
+  - Evidence: the Expo policy now makes iOS and Android the only product surfaces; assigns semantic tokens to
+    `src/shared/theme`; defines the feature-to-shared promotion gate, reusable screen-shell boundary, finite variants,
+    native styling, accessibility, responsive behavior, kebab-case handwritten files, direct named exports, and narrow
+    public entry points; and prohibits Tailwind, prop-heavy abstractions, primitive wrappers, registries, factories,
+    configuration-driven generic screens, and broad barrels. The testing policy keeps Jest and React Native Testing
+    Library responsible for observable behavior while exact Figma nodes and native captures own visual proof. The Figma
+    policy now excludes React Native Web from current certification.
 
 - [ ] **REF-065A — Remove the React Native Web surface**
   - Make Android and iOS the only supported product surfaces before implementing the Figma system. Remove the Expo Web
@@ -871,8 +878,8 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     skeletons or a code-generation layer for styles.
   - Keep component APIs small and composable, preserve accessibility and interaction behavior, and rename touched files
     according to REF-065. Remove superseded token values and duplicate components only after every consumer is migrated.
-  - Validate each shared component against Figma and its previous native rendering, then run focused tests, the complete
-    mobile static/test baseline, and the Web export.
+  - Validate each shared component against Figma and its previous native rendering on iOS and Android, then run focused
+    tests and the complete mobile static/test baseline.
 
 - [ ] **REF-067 — Align the application shell and entry flows**
   - Apply the certified tokens and components to navigation, session, sign-in, onboarding, app-status, loading, and other

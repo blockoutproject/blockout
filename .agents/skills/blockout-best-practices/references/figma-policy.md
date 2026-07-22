@@ -38,7 +38,7 @@ Figma-to-code implementation, and visual reconciliation.
 
 - Treat the shipped mobile application and runtime source as the authority for delivered behavior and reachable states.
 - Produce a clean normalized design-system composition. Do not reproduce incidental alignment drift, duplicated styles,
-  Web-only defects, or one-off values as new design rules.
+  unsupported-surface defects, or one-off values as new design rules.
 - Preserve the current dark identity, mobile information hierarchy, copy, and native platform boundaries.
 
 ### Figma-to-code implementation
@@ -57,7 +57,8 @@ Figma-to-code implementation, and visual reconciliation.
 - Keep foundations and component masters on their owning pages. Place approved screen compositions on
   `30 - Ready for Development`; move them to `40 - Shipped` only after the corresponding runtime implementation and
   native evidence pass.
-- React Native Web references use phone-sized viewports only. They never establish a desktop product.
+- iOS and Android are the only supported product surfaces. Historical React Native Web evidence may explain an earlier
+  decision, but it does not define a current frame, platform variant, or certification requirement.
 
 ## Inspection And Mutation
 
@@ -79,7 +80,7 @@ Figma-to-code implementation, and visual reconciliation.
 
 ## Fidelity And Evidence
 
-- Compare Figma with the running application at the same viewport, platform, theme, authentication mode, sanitized
+- Compare Figma with the running application at the same native viewport, platform, theme, authentication mode, sanitized
   fixture, and state.
 - A roadmap task may limit runtime visual evidence to a smaller platform set for resource reasons. Record the exact
   platforms exercised. An explicitly assumed parity platform may guide design decisions, but it must never be reported
