@@ -3,24 +3,14 @@
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 
-import aiohttp
 import httpx
-from blockout_contract_clients.competition.api.competition_association_api import (
-    CompetitionAssociationApi,
-)
-from blockout_contract_clients.config.api.raw_division_mapping_api import (
-    RawDivisionMappingApi,
-)
-from blockout_contract_clients.match.api.match_api import MatchApi
-from blockout_contract_clients.pool.api.pool_api import PoolApi
-from blockout_contract_clients.team.api.team_api import TeamApi
 from prometheus_client import Gauge
 
 from scraper.application.association_changes import AssociationChangeSet
 from scraper.application.match_changes import MatchChangeSet, MatchEntry
-from scraper.application.models import AssociationStats, Match
+from scraper.application.ports import BlockoutPort, ProviderHttpPort
 from scraper.domain.data_source_priority import DataSourcePriority
-from scraper.infrastructure.provider_http import ProviderHttpClient
+from scraper.domain.models import AssociationStats, Match
 from scraper.observability.logging import current_scraper, log_event
 
 
@@ -31,31 +21,19 @@ class Scraper(ABC):
 
     def __init__(
         self,
-        session: aiohttp.ClientSession,
-        provider_client: httpx.AsyncClient,
+        provider_http: ProviderHttpPort,
+        blockout: BlockoutPort,
         name: str,
-        raw_division_mapping_api: RawDivisionMappingApi | None = None,
-        team_api: TeamApi | None = None,
-        pool_api: PoolApi | None = None,
-        competition_api: CompetitionAssociationApi | None = None,
-        match_api: MatchApi | None = None,
         url: str | None = None,
         priority_validation_enabled: bool = False,
-        max_concurrency: int = 10,
     ) -> None:
-        self.session = session
+        self.blockout = blockout
         self.name = name
-        self.raw_division_mapping_api = raw_division_mapping_api
-        self.team_api = team_api
-        self.pool_api = pool_api
-        self.competition_api = competition_api
-        self.match_api = match_api
         self.url = url
         self.priority_validation_enabled = priority_validation_enabled
-        self._max_concurrency = max_concurrency
-        self._provider_http = ProviderHttpClient(provider_client, max_concurrency)
-        self._match_changes = MatchChangeSet(match_api, priority_validation_enabled)
-        self._association_changes = AssociationChangeSet(competition_api)
+        self._provider_http = provider_http
+        self._match_changes = MatchChangeSet(blockout, priority_validation_enabled)
+        self._association_changes = AssociationChangeSet(blockout)
 
         # These aliases remain public within the application because provider workflows
         # resolve dependencies from the pending writes before the final flush.
@@ -71,34 +49,6 @@ class Scraper(ABC):
                 f"Scraping duration for {class_name}",
             )
         self.scraping_duration_gauge = self._gauges[class_name]
-
-    def teams_api(self) -> TeamApi:
-        """Return the configured generated teams-service client."""
-        if self.team_api is None:
-            raise RuntimeError("The generated teams-service client is not configured.")
-        return self.team_api
-
-    def pools_api(self) -> PoolApi:
-        """Return the configured generated pools-service client."""
-        if self.pool_api is None:
-            raise RuntimeError("The generated pools-service client is not configured.")
-        return self.pool_api
-
-    def competitions_api(self) -> CompetitionAssociationApi:
-        """Return the configured generated competition-service client."""
-        if self.competition_api is None:
-            raise RuntimeError(
-                "The generated competition-service client is not configured."
-            )
-        return self.competition_api
-
-    def matches_api(self) -> MatchApi:
-        """Return the configured generated matches-service client."""
-        if self.match_api is None:
-            raise RuntimeError(
-                "The generated matches-service client is not configured."
-            )
-        return self.match_api
 
     @abstractmethod
     async def run_scraping(self) -> None:

@@ -2,19 +2,8 @@
 
 import asyncio
 
-import aiohttp
-import httpx
-from blockout_contract_clients.competition.api.competition_association_api import (
-    CompetitionAssociationApi,
-)
-from blockout_contract_clients.config.api.raw_division_mapping_api import (
-    RawDivisionMappingApi,
-)
-from blockout_contract_clients.match.api.match_api import MatchApi
-from blockout_contract_clients.pool.api.pool_api import PoolApi
-from blockout_contract_clients.team.api.team_api import TeamApi
-
 from scraper.application.ffvb_league_ingestion import ingest_league_pools
+from scraper.application.ports import BlockoutPort, ProviderHttpPort
 from scraper.application.source import Scraper
 from scraper.infrastructure.ffvb.discovery import (
     parse_league_pools,
@@ -29,23 +18,13 @@ class RegionalScraper(Scraper):
 
     def __init__(
         self,
-        session: aiohttp.ClientSession,
-        provider_client: httpx.AsyncClient,
-        raw_division_mapping_api: RawDivisionMappingApi | None = None,
-        team_api: TeamApi | None = None,
-        pool_api: PoolApi | None = None,
-        competition_api: CompetitionAssociationApi | None = None,
-        match_api: MatchApi | None = None,
+        provider_http: ProviderHttpPort,
+        blockout: BlockoutPort,
     ) -> None:
         super().__init__(
-            session,
-            provider_client,
+            provider_http,
+            blockout,
             name="regional_scraper",
-            raw_division_mapping_api=raw_division_mapping_api,
-            team_api=team_api,
-            pool_api=pool_api,
-            competition_api=competition_api,
-            match_api=match_api,
             url="https://www.ffvb.org/120-37-1-Championnats-Regionaux",
             priority_validation_enabled=False,
         )

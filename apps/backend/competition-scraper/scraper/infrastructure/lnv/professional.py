@@ -3,32 +3,15 @@ import xml.etree.ElementTree as ET
 from dataclasses import replace
 from datetime import date
 
-import aiohttp
-import httpx
-from blockout_contract_clients.competition.api.competition_association_api import (
-    CompetitionAssociationApi,
-)
-from blockout_contract_clients.config.api.raw_division_mapping_api import (
-    RawDivisionMappingApi,
-)
-from blockout_contract_clients.match.api.match_api import MatchApi
-from blockout_contract_clients.pool.api.pool_api import PoolApi
-from blockout_contract_clients.team.api.team_api import TeamApi
-
 from scraper.application.calendar_ingestion import handle_csv_download_and_parse
-from scraper.application.models import Match, Pool, RawDivisionMapping, Team
+from scraper.application.ports import BlockoutPort, ProviderHttpPort
 from scraper.application.source import Scraper
 from scraper.application.team_writer import (
     find_team_by_name_in_division_format_gender_season,
 )
 from scraper.domain.data_source_priority import DataSourcePriority
+from scraper.domain.models import Match, Pool, RawDivisionMapping, Team
 from scraper.domain.team import get_full_name
-from scraper.infrastructure.blockout.configuration import (
-    create_raw_division_mapping,
-    get_raw_division_mappings_by_league_and_season,
-)
-from scraper.infrastructure.blockout.pools import get_pools_by_league_and_season
-from scraper.infrastructure.blockout.teams import get_teams
 from scraper.infrastructure.lnv.parsers import (
     LnvLiveMatch,
     parse_live_matches,
@@ -41,23 +24,13 @@ from scraper.observability.logging import log_event
 class ProScraper(Scraper):
     def __init__(
         self,
-        session: aiohttp.ClientSession,
-        provider_client: httpx.AsyncClient,
-        raw_division_mapping_api: RawDivisionMappingApi | None = None,
-        team_api: TeamApi | None = None,
-        pool_api: PoolApi | None = None,
-        competition_api: CompetitionAssociationApi | None = None,
-        match_api: MatchApi | None = None,
+        provider_http: ProviderHttpPort,
+        blockout: BlockoutPort,
     ) -> None:
         super().__init__(
-            session,
-            provider_client,
+            provider_http,
+            blockout,
             name="pro_scraper",
-            raw_division_mapping_api=raw_division_mapping_api,
-            team_api=team_api,
-            pool_api=pool_api,
-            competition_api=competition_api,
-            match_api=match_api,
             priority_validation_enabled=True,
         )
         self.raw_season = "2026/2027"
@@ -105,14 +78,7 @@ class ProScraper(Scraper):
         self._live_documents: dict[str, str] = {}
         self._live_document_locks: dict[str, asyncio.Lock] = {}
 
-    def _config_api(self) -> RawDivisionMappingApi:
-        if self.raw_division_mapping_api is None:
-            raise RuntimeError("The generated config-service client is not configured.")
-        return self.raw_division_mapping_api
-
     async def run_scraping(self):
-        if self.session is None:
-            raise ValueError("La session aiohttp est non initialisée ou fermée.")
         self._live_documents.clear()
 
         async def guarded(task_coro):
@@ -120,19 +86,17 @@ class ProScraper(Scraper):
                 return await task_coro
 
         try:
-            existing_pools = await get_pools_by_league_and_season(
-                self.pools_api(), self.league_code, self.raw_season
+            existing_pools = await self.blockout.get_pools(
+                self.league_code, self.raw_season
             )
-            existing_pools = existing_pools or []
             existing_pools_dict = {
                 (pool.pool_code, pool.league_code, pool.season): pool
                 for pool in existing_pools
             }
 
-            raw_mappings = await get_raw_division_mappings_by_league_and_season(
-                self._config_api(), self.league_code, self.raw_season
+            raw_mappings = await self.blockout.get_raw_division_mappings(
+                self.league_code, self.raw_season
             )
-            raw_mappings = raw_mappings or []
             mapping_dict = {m.raw_division_name: m for m in raw_mappings}
 
             tasks = []
@@ -148,8 +112,8 @@ class ProScraper(Scraper):
                             league_code=self.league_code,
                             season=self.raw_season,
                         )
-                        created_mapping = await create_raw_division_mapping(
-                            self._config_api(), new_mapping
+                        created_mapping = (
+                            await self.blockout.create_raw_division_mapping(new_mapping)
                         )
                         mapping_dict[name] = created_mapping
                         continue
@@ -316,7 +280,7 @@ class ProScraper(Scraper):
                 if not full_name:
                     continue
                 team = await find_team_by_name_in_division_format_gender_season(
-                    self.teams_api(),
+                    self.blockout,
                     pool.division_id,
                     pool.format,
                     pool.gender,
@@ -370,8 +334,7 @@ class ProScraper(Scraper):
             )
             return
         teams = (
-            await get_teams(
-                self.teams_api(),
+            await self.blockout.get_teams(
                 pool.division_id,
                 pool.format,
                 pool.gender,

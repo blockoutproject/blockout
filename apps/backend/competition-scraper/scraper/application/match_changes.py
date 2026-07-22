@@ -2,15 +2,9 @@
 
 from dataclasses import replace
 
-from blockout_contract_clients.match.api.match_api import MatchApi
-
-from scraper.application.models import Match
+from scraper.application.ports import BlockoutPort
 from scraper.domain.data_source_priority import DataSourcePriority
-from scraper.infrastructure.blockout.matches import (
-    create_match,
-    get_matches_by_pool,
-    update_match,
-)
+from scraper.domain.models import Match
 from scraper.observability.logging import log_event
 
 MatchEntry = tuple[
@@ -26,17 +20,17 @@ class MatchChangeSet:
 
     def __init__(
         self,
-        api: MatchApi | None,
+        blockout: BlockoutPort,
         priority_validation_enabled: bool,
     ) -> None:
-        self._api = api
+        self._blockout = blockout
         self._priority_validation_enabled = priority_validation_enabled
         self.entries: dict[tuple[str, str], MatchEntry] = {}
 
     async def load(self, pool_id: int) -> None:
         """Load existing pool matches with database ownership priority."""
         try:
-            existing_matches = await get_matches_by_pool(self._required_api(), pool_id)
+            existing_matches = await self._blockout.get_matches(pool_id)
             for match in existing_matches:
                 key = (match.league_code, match.match_code)
                 self.entries.setdefault(
@@ -132,9 +126,9 @@ class MatchChangeSet:
         ) in self.entries.items():
             try:
                 if existing is None:
-                    await create_match(self._required_api(), updated)
+                    await self._blockout.create_match(updated)
                 elif changes:
-                    await update_match(self._required_api(), updated, changes)
+                    await self._blockout.update_match(updated, changes)
             except Exception as error:
                 log_event(
                     action="finalize_matches_update_error",
@@ -160,10 +154,3 @@ class MatchChangeSet:
             if new_value != old_value:
                 setattr(updated, field_name, new_value)
                 changes.append(f"[{prefix}] {field_name}: {old_value} -> {new_value}")
-
-    def _required_api(self) -> MatchApi:
-        if self._api is None:
-            raise RuntimeError(
-                "The generated matches-service client is not configured."
-            )
-        return self._api

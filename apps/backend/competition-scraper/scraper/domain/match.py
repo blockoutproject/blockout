@@ -1,6 +1,6 @@
 import re
 
-from scraper.application.models import (
+from scraper.domain.models import (
     AssociationStats,
 )
 

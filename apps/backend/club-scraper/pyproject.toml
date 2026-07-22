@@ -4,7 +4,6 @@ version = "0.0.0"
 description = "Blockout FFVB club ingestion application"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "aiohttp==3.14.1",
     "apscheduler==3.11.3",
     "auth0-python==6.0.0",
     "beautifulsoup4==4.15.0",

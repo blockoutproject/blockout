@@ -8,8 +8,8 @@ from zoneinfo import ZoneInfo
 
 from bs4 import BeautifulSoup, Tag
 
-from scraper.application.models import AssociationStats
 from scraper.domain.match import validate_set_format, validate_set_score_format
+from scraper.domain.models import AssociationStats
 
 
 @dataclass(frozen=True)

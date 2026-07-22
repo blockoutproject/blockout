@@ -3,12 +3,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-import scraper.application.association_changes as association_changes
 from bs4 import BeautifulSoup
-from scraper.application.models import (
-    AssociationStats,
-    Match,
-)
 from scraper.application.source import Scraper
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.domain.match import (
@@ -16,6 +11,10 @@ from scraper.domain.match import (
     is_anomalous_set_format,
     validate_set_format,
     validate_set_score_format,
+)
+from scraper.domain.models import (
+    AssociationStats,
+    Match,
 )
 from scraper.domain.normalization import parse_date, strip_department_code
 from scraper.domain.team import get_full_name, get_short_name, normalize
@@ -220,21 +219,17 @@ def test_disabled_priority_validation_replaces_every_scraped_field() -> None:
     assert priority == DataSourcePriority.FFVB
 
 
-def test_association_finalization_computes_coefficients_and_clears_cache(
-    monkeypatch,
-) -> None:
+def test_association_finalization_computes_coefficients_and_clears_cache() -> None:
     """Protect changed-only writes, coefficient fallbacks, and cache lifecycle."""
 
     async def scenario() -> None:
         writes: list[tuple] = []
 
-        async def update(_session, pool_id, team_id, stats):
-            writes.append((pool_id, team_id, stats))
+        class Owner:
+            async def update_association_stats(self, pool_id, team_id, stats):
+                writes.append((pool_id, team_id, stats))
 
-        monkeypatch.setattr(
-            association_changes, "update_team_association_stats", update
-        )
-        scraper = DummyScraper(None, None, "stats", competition_api=object())
+        scraper = DummyScraper(None, Owner(), "stats")
         stats = AssociationStats(won_sets=9, lost_sets=3, won_points=250, lost_points=0)
         scraper.schedule_association_update(10, 20, stats)
 
@@ -248,19 +243,17 @@ def test_association_finalization_computes_coefficients_and_clears_cache(
     asyncio.run(scenario())
 
 
-def test_association_finalization_preserves_untouched_owner_stats(monkeypatch) -> None:
+def test_association_finalization_preserves_untouched_owner_stats() -> None:
     """Do not fabricate zero statistics when no ranking row was observed."""
 
     async def scenario() -> None:
         writes = []
 
-        async def update(*args):
-            writes.append(args)
+        class Owner:
+            async def update_association_stats(self, *args):
+                writes.append(args)
 
-        monkeypatch.setattr(
-            association_changes, "update_team_association_stats", update
-        )
-        scraper = DummyScraper(None, None, "stats")
+        scraper = DummyScraper(None, Owner(), "stats")
         original = AssociationStats(
             played=10,
             points=20,

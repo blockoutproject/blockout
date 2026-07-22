@@ -19,8 +19,8 @@ from blockout_contract_clients.match.models.update_match_internal_request import
     UpdateMatchInternalRequest,
 )
 
-from scraper.application.models import Match
 from scraper.config.settings import MATCH_API_URL
+from scraper.domain.models import Match
 from scraper.infrastructure.blockout.auth import _get_headers
 from scraper.observability.logging import log_event
 

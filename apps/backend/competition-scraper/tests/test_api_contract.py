@@ -18,7 +18,7 @@ from blockout_contract_clients.config.models.scraper_name_enum import ScraperNam
 from blockout_contract_clients.match.api.match_api import MatchApi
 from blockout_contract_clients.pool.api.pool_api import PoolApi
 from blockout_contract_clients.team.api.team_api import TeamApi
-from scraper.application.models import (
+from scraper.domain.models import (
     AssociationStats,
     Match,
     Pool,

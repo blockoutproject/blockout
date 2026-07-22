@@ -2,20 +2,13 @@
 
 from dataclasses import dataclass
 
-from scraper.application.models import AssociationStats, Match, Pool, Team
 from scraper.application.pool_writer import add_or_update_pool
 from scraper.application.source import Scraper
 from scraper.application.team_writer import add_or_update_team
 from scraper.domain.data_source_priority import DataSourcePriority
+from scraper.domain.models import AssociationStats, Match, Pool, Team
 from scraper.domain.normalization import capitalize_words, parse_date
 from scraper.domain.team import get_full_name, get_short_name, normalize
-from scraper.infrastructure.blockout.competitions import (
-    add_team_to_pool,
-    bulk_deactivate_teams_by_pool,
-)
-from scraper.infrastructure.blockout.matches import bulk_deactivate_matches
-from scraper.infrastructure.blockout.pools import update_pool
-from scraper.infrastructure.blockout.teams import get_teams
 from scraper.infrastructure.ffvb.calendar import download_and_parse_csv
 from scraper.infrastructure.ffvb.models import FfvbRanking
 from scraper.infrastructure.ffvb.ranking import extract_club_stats_list
@@ -38,18 +31,6 @@ async def handle_csv_download_and_parse(
     scraped_pool_ids: set[int] | None = None,
 ) -> CalendarIngestionResult:
     """Apply one calendar snapshot and gate cleanup on complete provider input."""
-    if scraper.session.closed:
-        log_event(
-            "csv_download_session_closed",
-            "error",
-            pool_name=pool.name,
-            message="Session fermée avant téléchargement CSV",
-        )
-        return CalendarIngestionResult(
-            pool_id=existing_pool.id if existing_pool else None,
-            complete=False,
-        )
-
     try:
         snapshot = await download_and_parse_csv(scraper, pool, raw_season)
         if snapshot is None:
@@ -95,7 +76,7 @@ async def handle_csv_download_and_parse(
             )
 
         new_pool = await add_or_update_pool(
-            scraper.pools_api(), pool, existing_pool, False
+            scraper.blockout, pool, existing_pool, False
         )
         # Professional enrichment reuses the owner identifier assigned here.
         pool.id = new_pool.id
@@ -103,8 +84,7 @@ async def handle_csv_download_and_parse(
         await scraper.init_associations_cache(new_pool.id)
 
         existing_teams = (
-            await get_teams(
-                scraper.teams_api(),
+            await scraper.blockout.get_teams(
                 new_pool.division_id,
                 new_pool.format,
                 new_pool.gender,
@@ -159,7 +139,7 @@ async def handle_csv_download_and_parse(
             )
 
             new_team_a = await add_or_update_team(
-                scraper.teams_api(), team_a_obj, existing_team_a
+                scraper.blockout, team_a_obj, existing_team_a
             )
             existing_teams_dict[team_a_key] = new_team_a
             scraped_team_ids.add(new_team_a.id)
@@ -188,7 +168,7 @@ async def handle_csv_download_and_parse(
             )
 
             new_team_b = await add_or_update_team(
-                scraper.teams_api(), team_b_obj, existing_team_b
+                scraper.blockout, team_b_obj, existing_team_b
             )
             existing_teams_dict[team_b_key] = new_team_b
             scraped_team_ids.add(new_team_b.id)
@@ -212,8 +192,7 @@ async def handle_csv_download_and_parse(
 
             for team_obj in [new_team_a, new_team_b]:
                 if team_obj.id not in active_team_ids:
-                    await add_team_to_pool(
-                        scraper.competitions_api(),
+                    await scraper.blockout.add_team_to_pool(
                         new_pool.id,
                         team_obj.id,
                         team_obj.club_id,
@@ -236,7 +215,7 @@ async def handle_csv_download_and_parse(
         if has_anomalous_match or is_nat_or_pro:
             stats_list = await extract_club_stats_list(scraper, raw_season, new_pool)
             fallback_teams = (
-                await get_teams(scraper.teams_api(), ids=list(active_team_ids)) or []
+                await scraper.blockout.get_teams(ids=list(active_team_ids)) or []
             )
             team_lookup = {normalize(t.raw_name): t for t in fallback_teams}
 
@@ -269,10 +248,8 @@ async def handle_csv_download_and_parse(
 
         if not new_pool.active:
             new_pool.active = True
-            await update_pool(
-                scraper.pools_api(),
-                new_pool,
-                ["Pool réactivée après détection de matchs"],
+            await scraper.blockout.update_pool(
+                new_pool, ["Pool réactivée après détection de matchs"]
             )
 
         if scraped_pool_ids is not None:
@@ -280,8 +257,8 @@ async def handle_csv_download_and_parse(
 
         missing_teams = list(active_team_ids - scraped_team_ids)
         if observation_complete and missing_teams:
-            await bulk_deactivate_teams_by_pool(
-                scraper.competitions_api(), new_pool.id, set(missing_teams)
+            await scraper.blockout.bulk_deactivate_teams(
+                new_pool.id, set(missing_teams)
             )
 
         missing_matches = {
@@ -296,9 +273,7 @@ async def handle_csv_download_and_parse(
             and existing_match.active
         }
         if observation_complete and missing_matches:
-            await bulk_deactivate_matches(
-                scraper.matches_api(), new_pool.id, missing_matches
-            )
+            await scraper.blockout.bulk_deactivate_matches(new_pool.id, missing_matches)
 
         return CalendarIngestionResult(
             pool_id=new_pool.id,

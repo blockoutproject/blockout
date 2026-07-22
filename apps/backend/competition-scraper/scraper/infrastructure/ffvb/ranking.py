@@ -2,8 +2,8 @@
 
 from bs4 import BeautifulSoup, Tag
 
-from scraper.application.models import Pool
 from scraper.application.source import Scraper
+from scraper.domain.models import Pool
 from scraper.infrastructure.ffvb.models import FfvbRanking
 
 _RANKING_HEADERS = (

@@ -1,5 +1,5 @@
-from scraper.application.models import Club
 from scraper.application.ports import BlockoutPort
+from scraper.domain.models import Club
 from scraper.observability.logging import log_event
 
 

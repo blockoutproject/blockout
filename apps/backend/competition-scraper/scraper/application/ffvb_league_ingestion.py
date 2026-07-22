@@ -8,14 +8,8 @@ from scraper.application.calendar_ingestion import (
     CalendarIngestionResult,
     handle_csv_download_and_parse,
 )
-from scraper.application.models import Pool, RawDivisionMapping
 from scraper.application.source import Scraper
-from scraper.infrastructure.blockout.competitions import bulk_deactivate_pools
-from scraper.infrastructure.blockout.configuration import (
-    create_raw_division_mapping,
-    get_raw_division_mappings_by_league_and_season,
-)
-from scraper.infrastructure.blockout.pools import get_pools_by_league_and_season
+from scraper.domain.models import Pool, RawDivisionMapping
 from scraper.infrastructure.ffvb.models import FfvbPoolSource
 
 
@@ -46,19 +40,11 @@ async def _ingest_season(
     season: str,
     sources: tuple[FfvbPoolSource, ...],
 ) -> None:
-    existing_pools = (
-        await get_pools_by_league_and_season(scraper.pools_api(), league_code, season)
-        or []
-    )
+    existing_pools = await scraper.blockout.get_pools(league_code, season)
     existing_by_key = {
         (pool.pool_code, pool.league_code, pool.season): pool for pool in existing_pools
     }
-    mappings = (
-        await get_raw_division_mappings_by_league_and_season(
-            _config_api(scraper), league_code, season
-        )
-        or []
-    )
+    mappings = await scraper.blockout.get_raw_division_mappings(league_code, season)
     mapping_by_name = {mapping.raw_division_name: mapping for mapping in mappings}
     observation_complete = True
     pending: list[Awaitable[CalendarIngestionResult]] = []
@@ -66,8 +52,7 @@ async def _ingest_season(
     for source in sources:
         mapping = mapping_by_name.get(source.raw_division_name)
         if mapping is None:
-            mapping = await create_raw_division_mapping(
-                _config_api(scraper),
+            mapping = await scraper.blockout.create_raw_division_mapping(
                 RawDivisionMapping(
                     raw_division_name=source.raw_division_name,
                     league_code=league_code,
@@ -121,13 +106,7 @@ async def _ingest_season(
         if pool.active and pool.id not in observed_ids
     }
     if missing_ids:
-        await bulk_deactivate_pools(scraper.competitions_api(), missing_ids)
-
-
-def _config_api(scraper: Scraper):
-    if scraper.raw_division_mapping_api is None:
-        raise RuntimeError("The generated config-service client is not configured.")
-    return scraper.raw_division_mapping_api
+        await scraper.blockout.bulk_deactivate_pools(missing_ids)
 
 
 async def _run_limited(

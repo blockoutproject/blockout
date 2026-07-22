@@ -26,7 +26,9 @@ from blockout_contract_clients.team.models.update_team_internal_request import (
 )
 from scraper.application import pool_writer as pools_service
 from scraper.application import team_writer as teams_service
-from scraper.application.models import (
+from scraper.application.source import Scraper
+from scraper.domain.data_source_priority import DataSourcePriority
+from scraper.domain.models import (
     AssociationStats,
     CompetitionAssociation,
     Match,
@@ -34,25 +36,7 @@ from scraper.application.models import (
     RawDivisionMapping,
     Team,
 )
-from scraper.application.source import Scraper
-from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.infrastructure.blockout import matches as matches_api
-from scraper.infrastructure.blockout.response import process_response
-
-
-class RecordingResponse:
-    def __init__(self, status=204, payload=None, url="http://owner.invalid") -> None:
-        self.status = status
-        self.payload = payload
-        self.url = url
-        self.content_type = "application/json"
-        self.headers = {"Content-Type": "application/json"}
-
-    async def json(self):
-        return self.payload
-
-    async def text(self):
-        return ""
 
 
 class DummyScraper(Scraper):
@@ -330,36 +314,34 @@ def test_match_bulk_cleanup_uses_generated_camel_case_request(monkeypatch) -> No
     asyncio.run(scenario())
 
 
-def test_pool_and_team_decisions_preserve_identity_noop_and_reactivation(
-    monkeypatch,
-) -> None:
+def test_pool_and_team_decisions_preserve_identity_noop_and_reactivation() -> None:
     """Protect create/update/no-op decisions at owner boundaries."""
 
     async def scenario() -> None:
         pool_updates: list[tuple] = []
         team_updates: list[tuple] = []
 
-        async def update_pool(_session, candidate, changes):
-            pool_updates.append((candidate, changes))
-            return candidate
+        class Owner:
+            async def update_pool(self, candidate, changes):
+                pool_updates.append((candidate, changes))
+                return candidate
 
-        async def update_team(_session, candidate, changes):
-            team_updates.append((candidate, changes))
-            return candidate
+            async def update_team(self, candidate, changes):
+                team_updates.append((candidate, changes))
+                return candidate
 
-        monkeypatch.setattr(pools_service, "update_pool", update_pool)
-        monkeypatch.setattr(teams_service, "update_team", update_team)
+        owner = Owner()
 
         current_pool = _pool(active=False)
         pool_candidate = _pool(id=999, raw_name="Changed", active=False)
-        await pools_service.add_or_update_pool(None, pool_candidate, current_pool)
+        await pools_service.add_or_update_pool(owner, pool_candidate, current_pool)
         assert pool_candidate.id == 10
         assert pool_candidate.active is True
         assert any("Pool réactivée" in change for change in pool_updates[0][1])
 
         current_team = _team(active=False)
         team_candidate = _team(id=999, raw_name="Changed", active=False)
-        await teams_service.add_or_update_team(None, team_candidate, current_team)
+        await teams_service.add_or_update_team(owner, team_candidate, current_team)
         assert team_candidate.id == 20
         assert team_candidate.active is True
         assert any("réactivée" in change for change in team_updates[0][1])
@@ -367,10 +349,14 @@ def test_pool_and_team_decisions_preserve_identity_noop_and_reactivation(
         pool_updates.clear()
         team_updates.clear()
         assert await pools_service.add_or_update_pool(
-            None, replace(current_pool, active=True), replace(current_pool, active=True)
+            owner,
+            replace(current_pool, active=True),
+            replace(current_pool, active=True),
         )
         assert await teams_service.add_or_update_team(
-            None, replace(current_team, active=True), replace(current_team, active=True)
+            owner,
+            replace(current_team, active=True),
+            replace(current_team, active=True),
         )
         assert pool_updates == []
         assert team_updates == []
@@ -387,18 +373,18 @@ def test_match_finalization_creates_updates_skips_and_isolates_failures(
         creates: list[str] = []
         updates: list[str] = []
 
-        async def create(_session, match):
-            creates.append(match.match_code)
-            if match.match_code == "FAIL":
-                raise RuntimeError("owner failure")
+        class Owner:
+            async def create_match(self, match):
+                creates.append(match.match_code)
+                if match.match_code == "FAIL":
+                    raise RuntimeError("owner failure")
 
-        async def update(_session, match, _changes):
-            updates.append(match.match_code)
+            async def update_match(self, match, _changes):
+                updates.append(match.match_code)
 
-        monkeypatch.setattr(match_changes, "create_match", create)
-        monkeypatch.setattr(match_changes, "update_match", update)
+        owner = Owner()
         monkeypatch.setattr(match_changes, "log_event", lambda **_event: None)
-        scraper = DummyScraper(None, None, "finalize", match_api=object())
+        scraper = DummyScraper(None, owner, "finalize")
         existing = _match(match_code="UPDATE")
         unchanged = _match(match_code="NOOP")
         scraper._matches_cache = {
@@ -435,11 +421,3 @@ def test_match_finalization_creates_updates_skips_and_isolates_failures(
         assert scraper._matches_cache == {}
 
     asyncio.run(scenario())
-
-
-def test_response_handler_preserves_no_content_list_semantics() -> None:
-    """Protect empty-list decoding used by owner collection clients."""
-    result = asyncio.run(
-        process_response(RecordingResponse(), list[Pool], "get_pools", (), {})
-    )
-    assert result == []

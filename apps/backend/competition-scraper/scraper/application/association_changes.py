@@ -2,17 +2,8 @@
 
 import asyncio
 
-from blockout_contract_clients.competition.api.competition_association_api import (
-    CompetitionAssociationApi,
-)
-
-from scraper.application.models import (
-    AssociationStats,
-)
-from scraper.infrastructure.blockout.competitions import (
-    get_active_team_associations_by_pool,
-    update_team_association_stats,
-)
+from scraper.application.ports import BlockoutPort
+from scraper.domain.models import AssociationStats
 from scraper.observability.logging import log_event
 
 AssociationEntry = tuple[
@@ -24,20 +15,15 @@ AssociationEntry = tuple[
 class AssociationChangeSet:
     """Accumulate or replace ranking statistics before one owner write."""
 
-    def __init__(self, api: CompetitionAssociationApi | None) -> None:
-        self._api = api
+    def __init__(self, blockout: BlockoutPort) -> None:
+        self._blockout = blockout
         self.entries: dict[tuple[int, int], AssociationEntry] = {}
         self._touched: set[tuple[int, int]] = set()
 
     async def load(self, pool_id: int) -> None:
         """Load active owner associations and reset their candidate statistics."""
         try:
-            associations = (
-                await get_active_team_associations_by_pool(
-                    self._required_api(), pool_id
-                )
-                or []
-            )
+            associations = await self._blockout.get_active_team_associations(pool_id)
             for association in associations:
                 original = AssociationStats(
                     played=association.played,
@@ -140,9 +126,7 @@ class AssociationChangeSet:
             )
             if original is None or original != updated:
                 updates.append(
-                    update_team_association_stats(
-                        self._required_api(), pool_id, team_id, updated
-                    )
+                    self._blockout.update_association_stats(pool_id, team_id, updated)
                 )
         if updates:
             await asyncio.gather(*updates)
@@ -156,10 +140,3 @@ class AssociationChangeSet:
             (None, AssociationStats()),
         )
         return self.entries[key]
-
-    def _required_api(self) -> CompetitionAssociationApi:
-        if self._api is None:
-            raise RuntimeError(
-                "The generated competition-service client is not configured."
-            )
-        return self._api

@@ -18,8 +18,8 @@ from blockout_contract_clients.team.models.update_team_internal_request import (
     UpdateTeamInternalRequest,
 )
 
-from scraper.application.models import Team
 from scraper.config.settings import TEAM_API_URL
+from scraper.domain.models import Team
 from scraper.infrastructure.blockout.auth import _get_headers
 from scraper.observability.logging import log_event
 

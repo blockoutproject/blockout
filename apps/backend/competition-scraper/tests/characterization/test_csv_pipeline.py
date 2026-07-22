@@ -1,10 +1,11 @@
 import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 from scraper.application import calendar_ingestion as pipeline
-from scraper.application.models import Pool, Team
+from scraper.domain.models import Pool, Team
 from scraper.infrastructure.ffvb import calendar as file_utils
 from scraper.infrastructure.ffvb.calendar import download_and_parse_csv
 from scraper.infrastructure.ffvb.models import (
@@ -125,7 +126,7 @@ class RecordingScraper:
     """Record the complete CSV application trace."""
 
     def __init__(self) -> None:
-        self.session = _Session()
+        self.blockout = SimpleNamespace()
         self._matches_cache = {}
         self._associations_cache = {}
         self.matches: list[tuple] = []
@@ -142,15 +143,6 @@ class RecordingScraper:
 
     def schedule_association_update(self, pool_id, team_id, stats):
         self.stats.append((pool_id, team_id, stats))
-
-    def teams_api(self):
-        return object()
-
-    def pools_api(self):
-        return object()
-
-    def competitions_api(self):
-        return object()
 
 
 def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
@@ -191,7 +183,7 @@ def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
             candidate.id = 10
             return candidate
 
-        async def get_teams(_session, *args, **kwargs):
+        async def get_teams(*args, **kwargs):
             if kwargs.get("ids") or (args and args[0] is None):
                 return teams
             return []
@@ -201,7 +193,7 @@ def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
             teams.append(candidate)
             return candidate
 
-        async def associate(_session, pool_id, team_id, club_id):
+        async def associate(pool_id, team_id, club_id):
             associations.append((pool_id, team_id, club_id))
 
         async def stats(*_args):
@@ -227,21 +219,24 @@ def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
                 ),
             )
 
-        async def deactivate_teams(_session, pool_id, identifiers):
+        async def deactivate_teams(pool_id, identifiers):
             deactivations.append(("teams", pool_id, identifiers))
 
-        async def deactivate_matches(_session, pool_id, identifiers):
+        async def deactivate_matches(pool_id, identifiers):
             deactivations.append(("matches", pool_id, identifiers))
 
         monkeypatch.setattr(pipeline, "download_and_parse_csv", download)
         monkeypatch.setattr(pipeline, "add_or_update_pool", save_pool)
-        monkeypatch.setattr(pipeline, "get_teams", get_teams)
         monkeypatch.setattr(pipeline, "add_or_update_team", save_team)
-        monkeypatch.setattr(pipeline, "add_team_to_pool", associate)
         monkeypatch.setattr(pipeline, "extract_club_stats_list", stats)
-        monkeypatch.setattr(pipeline, "bulk_deactivate_teams_by_pool", deactivate_teams)
-        monkeypatch.setattr(pipeline, "bulk_deactivate_matches", deactivate_matches)
         monkeypatch.setattr(pipeline, "log_event", lambda *_args, **_kwargs: None)
+        scraper.blockout = SimpleNamespace(
+            get_teams=get_teams,
+            add_team_to_pool=associate,
+            update_pool=lambda *_args: None,
+            bulk_deactivate_teams=deactivate_teams,
+            bulk_deactivate_matches=deactivate_matches,
+        )
 
         await pipeline.handle_csv_download_and_parse(
             scraper,

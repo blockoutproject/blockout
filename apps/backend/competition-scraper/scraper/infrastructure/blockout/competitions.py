@@ -21,8 +21,8 @@ from blockout_contract_clients.competition.models.update_association_stats_inter
     UpdateAssociationStatsInternalRequest as GeneratedAssociationStats,
 )
 
-from scraper.application.models import AssociationStats, CompetitionAssociation
 from scraper.config.settings import COMPETITION_API_URL
+from scraper.domain.models import AssociationStats, CompetitionAssociation
 from scraper.infrastructure.blockout.auth import _get_headers
 
 _COMPETITION_API_PATH = "/api/v1/competitions"

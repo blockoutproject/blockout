@@ -18,8 +18,8 @@ from blockout_contract_clients.pool.models.update_pool_internal_request import (
     UpdatePoolInternalRequest,
 )
 
-from scraper.application.models import Pool
 from scraper.config.settings import POOL_API_URL
+from scraper.domain.models import Pool
 from scraper.infrastructure.blockout.auth import _get_headers
 from scraper.observability.logging import log_event
 

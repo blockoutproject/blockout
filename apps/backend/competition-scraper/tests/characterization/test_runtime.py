@@ -1,6 +1,6 @@
 import asyncio
+from contextlib import asynccontextmanager
 from datetime import datetime
-from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -9,12 +9,12 @@ import scraper.bootstrap as competition_main
 import scraper.infrastructure.blockout.auth as auth0
 import scraper.infrastructure.provider_http as provider_http
 import scraper.infrastructure.scheduling.scheduler as scheduler_module
-from scraper.application.factory import ScraperFactory
 from scraper.application.source import Scraper
 from scraper.infrastructure.ffvb.departmental import DepartmentalScraper
 from scraper.infrastructure.ffvb.national import NationalScraper
 from scraper.infrastructure.ffvb.regional import RegionalScraper
 from scraper.infrastructure.lnv.professional import ProScraper
+from scraper.infrastructure.sources import create_scraper
 
 
 class DummyScraper(Scraper):
@@ -54,7 +54,9 @@ def test_provider_fetch_preserves_encoding_timeout_retry_and_tls(monkeypatch) ->
         monkeypatch.setattr(provider_http.asyncio, "sleep", sleep)
         monkeypatch.setattr(provider_http, "log_event", lambda **_event: None)
         async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
-            scraper = DummyScraper(object(), client, "dummy")
+            scraper = DummyScraper(
+                provider_http.ProviderHttpClient(client), None, "dummy"
+            )
             result = await scraper.fetch("https://www.ffvbbeach.org/provider")
 
         assert result == "café"
@@ -84,9 +86,9 @@ def test_provider_fetch_raises_only_after_three_failures(monkeypatch) -> None:
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(timeout)) as client:
             with pytest.raises(Exception, match="3 tentatives"):
-                await DummyScraper(object(), client, "dummy").fetch(
-                    "https://provider.invalid"
-                )
+                await DummyScraper(
+                    provider_http.ProviderHttpClient(client), None, "dummy"
+                ).fetch("https://provider.invalid")
 
         assert attempts == 3
 
@@ -111,14 +113,9 @@ def test_top_level_runner_limits_scraper_concurrency_to_two(monkeypatch) -> None
         started: list[str] = []
 
         async def run_one(
-            _session,
-            _provider_client,
+            _provider_http,
+            _blockout,
             scraper_type,
-            _raw_division_mapping_api=None,
-            _team_api=None,
-            _pool_api=None,
-            _competition_api=None,
-            _match_api=None,
         ):
             nonlocal active, maximum
             active += 1
@@ -145,22 +142,17 @@ def test_main_fails_closed_when_scraper_status_is_unavailable(monkeypatch) -> No
     """Protect status gating, return value, and duration measurement."""
 
     async def scenario() -> None:
-        class Session:
-            async def __aenter__(self):
-                return self
+        class Owner:
+            async def scraper_enabled(self, _name):
+                raise RuntimeError("config unavailable")
 
-            async def __aexit__(self, *_args):
-                return None
-
-        async def fail(_session, _name):
-            raise RuntimeError("config unavailable")
+        @asynccontextmanager
+        async def open_owner():
+            yield Owner()
 
         gauge = _Gauge()
         events: list[dict] = []
-        monkeypatch.setattr(
-            competition_main.aiohttp, "ClientSession", lambda **_kwargs: Session()
-        )
-        monkeypatch.setattr(competition_main, "get_scraper_status", fail)
+        monkeypatch.setattr(competition_main, "open_blockout_clients", open_owner)
         monkeypatch.setattr(competition_main, "execution_duration_gauge", gauge)
         monkeypatch.setattr(
             competition_main, "log_event", lambda **event: events.append(event)
@@ -179,7 +171,7 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
     """Protect ten-second sessions, connection limit, proxy trust, and source list."""
 
     async def scenario() -> None:
-        observed: dict = {"sessions": []}
+        observed: dict = {}
 
         class Session:
             async def __aenter__(self):
@@ -188,16 +180,15 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
             async def __aexit__(self, *_args):
                 return None
 
-        def session(**kwargs):
-            observed["sessions"].append(kwargs)
-            return Session()
+        class Owner:
+            async def scraper_enabled(self, _name):
+                return True
 
-        def connector(**kwargs):
-            observed["connector"] = kwargs
-            return "connector"
+        owner = Owner()
 
-        async def status(_session, _name):
-            return SimpleNamespace(enabled=True)
+        @asynccontextmanager
+        async def open_owner():
+            yield owner
 
         def limits(**kwargs):
             observed["limits"] = kwargs
@@ -208,40 +199,25 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
             return Session()
 
         async def run(
-            session,
-            provider_client,
+            provider_http,
+            blockout,
             scraper_types,
-            raw_division_mapping_api=None,
-            team_api=None,
-            pool_api=None,
-            competition_api=None,
-            match_api=None,
             max_concurrency=2,
         ):
             observed["run"] = (
-                session,
-                provider_client,
+                provider_http,
+                blockout,
                 list(scraper_types),
-                raw_division_mapping_api,
-                team_api,
-                pool_api,
-                competition_api,
-                match_api,
                 max_concurrency,
             )
 
-        monkeypatch.setattr(competition_main.aiohttp, "ClientSession", session)
-        monkeypatch.setattr(competition_main.aiohttp, "TCPConnector", connector)
         monkeypatch.setattr(competition_main.httpx, "Limits", limits)
         monkeypatch.setattr(competition_main.httpx, "AsyncClient", httpx_client)
-        monkeypatch.setattr(competition_main, "get_scraper_status", status)
+        monkeypatch.setattr(competition_main, "open_blockout_clients", open_owner)
         monkeypatch.setattr(competition_main, "run_scrapers_with_max_concurrency", run)
         monkeypatch.setattr(competition_main, "execution_duration_gauge", _Gauge())
 
         assert await competition_main.main() is True
-        assert [item["timeout"].total for item in observed["sessions"]] == [10]
-        assert all(item["trust_env"] is True for item in observed["sessions"])
-        assert observed["connector"] == {"limit": 20}
         assert observed["limits"] == {"max_connections": 20}
         assert observed["httpx"] == {
             "timeout": 10,
@@ -250,12 +226,8 @@ def test_enabled_main_preserves_sessions_connector_and_configured_sources(
             "limits": "limits",
         }
         assert observed["run"][2] == ["regional", "departmental", "national", "pro"]
-        assert observed["run"][3] is not None
-        assert observed["run"][4] is not None
-        assert observed["run"][5] is not None
-        assert observed["run"][6] is not None
-        assert observed["run"][7] is not None
-        assert observed["run"][8] == 2
+        assert observed["run"][1] is owner
+        assert observed["run"][3] == 2
 
     asyncio.run(scenario())
 
@@ -399,16 +371,12 @@ def test_application_startup_exposes_metrics_and_supervises_background_work(
 
 def test_factory_maps_only_the_four_supported_sources() -> None:
     """Protect configured source names and concrete adapter selection."""
+    assert isinstance(create_scraper("regional", None, None), RegionalScraper)
     assert isinstance(
-        ScraperFactory.create_scraper("regional", None, None), RegionalScraper
-    )
-    assert isinstance(
-        ScraperFactory.create_scraper("departmental", None, None),
+        create_scraper("departmental", None, None),
         DepartmentalScraper,
     )
-    assert isinstance(
-        ScraperFactory.create_scraper("national", None, None), NationalScraper
-    )
-    assert isinstance(ScraperFactory.create_scraper("pro", None, None), ProScraper)
+    assert isinstance(create_scraper("national", None, None), NationalScraper)
+    assert isinstance(create_scraper("pro", None, None), ProScraper)
     with pytest.raises(ValueError, match="inconnu"):
-        ScraperFactory.create_scraper("unknown", None, None)
+        create_scraper("unknown", None, None)

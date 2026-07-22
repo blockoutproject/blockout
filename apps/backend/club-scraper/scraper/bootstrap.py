@@ -3,11 +3,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 
-import aiohttp
 import httpx
-from blockout_contract_clients.club.api.club_api import ClubApi
-from blockout_contract_clients.config.api.scraper_status_api import ScraperStatusApi
-from blockout_contract_clients.config.models.scraper_name_enum import ScraperNameEnum
 from prometheus_client import start_http_server
 
 from scraper.application.club_ingestion import ClubIngestion
@@ -18,9 +14,7 @@ from scraper.infrastructure.blockout.auth import (
     token_store,
 )
 from scraper.infrastructure.blockout.clients import (
-    BlockoutClients,
-    build_club_api_client,
-    build_config_api_client,
+    open_blockout_clients,
 )
 from scraper.infrastructure.ffvb.client import FfvbClubClient
 from scraper.infrastructure.scheduling.scheduler import run_hourly
@@ -30,7 +24,7 @@ from scraper.observability.metrics import (
     execution_duration,
 )
 
-SCRAPER_NAME = ScraperNameEnum.SCRAPER_CLUBS
+SCRAPER_NAME = "SCRAPER_CLUBS"
 
 
 class ClubScraperRuntime:
@@ -44,24 +38,13 @@ class ClubScraperRuntime:
     async def scraper_enabled(self) -> bool:
         """Fail closed when config-service is unavailable or disables ingestion."""
         try:
-            timeout = aiohttp.ClientTimeout(total=10)
-            async with (
-                aiohttp.ClientSession(timeout=timeout, trust_env=True) as session,
-                build_club_api_client(self.settings) as club_api_client,
-                build_config_api_client(self.settings) as config_api_client,
-            ):
-                enabled = await BlockoutClients(
-                    session,
-                    self.settings,
-                    self.tokens,
-                    ClubApi(club_api_client),
-                    ScraperStatusApi(config_api_client),
-                ).scraper_enabled(SCRAPER_NAME)
+            async with open_blockout_clients(self.settings, self.tokens) as blockout:
+                enabled = await blockout.scraper_enabled(SCRAPER_NAME)
             if not enabled:
                 log_event(
                     action="scraper_skipped",
                     level="warning",
-                    message=f"Scraper '{SCRAPER_NAME.value}' désactivé via API config.",
+                    message=f"Scraper '{SCRAPER_NAME}' désactivé via API config.",
                 )
                 return False
             return True
@@ -69,7 +52,7 @@ class ClubScraperRuntime:
             log_event(
                 action="scraper_status_fetch_failed",
                 level="error",
-                message=f"Impossible de récupérer le statut du scraper '{SCRAPER_NAME.value}'.",
+                message=f"Impossible de récupérer le statut du scraper '{SCRAPER_NAME}'.",
                 error=str(error),
             )
             return False
@@ -77,16 +60,8 @@ class ClubScraperRuntime:
     async def run_scraper(self) -> None:
         """Run one ingestion while holding the process lock."""
         async with self._lock:
-            connector = aiohttp.TCPConnector(limit=20, ssl=False)
-            timeout = aiohttp.ClientTimeout(total=60)
             async with (
-                aiohttp.ClientSession(
-                    timeout=timeout,
-                    trust_env=True,
-                    connector=connector,
-                ) as blockout_session,
-                build_club_api_client(self.settings) as club_api_client,
-                build_config_api_client(self.settings) as config_api_client,
+                open_blockout_clients(self.settings, self.tokens) as blockout,
                 httpx.AsyncClient(
                     timeout=60,
                     trust_env=True,
@@ -96,13 +71,7 @@ class ClubScraperRuntime:
                 ) as ffvb_client,
             ):
                 ingestion = ClubIngestion(
-                    BlockoutClients(
-                        blockout_session,
-                        self.settings,
-                        self.tokens,
-                        ClubApi(club_api_client),
-                        ScraperStatusApi(config_api_client),
-                    ),
+                    blockout,
                     FfvbClubClient(ffvb_client),
                     club_scraping_duration,
                 )

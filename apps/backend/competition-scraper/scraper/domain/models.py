@@ -1,4 +1,4 @@
-"""Application models shared across competition ingestion workflows."""
+"""Domain models shared across competition ingestion workflows."""
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -30,7 +30,7 @@ class RawDivisionMapping:
 
 @dataclass(slots=True)
 class Team:
-    """Team state used by competition ingestion independently of HTTP transport."""
+    """Mutable Team candidate reconciled during competition ingestion."""
 
     club_id: str
     raw_name: str
@@ -51,7 +51,7 @@ class Team:
 
 @dataclass(slots=True)
 class Pool:
-    """Pool state used by competition ingestion independently of HTTP transport."""
+    """Mutable Pool candidate reconciled during competition ingestion."""
 
     pool_code: str
     league_code: str
@@ -72,7 +72,7 @@ class Pool:
 
 @dataclass(slots=True)
 class Match:
-    """Match state used by competition ingestion independently of HTTP transport."""
+    """Mutable Match candidate merged across competition providers."""
 
     match_code: str
     league_code: str
@@ -129,7 +129,7 @@ class CompetitionAssociation:
 
 @dataclass(slots=True)
 class AssociationStats:
-    """Ranking totals calculated by ingestion before a service write."""
+    """Ranking totals calculated by ingestion before an owner write."""
 
     played: int = 0
     wins: int = 0

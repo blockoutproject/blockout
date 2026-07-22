@@ -6,8 +6,8 @@ import io
 
 import httpx
 
-from scraper.application.models import Pool
 from scraper.application.source import Scraper
+from scraper.domain.models import Pool
 from scraper.infrastructure.ffvb.models import (
     FfvbCalendarMatch,
     FfvbCalendarSnapshot,

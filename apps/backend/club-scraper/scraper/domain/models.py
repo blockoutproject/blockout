@@ -1,10 +1,12 @@
+"""Domain models used by Club ingestion workflows."""
+
 from dataclasses import dataclass
 from datetime import datetime
 
 
 @dataclass(slots=True)
 class Club:
-    """Mutable Club state used while one ingestion run reconciles providers."""
+    """Mutable Club candidate reconciled during one ingestion run."""
 
     id: str
     raw_name: str

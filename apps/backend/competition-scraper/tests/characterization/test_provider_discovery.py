@@ -2,10 +2,11 @@
 
 import asyncio
 from pathlib import Path
+from types import SimpleNamespace
 
 from scraper.application import ffvb_league_ingestion as ingestion
 from scraper.application.calendar_ingestion import CalendarIngestionResult
-from scraper.application.models import Pool, RawDivisionMapping
+from scraper.domain.models import Pool, RawDivisionMapping
 from scraper.infrastructure.ffvb import national as national_module
 from scraper.infrastructure.ffvb.departmental import DepartmentalScraper
 from scraper.infrastructure.ffvb.discovery import (
@@ -143,21 +144,14 @@ def test_complete_league_observation_dispatches_without_deactivation(
         async def unexpected(*_args):
             raise AssertionError("A complete observed pool must remain active")
 
-        monkeypatch.setattr(ingestion, "get_pools_by_league_and_season", pools)
-        monkeypatch.setattr(
-            ingestion, "get_raw_division_mappings_by_league_and_season", mappings
-        )
         monkeypatch.setattr(ingestion, "handle_csv_download_and_parse", handle)
-        monkeypatch.setattr(ingestion, "bulk_deactivate_pools", unexpected)
-        scraper = type(
-            "Scraper",
-            (),
-            {
-                "session": object(),
-                "raw_division_mapping_api": object(),
-                "pools_api": lambda _self: object(),
-            },
-        )()
+        scraper = SimpleNamespace(
+            blockout=SimpleNamespace(
+                get_pools=pools,
+                get_raw_division_mappings=mappings,
+                bulk_deactivate_pools=unexpected,
+            )
+        )
 
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
 
@@ -200,27 +194,20 @@ def test_unmapped_or_incomplete_observation_never_deactivates_pools(
         async def mappings(*_args):
             return []
 
-        async def create(_session, mapping):
+        async def create(mapping):
             return mapping
 
         async def unexpected(*_args):
             raise AssertionError("Incomplete observations must not deactivate pools")
 
-        monkeypatch.setattr(ingestion, "get_pools_by_league_and_season", pools)
-        monkeypatch.setattr(
-            ingestion, "get_raw_division_mappings_by_league_and_season", mappings
+        scraper = SimpleNamespace(
+            blockout=SimpleNamespace(
+                get_pools=pools,
+                get_raw_division_mappings=mappings,
+                create_raw_division_mapping=create,
+                bulk_deactivate_pools=unexpected,
+            )
         )
-        monkeypatch.setattr(ingestion, "create_raw_division_mapping", create)
-        monkeypatch.setattr(ingestion, "bulk_deactivate_pools", unexpected)
-        scraper = type(
-            "Scraper",
-            (),
-            {
-                "session": object(),
-                "raw_division_mapping_api": object(),
-                "pools_api": lambda _self: object(),
-            },
-        )()
 
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
 
@@ -294,21 +281,14 @@ def test_incomplete_calendar_result_suppresses_league_cleanup(monkeypatch) -> No
         async def unexpected(*_args):
             raise AssertionError("Partial provider data must not deactivate pools")
 
-        monkeypatch.setattr(ingestion, "get_pools_by_league_and_season", pools)
-        monkeypatch.setattr(
-            ingestion, "get_raw_division_mappings_by_league_and_season", mappings
-        )
         monkeypatch.setattr(ingestion, "handle_csv_download_and_parse", handle)
-        monkeypatch.setattr(ingestion, "bulk_deactivate_pools", unexpected)
-        scraper = type(
-            "Scraper",
-            (),
-            {
-                "session": object(),
-                "raw_division_mapping_api": object(),
-                "pools_api": lambda _self: object(),
-            },
-        )()
+        scraper = SimpleNamespace(
+            blockout=SimpleNamespace(
+                get_pools=pools,
+                get_raw_division_mappings=mappings,
+                bulk_deactivate_pools=unexpected,
+            )
+        )
 
         await ingestion.ingest_league_pools(scraper, "ABCCS", "Nationale", (_source(),))
 

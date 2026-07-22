@@ -155,7 +155,6 @@ name = "blockout-club-scraper"
 version = "0.0.0"
 source = { virtual = "apps/backend/club-scraper" }
 dependencies = [
-    { name = "aiohttp" },
     { name = "apscheduler" },
     { name = "auth0-python" },
     { name = "beautifulsoup4" },
@@ -167,7 +166,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", specifier = "==3.14.1" },
     { name = "apscheduler", specifier = "==3.11.3" },
     { name = "auth0-python", specifier = "==6.0.0" },
     { name = "beautifulsoup4", specifier = "==4.15.0" },
@@ -182,7 +180,6 @@ name = "blockout-competition-scraper"
 version = "0.0.0"
 source = { virtual = "apps/backend/competition-scraper" }
 dependencies = [
-    { name = "aiohttp" },
     { name = "apscheduler" },
     { name = "auth0-python" },
     { name = "beautifulsoup4" },
@@ -194,7 +191,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", specifier = "==3.14.1" },
     { name = "apscheduler", specifier = "==3.11.3" },
     { name = "auth0-python", specifier = "==6.0.0" },
     { name = "beautifulsoup4", specifier = "==4.15.0" },

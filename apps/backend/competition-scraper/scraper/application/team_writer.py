@@ -1,11 +1,9 @@
-from blockout_contract_clients.team.api.team_api import TeamApi
-
-from scraper.application.models import Team
-from scraper.infrastructure.blockout.teams import create_team, get_teams, update_team
+from scraper.application.ports import BlockoutPort
+from scraper.domain.models import Team
 
 
 async def add_or_update_team(
-    api: TeamApi,
+    blockout: BlockoutPort,
     team: Team,
     existing_team: Team | None,
 ) -> Team:
@@ -41,13 +39,13 @@ async def add_or_update_team(
             team.active = True
             changes_list.append("Équipe réactivée")
         if changes_list:
-            return await update_team(api, team, changes_list)
+            return await blockout.update_team(team, changes_list)
         return existing_team
-    return await create_team(api, team)
+    return await blockout.create_team(team)
 
 
 async def find_team_by_name_in_division_format_gender_season(
-    api: TeamApi,
+    blockout: BlockoutPort,
     division_id: int,
     competition_format: str,
     gender: str,
@@ -55,7 +53,7 @@ async def find_team_by_name_in_division_format_gender_season(
     raw_name: str,
 ) -> Team | None:
     """Find the first team whose raw owner name matches case-insensitively."""
-    teams = await get_teams(api, division_id, competition_format, gender, season)
+    teams = await blockout.get_teams(division_id, competition_format, gender, season)
     if not teams:
         return None
 

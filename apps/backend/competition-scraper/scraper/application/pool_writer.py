@@ -1,11 +1,9 @@
-from blockout_contract_clients.pool.api.pool_api import PoolApi
-
-from scraper.application.models import Pool
-from scraper.infrastructure.blockout.pools import create_pool, update_pool
+from scraper.application.ports import BlockoutPort
+from scraper.domain.models import Pool
 
 
 async def add_or_update_pool(
-    api: PoolApi,
+    blockout: BlockoutPort,
     pool: Pool,
     existing_pool: Pool | None,
     allow_reactivation: bool = True,
@@ -35,6 +33,6 @@ async def add_or_update_pool(
             changes_list.append("Pool réactivée.")
 
         if changes_list:
-            return await update_pool(api, pool, changes_list)
+            return await blockout.update_pool(pool, changes_list)
         return existing_pool
-    return await create_pool(api, pool)
+    return await blockout.create_pool(pool)

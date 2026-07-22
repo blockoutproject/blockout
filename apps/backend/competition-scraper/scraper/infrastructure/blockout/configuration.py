@@ -22,8 +22,8 @@ from blockout_contract_clients.config.models.scraper_status_internal_response im
     ScraperStatusInternalResponse,
 )
 
-from scraper.application.models import RawDivisionMapping
 from scraper.config.settings import CONFIG_API_URL
+from scraper.domain.models import RawDivisionMapping
 from scraper.infrastructure.blockout.auth import _get_headers
 from scraper.observability.logging import log_event
 

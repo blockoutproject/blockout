@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from scraper.application.club_ingestion import ClubIngestion
 from scraper.application.club_writer import ClubWriter
-from scraper.application.models import Club
+from scraper.domain.models import Club
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "ffvb"
 

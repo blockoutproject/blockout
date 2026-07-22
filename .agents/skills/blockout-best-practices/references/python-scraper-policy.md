@@ -46,10 +46,12 @@ Python import path.
   and start the application.
 - `application`: scrape use cases, orchestration, ports, explicit commands, and run results. It decides what should be
   read or written but does not parse HTTP payloads or construct transport requests inline.
-- `domain`: pure typed values, local policies, comparison rules, and invariants. It has no aiohttp, scheduler, file,
-  environment, metrics, or provider dependency.
+- `domain`: pure typed values, local policies, comparison rules, and invariants. Keep normalized scraper working models
+  here when they have lifecycle or reconciliation semantics distinct from HTTP transport. It has no application,
+  generated-client, aiohttp, scheduler, file, environment, metrics, or provider dependency.
 - `infrastructure/blockout`: authentication and clients for internal Blockout service APIs, including handwritten
-  transport mirrors until contract generation is activated.
+  transport mirrors until contract generation is activated. After adoption, generated imports and transport mappings
+  stay in this adapter; application code depends on domain-shaped ports instead.
 - `infrastructure/ffvb` and `infrastructure/lnv`: provider HTTP access and parsing. Provider vocabulary and payload
   names remain confined here.
 - `infrastructure/scheduling`: APScheduler and process-lifecycle adapters. Scheduling never owns scrape rules.
@@ -59,23 +61,39 @@ Python import path.
 Use protocols at real outbound seams that tests or multiple adapters must replace. Do not introduce an interface for a
 pure local helper or add a dependency-injection framework.
 
+Both scrapers keep `domain` independent and keep generated/internal Blockout transport below
+`infrastructure/blockout`. Application workflows depend on a domain-shaped Blockout port, never on generated packages
+or Blockout adapter functions. A provider-specific workflow may consume a typed provider record or parser directly
+when adding another protocol would only hide a single concrete source behind indirection. Provider vocabulary must not
+leak into domain models or the Blockout adapter. Prefer one cohesive Blockout port per scraper over one protocol per
+endpoint when that keeps the workflow readable.
+
 ## Internal Contract Ownership
 
 Scrapers bypass the mobile gateway and consume the owning Java services directly. Their Blockout HTTP types are internal
 transport contracts, not scraper-owned domain models.
 
-- Use explicit names such as `ClubInternalResponse`, `CreateClubInternalRequest`, `UpdateTeamInternalRequest`, and
-  `MatchInternalResponse` according to the actual owner endpoint.
+- OpenAPI transport types use explicit names such as `ClubInternalResponse`, `CreateClubInternalRequest`,
+  `UpdateTeamInternalRequest`, and `MatchInternalResponse` according to the actual owner endpoint.
 - Match the owner service exactly for field names, types, enum values, nullability, nesting, and request semantics.
 - Never add scraper-only fields to an internal transport type or maintain a second almost-identical resource model.
 - Purpose-specific requests may be smaller than the complete resource when the owning endpoint defines that shape.
 - Keep provider records explicit, for example `FfvbClubRecord` or `LnvMatchRecord`; they are not Blockout contracts.
-- Use a distinct domain value only when it expresses different semantics. If it is structurally and semantically the
-  owner resource, use the transport boundary rather than another copy.
+- Use a distinct domain value only when it expresses different semantics, such as mutable candidate state,
+  reconciliation state, provider-normalized values, or calculated ranking totals. A pure owner resource with no local
+  semantics remains a generated transport type inside the Blockout adapter rather than another copy.
 
-Until its owning vertical is adopted, each type remains a handwritten exact mirror protected by parity tests. The
-vertical then generates Java and Python types and clients from the same internal OpenAPI source under `libs/shared`;
-generated sources remain untracked, and the scraper replaces the proven mirror with generated imports.
+Before an owning vertical is adopted, an exact handwritten mirror may exist only as a temporary characterized seam.
+The vertical then generates Java and Python types and clients from the same internal OpenAPI source under
+`libs/shared`; generated sources remain untracked, and the scraper deletes the temporary mirror.
+
+Once a contract is adopted:
+
+- no handwritten `*InternalRequest` or `*InternalResponse` mirror remains in a scraper;
+- generated models and API classes are imported only below `infrastructure/blockout`;
+- the adapter maps generated responses immediately to domain values and maps domain values to generated requests;
+- application ports and use cases never mention generated packages, HTTP clients, or transport enums;
+- an available generated operation replaces a manual Blockout HTTP call instead of wrapping the same route again.
 
 Contract-owned enums such as Format, Gender, and MatchStatus follow the owner service. Application-only policy such as
 `DataSourcePriority` remains local to the competition scraper. Provider-owned enums remain provider-specific.

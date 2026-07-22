@@ -122,24 +122,23 @@ def test_scraper_enabled_fails_closed_when_config_is_unavailable(monkeypatch) ->
 
     async def scenario() -> None:
         class FailingClient:
-            def __init__(self, *_args):
-                return None
-
             async def get_scraper_status(self, _name):
                 raise RuntimeError("config unavailable")
 
-        class Session:
+            async def scraper_enabled(self, _name):
+                raise RuntimeError("config unavailable")
+
+        class Context:
             async def __aenter__(self):
-                return self
+                return FailingClient()
 
             async def __aexit__(self, *_args):
                 return None
 
         events: list[dict] = []
         monkeypatch.setattr(
-            bootstrap.aiohttp, "ClientSession", lambda **_kwargs: Session()
+            bootstrap, "open_blockout_clients", lambda *_args: Context()
         )
-        monkeypatch.setattr(bootstrap, "BlockoutClients", FailingClient)
         monkeypatch.setattr(
             bootstrap, "log_event", lambda **event: events.append(event)
         )
@@ -184,9 +183,12 @@ def test_run_scraper_keeps_the_characterized_session_limits(monkeypatch) -> None
     async def scenario() -> None:
         observed: dict = {}
 
-        class Session:
+        class Context:
+            def __init__(self, value=None) -> None:
+                self.value = value
+
             async def __aenter__(self):
-                return self
+                return self.value
 
             async def __aexit__(self, *_args):
                 return None
@@ -198,35 +200,26 @@ def test_run_scraper_keeps_the_characterized_session_limits(monkeypatch) -> None
             async def run(self) -> None:
                 observed["ran"] = True
 
-        def connector(**kwargs):
-            observed["connector"] = kwargs
-            return object()
-
-        def session(**kwargs):
-            observed["session"] = kwargs
-            return Session()
-
         def limits(**kwargs):
             observed["limits"] = kwargs
             return "limits"
 
         def httpx_client(**kwargs):
             observed["httpx"] = kwargs
-            return Session()
+            return Context("provider")
 
-        monkeypatch.setattr(bootstrap.aiohttp, "TCPConnector", connector)
-        monkeypatch.setattr(bootstrap.aiohttp, "ClientSession", session)
         monkeypatch.setattr(bootstrap.httpx, "Limits", limits)
         monkeypatch.setattr(bootstrap.httpx, "AsyncClient", httpx_client)
-        monkeypatch.setattr(bootstrap, "BlockoutClients", lambda *_args: "blockout")
+        monkeypatch.setattr(
+            bootstrap,
+            "open_blockout_clients",
+            lambda *_args: Context("blockout"),
+        )
         monkeypatch.setattr(bootstrap, "FfvbClubClient", lambda *_args: "ffvb")
         monkeypatch.setattr(bootstrap, "ClubIngestion", Ingestion)
 
         await ClubScraperRuntime(_settings(), TokenStore()).run_scraper()
 
-        assert observed["connector"] == {"limit": 20, "ssl": False}
-        assert observed["session"]["timeout"].total == 60
-        assert observed["session"]["trust_env"] is True
         assert observed["limits"] == {"max_connections": 20}
         assert observed["httpx"] == {
             "timeout": 60,

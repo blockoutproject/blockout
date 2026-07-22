@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from typing import Protocol
 
-from scraper.application.models import Club
+from scraper.domain.models import Club
 
 
 class BlockoutPort(Protocol):
