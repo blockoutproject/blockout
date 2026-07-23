@@ -16,6 +16,7 @@
 - [Figma Pill families](current/ref-065f-figma-pill-families.md)
 - [iOS populated Search fidelity](current/ref-065g-ios-populated-search-fidelity.md)
 - [iOS guest profile fidelity](current/ref-065h-ios-guest-profile-fidelity.md)
+- [iOS administrator profile fidelity](current/ref-065i-ios-administrator-profile-fidelity.md)
 - [Contract-first certification](current/ref-059-certification.md)
 - [Public release readiness](current/ref-060-public-release-readiness.md)
 - [Completed roadmap](current/roadmap.md)

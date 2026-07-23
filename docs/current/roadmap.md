@@ -1030,11 +1030,21 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     Web, provider, or production behavior changed. Exact nodes and validation are recorded in
     [the REF-065H iOS guest profile fidelity record](./ref-065h-ios-guest-profile-fidelity.md).
 
-- [ ] **REF-065I — Reconcile the iOS Administrator profile screen pixel by pixel**
+- [x] **REF-065I — Reconcile the iOS Administrator profile screen pixel by pixel**
   - Compare only `Profile / Administrator / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
     source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065J.
+  - Evidence: the canonical frame now uses linked shared iOS status bar, Administrator Profile Header, Profile Hero,
+    legal row, account action, and premium Bottom Navigation instances. The profile header is a bounded shared family;
+    the new shared Profile Hero composes the existing Hero foundation without screen-local overlays. The exact current
+    profile visual and content replace placeholder data, while the shared Profile-active navigation master owns the
+    authenticated avatar. Geometry, typography, colors, borders, radii, safe areas, bounds, and instance lineage pass
+    full-frame and structural comparison against the live administrator session on the iPhone 17 Pro simulator. The
+    provider development control and invented home indicator remain excluded. The complete authenticated native stack
+    remains running for REF-065J. No runtime source, credential, Android, Web, provider, or production behavior changed.
+    Exact nodes and validation are recorded in
+    [the REF-065I iOS administrator profile fidelity record](./ref-065i-ios-administrator-profile-fidelity.md).
 
 - [ ] **REF-065J — Reconcile the iOS empty authenticated Home screen pixel by pixel**
   - Compare only `Home / Authenticated empty / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
