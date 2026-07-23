@@ -2,7 +2,7 @@ import React from "react";
 import {StyleSheet, Text, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 
 type AppStatusLayoutProps = {

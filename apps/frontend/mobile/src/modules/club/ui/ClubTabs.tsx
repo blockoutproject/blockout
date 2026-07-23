@@ -13,7 +13,7 @@ import {
   MatchStatusEnum,
   type TeamSummaryResponse,
 } from "@/src/shared/generated/models";
-import { TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
+import {layout} from "@/src/shared/theme";
 import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 
 type ClubTabsProps = {
@@ -85,7 +85,7 @@ const ClubTabs: React.FC<ClubTabsProps> = ({
         teamIds={teamIdsForMatches}
         status={MatchStatusEnum.UPCOMING}
         scrollY={scrollYs.upcoming}
-        headerOffset={TABBAR_HEIGHT}
+        headerOffset={layout.tabs}
         contentContainerStyle={[{ paddingHorizontal: 4 }]}
         home={false}
       />
@@ -104,7 +104,7 @@ const ClubTabs: React.FC<ClubTabsProps> = ({
         teamIds={teamIdsForMatches}
         status={MatchStatusEnum.FINISHED}
         scrollY={scrollYs.finished}
-        headerOffset={TABBAR_HEIGHT}
+        headerOffset={layout.tabs}
         contentContainerStyle={[{ paddingHorizontal: 4 }]}
         home={false}
       />

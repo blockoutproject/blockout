@@ -4,15 +4,14 @@ import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {product, useAppTheme} from "@/src/shared/theme";
 import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
 import {withAlpha} from "@/src/shared/lib/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {Pill} from "@/src/shared/ui/pill";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
-import {GradientButton} from "@/src/shared/ui/GradientButton";
+import {Action} from "@/src/shared/ui/action";
 import {ApiError} from "@/src/shared/api/ApiError";
-import {APP_TITLE} from "@/src/shared/theme/tokens";
 
 export const getSignInErrorMessage = (err: unknown): string => {
   if (err instanceof ApiError) {
@@ -83,7 +82,7 @@ const SignInScreen: React.FC = () => {
           shadow
         />
         <Text style={[styles.title, {color: theme.text}]} numberOfLines={1}>
-          {APP_TITLE}
+          {product.name}
         </Text>
       </View>
 
@@ -92,34 +91,28 @@ const SignInScreen: React.FC = () => {
       </Text>
 
       <View style={styles.pillsRow}>
-        <InfoPillGradient
+        <Pill
           label="Scores"
           leftIcon="flash"
           size="md"
-          variant="filled"
-          gradient={undefined}
           borderWidth={1}
           backgroundColor={theme.surface}
           borderColor={withAlpha(theme.text, 0.12)}
           textColor={theme.text}
         />
-        <InfoPillGradient
+        <Pill
           label="Classements"
           leftIcon="trophy"
           size="md"
-          variant="filled"
-          gradient={undefined}
           borderWidth={1}
           backgroundColor={theme.surface}
           borderColor={withAlpha(theme.text, 0.12)}
           textColor={theme.text}
         />
-        <InfoPillGradient
+        <Pill
           label="Suivi équipes"
           leftIcon="bell-outline"
           size="md"
-          variant="filled"
-          gradient={undefined}
           borderWidth={1}
           backgroundColor={theme.surface}
           borderColor={withAlpha(theme.text, 0.12)}
@@ -128,7 +121,7 @@ const SignInScreen: React.FC = () => {
       </View>
 
       <View style={styles.ctaRow}>
-        <GradientButton
+        <Action
           onPress={onPressLogin}
           loading={isSigningIn || isLoading}
           disabled={disabled}

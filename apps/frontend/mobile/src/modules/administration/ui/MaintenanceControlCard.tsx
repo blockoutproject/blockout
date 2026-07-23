@@ -2,8 +2,8 @@ import React, {useMemo} from "react";
 import {ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View,} from "react-native";
 import {Image} from "expo-image";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import Field from "@/src/shared/ui/form/Field";
+import {useAppTheme} from "@/src/shared/theme";
+import {FormField} from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 
 type Props = {
@@ -148,7 +148,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
         </Text>
       </View>
 
-      <Field
+      <FormField
         label="Message affiché aux utilisateurs"
         error={undefined}
         touched={!!trimmedMessage}
@@ -161,9 +161,9 @@ const MaintenanceControlCard: React.FC<Props> = ({
           multiline
           style={{minHeight: 80, textAlignVertical: "top"}}
         />
-      </Field>
+      </FormField>
 
-      <Field
+      <FormField
         label="Image / GIF (URL)"
         error={imageUrlError}
         touched={!!trimmedImageUrl || !!imageUrlError}
@@ -211,7 +211,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
             )}
           </View>
         </View>
-      </Field>
+      </FormField>
 
       <View style={styles.buttonsRow}>
         <TouchableOpacity

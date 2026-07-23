@@ -4,7 +4,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 import FollowedTeamsList from "@/src/modules/followed/ui/FollowedTeamsList";
-import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 
 const mockPush = jest.fn();
 const mockRefetch = jest.fn();

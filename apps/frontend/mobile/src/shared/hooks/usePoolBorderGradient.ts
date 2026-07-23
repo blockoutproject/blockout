@@ -1,10 +1,14 @@
-import {useMemo} from "react";
-import {poolBorderColorPalettes} from "@/src/shared/theme/themes";
-import {getGradientVariants, GradientVariants} from "@/src/shared/lib/utils";
+import { useMemo } from "react";
+import { gradients } from "@/src/shared/theme";
+import {
+  getGradientVariants,
+  type GradientVariants,
+} from "@/src/shared/lib/utils";
 
 export const usePoolBorderGradient = (poolId: number): GradientVariants => {
   return useMemo(() => {
-    const baseColors = poolBorderColorPalettes[poolId % poolBorderColorPalettes.length];
+    const baseColors =
+      gradients.poolBorders[poolId % gradients.poolBorders.length];
     return getGradientVariants(baseColors);
   }, [poolId]);
 };

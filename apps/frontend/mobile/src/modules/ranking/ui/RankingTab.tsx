@@ -3,9 +3,9 @@ import {StyleSheet, View} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import RankingCard from './RankingCard';
-import {useAppTheme} from '@/src/shared/providers/ThemeProvider';
+import {layout, useAppTheme} from "@/src/shared/theme";
 import type {PoolResponse} from '@/src/shared/generated/models';
-import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT, TABBAR_HEIGHT} from '@/src/shared/theme/tokens';
+
 import type {TeamHighlight} from '@/src/modules/team/model/TeamHighlight';
 import FadeIn from '@/src/shared/ui/animations/FadeIn';
 
@@ -23,8 +23,8 @@ const RankingTab: React.FC<Props> = ({pool, highlightTeams}) => {
       style={[
         styles.container,
         {
-          marginTop: TABBAR_HEIGHT + 8,
-          paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT + 4,
+          marginTop: layout.tabs + 8,
+          paddingBottom: insets.bottom + layout.bottomNavigation + layout.sectionSeparator + 4,
           backgroundColor: theme.background
         },
       ]}

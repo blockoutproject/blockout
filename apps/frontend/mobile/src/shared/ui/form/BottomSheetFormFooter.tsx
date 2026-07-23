@@ -13,8 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import { CORNERS } from "@/src/shared/theme/tokens";
+import {radius, useAppTheme} from "@/src/shared/theme";
 
 export type BottomSheetFormFooterProps = Omit<
   BottomSheetFooterProps,
@@ -101,7 +100,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   submitAction: {
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",

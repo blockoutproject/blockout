@@ -5,16 +5,15 @@ import {NavigationState, Route, SceneRendererProps, TabBar,} from "react-native-
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {LinearGradient} from "expo-linear-gradient";
 import {BlurView} from "expo-blur";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {gradients, layout, product, useAppTheme} from "@/src/shared/theme";
 import * as Haptics from "expo-haptics";
-import {APP_TITLE, LOGO_HEIGHT, TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
+
 import {withAlpha} from "@/src/shared/lib/utils";
 import {useSessionState} from "@/src/modules/session/providers/SessionContext";
 import {CONFIG} from "@/src/shared/config/config";
 import RevenueCatUI from "react-native-purchases-ui";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {GradientPill} from "@/src/shared/ui/pill";
 import {usePurchases} from "@/src/modules/subscription/providers/PurchasesProvider";
-import {GOLD_GRADIENT} from "@/src/shared/ui/GradientButton";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 
 type HeaderProps = SceneRendererProps & {
@@ -51,7 +50,7 @@ const FeedHeader: React.FC<HeaderProps> = ({
 
   const progressByRoute = routes.map((r) =>
     (scrollYs[r.key] ?? idleScrollY).interpolate({
-      inputRange: [0, LOGO_HEIGHT],
+      inputRange: [0, layout.logoCompact],
       outputRange: [0, 1],
       extrapolate: "clamp",
     }),
@@ -66,7 +65,7 @@ const FeedHeader: React.FC<HeaderProps> = ({
 
   const translateY = combinedProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -LOGO_HEIGHT],
+    outputRange: [0, -layout.logoCompact],
     extrapolate: "clamp",
   });
 
@@ -150,7 +149,7 @@ const FeedHeader: React.FC<HeaderProps> = ({
                 radius={6}
               />
               <Text style={[styles.title, {color: theme.text}]}>
-                {APP_TITLE}
+                {product.name}
               </Text>
             </View>
 
@@ -190,12 +189,12 @@ const FeedHeader: React.FC<HeaderProps> = ({
           <View style={styles.actions}>
             {!!showUpgradeCta && (
               <View style={{marginRight: 4}}>
-                <InfoPillGradient
+                <GradientPill
                   size="md"
                   borderWidth={1}
                   backgroundColor="transparent"
-                  variant="border"
-                  gradient={GOLD_GRADIENT}
+                  treatment="border"
+                  gradient={gradients.premium}
                   leftIcon="rocket-launch-outline"
                   label="Passer à Pro"
                   onPress={handleOpenPro}
@@ -265,7 +264,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  tabBar: {flex: 1, height: TABBAR_HEIGHT, marginLeft: 6, backgroundColor: "transparent"},
+  tabBar: {flex: 1, height: layout.tabs, marginLeft: 6, backgroundColor: "transparent"},
   tabStyle: {width: "auto", paddingHorizontal: 4},
   indicator: {width: 0.5, height: 3},
 

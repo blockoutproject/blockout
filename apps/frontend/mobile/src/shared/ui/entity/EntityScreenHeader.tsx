@@ -4,8 +4,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import { HEADER_HEIGHT } from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
 
 export type EntityScreenHeaderProps = {
   title?: string;
@@ -108,7 +107,7 @@ export default EntityScreenHeader;
 
 const styles = StyleSheet.create({
   header: {
-    height: HEADER_HEIGHT,
+    height: layout.header,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

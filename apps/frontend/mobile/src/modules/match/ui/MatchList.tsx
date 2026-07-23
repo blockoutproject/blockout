@@ -6,14 +6,14 @@ import {FlashList, ListRenderItemInfo} from "@shopify/flash-list";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {DayMatchesResponse, PoolMatchesResponse, MatchStatusEnum,} from "@/src/shared/generated/models";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {layout, useAppTheme} from "@/src/shared/theme";
 import {useMatchList} from "@/src/modules/match/hooks/useMatchList";
 import {formatDateFrenchLocale} from "@/src/shared/lib/utils";
 import MatchDateHeader from "./MatchDateHeader";
 import MatchPoolSection from "./MatchPoolSection";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/tokens";
+
 import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigationInterstitial";
 
 export type MatchListProps = {
@@ -159,13 +159,13 @@ const MatchList: React.FC<MatchListProps> = ({
 
   const footer = useMemo(() => {
     const footerBase = (
-      <View style={{height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4}}/>
+      <View style={{height: insets.bottom + layout.bottomNavigation + 4}}/>
     );
 
     if (isFetchingNextPage && hasNextPage) {
       return (
         <View>
-          <ActivityIndicator style={{marginBottom: SECTION_SEPARATOR_HEIGHT}}/>
+          <ActivityIndicator style={{marginBottom: layout.sectionSeparator}}/>
           {footerBase}
         </View>
       );

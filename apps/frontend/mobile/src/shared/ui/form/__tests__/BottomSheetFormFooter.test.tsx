@@ -1,7 +1,7 @@
 import { render, userEvent } from "@testing-library/react-native";
 import React from "react";
 
-import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 
 jest.mock("@gorhom/bottom-sheet", () => {

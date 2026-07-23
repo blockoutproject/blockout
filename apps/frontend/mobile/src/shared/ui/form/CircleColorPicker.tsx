@@ -1,12 +1,11 @@
 import React, {useMemo, useRef, useState} from "react";
 import {Button, Keyboard, StyleSheet, TouchableOpacity, View,} from "react-native";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {radius, useAppTheme} from "@/src/shared/theme";
 import ColorPicker, {HueSlider, Panel1, Preview} from "reanimated-color-picker";
 import {BottomSheetModal, BottomSheetView} from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../bottomSheet/BottomSheetCustomModal";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from 'expo-haptics';
-import {CORNERS} from "@/src/shared/theme/tokens";
 
 interface Props {
   value: string;
@@ -92,11 +91,11 @@ const CircleColorPicker: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   circle: {
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
     borderWidth: 2,
   },
   buttonRow: {
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
     padding: 4,
     marginHorizontal: 10,
   },

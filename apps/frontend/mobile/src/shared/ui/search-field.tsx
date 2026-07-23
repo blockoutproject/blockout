@@ -1,28 +1,32 @@
-import React from "react";
+import React, { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import { SEARCHBAR_HEIGHT } from "@/src/shared/theme/tokens";
 
-export type SearchBarProps = {
-  /** Valeur contrôlée. */
+import {
+  borderWidth,
+  layout,
+  radius,
+  spacing,
+  touchTarget,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
+
+export type SearchFieldProps = {
   value: string;
-  /** Mise à jour du texte. */
   onChangeText: (text: string) => void;
-  /** Placeholder. */
   placeholder?: string;
-  /** Focus callback. */
   onFocus?: () => void;
-  /** Blur callback. */
   onBlur?: () => void;
-  /** Utilisation dans un BottomSheet. */
   inSheet?: boolean;
-  /** Stable id for the native search input when a concrete feature needs it. */
   testID?: string;
 };
 
-const SearchBar: React.FC<SearchBarProps> = ({
+/**
+ * Renders the canonical native search field while leaving filtering and debounce feature-owned.
+ */
+export function SearchField({
   value,
   onChangeText,
   placeholder = "Rechercher...",
@@ -30,17 +34,37 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onBlur,
   inSheet = true,
   testID,
-}) => {
+}: SearchFieldProps) {
   const theme = useAppTheme();
+  const [focused, setFocused] = useState(false);
   const Input = inSheet ? BottomSheetTextInput : TextInput;
 
+  const handleFocus = () => {
+    setFocused(true);
+    onFocus?.();
+  };
+
+  const handleBlur = () => {
+    setFocused(false);
+    onBlur?.();
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.surface }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: focused ? theme.surface : theme.surfaceSecondary,
+          borderColor: focused ? theme.primary : theme.border,
+          borderWidth: focused ? borderWidth.medium : borderWidth.thin,
+          paddingRight: value ? spacing[4] : spacing[2],
+        },
+      ]}
+    >
       <MaterialCommunityIcons
         name="magnify"
         size={18}
         color={theme.textInactive}
-        style={styles.icon}
       />
 
       <Input
@@ -51,15 +75,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
         accessibilityLabel={placeholder}
         testID={testID}
         placeholderTextColor={theme.textInactive}
-        onFocus={onFocus}
-        onBlur={onBlur}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         style={[styles.input, { color: theme.text }]}
       />
 
-      {value.length > 0 ? (
+      {value ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Effacer la recherche"
+          hitSlop={(touchTarget.minimum - 18) / 2}
           onPress={() => onChangeText("")}
           style={({ pressed }) => (pressed ? styles.pressed : undefined)}
         >
@@ -67,34 +92,30 @@ const SearchBar: React.FC<SearchBarProps> = ({
             name="close-circle"
             size={18}
             color={theme.textInactive}
-            style={styles.clearIcon}
           />
         </Pressable>
       ) : null}
     </View>
   );
-};
-
-export default SearchBar;
+}
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    borderRadius: 20,
-    height: SEARCHBAR_HEIGHT,
-    paddingRight: 6,
-  },
-  icon: {
-    marginLeft: 12,
+    gap: spacing[1],
+    height: layout.search,
+    paddingLeft: spacing[3],
+    borderRadius: radius.full,
+    borderCurve: "continuous",
   },
   input: {
+    ...typography.body,
     flex: 1,
-    fontSize: 14,
+    minWidth: 0,
+    paddingVertical: 0,
   },
-  clearIcon: {
-    marginRight: 8,
+  pressed: {
+    opacity: 0.7,
   },
-  pressed: { opacity: 0.7 },
 });

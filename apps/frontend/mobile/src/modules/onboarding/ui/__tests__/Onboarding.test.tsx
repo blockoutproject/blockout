@@ -1,25 +1,25 @@
 import React from "react";
-import {render, userEvent} from "@testing-library/react-native";
+import { render, userEvent } from "@testing-library/react-native";
 
-import {FancyOnboarding} from "@/src/modules/onboarding/ui/Onboarding";
-import type {OnboardingStep} from "@/src/modules/onboarding/model/steps";
+import { FancyOnboarding } from "@/src/modules/onboarding/ui/Onboarding";
+import type { OnboardingStep } from "@/src/modules/onboarding/model/steps";
 
 jest.mock("expo-haptics", () => ({
   impactAsync: jest.fn().mockResolvedValue(undefined),
   notificationAsync: jest.fn().mockResolvedValue(undefined),
   selectionAsync: jest.fn().mockResolvedValue(undefined),
-  ImpactFeedbackStyle: {Light: "light"},
-  NotificationFeedbackType: {Success: "success"},
+  ImpactFeedbackStyle: { Light: "light" },
+  NotificationFeedbackType: { Success: "success" },
 }));
 
 jest.mock("expo-image", () => {
-  const {View} = require("react-native") as typeof import("react-native");
+  const { View } = require("react-native") as typeof import("react-native");
 
-  return {Image: View};
+  return { Image: View };
 });
 
 jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({top: 0, right: 0, bottom: 0, left: 0}),
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 
 jest.mock("react-native-gesture-handler", () => {
@@ -37,8 +37,8 @@ jest.mock("react-native-gesture-handler", () => {
   pan.onFinalize.mockImplementation(() => pan);
 
   return {
-    Gesture: {Pan: () => pan},
-    GestureDetector: ({children}: {children: React.ReactNode}) => children,
+    Gesture: { Pan: () => pan },
+    GestureDetector: ({ children }: { children: React.ReactNode }) => children,
   };
 });
 
@@ -58,22 +58,24 @@ jest.mock("react-native-reanimated", () => {
       Text: ReactNative.Text,
       ScrollView: ReactNative.ScrollView,
     },
-    Extrapolation: {CLAMP: "clamp"},
+    Extrapolation: { CLAMP: "clamp" },
     interpolate: () => 1,
     interpolateColor: () => "#000000",
     useAnimatedReaction: () => ReactModule.useEffect(() => undefined, []),
     useAnimatedRef: () => ReactModule.useRef(null),
     useAnimatedScrollHandler: () => jest.fn(),
-    useAnimatedStyle: (factory: () => object) => ReactModule.useMemo(factory, [factory]),
-    useSharedValue: (value: unknown) => ReactModule.useRef({value}).current,
+    useAnimatedStyle: (factory: () => object) =>
+      ReactModule.useMemo(factory, [factory]),
+    useSharedValue: (value: unknown) => ReactModule.useRef({ value }).current,
     withSpring: (value: unknown) => value,
   };
 });
 
-jest.mock("@/src/shared/ui/GradientButton", () => {
-  const {Pressable, Text} = require("react-native") as typeof import("react-native");
+jest.mock("@/src/shared/ui/action", () => {
+  const { Pressable, Text } =
+    require("react-native") as typeof import("react-native");
 
-  const MockGradientButton = ({
+  const MockAction = ({
     label,
     onPress,
     testID,
@@ -82,15 +84,19 @@ jest.mock("@/src/shared/ui/GradientButton", () => {
     onPress: () => void;
     testID?: string;
   }) => (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} testID={testID}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      testID={testID}
+    >
       <Text>{label}</Text>
     </Pressable>
   );
 
   return {
     __esModule: true,
-    GradientButton: MockGradientButton,
-    default: MockGradientButton,
+    Action: MockAction,
   };
 });
 
@@ -106,7 +112,7 @@ describe("FancyOnboarding", () => {
   it("keeps Hooks stable when the step collection changes", async () => {
     const initialSteps = [createStep("one"), createStep("two")];
     const screen = await render(
-      <FancyOnboarding steps={initialSteps} onComplete={jest.fn()}/>,
+      <FancyOnboarding steps={initialSteps} onComplete={jest.fn()} />,
     );
 
     await screen.rerender(
@@ -123,10 +129,13 @@ describe("FancyOnboarding", () => {
     const onComplete = jest.fn();
     const user = userEvent.setup();
     const screen = await render(
-      <FancyOnboarding steps={[createStep("welcome")]} onComplete={onComplete}/>,
+      <FancyOnboarding
+        steps={[createStep("welcome")]}
+        onComplete={onComplete}
+      />,
     );
 
-    const action = screen.getByRole("button", {name: "C’est parti !"});
+    const action = screen.getByRole("button", { name: "C’est parti !" });
     expect(action).toBe(screen.getByTestId("onboarding-primary-action"));
 
     await user.press(action);

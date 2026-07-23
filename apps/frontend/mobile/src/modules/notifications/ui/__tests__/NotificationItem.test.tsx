@@ -8,7 +8,7 @@ import {
 } from "@/src/shared/generated/models";
 import { formatNotificationAge } from "@/src/modules/notifications/model/formatNotificationAge";
 import NotificationItem from "@/src/modules/notifications/ui/NotificationItem";
-import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 
 jest.mock("expo-image", () => ({ Image: "Image" }));
 jest.mock("@/src/shared/ui/animations/FadeIn", () => ({

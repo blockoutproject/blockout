@@ -4,7 +4,7 @@ import {BottomSheetModal, BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import Markdown from "react-native-markdown-display";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useLegalDocument} from "@/src/modules/legal/hooks/useLegalDocument";
 import LegalDocumentHeader from "@/src/modules/legal/ui/LegalDocumentHeader";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";

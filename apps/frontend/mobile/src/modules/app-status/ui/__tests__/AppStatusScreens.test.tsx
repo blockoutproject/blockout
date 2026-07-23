@@ -10,7 +10,7 @@ import {
   SessionContextProvider,
   SessionState,
 } from "@/src/modules/session/providers/SessionContext";
-import {ThemeProvider} from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 
 jest.mock("expo-haptics", () => ({
   ImpactFeedbackStyle: {Medium: "medium"},

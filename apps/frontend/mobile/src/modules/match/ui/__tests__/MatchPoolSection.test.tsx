@@ -9,7 +9,7 @@ import {
 import MatchPoolSection from "@/src/modules/match/ui/MatchPoolSection";
 import {FormatEnum} from "@/src/shared/model/formatLabels";
 import {GenderEnum} from "@/src/shared/model/genderLabels";
-import {ThemeProvider} from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({push: jest.fn()}),

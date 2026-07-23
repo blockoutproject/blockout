@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
+import {layout} from "@/src/shared/theme";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
@@ -56,13 +56,13 @@ const ClubTeamList: React.FC<Props> = ({
 
   const ListFooterComponent = useMemo(
     () => (
-      <View style={{ height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 12 }} />
+      <View style={{ height: insets.bottom + layout.bottomNavigation + 12 }} />
     ),
     [insets.bottom],
   );
 
   const ListHeaderComponent = useMemo(
-    () => <View style={{ height: TABBAR_HEIGHT + 12 }} />,
+    () => <View style={{ height: layout.tabs + 12 }} />,
     [],
   );
 

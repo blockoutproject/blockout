@@ -5,12 +5,12 @@ import {useFormik} from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import type {LegalDocumentResponse} from "@/src/shared/generated/models";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";
-import Field from "@/src/shared/ui/form/Field";
+import {FormField} from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 
@@ -84,7 +84,7 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
         testID="legal-document-form"
       >
         <FormCard>
-          <Field label="Titre" error={formik.errors.title} touched={formik.touched.title}>
+          <FormField label="Titre" error={formik.errors.title} touched={formik.touched.title}>
             <SheetTextInput
               value={formik.values.title}
               onChangeText={formik.handleChange("title")}
@@ -92,11 +92,11 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
               placeholder="Titre"
               style={formik.touched.title && formik.errors.title ? {borderColor: theme.error} : undefined}
             />
-          </Field>
+          </FormField>
         </FormCard>
 
         <FormCard>
-          <Field label="Version" error={formik.errors.version} touched={formik.touched.version}>
+          <FormField label="Version" error={formik.errors.version} touched={formik.touched.version}>
             <SheetTextInput
               value={formik.values.version}
               onChangeText={formik.handleChange("version")}
@@ -104,11 +104,11 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
               placeholder="2025-08-08"
               style={formik.touched.version && formik.errors.version ? {borderColor: theme.error} : undefined}
             />
-          </Field>
+          </FormField>
         </FormCard>
 
         <FormCard>
-          <Field label="Contenu (Markdown)" error={formik.errors.content} touched={formik.touched.content}>
+          <FormField label="Contenu (Markdown)" error={formik.errors.content} touched={formik.touched.content}>
             <SheetTextInput
               multiline
               scrollEnabled
@@ -121,7 +121,7 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
                 formik.touched.content && formik.errors.content ? {borderColor: theme.error} : undefined,
               ]}
             />
-          </Field>
+          </FormField>
         </FormCard>
       </BottomSheetScrollView>
 

@@ -1,15 +1,15 @@
 import React from "react";
 import {Animated, Platform, StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {HEADER_HEIGHT} from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
+
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useRouter} from "expo-router";
 import {BlurView} from "expo-blur";
 import {LinearGradient} from "expo-linear-gradient";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {GradientPill} from "@/src/shared/ui/pill";
 import {withAlpha} from "@/src/shared/lib/utils";
 import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
@@ -217,7 +217,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
               </Text>
             </GradientBorderView>
           ) : (
-            <InfoPillGradient
+            <GradientPill
               label={headerContent.timeText || ""}
               gradient={headerGradient}
             />
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   header: {
-    height: HEADER_HEIGHT,
+    height: layout.header,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    height: HEADER_HEIGHT,
+    height: layout.header,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

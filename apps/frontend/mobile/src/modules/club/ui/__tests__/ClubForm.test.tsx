@@ -4,7 +4,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import type { ClubResponse } from "@/src/shared/generated/models";
 import ClubForm from "@/src/modules/club/ui/ClubForm";
-import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 
 const mockUpdateClub = jest.fn();
 

@@ -4,11 +4,10 @@ import {Image} from "expo-image";
 import type {ImageSource} from "expo-image";
 import {LinearGradient} from "expo-linear-gradient";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {radius, useAppTheme} from "@/src/shared/theme";
 import {withAlpha} from "@/src/shared/lib/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
-import InfoPillGradient from "./chips/InfoPillGradient";
-import {CORNERS} from "@/src/shared/theme/tokens";
+import {Pill} from "@/src/shared/ui/pill";
 
 export type HeroProps = {
   title: string;
@@ -146,12 +145,10 @@ const Hero: React.FC<HeroProps> = ({
 
         {!!subtitle && (
           <View style={styles.metaRow}>
-            <InfoPillGradient
+            <Pill
               label={subtitle}
               leftIcon={subtitleIcon}
               size="lg"
-              variant="filled"
-              gradient={undefined}
               borderWidth={1}
               backgroundColor={withAlpha(theme.surface, 0.9)}
               borderColor={withAlpha(theme.text, 0.16)}
@@ -203,7 +200,7 @@ const styles = StyleSheet.create({
     right: 10,
     width: 34,
     height: 34,
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,

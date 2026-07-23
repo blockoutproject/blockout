@@ -3,14 +3,14 @@ import {ActivityIndicator, Keyboard, RefreshControl, StyleSheet, Text, View} fro
 import {FlatList} from "react-native-gesture-handler";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useRawDivisionMappings} from "@/src/modules/raw-division-mapping/hooks/useRawDivisionMapping";
 import {RawDivisionMappingResponse} from "@/src/shared/generated/models";
 import {Filter} from "@/src/shared/model/Filter";
 import Filters from "@/src/shared/ui/Filters";
 import RawDivisionMappingItem from "@/src/modules/raw-division-mapping/ui/RawDivisionMappingItem";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
-import SearchBar from "@/src/shared/ui/SearchBar";
+import {SearchField} from "@/src/shared/ui/search-field";
 import RawDivisionMappingFormSheet from "@/src/modules/raw-division-mapping/ui/RawDivisionMappingFormSheet";
 
 type FilterName = string;
@@ -96,7 +96,7 @@ const RawDivisionMappingScreen: React.FC = () => {
   return (
     <>
       <View style={[styles.container, {backgroundColor: theme.background}]} testID="raw-division-mapping-screen">
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher par nom brut..."/>
+        <SearchField value={search} onChangeText={setSearch} placeholder="Rechercher par nom brut..."/>
 
         <View style={styles.filterWrapper}>
           <Filters filters={mappingFilters} setFilters={setMappingFilters} singleSelect/>

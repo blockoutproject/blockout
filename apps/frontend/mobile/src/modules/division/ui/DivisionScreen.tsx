@@ -2,13 +2,13 @@ import React, {useCallback, useMemo, useRef, useState} from "react";
 import {ActivityIndicator, Keyboard, RefreshControl, StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useDivisions} from "@/src/modules/division/hooks/useDivisions";
 import {DivisionResponse} from "@/src/shared/generated/models";
 import {Filter} from "@/src/shared/model/Filter";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import DivisionItem from "@/src/modules/division/ui/DivisionItem";
-import SearchBar from "@/src/shared/ui/SearchBar";
+import {SearchField} from "@/src/shared/ui/search-field";
 import Filters from "@/src/shared/ui/Filters";
 import DivisionFormSheet from "@/src/modules/division/ui/DivisionFormSheet";
 import {FlashList} from "@shopify/flash-list";
@@ -68,7 +68,7 @@ const DivisionScreen: React.FC = () => {
       <View style={[styles.container, {backgroundColor: theme.background}]} testID="division-screen">
         <View style={styles.searchRow}>
           <View style={{flex: 1}}>
-            <SearchBar value={search} onChangeText={setSearch} placeholder="Rechercher une division..."/>
+            <SearchField value={search} onChangeText={setSearch} placeholder="Rechercher une division..."/>
           </View>
           <TouchableOpacity onPress={() => openForm(null)} style={[styles.addButton, {backgroundColor: theme.primary}]}
                             activeOpacity={0.8}

@@ -5,17 +5,17 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {radius, useAppTheme} from "@/src/shared/theme";
 import type {
   PoolDetailsResponse,
   PoolResponse,
   UpdatePoolRequest,
 } from "@/src/shared/generated/models";
-import { CORNERS } from "@/src/shared/theme/tokens";
+
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";
-import Field from "@/src/shared/ui/form/Field";
+import {FormField} from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 
@@ -100,7 +100,7 @@ const PoolForm: React.FC<PoolFormProps> = ({
           </Text>
         </FormCard>
         <FormCard>
-          <Field
+          <FormField
             label="Nom"
             error={formik.errors.name}
             touched={formik.touched.name}
@@ -119,11 +119,11 @@ const PoolForm: React.FC<PoolFormProps> = ({
                   : undefined
               }
             />
-          </Field>
+          </FormField>
         </FormCard>
 
         <FormCard>
-          <Field
+          <FormField
             label="Diminutif"
             error={formik.errors.shortName}
             touched={formik.touched.shortName}
@@ -142,7 +142,7 @@ const PoolForm: React.FC<PoolFormProps> = ({
                   : undefined
               }
             />
-          </Field>
+          </FormField>
         </FormCard>
       </BottomSheetScrollView>
 
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
   },
   logoBtnText: { fontSize: 12, fontWeight: "700" },
 });

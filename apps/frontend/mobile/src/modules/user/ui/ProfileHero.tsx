@@ -3,9 +3,8 @@ import {StyleSheet, View} from "react-native";
 import Hero from "@/src/shared/ui/Hero";
 import type {UserResponse} from "@/src/shared/generated/models";
 import {usePurchases} from "@/src/modules/subscription/providers/PurchasesProvider";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
-import {GOLD_GRADIENT} from "@/src/shared/ui/GradientButton";
+import {gradients, useAppTheme} from "@/src/shared/theme";
+import {GradientPill} from "@/src/shared/ui/pill";
 
 export type UserHeroProps = {
   user: UserResponse;
@@ -25,12 +24,12 @@ const ProfileHero: React.FC<UserHeroProps> = ({user, onEdit}) => {
     if (!isHydrated || !isPro) return null;
 
     return (
-      <InfoPillGradient
+      <GradientPill
         size="md"
         borderWidth={2}
         backgroundColor={theme.background}
-        variant="border"
-        gradient={GOLD_GRADIENT}
+        treatment="border"
+        gradient={gradients.premium}
         leftIcon="rocket-launch-outline"
         label="Pro"
         textColor={theme.gold}

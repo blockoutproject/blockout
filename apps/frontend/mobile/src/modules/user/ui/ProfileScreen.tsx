@@ -5,7 +5,7 @@ import {BottomSheetModal} from "@gorhom/bottom-sheet";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {layout, useAppTheme} from "@/src/shared/theme";
 import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 import {ReportTypeEnum} from "@/src/shared/generated/models";
@@ -16,7 +16,7 @@ import ProfileHero from "@/src/modules/user/ui/ProfileHero";
 import ProfileHeader from "@/src/modules/user/ui/ProfileHeader";
 import ProfileFormSheet from "@/src/modules/user/ui/ProfileFormSheet";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
-import {BOTTOM_TABBAR_HEIGHT, SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/tokens";
+
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import GuestUpsellCard from "@/src/modules/session/ui/GuestUpsellCard";
 import {useOnboardingStore} from "@/src/modules/onboarding/model/onboardingStore";
@@ -141,7 +141,7 @@ const ProfileScreen: React.FC = () => {
             styles.scrollContent,
             {
               backgroundColor: theme.background,
-              paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT + 4
+              paddingBottom: insets.bottom + layout.bottomNavigation + layout.sectionSeparator + 4
             },
           ]}
         >
@@ -204,7 +204,7 @@ const ProfileScreen: React.FC = () => {
             styles.scrollContent,
             {
               backgroundColor: theme.background,
-              paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT + 4
+              paddingBottom: insets.bottom + layout.bottomNavigation + layout.sectionSeparator + 4
             },
           ]}
           testID="profile-scroll"

@@ -1,7 +1,7 @@
 import React, {useCallback, useMemo} from "react";
 import {Pressable, StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {splitIsoDateFormatted, withAlpha} from "@/src/shared/lib/utils";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {
@@ -9,7 +9,11 @@ import {
   MatchStatusEnum,
   type TeamDetailsResponse,
 } from "@/src/shared/generated/models";
-import InfoPillGradient, {type InfoPillGradientProps} from "@/src/shared/ui/chips/InfoPillGradient";
+import {
+  GradientPill,
+  Pill,
+  type PillProps,
+} from "@/src/shared/ui/pill";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {useRouter} from "expo-router";
 import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigationInterstitial";
@@ -69,14 +73,12 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({match, gradient}) => {
 
   const BasicPill = ({label, icon, redDot}: {
     label: string;
-    icon?: InfoPillGradientProps["leftIcon"];
+    icon?: PillProps["leftIcon"];
     redDot?: boolean;
   }) => (
-    <InfoPillGradient
+    <Pill
       label={label}
       leftIcon={icon}
-      gradient={undefined}
-      variant="filled"
       borderWidth={1}
       backgroundColor={theme.surface}
       borderColor={withAlpha(theme.text, 0.12)}
@@ -136,7 +138,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({match, gradient}) => {
               ) : null}
 
               {!isMatchStarted ? (
-                <InfoPillGradient
+                <GradientPill
                   label="À venir"
                   gradient={gradient}
                 />

@@ -26,10 +26,10 @@ import {
 } from "@/src/shared/generated/models";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import Filters from "@/src/shared/ui/Filters";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
-import Field from "@/src/shared/ui/form/Field";
+import {FormField} from "@/src/shared/ui/form/form-field";
 import FormCard from "@/src/shared/ui/form/FormCard";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import { CURRENT_APP_VERSION } from "@/src/modules/app-status/model/appVersion";
@@ -214,7 +214,7 @@ const ReportForm = ({
         </FormCard>
 
         <FormCard title="Détails">
-          <Field
+          <FormField
             label="Titre"
             error={formik.errors.title}
             touched={formik.touched.title}
@@ -234,9 +234,9 @@ const ReportForm = ({
               }
               testID="report-title-input"
             />
-          </Field>
+          </FormField>
 
-          <Field
+          <FormField
             label="Description"
             error={formik.errors.description}
             touched={formik.touched.description}
@@ -259,7 +259,7 @@ const ReportForm = ({
               ]}
               testID="report-description-input"
             />
-          </Field>
+          </FormField>
         </FormCard>
 
         <FormCard title="Captures">

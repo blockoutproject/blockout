@@ -4,7 +4,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useScraperStatuses} from "@/src/modules/administration/hooks/useScraperStatus";
 import {useAppStatus} from "@/src/modules/app-status/hooks/useAppStatus";
 import {useApis} from "@/src/shared/providers/ApiProvider";

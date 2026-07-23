@@ -9,7 +9,7 @@ import {
 } from '@/src/shared/generated/models';
 import FeedHeader from '@/src/modules/feed/ui/FeedHeader';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {LOGO_HEIGHT, TABBAR_HEIGHT} from '@/src/shared/theme/tokens';
+import {layout} from "@/src/shared/theme";
 import {useSessionState} from '@/src/modules/session/providers/SessionContext';
 import ReportFormSheet from '@/src/modules/report/ui/ReportFormSheet';
 import {BottomSheetModal} from '@gorhom/bottom-sheet';
@@ -26,7 +26,7 @@ const FeedScreen: React.FC = () => {
   const [index, setIndex] = useState(0);
   const reportSheetRef = useRef<BottomSheetModal>(null);
 
-  const headerOffset = insets.top + TABBAR_HEIGHT + LOGO_HEIGHT;
+  const headerOffset = insets.top + layout.tabs + layout.logoCompact;
   const favorites = useMemo(() => customUser?.favorites ?? [], [customUser?.favorites]);
   const userFavoritePools = useMemo(
     () => favorites.filter(f => f.entityType === EntityTypeEnum.POOL).map(f => f.entityId),

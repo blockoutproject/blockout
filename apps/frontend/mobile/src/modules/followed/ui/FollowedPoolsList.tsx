@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFollowedPoolList } from "@/src/modules/pool/hooks/useFollowedPoolList";
 import PoolListCard from "@/src/modules/pool/ui/PoolListCard";
-import { BOTTOM_TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
+import {layout} from "@/src/shared/theme";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
@@ -55,7 +55,7 @@ const FollowedPoolsList: React.FC<Props> = ({
     () => (
       <View
         style={{
-          height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
+          height: insets.bottom + layout.bottomNavigation + 4,
         }}
       />
     ),

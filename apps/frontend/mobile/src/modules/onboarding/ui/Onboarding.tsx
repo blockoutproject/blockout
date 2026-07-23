@@ -17,7 +17,7 @@ import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import {OnboardingStep} from "@/src/modules/onboarding/model/steps";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {GradientButton} from "@/src/shared/ui/GradientButton";
+import {Action} from "@/src/shared/ui/action";
 import {runOnJS, scheduleOnRN} from "react-native-worklets";
 
 type Props = {
@@ -191,7 +191,7 @@ export function FancyOnboarding({
         ) : (
           <View style={{flex: 1}}/>
         )}
-        <GradientButton
+        <Action
           label={isLast ? primaryText : nextText}
           onPress={onNext}
           fullWidth={isFirst}
@@ -413,19 +413,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-  },
-  wowBtn: {
-    height: 54,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    // gradient simple “flat” sans lib: on reste neutre; plug ton <GradientButton/> si tu veux
-    backgroundColor: "#7dd3fc",
-  },
-  wowTxt: {
-    fontSize: 15,
-    fontWeight: "900",
-    color: "#000",
   },
   btnFull: {flex: 1},
 

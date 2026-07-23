@@ -2,8 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import { HEADER_HEIGHT } from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
 
 const NotificationsHeader = () => {
   const insets = useSafeAreaInsets();
@@ -27,7 +26,7 @@ export default NotificationsHeader;
 
 const styles = StyleSheet.create({
   header: {
-    height: HEADER_HEIGHT,
+    height: layout.header,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,

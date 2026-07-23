@@ -1,7 +1,7 @@
 import React, {memo} from "react";
 import {Pressable, StyleProp, StyleSheet, View, ViewStyle} from "react-native";
 import {Image, type ImageProps} from "expo-image";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import * as Haptics from "expo-haptics";
 
 export type MaskedImageProps = {

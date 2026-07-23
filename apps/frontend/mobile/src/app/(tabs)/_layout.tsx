@@ -3,9 +3,9 @@ import {Tabs} from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {Image} from "expo-image";
 import {StyleSheet} from "react-native";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {iconSize, useAppTheme} from "@/src/shared/theme";
 import {useSessionState} from "@/src/modules/session/providers/SessionContext";
-import {TABBAR_ICON_SIZE} from "@/src/shared/theme/tokens";
+
 import TabBar from "@/src/shared/ui/navigation/TabBar";
 import {withAlpha} from "@/src/shared/lib/utils";
 
@@ -45,7 +45,7 @@ export default function TabLayout() {
               <MaterialCommunityIcons
                 name={focused ? "home" : "home-outline"}
                 color={color}
-                size={TABBAR_ICON_SIZE}
+                size={iconSize.navigation}
               />
             ),
           }}
@@ -56,7 +56,7 @@ export default function TabLayout() {
         name="(search)"
         options={{
           tabBarIcon: ({color}) => (
-            <MaterialCommunityIcons name="magnify" color={color} size={TABBAR_ICON_SIZE}/>
+            <MaterialCommunityIcons name="magnify" color={color} size={iconSize.navigation}/>
           ),
         }}
       />
@@ -70,7 +70,7 @@ export default function TabLayout() {
               <MaterialCommunityIcons
                 name={focused ? "whistle" : "whistle-outline"}
                 color={color}
-                size={TABBAR_ICON_SIZE}
+                size={iconSize.navigation}
               />
             ),
           }}
@@ -85,8 +85,8 @@ export default function TabLayout() {
               style={[
                 styles.avatar,
                 {
-                  height: TABBAR_ICON_SIZE,
-                  width: TABBAR_ICON_SIZE,
+                  height: iconSize.navigation,
+                  width: iconSize.navigation,
                   opacity: focused ? 1 : 0.66,
                   transform: [{scale: focused ? 1 : 0.96}],
                 },

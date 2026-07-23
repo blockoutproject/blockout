@@ -7,7 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 import { AUTH0_CONFIG, validateRequiredConfig } from "@/src/shared/config/config";
-import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 import { ApiProvider } from "@/src/shared/providers/ApiProvider";
 import { SessionProvider } from "@/src/modules/session/providers/SessionProvider";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";

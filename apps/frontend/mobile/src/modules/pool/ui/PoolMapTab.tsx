@@ -2,13 +2,9 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {layout, useAppTheme} from "@/src/shared/theme";
 import type { PoolResponse } from "@/src/shared/generated/models";
-import {
-  BOTTOM_TABBAR_HEIGHT,
-  SECTION_SEPARATOR_HEIGHT,
-  TABBAR_HEIGHT,
-} from "@/src/shared/theme/tokens";
+
 import PoolMapCard from "./PoolMapCard";
 
 type Props = {
@@ -24,9 +20,9 @@ const PoolMapTab: React.FC<Props> = ({ enrichedPool }) => {
       style={[
         styles.container,
         {
-          marginTop: TABBAR_HEIGHT + 8,
+          marginTop: layout.tabs + 8,
           paddingBottom:
-            insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT + 4,
+            insets.bottom + layout.bottomNavigation + layout.sectionSeparator + 4,
           backgroundColor: theme.background,
         },
       ]}

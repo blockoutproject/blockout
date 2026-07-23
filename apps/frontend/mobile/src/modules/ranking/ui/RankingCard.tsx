@@ -2,7 +2,7 @@ import React, {useCallback} from "react";
 import {StyleSheet, View} from "react-native";
 import {FlatList} from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import type {PoolResponse} from "@/src/shared/generated/models";
 import type {TeamHighlight} from "@/src/modules/team/model/TeamHighlight";

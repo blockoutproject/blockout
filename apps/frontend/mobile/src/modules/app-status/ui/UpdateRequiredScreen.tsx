@@ -3,11 +3,11 @@ import {ActivityIndicator, Linking, StyleSheet, Text, TouchableOpacity, View,} f
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {radius, useAppTheme} from "@/src/shared/theme";
 import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
 import AppStatusLayout from "@/src/modules/app-status/ui/AppStatusLayout";
 import {CURRENT_APP_VERSION} from "@/src/modules/app-status/model/appVersion";
-import {CORNERS} from "@/src/shared/theme/tokens";
+
 import {Image} from "expo-image";
 
 const UpdateRequiredScreen: React.FC = () => {
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   primaryButton: {
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
     paddingVertical: 12,
     paddingHorizontal: 18,
     flexDirection: "row",
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   },
   bypassButton: {
     marginTop: 4,
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,

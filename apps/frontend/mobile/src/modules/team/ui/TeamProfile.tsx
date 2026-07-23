@@ -15,14 +15,14 @@ import FollowButton from "@/src/shared/ui/follow/FollowButton";
 import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
 import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
 import { FormatLabels } from "@/src/shared/model/formatLabels";
-import { LOGO_SIZE } from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {GradientPill, Pill} from "@/src/shared/ui/pill";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import GuestPromptSheet, {
   GuestPromptSheetRef,
 } from "@/src/modules/session/ui/GuestPromptSheet";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+
 import { computeBalancedRowsByCount, withAlpha } from "@/src/shared/lib/utils";
 import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
@@ -188,12 +188,10 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
     const baseBg = withAlpha(theme.surface, 0.95);
 
     return (
-      <InfoPillGradient
+      <Pill
         key={key}
         label={pill.label}
         size="md"
-        variant="filled"
-        gradient={undefined}
         borderWidth={1}
         backgroundColor={pill.backgroundColor ?? baseBg}
         borderColor={pill.borderColor ?? baseBorder}
@@ -205,7 +203,7 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
   return (
     <View testID="team-profile">
       <View style={styles.container}>
-        <MaskedImage uri={enrichedTeam.logoUrl} size={LOGO_SIZE} radius={20} />
+        <MaskedImage uri={enrichedTeam.logoUrl} size={layout.logoHero} radius={20} />
 
         <View style={{ flex: 1 }}>
           <View onLayout={onContainer} style={styles.twoRows}>
@@ -216,11 +214,11 @@ const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
             <View style={styles.pillsRow}>
               {bottom.map((i) => renderPill(pills[i], `pill-bottom-${i}`))}
 
-              <InfoPillGradient
+              <GradientPill
                 leftIcon="home"
                 size="md"
                 rightIcon="chevron-forward-outline"
-                variant="filled"
+                treatment="filled"
                 gradient={gradient}
                 onPress={() => handleClubPress(enrichedTeam.clubId)}
               />

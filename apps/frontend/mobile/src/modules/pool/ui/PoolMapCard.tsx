@@ -19,7 +19,7 @@ import type {
 } from "@/src/shared/generated/models";
 import { CONFIG } from "@/src/shared/config/config";
 import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 
 type Props = {
   enrichedPool: PoolResponse;

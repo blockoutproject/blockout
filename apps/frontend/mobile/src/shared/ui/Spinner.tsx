@@ -1,5 +1,5 @@
-import {useAppTheme} from '@/src/shared/providers/ThemeProvider';
-import {BORDER_RADIUS, CORNERS, FONT_SIZE} from '@/src/shared/theme/tokens';
+import {radius, typography, useAppTheme} from "@/src/shared/theme";
+
 import {Loader2} from 'lucide-react-native';
 import React, {useEffect, useRef} from 'react';
 import {ActivityIndicator, Animated, StyleSheet, Text, View, ViewStyle} from 'react-native';
@@ -41,12 +41,12 @@ const sizeConfig: Record<SpinnerSize, SpinnerConfig> = {
   default: {
     size: 24,
     iconSize: 24,
-    fontSize: FONT_SIZE,
+    fontSize: typography.title.fontSize,
     gap: 8,
     thickness: 2,
   },
   lg: {size: 32, iconSize: 32, fontSize: 16, gap: 10, thickness: 3},
-  icon: {size: 24, iconSize: 24, fontSize: FONT_SIZE, gap: 8, thickness: 2},
+  icon: {size: 24, iconSize: 24, fontSize: typography.title.fontSize, gap: 8, thickness: 2},
 };
 
 const speedConfig = {
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pulseSpinner: {
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
   },
   dotsContainer: {
     flexDirection: 'row',
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dot: {
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
   },
   barsContainer: {
     flexDirection: 'row',
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bar: {
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
   },
   label: {
     textAlign: 'center',
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   },
   overlayContent: {
     padding: 60,
-    borderRadius: BORDER_RADIUS,
+    borderRadius: radius.xl,
   },
   inlineLoader: {
     minHeight: 0,

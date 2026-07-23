@@ -1,11 +1,11 @@
 import React from "react";
 import {DimensionValue, Pressable, StyleSheet, Text, TextStyle, View,} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {GradientPill, Pill} from "@/src/shared/ui/pill";
 
 export type EntityCardChip = {
   label: string;
@@ -106,25 +106,31 @@ const EntityGradientCard: React.FC<EntityGradientCardProps> = ({
           {!!hasChips && (
             <View style={styles.chipsContainer}>
               <View style={styles.chipsRow}>
-                {chips.map((chip, idx) => (
-                  <InfoPillGradient
-                    key={`${chip.label}-${idx}`}
-                    label={chip.label}
-                    leftIcon={chip.icon}
-                    size="sm"
-                    variant="border"
-                    maxWidth={chip.maxWidth}
-                    gradient={chip.gradient}
-                    labelStyle={
+                {chips.map((chip, idx) => {
+                  const commonProps = {
+                    label: chip.label,
+                    leftIcon: chip.icon,
+                    size: "sm" as const,
+                    maxWidth: chip.maxWidth,
+                    labelStyle:
                       chip.labelStyle ?? {
                         fontSize: 11,
                         color: theme.textSecondary,
-                      }
-                    }
-                    backgroundColor={chip.backgroundColor ?? theme.surface}
-                    borderColor={chip.borderColor ?? theme.border}
-                  />
-                ))}
+                      },
+                    backgroundColor: chip.backgroundColor ?? theme.surface,
+                    borderColor: chip.borderColor ?? theme.border,
+                  };
+
+                  return chip.gradient ? (
+                    <GradientPill
+                      key={`${chip.label}-${idx}`}
+                      {...commonProps}
+                      gradient={chip.gradient}
+                    />
+                  ) : (
+                    <Pill key={`${chip.label}-${idx}`} {...commonProps} />
+                  );
+                })}
               </View>
             </View>
           )}

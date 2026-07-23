@@ -1,8 +1,8 @@
 import React, {useEffect, useMemo, useRef} from "react";
 import {Animated, StyleSheet, Text, ViewStyle} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {BOTTOM_TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
+
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {withAlpha} from "@/src/shared/lib/utils";
 import {useKeyboardVisible} from "@/src/shared/hooks/useKeyboardVisible";
@@ -95,7 +95,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
         {
           backgroundColor: colors.bg,
           borderColor: colors.border,
-          bottom: bottomOffset || (isKeyboardVisible ? BOTTOM_TABBAR_HEIGHT + 8 : insets.bottom + BOTTOM_TABBAR_HEIGHT + 8),
+          bottom: bottomOffset || (isKeyboardVisible ? layout.bottomNavigation + 8 : insets.bottom + layout.bottomNavigation + 8),
           opacity,
           transform: [
             {

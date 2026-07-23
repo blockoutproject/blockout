@@ -1213,7 +1213,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     group; historical coverage is isolated on Shipped. Complete structural and visual evidence is recorded in
     [the REF-065S canonical Figma normalization record](./ref-065s-canonical-figma-system-normalization.md).
 
-- [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
+- [x] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
     approved shared primitives. Migrate real consumers as each primitive is introduced; do not add unused component
     skeletons or a code-generation layer for styles.
@@ -1222,6 +1222,12 @@ handwritten types; it must not hide a simultaneous transport or business refacto
   - Treat the certified REF-065S Figma system as the visual target. Do not recalibrate its tokens or component geometry
     from the pre-adoption runtime. Preserve behavior through focused tests, the complete mobile static/test baseline,
     and the relevant Android technical checks without Android visual synchronization.
+  - Evidence: the Expo theme boundary now exposes the certified semantic tokens through one public entry and derives
+    the application and navigation themes from those values. The real consumers of Action, Pill, Gradient Pill,
+    Search, and Field use the new bounded primitives; every superseded implementation is removed. Expo Doctor passes
+    19 checks, mobile lint and typecheck pass, all 30 Jest suites and 57 tests pass, and both unsigned native builds
+    remain green. Full scope and validation are recorded in
+    [the REF-066 Expo UI foundation adoption record](./ref-066-expo-ui-foundation.md).
 
 - [ ] **REF-067 — Align the application shell and entry flows**
   - Apply the certified tokens and components to navigation, session, sign-in, onboarding, app-status, loading, and other

@@ -1,7 +1,7 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
-import {useAppTheme} from '@/src/shared/providers/ThemeProvider';
+import {useAppTheme} from "@/src/shared/theme";
 
 type Props = {
   count: number;

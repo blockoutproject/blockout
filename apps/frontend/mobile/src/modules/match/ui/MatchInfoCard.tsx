@@ -1,10 +1,10 @@
 import React, {useCallback} from "react";
 import {StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {type MatchResponse, MatchStatusEnum} from "@/src/shared/generated/models";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {GradientPill} from "@/src/shared/ui/pill";
 import {useRouter} from "expo-router";
 import {openPdf} from "@/src/modules/pdf/openPdf";
 import {isLNV} from "@/src/shared/lib/utils";
@@ -86,20 +86,20 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({match}) => {
         style={styles.pillsWrap}
       >
 
-        <InfoPillGradient
+        <GradientPill
           leftIcon="trophy-variant"
           label={leagueLabel}
           gradient={gradient}
           borderWidth={1}
         />
-        <InfoPillGradient
+        <GradientPill
           leftIcon="calendar"
           label={dateLabel}
           gradient={gradient}
           borderWidth={1}
         />
         {!matchAddressPdfUrl && (
-          <InfoPillGradient
+          <GradientPill
             leftIcon="map-marker"
             label={venue}
             gradient={gradient}
@@ -107,7 +107,7 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({match}) => {
           />
         )}
         {!!ref1 && (
-          <InfoPillGradient
+          <GradientPill
             leftIcon="whistle"
             label={ref1}
             gradient={gradient}
@@ -115,36 +115,36 @@ const MatchInfoCard: React.FC<MatchInfoCardProps> = ({match}) => {
           />
         )}
         {!!ref2 && (
-          <InfoPillGradient
+          <GradientPill
             leftIcon="whistle"
             label={ref2}
             gradient={gradient}
             borderWidth={1}
           />
         )}
-        <InfoPillGradient
+        <GradientPill
           label={match.pool.name}
           gradient={gradient}
-          variant="filled"
+          treatment="filled"
           onPress={() => handlePoolPress(match.pool.id)}
           rightIcon="chevron-forward-outline"
         />
         {!!matchAddressPdfUrl && (
-          <InfoPillGradient
+          <GradientPill
             leftIcon="map-marker"
             rightIcon="chevron-forward-outline"
             label={venue}
-            variant="filled"
+            treatment="filled"
             gradient={gradient}
             onPress={async () => openPdf(matchAddressPdfUrl, "Informations")}
             borderWidth={1}
           />
         )}
         {!!matchSheetPdfUrl && match.status === MatchStatusEnum.FINISHED && (
-          <InfoPillGradient
+          <GradientPill
             label={"Feuille de match"}
             gradient={gradient}
-            variant="filled"
+            treatment="filled"
             onPress={async () => openPdf(matchSheetPdfUrl, "Feuille de match")}
             leftIcon="file-document-outline"
             rightIcon="chevron-forward-outline"

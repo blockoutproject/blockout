@@ -1,5 +1,5 @@
 import React from "react";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import type { PoolSearchResponse } from "@/src/shared/generated/models";
 import { isRegional, withAlpha } from "@/src/shared/lib/utils";
 import EntityGradientCard, {

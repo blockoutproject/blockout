@@ -9,14 +9,14 @@ import * as ImageManipulator from "expo-image-manipulator";
 import {Image} from "expo-image";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {radius, useAppTheme} from "@/src/shared/theme";
 import {DivisionResponse, UpsertDivisionRequest} from "@/src/shared/generated/models";
 import CircleColorPicker from "@/src/shared/ui/form/CircleColorPicker";
-import {CORNERS} from "@/src/shared/theme/tokens";
+
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";
-import Field from "@/src/shared/ui/form/Field";
+import {FormField} from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import {ImageUpload} from "@/src/shared/model/ImageUpload";
@@ -157,7 +157,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({division, onSuccess, onRegis
         </FormCard>
 
         <FormCard>
-          <Field label="Nom" error={formik.errors.name} touched={formik.touched.name}>
+          <FormField label="Nom" error={formik.errors.name} touched={formik.touched.name}>
             <SheetTextInput
               value={formik.values.name}
               onChangeText={formik.handleChange("name")}
@@ -166,7 +166,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({division, onSuccess, onRegis
               accessibilityLabel="Nom de la division"
               style={formik.touched.name && formik.errors.name ? {borderColor: theme.error} : undefined}
             />
-          </Field>
+          </FormField>
         </FormCard>
 
         <FormCard title="Couleur principale">
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: CORNERS
+    borderRadius: radius.full
   },
   logoBtnText: {fontSize: 12, fontWeight: "700"},
   colorRow: {flexDirection: "row", gap: 16, marginTop: 8, marginLeft: 8},

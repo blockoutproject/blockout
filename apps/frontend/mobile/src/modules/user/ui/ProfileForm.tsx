@@ -9,13 +9,13 @@ import * as ImageManipulator from "expo-image-manipulator";
 import {Image} from "expo-image";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {CORNERS} from "@/src/shared/theme/tokens";
+import {radius, useAppTheme} from "@/src/shared/theme";
+
 import {UserResponse, UpdateUserRequest} from "@/src/shared/generated/models";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";
-import Field from "@/src/shared/ui/form/Field";
+import {FormField} from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import {ApiError} from "@/src/shared/api/ApiError";
@@ -203,7 +203,7 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
         </FormCard>
 
         <FormCard>
-          <Field label="Pseudo" error={formik.errors.pseudo} touched={formik.touched.pseudo}>
+          <FormField label="Pseudo" error={formik.errors.pseudo} touched={formik.touched.pseudo}>
             <SheetTextInput
               value={formik.values.pseudo}
               onChangeText={formik.handleChange("pseudo")}
@@ -217,7 +217,7 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
                   : undefined
               }
             />
-          </Field>
+          </FormField>
         </FormCard>
       </BottomSheetScrollView>
 
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
   },
   logoBtnText: {fontSize: 12, fontWeight: "700"},
   removeBtn: {
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
   },
   removeBtnText: {
     fontSize: 12,

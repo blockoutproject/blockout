@@ -2,8 +2,8 @@ import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import { HEADER_HEIGHT } from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
+
 import Filters from "@/src/shared/ui/Filters";
 import { Filter } from "@/src/shared/model/Filter";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -67,7 +67,7 @@ export default SearchHeader;
 
 const styles = StyleSheet.create({
   header: {
-    height: HEADER_HEIGHT,
+    height: layout.header,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

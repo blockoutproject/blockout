@@ -2,7 +2,7 @@ import React from "react";
 import {StyleSheet, View} from "react-native";
 import {Skeleton} from "@/src/shared/ui/Skeleton";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {HEADER_HEIGHT} from "@/src/shared/theme/tokens";
+import {layout} from "@/src/shared/theme";
 
 /** Skeleton for match screen while loading. */
 const MatchSkeleton: React.FC = () => {
@@ -13,7 +13,7 @@ const MatchSkeleton: React.FC = () => {
       style={[
         styles.skeletonContainer,
         {
-          paddingTop: insets.top + HEADER_HEIGHT,
+          paddingTop: insets.top + layout.header,
         },
       ]}
       testID="match-skeleton"

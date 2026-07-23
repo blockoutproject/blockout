@@ -10,7 +10,7 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams } from "expo-router";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import { useClubById } from "@/src/modules/club/hooks/useClubById";
 import { useTeamListByClubId } from "@/src/modules/team/hooks/useTeamListByClubId";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";

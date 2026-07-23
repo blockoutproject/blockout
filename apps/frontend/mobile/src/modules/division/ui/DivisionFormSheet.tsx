@@ -5,7 +5,7 @@ import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCusto
 import DivisionForm, {DivisionFormState} from "@/src/modules/division/ui/DivisionForm";
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import {DivisionResponse} from "@/src/shared/generated/models";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 
 export type DivisionFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;

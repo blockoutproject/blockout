@@ -1,6 +1,6 @@
 import React from "react";
 import {StyleSheet, Text, View, ViewProps} from "react-native";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 
 type FormCardProps = ViewProps & {
   title?: string;

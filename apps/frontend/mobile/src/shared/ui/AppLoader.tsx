@@ -2,7 +2,7 @@ import React from "react";
 import {Image, StyleSheet, View} from "react-native";
 import {MotiView} from "moti";
 import {Easing} from "react-native-reanimated";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 
 const AppLoader: React.FC = () => {
   const theme = useAppTheme();
