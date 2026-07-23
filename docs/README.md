@@ -11,6 +11,7 @@
 - [Figma screen certification](current/ref-064-figma-screen-certification.md)
 - [Faithful native Figma system](current/ref-065b-faithful-native-figma-system.md)
 - [Figma fidelity and component hierarchy](current/ref-065c-figma-fidelity-and-component-hierarchy.md)
+- [iOS pending screen certification](current/ref-065d-ios-pending-screen-certification.md)
 - [Contract-first certification](current/ref-059-certification.md)
 - [Public release readiness](current/ref-060-public-release-readiness.md)
 - [Completed roadmap](current/roadmap.md)

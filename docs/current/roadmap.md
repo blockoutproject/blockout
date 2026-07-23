@@ -934,6 +934,31 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     recorded in
     [the REF-065C Figma fidelity and component hierarchy record](./ref-065c-figma-fidelity-and-component-hierarchy.md).
 
+- [x] **REF-065D — Certify the remaining iOS compositions in Figma**
+  - Use only the running iPhone 17 Pro simulator, current Expo source, and canonical `393 x 852` viewport to certify
+    sign-in, empty club search, guest profile, legal-document sheet, and authenticated administrator profile. Do not
+    launch Android or Web, add an authentication bypass, expose credentials, change runtime code, or modify production
+    state.
+  - Correct shared differences at the semantic-token or categorized master level first. Add only source-backed
+    responsibilities missing from the library, keep one-off business composition local, and require every reusable
+    responsibility in the five screens to remain a linked instance.
+  - Replace a `Validation pending` label only after current simulator evidence, exact-screen screenshot review, font,
+    bounds, binding, instance-lineage, and category-ownership checks pass. Sanitize account and legal contact data in
+    the public design record.
+  - Document exact screen, label, token, and component nodes plus provider-owned limitations. Commit and push REF-065D
+    separately, then stop before REF-066.
+  - Evidence: all five `393 x 852` compositions now have dated validation labels and zero missing font. Source-backed
+    corrections add `radius/card`, `surface/selected`, and `radius/hero`; the categorized library contains 17 component
+    sets and 81 variants, including Menu Row, Guest Upsell Card, and the two-item guest navigation family. The screens
+    contain 24 linked top-level instances, have no unexplained overflow, and expose no runtime identity data. Ranking
+    positions and points, plus match times and scores, are centered in their shared masters. Exact icons come from the
+    pinned Expo icon dependency; 194 visible icon roots stay within their boxes and no text approximation remains. The
+    non-native blue active-navigation outline is removed from all eight master variants while the selected pill keeps
+    the native `#5f5f5f` semantic border. All eleven canonical iOS frames received a structural regression audit, and
+    five sensitive compositions received fresh full-frame renders. Android and Web were not launched. Exact evidence
+    and the provider-owned variable-font diagnostic are recorded in
+    [the REF-065D iOS pending screen certification](./ref-065d-ios-pending-screen-certification.md).
+
 - [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
     approved shared primitives. Migrate real consumers as each primitive is introduced; do not add unused component
