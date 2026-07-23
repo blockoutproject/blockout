@@ -1,1 +1,1 @@
-export {default} from "@/src/modules/onboarding/ui/OnboardingScreen";
+export { default } from "@/src/modules/onboarding/ui/onboarding-screen";

@@ -1,1 +1,1 @@
-export {default} from "@/src/modules/app-status/ui/UpdateRequiredScreen";
+export { default } from "@/src/modules/app-status/ui/update-required-screen";

@@ -1,12 +1,12 @@
-import {ImageSourcePropType} from "react-native";
+import type { ReactNode } from "react";
+import type { ImageSourcePropType } from "react-native";
+
+import { colors } from "@/src/shared/theme";
 
 export type OnboardingVisual = {
-  /** Image statique (png/svg via png) – ex: logo */
   image?: ImageSourcePropType | { uri: string };
-  /** GIF animé (local `require` ou distant `uri`) */
   gif?: ImageSourcePropType | { uri: string };
-  /** Ou un composant custom (ex: Lottie) */
-  component?: React.ReactNode;
+  component?: ReactNode;
 };
 
 export type OnboardingStep = {
@@ -14,8 +14,7 @@ export type OnboardingStep = {
   title: string;
   description: string;
   visual: OnboardingVisual;
-  /** Couleur de fond interpolée entre les écrans */
-  bg: string;
+  backgroundColor: string;
 };
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
@@ -27,7 +26,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     visual: {
       image: require("@/assets/images/hello.gif"),
     },
-    bg: "#0e0f13",
+    backgroundColor: colors.background.default,
   },
   {
     id: "push",
@@ -37,7 +36,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     visual: {
       gif: require("@/assets/images/notifications.gif"),
     },
-    bg: "#111827",
+    backgroundColor: colors.background.secondary,
   },
   {
     id: "advice",
@@ -47,7 +46,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     visual: {
       image: require("@/assets/images/flag.png"),
     },
-    bg: "#0e0f13",
+    backgroundColor: colors.background.default,
   },
   {
     id: "disclaimer",
@@ -57,7 +56,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     visual: {
       image: require("@/assets/images/disclaimer.png"),
     },
-    bg: "#020716ff",
+    backgroundColor: colors.background.secondary,
   },
   {
     id: "start",
@@ -67,6 +66,6 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     visual: {
       gif: require("@/assets/images/ready.gif"),
     },
-    bg: "#101418",
+    backgroundColor: colors.background.default,
   },
 ];

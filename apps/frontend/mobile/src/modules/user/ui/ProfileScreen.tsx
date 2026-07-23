@@ -18,7 +18,7 @@ import ProfileFormSheet from "@/src/modules/user/ui/ProfileFormSheet";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 
 import {useApis} from "@/src/shared/providers/ApiProvider";
-import GuestUpsellCard from "@/src/modules/session/ui/GuestUpsellCard";
+import GuestUpsellCard from "@/src/modules/session/ui/guest-upsell-card";
 import {useOnboardingStore} from "@/src/modules/onboarding/model/onboardingStore";
 import {CURRENT_APP_VERSION} from "@/src/modules/app-status/model/appVersion";
 

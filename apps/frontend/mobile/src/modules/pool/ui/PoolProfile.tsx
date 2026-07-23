@@ -21,7 +21,7 @@ import { useSessionState } from "@/src/modules/session/providers/SessionContext"
 import {Pill} from "@/src/shared/ui/pill";
 import GuestPromptSheet, {
   GuestPromptSheetRef,
-} from "@/src/modules/session/ui/GuestPromptSheet";
+} from "@/src/modules/session/ui/guest-prompt-sheet";
 
 export type PoolProfileProps = {
   enrichedPool: PoolResponse;
