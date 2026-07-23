@@ -959,6 +959,76 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     and the provider-owned variable-font diagnostic are recorded in
     [the REF-065D iOS pending screen certification](./ref-065d-ios-pending-screen-certification.md).
 
+- [x] **REF-065E — Reconcile the iOS Sign in screen pixel by pixel**
+  - Compare only `Access / Sign in / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+  - Correct shared tokens or component masters before local composition, then verify assets, icons, typography, colors,
+    spacing, alignment, radii, borders, safe areas, bounds, bindings, and instance lineage.
+  - Record exact evidence, regression-check only affected shared consumers, publish this task alone, and stop before
+    REF-065F.
+  - Evidence: the canonical `393 x 852` Sign in composition now matches a fresh iPhone 17 Pro capture and the current
+    Expo source. Shared Action and Chip masters expose exact source icons through instance swaps, a reusable iOS
+    status-bar master owns system chrome, and all four MaterialCommunityIcons vectors come from the pinned application
+    dependency. Chip content is centered from its shared master, while the primary Action carries the native dark icon,
+    label metrics, and elevation. The screen has zero detached icon overlay, non-native blue stroke, or invented home
+    indicator. Its geometry, typography, copy, borders, radii, safe area, and alignment were measured at exact nodes,
+    and a complete Auth0 connect-then-disconnect cycle succeeded against the local gateway after the required Java
+    services were restarted. No runtime source, credential, provider configuration, Android, Web, production state, or
+    later screen changed. Exact evidence is recorded in
+    [the REF-065E iOS sign-in fidelity record](./ref-065e-ios-sign-in-fidelity.md).
+
+- [ ] **REF-065F — Reconcile the iOS empty Search screen pixel by pixel**
+  - Compare only `Search / Empty clubs / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-065G.
+
+- [ ] **REF-065G — Reconcile the iOS Guest profile screen pixel by pixel**
+  - Compare only `Profile / Guest / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-065H.
+
+- [ ] **REF-065H — Reconcile the iOS Administrator profile screen pixel by pixel**
+  - Compare only `Profile / Administrator / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
+    source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-065I.
+
+- [ ] **REF-065I — Reconcile the iOS empty authenticated Home screen pixel by pixel**
+  - Compare only `Home / Authenticated empty / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
+    source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-065J.
+
+- [ ] **REF-065J — Reconcile the iOS populated authenticated Home screen pixel by pixel**
+  - Compare only `Home / Authenticated populated / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
+    source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-065K.
+
+- [ ] **REF-065K — Reconcile the iOS Club information screen pixel by pixel**
+  - Compare only `Club / Information / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-065L.
+
+- [ ] **REF-065L — Reconcile the iOS empty Team screen pixel by pixel**
+  - Compare only `Team / Empty upcoming / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-065M.
+
+- [ ] **REF-065M — Reconcile the iOS Pool ranking screen pixel by pixel**
+  - Compare only `Pool / Ranking / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-065N.
+
+- [ ] **REF-065N — Reconcile the iOS finished Match screen pixel by pixel**
+  - Compare only `Match / Finished / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-065O.
+
+- [ ] **REF-065O — Reconcile the iOS Legal document sheet pixel by pixel**
+  - Compare only `Legal / Imprint sheet / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-066.
+
 - [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
     approved shared primitives. Migrate real consumers as each primitive is introduced; do not add unused component
