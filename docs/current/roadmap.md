@@ -1046,11 +1046,21 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     Exact nodes and validation are recorded in
     [the REF-065I iOS administrator profile fidelity record](./ref-065i-ios-administrator-profile-fidelity.md).
 
-- [ ] **REF-065J — Reconcile the iOS empty authenticated Home screen pixel by pixel**
+- [x] **REF-065J — Reconcile the iOS empty authenticated Home screen pixel by pixel**
   - Compare only `Home / Authenticated empty / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
     source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065K.
+  - Evidence: the canonical frame now contains only linked shared iOS status bar, Upcoming Feed Header, No matches, and
+    premium Home-active Bottom Navigation instances. The shared feed header owns the complete source-backed brand,
+    entitlement, tabs, and actions below the current iPhone safe area. The current administrator has followed entities,
+    so the authenticated shell and navigation were revalidated live while the empty content was verified against its
+    prior authenticated native observation and current Expo EmptyState/StateCard source; user data was not mutated to
+    manufacture the state. The shared navigation family now owns the source avatar behavior in active and inactive
+    states. Bounds and instance lineage pass structural review, with no provider development control or invented home
+    indicator. The complete native stack remains running for REF-065K. No runtime source, credential, Android, Web,
+    provider, user data, or production behavior changed. Exact nodes and validation are recorded in
+    [the REF-065J iOS empty authenticated Home fidelity record](./ref-065j-ios-empty-authenticated-home-fidelity.md).
 
 - [ ] **REF-065K — Reconcile the iOS populated authenticated Home screen pixel by pixel**
   - Compare only `Home / Authenticated populated / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
