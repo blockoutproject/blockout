@@ -976,7 +976,7 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     later screen changed. Exact evidence is recorded in
     [the REF-065E iOS sign-in fidelity record](./ref-065e-ios-sign-in-fidelity.md).
 
-- [ ] **REF-065F — Establish the Pill and Gradient Pill component families in Figma**
+- [x] **REF-065F — Establish the Pill and Gradient Pill component families in Figma**
   - Treat the current Expo `InfoPillGradient` implementation as the runtime authority while keeping this task
     Figma-only. Represent its two structural branches as separate, categorized component sets: `Pill` for the
     non-gradient surface and `Gradient Pill` for gradient-border and gradient-filled treatments.
@@ -993,6 +993,14 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     solid, gradient-border, gradient-filled, interactive, icon, and indicator consumers, document exact evidence, and
     stop before REF-065G. No Expo source, Android, Web, runtime behavior, credential, provider, or production state
     changes.
+  - Evidence: `Pill` now exposes 9 source-backed variants and `Gradient Pill` exposes 18, with bounded size, state,
+    treatment, icon-swap, label, and indicator properties. The exact Ionicons chevron joins the existing pinned
+    MaterialCommunityIcons masters; every family reuses existing semantic variables and gradient styles. Seventeen
+    canonical solid-pill consumers retain linked instance lineage, no detached pill or chip equivalent remains, and
+    representative solid, gradient-border, gradient-filled, pressed, icon, and indicator instances pass structural and
+    visual checks. The Sign in regression render remains unchanged. No application source or runtime surface changed.
+    Exact nodes and validation are recorded in
+    [the REF-065F Figma Pill families record](./ref-065f-figma-pill-families.md).
 
 - [ ] **REF-065G — Reconcile the iOS empty Search screen pixel by pixel**
   - Compare only `Search / Empty clubs / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
