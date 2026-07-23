@@ -1129,10 +1129,23 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     data, ranking data, or production behavior changed. Exact nodes and validation are recorded in
     [the REF-065N iOS Pool ranking fidelity record](./ref-065n-ios-pool-ranking-fidelity.md).
 
-- [ ] **REF-065O — Reconcile the iOS finished Match screen pixel by pixel**
+- [x] **REF-065O — Reconcile the iOS finished Match screen pixel by pixel**
   - Compare only `Match / Finished / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065P.
+  - Evidence: the canonical frame now reproduces the real finished Évreux versus ASPTT ROUEN MSA VB match 127797 with
+    its 3–0 result, set scores, date, time, venue, team logos, division artwork, pool metadata, and available document
+    actions. A shared Match Screen Header variant and four categorized Match detail masters own the summary, replay,
+    score, and information compositions; every visible card remains a linked instance. Transparent artwork uses the
+    native white rounded surfaces, the score and set contents are centered, and the visible ranking continuation
+    remains linked to the double-line Pool Header. Exact pinned MaterialCommunityIcons own the native metadata actions,
+    while the shared Ionicons forward-chevron master was corrected from the pinned font glyph and remains linked in
+    every action Pill. Linked iOS status and premium Home-active Bottom Navigation own the shell. Geometry, typography,
+    images, borders, radii, clipping, missing fonts, icon ownership, component properties, and instance lineage pass
+    structural and full-frame review. The complete native stack remains running for REF-065P. No runtime source,
+    credential, Android, Web, provider, match data, document token, or production behavior changed. Exact nodes and
+    validation are recorded in
+    [the REF-065O iOS finished Match fidelity record](./ref-065o-ios-finished-match-fidelity.md).
 
 - [ ] **REF-065P — Reconcile the iOS Legal document sheet pixel by pixel**
   - Compare only `Legal / Imprint sheet / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
