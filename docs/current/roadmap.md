@@ -1177,6 +1177,21 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     user data, or production behavior changed. Exact nodes and validation are recorded in
     [the REF-065Q iOS live empty authenticated Home fidelity record](./ref-065q-ios-live-empty-authenticated-home-fidelity.md).
 
+- [x] **REF-065R — Align the guest Profile report action with the shared right header slot**
+  - Compare the guest and administrator Profile headers against the current Expo source and recorded iOS evidence.
+    Correct the owning shared component before its screen instance, reuse existing spacing and pinned icon assets, and
+    preserve the current runtime behavior.
+  - Validate every canonical consumer for exact geometry, instance lineage, bindings, fonts, placeholders, bounds, and
+    visual regression, then stop before REF-066.
+  - Evidence: `Profile Header` keeps one bounded Guest/Administrator component set. The Guest master now uses the
+    source-backed flexible title and right report-action layout, with existing `spacing/3` horizontal padding,
+    `spacing/2` content gap, and the pinned `28 pt` MaterialCommunityIcons `flag-outline`. Its obsolete hidden leading
+    slot and stale screen override were removed; clean linked instance `468:2824` replaces the former guest header at
+    identical screen geometry. The Administrator instance remains unchanged and override-free. Both canonical Profile
+    screens pass full-frame and structural review with no missing font, placeholder, overflow, detached repair, or
+    runtime change. The complete native stack remains running. Exact nodes and validation are recorded in
+    [the REF-065R iOS guest Profile header consistency record](./ref-065r-ios-guest-profile-header-consistency.md).
+
 - [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
     approved shared primitives. Migrate real consumers as each primitive is introduced; do not add unused component

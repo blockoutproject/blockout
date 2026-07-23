@@ -25,6 +25,7 @@
 - [iOS finished Match fidelity](current/ref-065o-ios-finished-match-fidelity.md)
 - [iOS Legal imprint fidelity](current/ref-065p-ios-legal-imprint-fidelity.md)
 - [iOS live empty authenticated Home fidelity](current/ref-065q-ios-live-empty-authenticated-home-fidelity.md)
+- [iOS guest Profile header consistency](current/ref-065r-ios-guest-profile-header-consistency.md)
 - [Contract-first certification](current/ref-059-certification.md)
 - [Public release readiness](current/ref-060-public-release-readiness.md)
 - [Completed roadmap](current/roadmap.md)
