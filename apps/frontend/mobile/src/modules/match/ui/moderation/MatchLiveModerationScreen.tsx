@@ -5,13 +5,13 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useLiveModerationMatches} from "@/src/modules/match/hooks/useLiveModerationMatches";
 import {MatchLiveSummaryResponse, LiveLinkStatusEnum,} from "@/src/shared/generated/models";
 import {Filter} from "@/src/shared/model/Filter";
 
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
-import SearchBar from "@/src/shared/ui/SearchBar";
+import {SearchField} from "@/src/shared/ui/search-field";
 import Filters from "@/src/shared/ui/Filters";
 import MatchLiveModerationItem from "@/src/modules/match/ui/moderation/MatchLiveModerationItem";
 import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/BottomSheetCustomPage";
@@ -120,7 +120,7 @@ const MatchLiveModerationScreen: React.FC = () => {
         testID="match-moderation-screen"
       >
         <View style={styles.searchRow}>
-          <SearchBar
+          <SearchField
             value={search}
             onChangeText={setSearch}
             placeholder="Rechercher un match (équipe A vs équipe B)..."

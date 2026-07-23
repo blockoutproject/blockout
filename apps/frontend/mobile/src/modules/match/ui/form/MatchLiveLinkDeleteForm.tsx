@@ -6,7 +6,7 @@ import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import FormCard from "@/src/shared/ui/form/FormCard";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";

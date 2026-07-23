@@ -5,13 +5,13 @@ import {useFormik} from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import FormCard from "@/src/shared/ui/form/FormCard";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import {ApiError} from "@/src/shared/api/ApiError";
 import {ReportMatchLiveLinkRequest} from "@/src/shared/generated/models";
-import Field from "@/src/shared/ui/form/Field";
+import {FormField} from "@/src/shared/ui/form/form-field";
 
 export type MatchLiveLinkReportFormState = {
   loading: boolean;
@@ -123,7 +123,7 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
         showsVerticalScrollIndicator={false}
       >
         <FormCard title="Signaler un lien">
-          <Field
+          <FormField
             error={formik.errors.reason as string}
             touched={formik.touched.reason}
           >
@@ -145,7 +145,7 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
               onBlur={formik.handleBlur("reason")}
               multiline
             />
-          </Field>
+          </FormField>
         </FormCard>
       </BottomSheetScrollView>
 

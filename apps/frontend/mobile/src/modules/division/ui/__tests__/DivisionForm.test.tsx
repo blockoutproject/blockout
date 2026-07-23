@@ -4,7 +4,7 @@ import {SafeAreaProvider} from "react-native-safe-area-context";
 
 import {DivisionResponse} from "@/src/shared/generated/models";
 import DivisionForm from "@/src/modules/division/ui/DivisionForm";
-import {ThemeProvider} from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 
 const mockUpdateDivision = jest.fn();
 

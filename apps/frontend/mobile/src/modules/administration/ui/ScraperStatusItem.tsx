@@ -2,7 +2,7 @@ import React from "react";
 import {StyleSheet, Text, TouchableOpacity, View,} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {ScraperStatusResponse} from "@/src/shared/generated/models";
 
 interface Props {

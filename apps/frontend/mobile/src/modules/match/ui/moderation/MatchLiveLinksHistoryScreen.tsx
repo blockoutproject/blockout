@@ -4,7 +4,7 @@ import {FlashList} from "@shopify/flash-list";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import {MatchLiveSummaryResponse, MatchLiveLinkHistoryResponse,} from "@/src/shared/generated/models";
 import {useMatchLiveLinksHistory} from "@/src/modules/match/hooks/useMatchLiveLinksHistory";

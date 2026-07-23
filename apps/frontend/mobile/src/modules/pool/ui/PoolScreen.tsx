@@ -7,7 +7,7 @@ import { usePoolById } from "@/src/modules/pool/hooks/usePoolById";
 import PoolProfile from "@/src/modules/pool/ui/PoolProfile";
 import PoolTabs from "@/src/modules/pool/ui/PoolTabs";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import EntityScreenHeader from "@/src/shared/ui/entity/EntityScreenHeader";
 import EntityScreenSkeleton from "@/src/shared/ui/entity/EntityScreenSkeleton";
 import { ReportTypeEnum } from "@/src/shared/generated/models";

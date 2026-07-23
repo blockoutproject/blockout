@@ -6,20 +6,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {gradients, layout, useAppTheme} from "@/src/shared/theme";
 import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import { withAlpha } from "@/src/shared/lib/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
-import {
-  GOLD_GRADIENT,
-  GradientButton,
-} from "@/src/shared/ui/GradientButton";
-import {
-  BOTTOM_TABBAR_HEIGHT,
-  SECTION_SEPARATOR_HEIGHT,
-  TABBAR_HEIGHT,
-} from "@/src/shared/theme/tokens";
+import {Action} from "@/src/shared/ui/action";
 
 type Props = {
   subtitle?: string;
@@ -68,9 +60,9 @@ const ProUpsellTab: React.FC<Props> = ({
       style={[
         styles.container,
         {
-          marginTop: TABBAR_HEIGHT + 8,
+          marginTop: layout.tabs + 8,
           paddingBottom:
-            insets.bottom + BOTTOM_TABBAR_HEIGHT + SECTION_SEPARATOR_HEIGHT + 4,
+            insets.bottom + layout.bottomNavigation + layout.sectionSeparator + 4,
           backgroundColor: theme.background,
         },
       ]}
@@ -123,7 +115,7 @@ const ProUpsellTab: React.FC<Props> = ({
           <View style={styles.spacer} />
 
           {canShowCta ? (
-            <GradientButton
+            <Action
               onPress={handleOpenPro}
               label="Passer à Pro"
               loading={loading}
@@ -137,7 +129,7 @@ const ProUpsellTab: React.FC<Props> = ({
               }
               textColor="#000"
               fullWidth
-              gradient={GOLD_GRADIENT}
+              gradient={gradients.premium}
               testID="subscription-upgrade-action"
             />
           ) : (

@@ -7,10 +7,10 @@ import {BlurView} from "expo-blur";
 import * as Haptics from "expo-haptics";
 
 import {TabBarItem} from "./TabBarItem";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {layout, radius, useAppTheme} from "@/src/shared/theme";
 import {useSessionState} from "@/src/modules/session/providers/SessionContext";
 import {usePurchases} from "@/src/modules/subscription/providers/PurchasesProvider";
-import {BOTTOM_TABBAR_HEIGHT, CORNERS} from "@/src/shared/theme/tokens";
+
 import {withAlpha} from "@/src/shared/lib/utils";
 
 type Props = BottomTabBarProps & {
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   box: {
     marginHorizontal: 16,
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOpacity: 0.2,
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     elevation: 14,
   },
   row: {
-    height: BOTTOM_TABBAR_HEIGHT,
+    height: layout.bottomNavigation,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-evenly",

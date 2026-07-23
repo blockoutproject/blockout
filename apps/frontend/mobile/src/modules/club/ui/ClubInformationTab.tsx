@@ -3,9 +3,9 @@ import { Animated, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {layout, useAppTheme} from "@/src/shared/theme";
 import { InfoCard, InfoRow } from "@/src/modules/club/ui/ClubInfoCard";
-import { BOTTOM_TABBAR_HEIGHT, TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
+
 import type { ClubResponse } from "@/src/shared/generated/models";
 import ClubMapCard from "./ClubMapCard";
 
@@ -59,8 +59,8 @@ const ClubInformationsTab: React.FC<ClubInformationsTabProps> = ({
         styles.scrollContent,
         {
           backgroundColor: theme.background,
-          paddingTop: TABBAR_HEIGHT + 12,
-          paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 12,
+          paddingTop: layout.tabs + 12,
+          paddingBottom: insets.bottom + layout.bottomNavigation + 12,
         },
       ]}
       onScroll={Animated.event(

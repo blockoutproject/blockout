@@ -13,7 +13,7 @@ import {
 import {Image} from "expo-image";
 import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {withAlpha} from "@/src/shared/lib/utils";
 
 /** Button-like action attached to the state card. */

@@ -1,5 +1,5 @@
 import React from "react";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import type { TeamSearchResponse } from "@/src/shared/generated/models";
 import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
 import { withAlpha } from "@/src/shared/lib/utils";

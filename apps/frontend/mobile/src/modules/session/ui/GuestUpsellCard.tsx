@@ -2,10 +2,10 @@ import React, {useState} from "react";
 import {StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useSessionActions, useSessionState} from "@/src/modules/session/providers/SessionContext";
 import {withAlpha} from "@/src/shared/lib/utils";
-import {GradientButton} from "@/src/shared/ui/GradientButton";
+import {Action} from "@/src/shared/ui/action";
 
 type Props = {
   title?: string;
@@ -57,7 +57,7 @@ const GuestUpsellCard: React.FC<Props> = ({
         <Benefit label="Profil synchronisé" icon="cloud-check-outline"/>
       </View>
 
-      <GradientButton
+      <Action
         onPress={onSignIn}
         loading={loading || isLoading}
         disabled={loading || isLoading}

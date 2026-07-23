@@ -2,7 +2,7 @@ import React, {useCallback} from "react";
 import {Image, Pressable, StyleSheet, Text, View} from "react-native";
 import {MatchResponse} from "@/src/shared/generated/models";
 import type {TeamDetailsResponse} from "@/src/shared/generated/models";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import {useRouter} from "expo-router";
 import * as Haptics from "expo-haptics";

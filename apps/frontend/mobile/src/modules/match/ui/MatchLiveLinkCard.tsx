@@ -5,8 +5,8 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {BottomSheetModal} from "@gorhom/bottom-sheet";
 
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {GradientPill} from "@/src/shared/ui/pill";
+import {useAppTheme} from "@/src/shared/theme";
 import {
   LiveProviderEnum,
   MatchResponse,
@@ -216,12 +216,12 @@ const MatchLiveLinkCard: React.FC<Props> = ({
             <View style={styles.liveBlock}>
               <View style={styles.livePillRow}>
                 <View style={styles.livePillWrap}>
-                  <InfoPillGradient
+                  <GradientPill
                     leftIcon={leftIcon}
                     rightIcon="chevron-forward-outline"
                     label={liveLabel}
                     gradient={gradient}
-                    variant="filled"
+                    treatment="filled"
                     onPress={handleOpenLive}
                     accessibilityLabel={`Ouvrir ${liveLabel}`}
                     testID="match-live-open-action"
@@ -281,12 +281,12 @@ const MatchLiveLinkCard: React.FC<Props> = ({
 
           {!hasLiveLink && !!canShowEmptyStateCta && (
             <View style={styles.addPillWrap}>
-              <InfoPillGradient
+              <GradientPill
                 leftIcon="plus-circle-outline"
                 rightIcon="chevron-forward-outline"
                 label={emptyStateLabel}
                 gradient={[theme.borderSecondary, theme.border]}
-                variant="border"
+                treatment="border"
                 onPress={
                   canCreateLiveLink ? handleOpenEdit : onRequireAuth
                 }

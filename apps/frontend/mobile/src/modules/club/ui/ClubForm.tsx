@@ -9,19 +9,19 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {radius, useAppTheme} from "@/src/shared/theme";
 import type {
   ClubResponse,
   UpdateClubRequest,
 } from "@/src/shared/generated/models";
-import { CORNERS } from "@/src/shared/theme/tokens";
+
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import { ImageUpload } from "@/src/shared/model/ImageUpload";
-import Field from "@/src/shared/ui/form/Field";
+import {FormField} from "@/src/shared/ui/form/form-field";
 
 export type ClubFormState = {
   loading: boolean;
@@ -239,7 +239,7 @@ const ClubForm: React.FC<ClubFormProps> = ({
         </FormCard>
 
         <FormCard>
-          <Field
+          <FormField
             label="Nom"
             error={formik.errors.name}
             touched={formik.touched.name}
@@ -258,7 +258,7 @@ const ClubForm: React.FC<ClubFormProps> = ({
                   : undefined
               }
             />
-          </Field>
+          </FormField>
         </FormCard>
       </BottomSheetScrollView>
 
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
   },
   logoBtnText: { fontSize: 12, fontWeight: "700" },
   removeBtn: {
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
   },
   removeBtnText: {
     fontSize: 12,

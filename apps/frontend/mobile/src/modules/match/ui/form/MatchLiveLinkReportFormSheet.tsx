@@ -6,7 +6,7 @@ import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import MatchLiveLinkReportForm, {
   MatchLiveLinkReportFormState,
 } from "@/src/modules/match/ui/form/MatchLiveLinkReportForm";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 
 export type MatchLiveLinkReportSheetProps = {
   ref?: React.Ref<BottomSheetModal>;

@@ -1,7 +1,6 @@
 import React, {useEffect, useRef} from "react";
 import {Animated, DimensionValue, StyleSheet, ViewStyle} from "react-native";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {BORDER_RADIUS, CORNERS} from "@/src/shared/theme/tokens";
+import {radius, useAppTheme} from "@/src/shared/theme";
 
 /** Composant skeleton animé. */
 export type SkeletonProps = {
@@ -51,7 +50,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
           width,
           height,
           backgroundColor: theme.muted,
-          borderRadius: variant === 'default' ? CORNERS : BORDER_RADIUS,
+          borderRadius: variant === 'default' ? radius.full : radius.xl,
           opacity,
         },
         style,

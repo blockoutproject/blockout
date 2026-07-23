@@ -7,7 +7,7 @@ import type {
   TeamResponse,
 } from "@/src/shared/generated/models";
 import TeamForm from "@/src/modules/team/ui/TeamForm";
-import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 
 const mockUpdateTeam = jest.fn();
 

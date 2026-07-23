@@ -13,12 +13,12 @@ import FollowButton from "@/src/shared/ui/follow/FollowButton";
 import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
 import { usePoolFollowState } from "@/src/modules/pool/hooks/usePoolFollowState";
 import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
-import { LOGO_SIZE } from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import { computeBalancedRowsByCount, withAlpha } from "@/src/shared/lib/utils";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+
+import {Pill} from "@/src/shared/ui/pill";
 import GuestPromptSheet, {
   GuestPromptSheetRef,
 } from "@/src/modules/session/ui/GuestPromptSheet";
@@ -178,12 +178,11 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
     const baseBg = withAlpha(theme.surface, 0.95);
 
     return (
-      <InfoPillGradient
+      <Pill
         key={key}
         label={pill.label}
         size="md"
-        variant="filled"
-        gradient={undefined}
+
         borderWidth={1}
         backgroundColor={pill.backgroundColor ?? baseBg}
         borderColor={pill.borderColor ?? baseBorder}
@@ -194,7 +193,7 @@ const PoolProfile: React.FC<PoolProfileProps> = ({ enrichedPool }) => {
 
   return (
     <View style={styles.container} testID="pool-profile">
-      <MaskedImage uri={division.logoUrl} size={LOGO_SIZE} radius={20} shadow />
+      <MaskedImage uri={division.logoUrl} size={layout.logoHero} radius={20} shadow />
 
       <View style={{ flex: 1 }}>
         <View onLayout={handleContainerLayout} style={styles.twoRows}>

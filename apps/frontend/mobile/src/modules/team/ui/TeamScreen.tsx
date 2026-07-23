@@ -7,7 +7,7 @@ import { useTeamById } from "@/src/modules/team/hooks/useTeamById";
 import TeamProfile from "@/src/modules/team/ui/TeamProfile";
 import TeamTabs from "@/src/modules/team/ui/TeamTabs";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import EntityScreenHeader from "@/src/shared/ui/entity/EntityScreenHeader";
 import EntityScreenSkeleton from "@/src/shared/ui/entity/EntityScreenSkeleton";
 import { ReportTypeEnum } from "@/src/shared/generated/models";

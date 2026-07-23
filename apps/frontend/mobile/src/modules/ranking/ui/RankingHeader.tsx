@@ -7,7 +7,7 @@ import {LinearGradient} from "expo-linear-gradient";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import {isRegional, withAlpha} from "@/src/shared/lib/utils";
 import type {PoolResponse} from "@/src/shared/generated/models";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {GenderLabels} from "@/src/shared/model/genderLabels";
 
 type Props = {

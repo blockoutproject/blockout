@@ -1,10 +1,9 @@
 import React from 'react';
 import {GestureResponderEvent, StyleSheet, Text, TouchableOpacity} from 'react-native';
 import * as Haptics from 'expo-haptics';
-import {useAppTheme} from '@/src/shared/providers/ThemeProvider';
+import {radius, useAppTheme} from "@/src/shared/theme";
 import GradientView from '../GradientView'; // adapte les chemins si besoin
 import GradientBorderView from '../GradientBorderView';
-import {CORNERS} from '@/src/shared/theme/tokens';
 
 type Props = {
   isFollowing: boolean;
@@ -36,7 +35,7 @@ const FollowButton: React.FC<Props> = ({isFollowing, onPress, disabled, gradient
   return isFollowing ? (
     <GradientBorderView
       gradient={gradient}
-      borderRadius={CORNERS}
+      borderRadius={radius.full}
       borderWidth={2}
       style={{backgroundColor: theme.background}}
     >
@@ -60,7 +59,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   gradientFilled: {
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
     paddingVertical: 2,
     paddingHorizontal: 1,
   },

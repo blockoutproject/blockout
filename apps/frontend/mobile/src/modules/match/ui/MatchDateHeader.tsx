@@ -1,8 +1,8 @@
 import React from "react";
 import {StyleSheet, View} from "react-native";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {withAlpha} from "@/src/shared/lib/utils";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {Pill} from "@/src/shared/ui/pill";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
 
 /** En-tête de section présentant la date. */
@@ -17,12 +17,11 @@ const MatchDateHeader: React.FC<MatchDateHeaderProps> = ({title}) => {
   return (
     <FadeIn>
       <View style={styles.wrapper}>
-        <InfoPillGradient
+        <Pill
           label={title}
           leftIcon="calendar-blank-outline"
           size="md"
-          variant="filled"
-          gradient={undefined}
+
           borderWidth={1}
           maxWidth={220}
           backgroundColor={withAlpha(theme.surfaceTertiary, 0.9)}

@@ -3,11 +3,11 @@ import {Pressable, StyleSheet, View} from "react-native";
 import * as Haptics from "expo-haptics";
 
 import {PoolMatchesResponse} from "@/src/shared/generated/models";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {layout, useAppTheme} from "@/src/shared/theme";
 import MatchRow from "./MatchRow";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
-import {SECTION_SEPARATOR_HEIGHT} from "@/src/shared/theme/tokens";
+
 import RankingHeader from "@/src/modules/ranking/ui/RankingHeader";
 import {useRouter} from "expo-router";
 import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigationInterstitial";
@@ -103,7 +103,7 @@ export default React.memo(MatchPoolSection);
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: SECTION_SEPARATOR_HEIGHT,
+    marginBottom: layout.sectionSeparator,
   },
   card: {
     borderRadius: RADIUS,

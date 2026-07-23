@@ -2,8 +2,8 @@ import React, {useCallback} from "react";
 import {FlatList, ListRenderItem, StyleProp, StyleSheet, View, ViewStyle,} from "react-native";
 import * as Haptics from "expo-haptics";
 import {Filter} from "@/src/shared/model/Filter";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {useAppTheme} from "@/src/shared/theme";
+import {GradientPill} from "@/src/shared/ui/pill";
 
 export type FiltersProps = {
   /** Tableau des filtres */
@@ -67,11 +67,11 @@ const Filters: React.FC<FiltersProps> = ({
     const gradient = (active ? fallbackActive : fallbackInactive);
 
     return (
-      <InfoPillGradient
+      <GradientPill
         size="lg"
         label={item.name}
         gradient={gradient}
-        variant={active ? "filled" : "border"}
+        treatment={active ? "filled" : "border"}
         borderWidth={borderWidth}
         onPress={() => toggleFilter(index)}
       />

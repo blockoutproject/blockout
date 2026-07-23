@@ -6,12 +6,12 @@ import {MaterialCommunityIcons} from "@expo/vector-icons";
 import {useFormik} from "formik";
 import * as Yup from "yup";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useApis} from "@/src/shared/providers/ApiProvider";
 import FormCard from "@/src/shared/ui/form/FormCard";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import {ApiError} from "@/src/shared/api/ApiError";
-import Field from "@/src/shared/ui/form/Field";
+import {FormField} from "@/src/shared/ui/form/form-field";
 import {withAlpha} from "@/src/shared/lib/utils";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 
@@ -273,7 +273,7 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                 </Text>
               </View>
             ) : (
-              <Field
+              <FormField
                 error={formik.errors.url as string}
                 touched={formik.touched.url}
               >
@@ -304,7 +304,7 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
                     ]}
                   />
                 </View>
-              </Field>
+              </FormField>
             )}
           </View>
         </FormCard>

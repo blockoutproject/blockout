@@ -4,7 +4,7 @@ import { Pressable, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import SearchResults from "@/src/modules/search/ui/SearchResults";
-import { ThemeProvider } from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 
 jest.mock("@gorhom/bottom-sheet", () => {
   const { TextInput } = require("react-native");

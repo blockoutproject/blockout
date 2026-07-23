@@ -2,8 +2,8 @@ import React, {useMemo} from "react";
 import {ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View,} from "react-native";
 import * as Application from "expo-application";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import Field from "@/src/shared/ui/form/Field";
+import {useAppTheme} from "@/src/shared/theme";
+import {FormField} from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 
 type Props = {
@@ -173,7 +173,7 @@ const AppVersionControlCard: React.FC<Props> = ({
         </Text>
       </View>
 
-      <Field
+      <FormField
         label="Message affiché lors de la mise à jour forcée"
         error={undefined}
         touched={!!trimmedMsg}
@@ -186,9 +186,9 @@ const AppVersionControlCard: React.FC<Props> = ({
           multiline
           style={{minHeight: 80, textAlignVertical: "top"}}
         />
-      </Field>
+      </FormField>
 
-      <Field
+      <FormField
         label="Version minimale iOS (ex : 1.2.0)"
         error={iosVersionError}
         touched
@@ -204,9 +204,9 @@ const AppVersionControlCard: React.FC<Props> = ({
               : undefined
           }
         />
-      </Field>
+      </FormField>
 
-      <Field
+      <FormField
         label="Version minimale Android (ex : 1.2.0)"
         error={androidVersionError}
         touched
@@ -222,9 +222,9 @@ const AppVersionControlCard: React.FC<Props> = ({
               : undefined
           }
         />
-      </Field>
+      </FormField>
 
-      <Field
+      <FormField
         label="URL App Store iOS"
         error={iosUrlError}
         touched
@@ -240,9 +240,9 @@ const AppVersionControlCard: React.FC<Props> = ({
               : undefined
           }
         />
-      </Field>
+      </FormField>
 
-      <Field
+      <FormField
         label="URL Play Store Android"
         error={androidUrlError}
         touched
@@ -258,7 +258,7 @@ const AppVersionControlCard: React.FC<Props> = ({
               : undefined
           }
         />
-      </Field>
+      </FormField>
 
       <View style={styles.buttonsRow}>
         <TouchableOpacity

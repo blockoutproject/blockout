@@ -1,7 +1,7 @@
 import React from "react";
 import {StyleProp, StyleSheet, TextInputProps, View, ViewStyle} from "react-native";
 import {BottomSheetTextInput} from "@gorhom/bottom-sheet";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 
 /**
  * Input générique pour BottomSheet qui:

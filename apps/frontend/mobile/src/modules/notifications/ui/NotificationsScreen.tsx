@@ -16,8 +16,8 @@ import { NotificationResponse } from "@/src/shared/generated/models";
 import NotificationItem from "@/src/modules/notifications/ui/NotificationItem";
 import NotificationsHeader from "@/src/modules/notifications/ui/NotificationsHeader";
 import NotificationsSkeleton from "@/src/modules/notifications/ui/NotificationsSkeleton";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import { BOTTOM_TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
+
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 
@@ -82,7 +82,7 @@ const NotificationsScreen: React.FC = () => {
   );
 
   const contentPadding = useMemo(
-    () => ({ paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT + 12 }),
+    () => ({ paddingBottom: insets.bottom + layout.bottomNavigation + 12 }),
     [insets.bottom],
   );
 

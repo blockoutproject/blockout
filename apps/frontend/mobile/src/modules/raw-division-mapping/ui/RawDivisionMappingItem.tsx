@@ -2,7 +2,7 @@ import React from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {RawDivisionMappingResponse} from "@/src/shared/generated/models";
 
 type RawDivisionMappingItemProps = {

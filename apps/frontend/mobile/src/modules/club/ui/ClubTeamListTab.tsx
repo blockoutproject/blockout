@@ -1,7 +1,7 @@
 import React from "react";
 import { Animated, StyleSheet, View } from "react-native";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import ClubTeamList from "@/src/modules/club/ui/ClubTeamList";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useFollowedTeamList } from "@/src/modules/team/hooks/useFollowedTeamList";
 import TeamListCard from "@/src/modules/team/ui/TeamListCard";
-import { BOTTOM_TABBAR_HEIGHT } from "@/src/shared/theme/tokens";
+import {layout} from "@/src/shared/theme";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
@@ -56,7 +56,7 @@ const FollowedTeamsList: React.FC<Props> = ({
     () => (
       <View
         style={{
-          height: insets.bottom + BOTTOM_TABBAR_HEIGHT + 4,
+          height: insets.bottom + layout.bottomNavigation + 4,
         }}
       />
     ),

@@ -2,7 +2,7 @@ import React from "react";
 import {fireEvent, render, waitFor} from "@testing-library/react-native";
 import * as Haptics from "expo-haptics";
 
-import {ThemeProvider} from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 import StateCard from "@/src/shared/ui/feedback/StateCard";
 
 jest.mock("expo-haptics", () => ({

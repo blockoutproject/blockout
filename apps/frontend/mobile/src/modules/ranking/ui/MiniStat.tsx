@@ -1,7 +1,7 @@
 import React from "react";
 import {StyleSheet, StyleSheet as RNStyleSheet, Text, View} from "react-native";
 import {withAlpha} from "@/src/shared/lib/utils";
-import type {AppTheme} from "@/src/shared/theme/themes";
+import type {AppTheme} from "@/src/shared/theme";
 
 const MiniStat: React.FC<{ label: string; value: number | string; theme: AppTheme }> = ({
                                                                                      label,

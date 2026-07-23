@@ -1,7 +1,7 @@
 import React from "react";
 import {ActivityIndicator, Pressable, StyleSheet, Text, View} from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 
 export type FormSelectProps = {
   label: string;

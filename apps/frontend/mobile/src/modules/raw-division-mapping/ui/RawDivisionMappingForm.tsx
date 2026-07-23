@@ -3,7 +3,7 @@ import {StyleSheet, Text, View} from "react-native";
 import * as Haptics from "expo-haptics";
 import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import {useDivisions} from "@/src/modules/division/hooks/useDivisions";
 import {RawDivisionMappingResponse} from "@/src/shared/generated/models";
 import {FormatEnum, FormatLabels} from "@/src/shared/model/formatLabels";

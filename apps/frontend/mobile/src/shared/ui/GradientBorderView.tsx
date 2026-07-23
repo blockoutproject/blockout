@@ -1,7 +1,7 @@
 import React from "react";
 import {StyleProp, View, ViewStyle} from "react-native";
 import {LinearGradient} from "expo-linear-gradient";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 
 export type GradientBorderViewProps = {
   /** Contenu enfant */

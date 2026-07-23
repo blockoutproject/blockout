@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import { Skeleton } from "@/src/shared/ui/Skeleton";
 
 export type EntityScreenSkeletonProps = {

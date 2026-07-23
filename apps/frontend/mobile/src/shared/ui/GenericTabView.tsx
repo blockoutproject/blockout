@@ -4,8 +4,7 @@ import {NavigationState, Route, SceneRendererProps, TabBar, TabView,} from "reac
 import {BlurView} from "expo-blur";
 import * as Haptics from "expo-haptics";
 import {LinearGradient} from "expo-linear-gradient";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {TABBAR_HEIGHT, TABBAR_INDICATOR_HEIGHT} from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
 
 export type TabDefinition = {
   key: string;
@@ -131,8 +130,8 @@ export default GenericTabView;
 const styles = StyleSheet.create({
   container: {position: "absolute", top: 0, left: 0, right: 0, zIndex: 10},
   tabBarContainer: {flexDirection: "row", alignItems: "center", justifyContent: "space-between"},
-  tabBar: {flex: 1, height: TABBAR_HEIGHT, backgroundColor: "transparent"},
+  tabBar: {flex: 1, height: layout.tabs, backgroundColor: "transparent"},
   tabStyle: {width: "auto", paddingHorizontal: 16},
-  indicator: {height: TABBAR_INDICATOR_HEIGHT, width: 0.4},
+  indicator: {height: layout.tabIndicator, width: 0.4},
   tabItem: {fontSize: 14, fontWeight: "700"},
 });

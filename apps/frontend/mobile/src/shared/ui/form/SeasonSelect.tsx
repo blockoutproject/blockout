@@ -3,8 +3,8 @@ import * as Haptics from "expo-haptics";
 import {StyleProp, StyleSheet, Text, TouchableOpacity, ViewStyle,} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {CORNERS} from "@/src/shared/theme/tokens";
+import {radius, useAppTheme} from "@/src/shared/theme";
+
 import SelectSheet, {SelectOption, SelectSheetRef,} from "@/src/shared/ui/form/SelectSheet";
 
 export type SeasonSelectProps = {
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: CORNERS,
+    borderRadius: radius.full,
     borderWidth: 1,
     gap: 6,
   },

@@ -1,5 +1,5 @@
 import React from "react";
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import type { ClubSearchResponse } from "@/src/shared/generated/models";
 import EntityGradientCard from "@/src/shared/ui/EntityGradientCard";
 import { withAlpha } from "@/src/shared/lib/utils";

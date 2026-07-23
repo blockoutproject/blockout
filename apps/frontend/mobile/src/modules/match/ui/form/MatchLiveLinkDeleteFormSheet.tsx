@@ -6,7 +6,7 @@ import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCusto
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import MatchLiveLinkDeleteForm from "@/src/modules/match/ui/form/MatchLiveLinkDeleteForm";
 import {MatchLiveLinkFormState} from "@/src/modules/match/ui/form/MatchLiveLinkForm";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 
 export type MatchLiveLinkDeleteFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;

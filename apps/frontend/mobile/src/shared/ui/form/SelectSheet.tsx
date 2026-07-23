@@ -5,8 +5,8 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {TABBAR_HEIGHT} from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
+
 import BottomSheetCustomPage from "../bottomSheet/BottomSheetCustomPage";
 
 export type SelectOption = {
@@ -169,7 +169,7 @@ const SelectSheet: React.FC<SelectSheetProps> = ({
             keyExtractor={(it: SelectOption) => String(it.value)}
             renderItem={renderItem}
             contentContainerStyle={{
-              paddingBottom: insets.bottom + TABBAR_HEIGHT,
+              paddingBottom: insets.bottom + layout.tabs,
               paddingHorizontal: 8,
             }}
             keyboardShouldPersistTaps="handled"

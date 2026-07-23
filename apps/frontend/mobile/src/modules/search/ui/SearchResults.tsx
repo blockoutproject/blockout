@@ -12,11 +12,11 @@ import {
 import React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
-import { BOTTOM_TABBAR_HEIGHT, CTA_GRADIENT } from "@/src/shared/theme/tokens";
-import SearchBar from "@/src/shared/ui/SearchBar";
+import {gradients, layout, useAppTheme} from "@/src/shared/theme";
+
+import {SearchField} from "@/src/shared/ui/search-field";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {GradientPill} from "@/src/shared/ui/pill";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 
 export type SearchResultsProps<T extends { id: string | number }> = {
@@ -64,7 +64,7 @@ const SearchResults = <T extends { id: string | number }>({
       testID={testID}
     >
       <View style={styles.searchContainer}>
-        <SearchBar
+        <SearchField
           value={search}
           onChangeText={setSearch}
           placeholder={placeholder}
@@ -110,10 +110,10 @@ const SearchResults = <T extends { id: string | number }>({
           showExamples ? (
             <FadeIn>
               <View style={styles.examplePillContainer}>
-                <InfoPillGradient
+                <GradientPill
                   borderWidth={1}
                   label={exampleLabel}
-                  gradient={CTA_GRADIENT}
+                  gradient={gradients.action}
                 />
               </View>
             </FadeIn>
@@ -123,7 +123,7 @@ const SearchResults = <T extends { id: string | number }>({
         keyboardShouldPersistTaps="handled"
         onScrollBeginDrag={Keyboard.dismiss}
         contentContainerStyle={{
-          paddingBottom: insets.bottom + BOTTOM_TABBAR_HEIGHT,
+          paddingBottom: insets.bottom + layout.bottomNavigation,
         }}
         scrollEnabled={hasResults}
         testID={listTestID}

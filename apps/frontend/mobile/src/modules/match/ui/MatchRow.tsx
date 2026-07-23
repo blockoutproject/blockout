@@ -6,10 +6,10 @@ import {
   MatchStatusEnum,
 } from "@/src/shared/generated/models";
 import {withAlpha} from "@/src/shared/lib/utils";
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import InfoPillGradient from "@/src/shared/ui/chips/InfoPillGradient";
+import {Pill} from "@/src/shared/ui/pill";
 
 export type MatchRowProps = {
   match: MatchResponse;
@@ -54,11 +54,10 @@ const MatchRow: React.FC<MatchRowProps> = ({match, division}) => {
       {/* Ligne dédiée en haut à droite pour la pastille Live / Rediff */}
       {!!livePillLabel && (
         <View style={styles.topRow}>
-          <InfoPillGradient
+          <Pill
             label={livePillLabel}
             leftIcon="video-outline"
-            gradient={undefined}
-            variant="filled"
+
             size="sm"
             borderWidth={1}
             backgroundColor={theme.background}

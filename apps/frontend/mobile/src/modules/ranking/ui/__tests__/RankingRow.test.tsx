@@ -2,8 +2,7 @@ import {render, userEvent} from "@testing-library/react-native";
 import React from "react";
 
 import RankingRow from "@/src/modules/ranking/ui/RankingRow";
-import {ThemeProvider} from "@/src/shared/providers/ThemeProvider";
-import {darkTheme} from "@/src/shared/theme/themes";
+import {darkTheme, ThemeProvider} from "@/src/shared/theme";
 
 describe("RankingRow", () => {
   it("renders ranking facts and opens the selected team", async () => {

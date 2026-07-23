@@ -2,8 +2,8 @@ import React from "react";
 import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
-import {HEADER_HEIGHT} from "@/src/shared/theme/tokens";
+import {layout, useAppTheme} from "@/src/shared/theme";
+
 import {useBackOrClose} from "@/src/shared/hooks/useBackOrClose";
 
 /** Header for a legal document in a sheet. */
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   header: {
-    height: HEADER_HEIGHT,
+    height: layout.header,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

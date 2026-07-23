@@ -10,7 +10,7 @@ import {
   SymbolLayer,
 } from "@maplibre/maplibre-react-native";
 
-import { useAppTheme } from "@/src/shared/providers/ThemeProvider";
+import {useAppTheme} from "@/src/shared/theme";
 import { CONFIG } from "@/src/shared/config/config";
 import type { ClubResponse } from "@/src/shared/generated/models";
 

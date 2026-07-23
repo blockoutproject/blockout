@@ -2,7 +2,7 @@ import React from "react";
 import {render, userEvent} from "@testing-library/react-native";
 
 import PdfViewerHeader from "@/src/modules/pdf/ui/PdfViewerHeader";
-import {ThemeProvider} from "@/src/shared/providers/ThemeProvider";
+import {ThemeProvider} from "@/src/shared/theme";
 
 const mockBack = jest.fn();
 

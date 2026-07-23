@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import {useLocalSearchParams} from "expo-router";
 import {useFocusEffect, useIsFocused} from "@react-navigation/native";
 
-import {useAppTheme} from "@/src/shared/providers/ThemeProvider";
+import {layout, useAppTheme} from "@/src/shared/theme";
 import {useMatchById} from "@/src/modules/match/hooks/useMatchById";
 
 import MatchSkeleton from "@/src/modules/match/ui/MatchSkeleton";
@@ -20,7 +20,7 @@ import FadeIn from "@/src/shared/ui/animations/FadeIn";
 
 import {ReportTypeEnum} from "@/src/shared/generated/models";
 import {getTeamsRankingColor, isLNV, splitIsoDateFormatted} from "@/src/shared/lib/utils";
-import {BOTTOM_TABBAR_HEIGHT, HEADER_HEIGHT, SECTION_SEPARATOR_HEIGHT,} from "@/src/shared/theme/tokens";
+
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import MatchLiveLinkCard from "@/src/modules/match/ui/MatchLiveLinkCard";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
@@ -233,11 +233,11 @@ const MatchScreen: React.FC = () => {
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: insets.top + HEADER_HEIGHT,
+            paddingTop: insets.top + layout.header,
             paddingBottom:
               insets.bottom +
-              BOTTOM_TABBAR_HEIGHT +
-              SECTION_SEPARATOR_HEIGHT +
+              layout.bottomNavigation +
+              layout.sectionSeparator +
               4,
           },
         ]}
@@ -245,7 +245,7 @@ const MatchScreen: React.FC = () => {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            progressViewOffset={insets.top + HEADER_HEIGHT}
+            progressViewOffset={insets.top + layout.header}
             tintColor={theme.text}
           />
         }
