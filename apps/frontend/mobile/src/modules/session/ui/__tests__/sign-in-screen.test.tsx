@@ -2,7 +2,7 @@ import React from "react";
 import {render, userEvent} from "@testing-library/react-native";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 
-import SignInScreen from "@/src/modules/session/ui/SignInScreen";
+import SignInScreen from "@/src/modules/session/ui/sign-in-screen";
 import {
   SessionActions,
   SessionContextProvider,
@@ -79,7 +79,7 @@ const renderScreen = async (actions: SessionActions) =>
     >
       <ThemeProvider>
         <SessionContextProvider actions={actions} state={sessionState}>
-          <SignInScreen/>
+          <SignInScreen />
         </SessionContextProvider>
       </ThemeProvider>
     </SafeAreaProvider>,

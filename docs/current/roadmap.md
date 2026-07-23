@@ -1229,12 +1229,18 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     remain green. Full scope and validation are recorded in
     [the REF-066 Expo UI foundation adoption record](./ref-066-expo-ui-foundation.md).
 
-- [ ] **REF-067 — Align the application shell and entry flows**
+- [x] **REF-067 — Align the application shell and entry flows**
   - Apply the certified tokens and components to navigation, session, sign-in, onboarding, app-status, loading, and other
     application-shell states. Preserve Auth0, redirects, tabs, safe areas, keyboard behavior, haptics, and native
     navigation semantics.
   - Compare every migrated state with its Figma frame on iOS. Preserve native safe areas and system presentation, keep
     Android behavior technically validated, and retain focused behavior tests.
+  - Evidence: the native tab bar, root shell, sign-in, onboarding, maintenance, required-update, guest, and loading
+    boundaries now consume the certified design vocabulary while their existing providers, routes, state, and commands
+    remain intact. Mobile lint and typecheck pass, all 31 Jest suites and 59 tests pass, Expo Doctor passes all 19
+    checks, and unsigned Android and iOS Simulator builds remain green. The exact Figma sources, behavioral boundaries,
+    and native proof are recorded in
+    [the REF-067 application shell alignment record](./ref-067-application-shell.md).
 
 - [ ] **REF-068 — Align discovery and competition reading flows**
   - Migrate feed, search, followed content, clubs, teams, pools, matches, rankings, and their loading, empty, error, list,

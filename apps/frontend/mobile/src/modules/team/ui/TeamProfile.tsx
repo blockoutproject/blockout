@@ -21,7 +21,7 @@ import {GradientPill, Pill} from "@/src/shared/ui/pill";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import GuestPromptSheet, {
   GuestPromptSheetRef,
-} from "@/src/modules/session/ui/GuestPromptSheet";
+} from "@/src/modules/session/ui/guest-prompt-sheet";
 
 import { computeBalancedRowsByCount, withAlpha } from "@/src/shared/lib/utils";
 import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";

@@ -3,8 +3,8 @@ import {Linking} from "react-native";
 import {render, userEvent} from "@testing-library/react-native";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 
-import MaintenanceScreen from "@/src/modules/app-status/ui/MaintenanceScreen";
-import UpdateRequiredScreen from "@/src/modules/app-status/ui/UpdateRequiredScreen";
+import MaintenanceScreen from "@/src/modules/app-status/ui/maintenance-screen";
+import UpdateRequiredScreen from "@/src/modules/app-status/ui/update-required-screen";
 import {
   SessionActions,
   SessionContextProvider,
@@ -17,6 +17,20 @@ jest.mock("expo-haptics", () => ({
   selectionAsync: jest.fn().mockResolvedValue(undefined),
   impactAsync: jest.fn().mockResolvedValue(undefined),
 }));
+
+jest.mock("react-native-reanimated", () => {
+  const ReactModule = require("react") as typeof React;
+
+  return {
+    __esModule: true,
+    default: {
+      createAnimatedComponent: (Component: React.ComponentType) => Component,
+    },
+    useAnimatedStyle: (factory: () => object) => factory(),
+    useSharedValue: (value: unknown) => ReactModule.useRef({value}).current,
+    withSpring: (value: unknown) => value,
+  };
+});
 
 jest.mock("expo-image", () => ({Image: "Image"}));
 
@@ -92,7 +106,7 @@ describe("application status screens", () => {
   it("retries status loading and exposes the authorized maintenance bypass", async () => {
     const actions = createActions();
     const user = userEvent.setup();
-    const screen = await renderScreen(<MaintenanceScreen/>, actions);
+    const screen = await renderScreen(<MaintenanceScreen />, actions);
 
     expect(screen.getByTestId("maintenance-screen")).toBeTruthy();
     await user.press(screen.getByRole("button", {name: "Réessayer"}));
@@ -107,7 +121,7 @@ describe("application status screens", () => {
     const canOpenUrl = jest.spyOn(Linking, "canOpenURL").mockResolvedValue(true);
     const openUrl = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     const user = userEvent.setup();
-    const screen = await renderScreen(<UpdateRequiredScreen/>, actions);
+    const screen = await renderScreen(<UpdateRequiredScreen />, actions);
 
     expect(screen.getByTestId("update-required-screen")).toBeTruthy();
     await user.press(screen.getByRole("button", {name: "Mettre à jour l’application"}));

@@ -1,47 +1,36 @@
 import React from "react";
-import {Tabs} from "expo-router";
+import { Tabs } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import {Image} from "expo-image";
-import {StyleSheet} from "react-native";
-import {iconSize, useAppTheme} from "@/src/shared/theme";
-import {useSessionState} from "@/src/modules/session/providers/SessionContext";
+import { Image } from "expo-image";
+import { StyleSheet } from "react-native";
+import { iconSize } from "@/src/shared/theme";
+import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 
-import TabBar from "@/src/shared/ui/navigation/TabBar";
-import {withAlpha} from "@/src/shared/lib/utils";
+import TabBar from "@/src/shared/ui/navigation/tab-bar";
 
 export default function TabLayout() {
-  const theme = useAppTheme();
-  const {customUser, isGuest, isAuthenticated} = useSessionState();
+  const { customUser, isGuest, isAuthenticated } = useSessionState();
 
-  const avatarSource =
-    customUser?.pictureUrl
-      ? {uri: customUser.pictureUrl}
-      : require("@/assets/users/default_user_avatar.png");
+  const avatarSource = customUser?.pictureUrl
+    ? { uri: customUser.pictureUrl }
+    : require("@/assets/users/default_user_avatar.png");
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarActiveTintColor: theme.text,
-        tabBarInactiveTintColor: theme.textInactive,
       }}
-      tabBar={(props) => (
-        <TabBar
-          {...props}
-          activeColor={theme.text}
-          inactiveColor={theme.textInactive}
-          backgroundColorAndroid={withAlpha(theme.background, 0.92)}
-          blurTintIOS="dark"
-        />
-      )}
+      tabBar={(props) => <TabBar {...props} />}
     >
       <Tabs.Protected guard={isAuthenticated}>
         <Tabs.Screen
           name="(feed)"
           options={{
             href: isGuest ? null : undefined,
-            tabBarIcon: ({color, focused}) => (
+            tabBarAccessibilityLabel: "Accueil",
+            tabBarButtonTestID: "navigation-home-action",
+            tabBarIcon: ({ color, focused }) => (
               <MaterialCommunityIcons
                 name={focused ? "home" : "home-outline"}
                 color={color}
@@ -55,8 +44,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="(search)"
         options={{
-          tabBarIcon: ({color}) => (
-            <MaterialCommunityIcons name="magnify" color={color} size={iconSize.navigation}/>
+          tabBarAccessibilityLabel: "Rechercher",
+          tabBarButtonTestID: "navigation-search-action",
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons
+              name="magnify"
+              color={color}
+              size={iconSize.navigation}
+            />
           ),
         }}
       />
@@ -66,7 +61,9 @@ export default function TabLayout() {
           name="(notifications)"
           options={{
             href: isGuest ? null : undefined,
-            tabBarIcon: ({color, focused}) => (
+            tabBarAccessibilityLabel: "Suivis",
+            tabBarButtonTestID: "navigation-followed-action",
+            tabBarIcon: ({ color, focused }) => (
               <MaterialCommunityIcons
                 name={focused ? "whistle" : "whistle-outline"}
                 color={color}
@@ -80,7 +77,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          tabBarIcon: ({focused}) => (
+          tabBarAccessibilityLabel: "Profil",
+          tabBarButtonTestID: "navigation-profile-action",
+          tabBarIcon: ({ focused }) => (
             <Image
               style={[
                 styles.avatar,
