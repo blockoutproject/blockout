@@ -144,6 +144,20 @@ Start Expo through Nx:
 npm exec nx run @blockout/mobile:start
 ```
 
+When the complete local Java stack is running, `pools-service` owns port `8081`, which is also Metro's default. Keep the
+application port stable and start Metro on a free tooling port instead:
+
+```bash
+npm exec -- nx run @blockout/mobile:serve -- --port 8100
+```
+
+Reconnect the iOS development client to that Metro URL once, then retain the healthy Docker infrastructure, Java
+applications, search worker, Metro process, and booted simulator across consecutive visual-reconciliation tasks. Do not
+tear down and rebuild the same native session after every Figma screen.
+
+Provider consent dialogs encountered in the simulator may be completed through their visible normal actions. Do not
+introduce a source-level consent or authentication bypass, and do not commit provider state.
+
 Load the public Expo configuration or create a local Android export:
 
 ```bash

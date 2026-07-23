@@ -47,19 +47,23 @@ source, and Figma facts between correction passes.
 - Inspect the worktree, Docker containers, relevant ports, Java or Python processes, Metro, the installed development
   client, and the booted simulator before starting anything. After a machine restart, assume processes are stopped
   until inspection proves otherwise.
-- Derive the smallest complete dependency set from the target state. Start third-party infrastructure through the
-  owning Compose file, applications through their Nx targets, then Metro and the iOS development client. Verify health
-  before attempting authentication or navigation.
+- For an isolated task, derive the smallest complete dependency set from the target state. For the sequential
+  screen-by-screen reconciliation roadmap, start the complete Java application stack and search worker through their
+  Nx targets, then Metro and the iOS development client. `pools-service` keeps its owned port `8081`; run Metro with
+  Expo's official `--port 8100` option. Verify health before attempting authentication or navigation.
 - Record which processes the task started. Keep the healthy session alive through source inspection, Figma mutation,
   focused corrections, and final visual QA. Do not tear it down after the first capture or restart healthy services for
   each Figma adjustment.
-- Preserve processes that were already running for the user. Stop only task-owned processes at closure unless the user
-  explicitly asks to retain the session or the next authorized task will reuse it immediately.
+- Preserve processes that were already running for the user. Across consecutive Figma screen tasks, also retain the
+  healthy task-owned application stack, Metro session, and simulator instead of stopping and reconstructing them after
+  every task. Stop them only on user request, at the end of the reconciliation series, or to replace a failed process.
 
 ### 2. Capture runtime and source truth
 
 - Navigate the iOS simulator to the exact route, state, theme, and authentication mode before changing Figma. Use the
   normal provider flow and an existing least-privilege test identity; never add a bypass or record account details.
+- If the Google Mobile Ads consent prompt appears, the agent may select its visible **Accept** action and continue.
+  Never encode or fake that provider state in application source, configuration, or committed evidence.
 - Record the simulator model, its actual logical viewport, and the canonical Figma viewport. When the simulator cannot
   render the canonical dimensions exactly, normalize a transient capture proportionally for measurement and document
   both dimensions. Never compare mismatched frames silently.
@@ -122,8 +126,9 @@ source, and Figma facts between correction passes.
 
 - Record the final node IDs, source files, runtime state, dimensions, checks, intentional normalization, and remaining
   external limitations in the owning evidence.
-- Only after final Figma and simulator QA, stop task-owned Metro and application processes and report what remains
-  running. Do not stop user-owned infrastructure implicitly.
+- After final Figma and simulator QA, keep the healthy complete native session alive when the next authorized screen
+  task will reuse it. Otherwise stop only task-owned Metro and application processes and report what remains running.
+  Do not stop user-owned infrastructure implicitly.
 - Publish the roadmap task only after the final full-frame render, focused component renders, repository checks, and
   worktree review all pass.
 

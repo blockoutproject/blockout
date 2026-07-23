@@ -1002,10 +1002,19 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     Exact nodes and validation are recorded in
     [the REF-065F Figma Pill families record](./ref-065f-figma-pill-families.md).
 
-- [ ] **REF-065G — Reconcile the iOS empty Search screen pixel by pixel**
+- [x] **REF-065G — Reconcile the iOS empty Search screen pixel by pixel**
   - Compare only `Search / Empty clubs / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065H.
+  - Evidence: the canonical frame now uses the linked shared iOS status bar, linked `Pill`, `Search`, and premium
+    Search-active Bottom Navigation instances, source-derived safe-area geometry, `Inter Regular 14` empty copy, and
+    the exact MaterialCommunityIcons flag vector. The invented local Home Indicator and three local status
+    approximations are gone; the `393 × 852` frame has no missing font, overflow, detached shared control, or
+    provider/development overlay. The complete Java/native stack is running and retained for the following tasks; the
+    required gateway, config, search, and Metro paths are healthy, with `pools-service` on its owned port `8081` and
+    Metro on `8100`. No runtime source, credential, Android, Web, provider, or production behavior changed. Exact nodes
+    and validation are recorded in
+    [the REF-065G iOS empty Search fidelity record](./ref-065g-ios-empty-search-fidelity.md).
 
 - [ ] **REF-065H — Reconcile the iOS Guest profile screen pixel by pixel**
   - Compare only `Profile / Guest / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.

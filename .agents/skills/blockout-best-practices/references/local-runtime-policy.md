@@ -42,7 +42,16 @@ health endpoint, representative local flow, and `git diff --check`.
 - Start one runtime session and keep it healthy until the complete capture, Figma correction, focused review, and final
   full-screen comparison finish. Do not stop services after the first screenshot or restart healthy services for each
   correction.
-- Track which processes the task started. Preserve user-owned processes and stop only task-owned processes at closure,
-  unless the user requests a retained session or the next authorized task will reuse it immediately.
+- During a sequential mobile/Figma reconciliation series, start the complete Java application stack, search worker,
+  gateway, search service, Metro, and iOS development client once. Reuse that healthy session across task boundaries;
+  do not stop task-owned processes at each task closure. Stop it only when the user requests it, the reconciliation
+  series ends, or a failed process must be replaced.
+- `pools-service` owns application port `8081`. When the complete stack and Metro run together, start Metro with Expo's
+  official `--port 8100` option and reconnect the development client to that port. Do not move an application port to
+  accommodate a tooling default.
+- Track which processes the task started and preserve user-owned processes. Report the retained session and any failed
+  component truthfully.
+- A normal provider consent dialog may be accepted through its visible simulator action when required for local visual
+  testing. Never replace that interaction with a source-level bypass, hidden flag, or committed provider state.
 - Report service failures and unavailable downstream dependencies truthfully. Do not represent a partially loaded
   screen as complete runtime evidence.
