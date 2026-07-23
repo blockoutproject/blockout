@@ -1192,14 +1192,36 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     runtime change. The complete native stack remains running. Exact nodes and validation are recorded in
     [the REF-065R iOS guest Profile header consistency record](./ref-065r-ios-guest-profile-header-consistency.md).
 
+- [x] **REF-065S — Canonicalize the complete Figma design system before Expo adoption**
+  - Treat the existing `Blockout - Product Design` file as the sole visual authority for this task. Do not inspect,
+    launch, or use the iOS simulator to arbitrate visual choices.
+  - Audit every local variable, style, icon master, categorized component family, property API, and canonical screen.
+    Reduce inconsistent values to one bounded color, typography, spacing, radius, border, sizing, and elevation
+    vocabulary. Correct foundations and masters before consumers.
+  - Replace every repeated screen responsibility with a linked component instance. Keep genuinely unique business
+    composition local and simple. Remove detached duplicates, raw icon copies, stale repairs, placeholders, missing
+    fonts, unbound visual values, obsolete platform modes, inaccurate authority labels, and unexplained hardcoded
+    geometry.
+  - Preserve the current dark Blockout identity, screen content, application behavior, and lifecycle structure. Do not
+    change Expo source, providers, credentials, user data, Android, Web, or production.
+  - Validate the complete Figma file structurally and visually, document exact counts and intentional local exceptions,
+    commit and push REF-065S separately, then stop before REF-066.
+  - Evidence: the file now owns 151 scoped variables in four single-mode collections, 16 documented text styles, eight
+    paint styles, five effect styles, 45 unique linked icon masters, 22 bounded component sets, and 169 total component
+    masters. The eleven canonical `393 × 852` screens contain 239 linked instances with zero missing component, font,
+    style, token, placeholder, raw-icon, or repeated local-ownership finding. Ready contains only the canonical screen
+    group; historical coverage is isolated on Shipped. Complete structural and visual evidence is recorded in
+    [the REF-065S canonical Figma normalization record](./ref-065s-canonical-figma-system-normalization.md).
+
 - [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
     approved shared primitives. Migrate real consumers as each primitive is introduced; do not add unused component
     skeletons or a code-generation layer for styles.
   - Keep component APIs small and composable, preserve accessibility and interaction behavior, and rename touched files
     according to REF-065. Remove superseded token values and duplicate components only after every consumer is migrated.
-  - Validate each shared component against Figma and its previous iOS rendering, then run focused tests, the complete
-    mobile static/test baseline, and the relevant Android technical checks without Android visual synchronization.
+  - Treat the certified REF-065S Figma system as the visual target. Do not recalibrate its tokens or component geometry
+    from the pre-adoption runtime. Preserve behavior through focused tests, the complete mobile static/test baseline,
+    and the relevant Android technical checks without Android visual synchronization.
 
 - [ ] **REF-067 — Align the application shell and entry flows**
   - Apply the certified tokens and components to navigation, session, sign-in, onboarding, app-status, loading, and other

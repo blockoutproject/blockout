@@ -25,6 +25,9 @@ Figma-to-code implementation, and visual reconciliation.
   (`NwDQmiXqSjKVzQ6gwry0zb`). Do not create a parallel canonical file.
 - The canonical Figma file controls visual composition. The application remains the authority for behavior and platform
   functionality.
+- [`ref-065s-canonical-figma-system-normalization.md`](../../../../docs/current/ref-065s-canonical-figma-system-normalization.md)
+  certifies the visual foundations, components, icons, and eleven canonical screens that REF-066 and later
+  Figma-to-code adoption tasks consume.
 
 ## Entry Gate
 
@@ -147,6 +150,9 @@ source, and Figma facts between correction passes.
 - Treat Figma as visual input within the owning roadmap task, not as authority for contracts, permissions, data,
   navigation, hidden states, or provider behavior.
 - Preserve accessible native behavior when a static composition cannot represent it.
+- Once a roadmap task explicitly certifies the complete Figma system as its sole visual authority, consume those
+  variables, styles, component APIs, and canonical frames without recalibrating their geometry from the pre-adoption
+  runtime. Runtime checks still protect behavior, accessibility, navigation, providers, and platform integration.
 
 ## File And Lifecycle Structure
 
