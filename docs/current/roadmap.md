@@ -1161,6 +1161,22 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     Exact nodes and validation are recorded in
     [the REF-065P iOS Legal imprint fidelity record](./ref-065p-ios-legal-imprint-fidelity.md).
 
+- [x] **REF-065Q — Revalidate the live iOS empty authenticated Home screen pixel by pixel**
+  - Re-run the complete reconciliation of `Home / Authenticated empty / iOS 393` now that the authenticated account
+    reaches a real empty match result. Preserve current source behavior and do not mutate user data for the task.
+  - Correct proven differences at the shared Feedback or icon owner, validate the complete canonical screen, and stop
+    before REF-066.
+  - Evidence: a fresh authenticated iPhone 17 Pro capture, reproduced after a complete application relaunch, now
+    replaces the previous state-evidence limitation. The canonical screen contains the real selected-team-or-pool
+    message and visible `Réessayer` action at the measured native position. The shared Empty master owns the
+    source-aligned 137-by-44 pill action, semantic colors, exact padding, and existing component properties. Its linked
+    refresh icon comes from glyph `984144` of the repository-pinned Expo MaterialCommunityIcons TTF and is categorized
+    in the shared iconography foundations. Linked iOS status, Feed Header, Empty, refresh icon, and premium Home-active
+    Bottom Navigation instances pass full-frame and structural review with no missing font, placeholder, overflow, or
+    detached repair. The complete native stack remains running. No runtime source, credential, Android, Web, provider,
+    user data, or production behavior changed. Exact nodes and validation are recorded in
+    [the REF-065Q iOS live empty authenticated Home fidelity record](./ref-065q-ios-live-empty-authenticated-home-fidelity.md).
+
 - [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
     approved shared primitives. Migrate real consumers as each primitive is introduced; do not add unused component

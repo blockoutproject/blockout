@@ -42,3 +42,9 @@ bounds/lineage audit passed.
 
 The administrator session remains on the authenticated Home flow. The complete local native stack, Metro process, and
 iPhone simulator remain active for the populated Home reconciliation in REF-065K.
+
+## Later Live-State Certification
+
+REF-065Q supersedes the temporary state-specific evidence limitation above. It records the later authenticated empty
+result observed directly after the account's followed content changed, together with the resulting source-backed
+message, retry action, shared Feedback correction, and final native-to-Figma comparison.
