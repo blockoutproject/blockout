@@ -1071,11 +1071,11 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     pool, teams, logos, match times, and clipped continuation beneath the floating navigation. New categorized
     `Match Date Header / Feed` and `Pool Header / Match Feed` masters own the source-backed compositions, while every
     visible match remains linked to the shared Upcoming Match Row. Home and away names are centered horizontally and
-    vertically within their own team zones across every Match Row state. The exact pinned MaterialCommunityIcons
-    calendar and Ionicons chevron are retained, long team names reproduce native auto-shrinking, and the app shell
-    remains linked to the shared iOS status, feed header, and premium Home-active navigation masters. Geometry,
-    typography, images, borders, radii, bounds, missing fonts, icon ownership, and instance lineage pass structural and
-    full-frame review.
+    vertically within their own team zones across every Match Row state. The pool title-subtitle block is centered
+    vertically against its header and division logo. The exact pinned MaterialCommunityIcons calendar and Ionicons
+    chevron are retained, long team names reproduce native auto-shrinking, and the app shell remains linked to the
+    shared iOS status, feed header, and premium Home-active navigation masters. Geometry, typography, images, borders,
+    radii, bounds, missing fonts, icon ownership, and instance lineage pass structural and full-frame review.
     The complete native stack remains running for REF-065L. No runtime source, credential, Android, Web, provider, user
     data, or production behavior changed. Exact nodes and validation are recorded in
     [the REF-065K iOS populated authenticated Home fidelity record](./ref-065k-ios-populated-authenticated-home-fidelity.md).

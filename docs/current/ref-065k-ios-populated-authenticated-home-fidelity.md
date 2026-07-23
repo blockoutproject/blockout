@@ -31,7 +31,8 @@ The canonical screen remains node `144:992`. REF-065K made these ownership-first
 - reusable `Match Date Header / Feed` (`368:3352`) owns the exact 216 × 30 surface, border, spacing, 14-point
   extra-bold label, and linked `calendar-blank-outline` component (`364:3266`);
 - reusable `Pool Header / Match Feed` (`364:4068`) owns the blurred division artwork, overlay, exact division logo,
-  title, metadata, and pinned Ionicons chevron;
+  pinned Ionicons chevron, and a title-subtitle block centered vertically against both the 51-point header and the
+  division logo;
 - all seven visible match rows remain linked to the shared Upcoming `Match Row` master (`138:19`); every home and away
   team-name block is centered horizontally and vertically across all four shared Match Row states;
 - row instances use the real visible team names and logos, with the same per-row text shrinking produced by the native
