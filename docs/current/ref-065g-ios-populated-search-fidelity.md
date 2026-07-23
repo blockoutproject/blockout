@@ -1,8 +1,8 @@
-# REF-065G iOS Empty Search Fidelity
+# REF-065G iOS Populated Search Fidelity
 
 ## Scope
 
-REF-065G reconciles only `Search / Empty clubs / iOS 393 / Ready` in the canonical
+REF-065G reconciles only `Search / Populated teams / iOS 393 / Ready` in the canonical
 [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) file. It does not change Expo
 source, application behavior, credentials, provider configuration, Android, Web, or production state.
 
@@ -10,17 +10,17 @@ source, application behavior, credentials, provider configuration, Android, Web,
 
 The source inventory covered:
 
-- `SearchScreen.tsx`, `SearchHeader.tsx`, `SearchClubScreen.tsx`, and `SearchResults.tsx`;
-- the shared `Filters`, `InfoPillGradient`, `SearchBar`, `TabBar`, and `TabBarItem` components;
+- `SearchScreen.tsx`, `SearchHeader.tsx`, `SearchTeamScreen.tsx`, `SearchResults.tsx`, and `TeamCard.tsx`;
+- the shared `Filters`, select controls, `EntityGradientCard`, `InfoPillGradient`, `SearchBar`, `TabBar`, and
+  `TabBarItem` components;
 - the shared mobile theme tokens and the pinned MaterialCommunityIcons implementation.
 
 The native reference is the iPhone 17 Pro simulator on iOS 26.2. Its captured viewport is `402 × 874` logical points
 (`1206 × 2622` pixels). A transient proportional `393 × 852` reference was used only for visual measurement against
 the canonical Figma viewport and remains outside Git.
 
-The exact empty-club state was captured from the same source on 23 July 2026. After the complete local stack was
-restored, the development client reconnected successfully and the authenticated Search flow returned current team
-data through the local gateway. The screen source was unchanged between the empty-state capture and reconciliation.
+The exact authenticated default Team state was captured on 23 July 2026 with an empty query and current results from
+the local gateway. The transient Expo development-menu gear was excluded because it is not application UI.
 The search worker still logs the separately tracked `ConcurrentModificationException` during its scheduled full
 reindex; that known backend defect does not change the source-backed empty-state composition certified here.
 
@@ -30,21 +30,24 @@ The canonical screen remains node `84:1001`. REF-065G made these ownership-first
 
 - local approximations of the status time, Dynamic Island, and status indicators were replaced by linked instance
   `310:2116` of `System Chrome / iOS Status Bar` (`267:5`);
-- the three filter instances remain linked to the `Pill` family and now follow the source-derived header geometry at
-  `y=67`;
+- the three entity filters remain linked to `Pill`, with Teams selected at `y=67`;
 - the exact `MCI / flag-outline` vector remains at its source-derived `28 × 28` box at `(353, 69)`;
-- `Search / Clubs` remains linked to `Search`, `State=Empty` (`82:19`) and now starts at `(8, 115)` with the
+- `Search / Teams` remains linked to `Search`, `State=Empty` (`82:19`) and starts at `(8, 115)` with the
   source-defined `377 × 36` geometry;
-- the empty result uses portable `Inter Regular 14`, has no missing font, and occupies the source-derived line box at
-  `(20, 175)`;
+- `Select Filter` (`321:176`) owns the four source-backed season, division, format, and gender controls with exact
+  MaterialCommunityIcons vectors;
+- `Gradient Pill` owns the centered `Exemples d’équipes` label;
+- `Team Result Card` (`322:50`) owns the repeated logo, title, and four metadata pills. Five linked instances reproduce
+  the visible results and use the captured non-sensitive team logo;
 - `Bottom Navigation / Search active` remains linked to `Tone=Premium, Active=Search` (`140:84`) and now occupies
   `(16, 754, 361, 64)`, leaving the native 34-point bottom safe area;
-- the invented screen-local Home Indicator was removed. The transient Expo development-menu control and the dynamic
-  account avatar are not copied as canonical screen decoration.
+- the invented Home Indicator and Expo development-menu control remain absent.
 
-The final frame is `393 × 852`, clipped, contains no overflowing child or missing font, and preserves linked lineage
-for system chrome, all three pills, Search, and Bottom Navigation. The final full-frame render and focused structural
-audit passed against the native reference.
+The final frame is `393 × 852`, clipped, contains no missing font, and preserves linked lineage
+for system chrome, entity pills, Search, select filters, example pill, repeated result cards, and Bottom Navigation.
+The partially visible Gender control intentionally extends beyond the right edge, matching the native horizontal
+filter list before scrolling. The final full-frame render and focused structural audit passed against the native
+reference.
 
 ## Retained Native Session
 

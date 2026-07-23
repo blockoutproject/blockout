@@ -14,7 +14,7 @@
 - [iOS pending screen certification](current/ref-065d-ios-pending-screen-certification.md)
 - [iOS sign-in fidelity](current/ref-065e-ios-sign-in-fidelity.md)
 - [Figma Pill families](current/ref-065f-figma-pill-families.md)
-- [iOS empty Search fidelity](current/ref-065g-ios-empty-search-fidelity.md)
+- [iOS populated Search fidelity](current/ref-065g-ios-populated-search-fidelity.md)
 - [Contract-first certification](current/ref-059-certification.md)
 - [Public release readiness](current/ref-060-public-release-readiness.md)
 - [Completed roadmap](current/roadmap.md)
