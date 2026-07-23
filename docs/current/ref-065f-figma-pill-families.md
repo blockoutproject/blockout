@@ -63,7 +63,7 @@ Seventeen canonical solid-pill consumers remain linked to `Pill` after the in-pl
 
 - three on Sign in;
 - three on empty Search;
-- five on the empty Team screen;
+- five on the Team screen;
 - four on Pool ranking;
 - two on the finished Match screen.
 

@@ -48,4 +48,4 @@ to the shared set.
 ## Retained Native Session
 
 The administrator session remains authenticated on the Club information route. The complete local native stack, Metro
-process, and iPhone simulator remain active for the empty Team reconciliation in REF-065M.
+process, and iPhone simulator remain active for the populated Team matches reconciliation in REF-065M.

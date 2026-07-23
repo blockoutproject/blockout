@@ -65,7 +65,7 @@ native top inset and the `361 x 64` bottom navigation at `y = 754`, preserving t
 | ------------------------------------------ | ---------- | ----------------------------------------------------------------------------------- | --------: |
 | `Home / Authenticated populated / iOS 393` | `144:992`  | Match Row, Bottom Navigation                                                        |         6 |
 | `Club / Information / iOS 393`             | `145:1075` | Screen Header, Hero, Navigation Item, Bottom Navigation                             |         7 |
-| `Team / Empty upcoming / iOS 393`          | `147:1066` | Screen Header, Chip, Follow Action, Navigation Item, Feedback, Bottom Navigation    |        12 |
+| `Team / Upcoming matches / iOS 393`        | `147:1066` | Screen Header, Pill, Follow Action, Navigation Item, Match Feed, Bottom Navigation  |        12 |
 | `Pool / Ranking / iOS 393`                 | `148:1083` | Screen Header, Chip, Follow Action, Navigation Item, Ranking Row, Bottom Navigation |        17 |
 | `Match / Finished / iOS 393`               | `148:1228` | Chip, Bottom Navigation                                                             |         3 |
 

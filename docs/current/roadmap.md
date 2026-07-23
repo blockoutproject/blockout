@@ -1096,10 +1096,22 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     data, or production behavior changed. Exact nodes and validation are recorded in
     [the REF-065L iOS Club information fidelity record](./ref-065l-ios-club-information-fidelity.md).
 
-- [ ] **REF-065M — Reconcile the iOS empty Team screen pixel by pixel**
-  - Compare only `Team / Empty upcoming / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+- [x] **REF-065M — Reconcile the populated iOS Team matches screen pixel by pixel**
+  - Compare only `Team / Upcoming matches / iOS 393` with a real populated team in the running iPhone 17 Pro simulator
+    and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065N.
+  - Evidence: the obsolete empty-state expectation was replaced by the current populated VOLLEY-BALL PEXINOIS NIORT
+    route and its three visible upcoming matches. The canonical screen now uses the real team, pool, opponent, date,
+    time, and logo data. Shared Match Date Header, double-line Pool Header, and Upcoming Match Row masters own the
+    repeated feed structures; team names and the pool title-metadata block are centered on both axes where the native
+    source does so. The obsolete logo-slot placeholder terminology was removed from the Match Row master. Linked
+    status, entity header, Pills, Follow Action, Navigation Items, exact pinned icons, and premium Home-active Bottom
+    Navigation own the remaining composition. Geometry, typography, images, borders, radii, clipping, missing fonts,
+    component properties, and instance lineage pass structural and full-frame review. The complete native stack remains
+    running for REF-065N. No runtime source, credential, Android, Web, provider, team data, match data, or production
+    behavior changed. Exact nodes and validation are recorded in
+    [the REF-065M iOS populated Team matches fidelity record](./ref-065m-ios-populated-team-matches-fidelity.md).
 
 - [ ] **REF-065N — Reconcile the iOS Pool ranking screen pixel by pixel**
   - Compare only `Pool / Ranking / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.

@@ -67,7 +67,7 @@ replacements were promoted under the original names before the detached predeces
 | ------------------------------------------ | ---------- | ---------------------------------- | --------: |
 | `Home / Authenticated populated / iOS 393` | `144:992`  | `Match Row`, `Bottom Navigation`   |         6 |
 | `Club / Information / iOS 393`             | `145:1075` | `Hero`, `Bottom Navigation`        |         2 |
-| `Team / Empty upcoming / iOS 393`          | `147:1066` | `Feedback`, `Bottom Navigation`    |         2 |
+| `Team / Upcoming matches / iOS 393`        | `147:1066` | Match feed, `Bottom Navigation`    |         2 |
 | `Pool / Ranking / iOS 393`                 | `148:1083` | `Ranking Row`, `Bottom Navigation` |         7 |
 | `Match / Finished / iOS 393`               | `148:1228` | `Bottom Navigation`                |         1 |
 
