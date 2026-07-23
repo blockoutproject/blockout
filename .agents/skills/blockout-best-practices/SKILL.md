@@ -41,6 +41,8 @@ the current task. Detailed rules live in the references rather than in this entr
 | Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                                           |
 | Business model ownership or current refactor scope                            | `docs/current/refactor-direction.md` and the owning application sources                                     |
 
+When Figma work requires simulator or service startup, also read `references/local-runtime-policy.md`.
+
 When current sources do not justify a proposed behavior, stop the runtime change and request a product or architecture
 decision. Historical code and deferred plans do not activate work by continuity.
 

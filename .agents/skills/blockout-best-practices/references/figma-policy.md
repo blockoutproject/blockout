@@ -37,6 +37,96 @@ Figma-to-code implementation, and visual reconciliation.
 4. Stop only when behavior, navigation, component ownership, token semantics, responsive intent, authentication, or a
    required provider state cannot be resolved from current evidence.
 
+## Runtime Reconciliation Procedure
+
+Use one continuous evidence session for a screen or component task. Do not repeatedly rediscover the same runtime,
+source, and Figma facts between correction passes.
+
+### 1. Establish the session
+
+- Inspect the worktree, Docker containers, relevant ports, Java or Python processes, Metro, the installed development
+  client, and the booted simulator before starting anything. After a machine restart, assume processes are stopped
+  until inspection proves otherwise.
+- Derive the smallest complete dependency set from the target state. Start third-party infrastructure through the
+  owning Compose file, applications through their Nx targets, then Metro and the iOS development client. Verify health
+  before attempting authentication or navigation.
+- Record which processes the task started. Keep the healthy session alive through source inspection, Figma mutation,
+  focused corrections, and final visual QA. Do not tear it down after the first capture or restart healthy services for
+  each Figma adjustment.
+- Preserve processes that were already running for the user. Stop only task-owned processes at closure unless the user
+  explicitly asks to retain the session or the next authorized task will reuse it immediately.
+
+### 2. Capture runtime and source truth
+
+- Navigate the iOS simulator to the exact route, state, theme, and authentication mode before changing Figma. Use the
+  normal provider flow and an existing least-privilege test identity; never add a bypass or record account details.
+- Record the simulator model, its actual logical viewport, and the canonical Figma viewport. When the simulator cannot
+  render the canonical dimensions exactly, normalize a transient capture proportionally for measurement and document
+  both dimensions. Never compare mismatched frames silently.
+- Capture one complete screen and focused references for dense or reusable controls. Keep captures transient and
+  outside Git.
+- Read the exact screen source, every shared component it renders, theme tokens, icon-library entries, and reachable
+  variants. Build a short source-to-Figma inventory before writing: component owner, sizes, treatments, states,
+  optional slots, dimensions, spacing, typography, colors, borders, gradients, shadows, and interaction-only behavior.
+- Distinguish runtime defects from delivered intent. Do not normalize a visible discrepancy until source, simulator,
+  and existing design-system evidence justify the correction.
+
+### 3. Inspect the existing Figma model
+
+- Inspect the exact screen frame and validation label, then trace every repeated element to its main component,
+  component set, variant, properties, variables, styles, and icon master.
+- Compare a reusable component's complete source API, not only the one variant visible on the target screen. Check all
+  source-backed sizes, treatments, states, left and right slots, indicators, disabled behavior, and interactive state
+  before declaring the Figma family complete.
+- Verify exact icon paths against the pinned Expo icon library. Import or reuse editable vectors through instance-swap
+  properties; never approximate an icon with primitives or a screen-local overlay.
+- Attempt the exact product font once. If Figma still reports `hasMissingFont`, retains stale text metrics, or produces
+  no render bounds, use the approved portable Inter weight equivalent in reusable Figma masters. Reapply the text,
+  verify reflow and `hasMissingFont=false`, and record that native source remains the system-font authority.
+
+### 4. Correct in ownership order
+
+1. Correct a missing or incorrect semantic variable or style.
+2. Correct the owning component master and its bounded variant or property API.
+3. Replace or update linked instances in the target composition.
+4. Apply a screen-local value only when the responsibility is genuinely unique to that screen.
+
+- Keep variant axes source-backed and understandable. Use sibling families when two treatments have materially
+  different structure; otherwise use one bounded axis. Avoid variant matrices above 30 combinations and arbitrary
+  runtime style overrides as Figma properties.
+- Keep the component master and its guidance in the existing category hierarchy. Do not create a second owner, detach
+  an instance, or patch a shared defect with an absolute-positioned overlay.
+- After every master correction, identify and regression-review affected canonical consumers before continuing.
+
+### 5. Run two QA passes before validation
+
+**Structural pass**
+
+- Verify root dimensions, safe areas, bounds, auto-layout, component properties, variable and style bindings, font
+  status, icon lineage, instance lineage, overflow, and validation metadata.
+- Confirm that no detached duplicate, invented decoration, placeholder, hidden obsolete layer, or screen-local repair
+  remains.
+
+**Visual pass**
+
+- Compare the complete simulator screen and Figma frame, then inspect each reusable or interactive region at close
+  zoom. Check text baselines and wrapping, icon box and optical alignment, horizontal and vertical centering, padding,
+  gap, border width, radius, gradient direction and stops, opacity, shadow, and adjacent spacing.
+- Measure geometry instead of relying only on visual impression. Re-render the component master and the complete screen
+  after the final correction.
+- Regression-check only consumers affected by changed shared ownership. Do not reopen unrelated screens.
+- Keep a frame `Validation pending` until both passes succeed against current simulator evidence. A structural audit or
+  a visually plausible screenshot alone is insufficient.
+
+### 6. Close once
+
+- Record the final node IDs, source files, runtime state, dimensions, checks, intentional normalization, and remaining
+  external limitations in the owning evidence.
+- Only after final Figma and simulator QA, stop task-owned Metro and application processes and report what remains
+  running. Do not stop user-owned infrastructure implicitly.
+- Publish the roadmap task only after the final full-frame render, focused component renders, repository checks, and
+  worktree review all pass.
+
 ## Direction Of Work
 
 ### Visual discovery and code-to-Figma calibration
