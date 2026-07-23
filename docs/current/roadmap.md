@@ -1147,10 +1147,19 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     validation are recorded in
     [the REF-065O iOS finished Match fidelity record](./ref-065o-ios-finished-match-fidelity.md).
 
-- [ ] **REF-065P — Reconcile the iOS Legal document sheet pixel by pixel**
+- [x] **REF-065P — Reconcile the iOS Legal document sheet pixel by pixel**
   - Compare only `Legal / Imprint sheet / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-066.
+  - Evidence: the canonical frame now reproduces the authenticated native full-page imprint sheet with its exact
+    handle, close action, title, edit action, four current legal sections, public Blockout contact, Hostinger details,
+    Markdown emphasis, FFVB underline, paragraph rhythm, dividers, padding, and intentional scroll clipping. Linked
+    iOS Status Bar, Full Page Sheet, Close Screen Header, and exact pinned MaterialCommunityIcons pencil masters own
+    the reusable shell. Geometry, vertical alignment, typography, content, clipping, missing fonts, icon ownership,
+    component properties, and instance lineage pass structural and full-frame review. The complete native stack
+    remains running. No runtime source, credential, Android, Web, provider, legal data, or production behavior changed.
+    Exact nodes and validation are recorded in
+    [the REF-065P iOS Legal imprint fidelity record](./ref-065p-ios-legal-imprint-fidelity.md).
 
 - [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
