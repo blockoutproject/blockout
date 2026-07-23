@@ -904,6 +904,36 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     physical-device-only notification path remain explicit limits. Exact nodes and normalization decisions are recorded
     in [the REF-065B faithful native Figma system record](./ref-065b-faithful-native-figma-system.md).
 
+- [x] **REF-065C — Refine iOS fidelity and component hierarchy in Figma**
+  - Use only the iPhone 17 Pro simulator at `393 x 852`, current Expo source, and authenticated iOS evidence to correct
+    remaining alignment, border, radius, spacing, typography, and component-geometry differences. Android remains a
+    supported technical target but is not launched, captured, or used as visual authority.
+  - Replace the single component canvas with a compact Maaatch-aligned page hierarchy:
+    `20 - Actions & Inputs` owns `Action`, `Chip`, `Field`, and `Search`; `21 - Content & Data` owns `Card`,
+    `Entity Row`, `Hero`, `Match Row`, and `Ranking Row`; `22 - Feedback & Overlays` owns `Feedback` and `Sheet`;
+    `23 - Navigation` owns `Navigation Item`, `Screen Header`, and `Bottom Navigation`. Add separator pages around the
+    component group while preserving `00 - Cover`, `10 - Foundations`, `30 - Ready for Development`, and
+    `40 - Shipped`.
+  - Keep each master and its documentation together. Correct shared visuals at the semantic token or main-component
+    level before adjusting compositions, so instances inherit the result. Do not add a generic mobile framework,
+    speculative variants, detached copies, or per-screen compensation for a shared defect.
+  - In every canonical iOS composition, replace a repeated visual responsibility with an instance of its isolated
+    master when a matching family exists. Preserve genuinely one-off business compositions locally. Verify labels,
+    variants, component properties, instance lineage, fonts, bounds, and screenshots after each replacement.
+  - Audit the final page order, category ownership, component IDs, bindings, instance counts, detached equivalents,
+    representative `393 x 852` screenshots, and intentional local exceptions. Document exact evidence, commit and push
+    REF-065C separately, then stop before REF-066.
+  - Evidence: the canonical Figma file now uses four categorized component pages bounded by separators, with every
+    master colocated with its guidance. Fifteen component sets expose 74 variants, including the source-backed
+    `Follow Action` and `Screen Header / Entity` additions. Runtime geometry was corrected at the master level for
+    actions, chips, search, headers, heroes, match rows, ranking rows, feedback, and navigation. The five canonical
+    `393 x 852` iOS compositions contain 45 linked instances across shared headers, chips, actions, tabs, heroes,
+    feedback, match rows, ranking rows, and bottom navigation. The only immediate overflows are the Club map content
+    below the scroll viewport and the Team ranking tab beyond the horizontal tab viewport, matching the native
+    scrollable responsibilities. Android was not launched or used as visual evidence. Exact nodes and validation are
+    recorded in
+    [the REF-065C Figma fidelity and component hierarchy record](./ref-065c-figma-fidelity-and-component-hierarchy.md).
+
 - [ ] **REF-066 — Adopt the tokens and shared UI foundation in Expo**
   - Implement the certified Figma tokens in the existing theme boundary and replace duplicated low-level UI with the
     approved shared primitives. Migrate real consumers as each primitive is introduced; do not add unused component

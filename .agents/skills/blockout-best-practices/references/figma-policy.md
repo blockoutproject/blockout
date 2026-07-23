@@ -17,6 +17,9 @@ Figma-to-code implementation, and visual reconciliation.
   records the authenticated runtime evidence used to establish the complete canonical compositions.
 - [`ref-065b-faithful-native-figma-system.md`](../../../../docs/current/ref-065b-faithful-native-figma-system.md)
   records the current foundations, component library, canonical iOS node identifiers, and remaining evidence limits.
+- [`ref-065c-figma-fidelity-and-component-hierarchy.md`](../../../../docs/current/ref-065c-figma-fidelity-and-component-hierarchy.md)
+  records the categorized component ownership, source-backed master geometry, canonical instance lineage, and current
+  iOS fidelity evidence.
 - The only canonical design file is
   [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) in the Blockout Figma team
   (`NwDQmiXqSjKVzQ6gwry0zb`). Do not create a parallel canonical file.
@@ -53,10 +56,13 @@ Figma-to-code implementation, and visual reconciliation.
 ## File And Lifecycle Structure
 
 - Keep one canonical design file named `Blockout - Product Design`.
-- Use deterministic lifecycle pages: `00 - Cover`, `10 - Foundations`, `20 - Components`, `30 - Ready for Development`,
-  and `40 - Shipped`.
+- Use deterministic lifecycle pages: `00 - Cover`, `10 - Foundations`, a separator, the compact component group
+  `20 - Actions & Inputs`, `21 - Content & Data`, `22 - Feedback & Overlays`, and `23 - Navigation`, a second
+  separator, `30 - Ready for Development`, and `40 - Shipped`.
 - Name screen frames `Domain / Screen / Viewport / State`.
-- Keep foundations and component masters on their owning pages. Place approved screen compositions on
+- Keep every component master and its guidance together on its owning category page. Do not recreate the old
+  single-canvas component page or split a small family into speculative pages.
+- Place approved screen compositions on
   `30 - Ready for Development`; move them to `40 - Shipped` only after the corresponding runtime implementation and
   native evidence pass.
 - iOS and Android are the only supported product surfaces. Historical React Native Web evidence may explain an earlier
@@ -71,6 +77,9 @@ Figma-to-code implementation, and visual reconciliation.
 - Keep Figma writes sequential, incremental, idempotent, and bounded to the owning page or node.
 - Reuse semantic variables, text and effect styles, local components, variants, and icon instance swaps. Do not detach
   instances or duplicate an existing component family.
+- Correct a shared defect on its semantic token or main component before changing a composition. Every proven repeated
+  responsibility in a canonical screen uses a linked instance when a matching family exists. Keep genuinely one-off
+  business compositions local instead of creating a prop-heavy generic component.
 - Preserve a minimum 44-point interactive target. Keep safe-area and system differences explicit for every platform
   included in the owning task.
 - Every variable, token category, component family, lifecycle page, and screen state requires evidence from REF-061 or
