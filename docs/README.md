@@ -19,6 +19,7 @@
 - [iOS administrator profile fidelity](current/ref-065i-ios-administrator-profile-fidelity.md)
 - [iOS empty authenticated Home fidelity](current/ref-065j-ios-empty-authenticated-home-fidelity.md)
 - [iOS populated authenticated Home fidelity](current/ref-065k-ios-populated-authenticated-home-fidelity.md)
+- [iOS Club information fidelity](current/ref-065l-ios-club-information-fidelity.md)
 - [Contract-first certification](current/ref-059-certification.md)
 - [Public release readiness](current/ref-060-public-release-readiness.md)
 - [Completed roadmap](current/roadmap.md)

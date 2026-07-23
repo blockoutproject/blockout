@@ -1080,10 +1080,21 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     data, or production behavior changed. Exact nodes and validation are recorded in
     [the REF-065K iOS populated authenticated Home fidelity record](./ref-065k-ios-populated-authenticated-home-fidelity.md).
 
-- [ ] **REF-065L — Reconcile the iOS Club information screen pixel by pixel**
+- [x] **REF-065L — Reconcile the iOS Club information screen pixel by pixel**
   - Compare only `Club / Information / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065M.
+  - Evidence: the canonical frame now reproduces the authenticated VOLLEY-BALL PEXINOIS NIORT information route with
+    its real logo, editable full-width Hero, current club name, exact tabs, email, website, city, two-line address, map
+    action, and clipped native map-provider surface. The shared Title Hero variants now follow the current Expo
+    composition. A categorized Club Info Row set exposes only source-shaped `Single` and `Double` layouts, exact pinned
+    icon swaps, optional chevrons, and text properties; all five screen rows remain linked to it. Shared iOS status,
+    Screen Header, segment Navigation Items, and premium Home-active Bottom Navigation own the shell. The provider
+    development control and invented home indicator remain excluded. Geometry, typography, images, borders, radii,
+    scroll clipping, missing fonts, icon ownership, and instance lineage pass structural and full-frame review. The
+    complete native stack remains running for REF-065M. No runtime source, credential, Android, Web, provider, club
+    data, or production behavior changed. Exact nodes and validation are recorded in
+    [the REF-065L iOS Club information fidelity record](./ref-065l-ios-club-information-fidelity.md).
 
 - [ ] **REF-065M — Reconcile the iOS empty Team screen pixel by pixel**
   - Compare only `Team / Empty upcoming / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
