@@ -1017,10 +1017,18 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     and validation are recorded in
     [the REF-065G iOS populated Search fidelity record](./ref-065g-ios-populated-search-fidelity.md).
 
-- [ ] **REF-065H — Reconcile the iOS Guest profile screen pixel by pixel**
+- [x] **REF-065H — Reconcile the iOS Guest profile screen pixel by pixel**
   - Compare only `Profile / Guest / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065I.
+  - Evidence: the canonical frame now uses linked shared iOS status bar, Profile Header, Guest Upsell Card, legal menu
+    rows, and Guest Bottom Navigation instances. The profile-specific shared header reproduces the adjacent title and
+    report action, while the shared active navigation avatar uses the exact committed Expo asset. Geometry, typography,
+    colors, borders, radii, safe areas, bounds, and instance lineage pass full-frame and structural comparison against
+    the live guest state on the iPhone 17 Pro simulator. The provider development control and invented home indicator
+    remain excluded. The complete native stack remains running for REF-065I. No runtime source, credential, Android,
+    Web, provider, or production behavior changed. Exact nodes and validation are recorded in
+    [the REF-065H iOS guest profile fidelity record](./ref-065h-ios-guest-profile-fidelity.md).
 
 - [ ] **REF-065I — Reconcile the iOS Administrator profile screen pixel by pixel**
   - Compare only `Profile / Administrator / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
