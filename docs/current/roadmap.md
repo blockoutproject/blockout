@@ -976,55 +976,73 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     later screen changed. Exact evidence is recorded in
     [the REF-065E iOS sign-in fidelity record](./ref-065e-ios-sign-in-fidelity.md).
 
-- [ ] **REF-065F — Reconcile the iOS empty Search screen pixel by pixel**
-  - Compare only `Search / Empty clubs / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
-  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
-    REF-065G.
+- [ ] **REF-065F — Establish the Pill and Gradient Pill component families in Figma**
+  - Treat the current Expo `InfoPillGradient` implementation as the runtime authority while keeping this task
+    Figma-only. Represent its two structural branches as separate, categorized component sets: `Pill` for the
+    non-gradient surface and `Gradient Pill` for gradient-border and gradient-filled treatments.
+  - Give both families the source-backed `Small`, `Medium`, and `Large` sizes; centered auto-layout; label; optional
+    left and right icon swaps from the pinned Expo icon libraries; optional red-dot indicator; and `Default`, `Pressed`,
+    and `Disabled` states. Keep `Border` and `Filled` as a treatment axis only on `Gradient Pill`; do not preserve an
+    invented generic `Selected` state.
+  - Reuse the existing semantic variables for colors, typography, spacing, radii, borders, opacity, and gradients,
+    adding only a genuinely missing semantic variable. Keep the variant matrices bounded, document the mapping from
+    the single Expo component to the two Figma families, and avoid exposing arbitrary runtime style overrides as
+    component properties.
+  - Replace affected canonical Figma usages with linked instances, without detaching content or changing their current
+    appearance. Validate every variant structurally and visually, regression-check the Sign in screen and representative
+    solid, gradient-border, gradient-filled, interactive, icon, and indicator consumers, document exact evidence, and
+    stop before REF-065G. No Expo source, Android, Web, runtime behavior, credential, provider, or production state
+    changes.
 
-- [ ] **REF-065G — Reconcile the iOS Guest profile screen pixel by pixel**
-  - Compare only `Profile / Guest / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+- [ ] **REF-065G — Reconcile the iOS empty Search screen pixel by pixel**
+  - Compare only `Search / Empty clubs / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065H.
 
-- [ ] **REF-065H — Reconcile the iOS Administrator profile screen pixel by pixel**
-  - Compare only `Profile / Administrator / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
-    source.
+- [ ] **REF-065H — Reconcile the iOS Guest profile screen pixel by pixel**
+  - Compare only `Profile / Guest / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065I.
 
-- [ ] **REF-065I — Reconcile the iOS empty authenticated Home screen pixel by pixel**
-  - Compare only `Home / Authenticated empty / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
+- [ ] **REF-065I — Reconcile the iOS Administrator profile screen pixel by pixel**
+  - Compare only `Profile / Administrator / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
     source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065J.
 
-- [ ] **REF-065J — Reconcile the iOS populated authenticated Home screen pixel by pixel**
-  - Compare only `Home / Authenticated populated / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
+- [ ] **REF-065J — Reconcile the iOS empty authenticated Home screen pixel by pixel**
+  - Compare only `Home / Authenticated empty / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
     source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065K.
 
-- [ ] **REF-065K — Reconcile the iOS Club information screen pixel by pixel**
-  - Compare only `Club / Information / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+- [ ] **REF-065K — Reconcile the iOS populated authenticated Home screen pixel by pixel**
+  - Compare only `Home / Authenticated populated / iOS 393` with the running iPhone 17 Pro simulator and its current Expo
+    source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065L.
 
-- [ ] **REF-065L — Reconcile the iOS empty Team screen pixel by pixel**
-  - Compare only `Team / Empty upcoming / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+- [ ] **REF-065L — Reconcile the iOS Club information screen pixel by pixel**
+  - Compare only `Club / Information / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065M.
 
-- [ ] **REF-065M — Reconcile the iOS Pool ranking screen pixel by pixel**
-  - Compare only `Pool / Ranking / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+- [ ] **REF-065M — Reconcile the iOS empty Team screen pixel by pixel**
+  - Compare only `Team / Empty upcoming / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065N.
 
-- [ ] **REF-065N — Reconcile the iOS finished Match screen pixel by pixel**
-  - Compare only `Match / Finished / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+- [ ] **REF-065N — Reconcile the iOS Pool ranking screen pixel by pixel**
+  - Compare only `Pool / Ranking / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065O.
 
-- [ ] **REF-065O — Reconcile the iOS Legal document sheet pixel by pixel**
+- [ ] **REF-065O — Reconcile the iOS finished Match screen pixel by pixel**
+  - Compare only `Match / Finished / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
+  - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
+    REF-065P.
+
+- [ ] **REF-065P — Reconcile the iOS Legal document sheet pixel by pixel**
   - Compare only `Legal / Imprint sheet / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-066.
