@@ -21,6 +21,7 @@
 - [iOS populated authenticated Home fidelity](current/ref-065k-ios-populated-authenticated-home-fidelity.md)
 - [iOS Club information fidelity](current/ref-065l-ios-club-information-fidelity.md)
 - [iOS populated Team matches fidelity](current/ref-065m-ios-populated-team-matches-fidelity.md)
+- [iOS Pool ranking fidelity](current/ref-065n-ios-pool-ranking-fidelity.md)
 - [Contract-first certification](current/ref-059-certification.md)
 - [Public release readiness](current/ref-060-public-release-readiness.md)
 - [Completed roadmap](current/roadmap.md)

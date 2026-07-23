@@ -1113,10 +1113,21 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     behavior changed. Exact nodes and validation are recorded in
     [the REF-065M iOS populated Team matches fidelity record](./ref-065m-ios-populated-team-matches-fidelity.md).
 
-- [ ] **REF-065N — Reconcile the iOS Pool ranking screen pixel by pixel**
+- [x] **REF-065N — Reconcile the iOS Pool ranking screen pixel by pixel**
   - Compare only `Pool / Ranking / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
   - Apply proven shared corrections at their token or component master, validate the complete screen, and stop before
     REF-065O.
+  - Evidence: the obsolete Normandie sample was replaced by the real populated pool 1755 and its first six current
+    ranking teams. Linked status, entity header, Pills, Follow Action, Navigation Items, double-line Pool Header, exact
+    pinned icons, and premium Home-active Bottom Navigation own the shell and repeated structures. The shared Ranking
+    Row set now follows the source `flex: 1` team zone, transparent standard rank, division-colored points badge, and
+    centered rank and point contents. All six linked row instances carry the real team names, logos, statistics, and
+    points; fitted font sizes are limited to the long names that iOS shrinks. The card uses the source vertical
+    auto-layout, gap, padding, border, radius, clipping, and variable row heights. Geometry, typography, images,
+    alignment, missing fonts, component properties, and instance lineage pass structural and full-frame review. The
+    complete native stack remains running for REF-065O. No runtime source, credential, Android, Web, provider, pool
+    data, ranking data, or production behavior changed. Exact nodes and validation are recorded in
+    [the REF-065N iOS Pool ranking fidelity record](./ref-065n-ios-pool-ranking-fidelity.md).
 
 - [ ] **REF-065O — Reconcile the iOS finished Match screen pixel by pixel**
   - Compare only `Match / Finished / iOS 393` with the running iPhone 17 Pro simulator and its current Expo source.
