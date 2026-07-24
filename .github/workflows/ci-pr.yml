@@ -174,17 +174,5 @@ jobs:
           name: openapi-bundles
           path: libs/shared/contracts/generated/specs
 
-      - name: Generate mobile client
-        run: npm exec nx run @blockout/mobile:codegen
-
-      - name: Lint mobile
-        run: npm exec nx run @blockout/mobile:lint
-
-      - name: Typecheck mobile
-        run: npm exec nx run @blockout/mobile:typecheck
-
-      - name: Test mobile
-        run: npm exec nx run @blockout/mobile:test
-
-      - name: Export mobile bundles
-        run: npm exec nx run @blockout/mobile:export
+      - name: Check mobile
+        run: npm run mobile:check
