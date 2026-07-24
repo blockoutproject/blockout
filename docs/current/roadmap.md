@@ -1387,7 +1387,7 @@ checklist until GIT-012 removes it.
     codegen, lint, typecheck, 59 Jest tests, and the Expo iOS/Android export passed with the workflow's non-secret CI
     values. Repository formatting and final diff checks pass.
 
-- [ ] **GIT-007 — Establish `develop` and the Maaatch merge contract**
+- [x] **GIT-007 — Establish `develop` and the Maaatch merge contract**
   - Require a clean, current `main`, create `develop` from its exact verified head, push it, and change the repository
     default branch to `develop` only after GIT-006 is present on both branches.
   - Match Maaatch repository settings: allow merge commits, disable squash and rebase merges, keep auto-merge disabled,
@@ -1396,6 +1396,19 @@ checklist until GIT-012 removes it.
     that absence exactly and retain the policy-level release guard rather than inventing a bypass.
   - Verify `origin/HEAD`, branch ancestry, CI runs on both integration and main branches, and repository settings.
     Preserve every pre-existing task branch; branch cleanup is destructive and remains outside this task.
+  - Evidence (2026-07-24): clean `main` and the new local and remote `develop` branch were created from the exact
+    GIT-006 head, then synchronized at `dcb208055de7067aea8816cd674af23e5bdbfbb2`. Live CI exposed an invalid
+    major-only `astral-sh/setup-uv@v8` reference; all three workflows now use the verified official `v8.3.2` tag.
+    `Format` runs
+    [`30090654643`](https://github.com/blockoutproject/blockout/actions/runs/30090654643) and
+    [`30090657022`](https://github.com/blockoutproject/blockout/actions/runs/30090657022), plus `CI Push` runs
+    [`30090654636`](https://github.com/blockoutproject/blockout/actions/runs/30090654636) and
+    [`30090657019`](https://github.com/blockoutproject/blockout/actions/runs/30090657019), completed successfully on
+    `main` and `develop` at that same SHA. The repository default and `origin/HEAD` now resolve to `develop`; Blockout
+    and Maaatch both allow merge commits, reject squash and rebase merges, keep auto-merge disabled, and retain branches
+    until the explicit merge runbook deletes them. GitHub returns HTTP 403 with the same private-plan upgrade message
+    for branch protection and repository rulesets on both repositories, so policy-level release guards remain
+    authoritative. Every pre-existing task branch was preserved.
 
 - [ ] **GIT-008 — Seed the remaining governance migration as valid Roadmap issues**
   - Create one native `Tech` issue for each of GIT-009 through GIT-012 after searching open and closed equivalents.
