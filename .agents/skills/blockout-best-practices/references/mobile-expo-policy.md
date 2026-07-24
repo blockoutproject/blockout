@@ -35,6 +35,80 @@ mobile transport models.
 - Keep provider and native-framework values at their adapters. Never place provider payloads or platform constants in
   shared business models.
 
+### Feature Roles
+
+Use only the role folders an active feature needs:
+
+```text
+src/modules/<feature>
+├── api
+├── forms
+├── hooks
+├── schemas
+├── ui
+├── utils
+└── view-models
+```
+
+- `api` owns feature queries, mutations, and transport-to-feature mapping.
+- `schemas` owns Yup validation reusable across a feature boundary.
+- `forms` owns Formik composition and submitted values.
+- `hooks` owns stateful feature behavior and orchestration.
+- `view-models` adapts remote or application data to deliberate UI-ready values.
+- `ui` owns screens, sections, and feature components.
+- `utils` contains only small pure feature-local functions with explicit names; it is not a generic utility bag.
+
+Do not create empty role folders or a feature framework. A small feature may keep a few files directly under its module.
+
+## TypeScript Simplicity
+
+- Let inference carry local implementation types. Add explicit types at public props, hooks, API mappings, form values,
+  stable shared contracts, and boundaries where inference becomes unclear.
+- Prefer discriminated unions and focused object types over boolean mode combinations, inheritance, or generic
+  configuration schemas.
+- Do not wrap a generated type merely to rename it. Create a view model only when UI semantics actually differ.
+- Avoid `any`, unsafe casts, non-null assertions, and duplicated transport interfaces. Narrow unknown input at its
+  boundary.
+- Prefer direct expressions and small named functions. Do not create generic serializers, registries, factories,
+  dependency-injection containers, base hooks, or type-level frameworks for hypothetical reuse.
+- Keep constants near their owner. Promote one to shared configuration only when several active features require the
+  same invariant.
+
+## Remote Data And Generated Clients
+
+- Orval generates the mobile-gateway client and transport models from its owning OpenAPI source. Mobile does not
+  generate or call every internal service client.
+- Never hand-edit generated output. Add behavior in a handwritten feature adapter, query, mutation, or mapper.
+- Use TanStack Query for remote state, cache ownership, retries, invalidation, and request lifecycle.
+- Keep query keys deterministic and feature-owned. Invalidate the narrowest owner-controlled data after mutations.
+- Do not copy remote data into local or provider state merely to mirror it. Derive UI values during mapping or
+  rendering.
+- Preserve current timeout, cancellation, retry, offline, and error behavior unless a task explicitly changes it.
+- Do not add a global provider until an active consumer needs the lifecycle; remove providers whose final consumer is
+  removed.
+
+## Forms And Validation
+
+- Formik owns form state, touched state, submission lifecycle, and field presentation.
+- Yup owns client-side shape and immediate usability validation.
+- Keep submitted form values distinct from generated request models when UI inputs need parsing, defaults, or
+  composition.
+- Map form values to generated requests at the feature API boundary.
+- Reuse a schema only when several active forms enforce the same user-facing rule.
+- Do not duplicate server-only authorization or persistence constraints in the client.
+- Preserve server errors after submission and map stable field errors only when the contract provides them.
+- Do not introduce React Hook Form, Zod, or a second form and validation stack without an explicit migration task.
+
+## Hooks And View Models
+
+- A hook owns stateful React behavior; a pure transformation remains a function.
+- Keep hooks close to their feature. Promote one to shared only after real multi-feature use proves identical semantics.
+- Effects synchronize with an external system. Do not use effects to derive render state, copy props, or sequence
+  ordinary application logic.
+- Keep view models immutable and UI-oriented. They may format, group, or label owner data but must not masquerade as a
+  complete backend resource.
+- Do not hide navigation, mutation, analytics, and formatting behind one manager hook.
+
 ## Tokens And Styling
 
 - Keep one exported code-owned token vocabulary in `src/shared/theme`, aligned with the semantic variables certified by
@@ -89,6 +163,25 @@ mobile transport models.
 - Keep remote state in TanStack Query and application-wide state in the established providers. Do not mirror derived
   state or add effects only to coordinate rendering.
 
+## API Errors And User Feedback
+
+- Branch on stable `ProblemDetail` machine codes and HTTP categories, not backend detail text.
+- Translate technical failures into concise, actionable mobile copy. Never display stack traces, SQL, provider
+  payloads, raw tokens, internal hosts, or unstable exception messages.
+- Preserve field, screen, retryable, offline, authentication, authorization, conflict, and unexpected error
+  distinctions where recovery differs.
+- Keep error translation in the feature API or view-model boundary, or in one established shared technical adapter. Do
+  not scatter code-to-copy switches across components.
+- A retry control repeats a safe owned operation and preserves loading, disabled, and cancellation behavior.
+
+## Logging And Documentation
+
+- Follow `logging-policy.md`. Log lifecycle and recovery evidence at technical boundaries, never secrets, tokens,
+  personal data, full provider bodies, or duplicate UI notifications.
+- Do not commit `console.log` debugging.
+- Follow `code-documentation-policy.md`. Document shared handwritten contracts and non-obvious native or provider
+  invariants; do not narrate JSX, styles, or obvious state updates.
+
 ## Naming And Exports
 
 - Name handwritten files in kebab-case. Export React components and types in PascalCase; export hooks, functions, props,
@@ -115,6 +208,8 @@ mobile transport models.
 - Run formatting, lint, typecheck, the focused tests, the complete mobile Jest suite, and `git diff --check` before
   publishing a mobile slice. Add Expo Doctor or an unsigned native build/launch when dependencies, configuration, or a
   native boundary changes.
+- Run generated-client parity or regeneration evidence when an OpenAPI/mobile API boundary changes.
+- Verify Formik/Yup behavior, stable API error handling, and TanStack Query ownership when those boundaries change.
 
 These rules follow the current React Native guidance for
 [`StyleSheet`](https://reactnative.dev/docs/stylesheet),
