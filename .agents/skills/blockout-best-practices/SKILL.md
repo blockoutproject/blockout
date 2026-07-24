@@ -47,6 +47,7 @@ the current task. Detailed rules live in the references rather than in this entr
 | Merge one pull request                                                        | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`  |
 | Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                    |
 | Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md`                                                                   |
+| Track, issue identifier, label, or Workset area taxonomy                      | `references/github-taxonomy.md`                                                                             |
 | Issue, branch, commit, push, pull request, label, title, or local Git sync    | `references/git-workflow.md`                                                                                |
 
 When Figma work requires simulator or service startup, also read `references/local-runtime-policy.md`.

@@ -32,9 +32,9 @@ The lifecycle `Status` options, in order, are:
 7. `Blocked`
 8. `Rejected / Replaced`
 
-GIT-003 owns the Blockout Track vocabulary and order. `Platform` is reserved for GitHub, CI, repository workflow,
-developer tooling, and governance. `Foundation` owns cross-cutting product/runtime foundations. A dedicated Figma
-Track owns canonical design-system work. Maaatch-only product codes must not be copied without Blockout meaning.
+The ordered Track vocabulary is `ACC`, `CMP`, `ING`, `FIG`, `Foundation`, and `Platform`, with ownership and identifier
+prefixes defined in [`github-taxonomy.md`](github-taxonomy.md). Track follows the primary outcome rather than touched
+paths, does not reserve files, and never decides conflicts.
 
 Priority is mandatory on every accepted non-Epic item in `Backlog`, `Ready`, `In Progress`, `In Review`, or `Blocked`:
 `High`, `Normal`, then `Low`. `Triage` alone may omit it. Priority orders compatible candidates and is not effort or

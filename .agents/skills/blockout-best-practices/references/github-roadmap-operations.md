@@ -109,7 +109,8 @@ External locks:
 - None.
 ```
 
-GIT-003 owns the allowed area catalog.
+The complete allowed area catalog and ownership mapping are frozen in
+[`github-taxonomy.md`](github-taxonomy.md). Any other area is invalid.
 
 - A write lock is one normalized, case-preserving, POSIX repository-relative file or a directory ending in `/**`.
 - Wildcards other than terminal `/**`, absolute paths, empty segments, and `.` or `..` segments are invalid.

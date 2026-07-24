@@ -89,8 +89,8 @@ indicator, for example `[REF-071]`.
   duplicate its native type.
 - Pull requests may use one type label plus relevant surface labels.
 - Do not create a `blocked` label. The Project `Status` field owns that state.
-- GIT-003 owns the complete Blockout label and area catalog. Until that task is published, no live Roadmap issue is
-  eligible for execution.
+- The complete Blockout label and area catalog, including exact colors and descriptions, is defined in
+  [`github-taxonomy.md`](github-taxonomy.md).
 
 ## Names
 

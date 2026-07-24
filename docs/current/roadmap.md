@@ -1298,7 +1298,7 @@ checklist until GIT-012 removes it.
     58 items, and eight ordered Status options. Bash syntax, GraphQL shape, all 13 local documentation link sets,
     formatting, and diff checks pass. No Blockout or Maaatch GitHub object was mutated.
 
-- [ ] **GIT-003 — Define the Blockout governance vocabulary and issue contracts**
+- [x] **GIT-003 — Define the Blockout governance vocabulary and issue contracts**
   - Freeze the Blockout Track options from current product and architecture ownership while retaining Maaatch's field
     semantics, ordering rules, `Foundation` and `Platform` roles, and a dedicated Figma track. Do not reuse Maaatch-only
     product codes that have no Blockout meaning.
@@ -1311,6 +1311,14 @@ checklist until GIT-012 removes it.
     draft PRs to `develop`; 2–4 useful PR labels; and the `Refs` versus `Closes` rule.
   - Validate template front matter, area/workset consistency, links, formatting, and the absence of a competing task
     ledger. Keep all GitHub taxonomy changes local until GIT-004.
+  - Evidence (2026-07-24): the frozen Track order is `ACC`, `CMP`, `ING`, `FIG`, `Foundation`, then `Platform`, with
+    `FND` and `PLT` identifier prefixes and objective-based routing. The taxonomy defines 23 exact `area:*` labels
+    covering all 18 Nx-owned application/library boundaries plus infrastructure, workspace, documentation, Figma, and
+    GitHub; 32 delivery, pull-request, audit, and collaboration labels; exact colors and descriptions; and a
+    deterministic mapping for all nine legacy labels. Five native-type issue templates preserve the Maaatch contract
+    shape with Blockout ownership, exact Workset syntax, acceptance criteria, native dependencies, and a non-invented
+    organization Project link pending GIT-005. YAML front matter, label uniqueness and lowercase rules, Nx-area
+    coverage, local links, formatter, and diff checks pass. No GitHub taxonomy or Project state was mutated.
 
 - [ ] **GIT-004 — Provision native issue types and the repository label taxonomy**
   - Capture a recovery snapshot of Blockout organization issue types, all organization repositories affected by native
@@ -1333,8 +1341,9 @@ checklist until GIT-012 removes it.
     `🧭 Intake & Backlog`, and `✅ Done`, including filters, layouts, grouping, sorting, and visible fields.
   - Enable only `Auto-add sub-issues to project` and `Item added to project` with new items entering `Triage`; disable
     broad issue/PR auto-add and agent-owned lifecycle transitions.
-  - Connect the Blockout repository, adapt the compact reader's default owner and live Project number, and prove
-    complete pagination and normalized field output from two stable reads. Do not add product tasks yet.
+  - Connect the Blockout repository, adapt the compact reader's default owner and live Project number, replace the
+    issue templates' organization Projects landing link with the exact live Roadmap URL, and prove complete pagination
+    and normalized field output from two stable reads. Do not add product tasks yet.
 
 - [ ] **GIT-006 — Prepare CI and repository documentation for `develop`**
   - Reconcile the Maaatch-aligned pull-request and push workflows already prepared for Blockout, keeping contracts as
