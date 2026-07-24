@@ -81,11 +81,13 @@ REF-041 through REF-059 established and certified the generated V1 transport bou
 models stay within adapters, Python scrapers use the shared generated models and HTTPX clients, and the mobile uses its
 generated Orval client. A future contract change still requires an explicit task and proportional parity evidence.
 
-Blockout does not use GitFlow or a GitHub Project roadmap yet:
+Blockout does not use GitFlow or a GitHub Project roadmap yet. Repository CI is active:
 
 - `docs/current/roadmap.md` is the temporary ordered task source.
 - Work directly on `main`; commit and push each completed roadmap task separately.
-- Do not create task branches, pull requests, claims, CI workflows, deployment workflows, or GitHub Project state.
+- `.github/workflows/ci-pr.yml`, `.github/workflows/ci-push.yml`, and `.github/workflows/format.yml` are the CI
+  authorities.
+- Do not create task branches, pull requests, claims, deployment workflows, or GitHub Project state.
 
 These are explicit temporary rules. Only a later user-authorized roadmap task may replace them.
 
