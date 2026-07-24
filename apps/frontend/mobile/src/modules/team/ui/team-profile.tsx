@@ -4,11 +4,11 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
 import type { TeamResponse } from "@/src/shared/generated/models";
-import { useTeamFollowState } from "@/src/modules/team/hooks/useTeamFollowState";
-import FollowButton from "@/src/shared/ui/follow/FollowButton";
-import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
-import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
-import { FormatLabels } from "@/src/shared/model/formatLabels";
+import { useTeamFollowState } from "@/src/modules/team/hooks/use-team-follow-state";
+import FollowButton from "@/src/shared/ui/follow/follow-button";
+import FollowersCounter from "@/src/shared/ui/follow/followers-count";
+import { GenderEnum, GenderLabels } from "@/src/shared/model/gender-labels";
+import { FormatLabels } from "@/src/shared/model/format-labels";
 import {
   borderWidth,
   layout,
@@ -16,15 +16,15 @@ import {
   spacing,
   useAppTheme,
 } from "@/src/shared/theme";
-import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { GradientPill, Pill } from "@/src/shared/ui/pill";
-import { useSessionState } from "@/src/modules/session/providers/SessionContext";
+import { useSessionState } from "@/src/modules/session/providers/session-context";
 import GuestPromptSheet, {
   GuestPromptSheetRef,
 } from "@/src/modules/session/ui/guest-prompt-sheet";
 
 import { withAlpha } from "@/src/shared/lib/utils";
-import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
 
 export type TeamProfileProps = {
   enrichedTeam: TeamResponse;

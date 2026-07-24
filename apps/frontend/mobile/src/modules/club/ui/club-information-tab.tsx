@@ -7,7 +7,7 @@ import { layout, useAppTheme } from "@/src/shared/theme";
 import { InfoCard, InfoRow } from "@/src/modules/club/ui/club-info-card";
 
 import type { ClubResponse } from "@/src/shared/generated/models";
-import ClubMapCard from "./ClubMapCard";
+import ClubMapCard from "./club-map-card";
 
 type ClubInformationsTabProps = {
   club: ClubResponse;

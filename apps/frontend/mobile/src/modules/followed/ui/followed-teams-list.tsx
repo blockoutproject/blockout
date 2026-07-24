@@ -5,13 +5,13 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useFollowedTeamList } from "@/src/modules/team/hooks/useFollowedTeamList";
+import { useFollowedTeamList } from "@/src/modules/team/hooks/use-followed-team-list";
 import TeamListCard from "@/src/modules/team/ui/team-list-card";
 import { layout, spacing } from "@/src/shared/theme";
-import EmptyState from "@/src/shared/ui/feedback/EmptyState";
-import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
-import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
+import EmptyState from "@/src/shared/ui/feedback/empty-state";
+import ErrorState from "@/src/shared/ui/feedback/error-state";
+import EntityListSkeleton from "@/src/shared/ui/entity/entity-list-skeleton";
+import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 
 type Props = {

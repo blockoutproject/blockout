@@ -1,8 +1,8 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+import GradientBorderView from "@/src/shared/ui/gradient-border-view";
+import MaskedImage from "@/src/shared/ui/images/masked-image";
 import {
   borderWidth,
   radius,
@@ -11,7 +11,7 @@ import {
   type AppTheme,
 } from "@/src/shared/theme";
 import type { TeamWithStatsResponse } from "@/src/shared/generated/models";
-import type { TeamHighlight } from "@/src/modules/team/model/TeamHighlight";
+import type { TeamHighlight } from "@/src/modules/team/model/team-highlight";
 import { withAlpha } from "@/src/shared/lib/utils";
 import MiniStat from "./mini-stat";
 import Medal from "./medal";
@@ -51,7 +51,7 @@ const RankingRow: React.FC<Props> = ({
             ? withAlpha(highlight.color, 0.4)
             : "transparent",
           borderWidth: borderWidth.thin,
-          borderColor: withAlpha(theme.text, 0.15),
+          borderColor: theme.border,
         },
       ]}
       onPress={() => onPress(item.id)}
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     marginHorizontal: spacing[2],
     paddingHorizontal: spacing[2],
-    paddingVertical: spacing[2],
+    paddingVertical: 10,
     gap: spacing[2],
     overflow: "hidden",
   },

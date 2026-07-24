@@ -18,9 +18,9 @@ import {
   useAppTheme,
 } from "@/src/shared/theme";
 import { SearchField } from "@/src/shared/ui/search-field";
-import FadeIn from "@/src/shared/ui/animations/FadeIn";
+import FadeIn from "@/src/shared/ui/animations/fade-in";
 import { GradientPill } from "@/src/shared/ui/pill";
-import ErrorState from "@/src/shared/ui/feedback/ErrorState";
+import ErrorState from "@/src/shared/ui/feedback/error-state";
 
 export type SearchResultsProps<T extends { id: string | number }> = {
   search: string;

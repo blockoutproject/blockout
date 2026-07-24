@@ -1,0 +1,18 @@
+import { useQuery } from "@tanstack/react-query";
+import type { UserResponse } from "@/src/shared/generated/models";
+import { useApis } from "@/src/shared/providers/api-provider";
+import { ApiError } from "@/src/shared/api/api-error";
+
+export const CURRENT_USER_QUERY_KEY = ["current-user"] as const;
+
+export const useEnsureUser = () => {
+  const { mobile } = useApis();
+
+  return useQuery<UserResponse, ApiError>({
+    queryKey: CURRENT_USER_QUERY_KEY,
+    enabled: false,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    queryFn: async () => mobile.users.ensureCurrentUser(),
+  });
+};

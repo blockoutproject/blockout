@@ -31,12 +31,12 @@ import {
 import * as Haptics from "expo-haptics";
 
 import { withAlpha } from "@/src/shared/lib/utils";
-import { useSessionState } from "@/src/modules/session/providers/SessionContext";
+import { useSessionState } from "@/src/modules/session/providers/session-context";
 import { CONFIG } from "@/src/shared/config/config";
 import RevenueCatUI from "react-native-purchases-ui";
 import { GradientPill } from "@/src/shared/ui/pill";
-import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
-import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+import { usePurchases } from "@/src/modules/subscription/providers/purchases-provider";
+import MaskedImage from "@/src/shared/ui/images/masked-image";
 
 type HeaderProps = SceneRendererProps & {
   navigationState: NavigationState<Route>;

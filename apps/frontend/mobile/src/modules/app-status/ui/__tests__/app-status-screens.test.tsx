@@ -9,7 +9,7 @@ import {
   SessionActions,
   SessionContextProvider,
   SessionState,
-} from "@/src/modules/session/providers/SessionContext";
+} from "@/src/modules/session/providers/session-context";
 import { ThemeProvider } from "@/src/shared/theme";
 
 jest.mock("expo-haptics", () => ({

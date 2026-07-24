@@ -21,16 +21,16 @@ import { useLocalSearchParams } from "expo-router";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 
 import { layout, spacing, useAppTheme } from "@/src/shared/theme";
-import { useMatchById } from "@/src/modules/match/hooks/useMatchById";
+import { useMatchById } from "@/src/modules/match/hooks/use-match-by-id";
 
-import MatchSkeleton from "@/src/modules/match/ui/MatchSkeleton";
+import MatchSkeleton from "@/src/modules/match/ui/match-skeleton";
 import MatchScoreCard from "@/src/modules/match/ui/match-score-card";
 import MatchScoreDetailsCard from "@/src/modules/match/ui/match-score-details-card";
 import MatchInfoCard from "@/src/modules/match/ui/match-info-card";
 import RankingCard from "@/src/modules/ranking/ui/ranking-card";
-import MatchHeader from "@/src/modules/match/ui/MatchHeader";
-import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import FadeIn from "@/src/shared/ui/animations/FadeIn";
+import MatchHeader from "@/src/modules/match/ui/match-header";
+import ErrorState from "@/src/shared/ui/feedback/error-state";
+import FadeIn from "@/src/shared/ui/animations/fade-in";
 
 import { ReportTypeEnum } from "@/src/shared/generated/models";
 import {
@@ -39,13 +39,13 @@ import {
   splitIsoDateFormatted,
 } from "@/src/shared/lib/utils";
 
-import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
-import MatchLiveLinkCard from "@/src/modules/match/ui/MatchLiveLinkCard";
-import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
+import ReportFormSheet from "@/src/modules/report/ui/report-form-sheet";
+import MatchLiveLinkCard from "@/src/modules/match/ui/match-live-link-card";
+import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
 import GuestPromptSheet, {
   GuestPromptSheetRef,
 } from "@/src/modules/session/ui/guest-prompt-sheet";
-import { useSessionState } from "@/src/modules/session/providers/SessionContext";
+import { useSessionState } from "@/src/modules/session/providers/session-context";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -209,13 +209,7 @@ const MatchScreen: React.FC = () => {
     if (!match) {
       return null;
     }
-    return (
-      <RankingCard
-        pool={match.pool}
-        scrollable={false}
-        highlightTeams={highlightTeams}
-      />
-    );
+    return <RankingCard pool={match.pool} highlightTeams={highlightTeams} />;
   }, [match, highlightTeams]);
 
   let body: React.ReactNode;

@@ -6,13 +6,13 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { layout, spacing } from "@/src/shared/theme";
-import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
-import EmptyState from "@/src/shared/ui/feedback/EmptyState";
+import ErrorState from "@/src/shared/ui/feedback/error-state";
+import EntityListSkeleton from "@/src/shared/ui/entity/entity-list-skeleton";
+import EmptyState from "@/src/shared/ui/feedback/empty-state";
 
 import TeamCard from "@/src/modules/team/ui/team-list-card";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
-import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
 
 type Props = {
   teams: TeamSummaryResponse[];

@@ -9,10 +9,10 @@ import {
   typography,
   useAppTheme,
 } from "@/src/shared/theme";
-import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
 
 /** Per-set score breakdown. */
 export type MatchScoreDetailsCardProps = {

@@ -3,7 +3,7 @@ import { Linking, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { CURRENT_APP_VERSION } from "@/src/modules/app-status/model/appVersion";
+import { CURRENT_APP_VERSION } from "@/src/modules/app-status/model/app-version";
 import {
   AppStatusBypassAction,
   AppStatusCard,
@@ -13,7 +13,7 @@ import { AppStatusLayout } from "@/src/modules/app-status/ui/app-status-layout";
 import {
   useSessionActions,
   useSessionState,
-} from "@/src/modules/session/providers/SessionContext";
+} from "@/src/modules/session/providers/session-context";
 import { useAppTheme } from "@/src/shared/theme";
 import { Action } from "@/src/shared/ui/action";
 

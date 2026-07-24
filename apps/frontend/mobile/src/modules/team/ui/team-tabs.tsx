@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Animated } from "react-native";
 
 import GenericTabView from "@/src/shared/ui/generic-tab-view";
-import MatchList from "@/src/modules/match/ui/MatchList";
+import MatchList from "@/src/modules/match/ui/match-list";
 import RankingTab from "@/src/modules/ranking/ui/ranking-tab";
 
 import { MatchStatusEnum } from "@/src/shared/generated/models";

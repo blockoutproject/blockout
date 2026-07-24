@@ -12,8 +12,8 @@ import {
   typography,
   useAppTheme,
 } from "@/src/shared/theme";
-import MaskedImage from "@/src/shared/ui/images/MaskedImage";
-import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import GradientBorderView from "@/src/shared/ui/gradient-border-view";
+import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { Pill } from "@/src/shared/ui/pill";
 
 export type MatchRowProps = {
@@ -41,7 +41,7 @@ const MatchRow: React.FC<MatchRowProps> = ({ match, division }) => {
 
   const livePillLabel = hasLiveLink
     ? isFinished
-      ? "Rediffusion disponible"
+      ? "Rediffusion"
       : "Live"
     : null;
 
@@ -83,7 +83,7 @@ const MatchRow: React.FC<MatchRowProps> = ({ match, division }) => {
             {match.teamA.shortName}
           </Text>
 
-          <MaskedImage uri={match.teamA.logoUrl} size={28} radius={7} />
+          <MaskedImage uri={match.teamA.logoUrl} size={28} radius={8} />
         </View>
 
         <View style={styles.center}>
@@ -117,7 +117,7 @@ const MatchRow: React.FC<MatchRowProps> = ({ match, division }) => {
         </View>
 
         <View style={[styles.team, styles.teamLeft]}>
-          <MaskedImage uri={match.teamB.logoUrl} size={28} radius={7} />
+          <MaskedImage uri={match.teamB.logoUrl} size={28} radius={8} />
 
           <Text
             style={[styles.teamName, { color: theme.text }]}
@@ -190,8 +190,8 @@ const styles = StyleSheet.create({
     ...typography.compactStrong,
   },
   scoreBox: {
-    minHeight: 34,
     paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
     alignItems: "center",
     justifyContent: "center",
   },
@@ -199,8 +199,7 @@ const styles = StyleSheet.create({
     ...typography.title,
   },
   livePill: {
-    paddingVertical: 3,
-    paddingHorizontal: 6,
+    paddingHorizontal: spacing[2],
   },
   livePillText: {
     ...typography.captionStrong,

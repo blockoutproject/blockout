@@ -1,30 +1,24 @@
 import React, { useCallback, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import { FlashList, type ListRenderItemInfo } from "@shopify/flash-list";
 import * as Haptics from "expo-haptics";
 import { borderWidth, radius, spacing, useAppTheme } from "@/src/shared/theme";
-import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import type {
   PoolResponse,
   TeamWithStatsResponse,
 } from "@/src/shared/generated/models";
-import type { TeamHighlight } from "@/src/modules/team/model/TeamHighlight";
+import type { TeamHighlight } from "@/src/modules/team/model/team-highlight";
 import RankingRow from "./ranking-row";
 import RankingHeader from "./ranking-header";
 import { useRouter } from "expo-router";
-import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
 
 type RankingCardProps = {
   pool: PoolResponse;
-  scrollable?: boolean;
   highlightTeams?: TeamHighlight[];
 };
 
-const RankingCard: React.FC<RankingCardProps> = ({
-  pool,
-  scrollable = true,
-  highlightTeams,
-}) => {
+const RankingCard: React.FC<RankingCardProps> = ({ pool, highlightTeams }) => {
   const theme = useAppTheme();
   const router = useRouter();
   const { handleNavigationWithAd } = useNavigationInterstitial();
@@ -64,8 +58,9 @@ const RankingCard: React.FC<RankingCardProps> = ({
   }, [router, handleNavigationWithAd, pool.id]);
 
   const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<TeamWithStatsResponse>) => (
+    (item: TeamWithStatsResponse, index: number) => (
       <RankingRow
+        key={item.id}
         item={item}
         index={index}
         theme={theme}
@@ -85,19 +80,10 @@ const RankingCard: React.FC<RankingCardProps> = ({
       style={[styles.card, { backgroundColor: theme.background }]}
     >
       <View style={styles.innerClip}>
-        <FlashList
-          data={pool.ranking}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={renderItem}
-          ListHeaderComponent={
-            <RankingHeader pool={pool} onPress={handleHeaderPress} />
-          }
-          stickyHeaderIndices={[0]}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={scrollable}
-          contentContainerStyle={styles.listContent}
-          testID={`ranking-list-${pool.id}`}
-        />
+        <RankingHeader pool={pool} onPress={handleHeaderPress} />
+        <View style={styles.listContent} testID={`ranking-list-${pool.id}`}>
+          {pool.ranking.map(renderItem)}
+        </View>
       </View>
     </GradientBorderView>
   );
@@ -112,7 +98,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   listContent: {
-    paddingBottom: spacing[2],
+    paddingVertical: spacing[2],
     gap: spacing[2],
   },
 });

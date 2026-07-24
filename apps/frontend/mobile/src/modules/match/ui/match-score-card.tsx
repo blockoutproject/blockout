@@ -9,16 +9,16 @@ import {
   useAppTheme,
 } from "@/src/shared/theme";
 import { splitIsoDateFormatted, withAlpha } from "@/src/shared/lib/utils";
-import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import {
   type MatchResponse,
   MatchStatusEnum,
   type TeamDetailsResponse,
 } from "@/src/shared/generated/models";
 import { GradientPill, Pill, type PillProps } from "@/src/shared/ui/pill";
-import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { useRouter } from "expo-router";
-import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
 
 export interface MatchScoreCardProps {
   match: MatchResponse;
@@ -178,22 +178,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  headerSideLeft: { flex: 1, alignItems: "flex-start" },
+  headerSideLeft: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "flex-start",
+  },
   headerCenter: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 4,
   },
-  headerSideRight: { flex: 1, alignItems: "flex-end" },
+  headerSideRight: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
 
   teamsRow: {
+    height: 148,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "stretch",
     gap: spacing[2],
   },
   teamCard: {
     flex: 1,
     alignItems: "center",
+    justifyContent: "center",
     gap: spacing[2],
   },
   teamLabel: {

@@ -5,8 +5,8 @@ import { isRegional, withAlpha } from "@/src/shared/lib/utils";
 import EntityGradientCard, {
   EntityCardChip,
 } from "@/src/shared/ui/entity-gradient-card";
-import { FormatEnum, FormatLabels } from "@/src/shared/model/formatLabels";
-import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
+import { FormatEnum, FormatLabels } from "@/src/shared/model/format-labels";
+import { GenderEnum, GenderLabels } from "@/src/shared/model/gender-labels";
 
 export type PoolCardProps = {
   pool: PoolSearchResponse;
