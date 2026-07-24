@@ -70,8 +70,10 @@ Two consecutive normalized final reads matched:
 - Project item state SHA-256: `fbc0a6904585247262d82d1bc7db9b389e5b7a1bcea3f726a44735e333a5b6fe`.
 - Issue lifecycle state SHA-256: `a27d713bf651d7ba6ba11afd448331f0943cea8d70102b1c8bb2af4c0b6b9240`.
 
-The final pre-publication state contains one ordinary active claim: GIT-010 `#9`, assigned to the authenticated user in
-`In Progress`. GIT-011 `#10` and GIT-012 `#11` remain open, unassigned, and natively `Blocked`.
+At the end of the disposable validation, the pre-publication state contained one ordinary active claim: GIT-010 `#9`,
+assigned to the authenticated user in `In Progress`. GIT-011 `#10` and GIT-012 `#11` were then open, unassigned, and
+natively `Blocked`. Their later lifecycle evidence is recorded in the
+[Roadmap source-of-truth certification](github-roadmap-source-of-truth-certification.md).
 
 ## CI Evidence
 
@@ -88,9 +90,11 @@ This proves the repository's merged integration head is checked across OpenAPI g
 client generation and tests, Python scraper lint/syntax/tests, mobile generation/lint/typecheck/tests/export, and
 repository formatting.
 
-## Publication Boundary
+## Publication Evidence
 
 The certification's repository publication, structural pull-request link, review reservation, authorized merge, final
 issue closure, dependent reconciliation, and post-merge CI evidence are retained on
-[GIT-010 issue #9](https://github.com/blockoutproject/blockout/issues/9) and its linked pull request. GIT-010 may become
-`Done` only after those release guards complete.
+[GIT-010 issue #9](https://github.com/blockoutproject/blockout/issues/9) and
+[pull request #22](https://github.com/blockoutproject/blockout/pull/22). GIT-010 is `Done`, closed as completed, and
+unassigned after merge commit `b6c1f58512fac8e7e3a137c0309bde2e47a682f9`; its post-merge Format and CI Push runs
+completed successfully.

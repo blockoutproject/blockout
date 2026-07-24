@@ -60,7 +60,7 @@ advertising identifiers, and replacement values for Auth0 and RevenueCat.
 **Files:**
 
 - Modify: `docs/runbooks/local-development.md`
-- Modify: `docs/current/roadmap.md`
+- Update the temporary local roadmap evidence (removed after the GitFlow migration)
 
 - [x] **Step 1: Document copy conventions**
 

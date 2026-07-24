@@ -75,8 +75,10 @@ npm run format:check
 YAML, and Markdown; Spotless with google-java-format handles Java; and Ruff handles Python. Editors may run these tools
 on save, but repository commands remain authoritative for agents and contributors.
 
-See the [documentation index](docs/README.md), the [completed roadmap](docs/current/roadmap.md), and the
-[contract-first certification](docs/current/ref-059-certification.md) for the validated application baseline.
+See the [documentation index](docs/README.md), the
+[live Roadmap](https://github.com/orgs/blockoutproject/projects/4), the
+[Roadmap source-of-truth certification](docs/current/github-roadmap-source-of-truth-certification.md), and the
+[contract-first certification](docs/current/ref-059-certification.md) for the validated repository baseline.
 
 ## Security
 
