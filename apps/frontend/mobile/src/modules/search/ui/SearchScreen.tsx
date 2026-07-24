@@ -6,7 +6,7 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import SearchTeamScreen from "@/src/modules/search/ui/SearchTeamScreen";
 import SearchClubScreen from "@/src/modules/search/ui/SearchClubScreen";
 import SearchPoolScreen from "@/src/modules/search/ui/SearchPoolScreen";
-import SearchHeader from "@/src/modules/search/ui/SearchHeader";
+import SearchHeader from "@/src/modules/search/ui/search-header";
 import { ReportTypeEnum } from "@/src/shared/generated/models";
 import { Filter } from "@/src/shared/model/Filter";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";

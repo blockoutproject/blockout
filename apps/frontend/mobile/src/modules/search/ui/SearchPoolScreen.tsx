@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { useSearchPools } from "@/src/modules/search/hooks/useSearchPools";
-import PoolCard from "@/src/modules/search/ui/PoolCard";
+import PoolCard from "@/src/modules/search/ui/pool-card";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import SearchResults from "@/src/modules/search/ui/SearchResults";
+import SearchResults from "@/src/modules/search/ui/search-results";
 import { SelectOption } from "@/src/shared/ui/form/SelectSheet";
 import DivisionSelect from "@/src/shared/ui/form/DivisionSelect";
 import FormatSelect from "@/src/shared/ui/form/FormatSelect";

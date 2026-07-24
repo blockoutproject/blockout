@@ -3,7 +3,7 @@ import React from "react";
 import { Pressable, Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import SearchResults from "@/src/modules/search/ui/SearchResults";
+import SearchResults from "@/src/modules/search/ui/search-results";
 import {ThemeProvider} from "@/src/shared/theme";
 
 jest.mock("@gorhom/bottom-sheet", () => {

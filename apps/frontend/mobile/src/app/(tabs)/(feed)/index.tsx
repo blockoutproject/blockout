@@ -1,1 +1,1 @@
-export {default} from "@/src/modules/feed/ui/FeedScreen";
+export {default} from "@/src/modules/feed/ui/feed-screen";

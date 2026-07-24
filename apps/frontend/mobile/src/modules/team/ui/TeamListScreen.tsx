@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {layout, useAppTheme} from "@/src/shared/theme";
 
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import TeamCard from "@/src/modules/team/ui/TeamListCard";
+import TeamCard from "@/src/modules/team/ui/team-list-card";
 import TeamListHeader from "@/src/modules/team/ui/TeamListHeader";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
 import { ReportTypeEnum } from "@/src/shared/generated/models";

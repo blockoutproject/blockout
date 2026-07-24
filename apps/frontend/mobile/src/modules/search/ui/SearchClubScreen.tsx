@@ -1,9 +1,9 @@
 import React, { useCallback } from "react";
 import { useSearchClubs } from "@/src/modules/search/hooks/useSearchClubs";
-import ClubCard from "@/src/modules/search/ui/ClubCard";
+import ClubCard from "@/src/modules/search/ui/club-card";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import SearchResults from "@/src/modules/search/ui/SearchResults";
+import SearchResults from "@/src/modules/search/ui/search-results";
 import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
 export type SearchClubScreenProps = {

@@ -3,9 +3,9 @@ import { StyleSheet, View } from "react-native";
 
 import {useAppTheme} from "@/src/shared/theme";
 import { Filter } from "@/src/shared/model/Filter";
-import FollowedTeamsList from "@/src/modules/followed/ui/FollowedTeamsList";
-import FollowedPoolsList from "@/src/modules/followed/ui/FollowedPoolsList";
-import FollowedListHeader from "@/src/modules/followed/ui/FollowedListHeader";
+import FollowedTeamsList from "@/src/modules/followed/ui/followed-teams-list";
+import FollowedPoolsList from "@/src/modules/followed/ui/followed-pools-list";
+import FollowedListHeader from "@/src/modules/followed/ui/followed-list-header";
 import { SelectOption } from "@/src/shared/ui/form/SelectSheet";
 import SeasonSelect from "@/src/shared/ui/form/SeasonSelect";
 

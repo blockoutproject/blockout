@@ -1,10 +1,10 @@
 import React, { useMemo, useRef } from "react";
 import { Animated } from "react-native";
 
-import GenericTabView from "@/src/shared/ui/GenericTabView";
+import GenericTabView from "@/src/shared/ui/generic-tab-view";
 import MatchList from "@/src/modules/match/ui/MatchList";
 
-import ClubInformationsTab from "./ClubInformationTab";
+import ClubInformationsTab from "./club-information-tab";
 import ClubTeamListTab from "./ClubTeamListTab";
 import ProUpsellTab from "@/src/modules/subscription/ui/ProUpsellTab";
 
