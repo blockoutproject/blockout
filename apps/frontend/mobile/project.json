@@ -62,6 +62,9 @@
         "cwd": "apps/frontend/mobile",
         "command": "tsc --noEmit --pretty false"
       }
+    },
+    "export": {
+      "dependsOn": ["codegen"]
     }
   },
   "tags": ["scope:frontend", "type:application"]
