@@ -1431,7 +1431,7 @@ authority. Do not select, claim, or sequence work from this file.
     Two consecutive complete compact reads matched byte-for-byte with SHA-256
     `34adfd79507e302c0c3ecac7ef1e27068ef250623a17ac3a7c30a69c1ad7a7fc`.
 
-- [ ] **GIT-009 — Activate Blockout GitFlow through one complete canary lifecycle**
+- [x] **GIT-009 — Activate Blockout GitFlow through one complete canary lifecycle**
   - Acquire only the GIT-009 Roadmap issue through the canonical claim protocol and require two stable snapshots before
     planning, branch creation, or edits.
   - Create its `tech/<issue-number>-activate-blockout-gitflow` branch from current `develop`, then update
@@ -1442,6 +1442,18 @@ authority. Do not select, claim, or sequence work from this file.
   - After separate current-user merge authorization, exercise the merge-commit path, remote task-branch deletion,
     terminal issue cleanup, dependency unlock reconciliation, Epic rollup when applicable, and local `develop`
     synchronization. Do not activate auto-merge or infer authorization from this roadmap.
+  - Evidence (2026-07-24): issue [`#8`](https://github.com/blockoutproject/blockout/issues/8) was selected from two
+    stable pre-claim Project reads, acquired through the canonical claim protocol, and published from
+    `tech/8-activate-blockout-gitflow` through structurally linked draft pull request
+    [`#12`](https://github.com/blockoutproject/blockout/pull/12). The issue remained singly assigned through
+    `In Review`; every check passed before the current-user-authorized merge commit
+    `c1fca2759103ae81890783df4f671be2d0d3b0ef`. Only the verified unchanged remote task branch was deleted. Post-merge
+    [`Format`](https://github.com/blockoutproject/blockout/actions/runs/30092719954) and
+    [`CI Push`](https://github.com/blockoutproject/blockout/actions/runs/30092720151) runs passed, including contracts,
+    backend, Python, frontend, and repository formatting. Issue `#8` is closed completed, unassigned, and `Done`;
+    dependent `#9` was reconciled to `Ready`. Two final Project reads matched with SHA-256
+    `ca435b18c36c52d63b183d4c5f553aaab1ab973439500a6ecd292ff7d83fd3d0`, and local `develop` was synchronized to the
+    merge head before GIT-010 acquisition.
 
 - [ ] **GIT-010 — Certify concurrency, recovery, Ready-drain, and release governance**
   - Exercise the live governance validation matrix with real migration issues where safe and bounded disposable Tech
