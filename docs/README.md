@@ -1,56 +1,73 @@
-# Documentation
+# Blockout Documentation
 
-## Current reference
+This folder contains current product context, architecture, durable decisions, a release snapshot, and reusable
+runbooks. Task planning and completion evidence live in GitHub, not Markdown.
 
-- [Agent brief](current/blockout-agent-brief.md)
-- [Roadmap GitHub Project](https://github.com/orgs/blockoutproject/projects/4)
-- [Roadmap source-of-truth certification](current/github-roadmap-source-of-truth-certification.md)
-- [GitFlow governance certification](current/gitflow-governance-certification.md)
-- [Local development](runbooks/local-development.md)
-- [Continuous integration](runbooks/continuous-integration.md)
-- [Task discovery](runbooks/tasks/discovery.md)
-- [Task acquisition](runbooks/tasks/acquisition.md)
-- [Task execution](runbooks/tasks/execution.md)
-- [Ready drain](runbooks/tasks/ready-drain.md)
-- [Single-PR merge](runbooks/tasks/merge.md)
-- [Architecture and refactor direction](current/refactor-direction.md)
-- [Mobile architecture](current/mobile-architecture.md)
-- [Mobile visual baseline](current/ref-061-mobile-visual-baseline.md)
-- [Figma foundations](current/ref-062-figma-foundations.md)
-- [Figma component library](current/ref-063-figma-components.md)
-- [Figma screen certification](current/ref-064-figma-screen-certification.md)
-- [Faithful native Figma system](current/ref-065b-faithful-native-figma-system.md)
-- [Figma fidelity and component hierarchy](current/ref-065c-figma-fidelity-and-component-hierarchy.md)
-- [iOS pending screen certification](current/ref-065d-ios-pending-screen-certification.md)
-- [iOS sign-in fidelity](current/ref-065e-ios-sign-in-fidelity.md)
-- [Figma Pill families](current/ref-065f-figma-pill-families.md)
-- [iOS populated Search fidelity](current/ref-065g-ios-populated-search-fidelity.md)
-- [iOS guest profile fidelity](current/ref-065h-ios-guest-profile-fidelity.md)
-- [iOS administrator profile fidelity](current/ref-065i-ios-administrator-profile-fidelity.md)
-- [iOS empty authenticated Home fidelity](current/ref-065j-ios-empty-authenticated-home-fidelity.md)
-- [iOS populated authenticated Home fidelity](current/ref-065k-ios-populated-authenticated-home-fidelity.md)
-- [iOS Club information fidelity](current/ref-065l-ios-club-information-fidelity.md)
-- [iOS populated Team matches fidelity](current/ref-065m-ios-populated-team-matches-fidelity.md)
-- [iOS Pool ranking fidelity](current/ref-065n-ios-pool-ranking-fidelity.md)
-- [iOS finished Match fidelity](current/ref-065o-ios-finished-match-fidelity.md)
-- [iOS Legal imprint fidelity](current/ref-065p-ios-legal-imprint-fidelity.md)
-- [iOS live empty authenticated Home fidelity](current/ref-065q-ios-live-empty-authenticated-home-fidelity.md)
-- [iOS guest Profile header consistency](current/ref-065r-ios-guest-profile-header-consistency.md)
-- [Contract-first certification](current/ref-059-certification.md)
-- [Public release readiness](current/ref-060-public-release-readiness.md)
+## Start Here
 
-## Completed migration evidence
+For ordinary Blockout work:
 
-- [Bootstrap design](current/blockout-clean-bootstrap-design.md)
-- [Imported source baseline](current/source-baseline.md)
-- [Club scraper characterization](current/club-scraper-characterization.md)
-- [Competition scraper characterization](current/competition-scraper-characterization.md)
-- [Scraper functional validation](current/scraper-functional-validation.md)
-- [Mobile characterization](current/mobile-characterization.md)
-- [Mobile audit](current/mobile-audit.md)
-- [Mobile consolidation register](current/mobile-consolidation.md)
+1. Run `git status --short --branch`.
+2. Check the [Roadmap GitHub Project](https://github.com/orgs/blockoutproject/projects/4) for non-Epic `Ready` work.
+3. Read [`current/blockout-product-runtime-context.md`](current/blockout-product-runtime-context.md) and
+   [`current/blockout-agent-brief.md`](current/blockout-agent-brief.md).
+4. Load only the architecture, decision, policy, and runbook sources required by the selected issue.
 
-The migration evidence records the state and decisions at the time of each completed task. Where sequencing language
-describes code generation or another refactor as deferred, the current source, repository policies, REF-059
-certification, and the latest task-specific reconciliation are authoritative. The live Roadmap is the only operational
-task and claim source. Repository CI is active. Deployment and production changes remain deferred.
+If the complete Project cannot be read, stop. Do not infer executable work from documentation, history, or a completed
+migration record.
+
+## Active Documents
+
+| Area               | File                                                                                                             | Role                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Roadmap Project    | [Roadmap GitHub Project](https://github.com/orgs/blockoutproject/projects/4)                                     | Committed tasks, status, priority, execution mode, ownership, Worksets, and blockers. |
+| Roadmap router     | [`GitHub Roadmap Policy`](../.agents/skills/blockout-best-practices/references/github-roadmap-policy.md)         | Routes agents to the smallest authoritative Roadmap reference.                        |
+| Roadmap operations | [`GitHub Roadmap Operations`](../.agents/skills/blockout-best-practices/references/github-roadmap-operations.md) | Discovery, acquisition, claims, Worksets, and issue or PR operations.                 |
+| Roadmap lifecycle  | [`GitHub Roadmap Lifecycle`](../.agents/skills/blockout-best-practices/references/github-roadmap-lifecycle.md)   | Status transitions, review, release, completion, dependencies, and Epic rollup.       |
+| Roadmap governance | [`GitHub Roadmap Governance`](../.agents/skills/blockout-best-practices/references/github-roadmap-governance.md) | Project fields, views, workflows, migrations, and governance validation.              |
+| Product context    | [`current/blockout-product-runtime-context.md`](current/blockout-product-runtime-context.md)                     | Delivered posture and boundaries that stay closed.                                    |
+| Agent brief        | [`current/blockout-agent-brief.md`](current/blockout-agent-brief.md)                                             | Minimal discovery, claim, source-routing, and validation rules.                       |
+| Release baseline   | [`releases/blockout-v1-baseline.md`](releases/blockout-v1-baseline.md)                                           | Delivered V1 capabilities and known limits.                                           |
+
+## Documentation Map
+
+| Layer           | Location                                   | Keep here                                                                                |
+| --------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Current context | [`current/`](current/)                     | Product/runtime posture and minimal agent routing.                                       |
+| Architecture    | [`architecture/`](architecture/)           | Current system, ingestion, mobile, and design-system models.                             |
+| Decisions       | [`decisions/`](decisions/)                 | Durable product and architecture decisions that source code alone cannot explain safely. |
+| Releases        | [`releases/`](releases/)                   | Stable delivered-scope snapshots.                                                        |
+| Runbooks        | [`runbooks/README.md`](runbooks/README.md) | Reusable procedures, never task state or delivery history.                               |
+
+## Source Rules
+
+- Current source and source contracts outrank historical claims.
+- The Project controls execution; architecture and decisions preserve durable intent.
+- Generated artifacts are outputs, not product authority.
+- Git history and owning GitHub issues and pull requests own detailed completion trace.
+- Canonical Figma resources own visual truth; repository documents describe boundaries and validation, not a duplicate
+  design source.
+
+## Decision Index
+
+Start from [`decisions/README.md`](decisions/README.md), then load only the domain required by the issue.
+
+## Runbook Selection
+
+| Need                                                          | Runbook                                                                                |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Discover the next executable task without mutation            | [`runbooks/tasks/discovery.md`](runbooks/tasks/discovery.md)                           |
+| Acquire and reserve the next executable task                  | [`runbooks/tasks/acquisition.md`](runbooks/tasks/acquisition.md)                       |
+| Execute an approved task end to end                           | [`runbooks/tasks/execution.md`](runbooks/tasks/execution.md)                           |
+| Drain compatible Ready work into separate tasks and draft PRs | [`runbooks/tasks/ready-drain.md`](runbooks/tasks/ready-drain.md)                       |
+| Merge the first eligible pull request                         | [`runbooks/tasks/merge.md`](runbooks/tasks/merge.md)                                   |
+| Select a reusable audit or execution procedure                | [`runbooks/README.md`](runbooks/README.md)                                             |
+| Interact with Figma                                           | [`Figma policy`](../.agents/skills/blockout-best-practices/references/figma-policy.md) |
+
+## Stability Rules
+
+- Keep active documents short and give each fact one owner.
+- Do not duplicate Project state, task checklists, validation logs, or GitHub completion evidence in Markdown.
+- Do not preserve migration plans after their durable outcome is represented by current architecture, decisions, source,
+  and the release baseline.
+- Do not silently change product or architecture decisions during documentation cleanup.

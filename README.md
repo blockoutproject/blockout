@@ -55,8 +55,8 @@ docker compose --project-name blockout \
   up -d
 ```
 
-Application processes run outside Compose through their native commands or Nx targets. The complete environment and
-run commands are documented in [local development](docs/runbooks/local-development.md).
+Application processes run outside Compose through their native commands or Nx targets. Inspect the owning project with
+`npm exec -- nx show project <project-name>` before starting a process.
 
 ## Verification
 
@@ -76,9 +76,8 @@ YAML, and Markdown; Spotless with google-java-format handles Java; and Ruff hand
 on save, but repository commands remain authoritative for agents and contributors.
 
 See the [documentation index](docs/README.md), the
-[live Roadmap](https://github.com/orgs/blockoutproject/projects/4), the
-[Roadmap source-of-truth certification](docs/current/github-roadmap-source-of-truth-certification.md), and the
-[contract-first certification](docs/current/ref-059-certification.md) for the validated repository baseline.
+[live Roadmap](https://github.com/orgs/blockoutproject/projects/4), and the
+[Blockout V1 baseline](docs/releases/blockout-v1-baseline.md).
 
 ## Security
 

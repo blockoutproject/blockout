@@ -12,10 +12,12 @@ not track task status or repeat completed-task history.
    with `Status: Ready` are executable.
 3. If the complete Project cannot be read, stop. Do not infer a task from Markdown, plans, history, Git branches, or
    memory.
-4. Read the selected issue, including its native dependencies, `## Workset`, acceptance criteria, Track, Priority,
+4. Read [`blockout-product-runtime-context.md`](blockout-product-runtime-context.md) for product/runtime posture and
+   source routing.
+5. Read the selected issue, including its native dependencies, `## Workset`, acceptance criteria, Track, Priority,
    Execution Mode, and references.
-5. Load `.agents/skills/blockout-best-practices/SKILL.md` and only the scope-specific policies and sources it routes.
-6. Acquire the task before creating a branch, planning task-specific implementation, or editing task files.
+6. Load `.agents/skills/blockout-best-practices/SKILL.md` and only the scope-specific policies and sources it routes.
+7. Acquire the task before creating a branch, planning task-specific implementation, or editing task files.
 
 ## Select Compatible Work
 
@@ -39,16 +41,20 @@ Use [task discovery](../runbooks/tasks/discovery.md) for read-only inspection,
 
 ## Source Routing
 
-| Question                                                                 | Authority                                                                                                         |
-| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| Task existence, state, priority, mode, owner, and next work              | [Roadmap GitHub Project](https://github.com/orgs/blockoutproject/projects/4)                                      |
-| Objective, acceptance criteria, dependencies, evidence, and frozen scope | Selected issue and its native relationships                                                                       |
-| Current product and architecture behavior                                | Current source, contracts, and `docs/current/**` evidence                                                         |
-| Delivered history                                                        | Closed issues, merged pull requests, task evidence, and Git history                                               |
-| Roadmap operations and Workset conflicts                                 | [GitHub Roadmap Operations](../../.agents/skills/blockout-best-practices/references/github-roadmap-operations.md) |
-| Lifecycle, review, release, completion, dependencies, and Epic rollup    | [GitHub Roadmap Lifecycle](../../.agents/skills/blockout-best-practices/references/github-roadmap-lifecycle.md)   |
-| Project fields, views, workflows, and governance                         | [GitHub Roadmap Governance](../../.agents/skills/blockout-best-practices/references/github-roadmap-governance.md) |
-| Git and GitHub naming or publication                                     | [Blockout Git Workflow](../../.agents/skills/blockout-best-practices/references/git-workflow.md)                  |
+| Question                                                                 | Authority                                                                                                                   |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| Task existence, state, priority, mode, owner, and next work              | [Roadmap GitHub Project](https://github.com/orgs/blockoutproject/projects/4)                                                |
+| Objective, acceptance criteria, dependencies, evidence, and frozen scope | Selected issue and its native relationships                                                                                 |
+| Product/runtime posture and closed boundaries                            | [`blockout-product-runtime-context.md`](blockout-product-runtime-context.md)                                                |
+| System and application boundaries                                        | [`../architecture/`](../architecture/) and current source                                                                   |
+| Durable product and technical decisions                                  | [`../decisions/`](../decisions/)                                                                                            |
+| Delivered V1 scope                                                       | [`../releases/blockout-v1-baseline.md`](../releases/blockout-v1-baseline.md)                                                |
+| Current visual direction and Figma interaction                           | Canonical Blockout Figma file and [`Figma policy`](../../.agents/skills/blockout-best-practices/references/figma-policy.md) |
+| Delivered history                                                        | Closed issues, merged pull requests, task evidence, and Git history                                                         |
+| Roadmap operations and Workset conflicts                                 | [GitHub Roadmap Operations](../../.agents/skills/blockout-best-practices/references/github-roadmap-operations.md)           |
+| Lifecycle, review, release, completion, dependencies, and Epic rollup    | [GitHub Roadmap Lifecycle](../../.agents/skills/blockout-best-practices/references/github-roadmap-lifecycle.md)             |
+| Project fields, views, workflows, and governance                         | [GitHub Roadmap Governance](../../.agents/skills/blockout-best-practices/references/github-roadmap-governance.md)           |
+| Git and GitHub naming or publication                                     | [Blockout Git Workflow](../../.agents/skills/blockout-best-practices/references/git-workflow.md)                            |
 
 Generated output is never product or task authority.
 
@@ -73,9 +79,18 @@ Generated output is never product or task authority.
 - Enter execution through `FRESH`, `ACQUIRED_SAME_TASK`, or `RESUME` as defined by the execution runbook.
 - Expand scope only through the visible Workset protocol; an expansion never displaces an incumbent reservation.
 
+## Documentation Ownership
+
+- Task state, ownership, Workset, dependencies, acceptance, and completion evidence: Project item and owning issue.
+- Product/runtime posture: [`blockout-product-runtime-context.md`](blockout-product-runtime-context.md).
+- Durable decisions: `docs/decisions/**`.
+- Architecture state: `docs/architecture/**`.
+- Stable delivered-scope snapshot: `docs/releases/**`.
+- Detailed completion trace: owning issue, pull request, and Git history.
+
 ## Validation Defaults
 
-- Documentation and governance: inspect links and terminology, read live Project state when relevant, run
+- Documentation and governance: inspect local links and terminology, read live Project state when relevant, run
   `npm run format`, `npm run format:check`, and `git diff --check`.
 - Contracts: regenerate the affected contract and impacted Java, Python, or TypeScript consumers.
 - Backend: run targeted Java 21 generation, compilation, or existing tests according to risk.
