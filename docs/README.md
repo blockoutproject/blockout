@@ -3,6 +3,11 @@
 ## Current reference
 
 - [Local development](runbooks/local-development.md)
+- [Task discovery](runbooks/tasks/discovery.md)
+- [Task acquisition](runbooks/tasks/acquisition.md)
+- [Task execution](runbooks/tasks/execution.md)
+- [Ready drain](runbooks/tasks/ready-drain.md)
+- [Single-PR merge](runbooks/tasks/merge.md)
 - [Architecture and refactor direction](current/refactor-direction.md)
 - [Mobile architecture](current/mobile-architecture.md)
 - [Mobile visual baseline](current/ref-061-mobile-visual-baseline.md)
@@ -43,5 +48,6 @@
 
 The migration evidence records the state and decisions at the time of each completed task. Where sequencing language
 describes code generation or another refactor as deferred, the current source, repository policies, completed roadmap,
-REF-059 certification, and the latest task-specific reconciliation are authoritative. GitFlow, CI, deployment, and
-production changes remain deferred.
+REF-059 certification, and the latest task-specific reconciliation are authoritative. Repository CI is active. The
+GitFlow and GitHub Roadmap migration is sequenced by GIT-001 through GIT-012; its installed operating policies remain
+dormant until GIT-009. Deployment and production changes remain deferred.

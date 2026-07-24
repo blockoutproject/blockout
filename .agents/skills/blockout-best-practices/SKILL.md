@@ -42,6 +42,12 @@ the current task. Detailed rules live in the references rather than in this entr
 | Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md`                                                                        |
 | Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                                           |
 | Business model ownership or current refactor scope                            | `docs/current/refactor-direction.md` and the owning application sources                                     |
+| Roadmap discovery, acquisition, claim, resume, scope, or draft publication    | `references/github-roadmap-operations.md` and the applicable task runbook                                   |
+| Drain compatible Ready issues                                                 | `references/github-roadmap-operations.md` and `docs/runbooks/tasks/ready-drain.md`                          |
+| Merge one pull request                                                        | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`  |
+| Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                    |
+| Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md`                                                                   |
+| Issue, branch, commit, push, pull request, label, title, or local Git sync    | `references/git-workflow.md`                                                                                |
 
 When Figma work requires simulator or service startup, also read `references/local-runtime-policy.md`.
 
@@ -81,15 +87,21 @@ REF-041 through REF-059 established and certified the generated V1 transport bou
 models stay within adapters, Python scrapers use the shared generated models and HTTPX clients, and the mobile uses its
 generated Orval client. A future contract change still requires an explicit task and proportional parity evidence.
 
-Blockout does not use GitFlow or a GitHub Project roadmap yet. Repository CI is active:
+## Dormant GitFlow And Roadmap Migration
+
+The future GitFlow and GitHub Roadmap policies are installed but remain dormant until GIT-009 is merged. Repository CI
+is already active.
 
 - `docs/current/roadmap.md` is the temporary ordered task source.
 - Work directly on `main`; commit and push each completed roadmap task separately.
 - `.github/workflows/ci-pr.yml`, `.github/workflows/ci-push.yml`, and `.github/workflows/format.yml` are the CI
   authorities.
-- Do not create task branches, pull requests, claims, deployment workflows, or GitHub Project state.
+- Do not create task branches, pull requests, claims, or GitHub task state before GIT-009.
+- GIT-004 through GIT-008 may provision only the exact taxonomy, Project, branch model, and migration issues authorized
+  by their local roadmap contracts. Provisioning never activates task claims early.
 
-These are explicit temporary rules. Only a later user-authorized roadmap task may replace them.
+After GIT-009, `references/github-roadmap-policy.md` and `references/git-workflow.md` become authoritative and the live
+Roadmap owns task selection and claims. Merge remains a separate current-user authorization even after activation.
 
 ## Repository Map
 

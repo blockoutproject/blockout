@@ -1279,7 +1279,7 @@ checklist until GIT-012 removes it.
     default labels, no active Roadmap Project, no `develop` branch, and `main` as its default branch with merge, squash,
     and rebase all enabled. No GitHub or branch setting was changed by this task.
 
-- [ ] **GIT-002 — Port the GitFlow and Roadmap operating policies in dormant mode**
+- [x] **GIT-002 — Port the GitFlow and Roadmap operating policies in dormant mode**
   - Add Blockout-owned Git workflow, Roadmap policy, governance, lifecycle, and operations references based on Maaatch,
     adapting repository names, Java 21, Expo, Python scraper, contract, validation, and Blockout architecture
     boundaries without copying Maaatch product-specific rules.
@@ -1290,6 +1290,13 @@ checklist until GIT-012 removes it.
     workflow explicitly active until GIT-009 completes.
   - Validate every local link, Bash syntax, GraphQL document shape, terminology, formatter, and diff. Do not create a
     Project, issue, branch, pull request, or GitHub mutation in this task.
+  - Evidence (2026-07-24): Blockout now owns dormant Git workflow, Roadmap routing, governance, lifecycle, and operations
+    policies; discovery, acquisition, execution, Ready-drain, and single-PR merge runbooks; and an executable paginated
+    GraphQL reader. The main skill, `AGENTS.md`, and documentation index route those policies while preserving the
+    local-roadmap and separate direct-`main` publication rules through GIT-008. The helper fails closed without a
+    configured Blockout Project number, and a read-only compatibility run against Maaatch normalized all 16 fields,
+    58 items, and eight ordered Status options. Bash syntax, GraphQL shape, all 13 local documentation link sets,
+    formatting, and diff checks pass. No Blockout or Maaatch GitHub object was mutated.
 
 - [ ] **GIT-003 — Define the Blockout governance vocabulary and issue contracts**
   - Freeze the Blockout Track options from current product and architecture ownership while retaining Maaatch's field
