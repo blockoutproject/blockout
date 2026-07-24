@@ -1455,7 +1455,7 @@ authority. Do not select, claim, or sequence work from this file.
     `ca435b18c36c52d63b183d4c5f553aaab1ab973439500a6ecd292ff7d83fd3d0`, and local `develop` was synchronized to the
     merge head before GIT-010 acquisition.
 
-- [ ] **GIT-010 — Certify concurrency, recovery, Ready-drain, and release governance**
+- [x] **GIT-010 — Certify concurrency, recovery, Ready-drain, and release governance**
   - Exercise the live governance validation matrix with real migration issues where safe and bounded disposable Tech
     issues otherwise: conflicting versus disjoint worksets, deterministic selection, Epics excluded from claims,
     `PLAN_REQUIRED` gating, coherent same-login review reservations, partial-claim recovery, resume, scope expansion,
@@ -1467,8 +1467,21 @@ authority. Do not select, claim, or sequence work from this file.
     labels, repository merge settings, CI gates, compact reads, and documentation links.
   - Close disposable validation issues consistently as `Done` or `Rejected / Replaced`, remove assignments, reconcile
     dependents, and leave no hidden claim, orphan branch, draft Project item, or test task in an active status.
+  - Evidence (2026-07-24): issue [`#9`](https://github.com/blockoutproject/blockout/issues/9) exercised the complete
+    live validation matrix and published the durable
+    [GitFlow governance certification](gitflow-governance-certification.md) through pull request
+    [`#22`](https://github.com/blockoutproject/blockout/pull/22). The merge commit
+    `b6c1f58512fac8e7e3a137c0309bde2e47a682f9` passed post-merge
+    [`Format`](https://github.com/blockoutproject/blockout/actions/runs/30095251075) and
+    [`CI Push`](https://github.com/blockoutproject/blockout/actions/runs/30095251084), including contracts, backend,
+    Python, and frontend. Every disposable issue `#13` through `#19` is unassigned, closed `Not planned`, and
+    `Rejected / Replaced`; draft PRs `#20` and `#21` closed without merge, and their exact branches and worktrees were
+    removed. GIT-010 is closed completed, unassigned, and `Done`; the verified task branch was removed and local
+    `develop` synchronized. Two complete post-terminal Project reads matched with SHA-256
+    `0dc19df53490cee14a882980df67265802084faa6a26db09dc826a7c3b9a47a4`, and dependent `#10` passed full reconciliation
+    before reaching `Ready`.
 
-- [ ] **GIT-011 — Migrate the remaining local roadmap work to GitHub**
+- [x] **GIT-011 — Migrate the remaining local roadmap work to GitHub**
   - Search for delivered or equivalent work, then create native GitHub issues for REF-069, REF-070, and REF-071 with
     their current objectives preserved, complete acceptance criteria, exact Blockout worksets, matching area labels,
     Track, Priority, Execution Mode, and source references.
@@ -1479,6 +1492,19 @@ authority. Do not select, claim, or sequence work from this file.
     retain it in the exact justified `Backlog` or `Blocked` state.
   - Obtain two stable complete Project reads and prove that the three remaining tasks are represented once, with no
     competing Markdown execution state.
+  - Evidence (2026-07-24): duplicate searches over open and closed issues, pull requests, Git history, and current
+    source preceded creation of exactly one governed issue per remaining task:
+    [`#23`](https://github.com/blockoutproject/blockout/issues/23) for REF-069,
+    [`#24`](https://github.com/blockoutproject/blockout/issues/24) for REF-070, and
+    [`#25`](https://github.com/blockoutproject/blockout/issues/25) for REF-071. Each issue was observed in `Triage`
+    before acceptance. Final metadata is `Feature`/`ACC`/`Normal`/`DEFAULT_EXECUTION`/unassigned `Ready` for `#23`,
+    `Tech`/`FIG`/`Normal`/`DEFAULT_EXECUTION`/unassigned `Blocked` for `#24`, and
+    `Bug`/`ING`/`Normal`/`DEFAULT_EXECUTION`/unassigned `Ready` for `#25`. Native dependency `#24 ← #23` preserves the
+    REF-070 blocker; current source proves REF-071 remains an independent search-worker cache defect. Matching Normal
+    priorities order the Ready issues deterministically as ACC `#23` before ING `#25`. Their Worksets are disjoint
+    from the active GIT-011 documentation and Project claim. Two consecutive complete reads matched with Project
+    SHA-256 `0fd9453735f1c342d136417f7c6f65f856454e86ec81d22703c92baccae822c2` and native issue/relationship SHA-256
+    `a043c31a60243c9c3dd971802cb899ec4f31ce1de1e7d886a0bf2b605f75e9af`.
 
 - [ ] **GIT-012 — Retire the local roadmap and certify the final GitHub source of truth**
   - Verify that every unfinished local task has one coherent live GitHub issue and that completed history remains
@@ -1494,6 +1520,8 @@ authority. Do not select, claim, or sequence work from this file.
 ## Deferred until GitFlow migration
 
 - [ ] **REF-069 — Align account, write, moderation, and support flows**
+  - Migrated to governed issue [`#23`](https://github.com/blockoutproject/blockout/issues/23): native `Feature`, Track
+    `ACC`, Priority `Normal`, `DEFAULT_EXECUTION`, unassigned `Ready`.
   - Migrate profile, notifications, entity forms, follow actions, reports, live-link moderation, raw division mapping,
     administration, legal documents, PDF, subscriptions, sheets, validation, toasts, and destructive confirmations.
   - Reuse the certified field, action, feedback, sheet, and pill families without flattening distinct business actions
@@ -1503,6 +1531,9 @@ authority. Do not select, claim, or sequence work from this file.
     retain the Android technical baseline without a second visual synchronization pass.
 
 - [ ] **REF-070 — Certify and clean the complete mobile design system**
+  - Migrated to governed issue [`#24`](https://github.com/blockoutproject/blockout/issues/24): native `Tech`, Track
+    `FIG`, Priority `Normal`, `DEFAULT_EXECUTION`, unassigned `Blocked` by native blocker
+    [`#23`](https://github.com/blockoutproject/blockout/issues/23).
   - Exercise the full screen matrix against the final Figma frames on the representative iOS simulator. Resolve
     unexplained alignment, clipping, safe-area, keyboard, typography, and responsive differences on that visual
     authority while retaining Android build and behavior validation.
@@ -1513,6 +1544,8 @@ authority. Do not select, claim, or sequence work from this file.
     physical-device or provider evidence honestly and do not add production bypasses.
 
 - [ ] **REF-071 — Make the search projection cache idempotent**
+  - Migrated to governed issue [`#25`](https://github.com/blockoutproject/blockout/issues/25): native `Bug`, Track
+    `ING`, Priority `Normal`, `DEFAULT_EXECUTION`, independent and unassigned `Ready`.
   - Correct the `search-worker` cache ownership defect that currently passes a cache-owned team list to `upsertTeams`
     and then appends to that same list while iterating it, causing a `ConcurrentModificationException` during club
     reprojection and scheduled index rebuilds.
