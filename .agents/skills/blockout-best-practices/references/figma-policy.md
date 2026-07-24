@@ -6,7 +6,9 @@ Figma-to-code implementation, and visual reconciliation.
 
 ## Authority
 
-- `docs/current/roadmap.md` controls current task scope, order, dependencies, and acceptance evidence.
+- The live [Roadmap Project](https://github.com/orgs/blockoutproject/projects/4) controls task existence, status,
+  priority, execution mode, ownership, and claims; the selected issue controls scope, dependencies, Workset, and
+  acceptance evidence.
 - Runtime source and the running supported application surfaces control behavior, routes, authorization, data flow,
   copy, accessibility, platform integration, and available states. Figma cannot activate or redefine them.
 - [`ref-061-mobile-visual-baseline.md`](../../../../docs/current/ref-061-mobile-visual-baseline.md) controls the visual

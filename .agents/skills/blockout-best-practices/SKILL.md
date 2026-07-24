@@ -1,6 +1,6 @@
 ---
 name: blockout-best-practices
-description: Use when working in the Blockout monorepo on Nx workspace structure, contracts, OpenAPI/code generation, Spring Boot or Maven backend code, JPA or Flyway persistence, REST APIs, RabbitMQ messaging, Python scrapers, Expo mobile code, logging, tests, local runtime, documentation, or repository architecture.
+description: Use when working in the Blockout monorepo on GitHub Roadmap governance, task claims, GitFlow, Nx workspace structure, contracts, OpenAPI/code generation, Spring Boot or Maven backend code, JPA or Flyway persistence, REST APIs, RabbitMQ messaging, Python scrapers, Expo mobile code, logging, tests, local runtime, documentation, or repository architecture.
 ---
 
 # Blockout Best Practices
@@ -10,7 +10,7 @@ the current task. Detailed rules live in the references rather than in this entr
 
 ## Discipline
 
-- Inspect Git, the current sources, and `docs/current/roadmap.md` before changing code.
+- Inspect Git, the current sources, and the live Roadmap before acting when more than one interpretation is possible.
 - Apply `karpathy-guidelines` whenever writing, reviewing, or refactoring code.
 - Make the smallest coherent change that fits the established architecture. Avoid speculative abstractions and adjacent
   cleanup.
@@ -88,21 +88,29 @@ REF-041 through REF-059 established and certified the generated V1 transport bou
 models stay within adapters, Python scrapers use the shared generated models and HTTPX clients, and the mobile uses its
 generated Orval client. A future contract change still requires an explicit task and proportional parity evidence.
 
-## Dormant GitFlow And Roadmap Migration
+## Roadmap And GitFlow
 
-The future GitFlow and GitHub Roadmap policies are installed but remain dormant until GIT-009 is merged. Repository CI
-is already active.
-
-- `docs/current/roadmap.md` is the temporary ordered task source.
-- Work directly on `main`; commit and push each completed roadmap task separately.
-- `.github/workflows/ci-pr.yml`, `.github/workflows/ci-push.yml`, and `.github/workflows/format.yml` are the CI
-  authorities.
-- Do not create task branches, pull requests, claims, or GitHub task state before GIT-009.
-- GIT-004 through GIT-008 may provision only the exact taxonomy, Project, branch model, and migration issues authorized
-  by their local roadmap contracts. Provisioning never activates task claims early.
-
-After GIT-009, `references/github-roadmap-policy.md` and `references/git-workflow.md` become authoritative and the live
-Roadmap owns task selection and claims. Merge remains a separate current-user authorization even after activation.
+- The organization [Roadmap Project](https://github.com/orgs/blockoutproject/projects/4) is the source of truth for
+  task existence, status, priority, execution mode, ownership, and active claims. The issue owns the objective,
+  acceptance criteria, dependencies, evidence, and frozen Workset.
+- Use `references/github-roadmap-policy.md` only as the operation router. Ordinary work reads operations; load
+  lifecycle or governance only when the current transition requires it.
+- In a managed checkout, route every `gh` call, Git network operation, and `.git` write through the authorized path on
+  its first attempt. Keep repository reads, edits, and local validation in the sandbox.
+- Use one authenticated `gh` identity and the read-only compact Project helper. Do not create a mutating Roadmap CLI,
+  Markdown task or claim ledger, hidden claim state, lease, or session-token subsystem.
+- Read-only task inspection uses `docs/runbooks/tasks/discovery.md`. Work intended to continue uses
+  `docs/runbooks/tasks/acquisition.md`. Selected or acquired work uses `docs/runbooks/tasks/execution.md`.
+- Ready-frontier automation uses `docs/runbooks/tasks/ready-drain.md`; explicit single-PR release uses
+  `docs/runbooks/tasks/merge.md`.
+- Never create a task branch, develop a task-specific plan, or edit task files before a successful stable claim.
+  `PLAN_REQUIRED` also requires current-user plan approval.
+- Preserve unrelated changes, stage explicit paths, validate honestly, push one coherent task branch, and open one
+  draft pull request to `develop`.
+- Merge always requires separate current-user authorization and fresh release evidence. After terminal transitions,
+  reconcile native dependents and parent Epics before selecting more work.
+- `docs/current/roadmap.md` is retained only as bounded GitFlow migration evidence until GIT-012 removes it. It is not
+  an operational task source.
 
 ## Repository Map
 

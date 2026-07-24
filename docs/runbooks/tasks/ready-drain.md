@@ -1,6 +1,6 @@
 # Ready Drain Runbook
 
-Use this only after GIT-009 when the user explicitly asks Codex to drain all currently executable Blockout work into a
+Use this when the user explicitly asks Codex to drain all currently executable Blockout work into a
 human review queue. The controller orchestrates and never implements, owns a task branch, or merges.
 
 ## Outcome

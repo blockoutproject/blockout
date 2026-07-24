@@ -3,9 +3,6 @@
 Read this reference only for Roadmap structure, fields, Tracks, priorities, views, workflows, migrations, or governance
 validation. Ordinary task operations use [`github-roadmap-operations.md`](github-roadmap-operations.md).
 
-This policy remains dormant until GIT-009. GIT-005 may provision the Project under the explicit local roadmap
-authorization without making it operational.
-
 ## Source Ownership
 
 | Question                                                  | Authority                                              |

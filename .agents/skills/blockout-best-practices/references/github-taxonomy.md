@@ -3,8 +3,7 @@
 Read this reference when assigning a Roadmap Track, choosing an issue identifier, applying labels, validating
 `Workset.Areas`, or provisioning the Blockout GitHub taxonomy.
 
-This taxonomy is frozen by GIT-003 and remains dormant for task execution until GIT-009. GIT-004 may provision its
-issue types and labels, and GIT-005 may provision its Track options, under their exact local-roadmap authorizations.
+This taxonomy is the active vocabulary for Blockout issues, pull requests, Worksets, and Roadmap fields.
 
 ## Tracks
 

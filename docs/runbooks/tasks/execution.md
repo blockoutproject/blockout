@@ -1,6 +1,6 @@
 # Task Execution Runbook
 
-Use this only after GIT-009 when the user asks to plan or execute a selected or acquired Blockout issue.
+Use this when the user asks to plan or execute a selected or acquired Blockout issue.
 
 ## Rules
 

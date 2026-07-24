@@ -1259,10 +1259,9 @@ handwritten types; it must not hide a simultaneous transport or business refacto
 
 ## GitFlow and GitHub Roadmap adoption
 
-This migration takes precedence over REF-069 through REF-071. Until GIT-009 is merged, this file remains the operational
-task source and each completed migration task is published separately on `main` under the temporary repository rules.
-After GIT-009, the live GitHub Project becomes authoritative and this file is retained only as the bounded migration
-checklist until GIT-012 removes it.
+This file is retained only as bounded GitFlow migration evidence until GIT-012 removes it. The live
+[Roadmap GitHub Project](https://github.com/orgs/blockoutproject/projects/4) is the sole operational task and claim
+authority. Do not select, claim, or sequence work from this file.
 
 - [x] **GIT-001 — Capture the Maaatch governance baseline and freeze the migration sequence**
   - Inspect the Maaatch Git workflow, Roadmap policies, lifecycle and operations rules, issue templates, compact
