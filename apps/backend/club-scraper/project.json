@@ -41,10 +41,7 @@
       "executor": "@nxlv/python:run-commands",
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "commands": [
-          "python -m ruff check --fix .",
-          "python -m ruff format ."
-        ],
+        "commands": ["python -m ruff check --fix .", "python -m ruff format ."],
         "parallel": false,
         "installDependenciesIfNotExists": true
       }
@@ -69,9 +66,5 @@
       }
     }
   },
-  "tags": [
-    "scope:backend",
-    "type:application",
-    "language:python"
-  ]
+  "tags": ["scope:backend", "type:application", "language:python"]
 }

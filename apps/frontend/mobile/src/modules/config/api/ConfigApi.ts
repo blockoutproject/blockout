@@ -20,7 +20,7 @@ import type {
   UpdateRawDivisionMappingRequest,
   UpsertDivisionRequest,
 } from "@/src/shared/generated/models";
-import type {ImageUpload} from "@/src/shared/model/ImageUpload";
+import type { ImageUpload } from "@/src/shared/model/ImageUpload";
 
 /** Expose configuration operations through the feature API boundary. */
 export class ConfigApi {
@@ -60,7 +60,7 @@ export class ConfigApi {
 
   /** Load raw division mappings matching the optional provider filters. */
   public getRawDivisionMappings(leagueCode?: string, season?: string) {
-    return listRawDivisions({leagueCode, season});
+    return listRawDivisions({ leagueCode, season });
   }
 
   /** Update one raw division mapping. */
@@ -73,7 +73,7 @@ export class ConfigApi {
 
   /** Enable or disable one scraper schedule. */
   public updateScraperStatus(name: string, enabled: boolean) {
-    return updateScraperStatus(name, {enabled});
+    return updateScraperStatus(name, { enabled });
   }
 
   /** Load all scraper statuses. */

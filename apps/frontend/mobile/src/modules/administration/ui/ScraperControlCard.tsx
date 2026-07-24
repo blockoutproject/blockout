@@ -1,9 +1,16 @@
 import React from "react";
-import {ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View,} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {ScraperStatusResponse} from "@/src/shared/generated/models";
+import { useAppTheme } from "@/src/shared/theme";
+import { ScraperStatusResponse } from "@/src/shared/generated/models";
 import ScraperStatusItem from "./ScraperStatusItem";
 
 type Props = {
@@ -15,12 +22,12 @@ type Props = {
 };
 
 const ScraperControlCard: React.FC<Props> = ({
-                                               scrapers,
-                                               loading,
-                                               refreshing,
-                                               onToggleScraper,
-                                               onRefresh,
-                                             }) => {
+  scrapers,
+  loading,
+  refreshing,
+  onToggleScraper,
+  onRefresh,
+}) => {
   const theme = useAppTheme();
 
   const hasScrapers = scrapers && scrapers.length > 0;
@@ -37,23 +44,23 @@ const ScraperControlCard: React.FC<Props> = ({
     >
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
-          <Text style={[styles.title, {color: theme.text}]}>
+          <Text style={[styles.title, { color: theme.text }]}>
             Scrapers FFVB
           </Text>
-          <Text style={[styles.subtitle, {color: theme.textInactive}]}>
+          <Text style={[styles.subtitle, { color: theme.textInactive }]}>
             Active ou désactive les scrapers de récupération des données.
           </Text>
         </View>
 
         <View style={styles.headerRight}>
           {loading ? (
-            <ActivityIndicator size="small" color={theme.textInactive}/>
+            <ActivityIndicator size="small" color={theme.textInactive} />
           ) : onRefresh ? (
             <TouchableOpacity
               onPress={onRefresh}
               style={[
                 styles.iconButton,
-                {backgroundColor: theme.backgroundSecondary},
+                { backgroundColor: theme.backgroundSecondary },
               ]}
               activeOpacity={0.85}
               accessibilityRole="button"
@@ -73,9 +80,9 @@ const ScraperControlCard: React.FC<Props> = ({
       <View style={styles.listContainer}>
         {!!refreshing && !loading && (
           <View style={styles.inlineLoaderRow}>
-            <ActivityIndicator size="small" color={theme.textInactive}/>
+            <ActivityIndicator size="small" color={theme.textInactive} />
             <Text
-              style={[styles.inlineLoaderText, {color: theme.textInactive}]}
+              style={[styles.inlineLoaderText, { color: theme.textInactive }]}
             >
               Mise à jour des statuts…
             </Text>
@@ -87,7 +94,7 @@ const ScraperControlCard: React.FC<Props> = ({
             style={styles.scroll}
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{gap: 10}}
+            contentContainerStyle={{ gap: 10 }}
             testID="administration-scraper-list"
           >
             {scrapers.map((scraper) => (
@@ -99,9 +106,7 @@ const ScraperControlCard: React.FC<Props> = ({
             ))}
           </ScrollView>
         ) : !loading ? (
-          <Text
-            style={[styles.emptyText, {color: theme.textInactive}]}
-          >
+          <Text style={[styles.emptyText, { color: theme.textInactive }]}>
             Aucun scraper configuré pour le moment.
           </Text>
         ) : null}

@@ -1,10 +1,10 @@
-import {useQuery, useQueryClient} from "@tanstack/react-query";
-import {useEffect, useMemo} from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
 
 export const useEntitiesByIds = <T extends { id: number }>(
   key: string,
   fetchFn: (ids: number[]) => Promise<T[]>,
-  ids?: number[]
+  ids?: number[],
 ) => {
   const qc = useQueryClient();
 
@@ -17,7 +17,7 @@ export const useEntitiesByIds = <T extends { id: number }>(
 
   useEffect(() => {
     if (query.data) {
-      query.data.forEach(item => {
+      query.data.forEach((item) => {
         qc.setQueryData([key, item.id], item);
       });
     }
@@ -25,11 +25,11 @@ export const useEntitiesByIds = <T extends { id: number }>(
 
   const entitiesMap: Record<number, T> = useMemo(() => {
     const map: Record<number, T> = {};
-    (query.data ?? []).forEach(e => {
+    (query.data ?? []).forEach((e) => {
       map[e.id] = e;
     });
     return map;
   }, [query.data]);
 
-  return {entitiesMap, ...query};
+  return { entitiesMap, ...query };
 };

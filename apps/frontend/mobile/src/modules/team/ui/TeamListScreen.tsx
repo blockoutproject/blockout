@@ -11,7 +11,7 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {layout, useAppTheme} from "@/src/shared/theme";
+import { layout, useAppTheme } from "@/src/shared/theme";
 
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 import TeamCard from "@/src/modules/team/ui/team-list-card";

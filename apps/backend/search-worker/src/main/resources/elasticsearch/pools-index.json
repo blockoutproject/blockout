@@ -26,11 +26,7 @@
         "folded_autocomplete": {
           "type": "custom",
           "tokenizer": "standard",
-          "filter": [
-            "lowercase",
-            "asciifolding",
-            "french_elision"
-          ]
+          "filter": ["lowercase", "asciifolding", "french_elision"]
         }
       }
     }
@@ -43,16 +39,12 @@
       "name": {
         "type": "search_as_you_type",
         "analyzer": "folded_autocomplete",
-        "copy_to": [
-          "all"
-        ]
+        "copy_to": ["all"]
       },
       "shortName": {
         "type": "search_as_you_type",
         "analyzer": "folded_autocomplete",
-        "copy_to": [
-          "all"
-        ]
+        "copy_to": ["all"]
       },
       "divisionId": {
         "type": "long"
@@ -60,9 +52,7 @@
       "divisionName": {
         "type": "search_as_you_type",
         "analyzer": "folded_autocomplete",
-        "copy_to": [
-          "all"
-        ]
+        "copy_to": ["all"]
       },
       "leagueCode": {
         "type": "keyword"
@@ -70,9 +60,7 @@
       "leagueName": {
         "type": "search_as_you_type",
         "analyzer": "folded_autocomplete",
-        "copy_to": [
-          "all"
-        ]
+        "copy_to": ["all"]
       },
       "format": {
         "type": "keyword"

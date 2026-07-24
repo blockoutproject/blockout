@@ -1,33 +1,44 @@
-import {useMemo} from "react";
-import {useInfiniteQuery} from "@tanstack/react-query";
-import {DayMatchesResponse, MatchStatusEnum} from "@/src/shared/generated/models";
-import {useApis} from "@/src/shared/providers/ApiProvider";
+import { useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import {
+  DayMatchesResponse,
+  MatchStatusEnum,
+} from "@/src/shared/generated/models";
+import { useApis } from "@/src/shared/providers/ApiProvider";
 
 export const useMatchList = (
   status: MatchStatusEnum,
   poolIds?: number[],
   teamIds?: number[],
-  pageSize?: number
+  pageSize?: number,
 ) => {
-  const {mobile} = useApis();
+  const { mobile } = useApis();
 
   const poolsKey = useMemo(
-    () => (poolIds?.length ? [...poolIds].sort((a, b) => a - b).join(",") : "none"),
-    [poolIds]
+    () =>
+      poolIds?.length ? [...poolIds].sort((a, b) => a - b).join(",") : "none",
+    [poolIds],
   );
   const teamsKey = useMemo(
-    () => (teamIds?.length ? [...teamIds].sort((a, b) => a - b).join(",") : "none"),
-    [teamIds]
+    () =>
+      teamIds?.length ? [...teamIds].sort((a, b) => a - b).join(",") : "none",
+    [teamIds],
   );
 
   const queryKey = useMemo(
-    () => ["match-list", status, `p:${poolsKey}`, `t:${teamsKey}`, `size:${pageSize}`],
-    [status, poolsKey, teamsKey, pageSize]
+    () => [
+      "match-list",
+      status,
+      `p:${poolsKey}`,
+      `t:${teamsKey}`,
+      `size:${pageSize}`,
+    ],
+    [status, poolsKey, teamsKey, pageSize],
   );
 
   const query = useInfiniteQuery({
     queryKey,
-    queryFn: ({pageParam = 0}) =>
+    queryFn: ({ pageParam = 0 }) =>
       mobile.matches.getMatches({
         page: pageParam,
         size: pageSize,
@@ -38,7 +49,7 @@ export const useMatchList = (
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage?.nextPage ?? undefined,
     staleTime: 5 * 60 * 1000,
-    retry: false
+    retry: false,
   });
 
   const pages = query.data?.pages ?? [];

@@ -1,23 +1,28 @@
 import React from "react";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {RawDivisionMappingResponse} from "@/src/shared/generated/models";
+import { useAppTheme } from "@/src/shared/theme";
+import { RawDivisionMappingResponse } from "@/src/shared/generated/models";
 
 type RawDivisionMappingItemProps = {
   mapping: RawDivisionMappingResponse;
   onPress: () => void;
 };
 
-const RawDivisionMappingItem: React.FC<RawDivisionMappingItemProps> = ({mapping, onPress}) => {
+const RawDivisionMappingItem: React.FC<RawDivisionMappingItemProps> = ({
+  mapping,
+  onPress,
+}) => {
   const theme = useAppTheme();
 
   const hasDivision = Boolean(mapping.divisionId);
   const hasFormat = Boolean(mapping.format);
   const hasGender = Boolean(mapping.gender);
 
-  const filledCount = [hasDivision, hasFormat, hasGender].filter(Boolean).length;
+  const filledCount = [hasDivision, hasFormat, hasGender].filter(
+    Boolean,
+  ).length;
 
   let statusColor = theme.error;
   let statusLabel = "Non mappé";
@@ -39,16 +44,20 @@ const RawDivisionMappingItem: React.FC<RawDivisionMappingItemProps> = ({mapping,
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={0.85}
-      style={[styles.container, {backgroundColor: theme.surface}]}
+      style={[styles.container, { backgroundColor: theme.surface }]}
       accessibilityRole="button"
       accessibilityLabel={`Modifier ${mapping.rawDivisionName}`}
       testID={`raw-division-mapping-item-${mapping.id}`}
     >
       <View style={styles.leftContent}>
-        <Text style={[styles.label, {color: theme.text}]} numberOfLines={2} ellipsizeMode="tail">
+        <Text
+          style={[styles.label, { color: theme.text }]}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
           {mapping.rawDivisionName}
         </Text>
-        <Text style={[styles.subLabel, {color: theme.textInactive}]}>
+        <Text style={[styles.subLabel, { color: theme.textInactive }]}>
           {mapping.leagueCode} - {mapping.season}
         </Text>
       </View>
@@ -56,10 +65,12 @@ const RawDivisionMappingItem: React.FC<RawDivisionMappingItemProps> = ({mapping,
       <View
         style={[
           styles.statusWrapper,
-          {borderColor: statusColor, backgroundColor: statusColor + "10"},
+          { borderColor: statusColor, backgroundColor: statusColor + "10" },
         ]}
       >
-        <Text style={[styles.status, {color: statusColor}]}>{statusLabel}</Text>
+        <Text style={[styles.status, { color: statusColor }]}>
+          {statusLabel}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -76,14 +87,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  leftContent: {flex: 1, marginRight: 12},
-  label: {fontWeight: "700", fontSize: 16},
-  subLabel: {fontSize: 12, marginTop: 4},
+  leftContent: { flex: 1, marginRight: 12 },
+  label: { fontWeight: "700", fontSize: 16 },
+  subLabel: { fontSize: 12, marginTop: 4 },
   statusWrapper: {
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderWidth: 1,
     borderRadius: 16,
   },
-  status: {fontSize: 12, fontWeight: "700"},
+  status: { fontSize: 12, fontWeight: "700" },
 });

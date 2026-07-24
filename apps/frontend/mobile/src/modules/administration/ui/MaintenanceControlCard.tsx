@@ -1,9 +1,16 @@
-import React, {useMemo} from "react";
-import {ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View,} from "react-native";
-import {Image} from "expo-image";
+import React, { useMemo } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Image } from "expo-image";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {FormField} from "@/src/shared/ui/form/form-field";
+import { useAppTheme } from "@/src/shared/theme";
+import { FormField } from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 
 type Props = {
@@ -23,18 +30,18 @@ type Props = {
 const PREVIEW_SIZE = 72;
 
 const MaintenanceControlCard: React.FC<Props> = ({
-                                                   maintenanceEnabled,
-                                                   maintenanceMessage,
-                                                   maintenanceImageUrl,
-                                                   lastUpdate,
-                                                   loading,
-                                                   isDirty,
-                                                   saving,
-                                                   onChangeMessage,
-                                                   onChangeImageUrl,
-                                                   onSave,
-                                                   onDisable,
-                                                 }) => {
+  maintenanceEnabled,
+  maintenanceMessage,
+  maintenanceImageUrl,
+  lastUpdate,
+  loading,
+  isDirty,
+  saving,
+  onChangeMessage,
+  onChangeImageUrl,
+  onSave,
+  onDisable,
+}) => {
   const theme = useAppTheme();
 
   const trimmedMessage = useMemo(
@@ -78,7 +85,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
       : "L’application sera bloquée pour tous les utilisateurs.";
 
     Alert.alert(title, description, [
-      {text: "Annuler", style: "cancel"},
+      { text: "Annuler", style: "cancel" },
       {
         text: maintenanceEnabled ? "Mettre à jour" : "Activer",
         style: "destructive",
@@ -92,7 +99,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
       "Désactiver la maintenance ?",
       "L’application redeviendra accessible pour tous les utilisateurs.",
       [
-        {text: "Annuler", style: "cancel"},
+        { text: "Annuler", style: "cancel" },
         {
           text: "Désactiver",
           style: "destructive",
@@ -114,7 +121,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
     >
       <View style={styles.headerBlock}>
         <View style={styles.titleRow}>
-          <Text style={[styles.title, {color: theme.text}]}>
+          <Text style={[styles.title, { color: theme.text }]}>
             Mode maintenance
           </Text>
 
@@ -132,9 +139,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
               style={[
                 styles.statusPillText,
                 {
-                  color: maintenanceEnabled
-                    ? theme.background
-                    : theme.text,
+                  color: maintenanceEnabled ? theme.background : theme.text,
                 },
               ]}
             >
@@ -143,7 +148,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
           </View>
         </View>
 
-        <Text style={[styles.subtitle, {color: theme.textInactive}]}>
+        <Text style={[styles.subtitle, { color: theme.textInactive }]}>
           Bloque l’app pour tous les utilisateurs, sauf comptes autorisés.
         </Text>
       </View>
@@ -159,7 +164,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
           placeholder="Exemple : Nous effectuons une maintenance, l'app reviendra très vite 🚧"
           enableSuggestions
           multiline
-          style={{minHeight: 80, textAlignVertical: "top"}}
+          style={{ minHeight: 80, textAlignVertical: "top" }}
         />
       </FormField>
 
@@ -174,12 +179,8 @@ const MaintenanceControlCard: React.FC<Props> = ({
             onChangeText={onChangeImageUrl}
             placeholder="https://..."
             keyboardType="url"
-            style={
-              imageUrlError
-                ? {borderColor: theme.error}
-                : undefined
-            }
-            containerStyle={{flex: 1}}
+            style={imageUrlError ? { borderColor: theme.error } : undefined}
+            containerStyle={{ flex: 1 }}
           />
 
           <View
@@ -195,7 +196,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
           >
             {trimmedImageUrl && imageUrlLooksValid ? (
               <Image
-                source={{uri: trimmedImageUrl}}
+                source={{ uri: trimmedImageUrl }}
                 style={styles.previewImage}
                 contentFit="cover"
               />
@@ -203,7 +204,7 @@ const MaintenanceControlCard: React.FC<Props> = ({
               <Text
                 style={[
                   styles.previewPlaceholder,
-                  {color: theme.textInactive},
+                  { color: theme.textInactive },
                 ]}
               >
                 Aperçu
@@ -229,17 +230,14 @@ const MaintenanceControlCard: React.FC<Props> = ({
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel={mainButtonLabel}
-          accessibilityState={{disabled: !canSubmit, busy: saving}}
+          accessibilityState={{ disabled: !canSubmit, busy: saving }}
           testID="administration-save-maintenance-action"
         >
           {saving ? (
-            <ActivityIndicator size="small" color={theme.background}/>
+            <ActivityIndicator size="small" color={theme.background} />
           ) : (
             <Text
-              style={[
-                styles.primaryButtonText,
-                {color: theme.background},
-              ]}
+              style={[styles.primaryButtonText, { color: theme.background }]}
             >
               {mainButtonLabel}
             </Text>
@@ -261,15 +259,10 @@ const MaintenanceControlCard: React.FC<Props> = ({
             activeOpacity={0.85}
             accessibilityRole="button"
             accessibilityLabel={disableButtonLabel}
-            accessibilityState={{disabled: saving, busy: saving}}
+            accessibilityState={{ disabled: saving, busy: saving }}
             testID="administration-disable-maintenance-action"
           >
-            <Text
-              style={[
-                styles.secondaryButtonText,
-                {color: theme.text},
-              ]}
-            >
+            <Text style={[styles.secondaryButtonText, { color: theme.text }]}>
               {disableButtonLabel}
             </Text>
           </TouchableOpacity>
@@ -279,22 +272,18 @@ const MaintenanceControlCard: React.FC<Props> = ({
       <View style={styles.footerRow}>
         {!!lastUpdate && (
           <Text
-            style={[styles.lastUpdate, {color: theme.textInactive}]}
+            style={[styles.lastUpdate, { color: theme.textInactive }]}
             numberOfLines={1}
           >
-            Dernière mise à jour :{" "}
-            {new Date(lastUpdate).toLocaleString()}
+            Dernière mise à jour : {new Date(lastUpdate).toLocaleString()}
           </Text>
         )}
 
         {!!showMiniLoader && (
           <View style={styles.miniLoaderRow}>
-            <ActivityIndicator size="small" color={theme.textInactive}/>
+            <ActivityIndicator size="small" color={theme.textInactive} />
             <Text
-              style={[
-                styles.miniLoaderText,
-                {color: theme.textInactive},
-              ]}
+              style={[styles.miniLoaderText, { color: theme.textInactive }]}
             >
               Synchronisation…
             </Text>

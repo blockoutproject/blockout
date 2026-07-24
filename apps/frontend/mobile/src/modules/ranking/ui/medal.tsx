@@ -1,5 +1,10 @@
 import React from "react";
-import { StyleSheet, StyleSheet as RNStyleSheet, Text, View } from "react-native";
+import {
+  StyleSheet,
+  StyleSheet as RNStyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { withAlpha } from "@/src/shared/lib/utils";

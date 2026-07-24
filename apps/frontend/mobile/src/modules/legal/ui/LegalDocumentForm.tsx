@@ -1,18 +1,18 @@
-import React, {useEffect, useMemo, useState} from "react";
-import {StyleSheet} from "react-native";
-import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
-import {useFormik} from "formik";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet } from "react-native";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/theme";
-import type {LegalDocumentResponse} from "@/src/shared/generated/models";
+import { useAppTheme } from "@/src/shared/theme";
+import type { LegalDocumentResponse } from "@/src/shared/generated/models";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";
-import {FormField} from "@/src/shared/ui/form/form-field";
+import { FormField } from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
-import {useApis} from "@/src/shared/providers/ApiProvider";
+import { useApis } from "@/src/shared/providers/ApiProvider";
 
 export type LegalDocumentFormState = {
   loading: boolean;
@@ -27,13 +27,13 @@ export type LegalDocumentFormProps = {
 };
 
 const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
-                                                               document,
-                                                               onSuccess,
-                                                               onRegisterSubmit,
-                                                               onStateChange,
-                                                             }) => {
+  document,
+  onSuccess,
+  onRegisterSubmit,
+  onStateChange,
+}) => {
   const theme = useAppTheme();
-  const {mobile} = useApis();
+  const { mobile } = useApis();
 
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -55,7 +55,9 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
         setLoading(true);
         setApiError(null);
         await mobile.config.updateLegalDocument(document.type, values);
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
         onSuccess();
       } catch {
         setApiError("Erreur lors de la sauvegarde.");
@@ -70,10 +72,13 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
     onRegisterSubmit(formik.submitForm);
   }, [formik.submitForm, onRegisterSubmit]);
 
-  const canSubmit = useMemo(() => formik.isValid && !loading, [formik.isValid, loading]);
+  const canSubmit = useMemo(
+    () => formik.isValid && !loading,
+    [formik.isValid, loading],
+  );
 
   useEffect(() => {
-    onStateChange?.({loading, canSubmit});
+    onStateChange?.({ loading, canSubmit });
   }, [loading, canSubmit, onStateChange]);
 
   return (
@@ -84,31 +89,51 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
         testID="legal-document-form"
       >
         <FormCard>
-          <FormField label="Titre" error={formik.errors.title} touched={formik.touched.title}>
+          <FormField
+            label="Titre"
+            error={formik.errors.title}
+            touched={formik.touched.title}
+          >
             <SheetTextInput
               value={formik.values.title}
               onChangeText={formik.handleChange("title")}
               onBlur={formik.handleBlur("title")}
               placeholder="Titre"
-              style={formik.touched.title && formik.errors.title ? {borderColor: theme.error} : undefined}
+              style={
+                formik.touched.title && formik.errors.title
+                  ? { borderColor: theme.error }
+                  : undefined
+              }
             />
           </FormField>
         </FormCard>
 
         <FormCard>
-          <FormField label="Version" error={formik.errors.version} touched={formik.touched.version}>
+          <FormField
+            label="Version"
+            error={formik.errors.version}
+            touched={formik.touched.version}
+          >
             <SheetTextInput
               value={formik.values.version}
               onChangeText={formik.handleChange("version")}
               onBlur={formik.handleBlur("version")}
               placeholder="2025-08-08"
-              style={formik.touched.version && formik.errors.version ? {borderColor: theme.error} : undefined}
+              style={
+                formik.touched.version && formik.errors.version
+                  ? { borderColor: theme.error }
+                  : undefined
+              }
             />
           </FormField>
         </FormCard>
 
         <FormCard>
-          <FormField label="Contenu (Markdown)" error={formik.errors.content} touched={formik.touched.content}>
+          <FormField
+            label="Contenu (Markdown)"
+            error={formik.errors.content}
+            touched={formik.touched.content}
+          >
             <SheetTextInput
               multiline
               scrollEnabled
@@ -117,15 +142,17 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
               onBlur={formik.handleBlur("content")}
               placeholder="Contenu du document légal..."
               style={[
-                {maxHeight: 300, textAlignVertical: "top", minHeight: 180},
-                formik.touched.content && formik.errors.content ? {borderColor: theme.error} : undefined,
+                { maxHeight: 300, textAlignVertical: "top", minHeight: 180 },
+                formik.touched.content && formik.errors.content
+                  ? { borderColor: theme.error }
+                  : undefined,
               ]}
             />
           </FormField>
         </FormCard>
       </BottomSheetScrollView>
 
-      <ApiErrorToast message={apiError} onHidden={() => setApiError(null)}/>
+      <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
     </>
   );
 };
@@ -133,5 +160,5 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
 export default LegalDocumentForm;
 
 const styles = StyleSheet.create({
-  content: {padding: 8, paddingBottom: 100, gap: 12},
+  content: { padding: 8, paddingBottom: 100, gap: 12 },
 });

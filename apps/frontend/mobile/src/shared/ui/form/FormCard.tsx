@@ -1,19 +1,25 @@
 import React from "react";
-import {StyleSheet, Text, View, ViewProps} from "react-native";
-import {useAppTheme} from "@/src/shared/theme";
+import { StyleSheet, Text, View, ViewProps } from "react-native";
+import { useAppTheme } from "@/src/shared/theme";
 
 type FormCardProps = ViewProps & {
   title?: string;
   titleUppercase?: boolean;
 };
 
-const FormCard: React.FC<FormCardProps> = ({title, titleUppercase = true, style, children, ...rest}) => {
+const FormCard: React.FC<FormCardProps> = ({
+  title,
+  titleUppercase = true,
+  style,
+  children,
+  ...rest
+}) => {
   const theme = useAppTheme();
   return (
     <View
       style={[
         styles.card,
-        {backgroundColor: theme.surface, shadowColor: "#000"},
+        { backgroundColor: theme.surface, shadowColor: "#000" },
         style,
       ]}
       {...rest}
@@ -22,8 +28,8 @@ const FormCard: React.FC<FormCardProps> = ({title, titleUppercase = true, style,
         <Text
           style={[
             styles.sectionTitle,
-            {color: theme.text},
-            titleUppercase && {textTransform: "uppercase"},
+            { color: theme.text },
+            titleUppercase && { textTransform: "uppercase" },
           ]}
         >
           {title}
@@ -44,7 +50,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     shadowOpacity: 0.08,
     shadowRadius: 10,
-    shadowOffset: {width: 0, height: 6},
+    shadowOffset: { width: 0, height: 6 },
   },
   sectionTitle: {
     fontSize: 13,

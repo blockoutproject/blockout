@@ -1,5 +1,5 @@
-import {Platform} from "react-native";
-import {TestIds} from "react-native-google-mobile-ads";
+import { Platform } from "react-native";
+import { TestIds } from "react-native-google-mobile-ads";
 
 const PROD = {
   BANNER_HOME:
@@ -25,9 +25,9 @@ const PROD = {
 
 export const ADS = __DEV__
   ? {
-    BANNER_HOME: TestIds.BANNER,
-    BANNER_MATCH: TestIds.BANNER,
-    INTERSTITIAL_NAV: TestIds.INTERSTITIAL,
-    INTERSTITIAL_WEB: TestIds.INTERSTITIAL,
-  }
+      BANNER_HOME: TestIds.BANNER,
+      BANNER_MATCH: TestIds.BANNER,
+      INTERSTITIAL_NAV: TestIds.INTERSTITIAL,
+      INTERSTITIAL_WEB: TestIds.INTERSTITIAL,
+    }
   : PROD;

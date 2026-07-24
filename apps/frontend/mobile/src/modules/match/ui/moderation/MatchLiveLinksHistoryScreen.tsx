@@ -1,13 +1,23 @@
-import React, {useCallback, useMemo, useState} from "react";
-import {ActivityIndicator, Keyboard, RefreshControl, StyleSheet, Text, View,} from "react-native";
-import {FlashList} from "@shopify/flash-list";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Keyboard,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {useApis} from "@/src/shared/providers/ApiProvider";
-import {MatchLiveSummaryResponse, MatchLiveLinkHistoryResponse,} from "@/src/shared/generated/models";
-import {useMatchLiveLinksHistory} from "@/src/modules/match/hooks/useMatchLiveLinksHistory";
+import { useAppTheme } from "@/src/shared/theme";
+import { useApis } from "@/src/shared/providers/ApiProvider";
+import {
+  MatchLiveSummaryResponse,
+  MatchLiveLinkHistoryResponse,
+} from "@/src/shared/generated/models";
+import { useMatchLiveLinksHistory } from "@/src/modules/match/hooks/useMatchLiveLinksHistory";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import MatchLiveLinksHistoryItem from "@/src/modules/match/ui/moderation/MatchLiveLinksHistoryItem";
 
@@ -17,19 +27,15 @@ type MatchLiveLinksHistoryScreenProps = {
 
 const MatchLiveLinksHistoryScreen: React.FC<
   MatchLiveLinksHistoryScreenProps
-> = ({match}) => {
+> = ({ match }) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const {mobile} = useApis();
+  const { mobile } = useApis();
 
   const [apiError, setApiError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const {
-    data,
-    isLoading,
-    refetch,
-  } = useMatchLiveLinksHistory(match.id);
+  const { data, isLoading, refetch } = useMatchLiveLinksHistory(match.id);
 
   const links = useMemo<MatchLiveLinkHistoryResponse[]>(
     () => data ?? [],
@@ -38,13 +44,11 @@ const MatchLiveLinksHistoryScreen: React.FC<
 
   const sortedLinks = useMemo(
     () =>
-      links
-        .slice()
-        .sort((a, b) => {
-          const dateA = new Date(a.createdAt ?? 0).getTime();
-          const dateB = new Date(b.createdAt ?? 0).getTime();
-          return dateB - dateA;
-        }),
+      links.slice().sort((a, b) => {
+        const dateA = new Date(a.createdAt ?? 0).getTime();
+        const dateB = new Date(b.createdAt ?? 0).getTime();
+        return dateB - dateA;
+      }),
     [links],
   );
 
@@ -69,14 +73,12 @@ const MatchLiveLinksHistoryScreen: React.FC<
         await refetch();
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
-        ).catch(() => {
-        });
+        ).catch(() => {});
       } catch {
         setApiError(errorMessage);
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Error,
-        ).catch(() => {
-        });
+        ).catch(() => {});
       }
     },
     [refetch],
@@ -125,18 +127,10 @@ const MatchLiveLinksHistoryScreen: React.FC<
   if (isLoading && !data) {
     return (
       <>
-        <View
-          style={[
-            styles.center,
-            {backgroundColor: theme.background},
-          ]}
-        >
-          <ActivityIndicator size="large" color={theme.text}/>
+        <View style={[styles.center, { backgroundColor: theme.background }]}>
+          <ActivityIndicator size="large" color={theme.text} />
         </View>
-        <ApiErrorToast
-          message={apiError}
-          onHidden={() => setApiError(null)}
-        />
+        <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
       </>
     );
   }
@@ -144,21 +138,15 @@ const MatchLiveLinksHistoryScreen: React.FC<
   return (
     <>
       <View
-        style={[styles.container, {backgroundColor: theme.background}]}
+        style={[styles.container, { backgroundColor: theme.background }]}
         testID="match-live-history-screen"
       >
         <View style={styles.header}>
-          <Text
-            style={[styles.title, {color: theme.text}]}
-            numberOfLines={1}
-          >
+          <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
             {headerTitle}
           </Text>
           <Text
-            style={[
-              styles.subtitle,
-              {color: theme.textInactive},
-            ]}
+            style={[styles.subtitle, { color: theme.textInactive }]}
             numberOfLines={2}
           >
             Historique des liens live / rediffusion pour ce match.
@@ -173,7 +161,7 @@ const MatchLiveLinksHistoryScreen: React.FC<
             paddingBottom: insets.bottom + 16,
             paddingTop: 8,
           }}
-          renderItem={({item}) => (
+          renderItem={({ item }) => (
             <MatchLiveLinksHistoryItem
               link={item}
               onApprove={handleApprove}
@@ -191,7 +179,7 @@ const MatchLiveLinksHistoryScreen: React.FC<
           }
           ListEmptyComponent={
             <View style={styles.emptyState} testID="match-live-history-empty">
-              <Text style={{color: theme.textInactive}}>
+              <Text style={{ color: theme.textInactive }}>
                 Aucun lien trouvé pour ce match.
               </Text>
             </View>

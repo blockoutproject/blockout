@@ -6,12 +6,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {gradients, layout, useAppTheme} from "@/src/shared/theme";
+import { gradients, layout, useAppTheme } from "@/src/shared/theme";
 import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import { withAlpha } from "@/src/shared/lib/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
-import {Action} from "@/src/shared/ui/action";
+import { Action } from "@/src/shared/ui/action";
 
 type Props = {
   subtitle?: string;
@@ -62,7 +62,10 @@ const ProUpsellTab: React.FC<Props> = ({
         {
           marginTop: layout.tabs + 8,
           paddingBottom:
-            insets.bottom + layout.bottomNavigation + layout.sectionSeparator + 4,
+            insets.bottom +
+            layout.bottomNavigation +
+            layout.sectionSeparator +
+            4,
           backgroundColor: theme.background,
         },
       ]}

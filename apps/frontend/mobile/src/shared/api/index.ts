@@ -1,6 +1,6 @@
-import {ApiError} from "@/src/shared/api/ApiError";
-import {MobileGatewayApi} from "@/src/shared/api/MobileGatewayApi";
-import type {TokenSupplier} from "@/src/shared/api/orvalFetch";
+import { ApiError } from "@/src/shared/api/ApiError";
+import { MobileGatewayApi } from "@/src/shared/api/MobileGatewayApi";
+import type { TokenSupplier } from "@/src/shared/api/orvalFetch";
 
 export type ApiClients = {
   mobile: MobileGatewayApi;
@@ -17,7 +17,9 @@ export function createApis(): ApiClients {
 export function setAuthOnApis(
   apis: ApiClients,
   tokenSupplier?: TokenSupplier,
-  onUnauthorized?: (e: ApiError) => void | Promise<void>
+  onUnauthorized?: (e: ApiError) => void | Promise<void>,
 ) {
-  Object.values(apis).forEach((svc) => svc.setAuthContext(tokenSupplier, onUnauthorized));
+  Object.values(apis).forEach((svc) =>
+    svc.setAuthContext(tokenSupplier, onUnauthorized),
+  );
 }

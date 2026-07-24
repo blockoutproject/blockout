@@ -1,16 +1,23 @@
 import React from "react";
-import {Animated, Platform, StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
-import {layout, useAppTheme} from "@/src/shared/theme";
+import {
+  Animated,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { layout, useAppTheme } from "@/src/shared/theme";
 
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {useRouter} from "expo-router";
-import {BlurView} from "expo-blur";
-import {LinearGradient} from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import {GradientPill} from "@/src/shared/ui/pill";
-import {withAlpha} from "@/src/shared/lib/utils";
+import { GradientPill } from "@/src/shared/ui/pill";
+import { withAlpha } from "@/src/shared/lib/utils";
 import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
 
@@ -44,7 +51,12 @@ export type MatchHeaderProps = {
 const LOGO_SIZE = 28;
 const LOGO_RADIUS = 8;
 
-const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerContent, headerGradient}) => {
+const MatchHeader: React.FC<MatchHeaderProps> = ({
+  onOpenReport,
+  scrollY,
+  headerContent,
+  headerGradient,
+}) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -56,7 +68,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
 
   const handleOpenFfvbCalendar = async () => {
     try {
-      const {season, leagueCode, poolCode} = headerContent;
+      const { season, leagueCode, poolCode } = headerContent;
 
       if (!season || !leagueCode || !poolCode) {
         return;
@@ -129,11 +141,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
       pointerEvents="none"
     >
       {Platform.OS === "ios" ? (
-        <BlurView
-          intensity={50}
-          tint="dark"
-          style={StyleSheet.absoluteFill}
-        />
+        <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
       ) : (
         <>
           <View
@@ -146,16 +154,16 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
           />
           <LinearGradient
             colors={[androidTint, "transparent"]}
-            start={{x: 0, y: 0.35}}
-            end={{x: 0, y: 1}}
+            start={{ x: 0, y: 0.35 }}
+            end={{ x: 0, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
         </>
       )}
       <LinearGradient
         colors={[theme.background, "transparent"]}
-        start={{x: 0, y: 0.35}}
-        end={{x: 0, y: 1}}
+        start={{ x: 0, y: 0.35 }}
+        end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
     </Animated.View>
@@ -171,7 +179,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
           styles.centerWrap,
           {
             opacity: contentOpacity,
-            transform: [{scale: centerScale}],
+            transform: [{ scale: centerScale }],
             zIndex: 2,
           },
         ]}
@@ -179,7 +187,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
         <Animated.View
           style={[
             {
-              transform: [{translateX: leftTranslateX}],
+              transform: [{ translateX: leftTranslateX }],
             },
           ]}
         >
@@ -190,9 +198,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
           />
         </Animated.View>
 
-        <View
-          style={styles.centerBlock}
-        >
+        <View style={styles.centerBlock}>
           {headerContent.scoreText ? (
             <GradientBorderView
               gradient={headerGradient}
@@ -227,7 +233,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
         <Animated.View
           style={[
             {
-              transform: [{translateX: rightTranslateX}],
+              transform: [{ translateX: rightTranslateX }],
             },
           ]}
         >
@@ -250,8 +256,8 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({onOpenReport, scrollY, headerC
         },
         Platform.OS === "android"
           ? {
-            elevation: containerElevation,
-          }
+              elevation: containerElevation,
+            }
           : null,
       ]}
       collapsable={false}

@@ -1,10 +1,7 @@
 {
   "SIX": {
     "Élite Avenir": {
-      "M": [
-        "EAM",
-        "Barrages"
-      ]
+      "M": ["EAM", "Barrages"]
     },
     "Élite": {
       "M": [
@@ -21,20 +18,12 @@
       ]
     },
     "Nationale 2": {
-      "M": [
-        "N2 Masc."
-      ],
-      "F": [
-        "N2 Fém."
-      ]
+      "M": ["N2 Masc."],
+      "F": ["N2 Fém."]
     },
     "Nationale 3": {
-      "M": [
-        "N3 Masc."
-      ],
-      "F": [
-        "N3 Fém."
-      ]
+      "M": ["N3 Masc."],
+      "F": ["N3 Fém."]
     },
     "Pré-nationale": {
       "F": [
@@ -122,9 +111,7 @@
         "REGIONAL MASCULINS POULE E",
         "PH 2 POULE DU MILIEU R1M 2024 2025"
       ],
-      "O": [
-        "REGIONAL MIXTE"
-      ]
+      "O": ["REGIONAL MIXTE"]
     },
     "M21": {
       "F": [
@@ -183,9 +170,7 @@
         "CHAMPIONNAT REGIONAL M18 MASCULIN",
         "TOURNOI INTERDEPARTEMENTAL M18 MASCULINS"
       ],
-      "O": [
-        "M18 - ELITE"
-      ]
+      "O": ["M18 - ELITE"]
     },
     "M15": {
       "F": [
@@ -219,9 +204,7 @@
         "INTERDEPARTEMENTAUX MASCULINS",
         "CHAMPIONNAT REGIONAL M15 MASCULIN"
       ],
-      "O": [
-        "M15 - ELITE"
-      ]
+      "O": ["M15 - ELITE"]
     },
     "M13": {
       "F": [
@@ -250,15 +233,10 @@
         "INTERDEPARTEMENTAUX MASCULINS",
         "SELECTIONS DEPARTEMENTALES M13 MASCULINS"
       ],
-      "O": [
-        "M13 - ELITE"
-      ]
+      "O": ["M13 - ELITE"]
     },
     "M11": {
-      "O": [
-        "M11 - ELITE",
-        "RÉGIONAL M11"
-      ]
+      "O": ["M11 - ELITE", "RÉGIONAL M11"]
     },
     "Autre": {
       "O": [
@@ -280,9 +258,7 @@
         "M18 MASCULINS 4X4 HDF NORD 1ERE PHASE",
         "M18 MASCULINS 4X4 HDF NORD 2 EME PHASE"
       ],
-      "O": [
-        "REGIONAL M13/M15 4X4"
-      ]
+      "O": ["REGIONAL M13/M15 4X4"]
     }
   }
 }

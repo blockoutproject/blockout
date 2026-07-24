@@ -18,6 +18,8 @@ the current task. Detailed rules live in the references rather than in this entr
 - State assumptions before relying on an ambiguous product, model, or architecture decision.
 - Validate proportionally to risk: narrow checks while developing, impacted application checks before completion, and
   the complete local baseline when a shared boundary changes.
+- Before completing a code or configuration change, run `npm run format`, then the relevant validation, and finish with
+  `npm run format:check`. Prettier, Spotless, and Ruff are the repository formatting authorities.
 - Report checks that were intentionally skipped and why.
 
 ## Source Router
@@ -98,6 +100,7 @@ These are explicit temporary rules. Only a later user-authorized roadmap task ma
 ## Common Verification
 
 ```bash
+npm run format
 npm exec nx show projects
 npm exec nx run @blockout/mobile:typecheck
 npm exec nx run @blockout/club-scraper:syntax-check
@@ -105,6 +108,7 @@ npm exec nx run @blockout/club-scraper:test
 npm exec nx run @blockout/competition-scraper:syntax-check
 npm exec nx run @blockout/competition-scraper:test
 mvn -f apps/backend/pom.xml test
+npm run format:check
 git diff --check
 ```
 

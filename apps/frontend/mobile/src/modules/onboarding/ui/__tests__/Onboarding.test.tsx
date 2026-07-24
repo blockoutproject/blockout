@@ -85,10 +85,7 @@ describe("Onboarding", () => {
     const onComplete = jest.fn();
     const user = userEvent.setup();
     const screen = await renderOnboarding(
-      <Onboarding
-        steps={[createStep("welcome")]}
-        onComplete={onComplete}
-      />,
+      <Onboarding steps={[createStep("welcome")]} onComplete={onComplete} />,
     );
 
     const action = screen.getByRole("button", { name: "C’est parti !" });

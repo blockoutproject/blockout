@@ -1,11 +1,20 @@
-import React, {useCallback, useMemo, useRef} from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import * as Haptics from "expo-haptics";
-import {StyleProp, StyleSheet, Text, TouchableOpacity, ViewStyle,} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {
+  StyleProp,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ViewStyle,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {radius, useAppTheme} from "@/src/shared/theme";
+import { radius, useAppTheme } from "@/src/shared/theme";
 
-import SelectSheet, {SelectOption, SelectSheetRef,} from "@/src/shared/ui/form/SelectSheet";
+import SelectSheet, {
+  SelectOption,
+  SelectSheetRef,
+} from "@/src/shared/ui/form/SelectSheet";
 
 export type DivisionSelectProps = {
   options: SelectOption[];
@@ -22,16 +31,16 @@ export type DivisionSelectProps = {
 };
 
 const DivisionSelect: React.FC<DivisionSelectProps> = ({
-                                                         options,
-                                                         selectedValue,
-                                                         onSelect,
-                                                         title = "Choisir une division",
-                                                         placeholderLabel = "Division",
-                                                         testIDButton,
-                                                         style,
-                                                         disabled = false,
-                                                         clearable = true,
-                                                       }) => {
+  options,
+  selectedValue,
+  onSelect,
+  title = "Choisir une division",
+  placeholderLabel = "Division",
+  testIDButton,
+  style,
+  disabled = false,
+  clearable = true,
+}) => {
   const theme = useAppTheme();
   const sheetRef = useRef<SelectSheetRef>(null);
 
@@ -83,7 +92,7 @@ const DivisionSelect: React.FC<DivisionSelectProps> = ({
         />
 
         <Text
-          style={[styles.divisionText, {color: theme.text}]}
+          style={[styles.divisionText, { color: theme.text }]}
           numberOfLines={1}
         >
           {label}

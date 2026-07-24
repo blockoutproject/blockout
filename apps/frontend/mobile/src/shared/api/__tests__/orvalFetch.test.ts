@@ -2,7 +2,7 @@ import {
   orvalFetch,
   setMobileGatewayAuthContext,
 } from "@/src/shared/api/orvalFetch";
-import {getTeamsByIds} from "@/src/shared/generated/endpoints/team-public";
+import { getTeamsByIds } from "@/src/shared/generated/endpoints/team-public";
 
 const mockFetch = jest.fn();
 
@@ -21,7 +21,7 @@ function response(status: number, body?: unknown, headers?: HeadersInit) {
     status,
     ok: status >= 200 && status < 300,
     headers: new Headers({
-      ...(body === undefined ? {} : {"content-type": "application/json"}),
+      ...(body === undefined ? {} : { "content-type": "application/json" }),
       ...headers,
     }),
     json: jest.fn().mockResolvedValue(body),
@@ -37,11 +37,11 @@ describe("generated mobile-gateway fetch boundary", () => {
   });
 
   it("resolves public contract paths without an authorization header", async () => {
-    mockFetch.mockResolvedValue(response(200, [{id: 1}, {id: 2}]));
+    mockFetch.mockResolvedValue(response(200, [{ id: 1 }, { id: 2 }]));
 
-    await expect(getTeamsByIds({ids: [1, 2]})).resolves.toEqual([
-      {id: 1},
-      {id: 2},
+    await expect(getTeamsByIds({ ids: [1, 2] })).resolves.toEqual([
+      { id: 1 },
+      { id: 2 },
     ]);
 
     const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
@@ -76,8 +76,8 @@ describe("generated mobile-gateway fetch boundary", () => {
     mockFetch.mockResolvedValue(
       response(
         401,
-        {code: "AUTHENTICATION_REQUIRED", detail: "Authentication required"},
-        {"x-request-id": "request-123"},
+        { code: "AUTHENTICATION_REQUIRED", detail: "Authentication required" },
+        { "x-request-id": "request-123" },
       ),
     );
 

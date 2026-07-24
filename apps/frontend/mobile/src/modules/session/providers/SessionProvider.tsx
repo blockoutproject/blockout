@@ -22,7 +22,10 @@ import { useAppStatus } from "@/src/modules/app-status/hooks/useAppStatus";
 import { useRegisterPushToken } from "@/src/modules/notifications/hooks/useRegisterPushToken";
 import { useEnsureUser } from "@/src/modules/user/hooks/useEnsureUser";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
-import { computeIsUpdateRequired, getStoreUrl } from "@/src/modules/app-status/model/appVersion";
+import {
+  computeIsUpdateRequired,
+  getStoreUrl,
+} from "@/src/modules/app-status/model/appVersion";
 import { useGuestSessionStore } from "@/src/modules/session/model/guestSessionStore";
 import { registerForPushNotificationsAsync } from "@/src/modules/notifications/push";
 import { useOnboardingStore } from "@/src/modules/onboarding/model/onboardingStore";

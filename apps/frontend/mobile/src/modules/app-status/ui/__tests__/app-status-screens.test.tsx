@@ -1,7 +1,7 @@
 import React from "react";
-import {Linking} from "react-native";
-import {render, userEvent} from "@testing-library/react-native";
-import {SafeAreaProvider} from "react-native-safe-area-context";
+import { Linking } from "react-native";
+import { render, userEvent } from "@testing-library/react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import MaintenanceScreen from "@/src/modules/app-status/ui/maintenance-screen";
 import UpdateRequiredScreen from "@/src/modules/app-status/ui/update-required-screen";
@@ -10,10 +10,10 @@ import {
   SessionContextProvider,
   SessionState,
 } from "@/src/modules/session/providers/SessionContext";
-import {ThemeProvider} from "@/src/shared/theme";
+import { ThemeProvider } from "@/src/shared/theme";
 
 jest.mock("expo-haptics", () => ({
-  ImpactFeedbackStyle: {Medium: "medium"},
+  ImpactFeedbackStyle: { Medium: "medium" },
   selectionAsync: jest.fn().mockResolvedValue(undefined),
   impactAsync: jest.fn().mockResolvedValue(undefined),
 }));
@@ -27,12 +27,12 @@ jest.mock("react-native-reanimated", () => {
       createAnimatedComponent: (Component: React.ComponentType) => Component,
     },
     useAnimatedStyle: (factory: () => object) => factory(),
-    useSharedValue: (value: unknown) => ReactModule.useRef({value}).current,
+    useSharedValue: (value: unknown) => ReactModule.useRef({ value }).current,
     withSpring: (value: unknown) => value,
   };
 });
 
-jest.mock("expo-image", () => ({Image: "Image"}));
+jest.mock("expo-image", () => ({ Image: "Image" }));
 
 const createActions = (): SessionActions => ({
   signIn: jest.fn().mockResolvedValue(undefined),
@@ -82,12 +82,15 @@ const sessionState: SessionState = {
   isBootstrapped: true,
 };
 
-const renderScreen = async (children: React.ReactNode, actions: SessionActions) =>
+const renderScreen = async (
+  children: React.ReactNode,
+  actions: SessionActions,
+) =>
   render(
     <SafeAreaProvider
       initialMetrics={{
-        frame: {x: 0, y: 0, width: 390, height: 844},
-        insets: {top: 0, right: 0, bottom: 0, left: 0},
+        frame: { x: 0, y: 0, width: 390, height: 844 },
+        insets: { top: 0, right: 0, bottom: 0, left: 0 },
       }}
     >
       <ThemeProvider>
@@ -109,8 +112,10 @@ describe("application status screens", () => {
     const screen = await renderScreen(<MaintenanceScreen />, actions);
 
     expect(screen.getByTestId("maintenance-screen")).toBeTruthy();
-    await user.press(screen.getByRole("button", {name: "Réessayer"}));
-    await user.press(screen.getByRole("button", {name: "Accéder à l’application"}));
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await user.press(
+      screen.getByRole("button", { name: "Accéder à l’application" }),
+    );
 
     expect(actions.refetchAppStatus).toHaveBeenCalledTimes(1);
     expect(actions.bypassMaintenance).toHaveBeenCalledTimes(1);
@@ -118,16 +123,24 @@ describe("application status screens", () => {
 
   it("opens the configured store and exposes the authorized update bypass", async () => {
     const actions = createActions();
-    const canOpenUrl = jest.spyOn(Linking, "canOpenURL").mockResolvedValue(true);
+    const canOpenUrl = jest
+      .spyOn(Linking, "canOpenURL")
+      .mockResolvedValue(true);
     const openUrl = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     const user = userEvent.setup();
     const screen = await renderScreen(<UpdateRequiredScreen />, actions);
 
     expect(screen.getByTestId("update-required-screen")).toBeTruthy();
-    await user.press(screen.getByRole("button", {name: "Mettre à jour l’application"}));
-    await user.press(screen.getByRole("button", {name: "Accéder à l’application"}));
+    await user.press(
+      screen.getByRole("button", { name: "Mettre à jour l’application" }),
+    );
+    await user.press(
+      screen.getByRole("button", { name: "Accéder à l’application" }),
+    );
 
-    expect(canOpenUrl).toHaveBeenCalledWith("https://apps.apple.com/app/blockout");
+    expect(canOpenUrl).toHaveBeenCalledWith(
+      "https://apps.apple.com/app/blockout",
+    );
     expect(openUrl).toHaveBeenCalledWith("https://apps.apple.com/app/blockout");
     expect(actions.bypassUpdate).toHaveBeenCalledTimes(1);
   });

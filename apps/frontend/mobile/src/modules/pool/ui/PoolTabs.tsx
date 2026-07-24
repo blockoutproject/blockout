@@ -8,7 +8,7 @@ import ProUpsellTab from "@/src/modules/subscription/ui/ProUpsellTab";
 
 import { MatchStatusEnum } from "@/src/shared/generated/models";
 import type { PoolResponse } from "@/src/shared/generated/models";
-import {layout} from "@/src/shared/theme";
+import { layout } from "@/src/shared/theme";
 import PoolMapTab from "./PoolMapTab";
 import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 

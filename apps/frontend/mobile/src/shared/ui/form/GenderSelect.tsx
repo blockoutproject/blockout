@@ -1,12 +1,21 @@
-import React, {useCallback, useMemo, useRef} from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import * as Haptics from "expo-haptics";
-import {StyleProp, StyleSheet, Text, TouchableOpacity, ViewStyle,} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {
+  StyleProp,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ViewStyle,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {radius, useAppTheme} from "@/src/shared/theme";
+import { radius, useAppTheme } from "@/src/shared/theme";
 
-import SelectSheet, {SelectOption, SelectSheetRef,} from "@/src/shared/ui/form/SelectSheet";
-import {GenderEnum, GenderLabels} from "@/src/shared/model/genderLabels";
+import SelectSheet, {
+  SelectOption,
+  SelectSheetRef,
+} from "@/src/shared/ui/form/SelectSheet";
+import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
 
 export type GenderSelectProps = {
   selectedValue?: GenderEnum | null;
@@ -22,23 +31,23 @@ export type GenderSelectProps = {
 };
 
 const GenderSelect: React.FC<GenderSelectProps> = ({
-                                                     selectedValue,
-                                                     onSelect,
-                                                     title = "Choisir un genre",
-                                                     placeholderLabel = "Genre",
-                                                     testIDButton,
-                                                     style,
-                                                     disabled = false,
-                                                     clearable = true,
-                                                   }) => {
+  selectedValue,
+  onSelect,
+  title = "Choisir un genre",
+  placeholderLabel = "Genre",
+  testIDButton,
+  style,
+  disabled = false,
+  clearable = true,
+}) => {
   const theme = useAppTheme();
   const sheetRef = useRef<SelectSheetRef>(null);
 
   const options: SelectOption[] = useMemo(
     () => [
-      {value: GenderEnum.M, label: GenderLabels[GenderEnum.M]},
-      {value: GenderEnum.F, label: GenderLabels[GenderEnum.F]},
-      {value: GenderEnum.O, label: GenderLabels[GenderEnum.O]},
+      { value: GenderEnum.M, label: GenderLabels[GenderEnum.M] },
+      { value: GenderEnum.F, label: GenderLabels[GenderEnum.F] },
+      { value: GenderEnum.O, label: GenderLabels[GenderEnum.O] },
     ],
     [],
   );
@@ -90,7 +99,7 @@ const GenderSelect: React.FC<GenderSelectProps> = ({
         />
 
         <Text
-          style={[styles.genderText, {color: theme.text}]}
+          style={[styles.genderText, { color: theme.text }]}
           numberOfLines={1}
         >
           {label}

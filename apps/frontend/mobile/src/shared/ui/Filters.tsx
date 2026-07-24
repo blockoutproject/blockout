@@ -1,9 +1,16 @@
-import React, {useCallback} from "react";
-import {FlatList, ListRenderItem, StyleProp, StyleSheet, View, ViewStyle,} from "react-native";
+import React, { useCallback } from "react";
+import {
+  FlatList,
+  ListRenderItem,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from "react-native";
 import * as Haptics from "expo-haptics";
-import {Filter} from "@/src/shared/model/Filter";
-import {useAppTheme} from "@/src/shared/theme";
-import {GradientPill} from "@/src/shared/ui/pill";
+import { Filter } from "@/src/shared/model/Filter";
+import { useAppTheme } from "@/src/shared/theme";
+import { GradientPill } from "@/src/shared/ui/pill";
 
 export type FiltersProps = {
   /** Tableau des filtres */
@@ -28,55 +35,72 @@ export type FiltersProps = {
 };
 
 const Filters: React.FC<FiltersProps> = ({
-                                           filters,
-                                           setFilters,
-                                           singleSelect = false,
-                                           requireSelection = false,
-                                           style,
-                                           containerStyle,
-                                           scrollable = true,
-                                           activeGradient,
-                                           inactiveGradient,
-                                           borderWidth = 1.5,
-                                         }) => {
+  filters,
+  setFilters,
+  singleSelect = false,
+  requireSelection = false,
+  style,
+  containerStyle,
+  scrollable = true,
+  activeGradient,
+  inactiveGradient,
+  borderWidth = 1.5,
+}) => {
   const theme = useAppTheme();
 
-  const toggleFilter = useCallback(async (index: number) => {
-    const updated = [...filters];
+  const toggleFilter = useCallback(
+    async (index: number) => {
+      const updated = [...filters];
 
-    if (singleSelect) {
-      const alreadyActive = updated[index].isActive;
-      const isLastActive = updated.filter((f) => f.isActive).length === 1 && alreadyActive;
-      if (requireSelection && isLastActive) return;
-      updated.forEach((f) => (f.isActive = false));
-      if (!alreadyActive) updated[index].isActive = true;
-    } else {
-      updated[index].isActive = !updated[index].isActive;
-    }
+      if (singleSelect) {
+        const alreadyActive = updated[index].isActive;
+        const isLastActive =
+          updated.filter((f) => f.isActive).length === 1 && alreadyActive;
+        if (requireSelection && isLastActive) return;
+        updated.forEach((f) => (f.isActive = false));
+        if (!alreadyActive) updated[index].isActive = true;
+      } else {
+        updated[index].isActive = !updated[index].isActive;
+      }
 
-    setFilters(updated);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [filters, requireSelection, setFilters, singleSelect]);
+      setFilters(updated);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    [filters, requireSelection, setFilters, singleSelect],
+  );
 
-  const renderItem: ListRenderItem<Filter> = useCallback(({item, index}) => {
-    const active = item.isActive;
+  const renderItem: ListRenderItem<Filter> = useCallback(
+    ({ item, index }) => {
+      const active = item.isActive;
 
-    const fallbackActive = activeGradient ?? [theme.borderSecondary, theme.borderSecondary];
-    const fallbackInactive = inactiveGradient ?? [theme.border, theme.border];
+      const fallbackActive = activeGradient ?? [
+        theme.borderSecondary,
+        theme.borderSecondary,
+      ];
+      const fallbackInactive = inactiveGradient ?? [theme.border, theme.border];
 
-    const gradient = (active ? fallbackActive : fallbackInactive);
+      const gradient = active ? fallbackActive : fallbackInactive;
 
-    return (
-      <GradientPill
-        size="lg"
-        label={item.name}
-        gradient={gradient}
-        treatment={active ? "filled" : "border"}
-        borderWidth={borderWidth}
-        onPress={() => toggleFilter(index)}
-      />
-    );
-  }, [activeGradient, borderWidth, inactiveGradient, theme.border, theme.borderSecondary, toggleFilter]);
+      return (
+        <GradientPill
+          size="lg"
+          label={item.name}
+          gradient={gradient}
+          treatment={active ? "filled" : "border"}
+          borderWidth={borderWidth}
+          onPress={() => toggleFilter(index)}
+        />
+      );
+    },
+    [
+      activeGradient,
+      borderWidth,
+      inactiveGradient,
+      theme.border,
+      theme.borderSecondary,
+      toggleFilter,
+    ],
+  );
 
   return (
     <View style={[style]}>
@@ -88,7 +112,7 @@ const Filters: React.FC<FiltersProps> = ({
         scrollEnabled={scrollable}
         keyboardShouldPersistTaps="always"
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[styles.row, containerStyle, {columnGap: 8}]}
+        contentContainerStyle={[styles.row, containerStyle, { columnGap: 8 }]}
       />
     </View>
   );

@@ -6,7 +6,7 @@
 for the initial monorepo baseline.
 
 | Standalone repository        | Commit                                     | Monorepo destination                |
-|------------------------------|--------------------------------------------|-------------------------------------|
+| ---------------------------- | ------------------------------------------ | ----------------------------------- |
 | `blockout-api-clubs`         | `4655f7de69df9854a35a7062cb60b65293e5ce42` | `apps/backend/clubs-service`        |
 | `blockout-api-competition`   | `7e88fd34f0270dbbfc5a9f0be5d7bc295df9746c` | `apps/backend/competition-service`  |
 | `blockout-api-config`        | `e2cfcf383cdc59c8466850518438c834a7b7c244` | `apps/backend/config-service`       |
@@ -46,7 +46,7 @@ configuration is outside the behavioral-freeze scope.
 ## Runtime ports
 
 | Application                 | Port |
-|-----------------------------|-----:|
+| --------------------------- | ---: |
 | pools service               | 8081 |
 | teams service               | 8082 |
 | matches service             | 8083 |
@@ -65,7 +65,7 @@ configuration is outside the behavioral-freeze scope.
 ## Local infrastructure ports
 
 | Dependency              |  Port |
-|-------------------------|------:|
+| ----------------------- | ----: |
 | pools PostgreSQL        |  5432 |
 | teams PostgreSQL        |  5433 |
 | matches PostgreSQL      |  5434 |

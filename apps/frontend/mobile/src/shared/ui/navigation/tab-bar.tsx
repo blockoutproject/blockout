@@ -154,9 +154,9 @@ export default function TabBar({
                 navigation.navigate(route.name);
               }
 
-              Haptics.impactAsync(
-                Haptics.ImpactFeedbackStyle.Light,
-              ).catch(() => undefined);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+                () => undefined,
+              );
               animateToIndex(index);
             };
 

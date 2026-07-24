@@ -1,1 +1,1 @@
-export {default} from "@/src/modules/team/ui/TeamListScreen";
+export { default } from "@/src/modules/team/ui/TeamListScreen";

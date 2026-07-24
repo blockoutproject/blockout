@@ -1,18 +1,27 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {StyleSheet, Text, View} from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {useDivisions} from "@/src/modules/division/hooks/useDivisions";
-import {RawDivisionMappingResponse} from "@/src/shared/generated/models";
-import {FormatEnum, FormatLabels} from "@/src/shared/model/formatLabels";
-import {GenderEnum, GenderLabels} from "@/src/shared/model/genderLabels";
+import { useAppTheme } from "@/src/shared/theme";
+import { useDivisions } from "@/src/modules/division/hooks/useDivisions";
+import { RawDivisionMappingResponse } from "@/src/shared/generated/models";
+import { FormatEnum, FormatLabels } from "@/src/shared/model/formatLabels";
+import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
 import FormSelect from "@/src/shared/ui/form/FormSelect";
-import SelectSheet, {SelectOption, SelectSheetRef} from "@/src/shared/ui/form/SelectSheet";
+import SelectSheet, {
+  SelectOption,
+  SelectSheetRef,
+} from "@/src/shared/ui/form/SelectSheet";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 import FormCard from "@/src/shared/ui/form/FormCard";
-import {useApis} from "@/src/shared/providers/ApiProvider";
+import { useApis } from "@/src/shared/providers/ApiProvider";
 
 export type RawDivisionMappingFormState = {
   loading: boolean;
@@ -27,36 +36,51 @@ export type RawDivisionMappingFormProps = {
 };
 
 const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
-                                                                         mapping,
-                                                                         onSuccess,
-                                                                         onRegisterSubmit,
-                                                                         onStateChange,
-                                                                       }) => {
+  mapping,
+  onSuccess,
+  onRegisterSubmit,
+  onStateChange,
+}) => {
   const theme = useAppTheme();
-  const {data: divisions = [], isLoading: loadingDivisions} = useDivisions();
-  const {mobile} = useApis();
-  const [divisionId, setDivisionId] = useState<number | "">(mapping.divisionId ?? "");
+  const { data: divisions = [], isLoading: loadingDivisions } = useDivisions();
+  const { mobile } = useApis();
+  const [divisionId, setDivisionId] = useState<number | "">(
+    mapping.divisionId ?? "",
+  );
   const [format, setFormat] = useState<FormatEnum | "">(mapping.format ?? "");
   const [gender, setGender] = useState<GenderEnum | "">(mapping.gender ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const formatOptions: SelectOption[] = useMemo(
-    () => Object.values(FormatEnum).map((val) => ({value: val, label: FormatLabels[val]})),
-    []
+    () =>
+      Object.values(FormatEnum).map((val) => ({
+        value: val,
+        label: FormatLabels[val],
+      })),
+    [],
   );
   const genderOptions: SelectOption[] = useMemo(
-    () => Object.values(GenderEnum).map((val) => ({value: val, label: GenderLabels[val]})),
-    []
+    () =>
+      Object.values(GenderEnum).map((val) => ({
+        value: val,
+        label: GenderLabels[val],
+      })),
+    [],
   );
   const divisionOptions: SelectOption[] = useMemo(
-    () => divisions.filter((d) => d.active).map((d) => ({value: d.id, label: d.name})),
-    [divisions]
+    () =>
+      divisions
+        .filter((d) => d.active)
+        .map((d) => ({ value: d.id, label: d.name })),
+    [divisions],
   );
 
   const formatLabel = format ? FormatLabels[format] : null;
   const genderLabel = gender ? GenderLabels[gender] : null;
-  const divisionLabel = divisionId ? divisionOptions.find((o) => o.value === divisionId)?.label ?? null : null;
+  const divisionLabel = divisionId
+    ? (divisionOptions.find((o) => o.value === divisionId)?.label ?? null)
+    : null;
 
   const formatRef = useRef<SelectSheetRef>(null);
   const genderRef = useRef<SelectSheetRef>(null);
@@ -87,7 +111,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
   }, [handleSubmit, onRegisterSubmit]);
 
   useEffect(() => {
-    onStateChange?.({loading: isSubmitting, canSubmit: !isSubmitting});
+    onStateChange?.({ loading: isSubmitting, canSubmit: !isSubmitting });
   }, [isSubmitting, onStateChange]);
 
   return (
@@ -99,21 +123,38 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
       >
         <FormCard title="Source">
           <View style={styles.sourceBlock}>
-            <Text style={[styles.sourceName, {color: theme.text}]} numberOfLines={2}>
+            <Text
+              style={[styles.sourceName, { color: theme.text }]}
+              numberOfLines={2}
+            >
               {mapping.rawDivisionName}
             </Text>
-            <Text style={{color: theme.textInactive, fontSize: 12, fontWeight: "600"}}>
+            <Text
+              style={{
+                color: theme.textInactive,
+                fontSize: 12,
+                fontWeight: "600",
+              }}
+            >
               {mapping.leagueCode} • {mapping.season}
             </Text>
           </View>
         </FormCard>
 
         <FormCard title="Format">
-          <FormSelect label="Format" valueLabel={formatLabel} onPress={() => formatRef.current?.present()}/>
+          <FormSelect
+            label="Format"
+            valueLabel={formatLabel}
+            onPress={() => formatRef.current?.present()}
+          />
         </FormCard>
 
         <FormCard title="Genre">
-          <FormSelect label="Genre" valueLabel={genderLabel} onPress={() => genderRef.current?.present()}/>
+          <FormSelect
+            label="Genre"
+            valueLabel={genderLabel}
+            onPress={() => genderRef.current?.present()}
+          />
         </FormCard>
 
         <FormCard title="Division">
@@ -127,7 +168,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
         </FormCard>
       </BottomSheetScrollView>
 
-      <ApiErrorToast message={apiError} onHidden={() => setApiError(null)}/>
+      <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
 
       <SelectSheet
         ref={formatRef}
@@ -157,7 +198,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
 export default RawDivisionMappingForm;
 
 const styles = StyleSheet.create({
-  fieldContainer: {padding: 8, gap: 12, paddingBottom: 100},
-  sourceBlock: {gap: 4},
-  sourceName: {fontSize: 16, fontWeight: "700"},
+  fieldContainer: { padding: 8, gap: 12, paddingBottom: 100 },
+  sourceBlock: { gap: 4 },
+  sourceName: { fontSize: 16, fontWeight: "700" },
 });

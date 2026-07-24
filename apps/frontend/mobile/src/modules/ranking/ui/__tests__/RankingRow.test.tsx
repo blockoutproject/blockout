@@ -1,8 +1,8 @@
-import {render, userEvent} from "@testing-library/react-native";
+import { render, userEvent } from "@testing-library/react-native";
 import React from "react";
 
 import RankingRow from "@/src/modules/ranking/ui/ranking-row";
-import {darkTheme, ThemeProvider} from "@/src/shared/theme";
+import { darkTheme, ThemeProvider } from "@/src/shared/theme";
 
 describe("RankingRow", () => {
   it("renders ranking facts and opens the selected team", async () => {
@@ -28,7 +28,7 @@ describe("RankingRow", () => {
           }}
           index={1}
           theme={darkTheme}
-          highlightTeams={[{teamId: 7, color: "#123456"}]}
+          highlightTeams={[{ teamId: 7, color: "#123456" }]}
           gradient={["#123456", "#234567"]}
           onPress={onPress}
         />

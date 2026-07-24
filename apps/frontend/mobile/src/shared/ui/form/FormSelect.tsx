@@ -1,7 +1,13 @@
 import React from "react";
-import {ActivityIndicator, Pressable, StyleSheet, Text, View} from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import {useAppTheme} from "@/src/shared/theme";
+import { useAppTheme } from "@/src/shared/theme";
 
 export type FormSelectProps = {
   label: string;
@@ -13,13 +19,13 @@ export type FormSelectProps = {
 };
 
 const FormSelect: React.FC<FormSelectProps> = ({
-                                                 label,
-                                                 valueLabel,
-                                                 placeholder = "Sélectionner…",
-                                                 onPress,
-                                                 loading = false,
-                                                 disabled = false,
-                                               }) => {
+  label,
+  valueLabel,
+  placeholder = "Sélectionner…",
+  onPress,
+  loading = false,
+  disabled = false,
+}) => {
   const theme = useAppTheme();
   const isEmpty = !valueLabel || valueLabel.length === 0;
 
@@ -36,23 +42,29 @@ const FormSelect: React.FC<FormSelectProps> = ({
         },
       ]}
     >
-      <Text style={[styles.fieldLabel, {color: theme.textInactive}]}>{label}</Text>
+      <Text style={[styles.fieldLabel, { color: theme.textInactive }]}>
+        {label}
+      </Text>
 
       <View style={styles.valueRow}>
         <Text
           numberOfLines={1}
           style={[
             styles.valueText,
-            {color: isEmpty ? theme.textInactive : theme.text},
+            { color: isEmpty ? theme.textInactive : theme.text },
           ]}
         >
           {isEmpty ? placeholder : valueLabel}
         </Text>
 
         {loading ? (
-          <ActivityIndicator size="small" color={theme.textInactive}/>
+          <ActivityIndicator size="small" color={theme.textInactive} />
         ) : (
-          <MaterialIcons name="keyboard-arrow-down" size={20} color={theme.textInactive}/>
+          <MaterialIcons
+            name="keyboard-arrow-down"
+            size={20}
+            color={theme.textInactive}
+          />
         )}
       </View>
     </Pressable>

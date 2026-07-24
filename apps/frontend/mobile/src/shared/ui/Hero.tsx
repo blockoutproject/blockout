@@ -1,13 +1,19 @@
 import React from "react";
-import {StyleSheet, StyleSheet as RNStyleSheet, Text, TouchableOpacity, View,} from "react-native";
-import {Image} from "expo-image";
-import type {ImageSource} from "expo-image";
-import {LinearGradient} from "expo-linear-gradient";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {radius, useAppTheme} from "@/src/shared/theme";
-import {withAlpha} from "@/src/shared/lib/utils";
+import {
+  StyleSheet,
+  StyleSheet as RNStyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Image } from "expo-image";
+import type { ImageSource } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { radius, useAppTheme } from "@/src/shared/theme";
+import { withAlpha } from "@/src/shared/lib/utils";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
-import {Pill} from "@/src/shared/ui/pill";
+import { Pill } from "@/src/shared/ui/pill";
 
 export type HeroProps = {
   title: string;
@@ -44,37 +50,41 @@ const DEFAULTS = {
 };
 
 const Hero: React.FC<HeroProps> = ({
-                                     title,
-                                     subtitle,
-                                     subtitleIcon,
+  title,
+  subtitle,
+  subtitleIcon,
 
-                                     avatarUri,
-                                     avatarFallback,
+  avatarUri,
+  avatarFallback,
 
-                                     backgroundUri,
-                                     backgroundFallback,
+  backgroundUri,
+  backgroundFallback,
 
-                                     onEdit,
-                                     testID = "entity-hero",
-                                     editTestID = "entity-hero-edit",
+  onEdit,
+  testID = "entity-hero",
+  editTestID = "entity-hero-edit",
 
-                                     containerRadius = DEFAULTS.containerRadius,
-                                     avatarSize = DEFAULTS.avatarSize,
-                                     avatarRadius = DEFAULTS.avatarRadius,
-                                     blurRadius = DEFAULTS.blurRadius,
-                                     titleLines = DEFAULTS.titleLines,
+  containerRadius = DEFAULTS.containerRadius,
+  avatarSize = DEFAULTS.avatarSize,
+  avatarRadius = DEFAULTS.avatarRadius,
+  blurRadius = DEFAULTS.blurRadius,
+  titleLines = DEFAULTS.titleLines,
 
-                                     topLeftNode,
-                                   }) => {
+  topLeftNode,
+}) => {
   const theme = useAppTheme();
 
   const bgSource =
-    (backgroundUri ? {uri: backgroundUri} : undefined) ??
-    (avatarUri ? {uri: avatarUri} : undefined) ??
-    (backgroundFallback ?? avatarFallback);
+    (backgroundUri ? { uri: backgroundUri } : undefined) ??
+    (avatarUri ? { uri: avatarUri } : undefined) ??
+    backgroundFallback ??
+    avatarFallback;
 
   return (
-    <View style={[styles.wrapper, {borderRadius: containerRadius}]} testID={testID}>
+    <View
+      style={[styles.wrapper, { borderRadius: containerRadius }]}
+      testID={testID}
+    >
       <Image
         source={bgSource}
         style={RNStyleSheet.absoluteFill}
@@ -90,8 +100,8 @@ const Hero: React.FC<HeroProps> = ({
           withAlpha(theme.backgroundSecondary, DEFAULTS.EDGE),
         ]}
         locations={[0, 0.5, 1]}
-        start={{x: 0.5, y: 0}}
-        end={{x: 0.5, y: 1}}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
         style={RNStyleSheet.absoluteFill}
       />
       <LinearGradient
@@ -102,15 +112,13 @@ const Hero: React.FC<HeroProps> = ({
           withAlpha(theme.backgroundSecondary, DEFAULTS.EDGE),
         ]}
         locations={[0, 0.5, 1]}
-        start={{x: 0, y: 0.5}}
-        end={{x: 1, y: 0.5}}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
         style={RNStyleSheet.absoluteFill}
       />
 
       {topLeftNode ? (
-        <View style={styles.topLeftNode}>
-          {topLeftNode}
-        </View>
+        <View style={styles.topLeftNode}>{topLeftNode}</View>
       ) : null}
 
       {onEdit ? (
@@ -124,10 +132,14 @@ const Hero: React.FC<HeroProps> = ({
               borderColor: withAlpha(theme.text, 0.12),
             },
           ]}
-          hitSlop={{top: 8, right: 8, bottom: 8, left: 8}}
+          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
           testID={editTestID}
         >
-          <MaterialCommunityIcons name="pencil-outline" size={22} color={theme.text}/>
+          <MaterialCommunityIcons
+            name="pencil-outline"
+            size={22}
+            color={theme.text}
+          />
         </TouchableOpacity>
       ) : null}
 
@@ -139,7 +151,10 @@ const Hero: React.FC<HeroProps> = ({
           shadow
         />
 
-        <Text style={[styles.title, {color: theme.text}]} numberOfLines={titleLines}>
+        <Text
+          style={[styles.title, { color: theme.text }]}
+          numberOfLines={titleLines}
+        >
           {title}
         </Text>
 
@@ -207,7 +222,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     elevation: 4,
     zIndex: 5,
   },

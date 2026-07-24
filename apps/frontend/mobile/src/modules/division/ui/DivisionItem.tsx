@@ -1,13 +1,13 @@
 import React from "react";
-import {Pressable, StyleSheet, Text, View} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {LinearGradient} from "expo-linear-gradient";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import {Image} from "expo-image";
+import { Image } from "expo-image";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {DivisionResponse} from "@/src/shared/generated/models";
-import {useApis} from "@/src/shared/providers/ApiProvider";
+import { useAppTheme } from "@/src/shared/theme";
+import { DivisionResponse } from "@/src/shared/generated/models";
+import { useApis } from "@/src/shared/providers/ApiProvider";
 
 type DivisionItemProps = {
   division: DivisionResponse;
@@ -15,9 +15,13 @@ type DivisionItemProps = {
   onDeactivated: () => void;
 };
 
-const DivisionItem: React.FC<DivisionItemProps> = ({division, onPress, onDeactivated}) => {
+const DivisionItem: React.FC<DivisionItemProps> = ({
+  division,
+  onPress,
+  onDeactivated,
+}) => {
   const theme = useAppTheme();
-  const {mobile} = useApis();
+  const { mobile } = useApis();
   const handlePress = () => {
     Haptics.selectionAsync();
     onPress();
@@ -32,7 +36,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({division, onPress, onDeactiv
   };
 
   return (
-    <View style={[styles.container, {backgroundColor: theme.surface}]}>
+    <View style={[styles.container, { backgroundColor: theme.surface }]}>
       <Pressable
         style={styles.detailsAction}
         onPress={handlePress}
@@ -40,22 +44,28 @@ const DivisionItem: React.FC<DivisionItemProps> = ({division, onPress, onDeactiv
         accessibilityLabel={`Modifier ${division.name}`}
         testID={`division-item-${division.id}`}
       >
-        <Text style={[styles.id, {color: theme.textInactive}]}>#{division.id}</Text>
+        <Text style={[styles.id, { color: theme.textInactive }]}>
+          #{division.id}
+        </Text>
 
         {division.logoUrl ? (
-          <Image source={{uri: division.logoUrl}} style={styles.avatar} contentFit="contain"/>
+          <Image
+            source={{ uri: division.logoUrl }}
+            style={styles.avatar}
+            contentFit="contain"
+          />
         ) : (
-          <View style={[styles.avatar, {backgroundColor: theme.border}]}/>
+          <View style={[styles.avatar, { backgroundColor: theme.border }]} />
         )}
 
         <View style={styles.textContainer}>
-          <Text style={[styles.name, {color: theme.text}]} numberOfLines={1}>
+          <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
             {division.name}
           </Text>
           <Text
             style={[
               styles.status,
-              {color: division.active ? theme.success : theme.error},
+              { color: division.active ? theme.success : theme.error },
             ]}
           >
             {division.active ? "Active" : "Inactive"}
@@ -63,7 +73,10 @@ const DivisionItem: React.FC<DivisionItemProps> = ({division, onPress, onDeactiv
         </View>
 
         <View
-          style={[styles.colorCircle, {backgroundColor: division.mainColor, borderColor: theme.border}]}
+          style={[
+            styles.colorCircle,
+            { backgroundColor: division.mainColor, borderColor: theme.border },
+          ]}
         />
 
         <LinearGradient
@@ -72,9 +85,12 @@ const DivisionItem: React.FC<DivisionItemProps> = ({division, onPress, onDeactiv
             division.secondGradientColor,
             division.thirdGradientColor,
           ]}
-          style={[styles.colorCircle, {marginRight: 8, borderColor: theme.border}]}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
+          style={[
+            styles.colorCircle,
+            { marginRight: 8, borderColor: theme.border },
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         />
       </Pressable>
 
@@ -89,7 +105,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({division, onPress, onDeactiv
             name="close"
             size={20}
             color={theme.textInactive}
-            style={{marginLeft: 16}}
+            style={{ marginLeft: 16 }}
           />
         </Pressable>
       )}
@@ -125,9 +141,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     backgroundColor: "#ccc",
   },
-  textContainer: {flex: 1, paddingHorizontal: 8},
-  name: {fontSize: 14, fontWeight: "600"},
-  status: {fontSize: 12, marginTop: 4},
+  textContainer: { flex: 1, paddingHorizontal: 8 },
+  name: { fontSize: 14, fontWeight: "600" },
+  status: { fontSize: 12, marginTop: 4 },
   colorCircle: {
     width: 30,
     height: 30,

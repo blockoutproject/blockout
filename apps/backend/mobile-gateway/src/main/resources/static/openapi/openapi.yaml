@@ -25,7 +25,7 @@ paths:
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/EnrichedMatch' }
+              schema: { $ref: "#/components/schemas/EnrichedMatch" }
 
   /api/v1/mobile/public/enriched-pool/{id}:
     get:
@@ -43,7 +43,7 @@ paths:
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/EnrichedPool' }
+              schema: { $ref: "#/components/schemas/EnrichedPool" }
 
   /api/v1/mobile/public/enriched-team/{id}:
     get:
@@ -61,7 +61,7 @@ paths:
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/EnrichedTeam' }
+              schema: { $ref: "#/components/schemas/EnrichedTeam" }
 
   /api/v1/mobile/public/ffvb/pdf/{token}:
     get:
@@ -119,7 +119,7 @@ paths:
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/EnrichedDayPage' }
+              schema: { $ref: "#/components/schemas/EnrichedDayPage" }
         204:
           description: No Content
 
@@ -143,7 +143,7 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/PoolSummary' }
+                items: { $ref: "#/components/schemas/PoolSummary" }
 
   /api/v1/mobile/public/teams/by-club/{clubId}:
     get:
@@ -163,7 +163,7 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/TeamSummary' }
+                items: { $ref: "#/components/schemas/TeamSummary" }
 
   /api/v1/mobile/public/teams/by-ids:
     get:
@@ -185,7 +185,7 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/TeamSummary' }
+                items: { $ref: "#/components/schemas/TeamSummary" }
 
   /api/v1/mobile/secure/enriched-notifications:
     get:
@@ -194,7 +194,7 @@ paths:
       summary: List enriched notifications
       description: Returns user notifications.
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
       parameters:
         - name: page
           in: query
@@ -209,7 +209,8 @@ paths:
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/EnrichedUserNotificationPage' }
+              schema:
+                { $ref: "#/components/schemas/EnrichedUserNotificationPage" }
 
 components:
   securitySchemes:
@@ -262,8 +263,8 @@ components:
         short_name: { type: string }
         league_code: { type: string }
         division_id: { type: integer, format: int64 }
-        format: { $ref: '#/components/schemas/Format' }
-        gender: { $ref: '#/components/schemas/Gender' }
+        format: { $ref: "#/components/schemas/Format" }
+        gender: { $ref: "#/components/schemas/Gender" }
         season: { type: string }
         followers_count: { type: integer, format: int64 }
         logo_url: { type: string }
@@ -296,15 +297,15 @@ components:
         id: { type: integer, format: int64 }
         name: { type: string }
         short_name: { type: string }
-        format: { $ref: '#/components/schemas/Format' }
-        gender: { $ref: '#/components/schemas/Gender' }
+        format: { $ref: "#/components/schemas/Format" }
+        gender: { $ref: "#/components/schemas/Gender" }
         season: { type: string }
         followers_count: { type: integer, format: int64 }
-        division: { $ref: '#/components/schemas/Division' }
-        club: { $ref: '#/components/schemas/Club' }
+        division: { $ref: "#/components/schemas/Division" }
+        club: { $ref: "#/components/schemas/Club" }
         pools:
           type: array
-          items: { $ref: '#/components/schemas/EnrichedPool' }
+          items: { $ref: "#/components/schemas/EnrichedPool" }
 
     Pool:
       type: object
@@ -318,8 +319,8 @@ components:
         name: { type: string }
         short_name: { type: string }
         division_id: { type: integer, format: int64 }
-        format: { $ref: '#/components/schemas/Format' }
-        gender: { $ref: '#/components/schemas/Gender' }
+        format: { $ref: "#/components/schemas/Format" }
+        gender: { $ref: "#/components/schemas/Gender" }
         followers_count: { type: integer, format: int64 }
         active: { type: boolean }
         created_at: { type: string, format: date-time }
@@ -333,9 +334,9 @@ components:
         short_name: { type: string }
         league_name: { type: string }
         season: { type: string }
-        gender: { $ref: '#/components/schemas/Gender' }
-        format: { $ref: '#/components/schemas/Format' }
-        division: { $ref: '#/components/schemas/Division' }
+        gender: { $ref: "#/components/schemas/Gender" }
+        format: { $ref: "#/components/schemas/Format" }
+        division: { $ref: "#/components/schemas/Division" }
 
     EnrichedPool:
       type: object
@@ -347,13 +348,13 @@ components:
         league_name: { type: string }
         name: { type: string }
         short_name: { type: string }
-        format: { $ref: '#/components/schemas/Format' }
-        gender: { $ref: '#/components/schemas/Gender' }
+        format: { $ref: "#/components/schemas/Format" }
+        gender: { $ref: "#/components/schemas/Gender" }
         followers_count: { type: integer, format: int64 }
         ranking:
           type: array
-          items: { $ref: '#/components/schemas/TeamWithStats' }
-        division: { $ref: '#/components/schemas/Division' }
+          items: { $ref: "#/components/schemas/TeamWithStats" }
+        division: { $ref: "#/components/schemas/Division" }
 
     Match:
       type: object
@@ -390,11 +391,11 @@ components:
         venue: { type: string }
         first_referee: { type: string }
         second_referee: { type: string }
-        team_a: { $ref: '#/components/schemas/Team' }
-        team_b: { $ref: '#/components/schemas/Team' }
+        team_a: { $ref: "#/components/schemas/Team" }
+        team_b: { $ref: "#/components/schemas/Team" }
         match_address_pdf_url: { type: string }
         match_sheet_pdf_url: { type: string }
-        pool: { $ref: '#/components/schemas/EnrichedPool' }
+        pool: { $ref: "#/components/schemas/EnrichedPool" }
 
     PoolMatches:
       type: object
@@ -402,7 +403,7 @@ components:
         pool_id: { type: integer, format: int64 }
         matches:
           type: array
-          items: { $ref: '#/components/schemas/Match' }
+          items: { $ref: "#/components/schemas/Match" }
 
     DayMatches:
       type: object
@@ -410,24 +411,24 @@ components:
         date: { type: string }
         pools:
           type: array
-          items: { $ref: '#/components/schemas/PoolMatches' }
+          items: { $ref: "#/components/schemas/PoolMatches" }
 
     DayPage:
       type: object
       properties:
         day_matches:
           type: array
-          items: { $ref: '#/components/schemas/DayMatches' }
+          items: { $ref: "#/components/schemas/DayMatches" }
         has_next: { type: boolean }
         next_page: { type: integer }
 
     EnrichedPoolMatches:
       type: object
       properties:
-        pool: { $ref: '#/components/schemas/EnrichedPool' }
+        pool: { $ref: "#/components/schemas/EnrichedPool" }
         matches:
           type: array
-          items: { $ref: '#/components/schemas/EnrichedMatch' }
+          items: { $ref: "#/components/schemas/EnrichedMatch" }
 
     EnrichedDayMatches:
       type: object
@@ -435,14 +436,14 @@ components:
         date: { type: string }
         pools:
           type: array
-          items: { $ref: '#/components/schemas/EnrichedPoolMatches' }
+          items: { $ref: "#/components/schemas/EnrichedPoolMatches" }
 
     EnrichedDayPage:
       type: object
       properties:
         day_matches:
           type: array
-          items: { $ref: '#/components/schemas/EnrichedDayMatches' }
+          items: { $ref: "#/components/schemas/EnrichedDayMatches" }
         has_next: { type: boolean }
         next_page: { type: integer }
 
@@ -492,14 +493,14 @@ components:
         pool_id: { type: integer, format: int64 }
         ranking:
           type: array
-          items: { $ref: '#/components/schemas/TeamRanking' }
+          items: { $ref: "#/components/schemas/TeamRanking" }
 
     EnrichedUserNotificationPage:
       type: object
       properties:
         notifications:
           type: array
-          items: { $ref: '#/components/schemas/EnrichedUserNotification' }
+          items: { $ref: "#/components/schemas/EnrichedUserNotification" }
         has_next: { type: boolean }
         next_page: { type: integer }
 

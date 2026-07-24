@@ -1,11 +1,11 @@
-import React, {useImperativeHandle, useMemo, useRef} from "react";
-import {Pressable, StyleSheet, Text, View} from "react-native";
-import {BottomSheetFlatList, BottomSheetModal} from "@gorhom/bottom-sheet";
+import React, { useImperativeHandle, useMemo, useRef } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { BottomSheetFlatList, BottomSheetModal } from "@gorhom/bottom-sheet";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {layout, useAppTheme} from "@/src/shared/theme";
+import { layout, useAppTheme } from "@/src/shared/theme";
 
 import BottomSheetCustomPage from "../bottomSheet/BottomSheetCustomPage";
 
@@ -46,138 +46,122 @@ const SelectSheet: React.FC<SelectSheetProps> = ({
   clearLabel = "Réinitialiser",
   ref,
 }) => {
-    const theme = useAppTheme();
-    const insets = useSafeAreaInsets();
-    const sheetRef = useRef<BottomSheetModal>(null);
+  const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const sheetRef = useRef<BottomSheetModal>(null);
 
-    useImperativeHandle(ref, () => ({
-      present: () => sheetRef.current?.present(),
-      dismiss: () => sheetRef.current?.dismiss(),
-    }));
+  useImperativeHandle(ref, () => ({
+    present: () => sheetRef.current?.present(),
+    dismiss: () => sheetRef.current?.dismiss(),
+  }));
 
-    const data = useMemo(
-      () =>
-        [...options].sort((a, b) =>
-          a.label.localeCompare(b.label, "fr", {sensitivity: "base"})
-        ),
-      [options]
-    );
+  const data = useMemo(
+    () =>
+      [...options].sort((a, b) =>
+        a.label.localeCompare(b.label, "fr", { sensitivity: "base" }),
+      ),
+    [options],
+  );
 
-    const handleSelect = async (opt: SelectOption) => {
-      await Haptics.selectionAsync();
-      onSelect(opt);
-      sheetRef.current?.dismiss();
-    };
+  const handleSelect = async (opt: SelectOption) => {
+    await Haptics.selectionAsync();
+    onSelect(opt);
+    sheetRef.current?.dismiss();
+  };
 
-    const handleClear = () => {
-      Haptics.selectionAsync();
-      onSelect({value: "", label: ""});
-      sheetRef.current?.dismiss();
-    };
+  const handleClear = () => {
+    Haptics.selectionAsync();
+    onSelect({ value: "", label: "" });
+    sheetRef.current?.dismiss();
+  };
 
-    const renderItem = ({item}: { item: SelectOption }) => {
-      const isSelected = item.value === selectedValue;
+  const renderItem = ({ item }: { item: SelectOption }) => {
+    const isSelected = item.value === selectedValue;
 
-      return (
-        <Pressable
-          onPress={() => handleSelect(item)}
-          accessibilityRole="button"
-          accessibilityLabel={item.label}
-          accessibilityState={{selected: isSelected}}
-          style={({pressed}) => [
-            styles.row,
-            {
-              borderColor: isSelected
-                ? theme.textInactive
-                : theme.border,
-              backgroundColor: pressed
+    return (
+      <Pressable
+        onPress={() => handleSelect(item)}
+        accessibilityRole="button"
+        accessibilityLabel={item.label}
+        accessibilityState={{ selected: isSelected }}
+        style={({ pressed }) => [
+          styles.row,
+          {
+            borderColor: isSelected ? theme.textInactive : theme.border,
+            backgroundColor: pressed
+              ? theme.backgroundSecondary
+              : isSelected
                 ? theme.backgroundSecondary
-                : isSelected
-                  ? theme.backgroundSecondary
-                  : theme.surface,
+                : theme.surface,
+          },
+        ]}
+      >
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.rowLabel,
+            {
+              color: theme.text,
+              fontWeight: (isSelected ? "800" : "600") as "800" | "600",
             },
           ]}
         >
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.rowLabel,
-              {
-                color: theme.text,
-                fontWeight: (isSelected ? "800" : "600") as
-                  | "800"
-                  | "600",
-              },
-            ]}
-          >
-            {item.label}
-          </Text>
-          {isSelected ? (
-            <MaterialIcons
-              name="check"
-              size={18}
-              color={theme.text}
-            />
-          ) : null}
-        </Pressable>
-      );
-    };
-
-    return (
-      <BottomSheetCustomPage ref={sheetRef}>
-        <View>
-          <View
-            style={[styles.header]}
-          >
-            <Text
-              style={[styles.title, {color: theme.text}]}
-              numberOfLines={1}
-            >
-              {title}
-            </Text>
-
-            {clearable ? (
-              <Pressable
-                onPress={handleClear}
-                accessibilityRole="button"
-                accessibilityLabel={clearLabel}
-                hitSlop={8}
-                style={styles.clearBtn}
-              >
-                <MaterialIcons
-                  name="close"
-                  size={16}
-                  color={theme.textInactive}
-                />
-                <Text
-                  style={[
-                    styles.clearText,
-                    {color: theme.textInactive},
-                  ]}
-                  numberOfLines={1}
-                >
-                  {clearLabel}
-                </Text>
-              </Pressable>
-            ) : (
-              <View style={styles.clearSpacer}/>
-            )}
-          </View>
-
-          <BottomSheetFlatList
-            data={data}
-            keyExtractor={(it: SelectOption) => String(it.value)}
-            renderItem={renderItem}
-            contentContainerStyle={{
-              paddingBottom: insets.bottom + layout.tabs,
-              paddingHorizontal: 8,
-            }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
-      </BottomSheetCustomPage>
+          {item.label}
+        </Text>
+        {isSelected ? (
+          <MaterialIcons name="check" size={18} color={theme.text} />
+        ) : null}
+      </Pressable>
     );
+  };
+
+  return (
+    <BottomSheetCustomPage ref={sheetRef}>
+      <View>
+        <View style={[styles.header]}>
+          <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+            {title}
+          </Text>
+
+          {clearable ? (
+            <Pressable
+              onPress={handleClear}
+              accessibilityRole="button"
+              accessibilityLabel={clearLabel}
+              hitSlop={8}
+              style={styles.clearBtn}
+            >
+              <MaterialIcons
+                name="close"
+                size={16}
+                color={theme.textInactive}
+              />
+              <Text
+                style={[styles.clearText, { color: theme.textInactive }]}
+                numberOfLines={1}
+              >
+                {clearLabel}
+              </Text>
+            </Pressable>
+          ) : (
+            <View style={styles.clearSpacer} />
+          )}
+        </View>
+
+        <BottomSheetFlatList
+          data={data}
+          keyExtractor={(it: SelectOption) => String(it.value)}
+          renderItem={renderItem}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + layout.tabs,
+            paddingHorizontal: 8,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    </BottomSheetCustomPage>
+  );
 };
 
 export default SelectSheet;

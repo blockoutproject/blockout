@@ -1,10 +1,10 @@
 import React from "react";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
-import {layout, useAppTheme} from "@/src/shared/theme";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { layout, useAppTheme } from "@/src/shared/theme";
 
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {useRouter} from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 /** Header for pdf viewer screen with back + report. */
 export type PdfViewerHeaderProps = {
@@ -14,7 +14,10 @@ export type PdfViewerHeaderProps = {
   onOpenReport: () => void;
 };
 
-const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({title, onOpenReport}) => {
+const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({
+  title,
+  onOpenReport,
+}) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -28,12 +31,8 @@ const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({title, onOpenReport}) 
       ]}
       testID="pdf-viewer-header"
     >
-      <View
-        style={styles.header}
-      >
-        <View
-          style={styles.leftGroup}
-        >
+      <View style={styles.header}>
+        <View style={styles.leftGroup}>
           <TouchableOpacity
             onPress={router.back}
             accessibilityRole="button"

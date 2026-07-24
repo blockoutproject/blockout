@@ -10,7 +10,7 @@ import {
   SymbolLayer,
 } from "@maplibre/maplibre-react-native";
 
-import {useAppTheme} from "@/src/shared/theme";
+import { useAppTheme } from "@/src/shared/theme";
 import { CONFIG } from "@/src/shared/config/config";
 import type { ClubResponse } from "@/src/shared/generated/models";
 
@@ -183,9 +183,7 @@ const ClubMapCard: React.FC<Props> = ({ club }) => {
       ) : null}
 
       <View pointerEvents="none" style={styles.attribution}>
-        <Text style={styles.attributionText}>
-          © OpenStreetMap contributors
-        </Text>
+        <Text style={styles.attributionText}>© OpenStreetMap contributors</Text>
       </View>
     </View>
   );

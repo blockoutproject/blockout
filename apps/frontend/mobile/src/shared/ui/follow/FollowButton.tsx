@@ -1,9 +1,14 @@
-import React from 'react';
-import {GestureResponderEvent, StyleSheet, Text, TouchableOpacity} from 'react-native';
-import * as Haptics from 'expo-haptics';
-import {radius, useAppTheme} from "@/src/shared/theme";
-import GradientView from '../GradientView'; // adapte les chemins si besoin
-import GradientBorderView from '../GradientBorderView';
+import React from "react";
+import {
+  GestureResponderEvent,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from "react-native";
+import * as Haptics from "expo-haptics";
+import { radius, useAppTheme } from "@/src/shared/theme";
+import GradientView from "../GradientView"; // adapte les chemins si besoin
+import GradientBorderView from "../GradientBorderView";
 
 type Props = {
   isFollowing: boolean;
@@ -12,7 +17,12 @@ type Props = {
   gradient: readonly [string, string, ...string[]];
 };
 
-const FollowButton: React.FC<Props> = ({isFollowing, onPress, disabled, gradient}) => {
+const FollowButton: React.FC<Props> = ({
+  isFollowing,
+  onPress,
+  disabled,
+  gradient,
+}) => {
   const theme = useAppTheme();
 
   const handlePress = (e: GestureResponderEvent) => {
@@ -26,8 +36,10 @@ const FollowButton: React.FC<Props> = ({isFollowing, onPress, disabled, gradient
       disabled={disabled}
       activeOpacity={0.9}
     >
-      <Text style={[styles.text, {color: isFollowing ? theme.text : 'white'}]}>
-        {isFollowing ? 'Suivie' : 'Suivre'}
+      <Text
+        style={[styles.text, { color: isFollowing ? theme.text : "white" }]}
+      >
+        {isFollowing ? "Suivie" : "Suivre"}
       </Text>
     </TouchableOpacity>
   );
@@ -37,15 +49,12 @@ const FollowButton: React.FC<Props> = ({isFollowing, onPress, disabled, gradient
       gradient={gradient}
       borderRadius={radius.full}
       borderWidth={2}
-      style={{backgroundColor: theme.background}}
+      style={{ backgroundColor: theme.background }}
     >
       {buttonContent}
     </GradientBorderView>
   ) : (
-    <GradientView
-      gradient={gradient}
-      style={styles.gradientFilled}
-    >
+    <GradientView gradient={gradient} style={styles.gradientFilled}>
       {buttonContent}
     </GradientView>
   );
@@ -56,7 +65,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 14,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   gradientFilled: {
     borderRadius: radius.full,

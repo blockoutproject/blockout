@@ -16,7 +16,7 @@ import { NotificationResponse } from "@/src/shared/generated/models";
 import NotificationItem from "@/src/modules/notifications/ui/NotificationItem";
 import NotificationsHeader from "@/src/modules/notifications/ui/NotificationsHeader";
 import NotificationsSkeleton from "@/src/modules/notifications/ui/NotificationsSkeleton";
-import {layout, useAppTheme} from "@/src/shared/theme";
+import { layout, useAppTheme } from "@/src/shared/theme";
 
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
@@ -62,13 +62,10 @@ const NotificationsScreen: React.FC = () => {
     [deleteNotif],
   );
 
-  const handleOpen = useCallback(
-    async (notification: NotificationResponse) => {
-      await Haptics.selectionAsync();
-      if (notification.deepLink) router.push(notification.deepLink as Href);
-    },
-    [],
-  );
+  const handleOpen = useCallback(async (notification: NotificationResponse) => {
+    await Haptics.selectionAsync();
+    if (notification.deepLink) router.push(notification.deepLink as Href);
+  }, []);
 
   const renderNotification = useCallback(
     ({ item }: ListRenderItemInfo<NotificationResponse>) => (

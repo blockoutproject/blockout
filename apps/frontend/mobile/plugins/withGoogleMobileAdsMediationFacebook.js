@@ -1,4 +1,4 @@
-const {withAppBuildGradle, withPodfile} = require("expo/config-plugins");
+const { withAppBuildGradle, withPodfile } = require("expo/config-plugins");
 
 const withGoogleMobileAdsMediationFacebook = (config) => {
   config = withPodfile(config, (c) => {
@@ -9,7 +9,9 @@ const withGoogleMobileAdsMediationFacebook = (config) => {
         const j = c.modResults.contents.indexOf("\n", i);
         const k = j === -1 ? c.modResults.contents.length : j + 1;
         c.modResults.contents =
-          c.modResults.contents.slice(0, k) + `  ${line}\n` + c.modResults.contents.slice(k);
+          c.modResults.contents.slice(0, k) +
+          `  ${line}\n` +
+          c.modResults.contents.slice(k);
       } else {
         c.modResults.contents = c.modResults.contents + `\n${line}\n`;
       }
@@ -24,7 +26,7 @@ const withGoogleMobileAdsMediationFacebook = (config) => {
     if (m && !m[1].includes(dep)) {
       c.modResults.contents = c.modResults.contents.replace(
         r,
-        `dependencies {${m[1]}\n    ${dep}\n}`
+        `dependencies {${m[1]}\n    ${dep}\n}`,
       );
     }
     return c;

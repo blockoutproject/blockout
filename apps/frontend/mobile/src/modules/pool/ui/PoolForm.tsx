@@ -5,7 +5,7 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import {radius, useAppTheme} from "@/src/shared/theme";
+import { radius, useAppTheme } from "@/src/shared/theme";
 import type {
   PoolDetailsResponse,
   PoolResponse,
@@ -15,7 +15,7 @@ import type {
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";
-import {FormField} from "@/src/shared/ui/form/form-field";
+import { FormField } from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 

@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {radius, useAppTheme} from "@/src/shared/theme";
+import { radius, useAppTheme } from "@/src/shared/theme";
 
 export type BottomSheetFormFooterProps = Omit<
   BottomSheetFooterProps,

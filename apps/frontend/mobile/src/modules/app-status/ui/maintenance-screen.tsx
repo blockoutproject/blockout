@@ -18,11 +18,8 @@ import { useAppTheme } from "@/src/shared/theme";
 
 /** Renders the configuration-owned maintenance gate and its authorized actions. */
 const MaintenanceScreen: React.FC = () => {
-  const {
-    appStatus,
-    isAppStatusLoading,
-    canBypassMaintenance,
-  } = useSessionState();
+  const { appStatus, isAppStatusLoading, canBypassMaintenance } =
+    useSessionState();
   const { refetchAppStatus, bypassMaintenance } = useSessionActions();
   const theme = useAppTheme();
   const { message, imageUrl } = appStatus ?? {
@@ -59,11 +56,7 @@ const MaintenanceScreen: React.FC = () => {
         statusColor={theme.warning}
         title="On peaufine Blockout"
       >
-        <MaskedImage
-          uri={imageUrl ?? undefined}
-          size={250}
-          radius={26}
-        />
+        <MaskedImage uri={imageUrl ?? undefined} size={250} radius={26} />
 
         <Text
           style={[

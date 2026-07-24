@@ -1,10 +1,20 @@
-import React, {useCallback, useMemo} from "react";
-import {Linking, StyleSheet, Text, TouchableOpacity, View,} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import React, { useCallback, useMemo } from "react";
+import {
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {LiveLinkStatusEnum, LiveProviderEnum, MatchLiveLinkHistoryResponse,} from "@/src/shared/generated/models";
+import { useAppTheme } from "@/src/shared/theme";
+import {
+  LiveLinkStatusEnum,
+  LiveProviderEnum,
+  MatchLiveLinkHistoryResponse,
+} from "@/src/shared/generated/models";
 
 type Props = {
   link: MatchLiveLinkHistoryResponse;
@@ -24,12 +34,12 @@ const formatDateTime = (value?: string | number | null) => {
 };
 
 const MatchLiveLinksHistoryItem: React.FC<Props> = ({
-                                                      link,
-                                                      onApprove,
-                                                      onReject,
-                                                      onDeleteActive,
-                                                      onReactivate,
-                                                    }) => {
+  link,
+  onApprove,
+  onReject,
+  onDeleteActive,
+  onReactivate,
+}) => {
   const theme = useAppTheme();
 
   const createdAtLabel = useMemo(
@@ -144,15 +154,10 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
           <View
             style={[
               styles.statusPill,
-              {backgroundColor: statusConfig.backgroundColor},
+              { backgroundColor: statusConfig.backgroundColor },
             ]}
           >
-            <Text
-              style={[
-                styles.statusText,
-                {color: statusConfig.color},
-              ]}
-            >
+            <Text style={[styles.statusText, { color: statusConfig.color }]}>
               {statusConfig.label}
             </Text>
           </View>
@@ -164,12 +169,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
                 size={13}
                 color={theme.error}
               />
-              <Text
-                style={[
-                  styles.reportText,
-                  {color: theme.error},
-                ]}
-              >
+              <Text style={[styles.reportText, { color: theme.error }]}>
                 {link.reportCount}
               </Text>
             </View>
@@ -183,12 +183,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
               size={16}
               color={theme.textInactive}
             />
-            <Text
-              style={[
-                styles.providerText,
-                {color: theme.textInactive},
-              ]}
-            >
+            <Text style={[styles.providerText, { color: theme.textInactive }]}>
               {link.provider}
             </Text>
           </View>
@@ -210,10 +205,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
             color={theme.primary}
           />
           <Text
-            style={[
-              styles.urlText,
-              {color: theme.primary},
-            ]}
+            style={[styles.urlText, { color: theme.primary }]}
             numberOfLines={2}
           >
             {link.url}
@@ -224,10 +216,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
       <View style={styles.metaBlock}>
         {!!link.ownerAuth0Id && (
           <Text
-            style={[
-              styles.metaText,
-              {color: theme.textInactive},
-            ]}
+            style={[styles.metaText, { color: theme.textInactive }]}
             numberOfLines={1}
           >
             Proposé par : {link.ownerAuth0Id}
@@ -235,10 +224,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
         )}
 
         <Text
-          style={[
-            styles.metaText,
-            {color: theme.textInactive},
-          ]}
+          style={[styles.metaText, { color: theme.textInactive }]}
           numberOfLines={1}
         >
           Créé le : {createdAtLabel}
@@ -246,10 +232,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
 
         {!!lastUpdateLabel && (
           <Text
-            style={[
-              styles.metaText,
-              {color: theme.textInactive},
-            ]}
+            style={[styles.metaText, { color: theme.textInactive }]}
             numberOfLines={1}
           >
             Dernière mise à jour : {lastUpdateLabel}
@@ -264,10 +247,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
               accessibilityRole="button"
               accessibilityLabel="Refuser le lien"
               onPress={() => onReject?.(link)}
-              style={[
-                styles.actionButtonOutline,
-                {borderColor: theme.error},
-              ]}
+              style={[styles.actionButtonOutline, { borderColor: theme.error }]}
               activeOpacity={0.9}
               testID={`match-live-history-reject-action-${link.id}`}
             >
@@ -276,12 +256,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
                 size={16}
                 color={theme.error}
               />
-              <Text
-                style={[
-                  styles.actionTextOutline,
-                  {color: theme.error},
-                ]}
-              >
+              <Text style={[styles.actionTextOutline, { color: theme.error }]}>
                 Refuser
               </Text>
             </TouchableOpacity>
@@ -292,10 +267,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
               accessibilityRole="button"
               accessibilityLabel="Supprimer le lien"
               onPress={() => onDeleteActive?.(link)}
-              style={[
-                styles.actionButtonOutline,
-                {borderColor: theme.error},
-              ]}
+              style={[styles.actionButtonOutline, { borderColor: theme.error }]}
               activeOpacity={0.9}
               testID={`match-live-history-delete-action-${link.id}`}
             >
@@ -304,12 +276,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
                 size={16}
                 color={theme.error}
               />
-              <Text
-                style={[
-                  styles.actionTextOutline,
-                  {color: theme.error},
-                ]}
-              >
+              <Text style={[styles.actionTextOutline, { color: theme.error }]}>
                 Supprimer
               </Text>
             </TouchableOpacity>
@@ -322,22 +289,13 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
               onPress={() => onApprove?.(link)}
               style={[
                 styles.actionButtonFilled,
-                {backgroundColor: theme.success},
+                { backgroundColor: theme.success },
               ]}
               activeOpacity={0.9}
               testID={`match-live-history-approve-action-${link.id}`}
             >
-              <MaterialCommunityIcons
-                name="check"
-                size={16}
-                color={"white"}
-              />
-              <Text
-                style={[
-                  styles.actionTextFilled,
-                  {color: "white"},
-                ]}
-              >
+              <MaterialCommunityIcons name="check" size={16} color={"white"} />
+              <Text style={[styles.actionTextFilled, { color: "white" }]}>
                 Valider
               </Text>
             </TouchableOpacity>
@@ -350,7 +308,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
               onPress={() => onReactivate?.(link)}
               style={[
                 styles.actionButtonFilled,
-                {backgroundColor: theme.primary},
+                { backgroundColor: theme.primary },
               ]}
               activeOpacity={0.9}
               testID={`match-live-history-reactivate-action-${link.id}`}
@@ -360,12 +318,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
                 size={16}
                 color={"white"}
               />
-              <Text
-                style={[
-                  styles.actionTextFilled,
-                  {color: "white"},
-                ]}
-              >
+              <Text style={[styles.actionTextFilled, { color: "white" }]}>
                 Réactiver
               </Text>
             </TouchableOpacity>

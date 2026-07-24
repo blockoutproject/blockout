@@ -1,6 +1,6 @@
-import {createReport} from "@/src/shared/generated/endpoints/report-public";
-import type {CreateReportRequest} from "@/src/shared/generated/models";
-import type {ImageUpload} from "@/src/shared/model/ImageUpload";
+import { createReport } from "@/src/shared/generated/endpoints/report-public";
+import type { CreateReportRequest } from "@/src/shared/generated/models";
+import type { ImageUpload } from "@/src/shared/model/ImageUpload";
 
 /** Expose report operations through the feature API boundary. */
 export class ReportApi {

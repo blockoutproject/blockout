@@ -7,7 +7,7 @@ import type {
   PoolResponse,
 } from "@/src/shared/generated/models";
 import PoolForm from "@/src/modules/pool/ui/PoolForm";
-import {ThemeProvider} from "@/src/shared/theme";
+import { ThemeProvider } from "@/src/shared/theme";
 
 const mockUpdatePool = jest.fn();
 

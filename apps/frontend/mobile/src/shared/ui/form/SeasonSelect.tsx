@@ -1,11 +1,20 @@
-import React, {useCallback, useMemo, useRef} from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import * as Haptics from "expo-haptics";
-import {StyleProp, StyleSheet, Text, TouchableOpacity, ViewStyle,} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {
+  StyleProp,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ViewStyle,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {radius, useAppTheme} from "@/src/shared/theme";
+import { radius, useAppTheme } from "@/src/shared/theme";
 
-import SelectSheet, {SelectOption, SelectSheetRef,} from "@/src/shared/ui/form/SelectSheet";
+import SelectSheet, {
+  SelectOption,
+  SelectSheetRef,
+} from "@/src/shared/ui/form/SelectSheet";
 
 export type SeasonSelectProps = {
   options: SelectOption[];
@@ -22,16 +31,16 @@ export type SeasonSelectProps = {
 };
 
 const SeasonSelect: React.FC<SeasonSelectProps> = ({
-                                                     options,
-                                                     selectedValue,
-                                                     onSelect,
-                                                     title = "Choisir une saison",
-                                                     placeholderLabel = "Saison",
-                                                     testIDButton,
-                                                     style,
-                                                     disabled = false,
-                                                     clearable = true,
-                                                   }) => {
+  options,
+  selectedValue,
+  onSelect,
+  title = "Choisir une saison",
+  placeholderLabel = "Saison",
+  testIDButton,
+  style,
+  disabled = false,
+  clearable = true,
+}) => {
   const theme = useAppTheme();
   const sheetRef = useRef<SelectSheetRef>(null);
 
@@ -74,7 +83,7 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
         testID={testIDButton}
         accessibilityRole="button"
         accessibilityLabel={title}
-        accessibilityState={{disabled: isDisabled, expanded: false}}
+        accessibilityState={{ disabled: isDisabled, expanded: false }}
       >
         <MaterialCommunityIcons
           name="calendar-month-outline"
@@ -83,7 +92,7 @@ const SeasonSelect: React.FC<SeasonSelectProps> = ({
         />
 
         <Text
-          style={[styles.seasonText, {color: theme.text}]}
+          style={[styles.seasonText, { color: theme.text }]}
           numberOfLines={1}
         >
           {label}

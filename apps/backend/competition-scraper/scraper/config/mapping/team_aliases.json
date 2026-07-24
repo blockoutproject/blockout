@@ -53,12 +53,7 @@
     {
       "full": "Arago De Sète",
       "short": "Sète",
-      "aliases": [
-        "Arago Sète",
-        "Arago De Sete",
-        "Sète",
-        "Arago de Sète"
-      ],
+      "aliases": ["Arago Sète", "Arago De Sete", "Sète", "Arago de Sète"],
       "gender": "M"
     },
     {
@@ -110,10 +105,7 @@
     {
       "full": "Paris Volley",
       "short": "Paris",
-      "aliases": [
-        "Paris",
-        "Paris Volley"
-      ],
+      "aliases": ["Paris", "Paris Volley"],
       "gender": "M"
     },
     {
@@ -131,12 +123,7 @@
     {
       "full": "Narbonne Volley",
       "short": "Narbonne",
-      "aliases": [
-        "Narbonne VB",
-        "NAR",
-        "Narbonne",
-        "Narbonne Volley"
-      ],
+      "aliases": ["Narbonne VB", "NAR", "Narbonne", "Narbonne Volley"],
       "gender": "M"
     },
     {
@@ -153,12 +140,7 @@
     {
       "full": "Neptunes de Nantes",
       "short": "Neptunes",
-      "aliases": [
-        "Neptunes de Nantes",
-        "Nantes VB",
-        "Nantes",
-        "Neptunes"
-      ],
+      "aliases": ["Neptunes de Nantes", "Nantes VB", "Nantes", "Neptunes"],
       "gender": "F"
     },
     {
@@ -210,10 +192,7 @@
     {
       "full": "Saint Dié Des Vosges VB",
       "short": "St-Dié",
-      "aliases": [
-        "St-Dié",
-        "SAINT DIE DES VOSGES VB"
-      ],
+      "aliases": ["St-Dié", "SAINT DIE DES VOSGES VB"],
       "gender": "F"
     },
     {
@@ -268,12 +247,7 @@
     {
       "full": "Quimper Volley 29",
       "short": "Quimper",
-      "aliases": [
-        "Quimper VB",
-        "Quimper Volley 29",
-        "QV 29",
-        "Quimper"
-      ],
+      "aliases": ["Quimper VB", "Quimper Volley 29", "QV 29", "Quimper"],
       "gender": "F"
     },
     {
@@ -290,31 +264,19 @@
     {
       "full": "Racing Club de Cannes",
       "short": "RC Cannes",
-      "aliases": [
-        "Racing Club de Cannes",
-        "RC Cannes",
-        "Cannes",
-        "Cannes "
-      ],
+      "aliases": ["Racing Club de Cannes", "RC Cannes", "Cannes", "Cannes "],
       "gender": "F"
     },
     {
       "full": "Volero Le Cannet",
       "short": "Le Cannet",
-      "aliases": [
-        "Volero Le Cannet",
-        "Le Cannet"
-      ],
+      "aliases": ["Volero Le Cannet", "Le Cannet"],
       "gender": "F"
     },
     {
       "full": "France Avenir",
       "short": "France Avenir",
-      "aliases": [
-        "France Avenir 2024",
-        "FA2024",
-        "France Avenir"
-      ],
+      "aliases": ["France Avenir 2024", "FA2024", "France Avenir"],
       "gender": "F"
     },
     {
@@ -331,62 +293,37 @@
     {
       "full": "France Avenir",
       "short": "France Avenir",
-      "aliases": [
-        "France Avenir 2024",
-        "FA2024",
-        "France Avenir"
-      ],
+      "aliases": ["France Avenir 2024", "FA2024", "France Avenir"],
       "gender": "M"
     },
     {
       "full": "Royan Atlantique Volley-Ball",
       "short": "Royan",
-      "aliases": [
-        "Royan Atlantique Volley-Ball",
-        "RAVB",
-        "Royan"
-      ],
+      "aliases": ["Royan Atlantique Volley-Ball", "RAVB", "Royan"],
       "gender": "M"
     },
     {
       "full": "AS Illacaise VB",
       "short": "Illac",
-      "aliases": [
-        "Saint-Jean d'Illac",
-        "AS Illacaise VB",
-        "Illac"
-      ],
+      "aliases": ["Saint-Jean d'Illac", "AS Illacaise VB", "Illac"],
       "gender": "M"
     },
     {
       "full": "Martigues Volley-Ball",
       "short": "Martigues",
-      "aliases": [
-        "Martigues Volley-Ball",
-        "MVB",
-        "Martigues"
-      ],
+      "aliases": ["Martigues Volley-Ball", "MVB", "Martigues"],
       "gender": "M"
     },
     {
       "full": "Saint-Quentin Volley",
       "short": "St-Quentin",
-      "aliases": [
-        "Saint-Quentin Volley",
-        "SQV",
-        "Saint-Quentin",
-        "St-Quentin"
-      ],
+      "aliases": ["Saint-Quentin Volley", "SQV", "Saint-Quentin", "St-Quentin"],
       "gender": "M"
     },
     {
       "full": "Gazelec F.C. Ajaccio",
       "short": "Ajaccio",
-      "aliases": [
-        "Gazelec F.C. Ajaccio",
-        "GFCA VB",
-        "Ajaccio"
-      ],
+      "aliases": ["Gazelec F.C. Ajaccio", "GFCA VB", "Ajaccio"],
       "gender": "M"
     },
     {
@@ -403,29 +340,19 @@
     {
       "full": "Cambrai Volley",
       "short": "Cambrai",
-      "aliases": [
-        "Cambrai Volley",
-        "Cambrai"
-      ],
+      "aliases": ["Cambrai Volley", "Cambrai"],
       "gender": "M"
     },
     {
       "full": "Reims Volley 51",
       "short": "Reims",
-      "aliases": [
-        "Reims Volley 51",
-        "Reims"
-      ],
+      "aliases": ["Reims Volley 51", "Reims"],
       "gender": "M"
     },
     {
       "full": "Fréjus Var Volley",
       "short": "Fréjus",
-      "aliases": [
-        "Fréjus Var Volley",
-        "Frejus Var Volley",
-        "Fréjus"
-      ],
+      "aliases": ["Fréjus Var Volley", "Frejus Var Volley", "Fréjus"],
       "gender": "M"
     },
     {
@@ -443,11 +370,7 @@
     {
       "full": "VBC Chalon-Sur-Saône",
       "short": "Chalon",
-      "aliases": [
-        "VBC CHALON-SUR-SAÔNE",
-        "Chalon",
-        "VBC"
-      ],
+      "aliases": ["VBC CHALON-SUR-SAÔNE", "Chalon", "VBC"],
       "gender": "M"
     }
   ]

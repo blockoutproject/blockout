@@ -1,6 +1,6 @@
-import React, {useState} from "react";
-import StateCard, {StateAction} from "./StateCard";
-import {DimensionValue} from "react-native";
+import React, { useState } from "react";
+import StateCard, { StateAction } from "./StateCard";
+import { DimensionValue } from "react-native";
 
 /** Props for the empty data state. */
 export type EmptyStateProps = {
@@ -21,14 +21,14 @@ export type EmptyStateProps = {
 };
 
 const EmptyState: React.FC<EmptyStateProps> = ({
-                                                 title = "Rien ici pour l’instant.",
-                                                 subtitle,
-                                                 onRetry,
-                                                 paddingTop = "20%",
-                                                 retryLabel = "Rafraîchir",
-                                                 testID = "empty-state",
-                                                 retryTestID = "empty-retry",
-                                               }) => {
+  title = "Rien ici pour l’instant.",
+  subtitle,
+  onRetry,
+  paddingTop = "20%",
+  retryLabel = "Rafraîchir",
+  testID = "empty-state",
+  retryTestID = "empty-retry",
+}) => {
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {
@@ -45,13 +45,13 @@ const EmptyState: React.FC<EmptyStateProps> = ({
 
   const action: StateAction | undefined = onRetry
     ? {
-      label: retryLabel,
-      onPress: handleRetry,
-      icon: "refresh",
-      loading: retrying,
-      disabled: retrying,
-      testID: retryTestID,
-    }
+        label: retryLabel,
+        onPress: handleRetry,
+        icon: "refresh",
+        loading: retrying,
+        disabled: retrying,
+        testID: retryTestID,
+      }
     : undefined;
 
   return (

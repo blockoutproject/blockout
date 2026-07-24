@@ -1,16 +1,16 @@
 import React from "react";
-import {StyleSheet, Text, TouchableOpacity, View,} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {ScraperStatusResponse} from "@/src/shared/generated/models";
+import { useAppTheme } from "@/src/shared/theme";
+import { ScraperStatusResponse } from "@/src/shared/generated/models";
 
 interface Props {
   scraper: ScraperStatusResponse;
   onToggle: () => void;
 }
 
-const ScraperStatusItem: React.FC<Props> = ({scraper, onToggle}) => {
+const ScraperStatusItem: React.FC<Props> = ({ scraper, onToggle }) => {
   const theme = useAppTheme();
   const isEnabled = scraper.enabled;
 
@@ -27,7 +27,7 @@ const ScraperStatusItem: React.FC<Props> = ({scraper, onToggle}) => {
       activeOpacity={0.85}
       accessibilityRole="switch"
       accessibilityLabel={`${isEnabled ? "Désactiver" : "Activer"} ${scraper.name}`}
-      accessibilityState={{checked: isEnabled}}
+      accessibilityState={{ checked: isEnabled }}
       testID={`administration-scraper-${scraper.name}`}
     >
       <View style={styles.leftBlock}>
@@ -49,7 +49,7 @@ const ScraperStatusItem: React.FC<Props> = ({scraper, onToggle}) => {
         </View>
 
         <View style={styles.textWrapper}>
-          <Text style={[styles.name, {color: theme.text}]}>
+          <Text style={[styles.name, { color: theme.text }]}>
             {scraper.name}
           </Text>
           <View style={styles.chipRow}>
@@ -67,9 +67,7 @@ const ScraperStatusItem: React.FC<Props> = ({scraper, onToggle}) => {
                 style={[
                   styles.statusDot,
                   {
-                    backgroundColor: isEnabled
-                      ? theme.success
-                      : theme.error,
+                    backgroundColor: isEnabled ? theme.success : theme.error,
                   },
                 ]}
               />
@@ -77,9 +75,7 @@ const ScraperStatusItem: React.FC<Props> = ({scraper, onToggle}) => {
                 style={[
                   styles.statusText,
                   {
-                    color: isEnabled
-                      ? theme.success
-                      : theme.error,
+                    color: isEnabled ? theme.success : theme.error,
                   },
                 ]}
               >

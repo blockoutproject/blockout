@@ -26,10 +26,10 @@ import {
 } from "@/src/shared/generated/models";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import { useSessionState } from "@/src/modules/session/providers/SessionContext";
-import {useAppTheme} from "@/src/shared/theme";
+import { useAppTheme } from "@/src/shared/theme";
 import Filters from "@/src/shared/ui/Filters";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
-import {FormField} from "@/src/shared/ui/form/form-field";
+import { FormField } from "@/src/shared/ui/form/form-field";
 import FormCard from "@/src/shared/ui/form/FormCard";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import { CURRENT_APP_VERSION } from "@/src/modules/app-status/model/appVersion";
@@ -83,7 +83,9 @@ const ReportForm = ({
   const formik = useFormik<FormValues>({
     initialValues: { type: initialType, title: "", description: "" },
     validationSchema: Yup.object({
-      type: Yup.mixed<ReportTypeEnum>().oneOf(Object.values(ReportTypeEnum)).required(),
+      type: Yup.mixed<ReportTypeEnum>()
+        .oneOf(Object.values(ReportTypeEnum))
+        .required(),
       title: Yup.string().trim().required("Titre requis 🚨"),
       description: Yup.string()
         .trim()

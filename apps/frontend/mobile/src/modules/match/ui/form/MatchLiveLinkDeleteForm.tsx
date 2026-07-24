@@ -1,16 +1,19 @@
 // FILE: src/components/match/form/MatchLiveLinkDeleteForm.tsx
 
-import React, {useCallback, useEffect, useMemo, useState} from "react";
-import {StyleSheet, Text, View} from "react-native";
-import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {useApis} from "@/src/shared/providers/ApiProvider";
+import { useAppTheme } from "@/src/shared/theme";
+import { useApis } from "@/src/shared/providers/ApiProvider";
 import FormCard from "@/src/shared/ui/form/FormCard";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
-import {getLiveLinkErrorMessage, MatchLiveLinkFormState,} from "./MatchLiveLinkForm";
+import {
+  getLiveLinkErrorMessage,
+  MatchLiveLinkFormState,
+} from "./MatchLiveLinkForm";
 
 export type MatchLiveLinkDeleteFormProps = {
   matchId: number;
@@ -21,14 +24,14 @@ export type MatchLiveLinkDeleteFormProps = {
 };
 
 const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
-                                                                           matchId,
-                                                                           liveUrl,
-                                                                           onSuccess,
-                                                                           onRegisterSubmit,
-                                                                           onStateChange,
-                                                                         }) => {
+  matchId,
+  liveUrl,
+  onSuccess,
+  onRegisterSubmit,
+  onStateChange,
+}) => {
   const theme = useAppTheme();
-  const {mobile} = useApis();
+  const { mobile } = useApis();
 
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -39,20 +42,14 @@ const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
     try {
       setLoading(true);
       setApiError(null);
-      await Haptics.impactAsync(
-        Haptics.ImpactFeedbackStyle.Medium,
-      );
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await mobile.matches.deleteMatchLiveLink(matchId);
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success,
-      );
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
     } catch (err) {
       const msg = getLiveLinkErrorMessage(err);
       setApiError(msg);
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Error,
-      );
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);
     }
@@ -63,7 +60,7 @@ const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
   }, [handleDelete, onRegisterSubmit]);
 
   useEffect(() => {
-    onStateChange?.({loading, canSubmit});
+    onStateChange?.({ loading, canSubmit });
   }, [loading, canSubmit, onStateChange]);
 
   return (
@@ -77,7 +74,7 @@ const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
             <View
               style={[
                 styles.warningIconWrap,
-                {backgroundColor: theme.error + "22"},
+                { backgroundColor: theme.error + "22" },
               ]}
             >
               <MaterialCommunityIcons
@@ -87,47 +84,27 @@ const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
               />
             </View>
             <View style={styles.warningTextBlock}>
-              <Text
-                style={[
-                  styles.warningTitle,
-                  {color: theme.error},
-                ]}
-              >
+              <Text style={[styles.warningTitle, { color: theme.error }]}>
                 Cette action est irréversible
               </Text>
               <Text
-                style={[
-                  styles.warningSubtitle,
-                  {color: theme.textInactive},
-                ]}
+                style={[styles.warningSubtitle, { color: theme.textInactive }]}
               >
-                Le lien ne sera plus visible sur la fiche du
-                match. Tu pourras toujours proposer un nouveau
-                lien, qui sera à nouveau vérifié.
+                Le lien ne sera plus visible sur la fiche du match. Tu pourras
+                toujours proposer un nouveau lien, qui sera à nouveau vérifié.
               </Text>
             </View>
           </View>
 
           {!!liveUrl && (
             <View
-              style={[
-                styles.urlBlock,
-                {borderColor: theme.borderSecondary},
-              ]}
+              style={[styles.urlBlock, { borderColor: theme.borderSecondary }]}
             >
-              <Text
-                style={[
-                  styles.urlLabel,
-                  {color: theme.textInactive},
-                ]}
-              >
+              <Text style={[styles.urlLabel, { color: theme.textInactive }]}>
                 Lien actuel
               </Text>
               <Text
-                style={[
-                  styles.urlValue,
-                  {color: theme.text},
-                ]}
+                style={[styles.urlValue, { color: theme.text }]}
                 numberOfLines={2}
               >
                 {liveUrl}
@@ -137,10 +114,7 @@ const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
         </FormCard>
       </BottomSheetScrollView>
 
-      <ApiErrorToast
-        message={apiError}
-        onHidden={() => setApiError(null)}
-      />
+      <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
     </>
   );
 };
@@ -151,7 +125,7 @@ const styles = StyleSheet.create({
   scroll: {
     gap: 12,
     padding: 8,
-    paddingBottom: 100
+    paddingBottom: 100,
   },
   warningRow: {
     flexDirection: "row",

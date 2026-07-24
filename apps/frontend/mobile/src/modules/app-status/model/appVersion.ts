@@ -1,8 +1,9 @@
 import * as Application from "expo-application";
-import {Platform} from "react-native";
-import type {AppStatusResponse} from "@/src/shared/generated/models";
+import { Platform } from "react-native";
+import type { AppStatusResponse } from "@/src/shared/generated/models";
 
-export const CURRENT_APP_VERSION = Application.nativeApplicationVersion ?? "1.0.0";
+export const CURRENT_APP_VERSION =
+  Application.nativeApplicationVersion ?? "1.0.0";
 
 function parsePart(v: string | undefined): number {
   if (!v) return 0;
@@ -33,7 +34,9 @@ export function compareSemver(a: string, b: string): number {
  * Retourne true si l'app doit forcer une mise à jour
  * en fonction de la plateforme courante et de appStatus.
  */
-export function computeIsUpdateRequired(appStatus?: AppStatusResponse | null): boolean {
+export function computeIsUpdateRequired(
+  appStatus?: AppStatusResponse | null,
+): boolean {
   if (!appStatus) return false;
 
   const minVersion =
@@ -49,10 +52,12 @@ export function computeIsUpdateRequired(appStatus?: AppStatusResponse | null): b
 /**
  * Récupère l’URL vers le store en fonction de la plateforme.
  */
-export function getStoreUrl(appStatus?: AppStatusResponse | null): string | null {
+export function getStoreUrl(
+  appStatus?: AppStatusResponse | null,
+): string | null {
   if (!appStatus) return null;
 
   return Platform.OS === "ios"
-    ? appStatus.storeUrlIos ?? null
-    : appStatus.storeUrlAndroid ?? null;
+    ? (appStatus.storeUrlIos ?? null)
+    : (appStatus.storeUrlAndroid ?? null);
 }

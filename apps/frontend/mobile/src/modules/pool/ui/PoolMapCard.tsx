@@ -19,7 +19,7 @@ import type {
 } from "@/src/shared/generated/models";
 import { CONFIG } from "@/src/shared/config/config";
 import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
-import {useAppTheme} from "@/src/shared/theme";
+import { useAppTheme } from "@/src/shared/theme";
 
 type Props = {
   enrichedPool: PoolResponse;
@@ -237,9 +237,7 @@ const PoolMapCard: React.FC<Props> = ({ enrichedPool }) => {
       </MapView>
 
       <View pointerEvents="none" style={styles.attribution}>
-        <Text style={styles.attributionText}>
-          © OpenStreetMap contributors
-        </Text>
+        <Text style={styles.attributionText}>© OpenStreetMap contributors</Text>
       </View>
     </View>
   );

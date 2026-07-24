@@ -132,7 +132,9 @@
             "application/json": {
               "schema": {
                 "type": "array",
-                "items": { "$ref": "#/components/schemas/UserFavoriteInternalResponse" }
+                "items": {
+                  "$ref": "#/components/schemas/UserFavoriteInternalResponse"
+                }
               }
             }
           }

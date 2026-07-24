@@ -1,9 +1,9 @@
-import {useCallback, useEffect} from "react";
-import {Platform, StatusBar} from "react-native";
-import {AdEventType, InterstitialAd} from "react-native-google-mobile-ads";
-import {ADS} from "@/src/shared/config/ads";
-import {onAdsReady} from "./adsManager";
-import {usePurchases} from "@/src/modules/subscription/providers/PurchasesProvider";
+import { useCallback, useEffect } from "react";
+import { Platform, StatusBar } from "react-native";
+import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
+import { ADS } from "@/src/shared/config/ads";
+import { onAdsReady } from "./adsManager";
+import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 
 const CLICKS_BETWEEN_ADS = 10;
 
@@ -20,7 +20,9 @@ let navSinceLastAd = 0;
 
 function ensureInterstitial() {
   if (!sharedInterstitial) {
-    sharedInterstitial = InterstitialAd.createForAdRequest(ADS.INTERSTITIAL_NAV);
+    sharedInterstitial = InterstitialAd.createForAdRequest(
+      ADS.INTERSTITIAL_NAV,
+    );
   }
 
   if (!listenersAttached && sharedInterstitial) {
@@ -58,7 +60,7 @@ function ensureInterstitial() {
 }
 
 export const useNavigationInterstitial = () => {
-  const {isPro} = usePurchases();
+  const { isPro } = usePurchases();
 
   useEffect(() => {
     if (isPro) return;
@@ -120,5 +122,5 @@ export const useNavigationInterstitial = () => {
     [isPro],
   );
 
-  return {handleNavigationWithAd};
+  return { handleNavigationWithAd };
 };

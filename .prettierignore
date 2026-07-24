@@ -1,0 +1,25 @@
+# Dependencies, caches, and build output
+node_modules/
+.nx/
+dist/
+target/
+coverage/
+.expo/
+.venv/
+**/__pycache__/
+
+# Generated sources
+libs/shared/contracts/generated/
+libs/shared/python-contract-clients/src/.openapi-generator/
+libs/shared/python-contract-clients/src/blockout_contract_clients/
+apps/frontend/mobile/src/shared/generated/
+
+# Imported guidance and authentic provider fixtures
+.agents/skills/vercel-composition-patterns/
+.agents/skills/vercel-react-native-skills/
+apps/backend/club-scraper/tests/fixtures/
+apps/backend/competition-scraper/tests/fixtures/
+
+# Native dependency and build output
+apps/frontend/mobile/android/build/
+apps/frontend/mobile/ios/Pods/

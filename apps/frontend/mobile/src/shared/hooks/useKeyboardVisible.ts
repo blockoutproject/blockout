@@ -1,5 +1,10 @@
-import {useEffect, useState} from "react";
-import {type EmitterSubscription, Keyboard, KeyboardEventName, Platform} from "react-native";
+import { useEffect, useState } from "react";
+import {
+  type EmitterSubscription,
+  Keyboard,
+  KeyboardEventName,
+  Platform,
+} from "react-native";
 
 /**
  * useKeyboardIsVisible

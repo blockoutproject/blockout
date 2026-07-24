@@ -2,8 +2,8 @@ import {
   getPoolById,
   getPoolsByIds,
 } from "@/src/shared/generated/endpoints/pool-public";
-import {updatePool} from "@/src/shared/generated/endpoints/pool-secure";
-import type {UpdatePoolRequest} from "@/src/shared/generated/models";
+import { updatePool } from "@/src/shared/generated/endpoints/pool-secure";
+import type { UpdatePoolRequest } from "@/src/shared/generated/models";
 
 /** Expose pool operations through the feature API boundary. */
 export class PoolApi {
@@ -14,7 +14,7 @@ export class PoolApi {
 
   /** Load the public summaries for the requested pools. */
   public getPoolsByIds(ids: number[]) {
-    return getPoolsByIds({ids});
+    return getPoolsByIds({ ids });
   }
 
   /** Update one pool. */

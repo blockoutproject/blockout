@@ -1,9 +1,9 @@
-import {useQuery} from "@tanstack/react-query";
-import {useApis} from "@/src/shared/providers/ApiProvider";
-import {MatchLiveLinkHistoryResponse} from "@/src/shared/generated/models";
+import { useQuery } from "@tanstack/react-query";
+import { useApis } from "@/src/shared/providers/ApiProvider";
+import { MatchLiveLinkHistoryResponse } from "@/src/shared/generated/models";
 
 export const useMatchLiveLinksHistory = (matchId: number) => {
-  const {mobile} = useApis();
+  const { mobile } = useApis();
 
   return useQuery<MatchLiveLinkHistoryResponse[]>({
     queryKey: ["match-live-links-history", matchId],
@@ -11,6 +11,6 @@ export const useMatchLiveLinksHistory = (matchId: number) => {
       return await mobile.matches.getMatchLiveLinksHistory(matchId);
     },
     enabled: !!matchId,
-    staleTime: 0
+    staleTime: 0,
   });
 };

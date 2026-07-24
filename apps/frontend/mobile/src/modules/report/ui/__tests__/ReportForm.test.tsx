@@ -4,7 +4,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ReportTypeEnum } from "@/src/shared/generated/models";
 import ReportForm from "@/src/modules/report/ui/ReportForm";
-import {ThemeProvider} from "@/src/shared/theme";
+import { ThemeProvider } from "@/src/shared/theme";
 
 const mockCreateReport = jest.fn();
 

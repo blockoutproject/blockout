@@ -1,9 +1,9 @@
-import {useCallback, useEffect} from "react";
-import {Linking, Platform, StatusBar} from "react-native";
-import {AdEventType, InterstitialAd} from "react-native-google-mobile-ads";
-import {ADS} from "@/src/shared/config/ads";
-import {onAdsReady} from "./adsManager";
-import {usePurchases} from "@/src/modules/subscription/providers/PurchasesProvider";
+import { useCallback, useEffect } from "react";
+import { Linking, Platform, StatusBar } from "react-native";
+import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
+import { ADS } from "@/src/shared/config/ads";
+import { onAdsReady } from "./adsManager";
+import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 
 let sharedInterstitial: InterstitialAd | null = null;
 let isLoaded = false;
@@ -12,7 +12,9 @@ let pendingUrl: string | null = null;
 
 function ensureInterstitial() {
   if (!sharedInterstitial) {
-    sharedInterstitial = InterstitialAd.createForAdRequest(ADS.INTERSTITIAL_WEB);
+    sharedInterstitial = InterstitialAd.createForAdRequest(
+      ADS.INTERSTITIAL_WEB,
+    );
   }
 
   if (!listenersAttached && sharedInterstitial) {
@@ -39,8 +41,7 @@ function ensureInterstitial() {
       if (url) {
         try {
           await Linking.openURL(url);
-        } catch {
-        }
+        } catch {}
       }
 
       isLoaded = false;
@@ -52,7 +53,7 @@ function ensureInterstitial() {
 }
 
 export const useWebLinkInterstitial = () => {
-  const {isPro} = usePurchases();
+  const { isPro } = usePurchases();
 
   useEffect(() => {
     if (isPro) return;
@@ -65,16 +66,14 @@ export const useWebLinkInterstitial = () => {
   const openLinkWithInterstitial = useCallback(
     (url: string) => {
       if (isPro) {
-        Linking.openURL(url).catch(() => {
-        });
+        Linking.openURL(url).catch(() => {});
         return;
       }
 
       const interstitial = sharedInterstitial;
 
       if (!interstitial || !isLoaded) {
-        Linking.openURL(url).catch(() => {
-        });
+        Linking.openURL(url).catch(() => {});
         return;
       }
 
@@ -85,12 +84,11 @@ export const useWebLinkInterstitial = () => {
         isLoaded = false;
       } catch {
         pendingUrl = null;
-        Linking.openURL(url).catch(() => {
-        });
+        Linking.openURL(url).catch(() => {});
       }
     },
     [isPro],
   );
 
-  return {openLinkWithInterstitial};
+  return { openLinkWithInterstitial };
 };

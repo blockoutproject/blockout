@@ -39,9 +39,7 @@ describe("TabBarItem", () => {
     );
 
     const destination = screen.getByRole("tab", { name: "Accueil" });
-    expect(destination).toBe(
-      screen.getByTestId("navigation-home-action"),
-    );
+    expect(destination).toBe(screen.getByTestId("navigation-home-action"));
     expect(destination.props.accessibilityState).toEqual({ selected: true });
 
     await user.press(destination);

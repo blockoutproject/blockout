@@ -1,4 +1,4 @@
-import {render, userEvent} from "@testing-library/react-native";
+import { render, userEvent } from "@testing-library/react-native";
 import React from "react";
 
 import {
@@ -7,12 +7,12 @@ import {
   type PoolResponse,
 } from "@/src/shared/generated/models";
 import MatchPoolSection from "@/src/modules/match/ui/match-pool-section";
-import {FormatEnum} from "@/src/shared/model/formatLabels";
-import {GenderEnum} from "@/src/shared/model/genderLabels";
-import {ThemeProvider} from "@/src/shared/theme";
+import { FormatEnum } from "@/src/shared/model/formatLabels";
+import { GenderEnum } from "@/src/shared/model/genderLabels";
+import { ThemeProvider } from "@/src/shared/theme";
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({push: jest.fn()}),
+  useRouter: () => ({ push: jest.fn() }),
 }));
 
 jest.mock("@/src/modules/advertising/useNavigationInterstitial", () => ({

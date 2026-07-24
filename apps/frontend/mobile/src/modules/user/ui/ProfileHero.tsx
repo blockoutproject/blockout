@@ -1,10 +1,10 @@
-import React, {useMemo} from "react";
-import {StyleSheet, View} from "react-native";
+import React, { useMemo } from "react";
+import { StyleSheet, View } from "react-native";
 import Hero from "@/src/shared/ui/Hero";
-import type {UserResponse} from "@/src/shared/generated/models";
-import {usePurchases} from "@/src/modules/subscription/providers/PurchasesProvider";
-import {gradients, useAppTheme} from "@/src/shared/theme";
-import {GradientPill} from "@/src/shared/ui/pill";
+import type { UserResponse } from "@/src/shared/generated/models";
+import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
+import { gradients, useAppTheme } from "@/src/shared/theme";
+import { GradientPill } from "@/src/shared/ui/pill";
 
 export type UserHeroProps = {
   user: UserResponse;
@@ -13,9 +13,9 @@ export type UserHeroProps = {
 
 const AVATAR_SIZE = 120;
 
-const ProfileHero: React.FC<UserHeroProps> = ({user, onEdit}) => {
+const ProfileHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
   const theme = useAppTheme();
-  const {isPro, isHydrated} = usePurchases();
+  const { isPro, isHydrated } = usePurchases();
 
   const title = user.pseudo || "Utilisateur";
   const email = user.email || undefined;
@@ -34,7 +34,7 @@ const ProfileHero: React.FC<UserHeroProps> = ({user, onEdit}) => {
         label="Pro"
         textColor={theme.gold}
         iconColor={theme.gold}
-        labelStyle={{color: theme.gold, fontWeight: "900"}}
+        labelStyle={{ color: theme.gold, fontWeight: "900" }}
         style={styles.proPill}
       />
     );

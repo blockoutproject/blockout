@@ -1,14 +1,12 @@
-import {fetch} from "expo/fetch";
+import { fetch } from "expo/fetch";
 
-import {ApiError} from "@/src/shared/api/ApiError";
-import {CONFIG} from "@/src/shared/config/config";
+import { ApiError } from "@/src/shared/api/ApiError";
+import { CONFIG } from "@/src/shared/config/config";
 
 export type TokenSupplier = () => Promise<string | null>;
 
 let tokenSupplier: TokenSupplier | undefined;
-let onUnauthorized:
-  | ((error: ApiError) => void | Promise<void>)
-  | undefined;
+let onUnauthorized: ((error: ApiError) => void | Promise<void>) | undefined;
 
 /** Configure authentication used by generated secure gateway operations. */
 export function setMobileGatewayAuthContext(
@@ -86,7 +84,10 @@ async function readResponseBody<T>(response: Response): Promise<T> {
   if (response.status === 204) return undefined as T;
 
   const contentType = response.headers.get("content-type");
-  if (contentType?.includes("application/json") || contentType?.includes("+json")) {
+  if (
+    contentType?.includes("application/json") ||
+    contentType?.includes("+json")
+  ) {
     return response.json() as Promise<T>;
   }
   if (contentType?.includes("application/pdf")) {
@@ -98,7 +99,10 @@ async function readResponseBody<T>(response: Response): Promise<T> {
 /** Normalize a gateway error response into the existing mobile error contract. */
 function createApiError(response: Response, data: unknown): ApiError {
   const body = typeof data === "object" && data !== null ? data : undefined;
-  const message = readString(body, "message") ?? readString(body, "detail") ?? "Erreur serveur";
+  const message =
+    readString(body, "message") ??
+    readString(body, "detail") ??
+    "Erreur serveur";
   const code =
     readString(body, "code") ??
     (response.status >= 500 ? "ERR_SERVER" : "ERR_BAD_REQUEST");
@@ -107,7 +111,7 @@ function createApiError(response: Response, data: unknown): ApiError {
     response.headers.get("x-correlation-id") ??
     undefined;
 
-  return new ApiError(response.status, message, data, {code, requestId});
+  return new ApiError(response.status, message, data, { code, requestId });
 }
 
 /** Read one string property from an unknown response object. */

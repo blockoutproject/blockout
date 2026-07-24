@@ -28,7 +28,9 @@
           "description": "Report created",
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ReportInternalResponse" }
+              "schema": {
+                "$ref": "#/components/schemas/ReportInternalResponse"
+              }
             }
           }
         }

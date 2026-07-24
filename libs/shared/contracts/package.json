@@ -19,7 +19,9 @@
           "{projectRoot}/specs/source/**/*.json",
           "{projectRoot}/specs/scripts/bundle-openapi.mjs"
         ],
-        "outputs": ["{projectRoot}/generated/specs/*.json"],
+        "outputs": [
+          "{projectRoot}/generated/specs/*.json"
+        ],
         "options": {
           "command": "node libs/shared/contracts/specs/scripts/bundle-openapi.mjs"
         }
@@ -32,7 +34,9 @@
           "{projectRoot}/specs/scripts/sync-backend-schema-mappings.mjs",
           "{workspaceRoot}/apps/backend/pom.xml"
         ],
-        "outputs": ["{workspaceRoot}/apps/backend/pom.xml"],
+        "outputs": [
+          "{workspaceRoot}/apps/backend/pom.xml"
+        ],
         "options": {
           "command": "node libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.mjs"
         }

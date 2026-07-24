@@ -1,9 +1,9 @@
-import {useQuery} from "@tanstack/react-query";
-import {useApis} from "@/src/shared/providers/ApiProvider";
-import {AppStatusResponse} from "@/src/shared/generated/models";
+import { useQuery } from "@tanstack/react-query";
+import { useApis } from "@/src/shared/providers/ApiProvider";
+import { AppStatusResponse } from "@/src/shared/generated/models";
 
 export const useAppStatus = () => {
-  const {mobile} = useApis();
+  const { mobile } = useApis();
 
   return useQuery<AppStatusResponse>({
     queryKey: ["appStatus"],

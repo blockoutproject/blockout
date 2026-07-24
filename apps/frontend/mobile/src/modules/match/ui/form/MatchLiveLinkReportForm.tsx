@@ -1,17 +1,20 @@
-import React, {useEffect, useMemo, useState} from "react";
-import {StyleSheet} from "react-native";
-import {BottomSheetScrollView, BottomSheetTextInput,} from "@gorhom/bottom-sheet";
-import {useFormik} from "formik";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet } from "react-native";
+import {
+  BottomSheetScrollView,
+  BottomSheetTextInput,
+} from "@gorhom/bottom-sheet";
+import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {useApis} from "@/src/shared/providers/ApiProvider";
+import { useAppTheme } from "@/src/shared/theme";
+import { useApis } from "@/src/shared/providers/ApiProvider";
 import FormCard from "@/src/shared/ui/form/FormCard";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
-import {ApiError} from "@/src/shared/api/ApiError";
-import {ReportMatchLiveLinkRequest} from "@/src/shared/generated/models";
-import {FormField} from "@/src/shared/ui/form/form-field";
+import { ApiError } from "@/src/shared/api/ApiError";
+import { ReportMatchLiveLinkRequest } from "@/src/shared/generated/models";
+import { FormField } from "@/src/shared/ui/form/form-field";
 
 export type MatchLiveLinkReportFormState = {
   loading: boolean;
@@ -54,28 +57,26 @@ const validationSchema = Yup.object({
 });
 
 const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
-                                                                           matchId,
-                                                                           onSuccess,
-                                                                           onRegisterSubmit,
-                                                                           onStateChange,
-                                                                         }) => {
+  matchId,
+  onSuccess,
+  onRegisterSubmit,
+  onStateChange,
+}) => {
   const theme = useAppTheme();
-  const {mobile} = useApis();
+  const { mobile } = useApis();
 
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const formik = useFormik<FormValues>({
-    initialValues: {reason: ""},
+    initialValues: { reason: "" },
     validationSchema,
     validateOnMount: true,
     onSubmit: async (values) => {
       try {
         setLoading(true);
         setApiError(null);
-        await Haptics.impactAsync(
-          Haptics.ImpactFeedbackStyle.Medium,
-        );
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         const payload: ReportMatchLiveLinkRequest = {
           reason: values.reason.trim(),
@@ -89,9 +90,7 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
       } catch (err) {
         const msg = getReportErrorMessage(err);
         setApiError(msg);
-        await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Error,
-        );
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } finally {
         setLoading(false);
       }
@@ -99,10 +98,7 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
   });
 
   const canSubmit = useMemo(
-    () =>
-      formik.isValid &&
-      !!formik.values.reason.trim() &&
-      !loading,
+    () => formik.isValid && !!formik.values.reason.trim() && !loading,
     [formik.isValid, formik.values.reason, loading],
   );
 
@@ -111,7 +107,7 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
   }, [formik.submitForm, onRegisterSubmit]);
 
   useEffect(() => {
-    onStateChange?.({loading, canSubmit});
+    onStateChange?.({ loading, canSubmit });
   }, [loading, canSubmit, onStateChange]);
 
   const showFieldError = formik.touched.reason && !!formik.errors.reason;
@@ -131,9 +127,7 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
               style={[
                 styles.input,
                 {
-                  borderColor: showFieldError
-                    ? theme.error
-                    : theme.border,
+                  borderColor: showFieldError ? theme.error : theme.border,
                   color: theme.text,
                   backgroundColor: theme.surface,
                 },
@@ -149,10 +143,7 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
         </FormCard>
       </BottomSheetScrollView>
 
-      <ApiErrorToast
-        message={apiError}
-        onHidden={() => setApiError(null)}
-      />
+      <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
     </>
   );
 };
@@ -163,7 +154,7 @@ const styles = StyleSheet.create({
   scroll: {
     gap: 12,
     padding: 8,
-    paddingBottom: 100
+    paddingBottom: 100,
   },
   input: {
     borderWidth: 1.5,

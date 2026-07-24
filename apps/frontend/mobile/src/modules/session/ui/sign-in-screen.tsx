@@ -45,8 +45,8 @@ export const getSignInErrorMessage = (err: unknown): string => {
 const SignInScreen: React.FC = () => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const {signIn, continueAsGuest} = useSessionActions();
-  const {isLoading, error} = useSessionState();
+  const { signIn, continueAsGuest } = useSessionActions();
+  const { isLoading, error } = useSessionState();
 
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isGuesting, setIsGuesting] = useState(false);

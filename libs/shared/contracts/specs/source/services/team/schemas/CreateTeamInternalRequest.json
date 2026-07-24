@@ -24,7 +24,11 @@
       "season": { "type": "string" },
       "format": { "$ref": "#/components/schemas/FormatEnum" },
       "gender": { "$ref": "#/components/schemas/GenderEnum" },
-      "followersCount": { "type": "integer", "format": "int64", "nullable": true },
+      "followersCount": {
+        "type": "integer",
+        "format": "int64",
+        "nullable": true
+      },
       "logoUrl": { "type": "string", "nullable": true },
       "active": { "type": "boolean", "nullable": true }
     }

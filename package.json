@@ -7,6 +7,14 @@
     "libs/shared/*"
   ],
   "scripts": {
+    "format": "npm run format:prettier && npm run format:java && npm run format:python",
+    "format:check": "npm run format:prettier:check && npm run format:java:check && npm run format:python:check",
+    "format:prettier": "prettier \"**/*.{cjs,mjs,js,jsx,ts,tsx,json,json5,jsonc,yml,yaml,md,mdx,css,scss,html}\" --write --ignore-unknown",
+    "format:prettier:check": "prettier \"**/*.{cjs,mjs,js,jsx,ts,tsx,json,json5,jsonc,yml,yaml,md,mdx,css,scss,html}\" --check --ignore-unknown",
+    "format:java": "mvn -f apps/backend/pom.xml spotless:apply",
+    "format:java:check": "mvn -f apps/backend/pom.xml spotless:check",
+    "format:python": "nx run-many -t format --projects=@blockout/club-scraper,@blockout/competition-scraper",
+    "format:python:check": "nx run-many -t format-check --projects=@blockout/club-scraper,@blockout/competition-scraper",
     "graph": "nx graph",
     "show-projects": "nx show projects"
   },
@@ -28,6 +36,7 @@
     "@nxlv/python": "22.2.2",
     "nx": "23.1.0",
     "orval": "8.22.0",
+    "prettier": "3.9.6",
     "typescript": "~5.9.2"
   }
 }
