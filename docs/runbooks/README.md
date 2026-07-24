@@ -11,18 +11,28 @@ Runbooks are reusable procedures. They do not own task state, product decisions,
   pull requests.
 - [`tasks/merge.md`](tasks/merge.md): deterministic release of at most one eligible pull request without modifying
   remaining pull-request branches.
+- [`mobile/visual-validation.md`](mobile/visual-validation.md): simulator, native, and Figma evidence for an owning
+  mobile execution.
 
 These workflows use the compact Roadmap reader and the split operations, lifecycle, governance, taxonomy, and Git
 workflow references from the Blockout best-practices skill.
 
-## Domain Runbooks
+## Audit And Execution Pairs
 
-Domain runbooks are grouped by responsibility. A read-only recurring audit uses `audit.md`; its paired correction path
-uses `execution.md` and must revalidate every finding before editing. Ordinary Roadmap work continues to use the task
-execution runbook.
+| Domain                                      | Audit                                                        | Execution                                                            |
+| ------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Application logging                         | [`audit.md`](application-logging/audit.md)                   | [`execution.md`](application-logging/execution.md)                   |
+| Completed tasks                             | [`audit.md`](completed-tasks/audit.md)                       | [`execution.md`](completed-tasks/execution.md)                       |
+| Auth0 authentication flow                   | [`audit.md`](auth0-auth-flow/audit.md)                       | [`execution.md`](auth0-auth-flow/execution.md)                       |
+| Expo / React Native / TypeScript complexity | [`audit.md`](expo-react-native-typescript-overkill/audit.md) | [`execution.md`](expo-react-native-typescript-overkill/execution.md) |
+| Native component usage                      | [`audit.md`](native-component-usage/audit.md)                | [`execution.md`](native-component-usage/execution.md)                |
+| Python complexity                           | [`audit.md`](python-overkill/audit.md)                       | [`execution.md`](python-overkill/execution.md)                       |
+| Workspace architecture                      | [`audit.md`](workspace-architecture/audit.md)                | [`execution.md`](workspace-architecture/execution.md)                |
 
-The initial cleaned baseline contains only task workflows. Domain audit and execution pairs are added only when their
-scope, evidence rules, deduplication ownership, and scheduled invocation are defined together.
+An audit is read-only while it inspects the repository and gathers evidence. It may publish a deduplicated Roadmap
+finding only after the audit explicitly separates observation from publication. Its paired execution revalidates every
+finding before editing and preserves a real no-op result. Ordinary Roadmap work continues to use the task execution
+runbook.
 
 ## Invariants
 
