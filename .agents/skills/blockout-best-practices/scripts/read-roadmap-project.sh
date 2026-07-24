@@ -5,12 +5,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 query_file="${script_dir}/roadmap-project-index.graphql"
 owner="${ROADMAP_OWNER:-blockoutproject}"
-project_number="${ROADMAP_PROJECT_NUMBER:-}"
-
-if [[ -z "${project_number}" ]]; then
-  echo "ROADMAP_PROJECT_NUMBER is required until GIT-005 configures the Blockout Roadmap default." >&2
-  exit 2
-fi
+project_number="${ROADMAP_PROJECT_NUMBER:-4}"
 
 command -v gh >/dev/null
 command -v jq >/dev/null

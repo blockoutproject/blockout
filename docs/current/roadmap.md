@@ -1341,7 +1341,7 @@ checklist until GIT-012 removes it.
     and all five templates resolve a live native type. No issue, pull request, or meaningful metadata was deleted, and
     no Roadmap Project was created.
 
-- [ ] **GIT-005 — Create and configure the Blockout Roadmap Project**
+- [x] **GIT-005 — Create and configure the Blockout Roadmap Project**
   - Create the organization `Roadmap` Project and capture a complete recovery snapshot before each structural mutation.
     Resolve every Project, field, option, view, workflow, repository, and issue-type ID live by name.
   - Reproduce Maaatch's lifecycle fields and order: `Triage`, `Backlog`, `Ready`, `In Progress`, `In Review`, `Done`,
@@ -1354,6 +1354,17 @@ checklist until GIT-012 removes it.
   - Connect the Blockout repository, adapt the compact reader's default owner and live Project number, replace the
     issue templates' organization Projects landing link with the exact live Roadmap URL, and prove complete pagination
     and normalized field output from two stable reads. Do not add product tasks yet.
+  - Evidence (2026-07-24): organization Project
+    [`Roadmap`](https://github.com/orgs/blockoutproject/projects/4) was created as Project `4`, linked to
+    `blockoutproject/blockout`, and captured before mutation in
+    `/tmp/blockout-git005-recovery-20260724/projects-before.json` with SHA-256
+    `9788cc0c439645934740e872012e123e3de31f0d353615fbb8767e2b37511ad2`. Live rereads prove 16 fields with the exact
+    ordered Status, Track, Priority, and Execution Mode vocabularies; five views with the required names, filters,
+    layouts, visible fields, grouping, and ascending sort order; and only `Auto-add sub-issues to project` plus
+    `Item added to project` enabled. The latter sets every newly added issue or pull request to `Triage`. The compact
+    reader now defaults to Project `4`, all five issue templates link directly to it, pagination is complete, the
+    Project remains empty of product work, and two normalized compact reads matched byte-for-byte with SHA-256
+    `1a1649424c090c94a026bf6c6f359043fe2120e3433504b4de673ff868b09ce6`.
 
 - [ ] **GIT-006 — Prepare CI and repository documentation for `develop`**
   - Reconcile the Maaatch-aligned pull-request and push workflows already prepared for Blockout, keeping contracts as

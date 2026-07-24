@@ -33,6 +33,6 @@ structural sub-issues.
 
 -
 
-Add this Epic to the [Blockout Roadmap](https://github.com/orgs/blockoutproject/projects) Project named `Roadmap` and
-set its `Track`. An Epic is a rollup, has no workset or assignee, and is never executable; see the
+Add this Epic to the [Blockout Roadmap](https://github.com/orgs/blockoutproject/projects/4) and set its `Track`. An Epic
+is a rollup, has no workset or assignee, and is never executable; see the
 [GitHub Roadmap Policy](../../.agents/skills/blockout-best-practices/references/github-roadmap-policy.md).

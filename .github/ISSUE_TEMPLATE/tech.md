@@ -52,6 +52,6 @@ None.
 -
 
 If this is roadmap work, add it to the
-[Blockout Roadmap](https://github.com/orgs/blockoutproject/projects) Project named `Roadmap` and set its `Status`,
-`Track`, `Priority`, and `Execution Mode` according to the
+[Blockout Roadmap](https://github.com/orgs/blockoutproject/projects/4) and set its `Status`, `Track`, `Priority`, and
+`Execution Mode` according to the
 [GitHub Roadmap Policy](../../.agents/skills/blockout-best-practices/references/github-roadmap-policy.md).

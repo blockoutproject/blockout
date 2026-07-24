@@ -56,6 +56,6 @@ None.
 Add safe logs, screenshots, or error details. Do not include secrets, tokens, cookies, or personal data.
 
 If this bug is planned roadmap work, add it to the
-[Blockout Roadmap](https://github.com/orgs/blockoutproject/projects) Project named `Roadmap` and set its `Status`,
-`Track`, `Priority`, and `Execution Mode` according to the
+[Blockout Roadmap](https://github.com/orgs/blockoutproject/projects/4) and set its `Status`, `Track`, `Priority`, and
+`Execution Mode` according to the
 [GitHub Roadmap Policy](../../.agents/skills/blockout-best-practices/references/github-roadmap-policy.md).
