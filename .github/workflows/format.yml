@@ -38,7 +38,7 @@ jobs:
           cache: maven
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v8
+        uses: astral-sh/setup-uv@v8.3.2
         with:
           enable-cache: true
 
