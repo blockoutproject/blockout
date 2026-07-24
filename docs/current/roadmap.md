@@ -1410,7 +1410,7 @@ checklist until GIT-012 removes it.
     for branch protection and repository rulesets on both repositories, so policy-level release guards remain
     authoritative. Every pre-existing task branch was preserved.
 
-- [ ] **GIT-008 — Seed the remaining governance migration as valid Roadmap issues**
+- [x] **GIT-008 — Seed the remaining governance migration as valid Roadmap issues**
   - Create one native `Tech` issue for each of GIT-009 through GIT-012 after searching open and closed equivalents.
     Give every issue an independently understandable objective, exact acceptance criteria, `Dependencies`, frozen
     `Workset`, matching `area:*` labels, Track, Priority, and Execution Mode.
@@ -1418,6 +1418,19 @@ checklist until GIT-012 removes it.
     justified, and promote only complete executable contracts to `Ready`.
   - Prove deterministic Priority/Track/issue-number ordering, zero workset conflict, unassigned Ready state, and two
     stable compact Project snapshots. The local roadmap remains authoritative for this task; no task branch is created.
+  - Evidence (2026-07-24): duplicate searches over issues and repository history preceded creation of native `Tech`
+    issues [`#8`](https://github.com/blockoutproject/blockout/issues/8),
+    [`#9`](https://github.com/blockoutproject/blockout/issues/9),
+    [`#10`](https://github.com/blockoutproject/blockout/issues/10), and
+    [`#11`](https://github.com/blockoutproject/blockout/issues/11) for GIT-009 through GIT-012. Each contract has
+    complete acceptance criteria, Dependencies, frozen Workset, matching `area:*` labels, `Platform` Track, `Normal`
+    Priority, and `DEFAULT_EXECUTION` mode; every issue was observed in `Triage` before its final state. Native blockers
+    form the exact chain `#8 → #9 → #10 → #11`: only unassigned `#8` is `Ready`, while `#9` through `#11` are
+    unassigned and `Blocked`. No parent/sub-issue relationship is justified because the four sequential migration
+    outcomes do not form an independently authorized Epic. The sole Ready candidate makes
+    Priority/Track/issue-number ordering deterministic, and no active or quarantined claim conflicts with its Workset.
+    Two consecutive complete compact reads matched byte-for-byte with SHA-256
+    `34adfd79507e302c0c3ecac7ef1e27068ef250623a17ac3a7c30a69c1ad7a7fc`.
 
 - [ ] **GIT-009 — Activate Blockout GitFlow through one complete canary lifecycle**
   - Acquire only the GIT-009 Roadmap issue through the canonical claim protocol and require two stable snapshots before
