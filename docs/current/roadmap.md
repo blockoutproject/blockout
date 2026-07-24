@@ -1320,7 +1320,7 @@ checklist until GIT-012 removes it.
     organization Project link pending GIT-005. YAML front matter, label uniqueness and lowercase rules, Nx-area
     coverage, local links, formatter, and diff checks pass. No GitHub taxonomy or Project state was mutated.
 
-- [ ] **GIT-004 — Provision native issue types and the repository label taxonomy**
+- [x] **GIT-004 — Provision native issue types and the repository label taxonomy**
   - Capture a recovery snapshot of Blockout organization issue types, all organization repositories affected by native
     issue-type changes, repository labels, open issues, and pull requests before mutation.
   - Configure the live native types `Action`, `Bug`, `Feature`, `Epic`, and `Tech`. Retire the generic `Task` type only
@@ -1330,6 +1330,16 @@ checklist until GIT-012 removes it.
     legacy labels before deleting labels that no longer belong to the catalog.
   - Reread all types and labels, prove templates resolve their native types, and verify that no issue or pull request
     lost meaningful metadata. Do not create the Roadmap Project in this task.
+  - Evidence (2026-07-24): a checksummed recovery snapshot under the task's temporary workspace captured all 17
+    organization repositories, the three original native types, the nine original Blockout labels, 239 organization
+    issues, and organization pull requests before mutation. None of the 239 historical issues used a native type, and
+    Blockout had no open issue or pull request. The existing `Task` node was safely renamed in place to `Action`;
+    `Bug` and `Feature` were normalized; and `Epic` plus `Tech` were created, yielding the exact five enabled types,
+    colors, and descriptions required by the templates. The three legacy labels were renamed in place
+    (`documentation` to `docs`, `enhancement` to `feature`, and `question` to `needs-info`) before the full catalog was
+    provisioned. A complete reread proves exactly 55 live labels with zero missing, extra, color, or description drift,
+    and all five templates resolve a live native type. No issue, pull request, or meaningful metadata was deleted, and
+    no Roadmap Project was created.
 
 - [ ] **GIT-005 — Create and configure the Blockout Roadmap Project**
   - Create the organization `Roadmap` Project and capture a complete recovery snapshot before each structural mutation.
