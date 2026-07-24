@@ -1,10 +1,13 @@
-import React, {useCallback, useMemo} from "react";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import React, { useCallback, useMemo } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {MatchLiveSummaryResponse, LiveLinkStatusEnum,} from "@/src/shared/generated/models";
+import { useAppTheme } from "@/src/shared/theme";
+import {
+  MatchLiveSummaryResponse,
+  LiveLinkStatusEnum,
+} from "@/src/shared/generated/models";
 import MaskedImage from "@/src/shared/ui/images/MaskedImage";
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
 
@@ -24,7 +27,7 @@ const formatDateTime = (value?: string | number | null) => {
   }
 };
 
-const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
+const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
   const theme = useAppTheme();
 
   const teamALabel = match.teamA.shortName ?? match.teamA.name;
@@ -36,7 +39,10 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
   );
 
   const lastLinkCreatedLabel = useMemo(
-    () => (match.lastLiveLinkCreatedAt ? formatDateTime(match.lastLiveLinkCreatedAt) : ""),
+    () =>
+      match.lastLiveLinkCreatedAt
+        ? formatDateTime(match.lastLiveLinkCreatedAt)
+        : "",
     [match.lastLiveLinkCreatedAt],
   );
 
@@ -97,11 +103,12 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
   }, [match.lastLiveLinkStatus, theme]);
 
   const gradient = useMemo(
-    () => [
-      match.pool.division.firstGradientColor,
-      match.pool.division.secondGradientColor,
-      match.pool.division.thirdGradientColor,
-    ] as const,
+    () =>
+      [
+        match.pool.division.firstGradientColor,
+        match.pool.division.secondGradientColor,
+        match.pool.division.thirdGradientColor,
+      ] as const,
     [match.pool.division],
   );
 
@@ -135,7 +142,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
             <View
               style={[
                 styles.statusPill,
-                {backgroundColor: statusConfig.backgroundColor},
+                { backgroundColor: statusConfig.backgroundColor },
               ]}
             >
               <MaterialCommunityIcons
@@ -144,10 +151,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
                 color={statusConfig.color}
               />
               <Text
-                style={[
-                  styles.statusText,
-                  {color: statusConfig.color},
-                ]}
+                style={[styles.statusText, { color: statusConfig.color }]}
                 numberOfLines={1}
               >
                 {statusConfig.label}
@@ -156,20 +160,13 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
 
             <View style={styles.headerMeta}>
               <Text
-                style={[
-                  styles.headerTitle,
-                  {color: theme.text},
-                ]}
+                style={[styles.headerTitle, { color: theme.text }]}
                 numberOfLines={1}
               >
-                {match.pool.shortName} ·{" "}
-                {match.pool.division.name}
+                {match.pool.shortName} · {match.pool.division.name}
               </Text>
               <Text
-                style={[
-                  styles.headerSubtitle,
-                  {color: theme.textInactive},
-                ]}
+                style={[styles.headerSubtitle, { color: theme.textInactive }]}
                 numberOfLines={1}
               >
                 {match.pool.leagueName} · {match.season}
@@ -192,10 +189,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
                 shadow
               />
               <Text
-                style={[
-                  styles.teamName,
-                  {color: theme.text},
-                ]}
+                style={[styles.teamName, { color: theme.text }]}
                 numberOfLines={2}
               >
                 {teamALabel}
@@ -210,25 +204,15 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
                   borderWidth={1.5}
                   style={[
                     styles.scoreBox,
-                    {backgroundColor: theme.background},
+                    { backgroundColor: theme.background },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.scoreText,
-                      {color: theme.text},
-                    ]}
-                  >
+                  <Text style={[styles.scoreText, { color: theme.text }]}>
                     {match.set}
                   </Text>
                 </GradientBorderView>
               ) : (
-                <Text
-                  style={[
-                    styles.vsText,
-                    {color: theme.textInactive},
-                  ]}
-                >
+                <Text style={[styles.vsText, { color: theme.textInactive }]}>
                   vs
                 </Text>
               )}
@@ -236,10 +220,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
 
             <View style={styles.teamColumnRight}>
               <Text
-                style={[
-                  styles.teamName,
-                  {color: theme.text},
-                ]}
+                style={[styles.teamName, { color: theme.text }]}
                 numberOfLines={2}
               >
                 {teamBLabel}
@@ -261,10 +242,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
                 color={theme.textInactive}
               />
               <Text
-                style={[
-                  styles.metaText,
-                  {color: theme.textInactive},
-                ]}
+                style={[styles.metaText, { color: theme.textInactive }]}
                 numberOfLines={1}
               >
                 Match : {matchDateLabel}
@@ -279,10 +257,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({match, onPress}) => {
                   color={theme.textInactive}
                 />
                 <Text
-                  style={[
-                    styles.metaText,
-                    {color: theme.textInactive},
-                  ]}
+                  style={[styles.metaText, { color: theme.textInactive }]}
                   numberOfLines={1}
                 >
                   Dernier lien : {lastLinkCreatedLabel}

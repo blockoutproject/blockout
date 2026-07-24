@@ -4,7 +4,12 @@
       "tags": ["ClubSearch"],
       "operationId": "searchClubs",
       "parameters": [
-        { "name": "query", "in": "query", "required": true, "schema": { "type": "string" } }
+        {
+          "name": "query",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "string" }
+        }
       ],
       "responses": {
         "200": {
@@ -13,7 +18,9 @@
             "application/json": {
               "schema": {
                 "type": "array",
-                "items": { "$ref": "#/components/schemas/ClubSearchInternalResponse" }
+                "items": {
+                  "$ref": "#/components/schemas/ClubSearchInternalResponse"
+                }
               }
             }
           }
@@ -26,11 +33,28 @@
       "tags": ["TeamSearch"],
       "operationId": "searchTeams",
       "parameters": [
-        { "name": "query", "in": "query", "required": true, "schema": { "type": "string" } },
+        {
+          "name": "query",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "string" }
+        },
         { "name": "season", "in": "query", "schema": { "type": "string" } },
-        { "name": "divisionId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
-        { "name": "format", "in": "query", "schema": { "$ref": "#/components/schemas/FormatEnum" } },
-        { "name": "gender", "in": "query", "schema": { "$ref": "#/components/schemas/GenderEnum" } }
+        {
+          "name": "divisionId",
+          "in": "query",
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "format",
+          "in": "query",
+          "schema": { "$ref": "#/components/schemas/FormatEnum" }
+        },
+        {
+          "name": "gender",
+          "in": "query",
+          "schema": { "$ref": "#/components/schemas/GenderEnum" }
+        }
       ],
       "responses": {
         "200": {
@@ -39,7 +63,9 @@
             "application/json": {
               "schema": {
                 "type": "array",
-                "items": { "$ref": "#/components/schemas/TeamSearchInternalResponse" }
+                "items": {
+                  "$ref": "#/components/schemas/TeamSearchInternalResponse"
+                }
               }
             }
           }
@@ -52,11 +78,28 @@
       "tags": ["PoolSearch"],
       "operationId": "searchPools",
       "parameters": [
-        { "name": "query", "in": "query", "required": true, "schema": { "type": "string" } },
+        {
+          "name": "query",
+          "in": "query",
+          "required": true,
+          "schema": { "type": "string" }
+        },
         { "name": "season", "in": "query", "schema": { "type": "string" } },
-        { "name": "divisionId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
-        { "name": "format", "in": "query", "schema": { "$ref": "#/components/schemas/FormatEnum" } },
-        { "name": "gender", "in": "query", "schema": { "$ref": "#/components/schemas/GenderEnum" } }
+        {
+          "name": "divisionId",
+          "in": "query",
+          "schema": { "type": "integer", "format": "int64" }
+        },
+        {
+          "name": "format",
+          "in": "query",
+          "schema": { "$ref": "#/components/schemas/FormatEnum" }
+        },
+        {
+          "name": "gender",
+          "in": "query",
+          "schema": { "$ref": "#/components/schemas/GenderEnum" }
+        }
       ],
       "responses": {
         "200": {
@@ -65,7 +108,9 @@
             "application/json": {
               "schema": {
                 "type": "array",
-                "items": { "$ref": "#/components/schemas/PoolSearchInternalResponse" }
+                "items": {
+                  "$ref": "#/components/schemas/PoolSearchInternalResponse"
+                }
               }
             }
           }

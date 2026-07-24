@@ -31,8 +31,16 @@
       "followersCount": { "type": "integer", "format": "int64" },
       "logoUrl": { "type": "string", "nullable": true },
       "active": { "type": "boolean" },
-      "createdAt": { "type": "string", "format": "date-time", "nullable": true },
-      "lastUpdate": { "type": "string", "format": "date-time", "nullable": true }
+      "createdAt": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      },
+      "lastUpdate": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      }
     }
   }
 }

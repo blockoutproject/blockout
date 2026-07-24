@@ -7,7 +7,7 @@ import type { BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
-import {useAppTheme} from "@/src/shared/theme";
+import { useAppTheme } from "@/src/shared/theme";
 
 export type BottomSheetModalPropsEx = Omit<
   BottomSheetModalProps,

@@ -1,5 +1,8 @@
-import {Platform} from "react-native";
-import mobileAds, {AdsConsent, AdsConsentStatus,} from "react-native-google-mobile-ads";
+import { Platform } from "react-native";
+import mobileAds, {
+  AdsConsent,
+  AdsConsentStatus,
+} from "react-native-google-mobile-ads";
 import {
   getTrackingPermissionsAsync,
   PermissionStatus,
@@ -14,8 +17,7 @@ const listeners: (() => void)[] = [];
 export function onAdsReady(listener: () => void) {
   if (adsReady) {
     listener();
-    return () => {
-    };
+    return () => {};
   }
   listeners.push(listener);
   return () => {
@@ -40,7 +42,7 @@ async function runInitFlow() {
     }
 
     if (Platform.OS === "ios") {
-      const {status} = await getTrackingPermissionsAsync();
+      const { status } = await getTrackingPermissionsAsync();
       if (status === PermissionStatus.UNDETERMINED) {
         await requestTrackingPermissionsAsync();
       }

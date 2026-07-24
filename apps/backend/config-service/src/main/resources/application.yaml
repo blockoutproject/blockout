@@ -40,7 +40,6 @@ logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
 
-
 aws:
   credentials:
     access-key: ${AWS_ACCESS_KEY_ID}

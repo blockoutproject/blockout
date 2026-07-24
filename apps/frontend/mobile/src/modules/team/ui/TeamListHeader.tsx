@@ -3,7 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {layout, useAppTheme} from "@/src/shared/theme";
+import { layout, useAppTheme } from "@/src/shared/theme";
 
 import { useBackOrClose } from "@/src/shared/hooks/useBackOrClose";
 

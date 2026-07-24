@@ -2,12 +2,8 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "analytics": false,
   "namedInputs": {
-    "default": [
-      "{projectRoot}/**/*"
-    ],
-    "production": [
-      "default"
-    ]
+    "default": ["{projectRoot}/**/*"],
+    "production": ["default"]
   },
   "plugins": [
     {
@@ -28,10 +24,7 @@
     },
     {
       "plugin": "@nx/maven",
-      "include": [
-        "pom.xml",
-        "apps/backend/**/pom.xml"
-      ],
+      "include": ["pom.xml", "apps/backend/**/pom.xml"],
       "options": {
         "targetNamePrefix": "mvn-",
         "verbose": false

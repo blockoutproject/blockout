@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from "react";
+import React, { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -10,11 +10,11 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import {Image} from "expo-image";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {useAppTheme} from "@/src/shared/theme";
-import {withAlpha} from "@/src/shared/lib/utils";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAppTheme } from "@/src/shared/theme";
+import { withAlpha } from "@/src/shared/lib/utils";
 
 /** Button-like action attached to the state card. */
 export type StateAction = {
@@ -56,14 +56,14 @@ const ICON_SLOT = 20;
 const ICON_SIZE = 16;
 
 const StateCard: React.FC<StateCardProps> = ({
-                                               title,
-                                               subtitle,
-                                               illustrationSource,
-                                               fallbackIcon,
-                                               action,
-                                               containerStyle,
-                                               testID,
-                                             }) => {
+  title,
+  subtitle,
+  illustrationSource,
+  fallbackIcon,
+  action,
+  containerStyle,
+  testID,
+}) => {
   const theme = useAppTheme();
 
   const fade = useRef(new Animated.Value(0)).current;
@@ -98,9 +98,7 @@ const StateCard: React.FC<StateCardProps> = ({
       testID={testID}
       accessibilityRole="summary"
     >
-      <View
-        style={styles.centerStack}
-      >
+      <View style={styles.centerStack}>
         <View
           style={[
             styles.visualWrap,
@@ -161,7 +159,7 @@ const StateCard: React.FC<StateCardProps> = ({
             android_ripple={{
               color: withAlpha(theme.text, 0.12),
             }}
-            style={({pressed}) => [
+            style={({ pressed }) => [
               styles.button,
               {
                 backgroundColor:
@@ -179,9 +177,7 @@ const StateCard: React.FC<StateCardProps> = ({
             }}
             testID={action.testID}
           >
-            <View
-              style={styles.btnContent}
-            >
+            <View style={styles.btnContent}>
               <View
                 style={[
                   styles.iconSlot,
@@ -191,10 +187,7 @@ const StateCard: React.FC<StateCardProps> = ({
                 ]}
               >
                 {action.loading ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.text}
-                  />
+                  <ActivityIndicator size="small" color={theme.text} />
                 ) : action.icon ? (
                   <MaterialCommunityIcons
                     name={action.icon}

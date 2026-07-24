@@ -87,7 +87,7 @@ export default function TabLayout() {
                   height: iconSize.navigation,
                   width: iconSize.navigation,
                   opacity: focused ? 1 : 0.66,
-                  transform: [{scale: focused ? 1 : 0.96}],
+                  transform: [{ scale: focused ? 1 : 0.96 }],
                 },
               ]}
               source={avatarSource}
@@ -100,5 +100,5 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  avatar: {borderRadius: 100},
+  avatar: { borderRadius: 100 },
 });

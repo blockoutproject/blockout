@@ -1,7 +1,7 @@
-import {getClubById} from "@/src/shared/generated/endpoints/club-public";
-import {updateClub} from "@/src/shared/generated/endpoints/club-secure";
-import type {UpdateClubRequest} from "@/src/shared/generated/models";
-import type {ImageUpload} from "@/src/shared/model/ImageUpload";
+import { getClubById } from "@/src/shared/generated/endpoints/club-public";
+import { updateClub } from "@/src/shared/generated/endpoints/club-secure";
+import type { UpdateClubRequest } from "@/src/shared/generated/models";
+import type { ImageUpload } from "@/src/shared/model/ImageUpload";
 
 /** Expose club operations through the feature API boundary. */
 export class ClubApi {

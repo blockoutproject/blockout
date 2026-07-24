@@ -1,6 +1,6 @@
 import React from "react";
-import {StyleProp, ViewStyle} from "react-native";
-import {LinearGradient} from "expo-linear-gradient";
+import { StyleProp, ViewStyle } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 export type GradientViewProps = {
   /** Contenu enfant */
@@ -16,19 +16,14 @@ export type GradientViewProps = {
 };
 
 const GradientView: React.FC<GradientViewProps> = ({
-                                                     children,
-                                                     style,
-                                                     gradient,
-                                                     start = {x: 0, y: 0},
-                                                     end = {x: 1, y: 1},
-                                                   }) => {
+  children,
+  style,
+  gradient,
+  start = { x: 0, y: 0 },
+  end = { x: 1, y: 1 },
+}) => {
   return (
-    <LinearGradient
-      colors={gradient}
-      start={start}
-      end={end}
-      style={style}
-    >
+    <LinearGradient colors={gradient} start={start} end={end} style={style}>
       {children}
     </LinearGradient>
   );

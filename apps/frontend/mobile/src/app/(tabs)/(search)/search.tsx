@@ -1,1 +1,1 @@
-export {default} from "@/src/modules/search/ui/SearchScreen";
+export { default } from "@/src/modules/search/ui/SearchScreen";

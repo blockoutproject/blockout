@@ -1,9 +1,14 @@
-import {useQuery} from "@tanstack/react-query";
-import {useApis} from "@/src/shared/providers/ApiProvider";
-import {MatchLiveSummaryResponse, LiveLinkStatusEnum} from "@/src/shared/generated/models";
+import { useQuery } from "@tanstack/react-query";
+import { useApis } from "@/src/shared/providers/ApiProvider";
+import {
+  MatchLiveSummaryResponse,
+  LiveLinkStatusEnum,
+} from "@/src/shared/generated/models";
 
-export const useLiveModerationMatches = (status?: LiveLinkStatusEnum | null) => {
-  const {mobile} = useApis();
+export const useLiveModerationMatches = (
+  status?: LiveLinkStatusEnum | null,
+) => {
+  const { mobile } = useApis();
 
   return useQuery<MatchLiveSummaryResponse[]>({
     queryKey: ["live-moderation-matches", status ?? "ALL"],

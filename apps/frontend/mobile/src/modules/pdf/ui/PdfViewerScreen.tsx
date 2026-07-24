@@ -1,11 +1,11 @@
-import React, {useCallback, useMemo, useRef, useState} from "react";
-import {ActivityIndicator, Animated, StyleSheet, View} from "react-native";
-import {useLocalSearchParams} from "expo-router";
-import {WebView} from "react-native-webview";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, StyleSheet, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { WebView } from "react-native-webview";
 import PdfViewerHeader from "@/src/modules/pdf/ui/PdfViewerHeader";
-import {BottomSheetModal} from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
-import {ReportTypeEnum} from "@/src/shared/generated/models";
+import { ReportTypeEnum } from "@/src/shared/generated/models";
 
 export default function PdfViewer() {
   const params = useLocalSearchParams<{ url: string; title?: string }>();
@@ -23,7 +23,11 @@ export default function PdfViewer() {
 
   const handleProgress = (p: number) => {
     if (p >= 0.2) {
-      Animated.timing(opacity, {toValue: 1, duration: 180, useNativeDriver: true}).start(() => {
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(() => {
         setLoading(false);
       });
     }
@@ -35,16 +39,18 @@ export default function PdfViewer() {
 
   return (
     <View style={styles.container} testID="pdf-viewer-screen">
-      <PdfViewerHeader title={title} onOpenReport={handleOpenReport}/>
-      <View style={{flex: 1}}>
+      <PdfViewerHeader title={title} onOpenReport={handleOpenReport} />
+      <View style={{ flex: 1 }}>
         <WebView
-          source={{uri: viewerUrl}}
+          source={{ uri: viewerUrl }}
           originWhitelist={["*"]}
           onLoadStart={() => {
             setLoading(true);
             opacity.setValue(0);
           }}
-          onLoadProgress={({nativeEvent}) => handleProgress(nativeEvent.progress ?? 0)}
+          onLoadProgress={({ nativeEvent }) =>
+            handleProgress(nativeEvent.progress ?? 0)
+          }
           onLoadEnd={() => handleProgress(1)}
           startInLoadingState={false}
           javaScriptEnabled
@@ -58,13 +64,16 @@ export default function PdfViewer() {
 
         {!!loading && (
           <View style={styles.loadingOverlay} testID="pdf-viewer-loading">
-            <ActivityIndicator/>
+            <ActivityIndicator />
           </View>
         )}
       </View>
       <ReportFormSheet
         ref={reportSheetRef}
-        context={{screen: "PDF Viewer", defaultType: ReportTypeEnum.DISPLAY_BUG}}
+        context={{
+          screen: "PDF Viewer",
+          defaultType: ReportTypeEnum.DISPLAY_BUG,
+        }}
         onSuccess={() => {
           reportSheetRef.current?.dismiss();
         }}

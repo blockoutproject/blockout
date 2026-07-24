@@ -1,9 +1,9 @@
-import {useQuery} from "@tanstack/react-query";
-import {DivisionResponse} from "@/src/shared/generated/models";
-import {useApis} from "@/src/shared/providers/ApiProvider";
+import { useQuery } from "@tanstack/react-query";
+import { DivisionResponse } from "@/src/shared/generated/models";
+import { useApis } from "@/src/shared/providers/ApiProvider";
 
 export const useDivisions = () => {
-  const {mobile} = useApis();
+  const { mobile } = useApis();
 
   return useQuery<DivisionResponse[]>({
     queryKey: ["divisions"],

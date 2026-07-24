@@ -1,11 +1,11 @@
-import React, {useEffect, useMemo, useRef} from "react";
-import {Animated, StyleSheet, Text, ViewStyle} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {layout, useAppTheme} from "@/src/shared/theme";
+import React, { useEffect, useMemo, useRef } from "react";
+import { Animated, StyleSheet, Text, ViewStyle } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { layout, useAppTheme } from "@/src/shared/theme";
 
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {withAlpha} from "@/src/shared/lib/utils";
-import {useKeyboardVisible} from "@/src/shared/hooks/useKeyboardVisible";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { withAlpha } from "@/src/shared/lib/utils";
+import { useKeyboardVisible } from "@/src/shared/hooks/useKeyboardVisible";
 
 type ApiErrorToastProps = {
   /** Le message d'erreur à afficher. Null/undefined => caché */
@@ -27,12 +27,12 @@ type ApiErrorToastProps = {
  * - Couleurs via theme
  */
 const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
-                                                       message,
-                                                       bottomOffset,
-                                                       autoHideMs = 5000,
-                                                       onHidden,
-                                                       containerStyle,
-                                                     }) => {
+  message,
+  bottomOffset,
+  autoHideMs = 5000,
+  onHidden,
+  containerStyle,
+}) => {
   const isKeyboardVisible = useKeyboardVisible();
   const theme = useAppTheme();
   const opacity = useRef(new Animated.Value(0)).current;
@@ -46,7 +46,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
       icon: theme.error,
       text: theme.error,
     }),
-    [theme.error]
+    [theme.error],
   );
 
   useEffect(() => {
@@ -66,7 +66,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
             toValue: 0,
             duration: 220,
             useNativeDriver: true,
-          }).start(({finished}) => {
+          }).start(({ finished }) => {
             if (finished && onHidden) onHidden();
           });
         }, autoHideMs);
@@ -95,7 +95,11 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
         {
           backgroundColor: colors.bg,
           borderColor: colors.border,
-          bottom: bottomOffset || (isKeyboardVisible ? layout.bottomNavigation + 8 : insets.bottom + layout.bottomNavigation + 8),
+          bottom:
+            bottomOffset ||
+            (isKeyboardVisible
+              ? layout.bottomNavigation + 8
+              : insets.bottom + layout.bottomNavigation + 8),
           opacity,
           transform: [
             {
@@ -109,8 +113,12 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
         containerStyle,
       ]}
     >
-      <MaterialCommunityIcons name="alert-circle-outline" size={18} color={colors.icon}/>
-      <Text style={[styles.text, {color: colors.text}]}>{message}</Text>
+      <MaterialCommunityIcons
+        name="alert-circle-outline"
+        size={18}
+        color={colors.icon}
+      />
+      <Text style={[styles.text, { color: colors.text }]}>{message}</Text>
     </Animated.View>
   );
 };
@@ -132,5 +140,5 @@ const styles = StyleSheet.create({
     gap: 8,
     zIndex: 20,
   },
-  text: {flex: 1, fontSize: 14, fontWeight: "600"},
+  text: { flex: 1, fontSize: 14, fontWeight: "600" },
 });

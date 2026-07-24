@@ -91,11 +91,7 @@ export function Onboarding({
     const backgroundColors = steps.map((step) => step.backgroundColor);
 
     return {
-      backgroundColor: interpolateColor(
-        offset.value,
-        input,
-        backgroundColors,
-      ),
+      backgroundColor: interpolateColor(offset.value, input, backgroundColors),
     };
   });
 
@@ -188,10 +184,7 @@ export function Onboarding({
       </View>
 
       <View
-        style={[
-          styles.controls,
-          { paddingBottom: insets.bottom + spacing[3] },
-        ]}
+        style={[styles.controls, { paddingBottom: insets.bottom + spacing[3] }]}
       >
         {!isFirst ? (
           <OnboardingBackAction label={backText} onPress={handleBack} />
@@ -341,11 +334,7 @@ type OnboardingDotsProps = {
 };
 
 /** Indicates the current onboarding step without duplicating pager state. */
-function OnboardingDots({
-  steps,
-  offset,
-  screenWidth,
-}: OnboardingDotsProps) {
+function OnboardingDots({ steps, offset, screenWidth }: OnboardingDotsProps) {
   const input = steps.map((_, index) => index * screenWidth);
 
   return (
@@ -392,10 +381,7 @@ type OnboardingBackActionProps = {
 };
 
 /** Renders the secondary onboarding navigation action. */
-function OnboardingBackAction({
-  label,
-  onPress,
-}: OnboardingBackActionProps) {
+function OnboardingBackAction({ label, onPress }: OnboardingBackActionProps) {
   const theme = useAppTheme();
 
   return (

@@ -2,7 +2,7 @@ import React, { ReactNode, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
-import {useAppTheme} from "@/src/shared/theme";
+import { useAppTheme } from "@/src/shared/theme";
 
 type Props = {
   children: ReactNode;

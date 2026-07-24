@@ -4,7 +4,7 @@ import type { PoolResponse } from "@/src/shared/generated/models";
 import tinycolor from "tinycolor2";
 import { DivisionResponse } from "@/src/shared/generated/models";
 import type { TeamHighlight } from "@/src/modules/team/model/TeamHighlight";
-import type {AppTheme} from "@/src/shared/theme";
+import type { AppTheme } from "@/src/shared/theme";
 
 export type GradientVariants = {
   base: readonly [string, string, ...string[]];
@@ -104,8 +104,10 @@ export function splitIsoDateFormatted(isoString: string) {
   return { date, time };
 }
 
-export const getLeagueLabel = (division: DivisionResponse, pool: PoolResponse) =>
-  `${division.name} - ${pool.gender}`;
+export const getLeagueLabel = (
+  division: DivisionResponse,
+  pool: PoolResponse,
+) => `${division.name} - ${pool.gender}`;
 
 export function getTeamsRankingColor(
   theme: AppTheme,

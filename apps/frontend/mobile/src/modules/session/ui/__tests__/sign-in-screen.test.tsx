@@ -1,6 +1,6 @@
 import React from "react";
-import {render, userEvent} from "@testing-library/react-native";
-import {SafeAreaProvider} from "react-native-safe-area-context";
+import { render, userEvent } from "@testing-library/react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import SignInScreen from "@/src/modules/session/ui/sign-in-screen";
 import {
@@ -8,11 +8,11 @@ import {
   SessionContextProvider,
   SessionState,
 } from "@/src/modules/session/providers/SessionContext";
-import {ThemeProvider} from "@/src/shared/theme";
+import { ThemeProvider } from "@/src/shared/theme";
 
 jest.mock("expo-haptics", () => ({
-  ImpactFeedbackStyle: {Light: "light", Medium: "medium"},
-  NotificationFeedbackType: {Error: "error"},
+  ImpactFeedbackStyle: { Light: "light", Medium: "medium" },
+  NotificationFeedbackType: { Error: "error" },
   impactAsync: jest.fn().mockResolvedValue(undefined),
   notificationAsync: jest.fn().mockResolvedValue(undefined),
 }));
@@ -26,7 +26,7 @@ jest.mock("react-native-reanimated", () => {
       createAnimatedComponent: (Component: React.ComponentType) => Component,
     },
     useAnimatedStyle: (factory: () => object) => factory(),
-    useSharedValue: (value: unknown) => ReactModule.useRef({value}).current,
+    useSharedValue: (value: unknown) => ReactModule.useRef({ value }).current,
     withSpring: (value: unknown) => value,
   };
 });
@@ -73,8 +73,8 @@ const renderScreen = async (actions: SessionActions) =>
   render(
     <SafeAreaProvider
       initialMetrics={{
-        frame: {x: 0, y: 0, width: 390, height: 844},
-        insets: {top: 0, right: 0, bottom: 0, left: 0},
+        frame: { x: 0, y: 0, width: 390, height: 844 },
+        insets: { top: 0, right: 0, bottom: 0, left: 0 },
       }}
     >
       <ThemeProvider>
@@ -91,7 +91,7 @@ describe("SignInScreen", () => {
     const user = userEvent.setup();
     const screen = await renderScreen(actions);
 
-    const action = screen.getByRole("button", {name: "Se connecter"});
+    const action = screen.getByRole("button", { name: "Se connecter" });
     expect(action).toBe(screen.getByTestId("session-sign-in-action"));
 
     await user.press(action);
@@ -104,7 +104,9 @@ describe("SignInScreen", () => {
     const user = userEvent.setup();
     const screen = await renderScreen(actions);
 
-    const action = screen.getByRole("button", {name: "Continuer en tant qu’invité"});
+    const action = screen.getByRole("button", {
+      name: "Continuer en tant qu’invité",
+    });
     expect(action).toBe(screen.getByTestId("session-guest-action"));
 
     await user.press(action);
@@ -114,11 +116,13 @@ describe("SignInScreen", () => {
 
   it("shows a recoverable message when authentication fails", async () => {
     const actions = createActions();
-    actions.signIn = jest.fn().mockRejectedValue(new Error("provider unavailable"));
+    actions.signIn = jest
+      .fn()
+      .mockRejectedValue(new Error("provider unavailable"));
     const user = userEvent.setup();
     const screen = await renderScreen(actions);
 
-    await user.press(screen.getByRole("button", {name: "Se connecter"}));
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
 
     expect(screen.getByText("Connexion impossible, réessaie.")).toBeTruthy();
   });

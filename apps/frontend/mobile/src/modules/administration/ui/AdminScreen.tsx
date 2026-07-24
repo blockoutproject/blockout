@@ -1,14 +1,14 @@
-import React, {useCallback, useEffect, useMemo, useState} from "react";
-import {ActivityIndicator, StyleSheet, Text, View,} from "react-native";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {useScraperStatuses} from "@/src/modules/administration/hooks/useScraperStatus";
-import {useAppStatus} from "@/src/modules/app-status/hooks/useAppStatus";
-import {useApis} from "@/src/shared/providers/ApiProvider";
-import {ScraperStatusResponse} from "@/src/shared/generated/models";
+import { useAppTheme } from "@/src/shared/theme";
+import { useScraperStatuses } from "@/src/modules/administration/hooks/useScraperStatus";
+import { useAppStatus } from "@/src/modules/app-status/hooks/useAppStatus";
+import { useApis } from "@/src/shared/providers/ApiProvider";
+import { ScraperStatusResponse } from "@/src/shared/generated/models";
 
 import MaintenanceControlCard from "./MaintenanceControlCard";
 import ScraperControlCard from "./ScraperControlCard";
@@ -18,7 +18,7 @@ import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 const AdminScreen: React.FC = () => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const {mobile} = useApis();
+  const { mobile } = useApis();
 
   const {
     data: scrapers,
@@ -70,17 +70,13 @@ const AdminScreen: React.FC = () => {
       try {
         setApiError(null);
         await Haptics.selectionAsync();
-        await mobile.config.updateScraperStatus(
-          scraper.name,
-          !scraper.enabled,
-        );
+        await mobile.config.updateScraperStatus(scraper.name, !scraper.enabled);
         await refetchScrapers();
       } catch {
         setApiError("Mise à jour du scraper impossible, réessaie.");
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Error,
-        ).catch(() => {
-        });
+        ).catch(() => {});
       }
     },
     [mobile, refetchScrapers],
@@ -114,17 +110,12 @@ const AdminScreen: React.FC = () => {
 
       await refetchStatus();
 
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success,
-      );
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
-      setApiError(
-        "Mise à jour de la maintenance impossible, réessaie.",
-      );
+      setApiError("Mise à jour de la maintenance impossible, réessaie.");
       await Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Error,
-      ).catch(() => {
-      });
+      ).catch(() => {});
     } finally {
       setSavingMaintenance(false);
     }
@@ -154,16 +145,12 @@ const AdminScreen: React.FC = () => {
 
       await Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Success,
-      ).catch(() => {
-      });
+      ).catch(() => {});
     } catch {
-      setApiError(
-        "Désactivation de la maintenance impossible, réessaie.",
-      );
+      setApiError("Désactivation de la maintenance impossible, réessaie.");
       await Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Error,
-      ).catch(() => {
-      });
+      ).catch(() => {});
     } finally {
       setSavingMaintenance(false);
     }
@@ -210,16 +197,12 @@ const AdminScreen: React.FC = () => {
 
       await Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Success,
-      ).catch(() => {
-      });
+      ).catch(() => {});
     } catch {
-      setApiError(
-        "Mise à jour des versions minimales impossible, réessaie.",
-      );
+      setApiError("Mise à jour des versions minimales impossible, réessaie.");
       await Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Error,
-      ).catch(() => {
-      });
+      ).catch(() => {});
     } finally {
       setSavingVersions(false);
     }
@@ -242,16 +225,13 @@ const AdminScreen: React.FC = () => {
         <View
           style={[
             styles.center,
-            {backgroundColor: theme.backgroundSecondary},
+            { backgroundColor: theme.backgroundSecondary },
           ]}
           testID="administration-loading"
         >
-          <ActivityIndicator size="large" color={theme.text}/>
+          <ActivityIndicator size="large" color={theme.text} />
         </View>
-        <ApiErrorToast
-          message={apiError}
-          onHidden={() => setApiError(null)}
-        />
+        <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
       </>
     );
   }
@@ -261,26 +241,19 @@ const AdminScreen: React.FC = () => {
       <BottomSheetScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          {paddingBottom: insets.bottom + 16},
+          { paddingBottom: insets.bottom + 16 },
         ]}
         showsVerticalScrollIndicator={false}
         testID="administration-screen"
       >
         <View style={styles.headerWrapper}>
-          <Text
-            style={[styles.screenTitle, {color: theme.text}]}
-          >
+          <Text style={[styles.screenTitle, { color: theme.text }]}>
             Administration technique
           </Text>
 
-          <Text
-            style={[
-              styles.screenSubtitle,
-              {color: theme.textInactive},
-            ]}
-          >
-            Gérez le mode maintenance, les versions minimales et
-            l’état des scrapers.
+          <Text style={[styles.screenSubtitle, { color: theme.textInactive }]}>
+            Gérez le mode maintenance, les versions minimales et l’état des
+            scrapers.
           </Text>
         </View>
 

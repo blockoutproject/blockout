@@ -1,7 +1,13 @@
 import React from "react";
-import {StyleProp, StyleSheet, TextInputProps, View, ViewStyle} from "react-native";
-import {BottomSheetTextInput} from "@gorhom/bottom-sheet";
-import {useAppTheme} from "@/src/shared/theme";
+import {
+  StyleProp,
+  StyleSheet,
+  TextInputProps,
+  View,
+  ViewStyle,
+} from "react-native";
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import { useAppTheme } from "@/src/shared/theme";
 
 /**
  * Input générique pour BottomSheet qui:
@@ -14,30 +20,30 @@ export type SheetTextInputProps = TextInputProps & {
 };
 
 const SheetTextInput: React.FC<SheetTextInputProps> = ({
-                                                         containerStyle,
-                                                         style,
-                                                         enableSuggestions = false,
-                                                         ...rest
-                                                       }) => {
+  containerStyle,
+  style,
+  enableSuggestions = false,
+  ...rest
+}) => {
   const theme = useAppTheme();
 
   const suggestionProps: TextInputProps = enableSuggestions
     ? {}
     : {
-      autoCorrect: false,
-      spellCheck: false,
-      autoCapitalize: "none",
-      autoComplete: "off",
-      textContentType: "none",
-      importantForAutofill: "no",
-    };
+        autoCorrect: false,
+        spellCheck: false,
+        autoCapitalize: "none",
+        autoComplete: "off",
+        textContentType: "none",
+        importantForAutofill: "no",
+      };
 
   return (
     <View style={containerStyle}>
       <BottomSheetTextInput
         style={[
           styles.input,
-          {borderColor: theme.border, color: theme.text},
+          { borderColor: theme.border, color: theme.text },
           style,
         ]}
         placeholderTextColor={theme.textInactive}

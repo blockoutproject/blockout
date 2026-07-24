@@ -21,17 +21,17 @@ state changed.
 
 Shared differences were corrected before screen composition:
 
-| Family                    | Node      | Correction                                                                                   |
-| ------------------------- | --------- | -------------------------------------------------------------------------------------------- |
-| `Action`                  | `24:2`    | Added the bounded destructive-outline states and corrected destructive foreground colors     |
-| `Guest Upsell Card`       | `198:7`   | Added the exact guest value proposition with a linked primary `Action` instance              |
-| `Menu Row`                | `192:20`  | Added default and pressed legal/settings rows with editable labels and icon swaps            |
-| `Screen Header`           | `36:20`   | Corrected native title, back, close, report, and edit geometry with exact source icons       |
-| `Bottom Navigation`       | `140:123` | Removed the non-native blue active outline and retained the exact native selected pill       |
-| `Guest Bottom Navigation` | `213:17`  | Added the two-item Search/Profile family produced by Expo guest route guards                 |
-| `Hero`                    | `134:37`  | Bound the source-backed `18`-point container radius                                          |
-| `Match Row`               | `138:65`  | Centered time, score, live, and replay values in every shared row variant                    |
-| `Ranking Row`             | `139:55`  | Centered ranking positions and points in every shared row variant                            |
+| Family                    | Node      | Correction                                                                               |
+| ------------------------- | --------- | ---------------------------------------------------------------------------------------- |
+| `Action`                  | `24:2`    | Added the bounded destructive-outline states and corrected destructive foreground colors |
+| `Guest Upsell Card`       | `198:7`   | Added the exact guest value proposition with a linked primary `Action` instance          |
+| `Menu Row`                | `192:20`  | Added default and pressed legal/settings rows with editable labels and icon swaps        |
+| `Screen Header`           | `36:20`   | Corrected native title, back, close, report, and edit geometry with exact source icons   |
+| `Bottom Navigation`       | `140:123` | Removed the non-native blue active outline and retained the exact native selected pill   |
+| `Guest Bottom Navigation` | `213:17`  | Added the two-item Search/Profile family produced by Expo guest route guards             |
+| `Hero`                    | `134:37`  | Bound the source-backed `18`-point container radius                                      |
+| `Match Row`               | `138:65`  | Centered time, score, live, and replay values in every shared row variant                |
+| `Ranking Row`             | `139:55`  | Centered ranking positions and points in every shared row variant                        |
 
 Three semantic variables preserve source-backed geometry and rendering without per-screen constants:
 

@@ -7,9 +7,9 @@ import { SearchApi } from "@/src/modules/search/api/SearchApi";
 import { NotificationApi } from "@/src/modules/notifications/api/NotificationApi";
 import { ConfigApi } from "@/src/modules/config/api/ConfigApi";
 import { ReportApi } from "@/src/modules/report/api/ReportApi";
-import {ApiError} from "@/src/shared/api/ApiError";
-import {setMobileGatewayAuthContext} from "@/src/shared/api/orvalFetch";
-import type {TokenSupplier} from "@/src/shared/api/orvalFetch";
+import { ApiError } from "@/src/shared/api/ApiError";
+import { setMobileGatewayAuthContext } from "@/src/shared/api/orvalFetch";
+import type { TokenSupplier } from "@/src/shared/api/orvalFetch";
 
 /** Group feature adapters for the generated mobile-gateway client. */
 export class MobileGatewayApi {

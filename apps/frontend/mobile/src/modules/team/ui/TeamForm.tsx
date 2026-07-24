@@ -9,7 +9,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {radius, useAppTheme} from "@/src/shared/theme";
+import { radius, useAppTheme } from "@/src/shared/theme";
 import type {
   TeamDetailsResponse,
   TeamResponse,
@@ -19,7 +19,7 @@ import type {
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";
-import {FormField} from "@/src/shared/ui/form/form-field";
+import { FormField } from "@/src/shared/ui/form/form-field";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import { ImageUpload } from "@/src/shared/model/ImageUpload";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";

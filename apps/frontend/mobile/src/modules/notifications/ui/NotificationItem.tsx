@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { NotificationResponse } from "@/src/shared/generated/models";
 import { formatNotificationAge } from "@/src/modules/notifications/model/formatNotificationAge";
-import {useAppTheme} from "@/src/shared/theme";
+import { useAppTheme } from "@/src/shared/theme";
 import FadeIn from "@/src/shared/ui/animations/FadeIn";
 import NotificationSwipeAction from "@/src/modules/notifications/ui/NotificationSwipeAction";
 

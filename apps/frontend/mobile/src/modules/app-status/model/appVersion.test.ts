@@ -1,7 +1,11 @@
-import {Platform} from "react-native";
+import { Platform } from "react-native";
 
-import type {AppStatusResponse} from "@/src/shared/generated/models";
-import {compareSemver, computeIsUpdateRequired, getStoreUrl,} from "@/src/modules/app-status/model/appVersion";
+import type { AppStatusResponse } from "@/src/shared/generated/models";
+import {
+  compareSemver,
+  computeIsUpdateRequired,
+  getStoreUrl,
+} from "@/src/modules/app-status/model/appVersion";
 
 jest.mock("expo-application", () => ({
   nativeApplicationVersion: "1.3.5",
@@ -23,7 +27,7 @@ describe("app version policy", () => {
   const originalPlatform = Platform.OS;
 
   afterEach(() => {
-    Object.defineProperty(Platform, "OS", {value: originalPlatform});
+    Object.defineProperty(Platform, "OS", { value: originalPlatform });
   });
 
   it.each([
@@ -37,14 +41,14 @@ describe("app version policy", () => {
   });
 
   it("uses the iOS minimum version and store URL on iOS", () => {
-    Object.defineProperty(Platform, "OS", {value: "ios"});
+    Object.defineProperty(Platform, "OS", { value: "ios" });
 
     expect(computeIsUpdateRequired(appStatus)).toBe(true);
     expect(getStoreUrl(appStatus)).toBe(appStatus.storeUrlIos);
   });
 
   it("uses the Android minimum version and store URL on Android", () => {
-    Object.defineProperty(Platform, "OS", {value: "android"});
+    Object.defineProperty(Platform, "OS", { value: "android" });
 
     expect(computeIsUpdateRequired(appStatus)).toBe(false);
     expect(getStoreUrl(appStatus)).toBe(appStatus.storeUrlAndroid);

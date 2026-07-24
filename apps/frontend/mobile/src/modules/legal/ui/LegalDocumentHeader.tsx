@@ -1,10 +1,10 @@
 import React from "react";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {layout, useAppTheme} from "@/src/shared/theme";
+import { layout, useAppTheme } from "@/src/shared/theme";
 
-import {useBackOrClose} from "@/src/shared/hooks/useBackOrClose";
+import { useBackOrClose } from "@/src/shared/hooks/useBackOrClose";
 
 /** Header for a legal document in a sheet. */
 export type LegalDocumentHeaderProps = {
@@ -16,21 +16,18 @@ export type LegalDocumentHeaderProps = {
   onEdit?: () => void;
 };
 
-const LegalDocumentHeader: React.FC<LegalDocumentHeaderProps> = ({title, onCloseSheet, onEdit}) => {
+const LegalDocumentHeader: React.FC<LegalDocumentHeaderProps> = ({
+  title,
+  onCloseSheet,
+  onEdit,
+}) => {
   const theme = useAppTheme();
-  const {handleBack} = useBackOrClose(onCloseSheet);
+  const { handleBack } = useBackOrClose(onCloseSheet);
 
   return (
-    <View
-      style={styles.container}
-      testID="legal-doc-header"
-    >
-      <View
-        style={styles.header}
-      >
-        <View
-          style={styles.leftGroup}
-        >
+    <View style={styles.container} testID="legal-doc-header">
+      <View style={styles.header}>
+        <View style={styles.leftGroup}>
           <TouchableOpacity
             onPress={handleBack}
             style={styles.backButton}
@@ -41,11 +38,7 @@ const LegalDocumentHeader: React.FC<LegalDocumentHeaderProps> = ({title, onClose
               right: 10,
             }}
           >
-            <Ionicons
-              name={"close"}
-              size={35}
-              color={theme.text}
-            />
+            <Ionicons name={"close"} size={35} color={theme.text} />
           </TouchableOpacity>
 
           <Text

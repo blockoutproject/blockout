@@ -1,4 +1,4 @@
-import {defineConfig} from "orval";
+import { defineConfig } from "orval";
 
 const mobileGatewaySpec =
   "../../../libs/shared/contracts/generated/specs/mobile-gateway.json";

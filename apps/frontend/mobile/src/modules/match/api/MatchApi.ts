@@ -65,7 +65,7 @@ export class MatchApi {
 
   /** Load matches requiring live-link moderation. */
   public getMatchesForLiveModeration(status?: LiveLinkStatusEnum) {
-    return listMatchesForLiveModeration(status ? {status} : undefined);
+    return listMatchesForLiveModeration(status ? { status } : undefined);
   }
 
   /** Approve a pending live link. */

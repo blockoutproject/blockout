@@ -6,14 +6,14 @@ import {
   markNotificationRead,
   registerPushToken,
 } from "@/src/shared/generated/endpoints/notification-secure";
-import type {RegisterPushTokenRequest} from "@/src/shared/generated/models";
+import type { RegisterPushTokenRequest } from "@/src/shared/generated/models";
 
 /** Expose notification operations through the feature API boundary. */
 export class NotificationApi {
   /** Load one page of notifications for the authenticated user. */
-  public getNotifications(params: {page?: number; size?: number} = {}) {
-    const {page = 0, size} = params;
-    return getNotifications({page, size});
+  public getNotifications(params: { page?: number; size?: number } = {}) {
+    const { page = 0, size } = params;
+    return getNotifications({ page, size });
   }
 
   /** Load the authenticated user's unread notification count. */

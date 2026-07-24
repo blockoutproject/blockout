@@ -1,9 +1,5 @@
 {
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "name": "@blockout/config-service",
-  "tags": [
-    "type:application",
-    "scope:backend",
-    "language:java"
-  ]
+  "tags": ["type:application", "scope:backend", "language:java"]
 }

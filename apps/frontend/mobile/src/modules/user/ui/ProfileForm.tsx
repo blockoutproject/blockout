@@ -1,25 +1,25 @@
-import React, {useEffect, useMemo, useState} from "react";
-import {Alert, StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import {BottomSheetScrollView} from "@gorhom/bottom-sheet";
-import {useFormik} from "formik";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
-import {Image} from "expo-image";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {radius, useAppTheme} from "@/src/shared/theme";
+import { radius, useAppTheme } from "@/src/shared/theme";
 
-import {UserResponse, UpdateUserRequest} from "@/src/shared/generated/models";
+import { UserResponse, UpdateUserRequest } from "@/src/shared/generated/models";
 import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
 
 import FormCard from "@/src/shared/ui/form/FormCard";
-import {FormField} from "@/src/shared/ui/form/form-field";
+import { FormField } from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
-import {useApis} from "@/src/shared/providers/ApiProvider";
-import {ApiError} from "@/src/shared/api/ApiError";
-import {ImageUpload} from "@/src/shared/model/ImageUpload";
+import { useApis } from "@/src/shared/providers/ApiProvider";
+import { ApiError } from "@/src/shared/api/ApiError";
+import { ImageUpload } from "@/src/shared/model/ImageUpload";
 
 export type ProfileFormState = {
   loading: boolean;
@@ -33,9 +33,14 @@ export type UserFormProps = {
   onStateChange?: (state: ProfileFormState) => void;
 };
 
-const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit, onStateChange}) => {
+const ProfileForm: React.FC<UserFormProps> = ({
+  user,
+  onSuccess,
+  onRegisterSubmit,
+  onStateChange,
+}) => {
   const theme = useAppTheme();
-  const {mobile} = useApis();
+  const { mobile } = useApis();
 
   const [imageFile, setImageFile] = useState<ImageUpload | null>(null);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -57,13 +62,18 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
       const asset = pickerResult.assets[0];
       if (!asset?.uri) return;
 
-      const manipContext = ImageManipulator.ImageManipulator.manipulate(asset.uri);
-      manipContext.resize({width: 512});
+      const manipContext = ImageManipulator.ImageManipulator.manipulate(
+        asset.uri,
+      );
+      manipContext.resize({ width: 512 });
       const rendered = await manipContext.renderAsync();
-      const saved = await rendered.saveAsync({format: ImageManipulator.SaveFormat.PNG, compress: 1});
+      const saved = await rendered.saveAsync({
+        format: ImageManipulator.SaveFormat.PNG,
+        compress: 1,
+      });
 
       setPreviewUri(saved.uri);
-      setImageFile({uri: saved.uri, name: "avatar.png", type: "image/png"});
+      setImageFile({ uri: saved.uri, name: "avatar.png", type: "image/png" });
       setRemovedAvatar(false);
     } catch {
       Alert.alert("Erreur", "Impossible de traiter l’image.");
@@ -78,7 +88,7 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
   };
 
   const formik = useFormik({
-    initialValues: {pseudo: user.pseudo ?? ""},
+    initialValues: { pseudo: user.pseudo ?? "" },
     validationSchema: Yup.object({
       pseudo: Yup.string()
         .required("Je s'appelle Groot 🌳")
@@ -107,21 +117,28 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
           request,
           imageFile ?? undefined,
         );
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
         onSuccess(updated);
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
-          const errorData = err.data as {message?: unknown; error?: unknown} | undefined;
+          const errorData = err.data as
+            { message?: unknown; error?: unknown } | undefined;
           const serverMsg =
             (typeof errorData?.message === "string" && errorData.message) ||
             (typeof errorData?.error === "string" && errorData.error) ||
             "Ce pseudo est déjà utilisé.";
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          await Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Error,
+          );
           formik.setFieldError("pseudo", serverMsg);
           setApiError(null);
         } else {
           setApiError("Sauvegarde impossible, réessaie.");
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          await Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Error,
+          );
         }
       } finally {
         setLoading(false);
@@ -133,13 +150,18 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
     onRegisterSubmit(formik.submitForm);
   }, [formik.submitForm, onRegisterSubmit]);
 
-  const canSubmit = useMemo(() => formik.isValid && !loading, [formik.isValid, loading]);
+  const canSubmit = useMemo(
+    () => formik.isValid && !loading,
+    [formik.isValid, loading],
+  );
 
   useEffect(() => {
-    onStateChange?.({loading, canSubmit});
+    onStateChange?.({ loading, canSubmit });
   }, [loading, canSubmit, onStateChange]);
 
-  const avatarUri = removedAvatar ? null : (previewUri ?? user.pictureUrl ?? null);
+  const avatarUri = removedAvatar
+    ? null
+    : (previewUri ?? user.pictureUrl ?? null);
 
   return (
     <>
@@ -154,14 +176,18 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
           <TouchableOpacity
             onPress={handlePickImage}
             activeOpacity={0.85}
-            style={[styles.logoWrap, {borderColor: theme.border}]}
+            style={[styles.logoWrap, { borderColor: theme.border }]}
             accessibilityRole="button"
             accessibilityLabel="Choisir une photo de profil"
             testID="profile-photo-action"
           >
             <View style={styles.logoMask}>
               {avatarUri ? (
-                <Image source={{uri: avatarUri}} style={styles.logo} contentFit="cover"/>
+                <Image
+                  source={{ uri: avatarUri }}
+                  style={styles.logo}
+                  contentFit="cover"
+                />
               ) : (
                 <View style={styles.logoPlaceholder}>
                   <MaterialCommunityIcons
@@ -169,7 +195,9 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
                     size={28}
                     color={theme.textInactive}
                   />
-                  <Text style={[styles.logoHint, {color: theme.textInactive}]}>
+                  <Text
+                    style={[styles.logoHint, { color: theme.textInactive }]}
+                  >
                     Ajouter une photo
                   </Text>
                 </View>
@@ -180,30 +208,52 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
           <View style={styles.buttonsRow}>
             <TouchableOpacity
               onPress={handlePickImage}
-              style={[styles.logoBtn, {backgroundColor: theme.backgroundSecondary}]}
+              style={[
+                styles.logoBtn,
+                { backgroundColor: theme.backgroundSecondary },
+              ]}
               accessibilityRole="button"
               accessibilityLabel="Changer la photo"
             >
-              <MaterialCommunityIcons name="pencil-outline" size={16} color={theme.text}/>
-              <Text style={[styles.logoBtnText, {color: theme.text}]}>Changer la photo</Text>
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={16}
+                color={theme.text}
+              />
+              <Text style={[styles.logoBtnText, { color: theme.text }]}>
+                Changer la photo
+              </Text>
             </TouchableOpacity>
 
             {!!avatarUri && (
               <TouchableOpacity
                 onPress={handleRemoveImage}
-                style={[styles.removeBtn, {backgroundColor: theme.backgroundSecondary}]}
+                style={[
+                  styles.removeBtn,
+                  { backgroundColor: theme.backgroundSecondary },
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel="Supprimer la photo"
               >
-                <MaterialCommunityIcons name="trash-can-outline" size={16} color={theme.error}/>
-                <Text style={[styles.removeBtnText, {color: theme.error}]}>Supprimer</Text>
+                <MaterialCommunityIcons
+                  name="trash-can-outline"
+                  size={16}
+                  color={theme.error}
+                />
+                <Text style={[styles.removeBtnText, { color: theme.error }]}>
+                  Supprimer
+                </Text>
               </TouchableOpacity>
             )}
           </View>
         </FormCard>
 
         <FormCard>
-          <FormField label="Pseudo" error={formik.errors.pseudo} touched={formik.touched.pseudo}>
+          <FormField
+            label="Pseudo"
+            error={formik.errors.pseudo}
+            touched={formik.touched.pseudo}
+          >
             <SheetTextInput
               value={formik.values.pseudo}
               onChangeText={formik.handleChange("pseudo")}
@@ -213,7 +263,7 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
               returnKeyType="done"
               style={
                 formik.touched.pseudo && formik.errors.pseudo
-                  ? {borderColor: theme.error}
+                  ? { borderColor: theme.error }
                   : undefined
               }
             />
@@ -221,7 +271,7 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
         </FormCard>
       </BottomSheetScrollView>
 
-      <ApiErrorToast message={apiError} onHidden={() => setApiError(null)}/>
+      <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
     </>
   );
 };
@@ -229,7 +279,7 @@ const ProfileForm: React.FC<UserFormProps> = ({user, onSuccess, onRegisterSubmit
 export default ProfileForm;
 
 const styles = StyleSheet.create({
-  fieldContainer: {padding: 8, paddingBottom: 100, gap: 12},
+  fieldContainer: { padding: 8, paddingBottom: 100, gap: 12 },
   logoWrap: {
     borderWidth: 1.5,
     borderRadius: 22,
@@ -246,9 +296,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginVertical: 16,
   },
-  logo: {width: "100%", height: "100%"},
-  logoPlaceholder: {alignItems: "center", gap: 6},
-  logoHint: {fontSize: 12, fontWeight: "600"},
+  logo: { width: "100%", height: "100%" },
+  logoPlaceholder: { alignItems: "center", gap: 6 },
+  logoHint: { fontSize: 12, fontWeight: "600" },
   buttonsRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -262,7 +312,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: radius.full,
   },
-  logoBtnText: {fontSize: 12, fontWeight: "700"},
+  logoBtnText: { fontSize: 12, fontWeight: "700" },
   removeBtn: {
     alignSelf: "flex-start",
     flexDirection: "row",

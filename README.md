@@ -61,13 +61,19 @@ run commands are documented in [local development](docs/runbooks/local-developme
 ## Verification
 
 ```bash
+npm run format
 npm exec -- nx run @blockout/contracts:test
 npm exec -- nx run @blockout/club-scraper:test
 npm exec -- nx run @blockout/competition-scraper:test
 npm exec -- nx run @blockout/mobile:typecheck
 npm exec -- nx run @blockout/mobile:test
 mvn -f pom.xml test
+npm run format:check
 ```
+
+`npm run format` is the canonical formatter for the complete repository: Prettier handles JavaScript, TypeScript, JSON,
+YAML, and Markdown; Spotless with google-java-format handles Java; and Ruff handles Python. Editors may run these tools
+on save, but repository commands remain authoritative for agents and contributors.
 
 See the [documentation index](docs/README.md), the [completed roadmap](docs/current/roadmap.md), and the
 [contract-first certification](docs/current/ref-059-certification.md) for the validated application baseline.

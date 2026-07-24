@@ -17,13 +17,13 @@ The canonical
 [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) file remained the sole visual
 authority. The implementation was compared directly with these certified nodes:
 
-| Responsibility             | Figma node |
-| -------------------------- | ---------- |
-| Search                     | `84:1001`  |
-| Authenticated populated home | `144:992` |
-| Club information           | `145:1075` |
-| Team upcoming matches      | `147:1066` |
-| Pool ranking               | `148:1083` |
+| Responsibility               | Figma node |
+| ---------------------------- | ---------- |
+| Search                       | `84:1001`  |
+| Authenticated populated home | `144:992`  |
+| Club information             | `145:1075` |
+| Team upcoming matches        | `147:1066` |
+| Pool ranking                 | `148:1083` |
 
 No Figma token or component geometry was recalibrated from the pre-adoption runtime, and Figma was not mutated.
 

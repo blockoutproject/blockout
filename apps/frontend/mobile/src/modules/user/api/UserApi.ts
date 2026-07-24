@@ -5,8 +5,8 @@ import {
   unfollowFavorite,
   updateUser,
 } from "@/src/shared/generated/endpoints/user-secure";
-import type {UpdateUserRequest} from "@/src/shared/generated/models";
-import type {ImageUpload} from "@/src/shared/model/ImageUpload";
+import type { UpdateUserRequest } from "@/src/shared/generated/models";
+import type { ImageUpload } from "@/src/shared/model/ImageUpload";
 
 /** Expose user operations through the feature API boundary. */
 export class UserApi {
@@ -34,11 +34,11 @@ export class UserApi {
 
   /** Follow one supported entity. */
   public follow(entityType: string, entityId: number) {
-    return followFavorite({entityType, entityId});
+    return followFavorite({ entityType, entityId });
   }
 
   /** Stop following one supported entity. */
   public unfollow(entityType: string, entityId: number) {
-    return unfollowFavorite({entityType, entityId});
+    return unfollowFavorite({ entityType, entityId });
   }
 }

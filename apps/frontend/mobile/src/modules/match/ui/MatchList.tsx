@@ -1,20 +1,31 @@
-import React, {useCallback, useEffect, useMemo, useState} from "react";
-import {ActivityIndicator, Animated, StyleProp, StyleSheet, View, ViewStyle,} from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from "react-native";
 import * as Haptics from "expo-haptics";
-import {useRouter} from "expo-router";
-import {FlashList, ListRenderItemInfo} from "@shopify/flash-list";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { FlashList, ListRenderItemInfo } from "@shopify/flash-list";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {DayMatchesResponse, PoolMatchesResponse, MatchStatusEnum,} from "@/src/shared/generated/models";
-import {layout, useAppTheme} from "@/src/shared/theme";
-import {useMatchList} from "@/src/modules/match/hooks/useMatchList";
-import {formatDateFrenchLocale} from "@/src/shared/lib/utils";
+import {
+  DayMatchesResponse,
+  PoolMatchesResponse,
+  MatchStatusEnum,
+} from "@/src/shared/generated/models";
+import { layout, useAppTheme } from "@/src/shared/theme";
+import { useMatchList } from "@/src/modules/match/hooks/useMatchList";
+import { formatDateFrenchLocale } from "@/src/shared/lib/utils";
 import MatchDateHeader from "./match-date-header";
 import MatchPoolSection from "./match-pool-section";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 
-import {useNavigationInterstitial} from "@/src/modules/advertising/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
 
 export type MatchListProps = {
   poolIds?: number[];
@@ -34,15 +45,15 @@ type Row = HeaderRow | PoolRow;
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<Row>);
 
 const MatchList: React.FC<MatchListProps> = ({
-                                               poolIds,
-                                               teamIds,
-                                               status,
-                                               scrollY,
-                                               contentContainerStyle,
-                                               headerOffset,
-                                               showPoolHeader = true,
-                                               home = false,
-                                             }) => {
+  poolIds,
+  teamIds,
+  status,
+  scrollY,
+  contentContainerStyle,
+  headerOffset,
+  showPoolHeader = true,
+  home = false,
+}) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -56,14 +67,15 @@ const MatchList: React.FC<MatchListProps> = ({
     refetch,
   } = useMatchList(status, poolIds, teamIds);
 
-  const {handleNavigationWithAd} = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useNavigationInterstitial();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {
-    });
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
+      () => {},
+    );
     try {
       await refetch();
     } finally {
@@ -133,10 +145,10 @@ const MatchList: React.FC<MatchListProps> = ({
   }, []);
 
   const renderItem = useCallback(
-    ({item}: ListRenderItemInfo<Row>) => {
+    ({ item }: ListRenderItemInfo<Row>) => {
       switch (item.type) {
         case "sectionHeader":
-          return <MatchDateHeader title={item.title}/>;
+          return <MatchDateHeader title={item.title} />;
         case "pool":
           return (
             <MatchPoolSection
@@ -153,19 +165,21 @@ const MatchList: React.FC<MatchListProps> = ({
   );
 
   const header = useMemo(
-    () => <View style={{height: headerOffset + 4}}/>,
+    () => <View style={{ height: headerOffset + 4 }} />,
     [headerOffset],
   );
 
   const footer = useMemo(() => {
     const footerBase = (
-      <View style={{height: insets.bottom + layout.bottomNavigation + 4}}/>
+      <View style={{ height: insets.bottom + layout.bottomNavigation + 4 }} />
     );
 
     if (isFetchingNextPage && hasNextPage) {
       return (
         <View>
-          <ActivityIndicator style={{marginBottom: layout.sectionSeparator}}/>
+          <ActivityIndicator
+            style={{ marginBottom: layout.sectionSeparator }}
+          />
           {footerBase}
         </View>
       );
@@ -179,7 +193,7 @@ const MatchList: React.FC<MatchListProps> = ({
   if (isLoading) {
     body = (
       <View
-        style={[styles.center, {backgroundColor: theme.background}]}
+        style={[styles.center, { backgroundColor: theme.background }]}
         testID="match-list-loading"
       >
         <ActivityIndicator
@@ -218,11 +232,11 @@ const MatchList: React.FC<MatchListProps> = ({
         onScroll={
           scrollY
             ? Animated.event(
-              [{nativeEvent: {contentOffset: {y: scrollY}}}],
-              {
-                useNativeDriver: true,
-              },
-            )
+                [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                {
+                  useNativeDriver: true,
+                },
+              )
             : undefined
         }
         scrollEventThrottle={16}
@@ -230,7 +244,9 @@ const MatchList: React.FC<MatchListProps> = ({
           <EmptyState
             title="Aucun match trouvé"
             onRetry={poolIds?.length || teamIds?.length ? refetch : undefined}
-            retryLabel={poolIds?.length || teamIds?.length ? "Réessayer" : undefined}
+            retryLabel={
+              poolIds?.length || teamIds?.length ? "Réessayer" : undefined
+            }
             subtitle={
               poolIds?.length || teamIds?.length
                 ? "Aucun match trouvé pour les équipes ou poules sélectionnées."
@@ -253,6 +269,6 @@ const MatchList: React.FC<MatchListProps> = ({
 export default MatchList;
 
 const styles = StyleSheet.create({
-  container: {flex: 1},
-  center: {flex: 1, justifyContent: "center", alignItems: "center"},
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

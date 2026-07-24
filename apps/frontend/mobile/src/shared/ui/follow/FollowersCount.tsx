@@ -1,30 +1,35 @@
-import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {MaterialCommunityIcons} from '@expo/vector-icons';
-import {useAppTheme} from "@/src/shared/theme";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAppTheme } from "@/src/shared/theme";
 
 type Props = {
   count: number;
 };
 
-const FollowersCounter: React.FC<Props> = ({count}) => {
+const FollowersCounter: React.FC<Props> = ({ count }) => {
   const theme = useAppTheme();
 
   return (
     <View style={styles.container}>
-      <MaterialCommunityIcons name="account-multiple" size={20} color={theme.text} style={{marginRight: 6}}/>
-      <Text style={[styles.counterText, {color: theme.text}]}>{count}</Text>
+      <MaterialCommunityIcons
+        name="account-multiple"
+        size={20}
+        color={theme.text}
+        style={{ marginRight: 6 }}
+      />
+      <Text style={[styles.counterText, { color: theme.text }]}>{count}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   counterText: {
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 14,
   },
 });

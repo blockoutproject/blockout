@@ -1,6 +1,6 @@
-import React, {useEffect, useRef} from "react";
-import {Animated, DimensionValue, StyleSheet, ViewStyle} from "react-native";
-import {radius, useAppTheme} from "@/src/shared/theme";
+import React, { useEffect, useRef } from "react";
+import { Animated, DimensionValue, StyleSheet, ViewStyle } from "react-native";
+import { radius, useAppTheme } from "@/src/shared/theme";
 
 /** Composant skeleton animé. */
 export type SkeletonProps = {
@@ -15,11 +15,11 @@ export type SkeletonProps = {
 };
 
 export const Skeleton: React.FC<SkeletonProps> = ({
-                                                    width = "100%",
-                                                    height = 100,
-                                                    style,
-                                                    variant = "default",
-                                                  }) => {
+  width = "100%",
+  height = 100,
+  style,
+  variant = "default",
+}) => {
   const theme = useAppTheme();
   const opacity = useRef(new Animated.Value(0.5)).current;
 
@@ -36,7 +36,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     animation.start();
     return () => animation.stop();
@@ -50,7 +50,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
           width,
           height,
           backgroundColor: theme.muted,
-          borderRadius: variant === 'default' ? radius.full : radius.xl,
+          borderRadius: variant === "default" ? radius.full : radius.xl,
           opacity,
         },
         style,

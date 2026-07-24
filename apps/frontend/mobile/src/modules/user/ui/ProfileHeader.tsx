@@ -1,49 +1,49 @@
-import React, {useCallback, useRef} from "react";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {layout, useAppTheme} from "@/src/shared/theme";
+import React, { useCallback, useRef } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { layout, useAppTheme } from "@/src/shared/theme";
 
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {BottomSheetModal} from "@gorhom/bottom-sheet";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/BottomSheetCustomPage";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
 import MatchLiveModerationScreen from "@/src/modules/match/ui/moderation/MatchLiveModerationScreen";
 import RawDivisionMappingScreen from "@/src/modules/raw-division-mapping/ui/RawDivisionMappingScreen";
 import DivisionScreen from "@/src/modules/division/ui/DivisionScreen";
 import AdminScreen from "@/src/modules/administration/ui/AdminScreen";
-import {useSessionState} from "@/src/modules/session/providers/SessionContext";
+import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 
 export type UserHeaderProps = {
   title: string;
   onOpenReport: () => void;
 };
 
-const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
+const ProfileHeader: React.FC<UserHeaderProps> = ({ title, onOpenReport }) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const {isMaintenance} = useSessionState();
+  const { isMaintenance } = useSessionState();
 
   const liveLinkModerationSheetRef = useRef<BottomSheetModal>(null);
   const mappingSheetRef = useRef<BottomSheetModal>(null);
   const divisionSheetRef = useRef<BottomSheetModal>(null);
   const scraperSheetRef = useRef<BottomSheetModal>(null);
 
-  const {allowed: canAccessLiveLinkModeration} = useHasScopes([
+  const { allowed: canAccessLiveLinkModeration } = useHasScopes([
     "moderate:match_live_link",
   ]);
 
-  const {allowed: canAccessRawDivisionMappings} = useHasScopes([
+  const { allowed: canAccessRawDivisionMappings } = useHasScopes([
     "read:raw_division_mapping",
     "update:raw_division_mapping",
   ]);
 
-  const {allowed: canAccessDivisions} = useHasScopes([
+  const { allowed: canAccessDivisions } = useHasScopes([
     "read:divisions",
     "update:divisions",
     "create:divisions",
   ]);
 
-  const {allowed: canAdminManagement} = useHasScopes([
+  const { allowed: canAdminManagement } = useHasScopes([
     "read:scrapers",
     "update:scrapers",
     "update:maintenance",
@@ -53,7 +53,7 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
     (ref: React.RefObject<BottomSheetModal | null>) => () => {
       ref.current?.present();
     },
-    []
+    [],
   );
 
   const hasAnyAdmin =
@@ -64,17 +64,15 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
 
   return (
     <>
-      <View style={[{paddingTop: insets.top}]} testID="profile-header">
+      <View style={[{ paddingTop: insets.top }]} testID="profile-header">
         <View style={styles.header}>
-          <Text
-            style={[styles.title, {color: theme.text}]}
-            numberOfLines={1}
-          >
+          <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
             {title}
           </Text>
 
           <View style={styles.actions}>
-            {!!hasAnyAdmin && <>
+            {!!hasAnyAdmin && (
+              <>
                 {!!canAccessRawDivisionMappings && (
                   <TouchableOpacity
                     onPress={openSheet(mappingSheetRef)}
@@ -83,7 +81,11 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
                     accessibilityLabel="Gérer les correspondances de divisions"
                     testID="profile-division-mappings-action"
                   >
-                    <MaterialCommunityIcons name="alpha-m-circle" size={28} color={theme.text}/>
+                    <MaterialCommunityIcons
+                      name="alpha-m-circle"
+                      size={28}
+                      color={theme.text}
+                    />
                   </TouchableOpacity>
                 )}
                 {!!canAccessDivisions && (
@@ -94,7 +96,11 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
                     accessibilityLabel="Gérer les divisions"
                     testID="profile-divisions-action"
                   >
-                    <MaterialCommunityIcons name="alpha-d-circle" size={28} color={theme.text}/>
+                    <MaterialCommunityIcons
+                      name="alpha-d-circle"
+                      size={28}
+                      color={theme.text}
+                    />
                   </TouchableOpacity>
                 )}
                 {!!canAccessLiveLinkModeration && (
@@ -105,7 +111,11 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
                     accessibilityLabel="Modérer les liens de direct"
                     testID="profile-live-link-moderation-action"
                   >
-                    <MaterialCommunityIcons name="video-check-outline" size={28} color={theme.text}/>
+                    <MaterialCommunityIcons
+                      name="video-check-outline"
+                      size={28}
+                      color={theme.text}
+                    />
                   </TouchableOpacity>
                 )}
                 {!!canAdminManagement && (
@@ -123,7 +133,8 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
                     />
                   </TouchableOpacity>
                 )}
-              </>}
+              </>
+            )}
 
             <TouchableOpacity
               onPress={onOpenReport}
@@ -132,32 +143,36 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({title, onOpenReport}) => {
               accessibilityLabel="Signaler un problème"
               testID="profile-report-action"
             >
-              <MaterialCommunityIcons name="flag-outline" size={28} color={theme.text}/>
+              <MaterialCommunityIcons
+                name="flag-outline"
+                size={28}
+                color={theme.text}
+              />
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
       <BottomSheetCustomPage ref={liveLinkModerationSheetRef}>
-        <MatchLiveModerationScreen/>
+        <MatchLiveModerationScreen />
       </BottomSheetCustomPage>
 
       <BottomSheetCustomPage ref={mappingSheetRef}>
-        <RawDivisionMappingScreen/>
+        <RawDivisionMappingScreen />
       </BottomSheetCustomPage>
 
       <BottomSheetCustomPage ref={divisionSheetRef}>
-        <DivisionScreen/>
+        <DivisionScreen />
       </BottomSheetCustomPage>
 
       <BottomSheetCustomPage ref={scraperSheetRef}>
-        <AdminScreen/>
+        <AdminScreen />
       </BottomSheetCustomPage>
     </>
   );
 };
 
-const HIT_SLOP = {top: 8, bottom: 8, left: 8, right: 8};
+const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 const styles = StyleSheet.create({
   header: {

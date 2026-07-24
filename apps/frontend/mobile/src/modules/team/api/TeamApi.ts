@@ -3,9 +3,9 @@ import {
   getTeamsByClubId,
   getTeamsByIds,
 } from "@/src/shared/generated/endpoints/team-public";
-import {updateTeam} from "@/src/shared/generated/endpoints/team-secure";
-import type {UpdateTeamRequest} from "@/src/shared/generated/models";
-import type {ImageUpload} from "@/src/shared/model/ImageUpload";
+import { updateTeam } from "@/src/shared/generated/endpoints/team-secure";
+import type { UpdateTeamRequest } from "@/src/shared/generated/models";
+import type { ImageUpload } from "@/src/shared/model/ImageUpload";
 
 /** Expose team operations through the feature API boundary. */
 export class TeamApi {
@@ -21,7 +21,7 @@ export class TeamApi {
 
   /** Load public team summaries for the requested identifiers. */
   public getTeamsByIds(ids: number[]) {
-    return getTeamsByIds({ids});
+    return getTeamsByIds({ ids });
   }
 
   /** Update one team with its optional native image upload. */

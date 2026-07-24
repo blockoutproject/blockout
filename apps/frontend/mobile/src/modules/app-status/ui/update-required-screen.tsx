@@ -19,12 +19,8 @@ import { Action } from "@/src/shared/ui/action";
 
 /** Renders the platform update gate without changing store or bypass policy. */
 const UpdateRequiredScreen: React.FC = () => {
-  const {
-    appStatus,
-    isAppStatusLoading,
-    appUpdateUrl,
-    canBypassUpdate,
-  } = useSessionState();
+  const { appStatus, isAppStatusLoading, appUpdateUrl, canBypassUpdate } =
+    useSessionState();
   const { bypassUpdate } = useSessionActions();
   const theme = useAppTheme();
 

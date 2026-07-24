@@ -1,11 +1,21 @@
-import React, {useMemo, useRef, useState} from "react";
-import {Button, Keyboard, StyleSheet, TouchableOpacity, View,} from "react-native";
-import {radius, useAppTheme} from "@/src/shared/theme";
-import ColorPicker, {HueSlider, Panel1, Preview} from "reanimated-color-picker";
-import {BottomSheetModal, BottomSheetView} from "@gorhom/bottom-sheet";
+import React, { useMemo, useRef, useState } from "react";
+import {
+  Button,
+  Keyboard,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { radius, useAppTheme } from "@/src/shared/theme";
+import ColorPicker, {
+  HueSlider,
+  Panel1,
+  Preview,
+} from "reanimated-color-picker";
+import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import BottomSheetCustomModal from "../bottomSheet/BottomSheetCustomModal";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 
 interface Props {
   value: string;
@@ -18,12 +28,12 @@ interface Props {
 const isValidHex = (c: string) => /^#([0-9A-F]{3}){1,2}$/i.test(c);
 
 const CircleColorPicker: React.FC<Props> = ({
-                                              value,
-                                              onChange,
-                                              size = 48,
-                                              accessibilityLabel = "Choisir une couleur",
-                                              testID,
-                                            }) => {
+  value,
+  onChange,
+  size = 48,
+  accessibilityLabel = "Choisir une couleur",
+  testID,
+}) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
 
@@ -64,24 +74,28 @@ const CircleColorPicker: React.FC<Props> = ({
         onPress={open}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        accessibilityValue={{text: safeColor}}
+        accessibilityValue={{ text: safeColor }}
         testID={testID}
       />
 
       <BottomSheetCustomModal ref={sheetRef}>
-        <BottomSheetView style={{padding: 8, paddingBottom: insets.bottom}}>
+        <BottomSheetView style={{ padding: 8, paddingBottom: insets.bottom }}>
           <ColorPicker
             value={tempColor}
             onCompleteJS={(c) => setTempColor(c.hex)}
             boundedThumb
           >
-            <Preview style={{marginBottom: 16}}/>
-            <Panel1 style={{marginBottom: 16}}/>
-            <HueSlider style={{marginBottom: 40}}/>
+            <Preview style={{ marginBottom: 16 }} />
+            <Panel1 style={{ marginBottom: 16 }} />
+            <HueSlider style={{ marginBottom: 40 }} />
           </ColorPicker>
 
-          <View style={[styles.buttonRow, {backgroundColor: tempColor}]}>
-            <Button title="Valider" onPress={handleValidate} color={theme.text}/>
+          <View style={[styles.buttonRow, { backgroundColor: tempColor }]}>
+            <Button
+              title="Valider"
+              onPress={handleValidate}
+              color={theme.text}
+            />
           </View>
         </BottomSheetView>
       </BottomSheetCustomModal>

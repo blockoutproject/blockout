@@ -1,12 +1,21 @@
-import React, {useCallback, useMemo, useRef} from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import * as Haptics from "expo-haptics";
-import {StyleProp, StyleSheet, Text, TouchableOpacity, ViewStyle,} from "react-native";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {
+  StyleProp,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ViewStyle,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {radius, useAppTheme} from "@/src/shared/theme";
+import { radius, useAppTheme } from "@/src/shared/theme";
 
-import SelectSheet, {SelectOption, SelectSheetRef,} from "@/src/shared/ui/form/SelectSheet";
-import {FormatEnum, FormatLabels} from "@/src/shared/model/formatLabels";
+import SelectSheet, {
+  SelectOption,
+  SelectSheetRef,
+} from "@/src/shared/ui/form/SelectSheet";
+import { FormatEnum, FormatLabels } from "@/src/shared/model/formatLabels";
 
 export type FormatSelectProps = {
   selectedValue?: FormatEnum | null;
@@ -22,23 +31,23 @@ export type FormatSelectProps = {
 };
 
 const FormatSelect: React.FC<FormatSelectProps> = ({
-                                                     selectedValue,
-                                                     onSelect,
-                                                     title = "Choisir un format",
-                                                     placeholderLabel = "Format",
-                                                     testIDButton,
-                                                     style,
-                                                     disabled = false,
-                                                     clearable = true,
-                                                   }) => {
+  selectedValue,
+  onSelect,
+  title = "Choisir un format",
+  placeholderLabel = "Format",
+  testIDButton,
+  style,
+  disabled = false,
+  clearable = true,
+}) => {
   const theme = useAppTheme();
   const sheetRef = useRef<SelectSheetRef>(null);
 
   const options: SelectOption[] = useMemo(
     () => [
-      {value: FormatEnum.SIX, label: FormatLabels[FormatEnum.SIX]},
-      {value: FormatEnum.FOUR, label: FormatLabels[FormatEnum.FOUR]},
-      {value: FormatEnum.TWO, label: FormatLabels[FormatEnum.TWO]},
+      { value: FormatEnum.SIX, label: FormatLabels[FormatEnum.SIX] },
+      { value: FormatEnum.FOUR, label: FormatLabels[FormatEnum.FOUR] },
+      { value: FormatEnum.TWO, label: FormatLabels[FormatEnum.TWO] },
     ],
     [],
   );
@@ -90,7 +99,7 @@ const FormatSelect: React.FC<FormatSelectProps> = ({
         />
 
         <Text
-          style={[styles.formatText, {color: theme.text}]}
+          style={[styles.formatText, { color: theme.text }]}
           numberOfLines={1}
         >
           {label}

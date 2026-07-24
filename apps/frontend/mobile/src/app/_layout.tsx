@@ -6,7 +6,10 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
-import { AUTH0_CONFIG, validateRequiredConfig } from "@/src/shared/config/config";
+import {
+  AUTH0_CONFIG,
+  validateRequiredConfig,
+} from "@/src/shared/config/config";
 import { ThemeProvider, useAppTheme } from "@/src/shared/theme";
 import { ApiProvider } from "@/src/shared/providers/ApiProvider";
 import { SessionProvider } from "@/src/modules/session/providers/SessionProvider";
@@ -19,8 +22,8 @@ import { PurchasesProvider } from "@/src/modules/subscription/providers/Purchase
 import { QueryProvider } from "@/src/shared/providers/QueryProvider";
 import type { NotificationResponse } from "expo-notifications";
 import {
-    addNotificationListeners,
-    openNotificationUrlIfAny,
+  addNotificationListeners,
+  openNotificationUrlIfAny,
 } from "@/src/modules/notifications/push";
 
 export default function Root() {
@@ -128,7 +131,10 @@ function RootNavigator() {
           <Stack.Protected guard={!hasCompletedOnboarding}>
             <Stack.Screen
               name="onboarding"
-              options={{ animation: "fade_from_bottom", animationDuration: 300 }}
+              options={{
+                animation: "fade_from_bottom",
+                animationDuration: 300,
+              }}
             />
           </Stack.Protected>
 

@@ -13,7 +13,7 @@ import {
   MatchStatusEnum,
   type TeamSummaryResponse,
 } from "@/src/shared/generated/models";
-import {layout} from "@/src/shared/theme";
+import { layout } from "@/src/shared/theme";
 import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
 
 type ClubTabsProps = {

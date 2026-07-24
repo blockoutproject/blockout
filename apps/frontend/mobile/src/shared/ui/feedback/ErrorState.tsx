@@ -1,6 +1,6 @@
-import React, {useState} from "react";
+import React, { useState } from "react";
 import StateCard from "./StateCard";
-import {DimensionValue} from "react-native";
+import { DimensionValue } from "react-native";
 
 /** Props for the error state. */
 export type ErrorStateProps = {
@@ -21,14 +21,14 @@ export type ErrorStateProps = {
 };
 
 const ErrorState: React.FC<ErrorStateProps> = ({
-                                                 title = "Oups ! Une erreur est survenue.",
-                                                 subtitle,
-                                                 onRetry,
-                                                 paddingTop = "20%",
-                                                 retryLabel = "Réessayer",
-                                                 testID = "error-state",
-                                                 retryTestID = "error-retry",
-                                               }) => {
+  title = "Oups ! Une erreur est survenue.",
+  subtitle,
+  onRetry,
+  paddingTop = "20%",
+  retryLabel = "Réessayer",
+  testID = "error-state",
+  retryTestID = "error-retry",
+}) => {
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {

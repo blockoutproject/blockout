@@ -9,7 +9,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {radius, useAppTheme} from "@/src/shared/theme";
+import { radius, useAppTheme } from "@/src/shared/theme";
 import type {
   ClubResponse,
   UpdateClubRequest,
@@ -21,7 +21,7 @@ import FormCard from "@/src/shared/ui/form/FormCard";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 import { useApis } from "@/src/shared/providers/ApiProvider";
 import { ImageUpload } from "@/src/shared/model/ImageUpload";
-import {FormField} from "@/src/shared/ui/form/form-field";
+import { FormField } from "@/src/shared/ui/form/form-field";
 
 export type ClubFormState = {
   loading: boolean;

@@ -1,8 +1,8 @@
 import React from "react";
-import {fireEvent, render, waitFor} from "@testing-library/react-native";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import * as Haptics from "expo-haptics";
 
-import {ThemeProvider} from "@/src/shared/theme";
+import { ThemeProvider } from "@/src/shared/theme";
 import StateCard from "@/src/shared/ui/feedback/StateCard";
 
 jest.mock("expo-haptics", () => ({
@@ -25,12 +25,12 @@ describe("StateCard", () => {
         <StateCard
           title="Aucun résultat"
           subtitle="Réessaie dans quelques instants."
-          action={{label: "Réessayer", onPress, testID: "retry"}}
+          action={{ label: "Réessayer", onPress, testID: "retry" }}
         />
       </ThemeProvider>,
     );
 
-    expect(screen.getByRole("header", {name: "Aucun résultat"})).toBeTruthy();
+    expect(screen.getByRole("header", { name: "Aucun résultat" })).toBeTruthy();
     expect(screen.getByText("Réessaie dans quelques instants.")).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("retry"));

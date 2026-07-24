@@ -2,12 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  layout,
-  spacing,
-  typography,
-  useAppTheme,
-} from "@/src/shared/theme";
+import { layout, spacing, typography, useAppTheme } from "@/src/shared/theme";
 
 export type AppStatusLayoutProps = React.PropsWithChildren<{
   title: string;

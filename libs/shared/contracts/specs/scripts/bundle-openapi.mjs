@@ -1,28 +1,28 @@
-import {mkdir, readdir, readFile, writeFile} from 'node:fs/promises';
-import path from 'node:path';
-import {fileURLToPath} from 'node:url';
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const specsDir = path.resolve(scriptDir, '..');
-const sourceDir = path.join(specsDir, 'source');
-const generatedSpecsDir = path.resolve(specsDir, '../generated/specs');
-const servicesDir = path.join(sourceDir, 'services');
-const sharedBaseFile = path.join(sourceDir, 'shared/base.json');
-const sharedSchemasDir = path.join(sourceDir, 'shared/schemas');
+const specsDir = path.resolve(scriptDir, "..");
+const sourceDir = path.join(specsDir, "source");
+const generatedSpecsDir = path.resolve(specsDir, "../generated/specs");
+const servicesDir = path.join(sourceDir, "services");
+const sharedBaseFile = path.join(sourceDir, "shared/base.json");
+const sharedSchemasDir = path.join(sourceDir, "shared/schemas");
 const schemaRefPattern = /^#\/components\/schemas\/(.+)$/;
 
 async function readJson(file) {
-  return JSON.parse(await readFile(file, 'utf8'));
+  return JSON.parse(await readFile(file, "utf8"));
 }
 
 async function directories(dir) {
   try {
-    return (await readdir(dir, {withFileTypes: true}))
+    return (await readdir(dir, { withFileTypes: true }))
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort((left, right) => left.localeCompare(right));
   } catch (error) {
-    if (error.code === 'ENOENT') {
+    if (error.code === "ENOENT") {
       return [];
     }
     throw error;
@@ -32,9 +32,9 @@ async function directories(dir) {
 async function loadJsonDirectory(dir) {
   let entries;
   try {
-    entries = await readdir(dir, {withFileTypes: true});
+    entries = await readdir(dir, { withFileTypes: true });
   } catch (error) {
-    if (error.code === 'ENOENT') {
+    if (error.code === "ENOENT") {
       return {};
     }
     throw error;
@@ -42,7 +42,7 @@ async function loadJsonDirectory(dir) {
 
   const result = {};
   const files = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
     .map((entry) => entry.name)
     .sort((left, right) => left.localeCompare(right));
 
@@ -67,12 +67,12 @@ function collectSchemaReferences(value, references = new Set()) {
     return references;
   }
 
-  if (!value || typeof value !== 'object') {
+  if (!value || typeof value !== "object") {
     return references;
   }
 
   for (const [key, nested] of Object.entries(value)) {
-    if (key === '$ref' && typeof nested === 'string') {
+    if (key === "$ref" && typeof nested === "string") {
       const match = schemaRefPattern.exec(nested);
       if (match?.[1]) {
         references.add(match[1]);
@@ -123,9 +123,9 @@ function usedTags(paths, availableTags = []) {
   return availableTags.filter((tag) => names.has(tag.name));
 }
 
-async function writeContract({baseFile, paths = {}, schemas, outputFile}) {
+async function writeContract({ baseFile, paths = {}, schemas, outputFile }) {
   const base = await readJson(baseFile);
-  const {openapi, info, servers, tags = [], components = {}, ...rest} = base;
+  const { openapi, info, servers, tags = [], components = {}, ...rest } = base;
   const contract = {
     openapi,
     info,
@@ -133,11 +133,11 @@ async function writeContract({baseFile, paths = {}, schemas, outputFile}) {
     tags: usedTags(paths, tags),
     ...rest,
     paths,
-    components: {...components, schemas},
+    components: { ...components, schemas },
   };
 
-  await mkdir(path.dirname(outputFile), {recursive: true});
-  await writeFile(outputFile, `${JSON.stringify(contract, null, 2)}\n`, 'utf8');
+  await mkdir(path.dirname(outputFile), { recursive: true });
+  await writeFile(outputFile, `${JSON.stringify(contract, null, 2)}\n`, "utf8");
   console.log(`Contract written to ${outputFile}`);
 }
 
@@ -146,17 +146,23 @@ async function bundle() {
 
   for (const service of await directories(servicesDir)) {
     const serviceDir = path.join(servicesDir, service);
-    const paths = await loadJsonDirectory(path.join(serviceDir, 'paths'));
-    const serviceSchemas = await loadJsonDirectory(path.join(serviceDir, 'schemas'));
-    const base = await readJson(path.join(serviceDir, 'base.json'));
-    const availableSchemas = {...sharedSchemas, ...serviceSchemas};
-    const schemaRoots = (base['x-contract-schema-roots'] ?? [])
-      .map((name) => ({$ref: `#/components/schemas/${name}`}));
+    const paths = await loadJsonDirectory(path.join(serviceDir, "paths"));
+    const serviceSchemas = await loadJsonDirectory(
+      path.join(serviceDir, "schemas"),
+    );
+    const base = await readJson(path.join(serviceDir, "base.json"));
+    const availableSchemas = { ...sharedSchemas, ...serviceSchemas };
+    const schemaRoots = (base["x-contract-schema-roots"] ?? []).map((name) => ({
+      $ref: `#/components/schemas/${name}`,
+    }));
 
     await writeContract({
-      baseFile: path.join(serviceDir, 'base.json'),
+      baseFile: path.join(serviceDir, "base.json"),
       paths,
-      schemas: resolveSchemas([paths, base.components ?? {}, schemaRoots], availableSchemas),
+      schemas: resolveSchemas(
+        [paths, base.components ?? {}, schemaRoots],
+        availableSchemas,
+      ),
       outputFile: path.join(generatedSpecsDir, `${service}.json`),
     });
   }
@@ -164,7 +170,7 @@ async function bundle() {
   await writeContract({
     baseFile: sharedBaseFile,
     schemas: sharedSchemas,
-    outputFile: path.join(generatedSpecsDir, 'shared.json'),
+    outputFile: path.join(generatedSpecsDir, "shared.json"),
   });
 }
 

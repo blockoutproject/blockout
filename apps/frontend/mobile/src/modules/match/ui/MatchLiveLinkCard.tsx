@@ -1,24 +1,24 @@
-import React, {useMemo, useRef} from "react";
-import {StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import React, { useMemo, useRef } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {BottomSheetModal} from "@gorhom/bottom-sheet";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
 import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import {GradientPill} from "@/src/shared/ui/pill";
-import {useAppTheme} from "@/src/shared/theme";
+import { GradientPill } from "@/src/shared/ui/pill";
+import { useAppTheme } from "@/src/shared/theme";
 import {
   LiveProviderEnum,
   MatchResponse,
   MatchStatusEnum,
 } from "@/src/shared/generated/models";
-import {LIVE_PROVIDER_LABELS} from "@/src/modules/match/model/liveProviderLabels";
+import { LIVE_PROVIDER_LABELS } from "@/src/modules/match/model/liveProviderLabels";
 import MatchLiveLinkReportFormSheet from "@/src/modules/match/ui/form/MatchLiveLinkReportFormSheet";
 import MatchLiveLinkFormSheet from "./form/MatchLiveLinkFormSheet";
 import MatchLiveLinkDeleteFormSheet from "./form/MatchLiveLinkDeleteFormSheet";
-import {useSessionState} from "@/src/modules/session/providers/SessionContext";
+import { useSessionState } from "@/src/modules/session/providers/SessionContext";
 import useHasScopes from "@/src/modules/user/hooks/useHasScopes";
-import {useWebLinkInterstitial} from "@/src/modules/advertising/useWebLinkInterstitial";
+import { useWebLinkInterstitial } from "@/src/modules/advertising/useWebLinkInterstitial";
 
 type Props = {
   match: MatchResponse;
@@ -30,32 +30,32 @@ type Props = {
 const RADIUS = 18;
 
 const MatchLiveLinkCard: React.FC<Props> = ({
-                                              match,
-                                              gradient,
-                                              refetch,
-                                              onRequireAuth,
-                                            }) => {
+  match,
+  gradient,
+  refetch,
+  onRequireAuth,
+}) => {
   const theme = useAppTheme();
-  const {openLinkWithInterstitial} = useWebLinkInterstitial();
+  const { openLinkWithInterstitial } = useWebLinkInterstitial();
 
   const reportSheetRef = useRef<BottomSheetModal>(null);
   const editSheetRef = useRef<BottomSheetModal>(null);
   const deleteSheetRef = useRef<BottomSheetModal>(null);
 
-  const {allowed: canDeleteLiveLinkScope} = useHasScopes([
+  const { allowed: canDeleteLiveLinkScope } = useHasScopes([
     "delete:match_live_link",
   ]);
-  const {allowed: canReportLiveLinkScope} = useHasScopes([
+  const { allowed: canReportLiveLinkScope } = useHasScopes([
     "report:match_live_link",
   ]);
-  const {allowed: canCreateLiveLinkScope} = useHasScopes([
+  const { allowed: canCreateLiveLinkScope } = useHasScopes([
     "create:match_live_link",
   ]);
-  const {allowed: canModerateLiveLinkScope} = useHasScopes([
+  const { allowed: canModerateLiveLinkScope } = useHasScopes([
     "moderate:match_live_link",
   ]);
 
-  const {customUser, isGuest} = useSessionState();
+  const { customUser, isGuest } = useSessionState();
 
   const hasLiveLink = !!match.liveUrl;
   const isFinished = match.status === MatchStatusEnum.FINISHED;
@@ -67,8 +67,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
   }, [customUser?.auth0Id, match.liveOwnerAuth0Id]);
 
   const matchDate = useMemo(
-    () =>
-      match.matchDate ? new Date(match.matchDate) : null,
+    () => (match.matchDate ? new Date(match.matchDate) : null),
     [match.matchDate],
   );
 
@@ -137,16 +136,14 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     } else if (isGuest) {
       await Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Error,
-      ).catch(() => {
-      });
+      ).catch(() => {});
       onRequireAuth();
     }
   };
 
   const handleOpenLive = async () => {
     if (!match.liveUrl) return;
-    await Haptics.selectionAsync().catch(() => {
-    });
+    await Haptics.selectionAsync().catch(() => {});
     openLinkWithInterstitial(match.liveUrl);
   };
 
@@ -158,7 +155,9 @@ const MatchLiveLinkCard: React.FC<Props> = ({
 
   const emptyStateLabel = useMemo(
     () =>
-      isFinished ? "Ajouter un lien de rediffusion" : "Vous diffusez ce match ?",
+      isFinished
+        ? "Ajouter un lien de rediffusion"
+        : "Vous diffusez ce match ?",
     [isFinished],
   );
 
@@ -175,16 +174,16 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         gradient={gradient}
         borderRadius={RADIUS}
         borderWidth={1}
-        style={[styles.card, {backgroundColor: theme.background}]}
+        style={[styles.card, { backgroundColor: theme.background }]}
       >
         <View style={styles.headerRow}>
           <View style={styles.titleRow}>
-            <Text style={[styles.title, {color: theme.text}]}>
+            <Text style={[styles.title, { color: theme.text }]}>
               {headerTitle}
             </Text>
             {!!isLive && (
               <View
-                style={[styles.liveDot, {backgroundColor: theme.error}]}
+                style={[styles.liveDot, { backgroundColor: theme.error }]}
               />
             )}
           </View>
@@ -202,9 +201,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                 size={18}
                 color={theme.textInactive}
               />
-              <Text
-                style={[styles.reportText, {color: theme.textInactive}]}
-              >
+              <Text style={[styles.reportText, { color: theme.textInactive }]}>
                 Signaler
               </Text>
             </TouchableOpacity>
@@ -287,9 +284,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                 label={emptyStateLabel}
                 gradient={[theme.borderSecondary, theme.border]}
                 treatment="border"
-                onPress={
-                  canCreateLiveLink ? handleOpenEdit : onRequireAuth
-                }
+                onPress={canCreateLiveLink ? handleOpenEdit : onRequireAuth}
                 accessibilityLabel={emptyStateLabel}
                 testID="match-live-add-action"
               />
@@ -340,32 +335,32 @@ const MatchLiveLinkCard: React.FC<Props> = ({
 export default MatchLiveLinkCard;
 
 const styles = StyleSheet.create({
-  card: {borderRadius: RADIUS, padding: 14, gap: 16},
+  card: { borderRadius: RADIUS, padding: 14, gap: 16 },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  titleRow: {flexDirection: "row", alignItems: "center", gap: 6},
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   title: {
     fontSize: 14,
     fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 0.3,
   },
-  liveDot: {width: 8, height: 8, borderRadius: 4},
-  reportBtn: {flexDirection: "row", alignItems: "center", gap: 6},
-  reportText: {fontSize: 12, fontWeight: "600"},
-  content: {gap: 12},
-  liveBlock: {gap: 8},
+  liveDot: { width: 8, height: 8, borderRadius: 4 },
+  reportBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
+  reportText: { fontSize: 12, fontWeight: "600" },
+  content: { gap: 12 },
+  liveBlock: { gap: 8 },
   livePillRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
   },
-  livePillWrap: {flexShrink: 1},
-  actionsRow: {flexDirection: "row", alignItems: "center", gap: 8},
+  livePillWrap: { flexShrink: 1 },
+  actionsRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   iconChip: {
     width: 32,
     height: 32,
@@ -374,5 +369,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  addPillWrap: {alignSelf: "flex-start"},
+  addPillWrap: { alignSelf: "flex-start" },
 });

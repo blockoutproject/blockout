@@ -10,9 +10,9 @@ export type SearchStateProps = {
 };
 
 const SearchState: React.FC<SearchStateProps> = ({
-                                                   title = "Prêt à explorer ?",
-                                                   subtitle = "Tape quelque chose pour commencer ta recherche !",
-                                                 }) => {
+  title = "Prêt à explorer ?",
+  subtitle = "Tape quelque chose pour commencer ta recherche !",
+}) => {
   return (
     <StateCard
       title={title}

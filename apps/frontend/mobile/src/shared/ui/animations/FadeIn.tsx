@@ -1,5 +1,5 @@
-import React, {PropsWithChildren, useEffect, useRef} from "react";
-import {Animated, StyleProp, ViewStyle} from "react-native";
+import React, { PropsWithChildren, useEffect, useRef } from "react";
+import { Animated, StyleProp, ViewStyle } from "react-native";
 
 type FadeInProps = PropsWithChildren<{
   /** Démarre l’anim au montage. */
@@ -35,24 +35,28 @@ type FadeInProps = PropsWithChildren<{
 }>;
 
 const FadeIn: React.FC<FadeInProps> = ({
-                                         children,
-                                         playOnMount = true,
-                                         triggerKey,
-                                         duration = 220,
-                                         delay = 0,
-                                         fromOpacity = 0,
-                                         toOpacity = 1,
-                                         fromTranslateY = 8,
-                                         toTranslateY = 0,
-                                         once = true,
-                                         disabled = false,
-                                         appearIndex = 0,
-                                         staggerBase = 0,
-                                         staggerStep = 60,
-                                         style,
-                                       }) => {
-  const opacity = useRef(new Animated.Value(disabled ? toOpacity : fromOpacity)).current;
-  const translateY = useRef(new Animated.Value(disabled ? toTranslateY : fromTranslateY)).current;
+  children,
+  playOnMount = true,
+  triggerKey,
+  duration = 220,
+  delay = 0,
+  fromOpacity = 0,
+  toOpacity = 1,
+  fromTranslateY = 8,
+  toTranslateY = 0,
+  once = true,
+  disabled = false,
+  appearIndex = 0,
+  staggerBase = 0,
+  staggerStep = 60,
+  style,
+}) => {
+  const opacity = useRef(
+    new Animated.Value(disabled ? toOpacity : fromOpacity),
+  ).current;
+  const translateY = useRef(
+    new Animated.Value(disabled ? toTranslateY : fromTranslateY),
+  ).current;
   const hasAnimated = useRef(false);
 
   const effectiveDelay = staggerBase + appearIndex * staggerStep + delay;
@@ -108,7 +112,7 @@ const FadeIn: React.FC<FadeInProps> = ({
         style,
         {
           opacity,
-          transform: [{translateY}],
+          transform: [{ translateY }],
         },
       ]}
     >

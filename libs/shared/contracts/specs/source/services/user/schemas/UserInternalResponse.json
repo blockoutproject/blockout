@@ -18,7 +18,9 @@
       "favorites": {
         "type": "array",
         "nullable": true,
-        "items": { "$ref": "#/components/schemas/UserFavoriteSummaryInternalResponse" }
+        "items": {
+          "$ref": "#/components/schemas/UserFavoriteSummaryInternalResponse"
+        }
       }
     }
   }

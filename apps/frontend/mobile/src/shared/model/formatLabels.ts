@@ -1,6 +1,6 @@
-import {FormatEnum} from "@/src/shared/generated/models";
+import { FormatEnum } from "@/src/shared/generated/models";
 
-export {FormatEnum} from "@/src/shared/generated/models";
+export { FormatEnum } from "@/src/shared/generated/models";
 
 /** User-facing labels for the generated transport format values. */
 export const FormatLabels: Record<FormatEnum, string> = {

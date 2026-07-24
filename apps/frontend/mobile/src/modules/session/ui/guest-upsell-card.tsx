@@ -25,8 +25,8 @@ const GuestUpsellCard: React.FC<GuestUpsellCardProps> = ({
   subtitle = "Connecte-toi pour suivre tes équipes, recevoir des notifications et personnaliser ton profil.",
 }) => {
   const theme = useAppTheme();
-  const {signIn} = useSessionActions();
-  const {isLoading} = useSessionState();
+  const { signIn } = useSessionActions();
+  const { isLoading } = useSessionState();
   const [loading, setLoading] = useState(false);
 
   const onSignIn = async () => {

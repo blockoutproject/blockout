@@ -1,9 +1,16 @@
-import React, {useMemo} from "react";
-import {ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View,} from "react-native";
+import React, { useMemo } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import * as Application from "expo-application";
 
-import {useAppTheme} from "@/src/shared/theme";
-import {FormField} from "@/src/shared/ui/form/form-field";
+import { useAppTheme } from "@/src/shared/theme";
+import { FormField } from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
 
 type Props = {
@@ -30,22 +37,22 @@ const CURRENT_APP_VERSION =
   "0.0.0";
 
 const AppVersionControlCard: React.FC<Props> = ({
-                                                  minVersionIos,
-                                                  minVersionAndroid,
-                                                  forceUpdateMessage,
-                                                  storeUrlIos,
-                                                  storeUrlAndroid,
-                                                  lastUpdate,
-                                                  loading,
-                                                  saving,
-                                                  isDirty,
-                                                  onChangeMinVersionIos,
-                                                  onChangeMinVersionAndroid,
-                                                  onChangeForceUpdateMessage,
-                                                  onChangeStoreUrlIos,
-                                                  onChangeStoreUrlAndroid,
-                                                  onSave,
-                                                }) => {
+  minVersionIos,
+  minVersionAndroid,
+  forceUpdateMessage,
+  storeUrlIos,
+  storeUrlAndroid,
+  lastUpdate,
+  loading,
+  saving,
+  isDirty,
+  onChangeMinVersionIos,
+  onChangeMinVersionAndroid,
+  onChangeForceUpdateMessage,
+  onChangeStoreUrlIos,
+  onChangeStoreUrlAndroid,
+  onSave,
+}) => {
   const theme = useAppTheme();
 
   const trimmedIos = useMemo(
@@ -76,8 +83,7 @@ const AppVersionControlCard: React.FC<Props> = ({
   const iosValid = isValidSemver(trimmedIos);
   const androidValid = isValidSemver(trimmedAndroid);
 
-  const isValidUrl = (v: string) =>
-    v.length === 0 || /^https?:\/\/.+/i.test(v);
+  const isValidUrl = (v: string) => v.length === 0 || /^https?:\/\/.+/i.test(v);
 
   const iosUrlValid = isValidUrl(trimmedStoreUrlIos);
   const androidUrlValid = isValidUrl(trimmedStoreUrlAndroid);
@@ -133,7 +139,7 @@ const AppVersionControlCard: React.FC<Props> = ({
       "Les utilisateurs avec une version trop ancienne devront mettre à jour l’application.";
 
     Alert.alert(title, description, [
-      {text: "Annuler", style: "cancel"},
+      { text: "Annuler", style: "cancel" },
       {
         text: "Confirmer",
         style: "destructive",
@@ -154,21 +160,22 @@ const AppVersionControlCard: React.FC<Props> = ({
     >
       <View style={styles.headerBlock}>
         <View style={styles.titleRow}>
-          <Text style={[styles.title, {color: theme.text}]}>
+          <Text style={[styles.title, { color: theme.text }]}>
             Versions minimales
           </Text>
         </View>
 
-        <Text style={[styles.subtitle, {color: theme.textInactive}]}>
-          Force la mise à jour de l’app quand la version installée est trop ancienne.
+        <Text style={[styles.subtitle, { color: theme.textInactive }]}>
+          Force la mise à jour de l’app quand la version installée est trop
+          ancienne.
         </Text>
       </View>
 
       <View style={styles.infoRow}>
-        <Text style={[styles.infoLabel, {color: theme.textInactive}]}>
+        <Text style={[styles.infoLabel, { color: theme.textInactive }]}>
           Version de cette app :
         </Text>
-        <Text style={[styles.infoValue, {color: theme.text}]}>
+        <Text style={[styles.infoValue, { color: theme.text }]}>
           {CURRENT_APP_VERSION}
         </Text>
       </View>
@@ -184,7 +191,7 @@ const AppVersionControlCard: React.FC<Props> = ({
           placeholder="Ex : Une nouvelle version est dispo, mets l’app à jour pour continuer ✨"
           enableSuggestions
           multiline
-          style={{minHeight: 80, textAlignVertical: "top"}}
+          style={{ minHeight: 80, textAlignVertical: "top" }}
         />
       </FormField>
 
@@ -198,11 +205,7 @@ const AppVersionControlCard: React.FC<Props> = ({
           onChangeText={onChangeMinVersionIos}
           placeholder="Laisser vide si non utilisé"
           keyboardType="numbers-and-punctuation"
-          style={
-            iosVersionError
-              ? {borderColor: theme.error}
-              : undefined
-          }
+          style={iosVersionError ? { borderColor: theme.error } : undefined}
         />
       </FormField>
 
@@ -216,47 +219,27 @@ const AppVersionControlCard: React.FC<Props> = ({
           onChangeText={onChangeMinVersionAndroid}
           placeholder="Laisser vide si non utilisé"
           keyboardType="numbers-and-punctuation"
-          style={
-            androidVersionError
-              ? {borderColor: theme.error}
-              : undefined
-          }
+          style={androidVersionError ? { borderColor: theme.error } : undefined}
         />
       </FormField>
 
-      <FormField
-        label="URL App Store iOS"
-        error={iosUrlError}
-        touched
-      >
+      <FormField label="URL App Store iOS" error={iosUrlError} touched>
         <SheetTextInput
           value={storeUrlIos}
           onChangeText={onChangeStoreUrlIos}
           placeholder="https://apps.apple.com/..."
           keyboardType="url"
-          style={
-            iosUrlError
-              ? {borderColor: theme.error}
-              : undefined
-          }
+          style={iosUrlError ? { borderColor: theme.error } : undefined}
         />
       </FormField>
 
-      <FormField
-        label="URL Play Store Android"
-        error={androidUrlError}
-        touched
-      >
+      <FormField label="URL Play Store Android" error={androidUrlError} touched>
         <SheetTextInput
           value={storeUrlAndroid}
           onChangeText={onChangeStoreUrlAndroid}
           placeholder="https://play.google.com/store/..."
           keyboardType="url"
-          style={
-            androidUrlError
-              ? {borderColor: theme.error}
-              : undefined
-          }
+          style={androidUrlError ? { borderColor: theme.error } : undefined}
         />
       </FormField>
 
@@ -276,17 +259,14 @@ const AppVersionControlCard: React.FC<Props> = ({
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel="Enregistrer les versions minimales"
-          accessibilityState={{disabled: !canSubmit, busy: saving}}
+          accessibilityState={{ disabled: !canSubmit, busy: saving }}
           testID="administration-save-versions-action"
         >
           {saving ? (
-            <ActivityIndicator size="small" color={theme.background}/>
+            <ActivityIndicator size="small" color={theme.background} />
           ) : (
             <Text
-              style={[
-                styles.primaryButtonText,
-                {color: theme.background},
-              ]}
+              style={[styles.primaryButtonText, { color: theme.background }]}
             >
               Enregistrer
             </Text>
@@ -297,22 +277,18 @@ const AppVersionControlCard: React.FC<Props> = ({
       <View style={styles.footerRow}>
         {!!lastUpdate && (
           <Text
-            style={[styles.lastUpdate, {color: theme.textInactive}]}
+            style={[styles.lastUpdate, { color: theme.textInactive }]}
             numberOfLines={1}
           >
-            Dernière mise à jour :{" "}
-            {new Date(lastUpdate).toLocaleString()}
+            Dernière mise à jour : {new Date(lastUpdate).toLocaleString()}
           </Text>
         )}
 
         {!!showMiniLoader && (
           <View style={styles.miniLoaderRow}>
-            <ActivityIndicator size="small" color={theme.textInactive}/>
+            <ActivityIndicator size="small" color={theme.textInactive} />
             <Text
-              style={[
-                styles.miniLoaderText,
-                {color: theme.textInactive},
-              ]}
+              style={[styles.miniLoaderText, { color: theme.textInactive }]}
             >
               Synchronisation…
             </Text>
