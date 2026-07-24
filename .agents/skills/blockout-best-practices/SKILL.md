@@ -24,31 +24,31 @@ the current task. Detailed rules live in the references rather than in this entr
 
 ## Source Router
 
-| Task signal                                                                   | Read                                                                                                        |
-| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Java package structure, Spring service, Maven module, or application boundary | `references/backend-java-policy.md`                                                                         |
-| Javadoc, source comments, or a handwritten public/local contract              | `references/code-documentation-policy.md`                                                                   |
-| Mapping between transport, application, domain, provider, and persistence     | `references/mapping-policy.md`                                                                              |
-| Backend Java tests                                                            | `references/java-testing-policy.md`                                                                         |
-| JPA entity, repository, migration, or PostgreSQL schema                       | `references/persistence-policy.md`                                                                          |
-| Request, response, controller, mapping, error, collection, or pagination      | `references/rest-api-policy.md`                                                                             |
-| OpenAPI contract, DTO, endpoint, generated client/server, or transport enum   | `references/contract-first.md`, then `references/rest-api-policy.md` when relevant                          |
-| Java, Python, or mobile logging                                               | `references/logging-policy.md`                                                                              |
-| Python scraper code, model, dependency, or fixture                            | `references/python-scraper-policy.md` and `references/python-scraper-testing-policy.md`                     |
-| Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | `references/mobile-expo-policy.md`, `references/mobile-testing-policy.md`, and `vercel-react-native-skills` |
-| Figma read/write, mobile visual design, design tokens, or visual comparison   | `references/figma-policy.md`, then the applicable mobile policy and Figma skill                             |
-| Mobile Jest or React Native Testing Library test                              | `references/mobile-testing-policy.md`                                                                       |
-| React component API, provider composition, or reusable mobile UI architecture | `vercel-composition-patterns` in addition to the applicable mobile policy                                   |
-| Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md`                                                                        |
-| Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                                           |
-| Business model ownership or current refactor scope                            | `docs/current/refactor-direction.md` and the owning application sources                                     |
-| Roadmap discovery, acquisition, claim, resume, scope, or draft publication    | `references/github-roadmap-operations.md` and the applicable task runbook                                   |
-| Drain compatible Ready issues                                                 | `references/github-roadmap-operations.md` and `docs/runbooks/tasks/ready-drain.md`                          |
-| Merge one pull request                                                        | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`  |
-| Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                    |
-| Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md`                                                                   |
-| Track, issue identifier, label, or Workset area taxonomy                      | `references/github-taxonomy.md`                                                                             |
-| Issue, branch, commit, push, pull request, label, title, or local Git sync    | `references/git-workflow.md`                                                                                |
+| Task signal                                                                   | Read                                                                                                         |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Java package structure, Spring service, Maven module, or application boundary | `references/backend-java-policy.md`                                                                          |
+| Javadoc, source comments, or a handwritten public/local contract              | `references/code-documentation-policy.md`                                                                    |
+| Mapping between transport, application, domain, provider, and persistence     | `references/mapping-policy.md`                                                                               |
+| Backend Java tests                                                            | `references/java-testing-policy.md`                                                                          |
+| JPA entity, repository, migration, or PostgreSQL schema                       | `references/persistence-policy.md`                                                                           |
+| Request, response, controller, mapping, error, collection, or pagination      | `references/rest-api-policy.md`                                                                              |
+| OpenAPI contract, DTO, endpoint, generated client/server, or transport enum   | `references/contract-first.md`, then `references/rest-api-policy.md` when relevant                           |
+| Java, Python, or mobile logging                                               | `references/logging-policy.md`                                                                               |
+| Python scraper code, model, dependency, or fixture                            | `references/python-scraper-policy.md` and `references/python-scraper-testing-policy.md`                      |
+| Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | `references/mobile-expo-policy.md`, `references/mobile-testing-policy.md`, and `vercel-react-native-skills`  |
+| Figma read/write, mobile visual design, design tokens, or visual comparison   | `references/figma-policy.md`, then the applicable mobile policy and Figma skill                              |
+| Mobile Jest or React Native Testing Library test                              | `references/mobile-testing-policy.md`                                                                        |
+| React component API, provider composition, or reusable mobile UI architecture | `vercel-composition-patterns` in addition to the applicable mobile policy                                    |
+| Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md`                                                                         |
+| Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                                            |
+| Business model ownership or delivered runtime posture                         | `docs/current/blockout-product-runtime-context.md`, the applicable architecture decision, and owning sources |
+| Roadmap discovery, acquisition, claim, resume, scope, or draft publication    | `references/github-roadmap-operations.md` and the applicable task runbook                                    |
+| Drain compatible Ready issues                                                 | `references/github-roadmap-operations.md` and `docs/runbooks/tasks/ready-drain.md`                           |
+| Merge one pull request                                                        | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`   |
+| Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                     |
+| Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md`                                                                    |
+| Track, issue identifier, label, or Workset area taxonomy                      | `references/github-taxonomy.md`                                                                              |
+| Issue, branch, commit, push, pull request, label, title, or local Git sync    | `references/git-workflow.md`                                                                                 |
 
 When Figma work requires simulator or service startup, also read `references/local-runtime-policy.md`.
 

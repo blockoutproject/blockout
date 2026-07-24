@@ -11,30 +11,21 @@ Figma-to-code implementation, and visual reconciliation.
   acceptance evidence.
 - Runtime source and the running supported application surfaces control behavior, routes, authorization, data flow,
   copy, accessibility, platform integration, and available states. Figma cannot activate or redefine them.
-- [`ref-061-mobile-visual-baseline.md`](../../../../docs/current/ref-061-mobile-visual-baseline.md) controls the visual
-  inventory and the approved foundation, component, and screen scope.
-- [`ref-064-figma-screen-certification.md`](../../../../docs/current/ref-064-figma-screen-certification.md) records the
-  certified screen coverage and the boundary between visual and functional authority.
-- [`ref-064a-canonical-runtime-reconciliation.md`](../../../../docs/current/ref-064a-canonical-runtime-reconciliation.md)
-  records the authenticated runtime evidence used to establish the complete canonical compositions.
-- [`ref-065b-faithful-native-figma-system.md`](../../../../docs/current/ref-065b-faithful-native-figma-system.md)
-  records the current foundations, component library, canonical iOS node identifiers, and remaining evidence limits.
-- [`ref-065c-figma-fidelity-and-component-hierarchy.md`](../../../../docs/current/ref-065c-figma-fidelity-and-component-hierarchy.md)
-  records the categorized component ownership, source-backed master geometry, canonical instance lineage, and current
-  iOS fidelity evidence.
+- The durable
+  [`Blockout Mobile Design System V1`](../../../../docs/architecture/blockout-mobile-design-system-v1.md) defines the
+  relationship between canonical Figma assets, current runtime source, reusable components, and task-level evidence.
 - The only canonical design file is
   [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) in the Blockout Figma team
   (`NwDQmiXqSjKVzQ6gwry0zb`). Do not create a parallel canonical file.
 - The canonical Figma file controls visual composition. The application remains the authority for behavior and platform
   functionality.
-- [`ref-065s-canonical-figma-system-normalization.md`](../../../../docs/current/ref-065s-canonical-figma-system-normalization.md)
-  certifies the visual foundations, components, icons, and eleven canonical screens that REF-066 and later
-  Figma-to-code adoption tasks consume.
+- Owning issues, pull requests, Git history, and Figma version history retain detailed certification and delivery
+  evidence. Do not recreate that task history in repository documentation.
 
 ## Entry Gate
 
-1. Read the owning roadmap task, the current visual baseline, relevant runtime sources, this policy, the mobile policy,
-   and the applicable Figma skills.
+1. Read the owning roadmap task, the mobile design-system model, relevant runtime sources, this policy, the mobile
+   policy, and the applicable Figma skills.
 2. Confirm that the task explicitly includes Figma or visual work and names the target foundation, component, flow, or
    screen family.
 3. Classify the direction as visual discovery, code-to-Figma calibration, Figma-to-code implementation, or visual
@@ -185,8 +176,8 @@ source, and Figma facts between correction passes.
   business compositions local instead of creating a prop-heavy generic component.
 - Preserve a minimum 44-point interactive target. Keep safe-area and system differences explicit for every platform
   included in the owning task.
-- Every variable, token category, component family, lifecycle page, and screen state requires evidence from REF-061 or
-  current runtime source.
+- Every variable, token category, component family, lifecycle page, and screen state requires evidence from the
+  canonical Figma file, current runtime source, or an owning accepted issue.
 - Return every changed node ID and immediately verify naming, properties, bindings, fonts, metadata, instance linkage,
   accessibility, and rendered screenshots.
 - Stop after a failed mutation, ambiguous result, missing prerequisite, or genuine decision fork. Do not continue
@@ -213,5 +204,5 @@ source, and Figma facts between correction passes.
 ## Closure
 
 The final report identifies the canonical file, changed or consumed node IDs, runtime sources, viewports, platforms,
-authentication modes, states, validations, intentional normalization, blockers, and skipped evidence. Complete and push
-each roadmap task separately on `main` under the repository's current workflow.
+authentication modes, states, validations, intentional normalization, blockers, and skipped evidence. Complete and
+publish each roadmap task separately through the repository GitFlow.
