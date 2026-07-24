@@ -1257,6 +1257,158 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     and native proof are recorded in
     [the REF-068 discovery and competition reading alignment record](./ref-068-discovery-competition-reading.md).
 
+## GitFlow and GitHub Roadmap adoption
+
+This migration takes precedence over REF-069 through REF-071. Until GIT-009 is merged, this file remains the operational
+task source and each completed migration task is published separately on `main` under the temporary repository rules.
+After GIT-009, the live GitHub Project becomes authoritative and this file is retained only as the bounded migration
+checklist until GIT-012 removes it.
+
+- [x] **GIT-001 — Capture the Maaatch governance baseline and freeze the migration sequence**
+  - Inspect the Maaatch Git workflow, Roadmap policies, lifecycle and operations rules, issue templates, compact
+    Project reader, task runbooks, repository settings, native issue types, labels, Project fields, views, workflows,
+    and branch model without mutating Maaatch or Blockout GitHub state.
+  - Compare that baseline with the current Blockout repository, organization issue types, labels, branches, merge
+    settings, Projects, local agent guidance, CI workflows, and remaining local roadmap tasks.
+  - Define the ordered migration below and keep REF-069 through REF-071 deferred until their GitHub issues are created
+    and validated by GIT-011.
+  - Evidence (2026-07-24): Maaatch uses native `Action`, `Bug`, `Feature`, `Epic`, and `Tech` issue types; eight lifecycle
+    statuses; mandatory Track, Priority, and Execution Mode fields; five operational views; two enabled Project
+    workflows; workset-based claims; a paginated read-only GraphQL helper; five task runbooks; `develop` as the default
+    branch; and merge commits only. Blockout currently has only the native `Task`, `Bug`, and `Feature` types, nine
+    default labels, no active Roadmap Project, no `develop` branch, and `main` as its default branch with merge, squash,
+    and rebase all enabled. No GitHub or branch setting was changed by this task.
+
+- [ ] **GIT-002 — Port the GitFlow and Roadmap operating policies in dormant mode**
+  - Add Blockout-owned Git workflow, Roadmap policy, governance, lifecycle, and operations references based on Maaatch,
+    adapting repository names, Java 21, Expo, Python scraper, contract, validation, and Blockout architecture
+    boundaries without copying Maaatch product-specific rules.
+  - Add the discovery, acquisition, execution, Ready-drain, and single-PR merge runbooks plus the read-only paginated
+    Project GraphQL helper. Keep IDs resolved live, prohibit hidden claim state, and preserve the same fail-closed,
+    workset, claim, review-reservation, dependency-reconciliation, and merge-authorization guards.
+  - Route the new references from `blockout-best-practices` and `AGENTS.md`, but keep the local roadmap and direct-`main`
+    workflow explicitly active until GIT-009 completes.
+  - Validate every local link, Bash syntax, GraphQL document shape, terminology, formatter, and diff. Do not create a
+    Project, issue, branch, pull request, or GitHub mutation in this task.
+
+- [ ] **GIT-003 — Define the Blockout governance vocabulary and issue contracts**
+  - Freeze the Blockout Track options from current product and architecture ownership while retaining Maaatch's field
+    semantics, ordering rules, `Foundation` and `Platform` roles, and a dedicated Figma track. Do not reuse Maaatch-only
+    product codes that have no Blockout meaning.
+  - Define the complete lowercase label catalog: Blockout-specific `area:*` workset labels, useful surface and domain
+    labels, type labels for pull requests, audit severities, and current help/state labels. Record the deterministic
+    mapping from the nine legacy default labels and prohibit a `blocked` label because Project Status owns that state.
+  - Add adapted `Action`, `Bug`, `Epic`, `Feature`, and `Tech` issue templates with native types, exact Workset syntax,
+    acceptance criteria, dependencies, references, and the future Blockout Roadmap link.
+  - Define English issue, branch, commit, and pull-request naming; `feature/`, `bugfix/`, `tech/`, and `hotfix/` prefixes;
+    draft PRs to `develop`; 2–4 useful PR labels; and the `Refs` versus `Closes` rule.
+  - Validate template front matter, area/workset consistency, links, formatting, and the absence of a competing task
+    ledger. Keep all GitHub taxonomy changes local until GIT-004.
+
+- [ ] **GIT-004 — Provision native issue types and the repository label taxonomy**
+  - Capture a recovery snapshot of Blockout organization issue types, all organization repositories affected by native
+    issue-type changes, repository labels, open issues, and pull requests before mutation.
+  - Configure the live native types `Action`, `Bug`, `Feature`, `Epic`, and `Tech`. Retire the generic `Task` type only
+    after proving that no other organization repository relies on it or after recording and applying an explicit safe
+    migration.
+  - Create or update the GIT-003 label catalog with exact names, colors, and descriptions; migrate any live use of
+    legacy labels before deleting labels that no longer belong to the catalog.
+  - Reread all types and labels, prove templates resolve their native types, and verify that no issue or pull request
+    lost meaningful metadata. Do not create the Roadmap Project in this task.
+
+- [ ] **GIT-005 — Create and configure the Blockout Roadmap Project**
+  - Create the organization `Roadmap` Project and capture a complete recovery snapshot before each structural mutation.
+    Resolve every Project, field, option, view, workflow, repository, and issue-type ID live by name.
+  - Reproduce Maaatch's lifecycle fields and order: `Triage`, `Backlog`, `Ready`, `In Progress`, `In Review`, `Done`,
+    `Blocked`, and `Rejected / Replaced`; the GIT-003 Blockout Track options; `High`, `Normal`, and `Low` Priority; and
+    `DEFAULT_EXECUTION` plus `PLAN_REQUIRED` Execution Mode.
+  - Reproduce the five views and their behavior: `🎯 Delivery`, `🚀 Ready Candidates`, `🧭 By Track`,
+    `🧭 Intake & Backlog`, and `✅ Done`, including filters, layouts, grouping, sorting, and visible fields.
+  - Enable only `Auto-add sub-issues to project` and `Item added to project` with new items entering `Triage`; disable
+    broad issue/PR auto-add and agent-owned lifecycle transitions.
+  - Connect the Blockout repository, adapt the compact reader's default owner and live Project number, and prove
+    complete pagination and normalized field output from two stable reads. Do not add product tasks yet.
+
+- [ ] **GIT-006 — Prepare CI and repository documentation for `develop`**
+  - Reconcile the Maaatch-aligned pull-request and push workflows already prepared for Blockout, keeping contracts as
+    the shared artifact source and native Maven, uv/Python, and Expo/Nx validation boundaries.
+  - Run pull-request CI for `develop` and `main`, push CI for `develop` and `main`, and the standalone repository
+    `format:check` workflow for both branches. Preserve Java 21 backend dependencies and safe non-secret mobile CI
+    configuration.
+  - Document stable check names and the local equivalent commands needed by later release guards. Keep deployment,
+    production publication, signing, and provider operations out of scope.
+  - Parse every workflow, validate Compose service resolution, run formatting, contracts, Python, backend, and mobile
+    checks proportionally, and prove no generated output or secret is tracked.
+
+- [ ] **GIT-007 — Establish `develop` and the Maaatch merge contract**
+  - Require a clean, current `main`, create `develop` from its exact verified head, push it, and change the repository
+    default branch to `develop` only after GIT-006 is present on both branches.
+  - Match Maaatch repository settings: allow merge commits, disable squash and rebase merges, keep auto-merge disabled,
+    and leave branch deletion to the explicit merge runbook.
+  - Inspect branch protection and ruleset availability. When the private-plan limitation prevents enforcement, record
+    that absence exactly and retain the policy-level release guard rather than inventing a bypass.
+  - Verify `origin/HEAD`, branch ancestry, CI runs on both integration and main branches, and repository settings.
+    Preserve every pre-existing task branch; branch cleanup is destructive and remains outside this task.
+
+- [ ] **GIT-008 — Seed the remaining governance migration as valid Roadmap issues**
+  - Create one native `Tech` issue for each of GIT-009 through GIT-012 after searching open and closed equivalents.
+    Give every issue an independently understandable objective, exact acceptance criteria, `Dependencies`, frozen
+    `Workset`, matching `area:*` labels, Track, Priority, and Execution Mode.
+  - Add every issue to the live Roadmap through `Triage`, attach native blocker and parent/sub-issue relationships where
+    justified, and promote only complete executable contracts to `Ready`.
+  - Prove deterministic Priority/Track/issue-number ordering, zero workset conflict, unassigned Ready state, and two
+    stable compact Project snapshots. The local roadmap remains authoritative for this task; no task branch is created.
+
+- [ ] **GIT-009 — Activate Blockout GitFlow through one complete canary lifecycle**
+  - Acquire only the GIT-009 Roadmap issue through the canonical claim protocol and require two stable snapshots before
+    planning, branch creation, or edits.
+  - Create its `tech/<issue-number>-activate-blockout-gitflow` branch from current `develop`, then update
+    `blockout-best-practices`, `AGENTS.md`, documentation, and task entrypoints so the live Roadmap becomes the sole
+    operational task and claim authority.
+  - Validate, stage only the issue workset, commit, push, open a labeled draft PR to `develop`, verify its structural
+    issue link, and transition the issue to `In Review` while retaining its reservation.
+  - After separate current-user merge authorization, exercise the merge-commit path, remote task-branch deletion,
+    terminal issue cleanup, dependency unlock reconciliation, Epic rollup when applicable, and local `develop`
+    synchronization. Do not activate auto-merge or infer authorization from this roadmap.
+
+- [ ] **GIT-010 — Certify concurrency, recovery, Ready-drain, and release governance**
+  - Exercise the live governance validation matrix with real migration issues where safe and bounded disposable Tech
+    issues otherwise: conflicting versus disjoint worksets, deterministic selection, Epics excluded from claims,
+    `PLAN_REQUIRED` gating, coherent same-login review reservations, partial-claim recovery, resume, scope expansion,
+    and dependency unlock.
+  - Validate the Ready-drain controller against pairwise-compatible `DEFAULT_EXECUTION` tasks, one fresh worktree task
+    per issue, draft-PR stop conditions, and GitHub-only idempotency. Validate that the merge runbook selects and merges
+    at most one explicitly authorized eligible PR and never refreshes another branch.
+  - Recheck all Project fields, views, visible columns, filters, grouping, sorting, workflow enabled states, templates,
+    labels, repository merge settings, CI gates, compact reads, and documentation links.
+  - Close disposable validation issues consistently as `Done` or `Rejected / Replaced`, remove assignments, reconcile
+    dependents, and leave no hidden claim, orphan branch, draft Project item, or test task in an active status.
+
+- [ ] **GIT-011 — Migrate the remaining local roadmap work to GitHub**
+  - Search for delivered or equivalent work, then create native GitHub issues for REF-069, REF-070, and REF-071 with
+    their current objectives preserved, complete acceptance criteria, exact Blockout worksets, matching area labels,
+    Track, Priority, Execution Mode, and source references.
+  - Attach REF-070 as natively blocked by REF-069. Keep REF-071 independent unless fresh source evidence proves a real
+    blocker. Use native parent/sub-issue relationships only for a genuine grouped outcome.
+  - Add the issues to the Roadmap through `Triage`; move each to `Ready` only after its complete Ready contract,
+    source gate, equivalent/delivered challenge, workset compatibility, and native dependency state pass. Otherwise
+    retain it in the exact justified `Backlog` or `Blocked` state.
+  - Obtain two stable complete Project reads and prove that the three remaining tasks are represented once, with no
+    competing Markdown execution state.
+
+- [ ] **GIT-012 — Retire the local roadmap and certify the final GitHub source of truth**
+  - Verify that every unfinished local task has one coherent live GitHub issue and that completed history remains
+    recoverable from Git history, closed issues, merged pull requests, and task-specific evidence documents.
+  - Remove `docs/current/roadmap.md`, update every repository link and policy that names it, and remove all temporary
+    direct-`main`, dormant-governance, or dual-source wording. Do not replace it with another Markdown task ledger.
+  - Run final read-only discovery and governance validation against the complete Project; prove stable Ready ordering,
+    active-claim calculation, workset conflict handling, view/workflow coherence, branch and merge settings, CI gates,
+    issue templates, labels, and task runbooks.
+  - Publish this cleanup through its claimed issue and draft PR, require separate merge authorization, reconcile the
+    terminal state and dependencies, and finish with the GitHub Roadmap as Blockout's only operational task source.
+
+## Deferred until GitFlow migration
+
 - [ ] **REF-069 — Align account, write, moderation, and support flows**
   - Migrate profile, notifications, entity forms, follow actions, reports, live-link moderation, raw division mapping,
     administration, legal documents, PDF, subscriptions, sheets, validation, toasts, and destructive confirmations.
@@ -1291,5 +1443,6 @@ The Java and Python scraper refactors and their local persistence certification 
 The mobile behavior and contract-first transport baselines are complete. REF-061 through REF-070 now define the visual
 capture, Figma design-system, policy, implementation, and certification path that must finish before public release.
 REF-071 records the deferred `search-worker` cache correction discovered while restoring representative local data.
-GitFlow, CI, deployment, production changes, repository publication, credential rotation, and license selection remain
-deferred.
+GIT-001 through GIT-012 now take precedence and establish the complete Maaatch-aligned GitFlow and GitHub Roadmap before
+REF-069 through REF-071 resume. Deployment, production changes, repository publication, credential rotation, and
+license selection remain deferred.
