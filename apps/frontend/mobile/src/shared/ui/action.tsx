@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   type GestureResponderEvent,
   Pressable,
+  type StyleProp,
   StyleSheet,
   Text,
   View,
@@ -18,6 +19,7 @@ import Animated, {
 
 import {
   colors,
+  borderWidth,
   elevation,
   gradients,
   radius,
@@ -26,14 +28,18 @@ import {
   useAppTheme,
 } from "@/src/shared/theme";
 
+export type ActionVariant =
+  "primary" | "secondary" | "destructive" | "destructiveOutline";
+
 export type ActionProps = {
   onPress: () => Promise<void> | void;
   label: string;
+  variant?: ActionVariant;
   disabled?: boolean;
   loading?: boolean;
   loadingLabel?: string;
   leftIcon?: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   textColor?: string;
   fullWidth?: boolean;
   gradient?: readonly [string, string, string];
@@ -49,6 +55,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 export function Action({
   onPress,
   label,
+  variant = "primary",
   disabled,
   loading,
   loadingLabel,
@@ -63,7 +70,14 @@ export function Action({
   const theme = useAppTheme();
   const scale = useSharedValue(1);
   const isDisabled = Boolean(disabled || loading);
-  const foreground = textColor ?? theme.onPrimary;
+  const foreground =
+    textColor ??
+    (variant === "primary"
+      ? theme.onPrimary
+      : variant === "destructiveOutline"
+        ? theme.error
+        : theme.text);
+  const stateOpacity = disabled ? 0.45 : loading ? 0.75 : 1;
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -92,6 +106,16 @@ export function Action({
     await onPress();
   }, [onPress]);
 
+  const content = (
+    <View style={styles.content}>
+      {leftIcon && !loading ? leftIcon : null}
+      {loading ? <ActivityIndicator size="small" color={foreground} /> : null}
+      <Text style={[styles.label, { color: foreground }]}>
+        {loading ? (loadingLabel ?? label) : label}
+      </Text>
+    </View>
+  );
+
   return (
     <AnimatedPressable
       onPressIn={handlePressIn}
@@ -102,6 +126,7 @@ export function Action({
         fullWidth ? styles.fullWidth : undefined,
         animatedStyle,
         style,
+        { opacity: stateOpacity },
       ]}
       disabled={isDisabled}
       accessibilityRole="button"
@@ -109,26 +134,34 @@ export function Action({
       accessibilityState={{ disabled: isDisabled, busy: Boolean(loading) }}
       testID={testID}
     >
-      <LinearGradient
-        colors={gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[
-          styles.action,
-          loading ? styles.loading : undefined,
-          fullWidth ? styles.fullWidth : undefined,
-        ]}
-      >
-        <View style={styles.content}>
-          {leftIcon && !loading ? leftIcon : null}
-          {loading ? (
-            <ActivityIndicator size="small" color={foreground} />
-          ) : null}
-          <Text style={[styles.label, { color: foreground }]}>
-            {loading ? (loadingLabel ?? label) : label}
-          </Text>
+      {variant === "primary" ? (
+        <LinearGradient
+          colors={gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.action, fullWidth ? styles.fullWidth : undefined]}
+        >
+          {content}
+        </LinearGradient>
+      ) : (
+        <View
+          style={[
+            styles.action,
+            variant === "secondary"
+              ? { backgroundColor: theme.surfaceSecondary }
+              : variant === "destructive"
+                ? { backgroundColor: theme.error }
+                : {
+                    backgroundColor: "transparent",
+                    borderColor: theme.error,
+                    borderWidth: borderWidth.thin,
+                  },
+            fullWidth ? styles.fullWidth : undefined,
+          ]}
+        >
+          {content}
         </View>
-      </LinearGradient>
+      )}
     </AnimatedPressable>
   );
 }
@@ -136,6 +169,8 @@ export function Action({
 const styles = StyleSheet.create({
   pressable: {
     alignSelf: "center",
+    minWidth: 180,
+    height: 54,
     borderRadius: radius.full,
     overflow: "hidden",
   },
@@ -143,8 +178,8 @@ const styles = StyleSheet.create({
     ...elevation.action,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 180,
-    height: 54,
+    minWidth: "100%",
+    height: "100%",
     paddingHorizontal: spacing[5],
     borderRadius: radius.full,
     borderCurve: "continuous",
@@ -158,9 +193,6 @@ const styles = StyleSheet.create({
   label: {
     ...typography.control,
     color: colors.text.onPrimary,
-  },
-  loading: {
-    opacity: 0.75,
   },
   fullWidth: {
     alignSelf: "stretch",

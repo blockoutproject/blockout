@@ -55,6 +55,8 @@ const LegalDocumentFormSheet: React.FC<LegalDocumentFormSheetProps> = ({
       ref={ref}
       snapPoint={snapPoint}
       footerComponent={renderFooter}
+      title="Modifier le document"
+      message="Mets à jour le titre, la version et le contenu Markdown."
     >
       <LegalDocumentForm
         document={document}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   StyleProp,
   StyleSheet,
@@ -7,7 +7,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
-import { useAppTheme } from "@/src/shared/theme";
+import { borderWidth, radius, spacing, useAppTheme } from "@/src/shared/theme";
 
 /**
  * Input générique pour BottomSheet qui:
@@ -23,9 +23,13 @@ const SheetTextInput: React.FC<SheetTextInputProps> = ({
   containerStyle,
   style,
   enableSuggestions = false,
+  editable = true,
+  onBlur,
+  onFocus,
   ...rest
 }) => {
   const theme = useAppTheme();
+  const [focused, setFocused] = useState(false);
 
   const suggestionProps: TextInputProps = enableSuggestions
     ? {}
@@ -43,10 +47,25 @@ const SheetTextInput: React.FC<SheetTextInputProps> = ({
       <BottomSheetTextInput
         style={[
           styles.input,
-          { borderColor: theme.border, color: theme.text },
+          {
+            backgroundColor: theme.backgroundSecondary,
+            borderColor: focused ? theme.primary : theme.border,
+            borderWidth: focused ? borderWidth.medium : borderWidth.thin,
+            color: theme.text,
+            opacity: editable ? 1 : 0.5,
+          },
           style,
         ]}
         placeholderTextColor={theme.textInactive}
+        editable={editable}
+        onBlur={(event) => {
+          setFocused(false);
+          onBlur?.(event);
+        }}
+        onFocus={(event) => {
+          setFocused(true);
+          onFocus?.(event);
+        }}
         {...suggestionProps}
         {...rest}
       />
@@ -58,10 +77,10 @@ export default SheetTextInput;
 
 const styles = StyleSheet.create({
   input: {
-    borderWidth: 1.5,
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    minHeight: 48,
+    borderRadius: radius.lg,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[3],
     fontSize: 14,
   },
 });

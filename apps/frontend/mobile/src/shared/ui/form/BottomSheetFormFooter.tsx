@@ -4,16 +4,15 @@ import {
   BottomSheetFooterProps,
 } from "@gorhom/bottom-sheet";
 import React, { memo } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { radius, useAppTheme } from "@/src/shared/theme";
+import { useAppTheme } from "@/src/shared/theme";
+import {
+  Action,
+  type ActionProps,
+  type ActionVariant,
+} from "@/src/shared/ui/action";
 
 export type BottomSheetFormFooterProps = Omit<
   BottomSheetFooterProps,
@@ -23,7 +22,8 @@ export type BottomSheetFormFooterProps = Omit<
   loading?: boolean;
   disabled?: boolean;
   onPress: () => void;
-  backgroundColor?: string;
+  variant?: ActionVariant;
+  gradient?: ActionProps["gradient"];
   icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   actionTestID?: string;
 };
@@ -33,15 +33,20 @@ const BottomSheetFormFooter = ({
   loading = false,
   disabled = false,
   onPress,
-  backgroundColor,
+  variant = "primary",
+  gradient,
   icon = "content-save-outline",
   actionTestID = "bottom-sheet-form-footer-submit",
   ...footerProps
 }: BottomSheetFormFooterProps) => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const background = backgroundColor ?? theme.primary;
-  const isDisabled = loading || disabled;
+  const foreground =
+    variant === "primary"
+      ? theme.onPrimary
+      : variant === "destructiveOutline"
+        ? theme.error
+        : theme.text;
 
   return (
     <BottomSheetFooter {...footerProps} bottomInset={insets.bottom}>
@@ -49,43 +54,31 @@ const BottomSheetFormFooter = ({
         style={[
           styles.footer,
           {
-            backgroundColor: theme.backgroundSecondary,
+            backgroundColor: theme.surface,
             borderTopColor: theme.border,
           },
         ]}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={label}
-          accessibilityState={{ busy: loading, disabled: isDisabled }}
-          disabled={isDisabled}
+        <Action
+          label={label}
+          variant={variant}
+          gradient={gradient}
+          fullWidth
+          loading={loading}
+          loadingLabel={label}
+          disabled={disabled}
           onPress={onPress}
-          style={({ pressed }) => [
-            styles.submitAction,
-            {
-              backgroundColor: background,
-              opacity: isDisabled || pressed ? 0.7 : 1,
-            },
-          ]}
+          leftIcon={
+            icon ? (
+              <MaterialCommunityIcons
+                name={icon}
+                size={18}
+                color={foreground}
+              />
+            ) : undefined
+          }
           testID={actionTestID}
-        >
-          {loading ? (
-            <ActivityIndicator color={theme.text} />
-          ) : (
-            <>
-              {icon ? (
-                <MaterialCommunityIcons
-                  name={icon}
-                  size={18}
-                  color={theme.text}
-                />
-              ) : null}
-              <Text style={[styles.submitLabel, { color: theme.text }]}>
-                {label}
-              </Text>
-            </>
-          )}
-        </Pressable>
+        />
       </View>
     </BottomSheetFooter>
   );
@@ -98,17 +91,5 @@ const styles = StyleSheet.create({
     padding: 12,
     borderTopWidth: 1,
     justifyContent: "center",
-  },
-  submitAction: {
-    borderRadius: radius.full,
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  submitLabel: {
-    fontWeight: "800",
-    fontSize: 16,
   },
 });

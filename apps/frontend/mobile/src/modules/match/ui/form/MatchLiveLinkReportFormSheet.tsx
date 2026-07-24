@@ -6,7 +6,6 @@ import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import MatchLiveLinkReportForm, {
   MatchLiveLinkReportFormState,
 } from "@/src/modules/match/ui/form/MatchLiveLinkReportForm";
-import { useAppTheme } from "@/src/shared/theme";
 
 export type MatchLiveLinkReportSheetProps = {
   ref?: React.Ref<BottomSheetModal>;
@@ -21,7 +20,6 @@ const MatchLiveLinkReportFormSheet: React.FC<MatchLiveLinkReportSheetProps> = ({
   onSuccess,
   snapPoint = "90%",
 }) => {
-  const theme = useAppTheme();
   const submitRef = useRef<() => void>(() => {});
   const [footerState, setFooterState] = useState<MatchLiveLinkReportFormState>({
     loading: false,
@@ -44,11 +42,11 @@ const MatchLiveLinkReportFormSheet: React.FC<MatchLiveLinkReportSheetProps> = ({
         loading={footerState.loading}
         disabled={!footerState.canSubmit}
         onPress={() => submitRef.current()}
-        backgroundColor={theme.error}
+        variant="destructive"
         icon="flag-outline"
       />
     ),
-    [footerState.loading, footerState.canSubmit, theme.error],
+    [footerState.loading, footerState.canSubmit],
   );
 
   return (
@@ -56,6 +54,8 @@ const MatchLiveLinkReportFormSheet: React.FC<MatchLiveLinkReportSheetProps> = ({
       ref={ref}
       snapPoint={snapPoint}
       footerComponent={renderFooter}
+      title="Signaler le direct"
+      message="Explique pourquoi ce lien doit être vérifié."
     >
       <MatchLiveLinkReportForm
         matchId={matchId}

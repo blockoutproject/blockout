@@ -6,7 +6,6 @@ import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/BottomSheetCusto
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import MatchLiveLinkDeleteForm from "@/src/modules/match/ui/form/MatchLiveLinkDeleteForm";
 import { MatchLiveLinkFormState } from "@/src/modules/match/ui/form/MatchLiveLinkForm";
-import { useAppTheme } from "@/src/shared/theme";
 
 export type MatchLiveLinkDeleteFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;
@@ -19,7 +18,6 @@ export type MatchLiveLinkDeleteFormSheetProps = {
 const MatchLiveLinkDeleteFormSheet: React.FC<
   MatchLiveLinkDeleteFormSheetProps
 > = ({ ref, matchId, liveUrl, onSuccess, snapPoint = "90%" }) => {
-  const theme = useAppTheme();
   const submitRef = useRef<() => void>(() => {});
   const [footerState, setFooterState] = useState<MatchLiveLinkFormState>({
     loading: false,
@@ -41,12 +39,12 @@ const MatchLiveLinkDeleteFormSheet: React.FC<
         label="Supprimer"
         loading={footerState.loading}
         disabled={!footerState.canSubmit}
-        backgroundColor={theme.error}
+        variant="destructive"
         icon="delete-outline"
         onPress={() => submitRef.current()}
       />
     ),
-    [footerState.loading, footerState.canSubmit, theme.error],
+    [footerState.loading, footerState.canSubmit],
   );
 
   return (
@@ -54,6 +52,8 @@ const MatchLiveLinkDeleteFormSheet: React.FC<
       ref={ref}
       snapPoint={snapPoint}
       footerComponent={renderFooter}
+      title="Supprimer le lien de direct"
+      message="Vérifie le lien avant de confirmer cette action irréversible."
     >
       <MatchLiveLinkDeleteForm
         matchId={matchId}

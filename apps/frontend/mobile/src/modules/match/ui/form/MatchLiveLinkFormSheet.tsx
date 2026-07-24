@@ -68,6 +68,8 @@ const MatchLiveLinkFormSheet: React.FC<MatchLiveLinkFormSheetProps> = ({
       ref={ref}
       snapPoint={snapPoint}
       footerComponent={renderFooter}
+      title={hasExisting ? "Modifier le lien de direct" : "Ajouter un direct"}
+      message="Renseigne le lien fourni par la plateforme de diffusion."
     >
       <MatchLiveLinkForm
         matchId={matchId}

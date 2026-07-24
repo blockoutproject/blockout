@@ -7,7 +7,6 @@ import DivisionForm, {
 } from "@/src/modules/division/ui/DivisionForm";
 import BottomSheetFormFooter from "@/src/shared/ui/form/BottomSheetFormFooter";
 import { DivisionResponse } from "@/src/shared/generated/models";
-import { useAppTheme } from "@/src/shared/theme";
 
 export type DivisionFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;
@@ -22,7 +21,6 @@ const DivisionFormSheet: React.FC<DivisionFormSheetProps> = ({
   onSuccess,
   snapPoint = "90%",
 }) => {
-  const theme = useAppTheme();
   const submitRef = useRef<() => void>(() => {});
   const [footerState, setFooterState] = useState<DivisionFormState>({
     loading: false,
@@ -52,7 +50,15 @@ const DivisionFormSheet: React.FC<DivisionFormSheetProps> = ({
         loading={footerState.loading}
         disabled={!footerState.canSubmit}
         onPress={() => submitRef.current()}
-        backgroundColor={footerState.accentColor || theme.primary}
+        gradient={
+          footerState.accentColor
+            ? [
+                footerState.accentColor,
+                footerState.accentColor,
+                footerState.accentColor,
+              ]
+            : undefined
+        }
       />
     ),
     [
@@ -60,7 +66,6 @@ const DivisionFormSheet: React.FC<DivisionFormSheetProps> = ({
       footerState.loading,
       footerState.canSubmit,
       footerState.accentColor,
-      theme.primary,
     ],
   );
 
@@ -69,6 +74,8 @@ const DivisionFormSheet: React.FC<DivisionFormSheetProps> = ({
       ref={ref}
       snapPoint={snapPoint}
       footerComponent={renderFooter}
+      title={division ? "Modifier la division" : "Créer une division"}
+      message="Renseigne les informations utilisées pour classer les compétitions."
     >
       <DivisionForm
         division={division}
