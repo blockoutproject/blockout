@@ -1,6 +1,6 @@
 # Task Discovery Runbook
 
-Use this only after GIT-009 when the user asks to inspect the next executable Blockout task without reserving it. For
+Use this when the user asks to inspect the next executable Blockout task without reserving it. For
 work intended to continue, use [`acquisition.md`](acquisition.md).
 
 ## Rules

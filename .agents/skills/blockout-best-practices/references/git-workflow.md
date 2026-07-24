@@ -3,10 +3,6 @@
 Read this reference before creating or changing a Blockout issue, branch, commit, push, pull request, label, title, or
 publication artifact.
 
-This policy is dormant until GIT-009 is merged. Before that activation gate, `docs/current/roadmap.md` remains
-authoritative and completed migration tasks are committed and pushed separately on `main` without issues, task
-branches, or pull requests. GIT-002 only installs the future operating policy.
-
 Git and GitHub mechanics live here. Roadmap selection, claims, and draft publication use
 `github-roadmap-operations.md`; lifecycle and governance references are loaded only when the current transition needs
 them.
@@ -19,8 +15,7 @@ postcondition. Never create a duplicate issue, branch, commit, or pull request w
 1. Follow the user's explicit instruction.
 2. Preserve user work and never stage, commit, publish, overwrite, or discard out-of-scope changes.
 3. Reuse an existing artifact that matches the task.
-4. After GIT-009, publish completed implementation work by default through a draft pull request unless the user limits
-   publication.
+4. Publish completed implementation work by default through a draft pull request unless the user limits publication.
 5. Apply the defaults below for everything else.
 
 If inspection cannot resolve a conflict between these priorities safely, ask one concise question.
@@ -36,7 +31,7 @@ If inspection cannot resolve a conflict between these priorities safely, ask one
 
 For local-only work without an explicit commit request, do not commit.
 
-## Defaults After Activation
+## Defaults
 
 - Integration branch: `develop`.
 - Task branches start from an up-to-date `develop`.

@@ -3,9 +3,6 @@
 Read this reference for issue discovery, acquisition, claims, resume, scope expansion, and GitFlow through draft pull
 request publication. Load lifecycle for lifecycle/release decisions and governance for Project structure.
 
-This policy is dormant until GIT-009. GIT-004 through GIT-008 may perform only the exact provisioning or seeding
-authorized by their local roadmap scope.
-
 ## Local Execution Profile
 
 Use one authenticated `gh` identity for Roadmap issue, Project, and PR operations. In a managed checkout, route network

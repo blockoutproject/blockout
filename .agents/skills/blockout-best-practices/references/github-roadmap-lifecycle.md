@@ -4,8 +4,6 @@ Read this reference for issue types, Execution Modes, lifecycle transitions, rev
 dependency reconciliation, and Epic rollup. Selection and claim mechanics live in
 [`github-roadmap-operations.md`](github-roadmap-operations.md).
 
-This lifecycle becomes operational only after GIT-009.
-
 ## Issue Types
 
 - `Feature`: independently shippable product behavior or one enabling implementation slice.

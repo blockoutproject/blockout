@@ -1,10 +1,7 @@
 # GitHub Roadmap Policy
 
-This policy is dormant until GIT-009 is merged. During GIT-002 through GIT-008, `docs/current/roadmap.md` remains the
-operational source of truth and the future GitHub workflow may be prepared or provisioned only by the active migration
-task.
-
-After activation, the `blockoutproject` organization Roadmap Project for `blockoutproject/blockout` is the single
+The `blockoutproject` organization
+[Roadmap Project](https://github.com/orgs/blockoutproject/projects/4) for `blockoutproject/blockout` is the single
 operational source of truth. This file routes operations and does not duplicate their detailed rules.
 
 ## Required Reference
@@ -27,5 +24,5 @@ for lifecycle or release decisions and governance only for structural Project wo
 - Current source and architecture/evidence documents own durable product and technical intent.
 - Closed issues, merged PRs, task evidence, and Git history own delivered history.
 - No Markdown task ledger, draft Project item, hidden claim state, lease, or mutating roadmap helper may compete with
-  GitHub after activation.
+  GitHub.
 - If complete Project evidence cannot be read for the decision, stop fail-closed.

@@ -1,6 +1,6 @@
 # Task Acquisition Runbook
 
-Use this only after GIT-009 when a developer wants new Blockout work and intends to continue. Acquisition selects and
+Use this when a developer wants new Blockout work and intends to continue. Acquisition selects and
 reserves one task as one operation; it does not return an unreserved proposal.
 
 ## Rules

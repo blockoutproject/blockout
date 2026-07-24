@@ -1,6 +1,6 @@
 # Merge Runbook
 
-Use this only after GIT-009 when the current user explicitly asks to run the Blockout Merge task. One execution releases
+Use this when the current user explicitly asks to run the Blockout Merge task. One execution releases
 at most one PR and never updates another PR branch.
 
 ## Outcome
