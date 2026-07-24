@@ -62,6 +62,8 @@ const PoolFormSheet = ({
       snapPoint={snapPoint}
       footerComponent={renderFooter}
       contentTestID="pool-form-modal"
+      title="Modifier la poule"
+      message="Mets à jour les informations visibles de cette poule."
     >
       <PoolForm
         pool={pool}

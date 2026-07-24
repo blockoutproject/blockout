@@ -8,7 +8,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAppTheme } from "@/src/shared/theme";
+import { radius, useAppTheme } from "@/src/shared/theme";
 
 export type BottomSheetPageProps = Omit<
   BottomSheetModalProps,
@@ -43,7 +43,10 @@ const BottomSheetCustomPage = ({
       ref={ref}
       backdropComponent={renderBackdrop}
       handleStyle={{ paddingTop: insets.top }}
-      handleIndicatorStyle={{ backgroundColor: theme.text }}
+      handleIndicatorStyle={[
+        styles.handleIndicator,
+        { backgroundColor: theme.text },
+      ]}
       backgroundStyle={{ backgroundColor: theme.background }}
       snapPoints={["100%"]}
       stackBehavior="push"
@@ -62,4 +65,9 @@ export default BottomSheetCustomPage;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  handleIndicator: {
+    width: 30,
+    height: 4,
+    borderRadius: radius.full,
+  },
 });

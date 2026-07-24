@@ -1,17 +1,11 @@
 import React, { useMemo } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import * as Application from "expo-application";
 
 import { useAppTheme } from "@/src/shared/theme";
 import { FormField } from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/SheetTextInput";
+import { Action } from "@/src/shared/ui/action";
 
 type Props = {
   minVersionIos: string;
@@ -244,34 +238,17 @@ const AppVersionControlCard: React.FC<Props> = ({
       </FormField>
 
       <View style={styles.buttonsRow}>
-        <TouchableOpacity
+        <Action
+          label="Enregistrer"
+          loadingLabel="Enregistrement…"
+          variant="destructive"
           onPress={handleConfirmSave}
           disabled={!canSubmit}
-          style={[
-            styles.primaryButton,
-            {
-              backgroundColor: canSubmit
-                ? theme.primary
-                : theme.borderSecondary,
-              opacity: canSubmit ? 1 : 0.6,
-            },
-          ]}
-          activeOpacity={0.85}
-          accessibilityRole="button"
+          loading={saving}
+          fullWidth
           accessibilityLabel="Enregistrer les versions minimales"
-          accessibilityState={{ disabled: !canSubmit, busy: saving }}
           testID="administration-save-versions-action"
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color={theme.background} />
-          ) : (
-            <Text
-              style={[styles.primaryButtonText, { color: theme.background }]}
-            >
-              Enregistrer
-            </Text>
-          )}
-        </TouchableOpacity>
+        />
       </View>
 
       <View style={styles.footerRow}>
@@ -340,23 +317,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   buttonsRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    alignItems: "stretch",
     gap: 10,
     marginTop: 10,
-  },
-  primaryButton: {
-    flex: 1,
-    borderRadius: 999,
-    minHeight: 40,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-  },
-  primaryButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
   },
   footerRow: {
     flexDirection: "row",

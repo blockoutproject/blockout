@@ -57,6 +57,8 @@ const RawDivisionMappingFormSheet: React.FC<
       ref={ref}
       snapPoint={snapPoint}
       footerComponent={renderFooter}
+      title="Mapper la division brute"
+      message="Associe la valeur collectée à la division canonique correspondante."
     >
       <RawDivisionMappingForm
         mapping={mapping}

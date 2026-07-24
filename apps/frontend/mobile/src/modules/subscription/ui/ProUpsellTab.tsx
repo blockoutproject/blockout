@@ -127,10 +127,10 @@ const ProUpsellTab: React.FC<Props> = ({
                 <MaterialCommunityIcons
                   name="rocket-launch-outline"
                   size={18}
-                  color="#000"
+                  color={theme.onPrimary}
                 />
               }
-              textColor="#000"
+              textColor={theme.onPrimary}
               fullWidth
               gradient={gradients.premium}
               testID="subscription-upgrade-action"

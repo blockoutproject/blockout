@@ -59,6 +59,8 @@ const ClubFormSheet = ({
       snapPoint={snapPoint}
       footerComponent={renderFooter}
       contentTestID="club-form-modal"
+      title="Modifier le club"
+      message="Mets à jour les informations visibles de ce club."
     >
       <ClubForm
         club={club}

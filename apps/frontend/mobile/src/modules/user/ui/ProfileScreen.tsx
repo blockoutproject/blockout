@@ -32,8 +32,7 @@ import { useApis } from "@/src/shared/providers/ApiProvider";
 import GuestUpsellCard from "@/src/modules/session/ui/guest-upsell-card";
 import { useOnboardingStore } from "@/src/modules/onboarding/model/onboardingStore";
 import { CURRENT_APP_VERSION } from "@/src/modules/app-status/model/appVersion";
-
-const SPINNER_BOX = 18;
+import { Action } from "@/src/shared/ui/action";
 
 type LegalItemRowProps = {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -123,14 +122,12 @@ const ProfileScreen: React.FC = () => {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    Haptics.selectionAsync();
     await signOutSSO();
     resetOnboarding();
     setIsLoggingOut(false);
   };
 
   const handleDeleteAccount = async () => {
-    Haptics.selectionAsync();
     Alert.alert(
       "Supprimer mon compte",
       "Cette action est irréversible. Toutes vos données de compte seront supprimées. Confirmez-vous la suppression ?",
@@ -221,7 +218,7 @@ const ProfileScreen: React.FC = () => {
             </View>
           </View>
 
-          <View style={{ alignItems: "center", marginTop: 10 }}>
+          <View style={styles.version}>
             <Text style={[styles.versionText, { color: theme.textInactive }]}>
               Version {CURRENT_APP_VERSION}
             </Text>
@@ -342,68 +339,31 @@ const ProfileScreen: React.FC = () => {
             </Text>
 
             <View style={styles.actions}>
-              <Pressable
-                onPress={isLoggingOut ? undefined : handleLogout}
+              <Action
+                label="Se déconnecter"
+                loadingLabel="Déconnexion…"
+                variant="destructive"
+                onPress={handleLogout}
                 disabled={busy}
-                android_ripple={{ color: withAlpha("#000", 0.05) }}
-                style={({ pressed }) => [
-                  styles.btnFilledDanger,
-                  {
-                    backgroundColor:
-                      pressed && !busy
-                        ? withAlpha(theme.error, 0.9)
-                        : theme.error,
-                    opacity: busy ? 0.75 : 1,
-                  },
-                ]}
-                accessibilityRole="button"
+                loading={isLoggingOut}
+                fullWidth
+                style={styles.profileAction}
                 accessibilityLabel="Se déconnecter"
-                accessibilityState={{ disabled: busy, busy: isLoggingOut }}
                 testID="profile-sign-out-action"
-              >
-                <View style={styles.btnInner}>
-                  <View style={styles.spinnerBox}>
-                    {isLoggingOut ? (
-                      <ActivityIndicator size="small" color={theme.text} />
-                    ) : null}
-                  </View>
-                  <Text style={[styles.buttonText, { color: theme.text }]}>
-                    {isLoggingOut ? "Déconnexion…" : "Se déconnecter"}
-                  </Text>
-                </View>
-              </Pressable>
+              />
 
-              <Pressable
-                onPress={isDeleting ? undefined : handleDeleteAccount}
+              <Action
+                label="Supprimer mon compte"
+                loadingLabel="Suppression…"
+                variant="destructiveOutline"
+                onPress={handleDeleteAccount}
                 disabled={busy}
-                android_ripple={{ color: withAlpha(theme.error, 0.08) }}
-                style={({ pressed }) => [
-                  styles.btnOutlineDanger,
-                  {
-                    borderColor: theme.error,
-                    backgroundColor:
-                      pressed && !busy
-                        ? withAlpha(theme.error, 0.08)
-                        : "transparent",
-                    opacity: busy ? 0.75 : 1,
-                  },
-                ]}
-                accessibilityRole="button"
+                loading={isDeleting}
+                fullWidth
+                style={styles.profileAction}
                 accessibilityLabel="Supprimer mon compte"
-                accessibilityState={{ disabled: busy, busy: isDeleting }}
                 testID="profile-delete-account-action"
-              >
-                <View style={styles.btnInner}>
-                  <View style={styles.spinnerBox}>
-                    {isDeleting ? (
-                      <ActivityIndicator size="small" color={theme.error} />
-                    ) : null}
-                  </View>
-                  <Text style={[styles.buttonText, { color: theme.error }]}>
-                    {isDeleting ? "Suppression…" : "Supprimer mon compte"}
-                  </Text>
-                </View>
-              </Pressable>
+              />
 
               <View style={styles.version}>
                 <Text
@@ -505,34 +465,7 @@ const styles = StyleSheet.create({
   },
   itemText: { fontSize: 14, fontWeight: "700", flex: 1 },
   actions: { gap: 12, marginTop: 4 },
-  btnInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-  spinnerBox: {
-    width: SPINNER_BOX,
-    height: SPINNER_BOX,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  btnFilledDanger: {
-    paddingVertical: 14,
-    borderRadius: 999,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  btnOutlineDanger: {
-    paddingVertical: 14,
-    borderRadius: 999,
-    alignItems: "center",
-    borderWidth: 1,
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  buttonText: { fontSize: 14, fontWeight: "800" },
-  version: { alignItems: "center", marginTop: 2 },
+  profileAction: { height: 46 },
+  version: { alignItems: "flex-start", marginTop: 2 },
   versionText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.2 },
 });

@@ -62,6 +62,8 @@ const TeamFormSheet = ({
       snapPoint={snapPoint}
       footerComponent={renderFooter}
       contentTestID="team-form-modal"
+      title="Modifier l’équipe"
+      message="Mets à jour les informations visibles de cette équipe."
     >
       <TeamForm
         team={team}

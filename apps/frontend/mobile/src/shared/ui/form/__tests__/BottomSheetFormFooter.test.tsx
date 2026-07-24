@@ -13,6 +13,25 @@ jest.mock("@gorhom/bottom-sheet", () => {
   };
 });
 
+jest.mock("expo-haptics", () => ({
+  ImpactFeedbackStyle: { Medium: "medium" },
+  impactAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock("react-native-reanimated", () => {
+  const ReactModule = require("react") as typeof React;
+
+  return {
+    __esModule: true,
+    default: {
+      createAnimatedComponent: (Component: React.ComponentType) => Component,
+    },
+    useAnimatedStyle: (factory: () => object) => factory(),
+    useSharedValue: (value: unknown) => ReactModule.useRef({ value }).current,
+    withSpring: (value: unknown) => value,
+  };
+});
+
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));

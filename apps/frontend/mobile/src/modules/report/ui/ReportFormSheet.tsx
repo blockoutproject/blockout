@@ -66,6 +66,8 @@ const ReportFormSheet = ({
       snapPoint={snapPoint}
       footerComponent={renderFooter}
       contentTestID="report-modal"
+      title="Signaler un problème"
+      message="Décris précisément le problème rencontré."
     >
       <ReportForm
         context={context}

@@ -55,6 +55,8 @@ const ProfileFormSheet: React.FC<ProfileFormSheetProps> = ({
       ref={ref}
       snapPoint={snapPoint}
       footerComponent={renderFooter}
+      title="Modifier le profil"
+      message="Personnalise ta photo et ton pseudo."
     >
       <ProfileForm
         user={user}
