@@ -1,1 +1,1 @@
-export {default} from "@/src/modules/match/ui/MatchScreen";
+export {default} from "@/src/modules/match/ui/match-screen";

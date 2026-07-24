@@ -1,7 +1,7 @@
 import {render, userEvent} from "@testing-library/react-native";
 import React from "react";
 
-import RankingRow from "@/src/modules/ranking/ui/RankingRow";
+import RankingRow from "@/src/modules/ranking/ui/ranking-row";
 import {darkTheme, ThemeProvider} from "@/src/shared/theme";
 
 describe("RankingRow", () => {

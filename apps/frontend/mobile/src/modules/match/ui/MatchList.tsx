@@ -9,8 +9,8 @@ import {DayMatchesResponse, PoolMatchesResponse, MatchStatusEnum,} from "@/src/s
 import {layout, useAppTheme} from "@/src/shared/theme";
 import {useMatchList} from "@/src/modules/match/hooks/useMatchList";
 import {formatDateFrenchLocale} from "@/src/shared/lib/utils";
-import MatchDateHeader from "./MatchDateHeader";
-import MatchPoolSection from "./MatchPoolSection";
+import MatchDateHeader from "./match-date-header";
+import MatchPoolSection from "./match-pool-section";
 import EmptyState from "@/src/shared/ui/feedback/EmptyState";
 import ErrorState from "@/src/shared/ui/feedback/ErrorState";
 

@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
 import { Animated } from "react-native";
 
-import GenericTabView from "@/src/shared/ui/GenericTabView";
+import GenericTabView from "@/src/shared/ui/generic-tab-view";
 import MatchList from "@/src/modules/match/ui/MatchList";
-import RankingTab from "@/src/modules/ranking/ui/RankingTab";
+import RankingTab from "@/src/modules/ranking/ui/ranking-tab";
 import ProUpsellTab from "@/src/modules/subscription/ui/ProUpsellTab";
 
 import { MatchStatusEnum } from "@/src/shared/generated/models";

@@ -6,7 +6,7 @@ import {
   type PoolMatchesResponse,
   type PoolResponse,
 } from "@/src/shared/generated/models";
-import MatchPoolSection from "@/src/modules/match/ui/MatchPoolSection";
+import MatchPoolSection from "@/src/modules/match/ui/match-pool-section";
 import {FormatEnum} from "@/src/shared/model/formatLabels";
 import {GenderEnum} from "@/src/shared/model/genderLabels";
 import {ThemeProvider} from "@/src/shared/theme";

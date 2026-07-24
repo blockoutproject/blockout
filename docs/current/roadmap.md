@@ -1242,13 +1242,20 @@ handwritten types; it must not hide a simultaneous transport or business refacto
     and native proof are recorded in
     [the REF-067 application shell alignment record](./ref-067-application-shell.md).
 
-- [ ] **REF-068 — Align discovery and competition reading flows**
+- [x] **REF-068 — Align discovery and competition reading flows**
   - Migrate feed, search, followed content, clubs, teams, pools, matches, rankings, and their loading, empty, error, list,
     card, profile, map, and tab states to the certified design system.
   - Consolidate repeated read-pattern components only where REF-061 and Figma prove the same responsibility. Keep
     feature composition local when data or interaction semantics differ despite a similar appearance.
   - Preserve generated API clients, TanStack Query behavior, list performance, navigation, advertising boundaries, and
     native map behavior while validating each slice against Figma on iOS and keeping Android technically green.
+  - Evidence: the certified Figma vocabulary now drives discovery and competition reading surfaces while their
+    generated clients, TanStack Query ownership, navigation, advertisements, maps, and business behavior remain intact.
+    Search and competition lists use the established native virtualization boundary, presentation files follow the
+    repository naming convention, mobile lint and typecheck pass, all 31 Jest suites and 59 tests pass, Expo Doctor
+    passes all 19 checks, and the Android debug build remains green. The exact Figma sources, architectural boundaries,
+    and native proof are recorded in
+    [the REF-068 discovery and competition reading alignment record](./ref-068-discovery-competition-reading.md).
 
 - [ ] **REF-069 — Align account, write, moderation, and support flows**
   - Migrate profile, notifications, entity forms, follow actions, reports, live-link moderation, raw division mapping,
