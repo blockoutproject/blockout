@@ -3,6 +3,7 @@
 ## Current reference
 
 - [Local development](runbooks/local-development.md)
+- [Continuous integration](runbooks/continuous-integration.md)
 - [Task discovery](runbooks/tasks/discovery.md)
 - [Task acquisition](runbooks/tasks/acquisition.md)
 - [Task execution](runbooks/tasks/execution.md)

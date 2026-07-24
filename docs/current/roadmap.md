@@ -1366,7 +1366,7 @@ checklist until GIT-012 removes it.
     Project remains empty of product work, and two normalized compact reads matched byte-for-byte with SHA-256
     `1a1649424c090c94a026bf6c6f359043fe2120e3433504b4de673ff868b09ce6`.
 
-- [ ] **GIT-006 — Prepare CI and repository documentation for `develop`**
+- [x] **GIT-006 — Prepare CI and repository documentation for `develop`**
   - Reconcile the Maaatch-aligned pull-request and push workflows already prepared for Blockout, keeping contracts as
     the shared artifact source and native Maven, uv/Python, and Expo/Nx validation boundaries.
   - Run pull-request CI for `develop` and `main`, push CI for `develop` and `main`, and the standalone repository
@@ -1376,6 +1376,16 @@ checklist until GIT-012 removes it.
     production publication, signing, and provider operations out of scope.
   - Parse every workflow, validate Compose service resolution, run formatting, contracts, Python, backend, and mobile
     checks proportionally, and prove no generated output or secret is tracked.
+  - Evidence (2026-07-24): the Maaatch-shaped `CI Pull Request` and `CI Push` workflows now target both `develop` and
+    `main`, while the standalone `Format` workflow checks both event types and both branches. The stable pull-request
+    checks are documented as `contracts`, `backend`, `python`, `frontend`, and `Check repository formatting`, together
+    with exact local equivalents and explicit non-deployment boundaries. All workflows parse, every required Compose
+    service resolves, and tracked-file checks found no secret or generated build output. Contract bundling passed six
+    tests and regenerated downstream artifacts without schema-mapping drift; Python client generation and eight client
+    tests passed, as did Ruff, syntax checks, and the 37 plus 71 scraper tests. The complete Java 21 Maven reactor
+    verified all 14 backend modules against healthy PostgreSQL, RabbitMQ, and Elasticsearch dependencies. Mobile
+    codegen, lint, typecheck, 59 Jest tests, and the Expo iOS/Android export passed with the workflow's non-secret CI
+    values. Repository formatting and final diff checks pass.
 
 - [ ] **GIT-007 — Establish `develop` and the Maaatch merge contract**
   - Require a clean, current `main`, create `develop` from its exact verified head, push it, and change the repository
