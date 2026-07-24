@@ -4,6 +4,8 @@
 
 - [Agent brief](current/blockout-agent-brief.md)
 - [Roadmap GitHub Project](https://github.com/orgs/blockoutproject/projects/4)
+- [Roadmap source-of-truth certification](current/github-roadmap-source-of-truth-certification.md)
+- [GitFlow governance certification](current/gitflow-governance-certification.md)
 - [Local development](runbooks/local-development.md)
 - [Continuous integration](runbooks/continuous-integration.md)
 - [Task discovery](runbooks/tasks/discovery.md)
@@ -36,7 +38,6 @@
 - [iOS guest Profile header consistency](current/ref-065r-ios-guest-profile-header-consistency.md)
 - [Contract-first certification](current/ref-059-certification.md)
 - [Public release readiness](current/ref-060-public-release-readiness.md)
-- [Temporary GitFlow migration evidence](current/roadmap.md)
 
 ## Completed migration evidence
 
@@ -52,5 +53,4 @@
 The migration evidence records the state and decisions at the time of each completed task. Where sequencing language
 describes code generation or another refactor as deferred, the current source, repository policies, REF-059
 certification, and the latest task-specific reconciliation are authoritative. The live Roadmap is the only operational
-task and claim source. `current/roadmap.md` remains non-operational migration evidence until GIT-012 removes it.
-Repository CI is active. Deployment and production changes remain deferred.
+task and claim source. Repository CI is active. Deployment and production changes remain deferred.

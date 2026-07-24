@@ -18,8 +18,6 @@ Global rules:
 - Never create a task branch, task-specific plan, or task-file edit before a stable claim. Target `develop` from an
   issue branch, publish a labeled draft pull request, and require separate current-user authorization plus fresh
   release evidence before merge.
-- Treat `docs/current/roadmap.md` only as temporary GitFlow migration evidence until GIT-012 removes it; never use it to
-  select or claim work.
 - Keep generated output, secrets, local environments, caches, logs, and build artifacts out of Git.
 - Before completing a code or configuration change, run `npm run format`, then the relevant lint, typecheck, and tests,
   and finish with `npm run format:check`. Repository formatters are authoritative; do not reproduce their rules

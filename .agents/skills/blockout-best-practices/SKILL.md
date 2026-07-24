@@ -109,8 +109,6 @@ generated Orval client. A future contract change still requires an explicit task
   draft pull request to `develop`.
 - Merge always requires separate current-user authorization and fresh release evidence. After terminal transitions,
   reconcile native dependents and parent Epics before selecting more work.
-- `docs/current/roadmap.md` is retained only as bounded GitFlow migration evidence until GIT-012 removes it. It is not
-  an operational task source.
 
 ## Repository Map
 
