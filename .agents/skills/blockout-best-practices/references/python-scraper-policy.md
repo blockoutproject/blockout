@@ -159,6 +159,25 @@ Contract-owned enums such as Format, Gender, and MatchStatus follow the owner se
 - Review a module above 250 lines, a function above 40 lines, or an object coordinating more than five collaborators;
   split by responsibility when that makes behavior clearer, never only to satisfy a number.
 
+## Simplicity And Over-Engineering Guardrails
+
+- Prefer a direct typed expression, loop, comprehension, dataclass, protocol, or focused function over a framework.
+- Let inference handle obvious locals. Add aliases and generic parameters only when they clarify a stable boundary.
+- Do not wrap a provider record, generated model, HTTPX client, enum, or primitive only to rename it.
+- Create a helper when it gives one invariant or repeated transformation a meaningful owner, not merely to shorten a
+  caller.
+- Do not add generic serializers, universal parsers, service locators, dependency-injection containers, managers,
+  registries, factories, plugin systems, broad base classes, or repositories for hypothetical providers.
+- Use a protocol only when tests or multiple active implementations need the behavioral boundary.
+- Prefer composition over inheritance. A provider adapter should expose its actual behavior rather than inherit empty
+  hooks from a universal scraper template.
+- Do not cache inexpensive parsing, mapping, or configuration reads without measured need and an explicit lifetime and
+  invalidation design.
+- Avoid boolean mode arguments. Use two focused operations or a small owned enum when modes are distinct behavior.
+- Keep configuration declarative but local to the owning adapter. Do not build a configuration language for control
+  flow.
+- Delete an obsolete abstraction when its final consumer is removed and parity evidence proves it is no longer needed.
+
 ## Dependencies And Tooling
 
 - Preserve the current application-specific dependency mechanism until a dedicated task authorizes packaging changes.
