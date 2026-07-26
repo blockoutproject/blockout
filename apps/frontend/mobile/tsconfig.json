@@ -13,6 +13,6 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "docs/contents/audio-waveform.mdx",
-    "plugins/withGoogleMobileAdsMediationFacebook.js"
+    "plugins/with-google-mobile-ads-mediation-facebook.js"
   ]
 }

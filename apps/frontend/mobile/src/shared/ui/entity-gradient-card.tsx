@@ -16,9 +16,9 @@ import {
   typography,
   useAppTheme,
 } from "@/src/shared/theme";
-import FadeIn from "@/src/shared/ui/animations/FadeIn";
-import MaskedImage from "@/src/shared/ui/images/MaskedImage";
-import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import FadeIn from "@/src/shared/ui/animations/fade-in";
+import MaskedImage from "@/src/shared/ui/images/masked-image";
+import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import { GradientPill, Pill } from "@/src/shared/ui/pill";
 
 export type EntityCardChip = {

@@ -16,8 +16,8 @@ import Animated, {
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 
-import { useSessionState } from "@/src/modules/session/providers/SessionContext";
-import { usePurchases } from "@/src/modules/subscription/providers/PurchasesProvider";
+import { useSessionState } from "@/src/modules/session/providers/session-context";
+import { usePurchases } from "@/src/modules/subscription/providers/purchases-provider";
 import {
   borderWidth,
   colors,

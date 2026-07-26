@@ -4,8 +4,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { iconSize, layout, spacing, useAppTheme } from "@/src/shared/theme";
 
-import Filters from "@/src/shared/ui/Filters";
-import { Filter } from "@/src/shared/model/Filter";
+import Filters from "@/src/shared/ui/filters";
+import { Filter } from "@/src/shared/model/filter";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Header for search screen with filters and report button. */

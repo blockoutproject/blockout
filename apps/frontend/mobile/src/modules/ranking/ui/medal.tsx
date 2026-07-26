@@ -24,8 +24,8 @@ const Medal: React.FC<{ rank: 1 | 2 | 3; theme: AppTheme }> = ({
         { backgroundColor: withAlpha(color, 0.22), borderColor: color },
       ]}
     >
-      <MaterialCommunityIcons name="medal" size={14} color={color} />
-      <Text style={styles.medalRank}>{rank}</Text>
+      <MaterialCommunityIcons name="medal" size={14} color={theme.text} />
+      <Text style={[styles.medalRank, { color: theme.text }]}>{rank}</Text>
     </View>
   );
 };
@@ -42,5 +42,5 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: RNStyleSheet.hairlineWidth,
   },
-  medalRank: { fontSize: 12, fontWeight: "800", color: "white" },
+  medalRank: { fontSize: 12, fontWeight: "800" },
 });

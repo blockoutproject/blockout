@@ -3,13 +3,12 @@ import { StyleSheet, View } from "react-native";
 
 import {
   borderWidth,
-  colors,
   spacing,
   typography,
   useAppTheme,
 } from "@/src/shared/theme";
 import { Pill } from "@/src/shared/ui/pill";
-import FadeIn from "@/src/shared/ui/animations/FadeIn";
+import FadeIn from "@/src/shared/ui/animations/fade-in";
 
 /** En-tête de section présentant la date. */
 export type MatchDateHeaderProps = {
@@ -29,8 +28,9 @@ const MatchDateHeader: React.FC<MatchDateHeaderProps> = ({ title }) => {
           size="md"
           borderWidth={borderWidth.thin}
           backgroundColor={theme.surfaceTertiary}
-          borderColor={colors.ranking.silver}
+          borderColor={theme.borderSecondary}
           textColor={theme.text}
+          style={styles.pill}
           labelStyle={typography.compactStrong}
         />
       </View>
@@ -42,7 +42,11 @@ export default React.memo(MatchDateHeader);
 
 const styles = StyleSheet.create({
   wrapper: {
+    width: "100%",
     alignItems: "center",
     marginVertical: spacing[2],
+  },
+  pill: {
+    alignSelf: "center",
   },
 });

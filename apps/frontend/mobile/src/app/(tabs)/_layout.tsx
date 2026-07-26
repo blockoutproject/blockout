@@ -4,7 +4,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Image } from "expo-image";
 import { StyleSheet } from "react-native";
 import { iconSize } from "@/src/shared/theme";
-import { useSessionState } from "@/src/modules/session/providers/SessionContext";
+import { useSessionState } from "@/src/modules/session/providers/session-context";
 
 import TabBar from "@/src/shared/ui/navigation/tab-bar";
 

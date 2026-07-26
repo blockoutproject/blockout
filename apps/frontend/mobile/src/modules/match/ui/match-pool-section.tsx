@@ -11,11 +11,11 @@ import {
   spacing,
   useAppTheme,
 } from "@/src/shared/theme";
-import GradientBorderView from "@/src/shared/ui/GradientBorderView";
-import FadeIn from "@/src/shared/ui/animations/FadeIn";
+import GradientBorderView from "@/src/shared/ui/gradient-border-view";
+import FadeIn from "@/src/shared/ui/animations/fade-in";
 import RankingHeader from "@/src/modules/ranking/ui/ranking-header";
 import MatchRow from "@/src/modules/match/ui/match-row";
-import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
 
 /** Carte listant les matchs d’une poule. */
 export type MatchPoolSectionProps = {

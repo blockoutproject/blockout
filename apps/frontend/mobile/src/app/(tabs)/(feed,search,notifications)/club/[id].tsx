@@ -1,1 +1,1 @@
-export { default } from "@/src/modules/club/ui/ClubScreen";
+export { default } from "@/src/modules/club/ui/club-screen";

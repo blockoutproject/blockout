@@ -4,13 +4,13 @@ import { FlashList, type ListRenderItemInfo } from "@shopify/flash-list";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFollowedPoolList } from "@/src/modules/pool/hooks/useFollowedPoolList";
+import { useFollowedPoolList } from "@/src/modules/pool/hooks/use-followed-pool-list";
 import PoolListCard from "@/src/modules/pool/ui/pool-list-card";
 import { layout, spacing } from "@/src/shared/theme";
-import EmptyState from "@/src/shared/ui/feedback/EmptyState";
-import ErrorState from "@/src/shared/ui/feedback/ErrorState";
-import EntityListSkeleton from "@/src/shared/ui/entity/EntityListSkeleton";
-import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
+import EmptyState from "@/src/shared/ui/feedback/empty-state";
+import ErrorState from "@/src/shared/ui/feedback/error-state";
+import EntityListSkeleton from "@/src/shared/ui/entity/entity-list-skeleton";
+import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
 import type { PoolSummaryResponse } from "@/src/shared/generated/models";
 
 type Props = {

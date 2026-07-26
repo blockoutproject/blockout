@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { SplashScreen } from "expo-router";
-import { useSessionState } from "@/src/modules/session/providers/SessionContext";
+import { useSessionState } from "@/src/modules/session/providers/session-context";
 
 /** Keeps the native splash visible until session bootstrap has completed. */
 export function SplashScreenController() {

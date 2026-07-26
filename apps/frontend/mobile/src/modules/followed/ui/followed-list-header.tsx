@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 
-import Filters from "@/src/shared/ui/Filters";
-import { Filter } from "@/src/shared/model/Filter";
+import Filters from "@/src/shared/ui/filters";
+import { Filter } from "@/src/shared/model/filter";
 import { spacing, useAppTheme } from "@/src/shared/theme";
 
 type Props = {

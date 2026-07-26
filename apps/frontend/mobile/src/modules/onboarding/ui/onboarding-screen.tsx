@@ -1,11 +1,11 @@
 import React from "react";
 
-import { useOnboardingStore } from "@/src/modules/onboarding/model/onboardingStore";
+import { useOnboardingStore } from "@/src/modules/onboarding/model/onboarding-store";
 import { ONBOARDING_STEPS } from "@/src/modules/onboarding/model/steps";
 import { Onboarding } from "@/src/modules/onboarding/ui/onboarding";
-import { useRegisterPushToken } from "@/src/modules/notifications/hooks/useRegisterPushToken";
+import { useRegisterPushToken } from "@/src/modules/notifications/hooks/use-register-push-token";
 import { registerForPushNotificationsAsync } from "@/src/modules/notifications/push";
-import { useSessionState } from "@/src/modules/session/providers/SessionContext";
+import { useSessionState } from "@/src/modules/session/providers/session-context";
 
 /** Connects onboarding completion and push registration to the presentation. */
 const OnboardingScreen: React.FC = () => {

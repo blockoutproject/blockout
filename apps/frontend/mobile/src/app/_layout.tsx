@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect } from "react";
 import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
-import { Auth0Provider } from "@/src/modules/session/auth/AuthProvider";
+import { Auth0Provider } from "@/src/modules/session/auth/auth-provider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -11,15 +11,15 @@ import {
   validateRequiredConfig,
 } from "@/src/shared/config/config";
 import { ThemeProvider, useAppTheme } from "@/src/shared/theme";
-import { ApiProvider } from "@/src/shared/providers/ApiProvider";
-import { SessionProvider } from "@/src/modules/session/providers/SessionProvider";
-import { useSessionState } from "@/src/modules/session/providers/SessionContext";
+import { ApiProvider } from "@/src/shared/providers/api-provider";
+import { SessionProvider } from "@/src/modules/session/providers/session-provider";
+import { useSessionState } from "@/src/modules/session/providers/session-context";
 import { SplashScreenController } from "@/src/modules/session/ui/splash-screen-controller";
-import { useOnboardingStore } from "@/src/modules/onboarding/model/onboardingStore";
-import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
-import { useConsentGDPR } from "@/src/modules/advertising/useConsentGDPR";
-import { PurchasesProvider } from "@/src/modules/subscription/providers/PurchasesProvider";
-import { QueryProvider } from "@/src/shared/providers/QueryProvider";
+import { useOnboardingStore } from "@/src/modules/onboarding/model/onboarding-store";
+import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
+import { useConsentGDPR } from "@/src/modules/advertising/use-consent-gdpr";
+import { PurchasesProvider } from "@/src/modules/subscription/providers/purchases-provider";
+import { QueryProvider } from "@/src/shared/providers/query-provider";
 import type { NotificationResponse } from "expo-notifications";
 import {
   addNotificationListeners,

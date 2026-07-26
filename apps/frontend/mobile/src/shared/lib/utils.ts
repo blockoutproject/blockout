@@ -3,7 +3,7 @@ import { fr } from "date-fns/locale";
 import type { PoolResponse } from "@/src/shared/generated/models";
 import tinycolor from "tinycolor2";
 import { DivisionResponse } from "@/src/shared/generated/models";
-import type { TeamHighlight } from "@/src/modules/team/model/TeamHighlight";
+import type { TeamHighlight } from "@/src/modules/team/model/team-highlight";
 import type { AppTheme } from "@/src/shared/theme";
 
 export type GradientVariants = {

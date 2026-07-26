@@ -3,10 +3,10 @@ import { StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import type { PoolResponse } from "@/src/shared/generated/models";
-import FollowButton from "@/src/shared/ui/follow/FollowButton";
-import FollowersCounter from "@/src/shared/ui/follow/FollowersCount";
-import { usePoolFollowState } from "@/src/modules/pool/hooks/usePoolFollowState";
-import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
+import FollowButton from "@/src/shared/ui/follow/follow-button";
+import FollowersCounter from "@/src/shared/ui/follow/followers-count";
+import { usePoolFollowState } from "@/src/modules/pool/hooks/use-pool-follow-state";
+import { GenderEnum, GenderLabels } from "@/src/shared/model/gender-labels";
 import {
   borderWidth,
   layout,
@@ -14,9 +14,9 @@ import {
   spacing,
   useAppTheme,
 } from "@/src/shared/theme";
-import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { withAlpha } from "@/src/shared/lib/utils";
-import { useSessionState } from "@/src/modules/session/providers/SessionContext";
+import { useSessionState } from "@/src/modules/session/providers/session-context";
 
 import { Pill } from "@/src/shared/ui/pill";
 import GuestPromptSheet, {

@@ -97,7 +97,7 @@
           "fonts": ["./assets/fonts/Outfit-VariableFont_wght.ttf"]
         }
       ],
-      "./plugins/withGoogleMobileAdsMediationFacebook",
+      "./plugins/with-google-mobile-ads-mediation-facebook",
       [
         "expo-build-properties",
         {

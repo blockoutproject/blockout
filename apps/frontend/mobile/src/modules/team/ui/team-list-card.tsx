@@ -1,8 +1,8 @@
 import React from "react";
 import { radius, spacing, useAppTheme } from "@/src/shared/theme";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
-import { GenderEnum, GenderLabels } from "@/src/shared/model/genderLabels";
-import { FormatLabels } from "@/src/shared/model/formatLabels";
+import { GenderEnum, GenderLabels } from "@/src/shared/model/gender-labels";
+import { FormatLabels } from "@/src/shared/model/format-labels";
 import { withAlpha } from "@/src/shared/lib/utils";
 import EntityGradientCard, {
   EntityCardChip,

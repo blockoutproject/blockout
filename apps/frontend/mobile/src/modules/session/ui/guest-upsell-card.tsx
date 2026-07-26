@@ -11,7 +11,7 @@ import {
 import {
   useSessionActions,
   useSessionState,
-} from "@/src/modules/session/providers/SessionContext";
+} from "@/src/modules/session/providers/session-context";
 import { Action } from "@/src/shared/ui/action";
 
 export type GuestUpsellCardProps = {

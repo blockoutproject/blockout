@@ -1,6 +1,6 @@
-import { ApiError } from "@/src/shared/api/ApiError";
-import { MobileGatewayApi } from "@/src/shared/api/MobileGatewayApi";
-import type { TokenSupplier } from "@/src/shared/api/orvalFetch";
+import { ApiError } from "@/src/shared/api/api-error";
+import { MobileGatewayApi } from "@/src/shared/api/mobile-gateway-api";
+import type { TokenSupplier } from "@/src/shared/api/orval-fetch";
 
 export type ApiClients = {
   mobile: MobileGatewayApi;

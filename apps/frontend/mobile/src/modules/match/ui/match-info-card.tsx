@@ -8,16 +8,16 @@ import {
   typography,
   useAppTheme,
 } from "@/src/shared/theme";
-import GradientBorderView from "@/src/shared/ui/GradientBorderView";
+import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import {
   type MatchResponse,
   MatchStatusEnum,
 } from "@/src/shared/generated/models";
 import { GradientPill } from "@/src/shared/ui/pill";
 import { useRouter } from "expo-router";
-import { openPdf } from "@/src/modules/pdf/openPdf";
+import { openPdf } from "@/src/modules/pdf/open-pdf";
 import { isLNV } from "@/src/shared/lib/utils";
-import { useNavigationInterstitial } from "@/src/modules/advertising/useNavigationInterstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
 
 /** Info card with league/pool/date/venue/referees. */
 export type MatchInfoCardProps = {

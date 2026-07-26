@@ -20,12 +20,12 @@ import {
 import {
   useSessionActions,
   useSessionState,
-} from "@/src/modules/session/providers/SessionContext";
-import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+} from "@/src/modules/session/providers/session-context";
+import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { Pill } from "@/src/shared/ui/pill";
-import ApiErrorToast from "@/src/shared/ui/feedback/ApiErrorToast";
+import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import { Action } from "@/src/shared/ui/action";
-import { ApiError } from "@/src/shared/api/ApiError";
+import { ApiError } from "@/src/shared/api/api-error";
 
 /** Returns safe user-facing copy for an authentication boundary failure. */
 export const getSignInErrorMessage = (err: unknown): string => {

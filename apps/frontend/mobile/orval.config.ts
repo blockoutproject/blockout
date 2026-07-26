@@ -17,7 +17,7 @@ export default defineConfig({
           includeHttpResponseReturnType: false,
         },
         mutator: {
-          path: "./src/shared/api/orvalFetch.ts",
+          path: "./src/shared/api/orval-fetch.ts",
           name: "orvalFetch",
         },
       },

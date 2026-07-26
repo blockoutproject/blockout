@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   useSessionActions,
   useSessionState,
-} from "@/src/modules/session/providers/SessionContext";
+} from "@/src/modules/session/providers/session-context";
 import {
   AppStatusBypassAction,
   AppStatusCard,
@@ -13,7 +13,7 @@ import {
 } from "@/src/modules/app-status/ui/app-status-card";
 import { AppStatusLayout } from "@/src/modules/app-status/ui/app-status-layout";
 import { Action } from "@/src/shared/ui/action";
-import MaskedImage from "@/src/shared/ui/images/MaskedImage";
+import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { useAppTheme } from "@/src/shared/theme";
 
 /** Renders the configuration-owned maintenance gate and its authorized actions. */

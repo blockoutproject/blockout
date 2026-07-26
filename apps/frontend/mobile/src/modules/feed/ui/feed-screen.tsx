@@ -12,7 +12,7 @@ import {
   SceneRendererProps,
   TabView,
 } from "react-native-tab-view";
-import MatchList from "@/src/modules/match/ui/MatchList";
+import MatchList from "@/src/modules/match/ui/match-list";
 import {
   EntityTypeEnum,
   MatchStatusEnum,
@@ -21,15 +21,15 @@ import {
 import FeedHeader from "@/src/modules/feed/ui/feed-header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { layout, spacing, typography } from "@/src/shared/theme";
-import { useSessionState } from "@/src/modules/session/providers/SessionContext";
-import ReportFormSheet from "@/src/modules/report/ui/ReportFormSheet";
+import { useSessionState } from "@/src/modules/session/providers/session-context";
+import ReportFormSheet from "@/src/modules/report/ui/report-form-sheet";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import FollowedScreen from "@/src/modules/followed/ui/FollowedScreen";
+import FollowedScreen from "@/src/modules/followed/ui/followed-screen";
 import { openNotificationUrlIfAny } from "@/src/modules/notifications/push";
 import {
   isDefaultNotificationAction,
   useLastNotificationResponse,
-} from "@/src/shared/hooks/useLastNotificationResponse";
+} from "@/src/shared/hooks/use-last-notification-response";
 
 const FeedScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
