@@ -1,11 +1,8 @@
-import React, { useCallback, useRef, useState } from "react";
-import { BottomSheetFooterProps, BottomSheetModal } from "@gorhom/bottom-sheet";
+import React from "react";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import BottomSheetCustomModal from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal";
-import ProfileForm, {
-  ProfileFormState,
-} from "@/src/modules/user/forms/profile-form";
-import BottomSheetFormFooter from "@/src/shared/ui/form/bottom-sheet-form-footer";
+import { FormSheet } from "@/src/shared/ui/form/form-sheet";
+import ProfileForm from "@/src/modules/user/forms/profile-form";
 import { UserResponse } from "@/src/shared/generated/models";
 
 export type ProfileFormSheetProps = {
@@ -23,38 +20,11 @@ const ProfileFormSheet: React.FC<ProfileFormSheetProps> = ({
   snapPoint = "90%",
   footerLabel = "Enregistrer",
 }) => {
-  const submitRef = useRef<() => void>(() => {});
-  const [footerState, setFooterState] = useState<ProfileFormState>({
-    loading: false,
-    canSubmit: false,
-  });
-
-  const handleRegisterSubmit = useCallback((submit: () => void) => {
-    submitRef.current = submit;
-  }, []);
-
-  const handleStateChange = useCallback((s: ProfileFormState) => {
-    setFooterState(s);
-  }, []);
-
-  const renderFooter = useCallback(
-    (p: BottomSheetFooterProps) => (
-      <BottomSheetFormFooter
-        {...p}
-        label={footerLabel}
-        loading={footerState.loading}
-        disabled={!footerState.canSubmit}
-        onPress={() => submitRef.current()}
-      />
-    ),
-    [footerLabel, footerState.loading, footerState.canSubmit],
-  );
-
   return (
-    <BottomSheetCustomModal
+    <FormSheet
       ref={ref}
       snapPoint={snapPoint}
-      footerComponent={renderFooter}
+      footerLabel={footerLabel}
       title="Modifier le profil"
       message="Personnalise ta photo et ton pseudo."
     >
@@ -66,10 +36,8 @@ const ProfileFormSheet: React.FC<ProfileFormSheetProps> = ({
           );
           onSuccess();
         }}
-        onRegisterSubmit={handleRegisterSubmit}
-        onStateChange={handleStateChange}
       />
-    </BottomSheetCustomModal>
+    </FormSheet>
   );
 };
 

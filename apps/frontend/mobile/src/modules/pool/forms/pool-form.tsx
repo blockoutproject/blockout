@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
@@ -16,27 +16,16 @@ import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 
 import FormCard from "@/src/shared/ui/form/form-card";
 import { FormField } from "@/src/shared/ui/form/form-field";
+import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
 import SheetTextInput from "@/src/shared/ui/form/sheet-text-input";
 import { useApis } from "@/src/shared/providers/api-provider";
-
-export type PoolFormState = {
-  loading: boolean;
-  canSubmit: boolean;
-};
 
 export type PoolFormProps = {
   pool: PoolResponse;
   onSuccess: (updated: PoolDetailsResponse) => void;
-  onRegisterSubmit: (submit: () => void) => void;
-  onStateChange?: (state: PoolFormState) => void;
 };
 
-const PoolForm: React.FC<PoolFormProps> = ({
-  pool,
-  onSuccess,
-  onRegisterSubmit,
-  onStateChange,
-}) => {
+const PoolForm: React.FC<PoolFormProps> = ({ pool, onSuccess }) => {
   const theme = useAppTheme();
   const { mobile } = useApis();
 
@@ -75,18 +64,12 @@ const PoolForm: React.FC<PoolFormProps> = ({
     },
   });
 
-  useEffect(() => {
-    onRegisterSubmit(formik.submitForm);
-  }, [formik.submitForm, onRegisterSubmit]);
-
-  const canSubmit = useMemo(
-    () => formik.isValid && !loading,
-    [formik.isValid, loading],
-  );
-
-  useEffect(() => {
-    onStateChange?.({ loading, canSubmit });
-  }, [loading, canSubmit, onStateChange]);
+  const canSubmit = formik.isValid && !loading;
+  useFormSheetBinding({
+    submit: formik.submitForm,
+    loading,
+    canSubmit,
+  });
 
   return (
     <View style={styles.form} testID="pool-form">

@@ -1,10 +1,11 @@
 import React from "react";
-import { act, render, userEvent } from "@testing-library/react-native";
+import { render, userEvent } from "@testing-library/react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { DivisionResponse } from "@/src/shared/generated/models";
 import DivisionForm from "@/src/modules/division/forms/division-form";
 import { ThemeProvider } from "@/src/shared/theme";
+import { FormSheet } from "@/src/shared/ui/form/form-sheet";
 
 const mockUpdateDivision = jest.fn();
 
@@ -15,6 +16,58 @@ jest.mock("@gorhom/bottom-sheet", () => {
     BottomSheetTextInput: TextInput,
   };
 });
+
+jest.mock(
+  "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal",
+  () =>
+    function MockBottomSheetCustomModal({
+      children,
+      footerComponent,
+    }: {
+      children: React.ReactNode;
+      footerComponent?: (props: object) => React.ReactNode;
+    }) {
+      return (
+        <>
+          {children}
+          {footerComponent?.({ animatedFooterPosition: {} })}
+        </>
+      );
+    },
+);
+
+jest.mock(
+  "@/src/shared/ui/form/bottom-sheet-form-footer",
+  () =>
+    function MockBottomSheetFormFooter({
+      label,
+      onPress,
+      disabled,
+      loading,
+      actionTestID,
+    }: {
+      label: string;
+      onPress: () => void;
+      disabled?: boolean;
+      loading?: boolean;
+      actionTestID?: string;
+    }) {
+      const { Pressable, Text } = require("react-native");
+      const isDisabled = Boolean(disabled || loading);
+      return (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityState={{ disabled: isDisabled, busy: Boolean(loading) }}
+          disabled={isDisabled}
+          onPress={onPress}
+          testID={actionTestID}
+        >
+          <Text>{label}</Text>
+        </Pressable>
+      );
+    },
+);
 
 jest.mock("@/src/shared/providers/api-provider", () => ({
   useApis: () => ({
@@ -73,7 +126,6 @@ describe("DivisionForm", () => {
       name: "Nationale 2 Elite",
     });
     const onSuccess = jest.fn();
-    let submit: () => void = () => undefined;
     const user = userEvent.setup();
     const screen = await render(
       <SafeAreaProvider
@@ -83,13 +135,12 @@ describe("DivisionForm", () => {
         }}
       >
         <ThemeProvider>
-          <DivisionForm
-            division={division}
-            onSuccess={onSuccess}
-            onRegisterSubmit={(command) => {
-              submit = command;
-            }}
-          />
+          <FormSheet
+            footerLabel="Modifier"
+            footerActionTestID="division-form-submit-action"
+          >
+            <DivisionForm division={division} onSuccess={onSuccess} />
+          </FormSheet>
         </ThemeProvider>
       </SafeAreaProvider>,
     );
@@ -102,7 +153,7 @@ describe("DivisionForm", () => {
     const nameInput = screen.getByLabelText("Nom de la division");
     await user.clear(nameInput);
     await user.type(nameInput, "  Nationale 2 Elite  ");
-    await act(async () => submit());
+    await user.press(screen.getByTestId("division-form-submit-action"));
 
     expect(mockUpdateDivision).toHaveBeenCalledWith(
       7,

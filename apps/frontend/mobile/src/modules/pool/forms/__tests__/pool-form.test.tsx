@@ -1,4 +1,4 @@
-import { act, render, userEvent } from "@testing-library/react-native";
+import { render, userEvent } from "@testing-library/react-native";
 import React from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -8,6 +8,7 @@ import type {
 } from "@/src/shared/generated/models";
 import PoolForm from "@/src/modules/pool/forms/pool-form";
 import { ThemeProvider } from "@/src/shared/theme";
+import { FormSheet } from "@/src/shared/ui/form/form-sheet";
 
 const mockUpdatePool = jest.fn();
 
@@ -18,6 +19,58 @@ jest.mock("@gorhom/bottom-sheet", () => {
     BottomSheetTextInput: TextInput,
   };
 });
+
+jest.mock(
+  "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal",
+  () =>
+    function MockBottomSheetCustomModal({
+      children,
+      footerComponent,
+    }: {
+      children: React.ReactNode;
+      footerComponent?: (props: object) => React.ReactNode;
+    }) {
+      return (
+        <>
+          {children}
+          {footerComponent?.({ animatedFooterPosition: {} })}
+        </>
+      );
+    },
+);
+
+jest.mock(
+  "@/src/shared/ui/form/bottom-sheet-form-footer",
+  () =>
+    function MockBottomSheetFormFooter({
+      label,
+      onPress,
+      disabled,
+      loading,
+      actionTestID,
+    }: {
+      label: string;
+      onPress: () => void;
+      disabled?: boolean;
+      loading?: boolean;
+      actionTestID?: string;
+    }) {
+      const { Pressable, Text } = require("react-native");
+      const isDisabled = Boolean(disabled || loading);
+      return (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityState={{ disabled: isDisabled, busy: Boolean(loading) }}
+          disabled={isDisabled}
+          onPress={onPress}
+          testID={actionTestID}
+        >
+          <Text>{label}</Text>
+        </Pressable>
+      );
+    },
+);
 
 jest.mock("@/src/shared/providers/api-provider", () => ({
   useApis: () => ({ mobile: { pools: { updatePool: mockUpdatePool } } }),
@@ -48,7 +101,6 @@ describe("PoolForm", () => {
     } as PoolDetailsResponse;
     mockUpdatePool.mockResolvedValue(response);
     const onSuccess = jest.fn();
-    let submit: () => void = () => undefined;
     const user = userEvent.setup();
     const screen = await render(
       <SafeAreaProvider
@@ -58,13 +110,12 @@ describe("PoolForm", () => {
         }}
       >
         <ThemeProvider>
-          <PoolForm
-            pool={pool}
-            onSuccess={onSuccess}
-            onRegisterSubmit={(command) => {
-              submit = command;
-            }}
-          />
+          <FormSheet
+            footerLabel="Enregistrer"
+            footerActionTestID="pool-form-submit-action"
+          >
+            <PoolForm pool={pool} onSuccess={onSuccess} />
+          </FormSheet>
         </ThemeProvider>
       </SafeAreaProvider>,
     );
@@ -80,7 +131,7 @@ describe("PoolForm", () => {
     await user.type(nameInput, "  Poule principale  ");
     await user.clear(shortNameInput);
     await user.type(shortNameInput, "  PP  ");
-    await act(async () => submit());
+    await user.press(screen.getByTestId("pool-form-submit-action"));
 
     expect(mockUpdatePool).toHaveBeenCalledWith(24, {
       name: "Poule principale",

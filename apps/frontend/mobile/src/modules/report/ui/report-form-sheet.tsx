@@ -1,17 +1,12 @@
-import type {
-  BottomSheetFooterProps,
-  BottomSheetModal,
-} from "@gorhom/bottom-sheet";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback } from "react";
 
 import type { ReportResponse } from "@/src/shared/generated/models";
 import ReportForm, {
   ReportContext,
-  ReportFormState,
 } from "@/src/modules/report/forms/report-form";
-import BottomSheetCustomModal from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal";
-import BottomSheetFormFooter from "@/src/shared/ui/form/bottom-sheet-form-footer";
+import { FormSheet } from "@/src/shared/ui/form/form-sheet";
 
 export type ReportFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;
@@ -28,30 +23,6 @@ const ReportFormSheet = ({
   snapPoint = "90%",
   footerLabel = "Envoyer",
 }: ReportFormSheetProps) => {
-  const submitRef = useRef<() => void>(() => undefined);
-  const [footerState, setFooterState] = useState<ReportFormState>({
-    loading: false,
-    canSubmit: false,
-  });
-
-  const handleRegisterSubmit = useCallback((submit: () => void) => {
-    submitRef.current = submit;
-  }, []);
-
-  const renderFooter = useCallback(
-    (props: BottomSheetFooterProps) => (
-      <BottomSheetFormFooter
-        {...props}
-        label={footerLabel}
-        loading={footerState.loading}
-        disabled={!footerState.canSubmit}
-        onPress={() => submitRef.current()}
-        actionTestID="report-submit-action"
-      />
-    ),
-    [footerLabel, footerState.canSubmit, footerState.loading],
-  );
-
   const handleSuccess = useCallback(
     async (created: ReportResponse) => {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -61,21 +32,17 @@ const ReportFormSheet = ({
   );
 
   return (
-    <BottomSheetCustomModal
+    <FormSheet
       ref={ref}
       snapPoint={snapPoint}
-      footerComponent={renderFooter}
+      footerLabel={footerLabel}
+      footerActionTestID="report-submit-action"
       contentTestID="report-modal"
       title="Signaler un problème"
       message="Décris précisément le problème rencontré."
     >
-      <ReportForm
-        context={context}
-        onSuccess={handleSuccess}
-        onRegisterSubmit={handleRegisterSubmit}
-        onStateChange={setFooterState}
-      />
-    </BottomSheetCustomModal>
+      <ReportForm context={context} onSuccess={handleSuccess} />
+    </FormSheet>
   );
 };
 

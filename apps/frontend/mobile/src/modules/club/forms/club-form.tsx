@@ -1,15 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
-import { Image } from "expo-image";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { radius, useAppTheme } from "@/src/shared/theme";
+import { spacing, typography, useAppTheme } from "@/src/shared/theme";
 import type {
   ClubResponse,
   UpdateClubRequest,
@@ -18,76 +14,31 @@ import type {
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 
 import FormCard from "@/src/shared/ui/form/form-card";
+import {
+  FormImageField,
+  type FormImageValue,
+} from "@/src/shared/ui/form/form-image-field";
+import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
 import SheetTextInput from "@/src/shared/ui/form/sheet-text-input";
 import { useApis } from "@/src/shared/providers/api-provider";
-import { ImageUpload } from "@/src/shared/api/image-upload";
 import { FormField } from "@/src/shared/ui/form/form-field";
-
-export type ClubFormState = {
-  loading: boolean;
-  canSubmit: boolean;
-};
 
 export type ClubFormProps = {
   club: ClubResponse;
   onSuccess: (updated: ClubResponse) => void;
-  onRegisterSubmit: (submit: () => void) => void;
-  onStateChange?: (state: ClubFormState) => void;
 };
 
-const ClubForm: React.FC<ClubFormProps> = ({
-  club,
-  onSuccess,
-  onRegisterSubmit,
-  onStateChange,
-}) => {
+const ClubForm: React.FC<ClubFormProps> = ({ club, onSuccess }) => {
   const theme = useAppTheme();
   const { mobile } = useApis();
 
-  const [imageFile, setImageFile] = useState<ImageUpload | null>(null);
-  const [previewUri, setPreviewUri] = useState<string | null>(null);
-  const [removedLogo, setRemovedLogo] = useState(false);
+  const [logo, setLogo] = useState<FormImageValue>({
+    uri: club.logoUrl ?? null,
+    upload: null,
+    removed: false,
+  });
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-
-  const handlePickImage = async () => {
-    try {
-      await Haptics.selectionAsync();
-      const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"] as unknown as ImagePicker.MediaTypeOptions,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-      });
-      if (pickerResult.canceled) return;
-
-      const selected = pickerResult.assets[0];
-      if (!selected?.uri) return;
-
-      const manipContext = ImageManipulator.ImageManipulator.manipulate(
-        selected.uri,
-      );
-      manipContext.resize({ width: 512 });
-      const rendered = await manipContext.renderAsync();
-      const saved = await rendered.saveAsync({
-        format: ImageManipulator.SaveFormat.PNG,
-        compress: 1,
-      });
-
-      setPreviewUri(saved.uri);
-      setImageFile({ uri: saved.uri, name: "club.png", type: "image/png" });
-      setRemovedLogo(false);
-    } catch {
-      Alert.alert("Erreur", "Impossible de traiter l’image.");
-    }
-  };
-
-  const handleRemoveImage = async () => {
-    await Haptics.selectionAsync();
-    setPreviewUri(null);
-    setImageFile(null);
-    setRemovedLogo(true);
-  };
 
   const formik = useFormik({
     initialValues: { name: club.name ?? "" },
@@ -104,7 +55,7 @@ const ClubForm: React.FC<ClubFormProps> = ({
           name: values.name.trim(),
         };
 
-        if (removedLogo) {
+        if (logo.removed) {
           request.logoUrl = null;
         } else if (club.logoUrl) {
           request.logoUrl = club.logoUrl;
@@ -113,7 +64,7 @@ const ClubForm: React.FC<ClubFormProps> = ({
         const updated = await mobile.clubs.updateClub(
           club.id,
           request,
-          imageFile ?? undefined,
+          logo.upload ?? undefined,
         );
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
@@ -128,20 +79,12 @@ const ClubForm: React.FC<ClubFormProps> = ({
     },
   });
 
-  useEffect(() => {
-    onRegisterSubmit(formik.submitForm);
-  }, [formik.submitForm, onRegisterSubmit]);
-
-  const canSubmit = useMemo(
-    () => formik.isValid && !loading,
-    [formik.isValid, loading],
-  );
-
-  useEffect(() => {
-    onStateChange?.({ loading, canSubmit });
-  }, [loading, canSubmit, onStateChange]);
-
-  const logoUri = removedLogo ? null : (previewUri ?? club.logoUrl ?? null);
+  const canSubmit = formik.isValid && !loading;
+  useFormSheetBinding({
+    submit: formik.submitForm,
+    loading,
+    canSubmit,
+  });
 
   return (
     <View style={styles.form} testID="club-form">
@@ -149,91 +92,23 @@ const ClubForm: React.FC<ClubFormProps> = ({
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <FormCard title="Logo">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Choisir le logo du club"
-            onPress={handlePickImage}
-            style={({ pressed }) => [
-              styles.logoWrap,
-              { borderColor: theme.border },
-              pressed ? styles.pressed : undefined,
-            ]}
-            testID="club-logo-picker-action"
-          >
-            <View style={styles.logoMask}>
-              {logoUri ? (
-                <Image
-                  source={{ uri: logoUri }}
-                  style={styles.logo}
-                  contentFit="contain"
-                />
-              ) : (
-                <View style={styles.logoPlaceholder}>
-                  <MaterialCommunityIcons
-                    name="camera-plus-outline"
-                    size={28}
-                    color={theme.textInactive}
-                  />
-                  <Text
-                    style={[styles.logoHint, { color: theme.textInactive }]}
-                  >
-                    Ajouter un logo
-                  </Text>
-                </View>
-              )}
-            </View>
-          </Pressable>
-
-          <View style={styles.buttonsRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Changer le logo"
-              onPress={handlePickImage}
-              style={({ pressed }) => [
-                styles.logoBtn,
-                { backgroundColor: theme.backgroundSecondary },
-                pressed ? styles.pressed : undefined,
-              ]}
-              testID="club-logo-change-action"
-            >
-              <MaterialCommunityIcons
-                name="pencil-outline"
-                size={16}
-                color={theme.text}
-              />
-              <Text style={[styles.logoBtnText, { color: theme.text }]}>
-                Changer le logo
-              </Text>
-            </Pressable>
-
-            {!!logoUri && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Supprimer le logo"
-                onPress={handleRemoveImage}
-                style={({ pressed }) => [
-                  styles.removeBtn,
-                  { backgroundColor: theme.backgroundSecondary },
-                  pressed ? styles.pressed : undefined,
-                ]}
-                testID="club-logo-remove-action"
-              >
-                <MaterialCommunityIcons
-                  name="trash-can-outline"
-                  size={16}
-                  color={theme.error}
-                />
-                <Text style={[styles.removeBtnText, { color: theme.error }]}>
-                  Supprimer
-                </Text>
-              </Pressable>
-            )}
-          </View>
-        </FormCard>
+        <FormImageField
+          title="Logo"
+          value={logo}
+          fileName="club.png"
+          placeholder="Ajouter un logo"
+          pickAccessibilityLabel="Choisir le logo du club"
+          changeLabel="Changer le logo"
+          removeLabel="Supprimer le logo"
+          contentFit="contain"
+          onChange={setLogo}
+          pickActionTestID="club-logo-picker-action"
+          changeActionTestID="club-logo-change-action"
+          removeActionTestID="club-logo-remove-action"
+        />
 
         <FormCard>
-          <Text style={{ color: theme.text, fontWeight: "900" }}>
+          <Text style={[styles.rawName, { color: theme.text }]}>
             {club.rawName}
           </Text>
         </FormCard>
@@ -271,51 +146,12 @@ export default ClubForm;
 
 const styles = StyleSheet.create({
   form: { flex: 1 },
-  scroll: { gap: 12, padding: 8, paddingBottom: 100 },
-  logoWrap: {
-    borderWidth: 1.5,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
+  scroll: {
+    gap: spacing[3],
+    padding: spacing[2],
+    paddingBottom: spacing[16] + spacing[10],
   },
-  logoMask: {
-    width: 110,
-    aspectRatio: 1,
-    borderRadius: 18,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 16,
+  rawName: {
+    ...typography.title,
   },
-  logo: { width: "100%", height: "100%" },
-  logoPlaceholder: { alignItems: "center", gap: 6 },
-  logoHint: { fontSize: 12, fontWeight: "600" },
-  buttonsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  logoBtn: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-  },
-  logoBtnText: { fontSize: 12, fontWeight: "700" },
-  removeBtn: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-  },
-  removeBtnText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  pressed: { opacity: 0.7 },
 });

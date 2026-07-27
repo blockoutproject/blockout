@@ -7,7 +7,7 @@ import React, { memo } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAppTheme } from "@/src/shared/theme";
+import { borderWidth, spacing, useAppTheme } from "@/src/shared/theme";
 import {
   Action,
   type ActionProps,
@@ -21,7 +21,7 @@ export type BottomSheetFormFooterProps = Omit<
   label: string;
   loading?: boolean;
   disabled?: boolean;
-  onPress: () => void;
+  onPress: () => Promise<void> | void;
   variant?: ActionVariant;
   gradient?: ActionProps["gradient"];
   icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -88,8 +88,8 @@ export default memo(BottomSheetFormFooter);
 
 const styles = StyleSheet.create({
   footer: {
-    padding: 12,
-    borderTopWidth: 1,
+    padding: spacing[3],
+    borderTopWidth: borderWidth.thin,
     justifyContent: "center",
   },
 });

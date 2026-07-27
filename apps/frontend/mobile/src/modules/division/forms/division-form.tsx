@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
@@ -20,29 +20,17 @@ import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 
 import FormCard from "@/src/shared/ui/form/form-card";
 import { FormField } from "@/src/shared/ui/form/form-field";
+import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
 import SheetTextInput from "@/src/shared/ui/form/sheet-text-input";
 import { useApis } from "@/src/shared/providers/api-provider";
 import { ImageUpload } from "@/src/shared/api/image-upload";
 
-export type DivisionFormState = {
-  loading: boolean;
-  canSubmit: boolean;
-  accentColor?: string;
-};
-
 export type DivisionFormProps = {
   division: DivisionResponse | null;
   onSuccess: () => void;
-  onRegisterSubmit: (submit: () => void) => void;
-  onStateChange?: (state: DivisionFormState) => void;
 };
 
-const DivisionForm: React.FC<DivisionFormProps> = ({
-  division,
-  onSuccess,
-  onRegisterSubmit,
-  onStateChange,
-}) => {
+const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
   const theme = useAppTheme();
   const { mobile } = useApis();
 
@@ -142,22 +130,25 @@ const DivisionForm: React.FC<DivisionFormProps> = ({
     },
   });
 
-  useEffect(() => {
-    onRegisterSubmit(formik.submitForm);
-  }, [formik.submitForm, onRegisterSubmit]);
-
-  const canSubmit = useMemo(
-    () => formik.isValid && !loading,
-    [formik.isValid, loading],
+  const canSubmit = formik.isValid && !loading;
+  const footerGradient = useMemo(
+    () =>
+      formik.values.mainColor
+        ? ([
+            formik.values.mainColor,
+            formik.values.mainColor,
+            formik.values.mainColor,
+          ] as const)
+        : undefined,
+    [formik.values.mainColor],
   );
 
-  useEffect(() => {
-    onStateChange?.({
-      loading,
-      canSubmit,
-      accentColor: formik.values.mainColor || undefined,
-    });
-  }, [loading, canSubmit, formik.values.mainColor, onStateChange]);
+  useFormSheetBinding({
+    submit: formik.submitForm,
+    loading,
+    canSubmit,
+    gradient: footerGradient,
+  });
 
   const logoUri = previewUri ?? formik.values.logoUrl ?? null;
 

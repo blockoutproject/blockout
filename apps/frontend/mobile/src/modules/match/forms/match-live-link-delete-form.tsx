@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
@@ -8,25 +8,19 @@ import { useAppTheme } from "@/src/shared/theme";
 import { useApis } from "@/src/shared/providers/api-provider";
 import FormCard from "@/src/shared/ui/form/form-card";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
-import {
-  getLiveLinkErrorMessage,
-  MatchLiveLinkFormState,
-} from "./match-live-link-form";
+import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
+import { getLiveLinkErrorMessage } from "./match-live-link-form";
 
 export type MatchLiveLinkDeleteFormProps = {
   matchId: number;
   liveUrl?: string | null;
   onSuccess: () => void;
-  onRegisterSubmit: (submit: () => void) => void;
-  onStateChange?: (state: MatchLiveLinkFormState) => void;
 };
 
 const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
   matchId,
   liveUrl,
   onSuccess,
-  onRegisterSubmit,
-  onStateChange,
 }) => {
   const theme = useAppTheme();
   const { mobile } = useApis();
@@ -34,7 +28,7 @@ const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const canSubmit = useMemo(() => !loading, [loading]);
+  const canSubmit = !loading;
 
   const handleDelete = useCallback(async () => {
     try {
@@ -53,13 +47,11 @@ const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
     }
   }, [matchId, mobile, onSuccess]);
 
-  useEffect(() => {
-    onRegisterSubmit(handleDelete);
-  }, [handleDelete, onRegisterSubmit]);
-
-  useEffect(() => {
-    onStateChange?.({ loading, canSubmit });
-  }, [loading, canSubmit, onStateChange]);
+  useFormSheetBinding({
+    submit: handleDelete,
+    loading,
+    canSubmit,
+  });
 
   return (
     <>

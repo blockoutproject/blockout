@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import {
   BottomSheetScrollView,
@@ -15,17 +15,11 @@ import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import { ApiError } from "@/src/shared/api/api-error";
 import { ReportMatchLiveLinkRequest } from "@/src/shared/generated/models";
 import { FormField } from "@/src/shared/ui/form/form-field";
-
-export type MatchLiveLinkReportFormState = {
-  loading: boolean;
-  canSubmit: boolean;
-};
+import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
 
 export type MatchLiveLinkReportFormProps = {
   matchId: number;
   onSuccess: () => void;
-  onRegisterSubmit: (submit: () => void) => void;
-  onStateChange?: (state: MatchLiveLinkReportFormState) => void;
 };
 
 const getReportErrorMessage = (err: unknown): string => {
@@ -59,8 +53,6 @@ const validationSchema = Yup.object({
 const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
   matchId,
   onSuccess,
-  onRegisterSubmit,
-  onStateChange,
 }) => {
   const theme = useAppTheme();
   const { mobile } = useApis();
@@ -102,13 +94,11 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
     [formik.isValid, formik.values.reason, loading],
   );
 
-  useEffect(() => {
-    onRegisterSubmit(formik.submitForm);
-  }, [formik.submitForm, onRegisterSubmit]);
-
-  useEffect(() => {
-    onStateChange?.({ loading, canSubmit });
-  }, [loading, canSubmit, onStateChange]);
+  useFormSheetBinding({
+    submit: formik.submitForm,
+    loading,
+    canSubmit,
+  });
 
   const showFieldError = formik.touched.reason && !!formik.errors.reason;
 

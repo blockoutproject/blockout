@@ -7,7 +7,14 @@ import {
   ViewStyle,
 } from "react-native";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
-import { borderWidth, radius, spacing, useAppTheme } from "@/src/shared/theme";
+import {
+  borderWidth,
+  radius,
+  spacing,
+  stateOpacity,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 
 /**
  * Input générique pour BottomSheet qui:
@@ -52,7 +59,7 @@ const SheetTextInput: React.FC<SheetTextInputProps> = ({
             borderColor: focused ? theme.primary : theme.border,
             borderWidth: focused ? borderWidth.medium : borderWidth.thin,
             color: theme.text,
-            opacity: editable ? 1 : 0.5,
+            opacity: editable ? 1 : stateOpacity.disabled,
           },
           style,
         ]}
@@ -77,10 +84,10 @@ export default SheetTextInput;
 
 const styles = StyleSheet.create({
   input: {
-    minHeight: 48,
+    ...typography.body,
+    minHeight: spacing[12],
     borderRadius: radius.lg,
     paddingVertical: spacing[3],
     paddingHorizontal: spacing[3],
-    fontSize: 14,
   },
 });

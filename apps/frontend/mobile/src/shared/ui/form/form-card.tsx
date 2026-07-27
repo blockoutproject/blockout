@@ -1,6 +1,12 @@
 import React from "react";
 import { StyleSheet, Text, View, ViewProps } from "react-native";
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  elevation,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 
 type FormCardProps = ViewProps & {
   title?: string;
@@ -17,18 +23,14 @@ const FormCard: React.FC<FormCardProps> = ({
   const theme = useAppTheme();
   return (
     <View
-      style={[
-        styles.card,
-        { backgroundColor: theme.surface, shadowColor: "#000" },
-        style,
-      ]}
+      style={[styles.card, { backgroundColor: theme.surface }, style]}
       {...rest}
     >
       {title ? (
         <Text
           style={[
             styles.sectionTitle,
-            { color: theme.text },
+            { color: theme.textSecondary },
             titleUppercase && { textTransform: "uppercase" },
           ]}
         >
@@ -44,17 +46,13 @@ export default FormCard;
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 18,
-    padding: 14,
-    gap: 12,
-    elevation: 2,
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
+    ...elevation.card,
+    gap: spacing[3],
+    padding: spacing[4],
+    borderRadius: radius.hero,
+    borderCurve: "continuous",
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    opacity: 0.85,
+    ...typography.label,
   },
 });
