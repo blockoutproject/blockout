@@ -60,29 +60,6 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Prepare local backend configuration
-        run: |
-          for example in apps/backend/*/.env.example; do
-            cp "$example" "${example%.example}.local"
-          done
-
-      - name: Start backend dependencies
-        run: >-
-          docker compose
-          -f infra/compose/docker-compose.third-party.yml
-          -f infra/compose/docker-compose.app.yml
-          up -d --wait
-          blockout-rabbitmq
-          blockout-elasticsearch
-          blockout-postgres-pools
-          blockout-postgres-teams
-          blockout-postgres-matches
-          blockout-postgres-competition
-          blockout-postgres-users
-          blockout-postgres-clubs
-          blockout-postgres-config
-          blockout-postgres-notification
-
       - name: Verify backend
         run: mvn -f apps/backend/pom.xml verify
 
