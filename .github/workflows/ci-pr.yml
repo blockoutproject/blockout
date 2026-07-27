@@ -45,6 +45,45 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     needs: contracts
+    env:
+      AUTH0_AUDIENCE: https://api.blockout.invalid
+      AUTH0_CLIENT_ID: unused
+      AUTH0_CLIENT_SECRET: unused
+      AUTH0_DEFAULT_ROLE_ID: unused
+      AUTH0_DOMAIN: blockout.invalid
+      AUTH0_ISSUER: http://localhost/unused
+      AUTH_API_KEY: unused
+      AWS_ACCESS_KEY_ID: unused
+      AWS_REGION: eu-west-3
+      AWS_S3_BUCKET_NAME: unused
+      AWS_SECRET_ACCESS_KEY: unused
+      CLUB_API_URL: http://127.0.0.1:1
+      COMPETITION_API_URL: http://127.0.0.1:1
+      CONFIG_API_URL: http://127.0.0.1:1
+      DATASOURCE_PASSWORD: unused
+      DATASOURCE_URL: jdbc:postgresql://127.0.0.1:1/unused
+      DATASOURCE_USERNAME: unused
+      DISCORD_WEBHOOK_URL: http://127.0.0.1:1
+      ELASTICSEARCH_HOST: 127.0.0.1:1
+      ELASTICSEARCH_PASSWORD: unused
+      ELASTICSEARCH_USERNAME: unused
+      FFVB_PROXY_HOST: 127.0.0.1
+      FFVB_PROXY_PORT: 1
+      GITHUB_TOKEN: unused
+      MAPBOX_ACCESS_TOKEN: unused
+      MATCH_API_URL: http://127.0.0.1:1
+      MOBILE_GATEWAY_API_URL: http://127.0.0.1:1
+      NOTIFICATION_API_URL: http://127.0.0.1:1
+      PDF_LINK_TOKEN_SECRET: ci-only-pdf-link-signing-key-not-a-secret
+      POOL_API_URL: http://127.0.0.1:1
+      RABBITMQ_HOST: 127.0.0.1
+      RABBITMQ_PASSWORD: unused
+      RABBITMQ_PORT: 1
+      RABBITMQ_USERNAME: unused
+      REPORT_API_URL: http://127.0.0.1:1
+      SEARCH_API_URL: http://127.0.0.1:1
+      TEAM_API_URL: http://127.0.0.1:1
+      USER_API_URL: http://127.0.0.1:1
     steps:
       - uses: actions/checkout@v5
 
@@ -59,29 +98,6 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-
-      - name: Prepare local backend configuration
-        run: |
-          for example in apps/backend/*/.env.example; do
-            cp "$example" "${example%.example}.local"
-          done
-
-      - name: Start backend dependencies
-        run: >-
-          docker compose
-          -f infra/compose/docker-compose.third-party.yml
-          -f infra/compose/docker-compose.app.yml
-          up -d --wait
-          blockout-rabbitmq
-          blockout-elasticsearch
-          blockout-postgres-pools
-          blockout-postgres-teams
-          blockout-postgres-matches
-          blockout-postgres-competition
-          blockout-postgres-users
-          blockout-postgres-clubs
-          blockout-postgres-config
-          blockout-postgres-notification
 
       - name: Verify backend
         run: mvn -f apps/backend/pom.xml verify
