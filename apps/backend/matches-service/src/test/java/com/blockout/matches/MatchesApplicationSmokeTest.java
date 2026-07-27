@@ -9,7 +9,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /** Verifies that matches-service starts against an ephemeral PostgreSQL database. */
-@SpringBootTest
+@SpringBootTest(properties = "spring.rabbitmq.dynamic=false")
 @Testcontainers
 @DisplayName("Matches application smoke")
 class MatchesApplicationSmokeTest {

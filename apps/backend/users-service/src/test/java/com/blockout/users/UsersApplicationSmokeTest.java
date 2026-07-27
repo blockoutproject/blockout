@@ -11,7 +11,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /** Verifies that users-service starts against an ephemeral PostgreSQL database. */
-@SpringBootTest
+@SpringBootTest(properties = "spring.rabbitmq.dynamic=false")
 @Testcontainers
 @DisplayName("Users application smoke")
 class UsersApplicationSmokeTest {
