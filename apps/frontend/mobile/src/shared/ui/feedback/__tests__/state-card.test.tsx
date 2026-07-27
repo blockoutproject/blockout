@@ -48,6 +48,25 @@ describe("StateCard", () => {
     });
   });
 
+  it.each(["loading", "search", "error"] as const)(
+    "renders the compact %s feedback anatomy without an illustration",
+    async (variant) => {
+      const screen = await render(
+        <ThemeProvider>
+          <StateCard
+            variant={variant}
+            title="État compact"
+            subtitle="Message de contexte."
+          />
+        </ThemeProvider>,
+      );
+
+      expect(screen.getByRole("header", { name: "État compact" })).toBeTruthy();
+      expect(screen.getByText("Message de contexte.")).toBeTruthy();
+      expect(screen.queryByLabelText("Illustration")).toBeNull();
+    },
+  );
+
   it("keeps a loading action disabled and exposes its loading label", async () => {
     const onPress = jest.fn();
     const screen = await render(
