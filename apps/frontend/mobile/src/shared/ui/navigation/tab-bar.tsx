@@ -26,8 +26,8 @@ import {
   radius,
   spacing,
   useAppTheme,
+  withAlpha,
 } from "@/src/shared/theme";
-import { withAlpha } from "@/src/shared/lib/utils";
 import { TabBarItem } from "@/src/shared/ui/navigation/tab-bar-item";
 
 const SPRING = { damping: 25, stiffness: 340, mass: 0.8 };

@@ -19,7 +19,7 @@ import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/shared/theme";
 import { useRawDivisionMappings } from "@/src/modules/raw-division-mapping/hooks/use-raw-division-mapping";
 import { RawDivisionMappingResponse } from "@/src/shared/generated/models";
-import { Filter } from "@/src/shared/model/filter";
+import { Filter } from "@/src/shared/view-models/filter";
 import Filters from "@/src/shared/ui/filters";
 import RawDivisionMappingItem from "@/src/modules/raw-division-mapping/ui/raw-division-mapping-item";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";

@@ -13,7 +13,7 @@ import * as Haptics from "expo-haptics";
 import { useAppTheme } from "@/src/shared/theme";
 import { useDivisions } from "@/src/modules/division/hooks/use-divisions";
 import { DivisionResponse } from "@/src/shared/generated/models";
-import { Filter } from "@/src/shared/model/filter";
+import { Filter } from "@/src/shared/view-models/filter";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import DivisionItem from "@/src/modules/division/ui/division-item";
 import { SearchField } from "@/src/shared/ui/search-field";

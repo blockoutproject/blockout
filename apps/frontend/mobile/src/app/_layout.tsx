@@ -16,15 +16,15 @@ import { SessionProvider } from "@/src/modules/session/providers/session-provide
 import { useSessionState } from "@/src/modules/session/providers/session-context";
 import { SplashScreenController } from "@/src/modules/session/ui/splash-screen-controller";
 import { useOnboardingStore } from "@/src/modules/onboarding/model/onboarding-store";
-import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
-import { useConsentGDPR } from "@/src/modules/advertising/use-consent-gdpr";
+import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useConsentGDPR } from "@/src/modules/advertising/hooks/use-consent-gdpr";
 import { PurchasesProvider } from "@/src/modules/subscription/providers/purchases-provider";
 import { QueryProvider } from "@/src/shared/providers/query-provider";
 import type { NotificationResponse } from "expo-notifications";
 import {
   addNotificationListeners,
   openNotificationUrlIfAny,
-} from "@/src/modules/notifications/push";
+} from "@/src/modules/notifications/api/push-notifications";
 
 export default function Root() {
   validateRequiredConfig();

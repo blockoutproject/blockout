@@ -7,7 +7,7 @@ export const useDivisions = () => {
 
   return useQuery<DivisionResponse[]>({
     queryKey: ["divisions"],
-    queryFn: () => mobile.config.getDivisions(),
+    queryFn: () => mobile.divisions.getDivisions(),
     staleTime: 1000 * 60,
   });
 };

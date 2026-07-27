@@ -25,11 +25,11 @@ import { useSessionState } from "@/src/modules/session/providers/session-context
 import ReportFormSheet from "@/src/modules/report/ui/report-form-sheet";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import FollowedScreen from "@/src/modules/followed/ui/followed-screen";
-import { openNotificationUrlIfAny } from "@/src/modules/notifications/push";
+import { openNotificationUrlIfAny } from "@/src/modules/notifications/api/push-notifications";
 import {
   isDefaultNotificationAction,
   useLastNotificationResponse,
-} from "@/src/shared/hooks/use-last-notification-response";
+} from "@/src/modules/notifications/hooks/use-last-notification-response";
 
 const FeedScreen: React.FC = () => {
   const insets = useSafeAreaInsets();

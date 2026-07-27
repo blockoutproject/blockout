@@ -12,13 +12,13 @@ import {
   MatchResponse,
   MatchStatusEnum,
 } from "@/src/shared/generated/models";
-import { LIVE_PROVIDER_LABELS } from "@/src/modules/match/model/live-provider-labels";
-import MatchLiveLinkReportFormSheet from "@/src/modules/match/ui/form/match-live-link-report-form-sheet";
-import MatchLiveLinkFormSheet from "./form/match-live-link-form-sheet";
-import MatchLiveLinkDeleteFormSheet from "./form/match-live-link-delete-form-sheet";
+import { LIVE_PROVIDER_LABELS } from "@/src/modules/match/view-models/live-provider-labels";
+import MatchLiveLinkReportFormSheet from "@/src/modules/match/ui/match-live-link-report-form-sheet";
+import MatchLiveLinkFormSheet from "@/src/modules/match/ui/match-live-link-form-sheet";
+import MatchLiveLinkDeleteFormSheet from "@/src/modules/match/ui/match-live-link-delete-form-sheet";
 import { useSessionState } from "@/src/modules/session/providers/session-context";
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
-import { useWebLinkInterstitial } from "@/src/modules/advertising/use-web-link-interstitial";
+import { useWebLinkInterstitial } from "@/src/modules/advertising/hooks/use-web-link-interstitial";
 
 type Props = {
   match: MatchResponse;

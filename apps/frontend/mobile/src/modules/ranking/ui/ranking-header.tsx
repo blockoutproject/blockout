@@ -11,7 +11,7 @@ import {
 } from "react-native";
 
 import MaskedImage from "@/src/shared/ui/images/masked-image";
-import { isRegional, withAlpha } from "@/src/shared/lib/utils";
+import { isRegional } from "@/src/shared/view-models/league";
 import type { PoolResponse } from "@/src/shared/generated/models";
 import {
   elevation,
@@ -20,8 +20,9 @@ import {
   spacing,
   typography,
   useAppTheme,
+  withAlpha,
 } from "@/src/shared/theme";
-import { GenderLabels } from "@/src/shared/model/gender-labels";
+import { GenderLabels } from "@/src/shared/view-models/gender-labels";
 
 type Props = {
   pool: PoolResponse;

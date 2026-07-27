@@ -1,10 +1,10 @@
 import React, { useCallback, useRef, useState } from "react";
 import { BottomSheetFooterProps, BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/bottom-sheet-custom-modal";
+import BottomSheetCustomModal from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal";
 import ProfileForm, {
   ProfileFormState,
-} from "@/src/modules/user/ui/profile-form";
+} from "@/src/modules/user/forms/profile-form";
 import BottomSheetFormFooter from "@/src/shared/ui/form/bottom-sheet-form-footer";
 import { UserResponse } from "@/src/shared/generated/models";
 

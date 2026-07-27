@@ -1,11 +1,11 @@
 import React, { useCallback, useRef, useState } from "react";
 import { BottomSheetFooterProps, BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/bottom-sheet-custom-modal";
+import BottomSheetCustomModal from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal";
 import BottomSheetFormFooter from "@/src/shared/ui/form/bottom-sheet-form-footer";
 import RawDivisionMappingForm, {
   RawDivisionMappingFormState,
-} from "@/src/modules/raw-division-mapping/ui/raw-division-mapping-form";
+} from "@/src/modules/raw-division-mapping/forms/raw-division-mapping-form";
 import { RawDivisionMappingResponse } from "@/src/shared/generated/models";
 
 export type RawDivisionMappingFormSheetProps = {

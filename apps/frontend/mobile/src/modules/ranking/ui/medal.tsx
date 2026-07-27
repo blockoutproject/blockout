@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { withAlpha } from "@/src/shared/lib/utils";
+import { withAlpha } from "@/src/shared/theme";
 import type { AppTheme } from "@/src/shared/theme";
 
 const Medal: React.FC<{ rank: 1 | 2 | 3; theme: AppTheme }> = ({

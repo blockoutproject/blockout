@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { withAlpha } from "@/src/shared/lib/utils";
+import { withAlpha } from "@/src/shared/theme";
 import {
   borderWidth,
   radius,

@@ -18,7 +18,7 @@ import type {
   TeamWithStatsResponse,
 } from "@/src/shared/generated/models";
 import { CONFIG } from "@/src/shared/config/config";
-import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 import { useAppTheme } from "@/src/shared/theme";
 
 type Props = {

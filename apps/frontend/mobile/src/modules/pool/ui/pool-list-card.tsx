@@ -1,12 +1,15 @@
 import React from "react";
-import { radius, spacing, useAppTheme } from "@/src/shared/theme";
+import { radius, spacing, useAppTheme, withAlpha } from "@/src/shared/theme";
 import type { PoolSummaryResponse } from "@/src/shared/generated/models";
-import { GenderEnum, GenderLabels } from "@/src/shared/model/gender-labels";
-import { FormatLabels } from "@/src/shared/model/format-labels";
-import { isRegional, withAlpha } from "@/src/shared/lib/utils";
+import {
+  GenderEnum,
+  GenderLabels,
+} from "@/src/shared/view-models/gender-labels";
+import { FormatLabels } from "@/src/shared/view-models/format-labels";
+import { isRegional } from "@/src/shared/view-models/league";
 import EntityGradientCard, {
   EntityCardChip,
-} from "@/src/shared/ui/entity-gradient-card";
+} from "@/src/shared/ui/entity/entity-gradient-card";
 
 export type PoolListCardProps = {
   pool: PoolSummaryResponse;

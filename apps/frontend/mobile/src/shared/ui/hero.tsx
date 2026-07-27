@@ -10,8 +10,7 @@ import { Image } from "expo-image";
 import type { ImageSource } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { radius, useAppTheme } from "@/src/shared/theme";
-import { withAlpha } from "@/src/shared/lib/utils";
+import { radius, useAppTheme, withAlpha } from "@/src/shared/theme";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { Pill } from "@/src/shared/ui/pill";
 

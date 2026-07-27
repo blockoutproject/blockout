@@ -3,7 +3,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { NotificationResponse } from "@/src/shared/generated/models";
-import { formatNotificationAge } from "@/src/modules/notifications/model/format-notification-age";
+import { formatNotificationAge } from "@/src/modules/notifications/view-models/format-notification-age";
 import { useAppTheme } from "@/src/shared/theme";
 import FadeIn from "@/src/shared/ui/animations/fade-in";
 import NotificationSwipeAction from "@/src/modules/notifications/ui/notification-swipe-action";

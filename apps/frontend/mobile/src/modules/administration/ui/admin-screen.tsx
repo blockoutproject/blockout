@@ -70,7 +70,10 @@ const AdminScreen: React.FC = () => {
       try {
         setApiError(null);
         await Haptics.selectionAsync();
-        await mobile.config.updateScraperStatus(scraper.name, !scraper.enabled);
+        await mobile.administration.updateScraperStatus(
+          scraper.name,
+          !scraper.enabled,
+        );
         await refetchScrapers();
       } catch {
         setApiError("Mise à jour du scraper impossible, réessaie.");
@@ -102,7 +105,7 @@ const AdminScreen: React.FC = () => {
       setSavingMaintenance(true);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      await mobile.config.updateAppStatus({
+      await mobile.appStatus.updateAppStatus({
         maintenance: true,
         message: trimmedMessage,
         imageUrl: trimmedImageUrl.length ? trimmedImageUrl : null,
@@ -135,7 +138,7 @@ const AdminScreen: React.FC = () => {
       setSavingMaintenance(true);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      await mobile.config.updateAppStatus({
+      await mobile.appStatus.updateAppStatus({
         maintenance: false,
         message: undefined,
         imageUrl: undefined,
@@ -183,7 +186,7 @@ const AdminScreen: React.FC = () => {
       setSavingVersions(true);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      await mobile.config.updateAppStatus({
+      await mobile.appStatus.updateAppStatus({
         minVersionIos: trimmedIos.length ? trimmedIos : null,
         minVersionAndroid: trimmedAndroid.length ? trimmedAndroid : null,
         forceUpdateMessage: trimmedMsg.length ? trimmedMsg : null,

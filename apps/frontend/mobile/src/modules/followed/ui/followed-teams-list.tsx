@@ -11,7 +11,7 @@ import { layout, spacing } from "@/src/shared/theme";
 import EmptyState from "@/src/shared/ui/feedback/empty-state";
 import ErrorState from "@/src/shared/ui/feedback/error-state";
 import EntityListSkeleton from "@/src/shared/ui/entity/entity-list-skeleton";
-import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 
 type Props = {

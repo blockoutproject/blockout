@@ -7,19 +7,22 @@ import {
   type PoolResponse,
 } from "@/src/shared/generated/models";
 import MatchPoolSection from "@/src/modules/match/ui/match-pool-section";
-import { FormatEnum } from "@/src/shared/model/format-labels";
-import { GenderEnum } from "@/src/shared/model/gender-labels";
+import { FormatEnum } from "@/src/shared/view-models/format-labels";
+import { GenderEnum } from "@/src/shared/view-models/gender-labels";
 import { ThemeProvider } from "@/src/shared/theme";
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 
-jest.mock("@/src/modules/advertising/use-navigation-interstitial", () => ({
-  useNavigationInterstitial: () => ({
-    handleNavigationWithAd: (navigate: () => void) => navigate(),
+jest.mock(
+  "@/src/modules/advertising/hooks/use-navigation-interstitial",
+  () => ({
+    useNavigationInterstitial: () => ({
+      handleNavigationWithAd: (navigate: () => void) => navigate(),
+    }),
   }),
-}));
+);
 
 jest.mock("expo-haptics", () => ({
   selectionAsync: jest.fn().mockResolvedValue(undefined),

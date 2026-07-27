@@ -6,7 +6,7 @@ import {
   NotificationTargetTypeEnum,
   NotificationTypeEnum,
 } from "@/src/shared/generated/models";
-import { formatNotificationAge } from "@/src/modules/notifications/model/format-notification-age";
+import { formatNotificationAge } from "@/src/modules/notifications/view-models/format-notification-age";
 import NotificationItem from "@/src/modules/notifications/ui/notification-item";
 import { ThemeProvider } from "@/src/shared/theme";
 

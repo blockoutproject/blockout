@@ -1,7 +1,7 @@
 import React, { useMemo, useRef } from "react";
 import { Animated } from "react-native";
 
-import GenericTabView from "@/src/shared/ui/generic-tab-view";
+import EntityTabView from "@/src/shared/ui/entity/entity-tab-view";
 import MatchList from "@/src/modules/match/ui/match-list";
 
 import ClubInformationsTab from "./club-information-tab";
@@ -124,7 +124,7 @@ const ClubTabs: React.FC<ClubTabsProps> = ({
   );
 
   return (
-    <GenericTabView
+    <EntityTabView
       tabs={renderTabs}
       scrollYs={scrollYs}
       onTabChange={onTabChange}

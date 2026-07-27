@@ -33,11 +33,9 @@ import ErrorState from "@/src/shared/ui/feedback/error-state";
 import FadeIn from "@/src/shared/ui/animations/fade-in";
 
 import { ReportTypeEnum } from "@/src/shared/generated/models";
-import {
-  getTeamsRankingColor,
-  isLNV,
-  splitIsoDateFormatted,
-} from "@/src/shared/lib/utils";
+import { formatMatchDateTime } from "@/src/modules/match/view-models/match-date";
+import { getMatchRankingHighlights } from "@/src/modules/match/view-models/match-ranking-highlight";
+import { isLNV } from "@/src/shared/view-models/league";
 
 import ReportFormSheet from "@/src/modules/report/ui/report-form-sheet";
 import MatchLiveLinkCard from "@/src/modules/match/ui/match-live-link-card";
@@ -139,7 +137,7 @@ const MatchScreen: React.FC = () => {
     if (!match) {
       return null;
     }
-    return splitIsoDateFormatted(match.matchDate).time ?? null;
+    return formatMatchDateTime(match.matchDate).time ?? null;
   }, [match]);
 
   const highlightTeams = useMemo(() => {
@@ -147,7 +145,7 @@ const MatchScreen: React.FC = () => {
       return [];
     }
     const division = match.pool.division;
-    return getTeamsRankingColor(theme, {
+    return getMatchRankingHighlights(theme, {
       teamA: match.teamA,
       teamB: match.teamB,
       set: match.set ?? null,

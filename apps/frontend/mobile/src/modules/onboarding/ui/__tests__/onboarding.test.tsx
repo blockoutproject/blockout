@@ -2,7 +2,7 @@ import React from "react";
 import { render, userEvent } from "@testing-library/react-native";
 
 import { Onboarding } from "@/src/modules/onboarding/ui/onboarding";
-import type { OnboardingStep } from "@/src/modules/onboarding/model/steps";
+import type { OnboardingStep } from "@/src/modules/onboarding/view-models/steps";
 import { ThemeProvider } from "@/src/shared/theme";
 
 jest.mock("expo-haptics", () => ({

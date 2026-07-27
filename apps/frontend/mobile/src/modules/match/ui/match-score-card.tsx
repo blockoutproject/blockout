@@ -7,8 +7,9 @@ import {
   spacing,
   typography,
   useAppTheme,
+  withAlpha,
 } from "@/src/shared/theme";
-import { splitIsoDateFormatted, withAlpha } from "@/src/shared/lib/utils";
+import { formatMatchDateTime } from "@/src/modules/match/view-models/match-date";
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import {
   type MatchResponse,
@@ -18,7 +19,7 @@ import {
 import { GradientPill, Pill, type PillProps } from "@/src/shared/ui/pill";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { useRouter } from "expo-router";
-import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 
 export interface MatchScoreCardProps {
   match: MatchResponse;
@@ -29,7 +30,7 @@ const LOGO_SIZE = 84;
 const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ match, gradient }) => {
   const theme = useAppTheme();
   const router = useRouter();
-  const { date, time } = splitIsoDateFormatted(match.matchDate);
+  const { date, time } = formatMatchDateTime(match.matchDate);
   const { handleNavigationWithAd } = useNavigationInterstitial();
 
   const hasLiveLink = !!match.liveUrl;

@@ -12,7 +12,7 @@ import EmptyState from "@/src/shared/ui/feedback/empty-state";
 
 import TeamCard from "@/src/modules/team/ui/team-list-card";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
-import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 
 type Props = {
   teams: TeamSummaryResponse[];

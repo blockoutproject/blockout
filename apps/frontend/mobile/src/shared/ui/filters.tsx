@@ -8,7 +8,7 @@ import {
   ViewStyle,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { Filter } from "@/src/shared/model/filter";
+import { Filter } from "@/src/shared/view-models/filter";
 import { useAppTheme } from "@/src/shared/theme";
 import { GradientPill } from "@/src/shared/ui/pill";
 

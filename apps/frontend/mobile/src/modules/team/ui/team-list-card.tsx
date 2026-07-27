@@ -1,12 +1,14 @@
 import React from "react";
-import { radius, spacing, useAppTheme } from "@/src/shared/theme";
+import { radius, spacing, useAppTheme, withAlpha } from "@/src/shared/theme";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
-import { GenderEnum, GenderLabels } from "@/src/shared/model/gender-labels";
-import { FormatLabels } from "@/src/shared/model/format-labels";
-import { withAlpha } from "@/src/shared/lib/utils";
+import {
+  GenderEnum,
+  GenderLabels,
+} from "@/src/shared/view-models/gender-labels";
+import { FormatLabels } from "@/src/shared/view-models/format-labels";
 import EntityGradientCard, {
   EntityCardChip,
-} from "@/src/shared/ui/entity-gradient-card";
+} from "@/src/shared/ui/entity/entity-gradient-card";
 
 export type TeamListCardProps = {
   team: TeamSummaryResponse;

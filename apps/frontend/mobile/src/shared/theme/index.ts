@@ -1,5 +1,6 @@
 export { ThemeProvider, useAppTheme } from "@/src/shared/theme/theme-provider";
 export { darkTheme, type AppTheme } from "@/src/shared/theme/themes";
+export { withAlpha } from "@/src/shared/theme/with-alpha";
 export {
   borderWidth,
   colors,

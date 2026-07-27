@@ -8,7 +8,7 @@ export const useLegalDocument = (type: LegalDocumentType) => {
 
   return useQuery<LegalDocumentResponse, Error>({
     queryKey: ["legal-doc", type],
-    queryFn: () => mobile.config.getLegalDocument(type),
+    queryFn: () => mobile.legal.getLegalDocument(type),
     enabled: !!type,
     staleTime: 60 * 60 * 1000,
   });
