@@ -21,7 +21,7 @@ import { ReportTypeEnum } from "@/src/shared/generated/models";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 import { useTeamListByClubId } from "@/src/modules/team/hooks/use-team-list-by-club-id";
 import EntityListSkeleton from "@/src/shared/ui/entity/entity-list-skeleton";
-import { SelectOption } from "@/src/shared/ui/form/select-sheet";
+import type { SelectOption } from "@/src/shared/ui/form/select-sheet";
 import SeasonSelect from "@/src/shared/ui/form/season-select";
 import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 
@@ -93,7 +93,7 @@ const TeamListScreen: React.FC = () => {
     }
   }, [data, selectedSeason]);
 
-  const seasonOptions: SelectOption[] = useMemo(
+  const seasonOptions: SelectOption<string>[] = useMemo(
     () => availableSeasons.map((s) => ({ value: s, label: s })),
     [availableSeasons],
   );
@@ -165,10 +165,6 @@ const TeamListScreen: React.FC = () => {
     hasData,
   ]);
 
-  const handleSelectSeason = useCallback((opt: SelectOption) => {
-    setSelectedSeason(String(opt.value));
-  }, []);
-
   return (
     <View
       style={[styles.container, { backgroundColor: theme.background }]}
@@ -182,8 +178,8 @@ const TeamListScreen: React.FC = () => {
             <SeasonSelect
               options={seasonOptions}
               selectedValue={selectedSeason}
-              onSelect={handleSelectSeason}
-              testIDButton="team-list-season-button"
+              onValueChange={setSelectedSeason}
+              testID="team-list-season-button"
             />
           ) : null
         }

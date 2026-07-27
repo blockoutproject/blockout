@@ -5,31 +5,24 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { layout, useAppTheme } from "@/src/shared/theme";
-
+import {
+  borderWidth,
+  iconSize,
+  layout,
+  radius,
+  spacing,
+  stateOpacity,
+  touchTarget,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import BottomSheetCustomPage from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-page";
 
-export type SelectOption = {
-  /** Valeur renvoyée au choix. */
-  value: string | number;
-  /** Libellé affiché. */
-  label: string;
-};
+export type SelectValue = string | number;
 
-export type SelectSheetProps = {
-  /** Titre en haut de la feuille. */
-  title: string;
-  /** Options proposées. */
-  options: SelectOption[];
-  /** Valeur actuellement sélectionnée. */
-  selectedValue?: string | number | "";
-  /** Callback lors de la sélection. */
-  onSelect: (option: SelectOption) => void;
-  /** Active le bouton de réinitialisation. */
-  clearable?: boolean;
-  /** Libellé du bouton de réinitialisation. */
-  clearLabel?: string;
-  ref?: React.Ref<SelectSheetRef>;
+export type SelectOption<Value extends SelectValue = SelectValue> = {
+  value: Value;
+  label: string;
 };
 
 export type SelectSheetRef = {
@@ -37,15 +30,28 @@ export type SelectSheetRef = {
   dismiss: () => void;
 };
 
-const SelectSheet: React.FC<SelectSheetProps> = ({
+export type SelectSheetProps<Value extends SelectValue> = {
+  title: string;
+  options: readonly SelectOption<Value>[];
+  selectedValue?: Value | null;
+  onSelect: (option: SelectOption<Value>) => void;
+  onClear?: () => void;
+  clearLabel?: string;
+  ref?: React.Ref<SelectSheetRef>;
+};
+
+/**
+ * Presents a sorted, value-typed option list inside the canonical bottom sheet.
+ */
+export default function SelectSheet<Value extends SelectValue>({
   title,
   options,
   selectedValue,
   onSelect,
-  clearable = true,
+  onClear,
   clearLabel = "Réinitialiser",
   ref,
-}) => {
+}: SelectSheetProps<Value>) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheetModal>(null);
@@ -63,19 +69,19 @@ const SelectSheet: React.FC<SelectSheetProps> = ({
     [options],
   );
 
-  const handleSelect = async (opt: SelectOption) => {
-    await Haptics.selectionAsync();
-    onSelect(opt);
+  const handleSelect = async (option: SelectOption<Value>) => {
+    await Haptics.selectionAsync().catch(() => undefined);
+    onSelect(option);
     sheetRef.current?.dismiss();
   };
 
-  const handleClear = () => {
-    Haptics.selectionAsync();
-    onSelect({ value: "", label: "" });
+  const handleClear = async () => {
+    await Haptics.selectionAsync().catch(() => undefined);
+    onClear?.();
     sheetRef.current?.dismiss();
   };
 
-  const renderItem = ({ item }: { item: SelectOption }) => {
+  const renderItem = ({ item }: { item: SelectOption<Value> }) => {
     const isSelected = item.value === selectedValue;
 
     return (
@@ -87,12 +93,10 @@ const SelectSheet: React.FC<SelectSheetProps> = ({
         style={({ pressed }) => [
           styles.row,
           {
-            borderColor: isSelected ? theme.textInactive : theme.border,
-            backgroundColor: pressed
-              ? theme.backgroundSecondary
-              : isSelected
-                ? theme.backgroundSecondary
-                : theme.surface,
+            borderColor: isSelected ? theme.borderSecondary : theme.border,
+            backgroundColor:
+              pressed || isSelected ? theme.backgroundSecondary : theme.surface,
+            opacity: pressed ? stateOpacity.pressed : 1,
           },
         ]}
       >
@@ -100,16 +104,14 @@ const SelectSheet: React.FC<SelectSheetProps> = ({
           numberOfLines={1}
           style={[
             styles.rowLabel,
-            {
-              color: theme.text,
-              fontWeight: (isSelected ? "800" : "600") as "800" | "600",
-            },
+            isSelected ? styles.selectedLabel : undefined,
+            { color: theme.text },
           ]}
         >
           {item.label}
         </Text>
         {isSelected ? (
-          <MaterialIcons name="check" size={18} color={theme.text} />
+          <MaterialIcons name="check" size={iconSize.md} color={theme.text} />
         ) : null}
       </Pressable>
     );
@@ -118,22 +120,24 @@ const SelectSheet: React.FC<SelectSheetProps> = ({
   return (
     <BottomSheetCustomPage ref={sheetRef}>
       <View>
-        <View style={[styles.header]}>
+        <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
             {title}
           </Text>
 
-          {clearable ? (
+          {onClear ? (
             <Pressable
               onPress={handleClear}
               accessibilityRole="button"
               accessibilityLabel={clearLabel}
-              hitSlop={8}
-              style={styles.clearBtn}
+              style={({ pressed }) => [
+                styles.clearAction,
+                { opacity: pressed ? stateOpacity.pressed : 1 },
+              ]}
             >
               <MaterialIcons
                 name="close"
-                size={16}
+                size={iconSize.sm}
                 color={theme.textInactive}
               />
               <Text
@@ -150,11 +154,11 @@ const SelectSheet: React.FC<SelectSheetProps> = ({
 
         <BottomSheetFlatList
           data={data}
-          keyExtractor={(it: SelectOption) => String(it.value)}
+          keyExtractor={(item: SelectOption<Value>) => String(item.value)}
           renderItem={renderItem}
           contentContainerStyle={{
             paddingBottom: insets.bottom + layout.tabs,
-            paddingHorizontal: 8,
+            paddingHorizontal: spacing[2],
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -162,52 +166,53 @@ const SelectSheet: React.FC<SelectSheetProps> = ({
       </View>
     </BottomSheetCustomPage>
   );
-};
-
-export default SelectSheet;
+}
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    minHeight: touchTarget.minimum,
+    paddingHorizontal: spacing[3],
+    borderBottomWidth: borderWidth.thin,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
+    gap: spacing[2],
   },
   title: {
-    fontSize: 14,
-    fontWeight: "800",
+    ...typography.compactStrong,
     textTransform: "uppercase",
     letterSpacing: 0.3,
     flexShrink: 1,
   },
-  clearBtn: {
+  clearAction: {
+    minHeight: touchTarget.minimum,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    padding: 6,
+    gap: spacing[1],
+    paddingHorizontal: spacing[2],
   },
   clearText: {
-    fontSize: 12,
-    fontWeight: "700",
+    ...typography.metadataStrong,
   },
   clearSpacer: {
-    width: 1,
+    width: spacing[1],
   },
   row: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    minHeight: touchTarget.minimum,
+    paddingHorizontal: spacing[3],
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginVertical: 4,
+    borderRadius: radius.md,
+    borderCurve: "continuous",
+    borderWidth: borderWidth.thin,
+    marginVertical: spacing[1],
   },
   rowLabel: {
-    fontSize: 14,
+    ...typography.body,
     flexShrink: 1,
+  },
+  selectedLabel: {
+    ...typography.compactStrong,
   },
 });

@@ -1,11 +1,12 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { layout, useAppTheme } from "@/src/shared/theme";
+import { iconSize, layout, spacing, useAppTheme } from "@/src/shared/theme";
 
 import { useBackOrClose } from "@/src/shared/hooks/use-back-or-close";
+import { IconAction } from "@/src/shared/ui/icon-action";
 
 export type TeamListHeaderProps = {
   title: string;
@@ -26,13 +27,16 @@ const TeamListHeader: React.FC<TeamListHeaderProps> = ({
     <View style={{ paddingTop: insets.top }}>
       <View style={styles.header}>
         <View style={styles.leftGroup}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <IconAction
+            onPress={handleBack}
+            accessibilityLabel={canGoBack ? "Revenir en arrière" : "Fermer"}
+          >
             <Ionicons
               name={canGoBack ? "chevron-back-outline" : "close"}
-              size={25}
+              size={iconSize.lg}
               color={theme.text}
             />
-          </TouchableOpacity>
+          </IconAction>
 
           <Text
             style={[styles.title, { color: theme.text }]}
@@ -48,18 +52,16 @@ const TeamListHeader: React.FC<TeamListHeaderProps> = ({
         <View style={styles.rightGroup}>
           {rightAddon}
 
-          <TouchableOpacity
+          <IconAction
             onPress={onOpenReport}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={styles.iconBtn}
-            activeOpacity={0.7}
+            accessibilityLabel="Signaler un problème"
           >
             <MaterialCommunityIcons
               name="flag-outline"
-              size={28}
+              size={iconSize.navigation}
               color={theme.text}
             />
-          </TouchableOpacity>
+          </IconAction>
         </View>
       </View>
     </View>
@@ -80,9 +82,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-  },
-  backButton: {
-    marginRight: 4,
+    gap: spacing[1],
   },
   title: {
     fontSize: 16,
@@ -93,8 +93,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-  },
-  iconBtn: {
-    padding: 4,
   },
 });

@@ -6,7 +6,7 @@ import { Filter } from "@/src/shared/view-models/filter";
 import FollowedTeamsList from "@/src/modules/followed/ui/followed-teams-list";
 import FollowedPoolsList from "@/src/modules/followed/ui/followed-pools-list";
 import FollowedListHeader from "@/src/modules/followed/ui/followed-list-header";
-import { SelectOption } from "@/src/shared/ui/form/select-sheet";
+import type { SelectOption } from "@/src/shared/ui/form/select-sheet";
 import SeasonSelect from "@/src/shared/ui/form/season-select";
 
 export type FollowedScreenListProps = {
@@ -42,7 +42,7 @@ const FollowedScreen: React.FC<FollowedScreenListProps> = ({
     string | undefined
   >(undefined);
 
-  const currentSeasonOptions: SelectOption[] = useMemo(() => {
+  const currentSeasonOptions: SelectOption<string>[] = useMemo(() => {
     const seasons = activeFilter === "Équipes" ? teamSeasons : poolSeasons;
     return seasons.map((s) => ({ value: s, label: s }));
   }, [activeFilter, teamSeasons, poolSeasons]);
@@ -50,18 +50,17 @@ const FollowedScreen: React.FC<FollowedScreenListProps> = ({
   const currentSelectedSeason = useMemo(
     () =>
       activeFilter === "Équipes"
-        ? (selectedTeamSeason ?? "")
-        : (selectedPoolSeason ?? ""),
+        ? (selectedTeamSeason ?? null)
+        : (selectedPoolSeason ?? null),
     [activeFilter, selectedTeamSeason, selectedPoolSeason],
   );
 
   const handleSelectSeason = useCallback(
-    (opt: SelectOption) => {
-      if (typeof opt.value !== "string" || !opt.value) return;
+    (value: string | null) => {
       if (activeFilter === "Équipes") {
-        setSelectedTeamSeason(opt.value);
+        setSelectedTeamSeason(value ?? undefined);
       } else {
-        setSelectedPoolSeason(opt.value);
+        setSelectedPoolSeason(value ?? undefined);
       }
     },
     [activeFilter],
@@ -94,8 +93,8 @@ const FollowedScreen: React.FC<FollowedScreenListProps> = ({
           <SeasonSelect
             options={currentSeasonOptions}
             selectedValue={currentSelectedSeason}
-            onSelect={handleSelectSeason}
-            testIDButton="followed-season-button"
+            onValueChange={handleSelectSeason}
+            testID="followed-season-button"
           />
         }
       />

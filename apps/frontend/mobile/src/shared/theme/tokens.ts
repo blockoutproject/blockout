@@ -118,6 +118,12 @@ export const touchTarget = {
   minimum: 44,
 } as const;
 
+export const stateOpacity = {
+  disabled: 0.45,
+  loading: 0.75,
+  pressed: 0.9,
+} as const;
+
 export const layout = {
   bottomNavigation: 64,
   followedHeader: 54,

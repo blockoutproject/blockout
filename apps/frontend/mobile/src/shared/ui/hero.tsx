@@ -3,16 +3,16 @@ import {
   StyleSheet,
   StyleSheet as RNStyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { Image } from "expo-image";
 import type { ImageSource } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { radius, useAppTheme, withAlpha } from "@/src/shared/theme";
+import { iconSize, spacing, useAppTheme, withAlpha } from "@/src/shared/theme";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { Pill } from "@/src/shared/ui/pill";
+import { IconAction } from "@/src/shared/ui/icon-action";
 
 export type HeroProps = {
   title: string;
@@ -122,25 +122,20 @@ const Hero: React.FC<HeroProps> = ({
       ) : null}
 
       {onEdit ? (
-        <TouchableOpacity
-          onPress={onEdit}
-          activeOpacity={0.85}
-          style={[
-            styles.fab,
-            {
-              backgroundColor: withAlpha(theme.surface, 0.85),
-              borderColor: withAlpha(theme.text, 0.12),
-            },
-          ]}
-          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-          testID={editTestID}
-        >
-          <MaterialCommunityIcons
-            name="pencil-outline"
-            size={22}
-            color={theme.text}
-          />
-        </TouchableOpacity>
+        <View style={styles.fab}>
+          <IconAction
+            onPress={onEdit}
+            accessibilityLabel={`Modifier ${title}`}
+            treatment="surface"
+            testID={editTestID}
+          >
+            <MaterialCommunityIcons
+              name="pencil-outline"
+              size={iconSize.lg}
+              color={theme.text}
+            />
+          </IconAction>
+        </View>
       ) : null}
 
       <View
@@ -232,19 +227,8 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: "absolute",
-    top: 10,
-    right: 10,
-    width: 34,
-    height: 34,
-    borderRadius: radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    top: spacing[3],
+    right: spacing[3],
     zIndex: 5,
   },
 });

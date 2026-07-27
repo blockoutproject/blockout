@@ -12,6 +12,7 @@ export {
   product,
   radius,
   spacing,
+  stateOpacity,
   touchTarget,
   typography,
 } from "@/src/shared/theme/tokens";

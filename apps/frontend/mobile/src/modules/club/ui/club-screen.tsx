@@ -26,7 +26,7 @@ import { ReportTypeEnum } from "@/src/shared/generated/models";
 import ClubHero from "@/src/modules/club/ui/club-hero";
 import ClubTabs from "@/src/modules/club/ui/club-tabs";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
-import { SelectOption } from "@/src/shared/ui/form/select-sheet";
+import type { SelectOption } from "@/src/shared/ui/form/select-sheet";
 
 const ClubScreen: React.FC = () => {
   const theme = useAppTheme();
@@ -79,7 +79,7 @@ const ClubScreen: React.FC = () => {
     );
   }, [teams]);
 
-  const seasonOptions: SelectOption[] = useMemo(
+  const seasonOptions: SelectOption<string>[] = useMemo(
     () => availableSeasons.map((s) => ({ value: s, label: s })),
     [availableSeasons],
   );
@@ -132,10 +132,7 @@ const ClubScreen: React.FC = () => {
           showSeasonSelect={showSeasonInHero}
           seasonOptions={seasonOptions}
           selectedSeason={selectedSeason}
-          onSelectSeason={(opt) => {
-            if (typeof opt.value !== "string" || !opt.value) return;
-            setSelectedSeason(opt.value);
-          }}
+          onSelectSeason={(value) => setSelectedSeason(value ?? undefined)}
           isSeasonLoading={isTeamsLoading}
           isSeasonError={isTeamsError}
         />

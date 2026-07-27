@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { layout, useAppTheme } from "@/src/shared/theme";
+import { iconSize, layout, useAppTheme } from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -12,6 +12,7 @@ import RawDivisionMappingScreen from "@/src/modules/raw-division-mapping/ui/raw-
 import DivisionScreen from "@/src/modules/division/ui/division-screen";
 import AdminScreen from "@/src/modules/administration/ui/admin-screen";
 import { useSessionState } from "@/src/modules/session/providers/session-context";
+import { IconAction } from "@/src/shared/ui/icon-action";
 
 export type UserHeaderProps = {
   title: string;
@@ -74,81 +75,71 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({ title, onOpenReport }) => {
             {!!hasAnyAdmin && (
               <>
                 {!!canAccessRawDivisionMappings && (
-                  <TouchableOpacity
+                  <IconAction
                     onPress={openSheet(mappingSheetRef)}
-                    hitSlop={HIT_SLOP}
-                    accessibilityRole="button"
                     accessibilityLabel="Gérer les correspondances de divisions"
                     testID="profile-division-mappings-action"
                   >
                     <MaterialCommunityIcons
                       name="alpha-m-circle"
-                      size={28}
+                      size={iconSize.navigation}
                       color={theme.text}
                     />
-                  </TouchableOpacity>
+                  </IconAction>
                 )}
                 {!!canAccessDivisions && (
-                  <TouchableOpacity
+                  <IconAction
                     onPress={openSheet(divisionSheetRef)}
-                    hitSlop={HIT_SLOP}
-                    accessibilityRole="button"
                     accessibilityLabel="Gérer les divisions"
                     testID="profile-divisions-action"
                   >
                     <MaterialCommunityIcons
                       name="alpha-d-circle"
-                      size={28}
+                      size={iconSize.navigation}
                       color={theme.text}
                     />
-                  </TouchableOpacity>
+                  </IconAction>
                 )}
                 {!!canAccessLiveLinkModeration && (
-                  <TouchableOpacity
+                  <IconAction
                     onPress={openSheet(liveLinkModerationSheetRef)}
-                    hitSlop={HIT_SLOP}
-                    accessibilityRole="button"
                     accessibilityLabel="Modérer les liens de direct"
                     testID="profile-live-link-moderation-action"
                   >
                     <MaterialCommunityIcons
                       name="video-check-outline"
-                      size={28}
+                      size={iconSize.navigation}
                       color={theme.text}
                     />
-                  </TouchableOpacity>
+                  </IconAction>
                 )}
                 {!!canAdminManagement && (
-                  <TouchableOpacity
+                  <IconAction
                     onPress={openSheet(scraperSheetRef)}
-                    hitSlop={HIT_SLOP}
-                    accessibilityRole="button"
                     accessibilityLabel="Gérer l’application"
                     testID="profile-admin-action"
                   >
                     <MaterialCommunityIcons
                       name="power-standby"
-                      size={28}
+                      size={iconSize.navigation}
                       color={isMaintenance ? theme.error : theme.text}
                     />
-                  </TouchableOpacity>
+                  </IconAction>
                 )}
               </>
             )}
 
-            <TouchableOpacity
+            <IconAction
               onPress={onOpenReport}
-              hitSlop={HIT_SLOP}
-              accessibilityRole="button"
               accessibilityLabel="Signaler un problème"
               testID="profile-report-action"
             >
               <MaterialCommunityIcons
                 name="flag-outline"
-                size={28}
+                size={iconSize.navigation}
                 color={theme.text}
               />
-            </TouchableOpacity>
+            </IconAction>
           </View>
         </View>
       </View>
@@ -172,8 +163,6 @@ const ProfileHeader: React.FC<UserHeaderProps> = ({ title, onOpenReport }) => {
   );
 };
 
-const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
-
 const styles = StyleSheet.create({
   header: {
     height: layout.header,
@@ -191,7 +180,6 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
   },
 });
 

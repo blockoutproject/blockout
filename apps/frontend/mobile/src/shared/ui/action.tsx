@@ -24,6 +24,7 @@ import {
   gradients,
   radius,
   spacing,
+  stateOpacity,
   typography,
   useAppTheme,
 } from "@/src/shared/theme";
@@ -77,7 +78,11 @@ export function Action({
       : variant === "destructiveOutline"
         ? theme.error
         : theme.text);
-  const stateOpacity = disabled ? 0.45 : loading ? 0.75 : 1;
+  const opacity = disabled
+    ? stateOpacity.disabled
+    : loading
+      ? stateOpacity.loading
+      : 1;
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -126,7 +131,7 @@ export function Action({
         fullWidth ? styles.fullWidth : undefined,
         animatedStyle,
         style,
-        { opacity: stateOpacity },
+        { opacity },
       ]}
       disabled={isDisabled}
       accessibilityRole="button"

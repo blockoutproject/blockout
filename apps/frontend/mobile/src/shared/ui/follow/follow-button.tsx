@@ -1,77 +1,46 @@
 import React from "react";
-import {
-  GestureResponderEvent,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-} from "react-native";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
-import { radius, useAppTheme } from "@/src/shared/theme";
-import GradientBorderView from "../gradient-border-view";
 
-type Props = {
+import { borderWidth, colors, useAppTheme } from "@/src/shared/theme";
+import { GradientPill } from "@/src/shared/ui/pill";
+
+export type FollowButtonProps = {
   isFollowing: boolean;
-  onPress: (event: GestureResponderEvent) => void;
+  onPress: () => void;
   disabled?: boolean;
   gradient: readonly [string, string, ...string[]];
 };
 
-const FollowButton: React.FC<Props> = ({
+/**
+ * Composes follow state through the canonical interactive gradient pill.
+ */
+export default function FollowButton({
   isFollowing,
   onPress,
   disabled,
   gradient,
-}) => {
+}: FollowButtonProps) {
   const theme = useAppTheme();
 
-  const handlePress = (e: GestureResponderEvent) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onPress(e);
+  const handlePress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
+      () => undefined,
+    );
+    onPress();
   };
 
-  const buttonContent = (
-    <TouchableOpacity
+  return (
+    <GradientPill
+      accessibilityLabel={isFollowing ? "Ne plus suivre" : "Suivre"}
+      label={isFollowing ? "Suivie" : "Suivre"}
+      size="lg"
+      treatment={isFollowing ? "border" : "filled"}
+      gradient={gradient}
+      borderWidth={borderWidth.medium}
+      backgroundColor={isFollowing ? theme.background : undefined}
+      textColor={isFollowing ? theme.text : colors.text.primary}
       onPress={handlePress}
       disabled={disabled}
-      activeOpacity={0.9}
-    >
-      <Text
-        style={[styles.text, { color: isFollowing ? theme.text : "white" }]}
-      >
-        {isFollowing ? "Suivie" : "Suivre"}
-      </Text>
-    </TouchableOpacity>
+    />
   );
-
-  return isFollowing ? (
-    <GradientBorderView
-      gradient={gradient}
-      borderRadius={radius.full}
-      borderWidth={2}
-      style={{ backgroundColor: theme.background }}
-    >
-      {buttonContent}
-    </GradientBorderView>
-  ) : (
-    <LinearGradient colors={gradient} style={styles.gradientFilled}>
-      {buttonContent}
-    </LinearGradient>
-  );
-};
-
-const styles = StyleSheet.create({
-  text: {
-    paddingVertical: 4,
-    paddingHorizontal: 14,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  gradientFilled: {
-    borderRadius: radius.full,
-    paddingVertical: 2,
-    paddingHorizontal: 1,
-  },
-});
-
-export default FollowButton;
+}
