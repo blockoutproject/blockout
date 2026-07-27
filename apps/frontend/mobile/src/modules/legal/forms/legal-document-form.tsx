@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
@@ -11,26 +11,18 @@ import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 
 import FormCard from "@/src/shared/ui/form/form-card";
 import { FormField } from "@/src/shared/ui/form/form-field";
+import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
 import SheetTextInput from "@/src/shared/ui/form/sheet-text-input";
 import { useApis } from "@/src/shared/providers/api-provider";
-
-export type LegalDocumentFormState = {
-  loading: boolean;
-  canSubmit: boolean;
-};
 
 export type LegalDocumentFormProps = {
   document: LegalDocumentResponse;
   onSuccess: () => void;
-  onRegisterSubmit: (submit: () => void) => void;
-  onStateChange?: (state: LegalDocumentFormState) => void;
 };
 
 const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
   document,
   onSuccess,
-  onRegisterSubmit,
-  onStateChange,
 }) => {
   const theme = useAppTheme();
   const { mobile } = useApis();
@@ -68,18 +60,12 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
     },
   });
 
-  useEffect(() => {
-    onRegisterSubmit(formik.submitForm);
-  }, [formik.submitForm, onRegisterSubmit]);
-
-  const canSubmit = useMemo(
-    () => formik.isValid && !loading,
-    [formik.isValid, loading],
-  );
-
-  useEffect(() => {
-    onStateChange?.({ loading, canSubmit });
-  }, [loading, canSubmit, onStateChange]);
+  const canSubmit = formik.isValid && !loading;
+  useFormSheetBinding({
+    submit: formik.submitForm,
+    loading,
+    canSubmit,
+  });
 
   return (
     <>

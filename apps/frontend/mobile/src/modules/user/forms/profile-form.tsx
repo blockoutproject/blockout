@@ -1,91 +1,42 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet } from "react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
-import { Image } from "expo-image";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { radius, useAppTheme } from "@/src/shared/theme";
+import { spacing, useAppTheme } from "@/src/shared/theme";
 
 import { UserResponse, UpdateUserRequest } from "@/src/shared/generated/models";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 
 import FormCard from "@/src/shared/ui/form/form-card";
 import { FormField } from "@/src/shared/ui/form/form-field";
+import {
+  FormImageField,
+  type FormImageValue,
+} from "@/src/shared/ui/form/form-image-field";
+import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
 import SheetTextInput from "@/src/shared/ui/form/sheet-text-input";
 import { useApis } from "@/src/shared/providers/api-provider";
 import { ApiError } from "@/src/shared/api/api-error";
-import { ImageUpload } from "@/src/shared/api/image-upload";
-
-export type ProfileFormState = {
-  loading: boolean;
-  canSubmit: boolean;
-};
 
 export type UserFormProps = {
   user: UserResponse;
   onSuccess: (updated: UserResponse) => void;
-  onRegisterSubmit: (submit: () => void) => void;
-  onStateChange?: (state: ProfileFormState) => void;
 };
 
-const ProfileForm: React.FC<UserFormProps> = ({
-  user,
-  onSuccess,
-  onRegisterSubmit,
-  onStateChange,
-}) => {
+const ProfileForm: React.FC<UserFormProps> = ({ user, onSuccess }) => {
   const theme = useAppTheme();
   const { mobile } = useApis();
 
-  const [imageFile, setImageFile] = useState<ImageUpload | null>(null);
-  const [previewUri, setPreviewUri] = useState<string | null>(null);
-  const [removedAvatar, setRemovedAvatar] = useState(false);
+  const [avatar, setAvatar] = useState<FormImageValue>({
+    uri: user.pictureUrl ?? null,
+    upload: null,
+    removed: false,
+  });
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-
-  const handlePickImage = async () => {
-    try {
-      await Haptics.selectionAsync();
-      const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-      });
-      if (pickerResult.canceled) return;
-
-      const asset = pickerResult.assets[0];
-      if (!asset?.uri) return;
-
-      const manipContext = ImageManipulator.ImageManipulator.manipulate(
-        asset.uri,
-      );
-      manipContext.resize({ width: 512 });
-      const rendered = await manipContext.renderAsync();
-      const saved = await rendered.saveAsync({
-        format: ImageManipulator.SaveFormat.PNG,
-        compress: 1,
-      });
-
-      setPreviewUri(saved.uri);
-      setImageFile({ uri: saved.uri, name: "avatar.png", type: "image/png" });
-      setRemovedAvatar(false);
-    } catch {
-      Alert.alert("Erreur", "Impossible de traiter l’image.");
-    }
-  };
-
-  const handleRemoveImage = async () => {
-    await Haptics.selectionAsync();
-    setPreviewUri(null);
-    setImageFile(null);
-    setRemovedAvatar(true);
-  };
 
   const formik = useFormik({
     initialValues: { pseudo: user.pseudo ?? "" },
@@ -106,16 +57,16 @@ const ProfileForm: React.FC<UserFormProps> = ({
         const trimmed = values.pseudo.trim();
         if (trimmed && trimmed !== user.pseudo) request.pseudo = trimmed;
 
-        if (removedAvatar) {
+        if (avatar.removed) {
           request.pictureUrl = null;
-        } else if (!imageFile && user.pictureUrl) {
+        } else if (!avatar.upload && user.pictureUrl) {
           request.pictureUrl = user.pictureUrl;
         }
 
         const updated = await mobile.users.updateUser(
           user.auth0Id,
           request,
-          imageFile ?? undefined,
+          avatar.upload ?? undefined,
         );
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
@@ -146,22 +97,12 @@ const ProfileForm: React.FC<UserFormProps> = ({
     },
   });
 
-  useEffect(() => {
-    onRegisterSubmit(formik.submitForm);
-  }, [formik.submitForm, onRegisterSubmit]);
-
-  const canSubmit = useMemo(
-    () => formik.isValid && !loading,
-    [formik.isValid, loading],
-  );
-
-  useEffect(() => {
-    onStateChange?.({ loading, canSubmit });
-  }, [loading, canSubmit, onStateChange]);
-
-  const avatarUri = removedAvatar
-    ? null
-    : (previewUri ?? user.pictureUrl ?? null);
+  const canSubmit = formik.isValid && !loading;
+  useFormSheetBinding({
+    submit: formik.submitForm,
+    loading,
+    canSubmit,
+  });
 
   return (
     <>
@@ -172,81 +113,20 @@ const ProfileForm: React.FC<UserFormProps> = ({
         keyboardShouldPersistTaps="always"
         testID="profile-form"
       >
-        <FormCard title="Photo de profil">
-          <TouchableOpacity
-            onPress={handlePickImage}
-            activeOpacity={0.85}
-            style={[styles.logoWrap, { borderColor: theme.border }]}
-            accessibilityRole="button"
-            accessibilityLabel="Choisir une photo de profil"
-            testID="profile-photo-action"
-          >
-            <View style={styles.logoMask}>
-              {avatarUri ? (
-                <Image
-                  source={{ uri: avatarUri }}
-                  style={styles.logo}
-                  contentFit="cover"
-                />
-              ) : (
-                <View style={styles.logoPlaceholder}>
-                  <MaterialCommunityIcons
-                    name="camera-plus-outline"
-                    size={28}
-                    color={theme.textInactive}
-                  />
-                  <Text
-                    style={[styles.logoHint, { color: theme.textInactive }]}
-                  >
-                    Ajouter une photo
-                  </Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.buttonsRow}>
-            <TouchableOpacity
-              onPress={handlePickImage}
-              style={[
-                styles.logoBtn,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Changer la photo"
-            >
-              <MaterialCommunityIcons
-                name="pencil-outline"
-                size={16}
-                color={theme.text}
-              />
-              <Text style={[styles.logoBtnText, { color: theme.text }]}>
-                Changer la photo
-              </Text>
-            </TouchableOpacity>
-
-            {!!avatarUri && (
-              <TouchableOpacity
-                onPress={handleRemoveImage}
-                style={[
-                  styles.removeBtn,
-                  { backgroundColor: theme.backgroundSecondary },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Supprimer la photo"
-              >
-                <MaterialCommunityIcons
-                  name="trash-can-outline"
-                  size={16}
-                  color={theme.error}
-                />
-                <Text style={[styles.removeBtnText, { color: theme.error }]}>
-                  Supprimer
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </FormCard>
+        <FormImageField
+          title="Photo de profil"
+          value={avatar}
+          fileName="avatar.png"
+          placeholder="Ajouter une photo"
+          pickAccessibilityLabel="Choisir une photo de profil"
+          changeLabel="Changer la photo"
+          removeLabel="Supprimer la photo"
+          contentFit="cover"
+          onChange={setAvatar}
+          pickActionTestID="profile-photo-action"
+          changeActionTestID="profile-photo-change-action"
+          removeActionTestID="profile-photo-remove-action"
+        />
 
         <FormCard>
           <FormField
@@ -279,50 +159,9 @@ const ProfileForm: React.FC<UserFormProps> = ({
 export default ProfileForm;
 
 const styles = StyleSheet.create({
-  fieldContainer: { padding: 8, paddingBottom: 100, gap: 12 },
-  logoWrap: {
-    borderWidth: 1.5,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  logoMask: {
-    width: 110,
-    aspectRatio: 1,
-    borderRadius: 18,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 16,
-  },
-  logo: { width: "100%", height: "100%" },
-  logoPlaceholder: { alignItems: "center", gap: 6 },
-  logoHint: { fontSize: 12, fontWeight: "600" },
-  buttonsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  logoBtn: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-  },
-  logoBtnText: { fontSize: 12, fontWeight: "700" },
-  removeBtn: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-  },
-  removeBtnText: {
-    fontSize: 12,
-    fontWeight: "700",
+  fieldContainer: {
+    gap: spacing[3],
+    padding: spacing[2],
+    paddingBottom: spacing[16] + spacing[10],
   },
 });

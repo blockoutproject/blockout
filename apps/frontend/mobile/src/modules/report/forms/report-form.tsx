@@ -6,7 +6,7 @@ import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useFormik } from "formik";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -31,13 +31,9 @@ import Filters from "@/src/shared/ui/filters";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import { FormField } from "@/src/shared/ui/form/form-field";
 import FormCard from "@/src/shared/ui/form/form-card";
+import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
 import SheetTextInput from "@/src/shared/ui/form/sheet-text-input";
 import { CURRENT_APP_VERSION } from "@/src/modules/app-status/model/app-version";
-
-export type ReportFormState = {
-  loading: boolean;
-  canSubmit: boolean;
-};
 
 export type ReportContext = {
   screen?: string;
@@ -48,8 +44,6 @@ export type ReportContext = {
 export type ReportFormProps = {
   context?: ReportContext;
   onSuccess: (created: ReportResponse) => void;
-  onRegisterSubmit: (submit: () => void) => void;
-  onStateChange?: (state: ReportFormState) => void;
 };
 
 type FormValues = {
@@ -66,12 +60,7 @@ const CATEGORY_OPTIONS = [
   { name: "Autre", value: ReportTypeEnum.OTHER },
 ] as const;
 
-const ReportForm = ({
-  context,
-  onSuccess,
-  onRegisterSubmit,
-  onStateChange,
-}: ReportFormProps) => {
+const ReportForm = ({ context, onSuccess }: ReportFormProps) => {
   const theme = useAppTheme();
   const { mobile } = useApis();
   const { customUser } = useSessionState();
@@ -181,10 +170,6 @@ const ReportForm = ({
     }
   }, []);
 
-  useEffect(() => {
-    onRegisterSubmit(formik.submitForm);
-  }, [formik.submitForm, onRegisterSubmit]);
-
   const canSubmit = useMemo(
     () =>
       formik.isValid &&
@@ -194,9 +179,11 @@ const ReportForm = ({
     [formik.isValid, formik.values.description, formik.values.title, loading],
   );
 
-  useEffect(() => {
-    onStateChange?.({ loading, canSubmit });
-  }, [canSubmit, loading, onStateChange]);
+  useFormSheetBinding({
+    submit: formik.submitForm,
+    loading,
+    canSubmit,
+  });
 
   return (
     <>

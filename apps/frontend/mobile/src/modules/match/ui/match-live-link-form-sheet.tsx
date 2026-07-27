@@ -1,12 +1,9 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import { BottomSheetFooterProps, BottomSheetModal } from "@gorhom/bottom-sheet";
+import React, { useMemo } from "react";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 
-import BottomSheetCustomModal from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal";
-import BottomSheetFormFooter from "@/src/shared/ui/form/bottom-sheet-form-footer";
-import MatchLiveLinkForm, {
-  MatchLiveLinkFormState,
-} from "@/src/modules/match/forms/match-live-link-form";
+import { FormSheet } from "@/src/shared/ui/form/form-sheet";
+import MatchLiveLinkForm from "@/src/modules/match/forms/match-live-link-form";
 
 export type MatchLiveLinkFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;
@@ -27,21 +24,7 @@ const MatchLiveLinkFormSheet: React.FC<MatchLiveLinkFormSheetProps> = ({
   snapPoint = "90%",
   isBeforeLiveWindow,
 }) => {
-  const submitRef = useRef<() => void>(() => {});
-  const [footerState, setFooterState] = useState<MatchLiveLinkFormState>({
-    loading: false,
-    canSubmit: false,
-  });
-
   const hasExisting = useMemo(() => !!initialUrl, [initialUrl]);
-
-  const handleRegisterSubmit = useCallback((submit: () => void) => {
-    submitRef.current = submit;
-  }, []);
-
-  const handleStateChange = useCallback((s: MatchLiveLinkFormState) => {
-    setFooterState(s);
-  }, []);
 
   const footerLabel = useMemo(() => {
     if (hasExisting) {
@@ -50,24 +33,11 @@ const MatchLiveLinkFormSheet: React.FC<MatchLiveLinkFormSheetProps> = ({
     return "Ajouter";
   }, [hasExisting]);
 
-  const renderFooter = useCallback(
-    (p: BottomSheetFooterProps) => (
-      <BottomSheetFormFooter
-        {...p}
-        label={footerLabel}
-        loading={footerState.loading}
-        disabled={!footerState.canSubmit}
-        onPress={() => submitRef.current()}
-      />
-    ),
-    [footerLabel, footerState.loading, footerState.canSubmit],
-  );
-
   return (
-    <BottomSheetCustomModal
+    <FormSheet
       ref={ref}
       snapPoint={snapPoint}
-      footerComponent={renderFooter}
+      footerLabel={footerLabel}
       title={hasExisting ? "Modifier le lien de direct" : "Ajouter un direct"}
       message="Renseigne le lien fourni par la plateforme de diffusion."
     >
@@ -82,10 +52,8 @@ const MatchLiveLinkFormSheet: React.FC<MatchLiveLinkFormSheetProps> = ({
           );
           onSuccess();
         }}
-        onRegisterSubmit={handleRegisterSubmit}
-        onStateChange={handleStateChange}
       />
-    </BottomSheetCustomModal>
+    </FormSheet>
   );
 };
 

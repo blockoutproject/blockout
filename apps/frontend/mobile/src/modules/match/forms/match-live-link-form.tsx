@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import {
   BottomSheetScrollView,
@@ -15,20 +15,14 @@ import FormCard from "@/src/shared/ui/form/form-card";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import { ApiError } from "@/src/shared/api/api-error";
 import { FormField } from "@/src/shared/ui/form/form-field";
+import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
-
-export type MatchLiveLinkFormState = {
-  loading: boolean;
-  canSubmit: boolean;
-};
 
 export type MatchLiveLinkFormProps = {
   matchId: number;
   isMatchFinished: boolean;
   initialUrl?: string | null;
   onSuccess: () => void;
-  onRegisterSubmit: (submit: () => void) => void;
-  onStateChange?: (state: MatchLiveLinkFormState) => void;
   isBeforeLiveWindow?: boolean;
 };
 
@@ -58,8 +52,6 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
   isMatchFinished,
   initialUrl,
   onSuccess,
-  onRegisterSubmit,
-  onStateChange,
   isBeforeLiveWindow = false,
 }) => {
   const theme = useAppTheme();
@@ -118,13 +110,11 @@ const MatchLiveLinkForm: React.FC<MatchLiveLinkFormProps> = ({
     ],
   );
 
-  useEffect(() => {
-    onRegisterSubmit(formik.submitForm);
-  }, [formik.submitForm, onRegisterSubmit]);
-
-  useEffect(() => {
-    onStateChange?.({ loading, canSubmit });
-  }, [loading, canSubmit, onStateChange]);
+  useFormSheetBinding({
+    submit: formik.submitForm,
+    loading,
+    canSubmit,
+  });
 
   const title = useMemo(() => {
     if (hasExisting && isMatchFinished) return "Mettre à jour la rediffusion";

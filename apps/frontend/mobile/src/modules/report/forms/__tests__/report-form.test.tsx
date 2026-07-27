@@ -1,10 +1,11 @@
-import { act, render, userEvent, waitFor } from "@testing-library/react-native";
+import { render, userEvent, waitFor } from "@testing-library/react-native";
 import React from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ReportTypeEnum } from "@/src/shared/generated/models";
 import ReportForm from "@/src/modules/report/forms/report-form";
 import { ThemeProvider } from "@/src/shared/theme";
+import { FormSheet } from "@/src/shared/ui/form/form-sheet";
 
 const mockCreateReport = jest.fn();
 
@@ -15,6 +16,58 @@ jest.mock("@gorhom/bottom-sheet", () => {
     BottomSheetTextInput: TextInput,
   };
 });
+
+jest.mock(
+  "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal",
+  () =>
+    function MockBottomSheetCustomModal({
+      children,
+      footerComponent,
+    }: {
+      children: React.ReactNode;
+      footerComponent?: (props: object) => React.ReactNode;
+    }) {
+      return (
+        <>
+          {children}
+          {footerComponent?.({ animatedFooterPosition: {} })}
+        </>
+      );
+    },
+);
+
+jest.mock(
+  "@/src/shared/ui/form/bottom-sheet-form-footer",
+  () =>
+    function MockBottomSheetFormFooter({
+      label,
+      onPress,
+      disabled,
+      loading,
+      actionTestID,
+    }: {
+      label: string;
+      onPress: () => void;
+      disabled?: boolean;
+      loading?: boolean;
+      actionTestID?: string;
+    }) {
+      const { Pressable, Text } = require("react-native");
+      const isDisabled = Boolean(disabled || loading);
+      return (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityState={{ disabled: isDisabled, busy: Boolean(loading) }}
+          disabled={isDisabled}
+          onPress={onPress}
+          testID={actionTestID}
+        >
+          <Text>{label}</Text>
+        </Pressable>
+      );
+    },
+);
 
 jest.mock("@/src/shared/providers/api-provider", () => ({
   useApis: () => ({
@@ -66,8 +119,6 @@ describe("ReportForm", () => {
     };
     mockCreateReport.mockResolvedValue(response);
     const onSuccess = jest.fn();
-    const onStateChange = jest.fn();
-    let submit: () => void = () => undefined;
     const user = userEvent.setup();
     const screen = await render(
       <SafeAreaProvider
@@ -77,14 +128,15 @@ describe("ReportForm", () => {
         }}
       >
         <ThemeProvider>
-          <ReportForm
-            context={{ screen: "Match", userId: "42" }}
-            onSuccess={onSuccess}
-            onRegisterSubmit={(command) => {
-              submit = command;
-            }}
-            onStateChange={onStateChange}
-          />
+          <FormSheet
+            footerLabel="Envoyer"
+            footerActionTestID="report-submit-action"
+          >
+            <ReportForm
+              context={{ screen: "Match", userId: "42" }}
+              onSuccess={onSuccess}
+            />
+          </FormSheet>
         </ThemeProvider>
       </SafeAreaProvider>,
     );
@@ -101,13 +153,12 @@ describe("ReportForm", () => {
     );
 
     await waitFor(() => {
-      expect(onStateChange).toHaveBeenLastCalledWith({
-        loading: false,
-        canSubmit: true,
-      });
+      expect(
+        screen.getByTestId("report-submit-action").props.accessibilityState,
+      ).toEqual({ disabled: false, busy: false });
     });
 
-    await act(async () => submit());
+    await user.press(screen.getByTestId("report-submit-action"));
 
     expect(mockCreateReport).toHaveBeenCalledWith(
       expect.objectContaining({
