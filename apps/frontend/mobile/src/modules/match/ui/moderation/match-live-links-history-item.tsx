@@ -9,7 +9,13 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  borderWidth,
+  colors,
+  useAppTheme,
+  withAlpha,
+} from "@/src/shared/theme";
+import { Pill } from "@/src/shared/ui/pill";
 import {
   LiveLinkStatusEnum,
   LiveProviderEnum,
@@ -151,28 +157,24 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
     >
       <View style={styles.headerRow}>
         <View style={styles.statusRow}>
-          <View
-            style={[
-              styles.statusPill,
-              { backgroundColor: statusConfig.backgroundColor },
-            ]}
-          >
-            <Text style={[styles.statusText, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
-          </View>
+          <Pill
+            label={statusConfig.label}
+            size="sm"
+            borderWidth={0}
+            backgroundColor={statusConfig.backgroundColor}
+            textColor={statusConfig.color}
+          />
 
           {link.reportCount > 0 && (
-            <View style={styles.reportPill}>
-              <MaterialCommunityIcons
-                name="flag-outline"
-                size={13}
-                color={theme.error}
-              />
-              <Text style={[styles.reportText, { color: theme.error }]}>
-                {link.reportCount}
-              </Text>
-            </View>
+            <Pill
+              label={String(link.reportCount)}
+              leftIcon="flag-outline"
+              size="sm"
+              borderWidth={0}
+              backgroundColor={withAlpha(theme.error, 0.1)}
+              textColor={theme.error}
+              iconColor={theme.error}
+            />
           )}
         </View>
 
@@ -243,85 +245,65 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
       {!!(canApprove || canReject || canDeleteActive || canReactivate) && (
         <View style={styles.actionsRow}>
           {!!canReject && (
-            <TouchableOpacity
-              accessibilityRole="button"
+            <Pill
               accessibilityLabel="Refuser le lien"
               onPress={() => onReject?.(link)}
-              style={[styles.actionButtonOutline, { borderColor: theme.error }]}
-              activeOpacity={0.9}
+              label="Refuser"
+              leftIcon="close"
+              size="lg"
+              borderWidth={borderWidth.medium}
+              backgroundColor="transparent"
+              borderColor={theme.error}
+              textColor={theme.error}
+              iconColor={theme.error}
               testID={`match-live-history-reject-action-${link.id}`}
-            >
-              <MaterialCommunityIcons
-                name="close"
-                size={16}
-                color={theme.error}
-              />
-              <Text style={[styles.actionTextOutline, { color: theme.error }]}>
-                Refuser
-              </Text>
-            </TouchableOpacity>
+            />
           )}
 
           {!!canDeleteActive && (
-            <TouchableOpacity
-              accessibilityRole="button"
+            <Pill
               accessibilityLabel="Supprimer le lien"
               onPress={() => onDeleteActive?.(link)}
-              style={[styles.actionButtonOutline, { borderColor: theme.error }]}
-              activeOpacity={0.9}
+              label="Supprimer"
+              leftIcon="delete-outline"
+              size="lg"
+              borderWidth={borderWidth.medium}
+              backgroundColor="transparent"
+              borderColor={theme.error}
+              textColor={theme.error}
+              iconColor={theme.error}
               testID={`match-live-history-delete-action-${link.id}`}
-            >
-              <MaterialCommunityIcons
-                name="delete-outline"
-                size={16}
-                color={theme.error}
-              />
-              <Text style={[styles.actionTextOutline, { color: theme.error }]}>
-                Supprimer
-              </Text>
-            </TouchableOpacity>
+            />
           )}
 
           {!!canApprove && (
-            <TouchableOpacity
-              accessibilityRole="button"
+            <Pill
               accessibilityLabel="Valider le lien"
               onPress={() => onApprove?.(link)}
-              style={[
-                styles.actionButtonFilled,
-                { backgroundColor: theme.success },
-              ]}
-              activeOpacity={0.9}
+              label="Valider"
+              leftIcon="check"
+              size="lg"
+              borderWidth={0}
+              backgroundColor={theme.success}
+              textColor={colors.text.primary}
+              iconColor={colors.icon.primary}
               testID={`match-live-history-approve-action-${link.id}`}
-            >
-              <MaterialCommunityIcons name="check" size={16} color={"white"} />
-              <Text style={[styles.actionTextFilled, { color: "white" }]}>
-                Valider
-              </Text>
-            </TouchableOpacity>
+            />
           )}
 
           {!!canReactivate && (
-            <TouchableOpacity
-              accessibilityRole="button"
+            <Pill
               accessibilityLabel="Réactiver le lien"
               onPress={() => onReactivate?.(link)}
-              style={[
-                styles.actionButtonFilled,
-                { backgroundColor: theme.primary },
-              ]}
-              activeOpacity={0.9}
+              label="Réactiver"
+              leftIcon="backup-restore"
+              size="lg"
+              borderWidth={0}
+              backgroundColor={theme.primary}
+              textColor={colors.text.primary}
+              iconColor={colors.icon.primary}
               testID={`match-live-history-reactivate-action-${link.id}`}
-            >
-              <MaterialCommunityIcons
-                name="backup-restore"
-                size={16}
-                color={"white"}
-              />
-              <Text style={[styles.actionTextFilled, { color: "white" }]}>
-                Réactiver
-              </Text>
-            </TouchableOpacity>
+            />
           )}
         </View>
       )}
@@ -348,28 +330,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-  },
-  statusPill: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  reportPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    backgroundColor: "#FFE5E5",
-  },
-  reportText: {
-    fontSize: 11,
-    fontWeight: "700",
   },
   providerRow: {
     flexDirection: "row",
@@ -404,30 +364,5 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     gap: 8,
     marginTop: 4,
-  },
-  actionButtonOutline: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 999,
-    borderWidth: 1.5,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 6,
-  },
-  actionTextOutline: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  actionButtonFilled: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    gap: 6,
-  },
-  actionTextFilled: {
-    fontSize: 12,
-    fontWeight: "700",
   },
 });

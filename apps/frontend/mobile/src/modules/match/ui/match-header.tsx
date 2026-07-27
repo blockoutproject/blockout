@@ -1,14 +1,7 @@
 import React from "react";
-import {
-  Animated,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Animated, Platform, StyleSheet, Text, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { layout, useAppTheme, withAlpha } from "@/src/shared/theme";
+import { iconSize, layout, useAppTheme, withAlpha } from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -17,6 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import { GradientPill } from "@/src/shared/ui/pill";
+import { IconAction } from "@/src/shared/ui/icon-action";
 import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
 
@@ -272,24 +266,17 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({
           },
         ]}
       >
-        <TouchableOpacity
-          accessibilityRole="button"
+        <IconAction
           accessibilityLabel="Revenir en arrière"
           onPress={router.back}
-          hitSlop={{
-            top: 8,
-            bottom: 8,
-            left: 8,
-            right: 8,
-          }}
           testID="match-back-action"
         >
           <Ionicons
-            name={"chevron-back-outline"}
-            size={28}
+            name="chevron-back-outline"
+            size={iconSize.navigation}
             color={theme.text}
           />
-        </TouchableOpacity>
+        </IconAction>
         <View style={styles.rightGroup}>
           <MaskedImage
             fallback={require("@/assets/images/ffvb-logo.png")}
@@ -300,24 +287,17 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({
             testID="match-calendar-action"
             shadow
           />
-          <TouchableOpacity
-            accessibilityRole="button"
+          <IconAction
             accessibilityLabel="Signaler un problème"
             onPress={onOpenReport}
-            hitSlop={{
-              top: 8,
-              bottom: 8,
-              left: 8,
-              right: 8,
-            }}
             testID="match-report-action"
           >
             <MaterialCommunityIcons
               name="flag-outline"
-              size={28}
+              size={iconSize.navigation}
               color={theme.text}
             />
-          </TouchableOpacity>
+          </IconAction>
         </View>
         {CenterContent}
       </View>

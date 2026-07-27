@@ -38,4 +38,27 @@ describe("Pill", () => {
 
     expect(onPress).not.toHaveBeenCalled();
   });
+
+  it.each(["border", "filled"] as const)(
+    "keeps the %s gradient treatment interactive",
+    async (treatment) => {
+      const onPress = jest.fn();
+      const user = userEvent.setup();
+      const screen = await render(
+        <ThemeProvider>
+          <GradientPill
+            label={`Traitement ${treatment}`}
+            treatment={treatment}
+            onPress={onPress}
+          />
+        </ThemeProvider>,
+      );
+
+      await user.press(
+        screen.getByRole("button", { name: `Traitement ${treatment}` }),
+      );
+
+      expect(onPress).toHaveBeenCalledTimes(1);
+    },
+  );
 });

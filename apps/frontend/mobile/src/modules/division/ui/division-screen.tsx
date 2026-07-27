@@ -5,12 +5,11 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import { useAppTheme } from "@/src/shared/theme";
+import { colors, useAppTheme } from "@/src/shared/theme";
 import { useDivisions } from "@/src/modules/division/hooks/use-divisions";
 import { DivisionResponse } from "@/src/shared/generated/models";
 import { Filter } from "@/src/shared/view-models/filter";
@@ -20,6 +19,7 @@ import { SearchField } from "@/src/shared/ui/search-field";
 import Filters from "@/src/shared/ui/filters";
 import DivisionFormSheet from "@/src/modules/division/ui/division-form-sheet";
 import { FlashList } from "@shopify/flash-list";
+import { Pill } from "@/src/shared/ui/pill";
 
 const DivisionScreen: React.FC = () => {
   const theme = useAppTheme();
@@ -96,16 +96,16 @@ const DivisionScreen: React.FC = () => {
               placeholder="Rechercher une division..."
             />
           </View>
-          <TouchableOpacity
+          <Pill
             onPress={() => openForm(null)}
-            style={[styles.addButton, { backgroundColor: theme.primary }]}
-            activeOpacity={0.8}
-            accessibilityRole="button"
             accessibilityLabel="Ajouter une division"
+            label="Ajouter"
+            size="lg"
+            borderWidth={0}
+            backgroundColor={theme.primary}
+            textColor={colors.text.primary}
             testID="division-add-action"
-          >
-            <Text style={styles.addButtonText}>Ajouter</Text>
-          </TouchableOpacity>
+          />
         </View>
 
         <Filters
@@ -175,12 +175,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     gap: 12,
   },
-  addButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 18,
-  },
-  addButtonText: { color: "white", fontWeight: "bold" },
   filtersWrapper: { paddingHorizontal: 8 },
   flatList: { paddingHorizontal: 8 },
   emptyState: { alignItems: "center", marginTop: 32 },

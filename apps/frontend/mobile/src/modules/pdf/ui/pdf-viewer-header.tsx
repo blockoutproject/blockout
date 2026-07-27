@@ -1,10 +1,11 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { layout, useAppTheme } from "@/src/shared/theme";
+import { iconSize, layout, spacing, useAppTheme } from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { IconAction } from "@/src/shared/ui/icon-action";
 
 /** Header for pdf viewer screen with back + report. */
 export type PdfViewerHeaderProps = {
@@ -33,25 +34,17 @@ const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({
     >
       <View style={styles.header}>
         <View style={styles.leftGroup}>
-          <TouchableOpacity
+          <IconAction
             onPress={router.back}
-            accessibilityRole="button"
             accessibilityLabel="Fermer le document"
             testID="pdf-viewer-close-action"
-            style={styles.backButton}
-            hitSlop={{
-              top: 8,
-              bottom: 8,
-              left: 8,
-              right: 8,
-            }}
           >
             <Ionicons
-              name={"chevron-down-outline"}
-              size={28}
+              name="chevron-down-outline"
+              size={iconSize.navigation}
               color={theme.text}
             />
-          </TouchableOpacity>
+          </IconAction>
 
           <Text
             style={[
@@ -69,24 +62,17 @@ const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({
           </Text>
         </View>
 
-        <TouchableOpacity
+        <IconAction
           onPress={onOpenReport}
-          accessibilityRole="button"
           accessibilityLabel="Signaler un problème avec ce document"
           testID="pdf-viewer-report-action"
-          hitSlop={{
-            top: 8,
-            bottom: 8,
-            left: 8,
-            right: 8,
-          }}
         >
           <MaterialCommunityIcons
             name="flag-outline"
-            size={28}
+            size={iconSize.navigation}
             color={theme.text}
           />
-        </TouchableOpacity>
+        </IconAction>
       </View>
     </View>
   );
@@ -108,9 +94,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexShrink: 1,
     flexGrow: 1,
-  },
-  backButton: {
-    marginRight: 4,
+    gap: spacing[1],
   },
   title: {
     fontSize: 15,

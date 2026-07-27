@@ -1,10 +1,17 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { layout, useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  layout,
+  spacing,
+  touchTarget,
+  useAppTheme,
+} from "@/src/shared/theme";
 
 import { useBackOrClose } from "@/src/shared/hooks/use-back-or-close";
+import { IconAction } from "@/src/shared/ui/icon-action";
 
 /** Header for a legal document in a sheet. */
 export type LegalDocumentHeaderProps = {
@@ -28,18 +35,12 @@ const LegalDocumentHeader: React.FC<LegalDocumentHeaderProps> = ({
     <View style={styles.container} testID="legal-doc-header">
       <View style={styles.header}>
         <View style={styles.leftGroup}>
-          <TouchableOpacity
+          <IconAction
             onPress={handleBack}
-            style={styles.backButton}
-            hitSlop={{
-              top: 10,
-              bottom: 10,
-              left: 10,
-              right: 10,
-            }}
+            accessibilityLabel="Fermer le document"
           >
-            <Ionicons name={"close"} size={35} color={theme.text} />
-          </TouchableOpacity>
+            <Ionicons name="close" size={iconSize.xl} color={theme.text} />
+          </IconAction>
 
           <Text
             style={[
@@ -56,28 +57,18 @@ const LegalDocumentHeader: React.FC<LegalDocumentHeaderProps> = ({
         </View>
 
         {onEdit ? (
-          <TouchableOpacity
+          <IconAction
             onPress={onEdit}
-            hitSlop={{
-              top: 10,
-              bottom: 10,
-              left: 10,
-              right: 10,
-            }}
-            activeOpacity={0.7}
+            accessibilityLabel="Modifier le document"
           >
             <MaterialCommunityIcons
               name="pencil"
-              size={22}
+              size={iconSize.lg}
               color={theme.text}
             />
-          </TouchableOpacity>
+          </IconAction>
         ) : (
-          <View
-            style={{
-              width: 30,
-            }}
-          />
+          <View style={styles.actionSpacer} />
         )}
       </View>
     </View>
@@ -101,12 +92,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-  },
-  backButton: {
-    marginRight: 4,
+    gap: spacing[1],
   },
   title: {
     fontSize: 16,
     fontWeight: "900",
+  },
+  actionSpacer: {
+    width: touchTarget.minimum,
   },
 });

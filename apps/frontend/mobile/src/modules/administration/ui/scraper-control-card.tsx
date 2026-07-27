@@ -4,13 +4,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useAppTheme } from "@/src/shared/theme";
+import { iconSize, useAppTheme } from "@/src/shared/theme";
 import { ScraperStatusResponse } from "@/src/shared/generated/models";
+import { IconAction } from "@/src/shared/ui/icon-action";
 import ScraperStatusItem from "./scraper-status-item";
 
 type Props = {
@@ -56,23 +56,18 @@ const ScraperControlCard: React.FC<Props> = ({
           {loading ? (
             <ActivityIndicator size="small" color={theme.textInactive} />
           ) : onRefresh ? (
-            <TouchableOpacity
+            <IconAction
               onPress={onRefresh}
-              style={[
-                styles.iconButton,
-                { backgroundColor: theme.backgroundSecondary },
-              ]}
-              activeOpacity={0.85}
-              accessibilityRole="button"
               accessibilityLabel="Actualiser les scrapers"
+              treatment="surface"
               testID="administration-refresh-scrapers-action"
             >
               <MaterialCommunityIcons
                 name="refresh"
-                size={18}
+                size={iconSize.md}
                 color={theme.textInactive}
               />
-            </TouchableOpacity>
+            </IconAction>
           ) : null}
         </View>
       </View>
@@ -144,13 +139,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 12,
     fontWeight: "500",
-  },
-  iconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
   },
   listContainer: {
     marginTop: 4,

@@ -1,12 +1,13 @@
 import React, { useMemo, useRef } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
-import { GradientPill } from "@/src/shared/ui/pill";
-import { useAppTheme } from "@/src/shared/theme";
+import { GradientPill, Pill } from "@/src/shared/ui/pill";
+import { iconSize, useAppTheme } from "@/src/shared/theme";
+import { IconAction } from "@/src/shared/ui/icon-action";
 import {
   LiveProviderEnum,
   MatchResponse,
@@ -189,22 +190,18 @@ const MatchLiveLinkCard: React.FC<Props> = ({
           </View>
 
           {!!showReportButton && (
-            <TouchableOpacity
-              accessibilityRole="button"
+            <Pill
               accessibilityLabel="Signaler le lien du match"
               onPress={handlePressReportButton}
-              style={styles.reportBtn}
+              label="Signaler"
+              leftIcon="flag-outline"
+              size="md"
+              borderWidth={0}
+              backgroundColor="transparent"
+              textColor={theme.textInactive}
+              iconColor={theme.textInactive}
               testID="match-live-report-action"
-            >
-              <MaterialCommunityIcons
-                name="flag-outline"
-                size={18}
-                color={theme.textInactive}
-              />
-              <Text style={[styles.reportText, { color: theme.textInactive }]}>
-                Signaler
-              </Text>
-            </TouchableOpacity>
+            />
           )}
         </View>
 
@@ -228,47 +225,33 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                 {!!(canEditExistingLink || canDeleteLiveLink) && (
                   <View style={styles.actionsRow}>
                     {!!canEditExistingLink && (
-                      <TouchableOpacity
-                        accessibilityRole="button"
+                      <IconAction
                         accessibilityLabel="Modifier le lien du match"
                         onPress={handleOpenEdit}
-                        style={[
-                          styles.iconChip,
-                          {
-                            borderColor: theme.border,
-                            backgroundColor: theme.surface,
-                          },
-                        ]}
+                        treatment="surface"
                         testID="match-live-edit-action"
                       >
                         <MaterialCommunityIcons
                           name="pencil-outline"
-                          size={16}
+                          size={iconSize.sm}
                           color={theme.text}
                         />
-                      </TouchableOpacity>
+                      </IconAction>
                     )}
 
                     {!!canDeleteLiveLink && (
-                      <TouchableOpacity
-                        accessibilityRole="button"
+                      <IconAction
                         accessibilityLabel="Supprimer le lien du match"
                         onPress={handleOpenDelete}
-                        style={[
-                          styles.iconChip,
-                          {
-                            borderColor: theme.error,
-                            backgroundColor: theme.error + "1A",
-                          },
-                        ]}
+                        treatment="destructive"
                         testID="match-live-delete-action"
                       >
                         <MaterialCommunityIcons
                           name="delete-outline"
-                          size={16}
+                          size={iconSize.sm}
                           color={theme.error}
                         />
-                      </TouchableOpacity>
+                      </IconAction>
                     )}
                   </View>
                 )}
@@ -349,8 +332,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   liveDot: { width: 8, height: 8, borderRadius: 4 },
-  reportBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  reportText: { fontSize: 12, fontWeight: "600" },
   content: { gap: 12 },
   liveBlock: { gap: 8 },
   livePillRow: {
@@ -361,13 +342,5 @@ const styles = StyleSheet.create({
   },
   livePillWrap: { flexShrink: 1 },
   actionsRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  iconChip: {
-    width: 32,
-    height: 32,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   addPillWrap: { alignSelf: "flex-start" },
 });

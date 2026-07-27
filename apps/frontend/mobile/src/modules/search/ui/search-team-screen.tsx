@@ -5,7 +5,7 @@ import TeamCard from "@/src/modules/search/ui/team-card";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import SearchResults from "@/src/modules/search/ui/search-results";
-import { SelectOption } from "@/src/shared/ui/form/select-sheet";
+import type { SelectOption } from "@/src/shared/ui/form/select-sheet";
 import DivisionSelect from "@/src/modules/search/ui/division-select";
 import FormatSelect from "@/src/modules/search/ui/format-select";
 import GenderSelect from "@/src/modules/search/ui/gender-select";
@@ -38,12 +38,12 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
   const [selectedFormat, setSelectedFormat] = useState<FormatEnum | null>(null);
   const [selectedGender, setSelectedGender] = useState<GenderEnum | null>(null);
 
-  const seasonOptions: SelectOption[] = useMemo(
+  const seasonOptions: SelectOption<string>[] = useMemo(
     () => SEASONS.map((s) => ({ value: s, label: s })),
     [],
   );
 
-  const divisionOptions: SelectOption[] = useMemo(
+  const divisionOptions: SelectOption<number>[] = useMemo(
     () =>
       (divisions ?? [])
         .filter((d) => d.active)
@@ -75,34 +75,6 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
     [router, handleNavigationWithAd],
   );
 
-  const handleSelectSeason = useCallback((opt: SelectOption) => {
-    setSelectedSeason(opt.value ? String(opt.value) : null);
-  }, []);
-
-  const handleSelectDivision = useCallback((opt: SelectOption) => {
-    if (opt.value === "" || opt.value == null) {
-      setSelectedDivisionId(null);
-    } else {
-      setSelectedDivisionId(Number(opt.value));
-    }
-  }, []);
-
-  const handleSelectFormat = useCallback((opt: SelectOption) => {
-    if (!opt.value) {
-      setSelectedFormat(null);
-    } else {
-      setSelectedFormat(opt.value as FormatEnum);
-    }
-  }, []);
-
-  const handleSelectGender = useCallback((opt: SelectOption) => {
-    if (!opt.value) {
-      setSelectedGender(null);
-    } else {
-      setSelectedGender(opt.value as GenderEnum);
-    }
-  }, []);
-
   return (
     <SearchResults
       search={search}
@@ -127,24 +99,24 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
           <SeasonSelect
             options={seasonOptions}
             selectedValue={selectedSeason}
-            onSelect={handleSelectSeason}
-            testIDButton="search-team-season-button"
+            onValueChange={setSelectedSeason}
+            testID="search-team-season-button"
           />
           <DivisionSelect
             options={divisionOptions}
             selectedValue={selectedDivisionId}
-            onSelect={handleSelectDivision}
-            testIDButton="search-team-division-button"
+            onValueChange={setSelectedDivisionId}
+            testID="search-team-division-button"
           />
           <FormatSelect
             selectedValue={selectedFormat}
-            onSelect={handleSelectFormat}
-            testIDButton="search-team-format-button"
+            onValueChange={setSelectedFormat}
+            testID="search-team-format-button"
           />
           <GenderSelect
             selectedValue={selectedGender}
-            onSelect={handleSelectGender}
-            testIDButton="search-team-gender-button"
+            onValueChange={setSelectedGender}
+            testID="search-team-gender-button"
           />
         </ScrollView>
       }

@@ -3,16 +3,16 @@ import React, { useMemo } from "react";
 import type { ClubResponse } from "@/src/shared/generated/models";
 import Hero from "@/src/shared/ui/hero";
 import SeasonSelect from "@/src/shared/ui/form/season-select";
-import { SelectOption } from "@/src/shared/ui/form/select-sheet";
+import type { SelectOption } from "@/src/shared/ui/form/select-sheet";
 
 export type ClubHeroProps = {
   club: ClubResponse;
   onEdit?: () => void;
 
   showSeasonSelect: boolean;
-  seasonOptions: SelectOption[];
+  seasonOptions: SelectOption<string>[];
   selectedSeason?: string;
-  onSelectSeason: (opt: SelectOption) => void;
+  onSelectSeason: (value: string | null) => void;
 
   isSeasonLoading: boolean;
   isSeasonError: boolean;
@@ -39,9 +39,9 @@ const ClubHero: React.FC<ClubHeroProps> = ({
     return (
       <SeasonSelect
         options={seasonOptions}
-        selectedValue={selectedSeason ?? ""}
-        onSelect={onSelectSeason}
-        testIDButton="club-hero-season-button"
+        selectedValue={selectedSeason ?? null}
+        onValueChange={onSelectSeason}
+        testID="club-hero-season-button"
       />
     );
   }, [

@@ -22,8 +22,8 @@ import {
 } from "@/src/shared/view-models/gender-labels";
 import FormSelect from "@/src/modules/raw-division-mapping/ui/form-select";
 import SelectSheet, {
-  SelectOption,
-  SelectSheetRef,
+  type SelectOption,
+  type SelectSheetRef,
 } from "@/src/shared/ui/form/select-sheet";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import FormCard from "@/src/shared/ui/form/form-card";
@@ -58,7 +58,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const formatOptions: SelectOption[] = useMemo(
+  const formatOptions: SelectOption<FormatEnum>[] = useMemo(
     () =>
       Object.values(FormatEnum).map((val) => ({
         value: val,
@@ -66,7 +66,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
       })),
     [],
   );
-  const genderOptions: SelectOption[] = useMemo(
+  const genderOptions: SelectOption<GenderEnum>[] = useMemo(
     () =>
       Object.values(GenderEnum).map((val) => ({
         value: val,
@@ -74,7 +74,7 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
       })),
     [],
   );
-  const divisionOptions: SelectOption[] = useMemo(
+  const divisionOptions: SelectOption<number>[] = useMemo(
     () =>
       divisions
         .filter((d) => d.active)
@@ -180,22 +180,25 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
         ref={formatRef}
         title="Choisir un format"
         options={formatOptions}
-        selectedValue={format || ""}
-        onSelect={(opt) => setFormat((opt.value as FormatEnum) || "")}
+        selectedValue={format || null}
+        onSelect={(option) => setFormat(option.value)}
+        onClear={() => setFormat("")}
       />
       <SelectSheet
         ref={genderRef}
         title="Choisir un genre"
         options={genderOptions}
-        selectedValue={gender || ""}
-        onSelect={(opt) => setGender((opt.value as GenderEnum) || "")}
+        selectedValue={gender || null}
+        onSelect={(option) => setGender(option.value)}
+        onClear={() => setGender("")}
       />
       <SelectSheet
         ref={divisionRef}
         title="Choisir une division"
         options={divisionOptions}
-        selectedValue={divisionId || ""}
-        onSelect={(opt) => setDivisionId((opt.value as number) || "")}
+        selectedValue={divisionId || null}
+        onSelect={(option) => setDivisionId(option.value)}
+        onClear={() => setDivisionId("")}
       />
     </>
   );

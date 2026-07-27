@@ -18,6 +18,7 @@ import {
   gradients as designGradients,
   radius,
   spacing,
+  stateOpacity,
   touchTarget,
   typography,
   useAppTheme,
@@ -362,6 +363,6 @@ const styles = StyleSheet.create({
     gap: spacing[1],
   },
   pressed: {
-    opacity: 0.9,
+    opacity: stateOpacity.pressed,
   },
 });
