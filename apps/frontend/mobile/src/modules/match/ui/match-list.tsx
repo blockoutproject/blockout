@@ -19,13 +19,13 @@ import {
 } from "@/src/shared/generated/models";
 import { layout, useAppTheme } from "@/src/shared/theme";
 import { useMatchList } from "@/src/modules/match/hooks/use-match-list";
-import { formatDateFrenchLocale } from "@/src/shared/lib/utils";
+import { formatMatchDateHeader } from "@/src/modules/match/view-models/match-date";
 import MatchDateHeader from "./match-date-header";
 import MatchPoolSection from "./match-pool-section";
 import EmptyState from "@/src/shared/ui/feedback/empty-state";
 import ErrorState from "@/src/shared/ui/feedback/error-state";
 
-import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 
 export type MatchListProps = {
   poolIds?: number[];
@@ -106,7 +106,7 @@ const MatchList: React.FC<MatchListProps> = ({
 
       rows.push({
         type: "sectionHeader",
-        title: formatDateFrenchLocale(day.date),
+        title: formatMatchDateHeader(day.date),
         sectionKey,
       });
 

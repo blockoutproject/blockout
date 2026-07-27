@@ -11,8 +11,8 @@ import {
   type AppTheme,
 } from "@/src/shared/theme";
 import type { TeamWithStatsResponse } from "@/src/shared/generated/models";
-import type { TeamHighlight } from "@/src/modules/team/model/team-highlight";
-import { withAlpha } from "@/src/shared/lib/utils";
+import type { TeamHighlight } from "@/src/modules/ranking/model/team-highlight";
+import { withAlpha } from "@/src/shared/theme";
 import MiniStat from "./mini-stat";
 import Medal from "./medal";
 

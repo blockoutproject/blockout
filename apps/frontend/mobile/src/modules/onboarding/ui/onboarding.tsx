@@ -24,7 +24,7 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { runOnJS } from "react-native-worklets";
 
-import type { OnboardingStep } from "@/src/modules/onboarding/model/steps";
+import type { OnboardingStep } from "@/src/modules/onboarding/view-models/steps";
 import { Action } from "@/src/shared/ui/action";
 import {
   borderWidth,

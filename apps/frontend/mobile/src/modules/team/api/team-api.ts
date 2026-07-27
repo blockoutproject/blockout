@@ -5,7 +5,7 @@ import {
 } from "@/src/shared/generated/endpoints/team-public";
 import { updateTeam } from "@/src/shared/generated/endpoints/team-secure";
 import type { UpdateTeamRequest } from "@/src/shared/generated/models";
-import type { ImageUpload } from "@/src/shared/model/image-upload";
+import type { ImageUpload } from "@/src/shared/api/image-upload";
 
 /** Expose team operations through the feature API boundary. */
 export class TeamApi {

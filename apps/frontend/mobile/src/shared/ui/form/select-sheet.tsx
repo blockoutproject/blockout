@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { layout, useAppTheme } from "@/src/shared/theme";
 
-import BottomSheetCustomPage from "../bottomSheet/bottom-sheet-custom-page";
+import BottomSheetCustomPage from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-page";
 
 export type SelectOption = {
   /** Valeur renvoyée au choix. */

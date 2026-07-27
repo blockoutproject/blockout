@@ -27,10 +27,10 @@ import {
   spacing,
   typography,
   useAppTheme,
+  withAlpha,
 } from "@/src/shared/theme";
 import * as Haptics from "expo-haptics";
 
-import { withAlpha } from "@/src/shared/lib/utils";
 import { useSessionState } from "@/src/modules/session/providers/session-context";
 import { CONFIG } from "@/src/shared/config/config";
 import RevenueCatUI from "react-native-purchases-ui";

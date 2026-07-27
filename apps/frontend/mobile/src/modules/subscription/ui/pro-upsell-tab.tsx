@@ -6,10 +6,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { gradients, layout, useAppTheme } from "@/src/shared/theme";
+import { gradients, layout, useAppTheme, withAlpha } from "@/src/shared/theme";
 import { usePurchases } from "@/src/modules/subscription/providers/purchases-provider";
 import { useSessionState } from "@/src/modules/session/providers/session-context";
-import { withAlpha } from "@/src/shared/lib/utils";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { Action } from "@/src/shared/ui/action";
 

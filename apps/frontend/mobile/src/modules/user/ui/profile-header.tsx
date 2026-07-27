@@ -5,7 +5,7 @@ import { layout, useAppTheme } from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/bottom-sheet-custom-page";
+import BottomSheetCustomPage from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-page";
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
 import MatchLiveModerationScreen from "@/src/modules/match/ui/moderation/match-live-moderation-screen";
 import RawDivisionMappingScreen from "@/src/modules/raw-division-mapping/ui/raw-division-mapping-screen";

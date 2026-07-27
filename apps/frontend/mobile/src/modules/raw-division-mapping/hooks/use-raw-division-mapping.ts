@@ -10,7 +10,8 @@ export const useRawDivisionMappings = (
 
   return useQuery<RawDivisionMappingResponse[]>({
     queryKey: ["raw-division-mappings", leagueCode, season],
-    queryFn: () => mobile.config.getRawDivisionMappings(leagueCode, season),
+    queryFn: () =>
+      mobile.rawDivisionMappings.getRawDivisionMappings(leagueCode, season),
     staleTime: 1000 * 60,
   });
 };

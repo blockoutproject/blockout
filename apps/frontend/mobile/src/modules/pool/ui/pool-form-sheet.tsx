@@ -1,9 +1,9 @@
 import React, { useCallback, useRef, useState } from "react";
 import { BottomSheetFooterProps, BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/bottom-sheet-custom-modal";
+import BottomSheetCustomModal from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal";
 import BottomSheetFormFooter from "@/src/shared/ui/form/bottom-sheet-form-footer";
-import PoolForm, { PoolFormState } from "@/src/modules/pool/ui/pool-form";
+import PoolForm, { PoolFormState } from "@/src/modules/pool/forms/pool-form";
 import type {
   PoolDetailsResponse,
   PoolResponse,

@@ -6,14 +6,14 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import SearchResults from "@/src/modules/search/ui/search-results";
 import { SelectOption } from "@/src/shared/ui/form/select-sheet";
-import DivisionSelect from "@/src/shared/ui/form/division-select";
-import FormatSelect from "@/src/shared/ui/form/format-select";
-import GenderSelect from "@/src/shared/ui/form/gender-select";
+import DivisionSelect from "@/src/modules/search/ui/division-select";
+import FormatSelect from "@/src/modules/search/ui/format-select";
+import GenderSelect from "@/src/modules/search/ui/gender-select";
 import SeasonSelect from "@/src/shared/ui/form/season-select";
 import { useDivisions } from "@/src/modules/division/hooks/use-divisions";
-import { FormatEnum } from "@/src/shared/model/format-labels";
-import { GenderEnum } from "@/src/shared/model/gender-labels";
-import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
+import { FormatEnum } from "@/src/shared/view-models/format-labels";
+import { GenderEnum } from "@/src/shared/view-models/gender-labels";
+import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 
 export type SearchTeamScreenProps = {
   search: string;

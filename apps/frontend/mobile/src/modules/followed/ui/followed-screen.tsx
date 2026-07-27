@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { useAppTheme } from "@/src/shared/theme";
-import { Filter } from "@/src/shared/model/filter";
+import { Filter } from "@/src/shared/view-models/filter";
 import FollowedTeamsList from "@/src/modules/followed/ui/followed-teams-list";
 import FollowedPoolsList from "@/src/modules/followed/ui/followed-pools-list";
 import FollowedListHeader from "@/src/modules/followed/ui/followed-list-header";

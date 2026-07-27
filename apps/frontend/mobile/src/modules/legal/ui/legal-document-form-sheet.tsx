@@ -1,10 +1,10 @@
 import React, { useCallback, useRef, useState } from "react";
 import { BottomSheetFooterProps, BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/bottom-sheet-custom-modal";
+import BottomSheetCustomModal from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal";
 import LegalDocumentForm, {
   LegalDocumentFormState,
-} from "@/src/modules/legal/ui/legal-document-form";
+} from "@/src/modules/legal/forms/legal-document-form";
 import BottomSheetFormFooter from "@/src/shared/ui/form/bottom-sheet-form-footer";
 import type { LegalDocumentResponse } from "@/src/shared/generated/models";
 

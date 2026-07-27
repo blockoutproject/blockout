@@ -6,7 +6,7 @@ import RankingCard from "./ranking-card";
 import { layout, spacing, useAppTheme } from "@/src/shared/theme";
 import type { PoolResponse } from "@/src/shared/generated/models";
 
-import type { TeamHighlight } from "@/src/modules/team/model/team-highlight";
+import type { TeamHighlight } from "@/src/modules/ranking/model/team-highlight";
 import FadeIn from "@/src/shared/ui/animations/fade-in";
 
 type Props = {

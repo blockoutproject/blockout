@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { layout, useAppTheme } from "@/src/shared/theme";
+import { layout, useAppTheme, withAlpha } from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -17,7 +17,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import { GradientPill } from "@/src/shared/ui/pill";
-import { withAlpha } from "@/src/shared/lib/utils";
 import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
 

@@ -30,7 +30,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({
   const handleDeactivate = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      await mobile.config.deactivateDivision(division.id);
+      await mobile.divisions.deactivateDivision(division.id);
       onDeactivated();
     } catch {}
   };

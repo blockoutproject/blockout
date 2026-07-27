@@ -7,14 +7,18 @@ import type { TeamResponse } from "@/src/shared/generated/models";
 import { useTeamFollowState } from "@/src/modules/team/hooks/use-team-follow-state";
 import FollowButton from "@/src/shared/ui/follow/follow-button";
 import FollowersCounter from "@/src/shared/ui/follow/followers-count";
-import { GenderEnum, GenderLabels } from "@/src/shared/model/gender-labels";
-import { FormatLabels } from "@/src/shared/model/format-labels";
+import {
+  GenderEnum,
+  GenderLabels,
+} from "@/src/shared/view-models/gender-labels";
+import { FormatLabels } from "@/src/shared/view-models/format-labels";
 import {
   borderWidth,
   layout,
   radius,
   spacing,
   useAppTheme,
+  withAlpha,
 } from "@/src/shared/theme";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { GradientPill, Pill } from "@/src/shared/ui/pill";
@@ -23,8 +27,7 @@ import GuestPromptSheet, {
   GuestPromptSheetRef,
 } from "@/src/modules/session/ui/guest-prompt-sheet";
 
-import { withAlpha } from "@/src/shared/lib/utils";
-import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 
 export type TeamProfileProps = {
   enrichedTeam: TeamResponse;

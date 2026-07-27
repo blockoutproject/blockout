@@ -53,11 +53,14 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-jest.mock("@/src/modules/advertising/use-navigation-interstitial", () => ({
-  useNavigationInterstitial: () => ({
-    handleNavigationWithAd: (navigate: () => void) => navigate(),
+jest.mock(
+  "@/src/modules/advertising/hooks/use-navigation-interstitial",
+  () => ({
+    useNavigationInterstitial: () => ({
+      handleNavigationWithAd: (navigate: () => void) => navigate(),
+    }),
   }),
-}));
+);
 
 jest.mock("expo-haptics", () => ({
   ImpactFeedbackStyle: { Medium: "medium" },

@@ -11,8 +11,8 @@ import {
   spacing,
   typography,
   useAppTheme,
+  withAlpha,
 } from "@/src/shared/theme";
-import { withAlpha } from "@/src/shared/lib/utils";
 
 export type ClubInfoRowProps = {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];

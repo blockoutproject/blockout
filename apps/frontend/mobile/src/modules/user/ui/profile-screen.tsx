@@ -13,15 +13,14 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { layout, useAppTheme } from "@/src/shared/theme";
+import { layout, useAppTheme, withAlpha } from "@/src/shared/theme";
 import {
   useSessionActions,
   useSessionState,
 } from "@/src/modules/session/providers/session-context";
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
 import { ReportTypeEnum } from "@/src/shared/generated/models";
-import { withAlpha } from "@/src/shared/lib/utils";
-import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/bottom-sheet-custom-page";
+import BottomSheetCustomPage from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-page";
 import LegalDocumentScreen from "@/src/modules/legal/ui/legal-document-screen";
 import ProfileHero from "@/src/modules/user/ui/profile-hero";
 import ProfileHeader from "@/src/modules/user/ui/profile-header";

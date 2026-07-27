@@ -6,7 +6,7 @@ import {
   updateUser,
 } from "@/src/shared/generated/endpoints/user-secure";
 import type { UpdateUserRequest } from "@/src/shared/generated/models";
-import type { ImageUpload } from "@/src/shared/model/image-upload";
+import type { ImageUpload } from "@/src/shared/api/image-upload";
 
 /** Expose user operations through the feature API boundary. */
 export class UserApi {

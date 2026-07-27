@@ -27,7 +27,7 @@ import {
   getStoreUrl,
 } from "@/src/modules/app-status/model/app-version";
 import { useGuestSessionStore } from "@/src/modules/session/model/guest-session-store";
-import { registerForPushNotificationsAsync } from "@/src/modules/notifications/push";
+import { registerForPushNotificationsAsync } from "@/src/modules/notifications/api/push-notifications";
 import { useOnboardingStore } from "@/src/modules/onboarding/model/onboarding-store";
 
 const APP_STATUS_BYPASS_SCOPES = ["update:maintenance"];

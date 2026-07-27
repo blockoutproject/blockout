@@ -1,8 +1,7 @@
 import React from "react";
-import { spacing, useAppTheme } from "@/src/shared/theme";
+import { spacing, useAppTheme, withAlpha } from "@/src/shared/theme";
 import type { ClubSearchResponse } from "@/src/shared/generated/models";
-import EntityGradientCard from "@/src/shared/ui/entity-gradient-card";
-import { withAlpha } from "@/src/shared/lib/utils";
+import EntityGradientCard from "@/src/shared/ui/entity/entity-gradient-card";
 
 export interface ClubCardProps {
   club: ClubSearchResponse;

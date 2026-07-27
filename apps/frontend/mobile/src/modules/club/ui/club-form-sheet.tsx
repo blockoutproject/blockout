@@ -1,10 +1,10 @@
 import React, { useCallback, useRef, useState } from "react";
 import { BottomSheetFooterProps, BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
-import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/bottom-sheet-custom-modal";
+import BottomSheetCustomModal from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal";
 import BottomSheetFormFooter from "@/src/shared/ui/form/bottom-sheet-form-footer";
 import type { ClubResponse } from "@/src/shared/generated/models";
-import ClubForm, { ClubFormState } from "@/src/modules/club/ui/club-form";
+import ClubForm, { ClubFormState } from "@/src/modules/club/forms/club-form";
 
 export type ClubFormSheetProps = {
   ref?: React.Ref<BottomSheetModal>;

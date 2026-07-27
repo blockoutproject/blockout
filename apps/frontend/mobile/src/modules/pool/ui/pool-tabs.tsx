@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Animated } from "react-native";
 
-import GenericTabView from "@/src/shared/ui/generic-tab-view";
+import EntityTabView from "@/src/shared/ui/entity/entity-tab-view";
 import MatchList from "@/src/modules/match/ui/match-list";
 import RankingTab from "@/src/modules/ranking/ui/ranking-tab";
 import ProUpsellTab from "@/src/modules/subscription/ui/pro-upsell-tab";
@@ -92,7 +92,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
     [tabs, ranking, finished, upcoming, map],
   );
 
-  return <GenericTabView tabs={renderTabs} scrollYs={scrollYs} />;
+  return <EntityTabView tabs={renderTabs} scrollYs={scrollYs} />;
 };
 
 export default PoolTabs;

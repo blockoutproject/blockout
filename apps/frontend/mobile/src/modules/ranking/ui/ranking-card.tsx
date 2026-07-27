@@ -7,11 +7,11 @@ import type {
   PoolResponse,
   TeamWithStatsResponse,
 } from "@/src/shared/generated/models";
-import type { TeamHighlight } from "@/src/modules/team/model/team-highlight";
+import type { TeamHighlight } from "@/src/modules/ranking/model/team-highlight";
 import RankingRow from "./ranking-row";
 import RankingHeader from "./ranking-header";
 import { useRouter } from "expo-router";
-import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 
 type RankingCardProps = {
   pool: PoolResponse;

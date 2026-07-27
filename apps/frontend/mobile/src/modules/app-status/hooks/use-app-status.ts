@@ -7,7 +7,7 @@ export const useAppStatus = () => {
 
   return useQuery<AppStatusResponse>({
     queryKey: ["appStatus"],
-    queryFn: () => mobile.config.getAppStatus(),
+    queryFn: () => mobile.appStatus.getAppStatus(),
     staleTime: 0,
   });
 };

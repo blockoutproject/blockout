@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { radius, useAppTheme } from "@/src/shared/theme";
-import GradientView from "../gradient-view"; // adapte les chemins si besoin
 import GradientBorderView from "../gradient-border-view";
 
 type Props = {
@@ -54,9 +54,9 @@ const FollowButton: React.FC<Props> = ({
       {buttonContent}
     </GradientBorderView>
   ) : (
-    <GradientView gradient={gradient} style={styles.gradientFilled}>
+    <LinearGradient colors={gradient} style={styles.gradientFilled}>
       {buttonContent}
-    </GradientView>
+    </LinearGradient>
   );
 };
 

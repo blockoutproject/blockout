@@ -18,13 +18,13 @@ import {
   MatchLiveSummaryResponse,
   LiveLinkStatusEnum,
 } from "@/src/shared/generated/models";
-import { Filter } from "@/src/shared/model/filter";
+import { Filter } from "@/src/shared/view-models/filter";
 
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import { SearchField } from "@/src/shared/ui/search-field";
 import Filters from "@/src/shared/ui/filters";
 import MatchLiveModerationItem from "@/src/modules/match/ui/moderation/match-live-moderation-item";
-import BottomSheetCustomPage from "@/src/shared/ui/bottomSheet/bottom-sheet-custom-page";
+import BottomSheetCustomPage from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-page";
 import MatchLiveLinksHistoryScreen from "./match-live-links-history-screen";
 
 const STATUS_FILTERS: Filter[] = [

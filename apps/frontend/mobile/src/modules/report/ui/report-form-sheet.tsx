@@ -9,8 +9,8 @@ import type { ReportResponse } from "@/src/shared/generated/models";
 import ReportForm, {
   ReportContext,
   ReportFormState,
-} from "@/src/modules/report/ui/report-form";
-import BottomSheetCustomModal from "@/src/shared/ui/bottomSheet/bottom-sheet-custom-modal";
+} from "@/src/modules/report/forms/report-form";
+import BottomSheetCustomModal from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-modal";
 import BottomSheetFormFooter from "@/src/shared/ui/form/bottom-sheet-form-footer";
 
 export type ReportFormSheetProps = {

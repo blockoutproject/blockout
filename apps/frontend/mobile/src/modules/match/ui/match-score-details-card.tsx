@@ -12,7 +12,7 @@ import {
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { useNavigationInterstitial } from "@/src/modules/advertising/use-navigation-interstitial";
+import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 
 /** Per-set score breakdown. */
 export type MatchScoreDetailsCardProps = {

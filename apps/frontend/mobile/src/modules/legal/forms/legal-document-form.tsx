@@ -1,0 +1,164 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet } from "react-native";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import * as Haptics from "expo-haptics";
+
+import { useAppTheme } from "@/src/shared/theme";
+import type { LegalDocumentResponse } from "@/src/shared/generated/models";
+import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
+
+import FormCard from "@/src/shared/ui/form/form-card";
+import { FormField } from "@/src/shared/ui/form/form-field";
+import SheetTextInput from "@/src/shared/ui/form/sheet-text-input";
+import { useApis } from "@/src/shared/providers/api-provider";
+
+export type LegalDocumentFormState = {
+  loading: boolean;
+  canSubmit: boolean;
+};
+
+export type LegalDocumentFormProps = {
+  document: LegalDocumentResponse;
+  onSuccess: () => void;
+  onRegisterSubmit: (submit: () => void) => void;
+  onStateChange?: (state: LegalDocumentFormState) => void;
+};
+
+const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
+  document,
+  onSuccess,
+  onRegisterSubmit,
+  onStateChange,
+}) => {
+  const theme = useAppTheme();
+  const { mobile } = useApis();
+
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  const formik = useFormik({
+    initialValues: {
+      title: document.title,
+      version: document.version,
+      content: document.content,
+    },
+    validationSchema: Yup.object({
+      title: Yup.string().required("Titre requis"),
+      version: Yup.string().required("Version requise"),
+      content: Yup.string().required("Contenu requis"),
+    }),
+    onSubmit: async (values) => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setLoading(true);
+        setApiError(null);
+        await mobile.legal.updateLegalDocument(document.type, values);
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
+        onSuccess();
+      } catch {
+        setApiError("Erreur lors de la sauvegarde.");
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } finally {
+        setLoading(false);
+      }
+    },
+  });
+
+  useEffect(() => {
+    onRegisterSubmit(formik.submitForm);
+  }, [formik.submitForm, onRegisterSubmit]);
+
+  const canSubmit = useMemo(
+    () => formik.isValid && !loading,
+    [formik.isValid, loading],
+  );
+
+  useEffect(() => {
+    onStateChange?.({ loading, canSubmit });
+  }, [loading, canSubmit, onStateChange]);
+
+  return (
+    <>
+      <BottomSheetScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        testID="legal-document-form"
+      >
+        <FormCard>
+          <FormField
+            label="Titre"
+            error={formik.errors.title}
+            touched={formik.touched.title}
+          >
+            <SheetTextInput
+              value={formik.values.title}
+              onChangeText={formik.handleChange("title")}
+              onBlur={formik.handleBlur("title")}
+              placeholder="Titre"
+              style={
+                formik.touched.title && formik.errors.title
+                  ? { borderColor: theme.error }
+                  : undefined
+              }
+            />
+          </FormField>
+        </FormCard>
+
+        <FormCard>
+          <FormField
+            label="Version"
+            error={formik.errors.version}
+            touched={formik.touched.version}
+          >
+            <SheetTextInput
+              value={formik.values.version}
+              onChangeText={formik.handleChange("version")}
+              onBlur={formik.handleBlur("version")}
+              placeholder="2025-08-08"
+              style={
+                formik.touched.version && formik.errors.version
+                  ? { borderColor: theme.error }
+                  : undefined
+              }
+            />
+          </FormField>
+        </FormCard>
+
+        <FormCard>
+          <FormField
+            label="Contenu (Markdown)"
+            error={formik.errors.content}
+            touched={formik.touched.content}
+          >
+            <SheetTextInput
+              multiline
+              scrollEnabled
+              value={formik.values.content}
+              onChangeText={formik.handleChange("content")}
+              onBlur={formik.handleBlur("content")}
+              placeholder="Contenu du document légal..."
+              style={[
+                { maxHeight: 300, textAlignVertical: "top", minHeight: 180 },
+                formik.touched.content && formik.errors.content
+                  ? { borderColor: theme.error }
+                  : undefined,
+              ]}
+            />
+          </FormField>
+        </FormCard>
+      </BottomSheetScrollView>
+
+      <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
+    </>
+  );
+};
+
+export default LegalDocumentForm;
+
+const styles = StyleSheet.create({
+  content: { padding: 8, paddingBottom: 100, gap: 12 },
+});

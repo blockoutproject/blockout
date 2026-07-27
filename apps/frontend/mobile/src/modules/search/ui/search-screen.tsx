@@ -8,7 +8,7 @@ import SearchClubScreen from "@/src/modules/search/ui/search-club-screen";
 import SearchPoolScreen from "@/src/modules/search/ui/search-pool-screen";
 import SearchHeader from "@/src/modules/search/ui/search-header";
 import { ReportTypeEnum } from "@/src/shared/generated/models";
-import { Filter } from "@/src/shared/model/filter";
+import { Filter } from "@/src/shared/view-models/filter";
 import ReportFormSheet from "@/src/modules/report/ui/report-form-sheet";
 
 const SearchScreen: React.FC = () => {

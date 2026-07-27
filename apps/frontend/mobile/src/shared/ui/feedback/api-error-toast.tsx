@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, StyleSheet, Text, ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { layout, useAppTheme } from "@/src/shared/theme";
+import { layout, useAppTheme, withAlpha } from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { withAlpha } from "@/src/shared/lib/utils";
-import { useKeyboardVisible } from "@/src/shared/hooks/use-keyboard-visible";
+import { useKeyboardVisible } from "@/src/shared/ui/feedback/use-keyboard-visible";
 
 type ApiErrorToastProps = {
   /** Le message d'erreur à afficher. Null/undefined => caché */
