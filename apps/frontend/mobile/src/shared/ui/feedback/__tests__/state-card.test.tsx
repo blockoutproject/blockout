@@ -1,5 +1,11 @@
 import React from "react";
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import * as Haptics from "expo-haptics";
 
 import { ThemeProvider } from "@/src/shared/theme";
@@ -20,6 +26,7 @@ describe("StateCard", () => {
 
   it("renders its stable content and performs an enabled action", async () => {
     const onPress = jest.fn();
+    const user = userEvent.setup();
     const screen = await render(
       <ThemeProvider>
         <StateCard
@@ -33,7 +40,7 @@ describe("StateCard", () => {
     expect(screen.getByRole("header", { name: "Aucun résultat" })).toBeTruthy();
     expect(screen.getByText("Réessaie dans quelques instants.")).toBeTruthy();
 
-    fireEvent.press(screen.getByTestId("retry"));
+    await user.press(screen.getByTestId("retry"));
 
     await waitFor(() => {
       expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
@@ -69,5 +76,51 @@ describe("StateCard", () => {
 
     expect(onPress).not.toHaveBeenCalled();
     expect(Haptics.selectionAsync).not.toHaveBeenCalled();
+  });
+
+  it("owns the pending state of an asynchronous action", async () => {
+    let resolveAction: (() => void) | undefined;
+    const actionPromise = new Promise<void>((resolve) => {
+      resolveAction = resolve;
+    });
+    const onPress = jest.fn(() => actionPromise);
+    const user = userEvent.setup();
+    const screen = await render(
+      <ThemeProvider>
+        <StateCard
+          title="Erreur"
+          action={{
+            label: "Réessayer",
+            loadingLabel: "Actualisation…",
+            onPress,
+            testID: "retry",
+          }}
+        />
+      </ThemeProvider>,
+    );
+
+    const pressPromise = user.press(screen.getByTestId("retry"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Actualisation…")).toBeTruthy();
+      expect(screen.getByTestId("retry").props.accessibilityState).toEqual({
+        disabled: true,
+        busy: true,
+      });
+    });
+
+    await act(async () => {
+      resolveAction?.();
+      await actionPromise;
+      await pressPromise;
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Réessayer")).toBeTruthy();
+      expect(screen.getByTestId("retry").props.accessibilityState).toEqual({
+        disabled: false,
+        busy: false,
+      });
+    });
   });
 });

@@ -4,6 +4,7 @@ import type { ClubResponse } from "@/src/shared/generated/models";
 import Hero from "@/src/shared/ui/hero";
 import SeasonSelect from "@/src/shared/ui/form/season-select";
 import type { SelectOption } from "@/src/shared/ui/form/select-sheet";
+import { toClubHeroPresentation } from "@/src/modules/club/view-models/club-hero-presentation";
 
 export type ClubHeroProps = {
   club: ClubResponse;
@@ -18,8 +19,6 @@ export type ClubHeroProps = {
   isSeasonError: boolean;
 };
 
-const AVATAR_SIZE = 90;
-
 const ClubHero: React.FC<ClubHeroProps> = ({
   club,
   onEdit,
@@ -30,7 +29,8 @@ const ClubHero: React.FC<ClubHeroProps> = ({
   isSeasonLoading,
   isSeasonError,
 }) => {
-  const topLeftNode = useMemo(() => {
+  const presentation = toClubHeroPresentation(club);
+  const topAccessory = useMemo(() => {
     if (!showSeasonSelect) return null;
     if (isSeasonLoading) return null;
     if (isSeasonError) return null;
@@ -55,20 +55,16 @@ const ClubHero: React.FC<ClubHeroProps> = ({
 
   return (
     <Hero
-      title={club.name}
-      avatarUri={club.logoUrl}
+      variant="title"
+      title={presentation.title}
+      avatarUri={presentation.avatarUri}
       avatarFallback={require("@/assets/clubs/default_club_logo.png")}
-      backgroundUri={club.logoUrl}
+      backgroundUri={presentation.backgroundUri}
       backgroundFallback={require("@/assets/clubs/default_club_logo.png")}
       onEdit={onEdit}
       testID="club-hero"
       editTestID="club-hero-edit-action"
-      containerRadius={16}
-      avatarSize={AVATAR_SIZE}
-      avatarRadius={24}
-      blurRadius={60}
-      titleLines={2}
-      topLeftNode={topLeftNode}
+      topAccessory={topAccessory}
     />
   );
 };

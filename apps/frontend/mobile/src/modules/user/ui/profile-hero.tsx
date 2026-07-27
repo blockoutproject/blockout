@@ -11,8 +11,6 @@ export type UserHeroProps = {
   onEdit?: () => void;
 };
 
-const AVATAR_SIZE = 120;
-
 const ProfileHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
   const theme = useAppTheme();
   const { isPro, isHydrated } = usePurchases();
@@ -20,7 +18,7 @@ const ProfileHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
   const title = user.pseudo || "Utilisateur";
   const email = user.email || undefined;
 
-  const topLeftNode = useMemo(() => {
+  const topAccessory = useMemo(() => {
     if (!isHydrated || !isPro) return null;
 
     return (
@@ -43,6 +41,7 @@ const ProfileHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
   return (
     <View style={styles.root}>
       <Hero
+        variant={email ? "titleAndMeta" : "title"}
         title={title}
         subtitle={email}
         subtitleIcon={email ? "email-outline" : undefined}
@@ -53,12 +52,7 @@ const ProfileHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
         onEdit={onEdit}
         testID="profile-hero"
         editTestID="profile-hero-edit"
-        containerRadius={18}
-        avatarSize={AVATAR_SIZE}
-        avatarRadius={AVATAR_SIZE / 2}
-        blurRadius={60}
-        titleLines={2}
-        topLeftNode={topLeftNode}
+        topAccessory={topAccessory}
       />
     </View>
   );

@@ -16,7 +16,7 @@ import { useTeamListByClubId } from "@/src/modules/team/hooks/use-team-list-by-c
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
 
 import ErrorState from "@/src/shared/ui/feedback/error-state";
-import ClubSkeleton from "@/src/modules/club/ui/club-skeleton";
+import EntityScreenSkeleton from "@/src/shared/ui/entity/entity-screen-skeleton";
 import ClubHeader from "@/src/modules/club/ui/club-header";
 import ClubFormSheet from "@/src/modules/club/ui/club-form-sheet";
 
@@ -98,7 +98,7 @@ const ClubScreen: React.FC = () => {
   const showSeasonInHero = activeTab !== "info";
 
   const body = useMemo(() => {
-    if (isLoading) return <ClubSkeleton />;
+    if (isLoading) return <EntityScreenSkeleton testID="club-loading" />;
 
     if (error) {
       return (

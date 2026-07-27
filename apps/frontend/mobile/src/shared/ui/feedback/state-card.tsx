@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -20,7 +20,7 @@ export type StateAction = {
   /** Visible label. */
   label: string;
   /** Press handler. */
-  onPress: () => void;
+  onPress: () => void | Promise<unknown>;
   /** Optional icon name. */
   icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   /** Test id for E2E. */
@@ -35,6 +35,8 @@ export type StateAction = {
 
 /** Visual state card with optional illustration and action. */
 export type StateCardProps = {
+  /** Approved feedback anatomy. */
+  variant?: "loading" | "empty" | "search" | "error";
   /** Main title (required). */
   title: string;
   /** Optional subtitle. */
@@ -53,8 +55,18 @@ export type StateCardProps = {
 
 const ICON_SLOT = 20;
 const ICON_SIZE = 16;
+const feedbackIcons: Record<
+  NonNullable<StateCardProps["variant"]>,
+  React.ComponentProps<typeof MaterialCommunityIcons>["name"]
+> = {
+  loading: "progress-clock",
+  empty: "inbox-outline",
+  search: "magnify",
+  error: "alert-circle-outline",
+};
 
 const StateCard: React.FC<StateCardProps> = ({
+  variant = "empty",
   title,
   subtitle,
   illustrationSource,
@@ -64,6 +76,7 @@ const StateCard: React.FC<StateCardProps> = ({
   testID,
 }) => {
   const theme = useAppTheme();
+  const [actionPending, setActionPending] = useState(false);
 
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -75,14 +88,22 @@ const StateCard: React.FC<StateCardProps> = ({
   }, [fade]);
 
   const onPressAction = async () => {
-    if (!action || action.disabled || action.loading) {
+    if (!action || action.disabled || action.loading || actionPending) {
       return;
     }
-    await Haptics.selectionAsync();
-    action.onPress();
+
+    setActionPending(true);
+    try {
+      await Haptics.selectionAsync();
+      await Promise.resolve(action.onPress());
+    } finally {
+      setActionPending(false);
+    }
   };
 
-  const isActionDisabled = Boolean(action?.disabled || action?.loading);
+  const isActionLoading = Boolean(action?.loading || actionPending);
+  const isActionDisabled = Boolean(action?.disabled || isActionLoading);
+  const effectiveFallbackIcon = fallbackIcon ?? feedbackIcons[variant];
 
   return (
     <Animated.View
@@ -108,7 +129,9 @@ const StateCard: React.FC<StateCardProps> = ({
           accessible
           accessibilityLabel="Illustration"
         >
-          {illustrationSource ? (
+          {variant === "loading" ? (
+            <ActivityIndicator size="large" color={theme.text} />
+          ) : illustrationSource ? (
             <Image
               source={illustrationSource}
               style={styles.image}
@@ -116,7 +139,7 @@ const StateCard: React.FC<StateCardProps> = ({
             />
           ) : (
             <MaterialCommunityIcons
-              name={fallbackIcon ?? "information-outline"}
+              name={effectiveFallbackIcon}
               size={44}
               color={withAlpha(theme.text, 0.6)}
             />
@@ -172,7 +195,7 @@ const StateCard: React.FC<StateCardProps> = ({
             accessibilityLabel={action.label}
             accessibilityState={{
               disabled: isActionDisabled,
-              busy: Boolean(action.loading),
+              busy: isActionLoading,
             }}
             testID={action.testID}
           >
@@ -185,7 +208,7 @@ const StateCard: React.FC<StateCardProps> = ({
                   },
                 ]}
               >
-                {action.loading ? (
+                {isActionLoading ? (
                   <ActivityIndicator size="small" color={theme.text} />
                 ) : action.icon ? (
                   <MaterialCommunityIcons
@@ -203,7 +226,7 @@ const StateCard: React.FC<StateCardProps> = ({
                   },
                 ]}
               >
-                {action.loading && action.loadingLabel
+                {isActionLoading && action.loadingLabel
                   ? action.loadingLabel
                   : action.label}
               </Text>

@@ -1,7 +1,8 @@
 import React from "react";
-import { spacing, useAppTheme, withAlpha } from "@/src/shared/theme";
+import { useAppTheme } from "@/src/shared/theme";
 import type { ClubSearchResponse } from "@/src/shared/generated/models";
-import EntityGradientCard from "@/src/shared/ui/entity/entity-gradient-card";
+import EntityCard from "@/src/shared/ui/entity/entity-card";
+import { toSearchClubCardPresentation } from "@/src/modules/search/view-models/search-card-presentation";
 
 export interface ClubCardProps {
   club: ClubSearchResponse;
@@ -10,23 +11,18 @@ export interface ClubCardProps {
 
 const ClubCard: React.FC<ClubCardProps> = ({ club, onPress }) => {
   const theme = useAppTheme();
+  const presentation = toSearchClubCardPresentation(club, {
+    neutral: theme.textInactive,
+    male: theme.male,
+    female: theme.female,
+    mixed: theme.textSecondary,
+  });
 
   return (
-    <EntityGradientCard
-      title={club.name}
-      imageUri={club.logoUrl}
-      chips={[
-        {
-          label: club.city,
-          icon: "map-marker",
-          borderColor: theme.textInactive,
-          backgroundColor: withAlpha(theme.textInactive, 0.12),
-        },
-      ]}
+    <EntityCard
+      presentation={presentation}
       onPress={onPress}
       testID={`search-club-item-${club.id}`}
-      marginBottom={spacing[3]}
-      minHeight={90}
     />
   );
 };

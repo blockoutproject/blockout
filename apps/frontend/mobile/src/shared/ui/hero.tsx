@@ -15,6 +15,7 @@ import { Pill } from "@/src/shared/ui/pill";
 import { IconAction } from "@/src/shared/ui/icon-action";
 
 export type HeroProps = {
+  variant: "title" | "titleAndMeta";
   title: string;
   subtitle?: string;
   subtitleIcon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -29,26 +30,28 @@ export type HeroProps = {
   testID?: string;
   editTestID?: string;
 
-  containerRadius?: number;
-  avatarSize?: number;
-  avatarRadius?: number;
-  blurRadius?: number;
-  titleLines?: number;
-
-  topLeftNode?: React.ReactNode;
+  topAccessory?: React.ReactNode;
 };
 
 const DEFAULTS = {
-  containerRadius: 18,
-  avatarSize: 100,
-  avatarRadius: 24,
   blurRadius: 60,
-  titleLines: 2,
   EDGE: 0.95,
   MID: 0.0,
 };
 
+const variants = {
+  title: {
+    avatarSize: 90,
+    avatarRadius: 24,
+  },
+  titleAndMeta: {
+    avatarSize: 120,
+    avatarRadius: 60,
+  },
+} as const;
+
 const Hero: React.FC<HeroProps> = ({
+  variant,
   title,
   subtitle,
   subtitleIcon,
@@ -63,16 +66,11 @@ const Hero: React.FC<HeroProps> = ({
   testID = "entity-hero",
   editTestID = "entity-hero-edit",
 
-  containerRadius = DEFAULTS.containerRadius,
-  avatarSize = DEFAULTS.avatarSize,
-  avatarRadius = DEFAULTS.avatarRadius,
-  blurRadius = DEFAULTS.blurRadius,
-  titleLines = DEFAULTS.titleLines,
-
-  topLeftNode,
+  topAccessory,
 }) => {
   const theme = useAppTheme();
-  const isTitleOnly = !subtitle;
+  const isTitleOnly = variant === "title";
+  const geometry = variants[variant];
 
   const bgSource =
     (backgroundUri ? { uri: backgroundUri } : undefined) ??
@@ -81,15 +79,12 @@ const Hero: React.FC<HeroProps> = ({
     avatarFallback;
 
   return (
-    <View
-      style={[styles.wrapper, { borderRadius: containerRadius }]}
-      testID={testID}
-    >
+    <View style={styles.wrapper} testID={testID}>
       <Image
         source={bgSource}
         style={RNStyleSheet.absoluteFill}
         contentFit="cover"
-        blurRadius={blurRadius}
+        blurRadius={DEFAULTS.blurRadius}
       />
 
       <LinearGradient
@@ -117,8 +112,8 @@ const Hero: React.FC<HeroProps> = ({
         style={RNStyleSheet.absoluteFill}
       />
 
-      {topLeftNode ? (
-        <View style={styles.topLeftNode}>{topLeftNode}</View>
+      {topAccessory ? (
+        <View style={styles.topAccessory}>{topAccessory}</View>
       ) : null}
 
       {onEdit ? (
@@ -146,8 +141,8 @@ const Hero: React.FC<HeroProps> = ({
       >
         <MaskedImage
           uri={avatarUri || undefined}
-          size={avatarSize}
-          radius={avatarRadius}
+          size={geometry.avatarSize}
+          radius={geometry.avatarRadius}
           shadow
         />
 
@@ -157,7 +152,7 @@ const Hero: React.FC<HeroProps> = ({
             isTitleOnly ? styles.titleOnlyTitle : undefined,
             { color: theme.text },
           ]}
-          numberOfLines={titleLines}
+          numberOfLines={2}
         >
           {title}
         </Text>
@@ -186,8 +181,10 @@ const styles = StyleSheet.create({
   wrapper: {
     overflow: "hidden",
     position: "relative",
+    borderRadius: 18,
+    borderCurve: "continuous",
   },
-  topLeftNode: {
+  topAccessory: {
     position: "absolute",
     top: 10,
     left: 10,

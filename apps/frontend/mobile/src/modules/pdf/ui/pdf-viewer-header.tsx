@@ -1,11 +1,12 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { iconSize, layout, spacing, useAppTheme } from "@/src/shared/theme";
+import { iconSize, useAppTheme } from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { IconAction } from "@/src/shared/ui/icon-action";
+import ScreenHeader from "@/src/shared/ui/entity/screen-header";
 
 /** Header for pdf viewer screen with back + report. */
 export type PdfViewerHeaderProps = {
@@ -24,16 +25,11 @@ const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({
   const router = useRouter();
 
   return (
-    <View
-      style={[
-        {
-          paddingTop: insets.top,
-        },
-      ]}
-      testID="pdf-viewer-header"
-    >
-      <View style={styles.header}>
-        <View style={styles.leftGroup}>
+    <View style={{ paddingTop: insets.top }}>
+      <ScreenHeader
+        title={title}
+        testID="pdf-viewer-header"
+        leadingAction={
           <IconAction
             onPress={router.back}
             accessibilityLabel="Fermer le document"
@@ -45,60 +41,23 @@ const PdfViewerHeader: React.FC<PdfViewerHeaderProps> = ({
               color={theme.text}
             />
           </IconAction>
-
-          <Text
-            style={[
-              styles.title,
-              {
-                color: theme.text,
-              },
-            ]}
-            adjustsFontSizeToFit
-            lineBreakStrategyIOS="push-out"
-            textBreakStrategy="highQuality"
-            numberOfLines={2}
+        }
+        trailingActions={
+          <IconAction
+            onPress={onOpenReport}
+            accessibilityLabel="Signaler un problème avec ce document"
+            testID="pdf-viewer-report-action"
           >
-            {title}
-          </Text>
-        </View>
-
-        <IconAction
-          onPress={onOpenReport}
-          accessibilityLabel="Signaler un problème avec ce document"
-          testID="pdf-viewer-report-action"
-        >
-          <MaterialCommunityIcons
-            name="flag-outline"
-            size={iconSize.navigation}
-            color={theme.text}
-          />
-        </IconAction>
-      </View>
+            <MaterialCommunityIcons
+              name="flag-outline"
+              size={iconSize.navigation}
+              color={theme.text}
+            />
+          </IconAction>
+        }
+      />
     </View>
   );
 };
 
 export default PdfViewerHeader;
-
-const styles = StyleSheet.create({
-  header: {
-    height: layout.header,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 4,
-    paddingHorizontal: 12,
-  },
-  leftGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexShrink: 1,
-    flexGrow: 1,
-    gap: spacing[1],
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: "900",
-    flexShrink: 1,
-  },
-});

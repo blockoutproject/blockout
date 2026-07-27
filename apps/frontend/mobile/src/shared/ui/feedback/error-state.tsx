@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import StateCard from "./state-card";
 import { DimensionValue } from "react-native";
 
@@ -29,32 +29,18 @@ const ErrorState: React.FC<ErrorStateProps> = ({
   testID = "error-state",
   retryTestID = "error-retry",
 }) => {
-  const [retrying, setRetrying] = useState(false);
-
-  const handleRetry = async () => {
-    if (retrying) {
-      return;
-    }
-    setRetrying(true);
-    try {
-      await Promise.resolve(onRetry());
-    } finally {
-      setRetrying(false);
-    }
-  };
-
   return (
     <StateCard
+      variant="error"
       title={title}
       subtitle={subtitle}
       illustrationSource={require("@/assets/images/error.gif")}
       fallbackIcon="alert-circle-outline"
       action={{
         label: retryLabel,
-        onPress: handleRetry,
+        onPress: onRetry,
         icon: "refresh",
-        loading: retrying,
-        disabled: retrying,
+        loadingLabel: "Actualisation…",
         testID: retryTestID,
       }}
       containerStyle={[
