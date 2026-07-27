@@ -13,6 +13,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest(
     properties = {
       "clubs.geocoding.initial-delay=86400000",
+      "spring.rabbitmq.dynamic=false",
       "spring.rabbitmq.listener.simple.auto-startup=false",
       "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://localhost/unused"
     })

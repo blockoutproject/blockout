@@ -9,7 +9,11 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /** Verifies that pools-service starts against an ephemeral PostgreSQL database. */
-@SpringBootTest(properties = "spring.rabbitmq.listener.simple.auto-startup=false")
+@SpringBootTest(
+    properties = {
+      "spring.rabbitmq.dynamic=false",
+      "spring.rabbitmq.listener.simple.auto-startup=false"
+    })
 @Testcontainers
 @DisplayName("Pools application smoke test")
 class PoolsApplicationSmokeTest {
