@@ -1,3 +1,5 @@
+name: blockout
+
 services:
   blockout-rabbitmq:
     container_name: blockout-rabbitmq

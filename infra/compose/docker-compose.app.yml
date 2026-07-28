@@ -1,3 +1,5 @@
+name: blockout
+
 services:
   blockout-postgres-pools:
     container_name: blockout-postgres-pools
