@@ -5,7 +5,7 @@
   "sourceRoot": "libs/shared/python-contract-clients/src",
   "targets": {
     "generate": {
-      "executor": "@nxlv/python:run-commands",
+      "executor": "nx:run-commands",
       "dependsOn": [
         {
           "projects": "@blockout/contracts",
@@ -15,20 +15,14 @@
       "options": {
         "parallel": false,
         "commands": [
-          "openapi-generator-cli batch --clean --fail-fast libs/shared/python-contract-clients/openapi-generator.json",
-          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/club-openapi-generator.json",
-          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/config-openapi-generator.json",
-          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/team-openapi-generator.json",
-          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/pool-openapi-generator.json",
-          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/competition-openapi-generator.json",
-          "openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/match-openapi-generator.json"
+          "uv run --locked --no-sync openapi-generator-cli batch --clean --fail-fast libs/shared/python-contract-clients/openapi-generator.json",
+          "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/club-openapi-generator.json",
+          "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/config-openapi-generator.json",
+          "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/team-openapi-generator.json",
+          "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/pool-openapi-generator.json",
+          "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/competition-openapi-generator.json",
+          "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/match-openapi-generator.json"
         ]
-      }
-    },
-    "sync": {
-      "executor": "@nxlv/python:sync",
-      "options": {
-        "args": "--locked --all-packages"
       }
     },
     "build": {
@@ -43,10 +37,10 @@
       }
     },
     "test": {
-      "executor": "@nxlv/python:run-commands",
+      "executor": "nx:run-commands",
       "dependsOn": ["generate"],
       "options": {
-        "command": "python -m pytest -q libs/shared/python-contract-clients/tests"
+        "command": "uv run --locked --no-sync python -m pytest -q libs/shared/python-contract-clients/tests"
       }
     }
   },

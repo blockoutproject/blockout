@@ -1,6 +1,6 @@
-FROM python:3.12-alpine AS builder
+FROM python:3.14.6-alpine AS builder
 
-COPY --from=ghcr.io/astral-sh/uv:0.11.29 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.32 /uv /uvx /bin/
 
 WORKDIR /workspace
 
@@ -14,7 +14,7 @@ COPY libs/shared/python-contract-clients libs/shared/python-contract-clients
 
 RUN uv sync --locked --package blockout-club-scraper --no-dev --no-editable
 
-FROM python:3.12-alpine
+FROM python:3.14.6-alpine
 
 WORKDIR /app
 

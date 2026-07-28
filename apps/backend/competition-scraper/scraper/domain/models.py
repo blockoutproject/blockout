@@ -149,7 +149,7 @@ class AssociationStats:
     coefficient_points: float = 0.0
     points_penalty: int = 0
 
-    def add(self, other: "AssociationStats") -> None:
+    def add(self, other: AssociationStats) -> None:
         """Accumulate one match contribution into these ranking totals."""
         self.played += other.played
         self.wins += other.wins
