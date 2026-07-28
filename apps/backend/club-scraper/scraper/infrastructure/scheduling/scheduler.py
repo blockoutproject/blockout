@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 
@@ -11,10 +10,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from scraper.observability.logging import log_event
 
 
-def run_hourly(job: Callable[[], Awaitable[None]]) -> None:
+def run_hourly(job: Callable[[], Awaitable[None]]) -> AsyncIOScheduler:
     """Run a coroutine immediately and every sixty minutes thereafter."""
-    loop = asyncio.get_event_loop()
-    scheduler = AsyncIOScheduler(event_loop=loop)
+    scheduler = AsyncIOScheduler()
     scheduler.add_job(
         job,
         "interval",
@@ -29,13 +27,4 @@ def run_hourly(job: Callable[[], Awaitable[None]]) -> None:
         level="info",
         message="Scheduler démarré avec succès.",
     )
-
-    try:
-        loop.run_forever()
-    except KeyboardInterrupt, SystemExit:
-        log_event(
-            action="scheduler_shutdown",
-            level="info",
-            message="Scheduler arrêté par l'utilisateur.",
-        )
-        scheduler.shutdown()
+    return scheduler

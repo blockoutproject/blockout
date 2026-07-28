@@ -1,6 +1,11 @@
 """Start the club scraper."""
 
-from scraper.bootstrap import start
+import asyncio
+
+from scraper.bootstrap import app
 
 if __name__ == "__main__":
-    start()
+    try:
+        asyncio.run(app())
+    except KeyboardInterrupt:
+        pass

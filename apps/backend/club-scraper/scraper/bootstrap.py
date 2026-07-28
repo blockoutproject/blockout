@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from datetime import UTC, datetime
 
 import httpx
@@ -97,23 +98,24 @@ class ClubScraperRuntime:
             execution_duration.set(duration)
 
 
-def start() -> None:
+async def app() -> None:
     """Compose dependencies and start metrics, token refresh, and scheduling."""
     settings = load_settings()
     configure_logging(settings.log_level)
     runtime = ClubScraperRuntime(settings)
     refresher = Auth0TokenRefresher(settings, runtime.tokens)
     start_http_server(8001)
-    loop = asyncio.get_event_loop()
+    refresher_task = asyncio.create_task(refresher.run())
+    scheduler = None
 
     try:
-        loop.create_task(refresher.run())
         log_event(
             action="refresh_token_task_started",
             level="info",
             message="Tâche de rafraîchissement de token démarrée.",
         )
-        run_hourly(runtime.execute)
+        scheduler = run_hourly(runtime.execute)
+        await asyncio.Event().wait()
     except Exception as error:
         log_event(
             action="startup_error",
@@ -122,4 +124,8 @@ def start() -> None:
             error_type=type(error).__name__,
         )
     finally:
-        loop.run_until_complete(asyncio.sleep(0))
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
+        refresher_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await refresher_task

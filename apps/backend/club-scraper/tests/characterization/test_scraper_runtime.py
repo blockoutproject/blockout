@@ -237,13 +237,8 @@ def test_run_scraper_keeps_the_characterized_session_limits(monkeypatch) -> None
 def test_scheduler_registers_the_existing_hourly_job(monkeypatch) -> None:
     """Protect interval, eager first run, misfire grace, and replacement."""
 
-    class Loop:
-        def run_forever(self) -> None:
-            return None
-
     class Scheduler:
-        def __init__(self, event_loop) -> None:
-            self.event_loop = event_loop
+        def __init__(self) -> None:
             self.job = None
             self.started = False
 
@@ -256,17 +251,11 @@ def test_scheduler_registers_the_existing_hourly_job(monkeypatch) -> None:
     async def job() -> None:
         return None
 
-    loop = Loop()
-    scheduler = Scheduler(loop)
-    monkeypatch.setattr(scheduler_module.asyncio, "get_event_loop", lambda: loop)
-    monkeypatch.setattr(
-        scheduler_module,
-        "AsyncIOScheduler",
-        lambda event_loop: scheduler,
-    )
+    scheduler = Scheduler()
+    monkeypatch.setattr(scheduler_module, "AsyncIOScheduler", lambda: scheduler)
     monkeypatch.setattr(scheduler_module, "log_event", lambda **_event: None)
 
-    scheduler_module.run_hourly(job)
+    result = scheduler_module.run_hourly(job)
 
     args, kwargs = scheduler.job
     assert args == (job, "interval")
@@ -275,6 +264,7 @@ def test_scheduler_registers_the_existing_hourly_job(monkeypatch) -> None:
     assert kwargs["replace_existing"] is True
     assert kwargs["next_run_time"].tzinfo is not None
     assert scheduler.started is True
+    assert result is scheduler
 
 
 def test_auth0_refresh_keeps_the_token_for_172800_seconds(monkeypatch) -> None:
@@ -307,37 +297,49 @@ def test_auth0_refresh_keeps_the_token_for_172800_seconds(monkeypatch) -> None:
     asyncio.run(scenario())
 
 
-def test_startup_smoke_wires_metrics_refresh_and_scheduler_without_network(
+def test_application_startup_uses_the_running_loop_and_cleans_up(
     monkeypatch,
 ) -> None:
     """Exercise the production entry composition without external I/O."""
 
-    class Loop:
-        def __init__(self) -> None:
-            self.tasks = 0
-            self.drains = 0
+    async def scenario() -> None:
+        class Scheduler:
+            def __init__(self) -> None:
+                self.shutdown_calls: list[bool] = []
 
-        def create_task(self, coroutine) -> None:
-            self.tasks += 1
-            coroutine.close()
+            def shutdown(self, wait: bool = True) -> None:
+                self.shutdown_calls.append(wait)
 
-        def run_until_complete(self, coroutine) -> None:
-            self.drains += 1
-            coroutine.close()
+        class Event:
+            async def wait(self) -> None:
+                return None
 
-    loop = Loop()
-    ports: list[int] = []
-    jobs: list = []
-    monkeypatch.setattr(bootstrap, "load_settings", _settings)
-    monkeypatch.setattr(bootstrap, "configure_logging", lambda _level: None)
-    monkeypatch.setattr(bootstrap, "start_http_server", ports.append)
-    monkeypatch.setattr(bootstrap.asyncio, "get_event_loop", lambda: loop)
-    monkeypatch.setattr(bootstrap, "run_hourly", jobs.append)
-    monkeypatch.setattr(bootstrap, "log_event", lambda **_event: None)
+        class Refresher:
+            def __init__(self, *_args) -> None:
+                pass
 
-    bootstrap.start()
+            async def run(self) -> None:
+                await asyncio.Event().wait()
 
-    assert ports == [8001]
-    assert loop.tasks == 1
-    assert loop.drains == 1
-    assert len(jobs) == 1
+        ports: list[int] = []
+        jobs: list = []
+        scheduler = Scheduler()
+        monkeypatch.setattr(bootstrap, "load_settings", _settings)
+        monkeypatch.setattr(bootstrap, "configure_logging", lambda _level: None)
+        monkeypatch.setattr(bootstrap, "start_http_server", ports.append)
+        monkeypatch.setattr(bootstrap, "Auth0TokenRefresher", Refresher)
+        monkeypatch.setattr(bootstrap.asyncio, "Event", Event)
+        monkeypatch.setattr(
+            bootstrap,
+            "run_hourly",
+            lambda job: jobs.append(job) or scheduler,
+        )
+        monkeypatch.setattr(bootstrap, "log_event", lambda **_event: None)
+
+        await bootstrap.app()
+
+        assert ports == [8001]
+        assert len(jobs) == 1
+        assert scheduler.shutdown_calls == [False]
+
+    asyncio.run(scenario())
