@@ -29,9 +29,15 @@ checks.
 
 ## Verification
 
-Start only the required dependencies, confirm health before application smokes, use non-production data and credentials,
-and stop or report any external write path. Verify effective Compose configuration, application startup, expected port,
-health endpoint, representative local flow, and `git diff --check`.
+For ordinary task smokes, start only the required dependencies. The Merge Train Runbook is the release exception: for
+every candidate, start and reverify both Compose definitions, every third-party container, every Java application and
+worker, both Python scrapers in safe local mode, Metro, the installed development client, and the supported Auth0
+login/protected-flow/sign-out path. Missing credentials, provider configuration, simulator support, or another required
+prerequisite blocks release; never reduce the topology based on changed paths or agent judgment.
+
+Confirm health before application smokes, use non-production data and credentials, and stop or report any external
+write path. Verify effective Compose configuration, application startup, expected port, health endpoint,
+representative local flow, and `git diff --check`.
 
 ## Visual Session Lifecycle
 

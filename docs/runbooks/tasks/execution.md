@@ -99,10 +99,11 @@ Merge always needs separate current-user authorization. Before it:
 
 - make the PR ready;
 - reread latest head, base, diff, claim, Workset, criteria, reviews, and checks;
-- refresh by rebase when `develop` changed;
-- rerun affected validation;
+- authorize only the Merge train's startup snapshot;
+- refresh in an isolated worktree by rebase when `develop` changed;
+- rerun every head-bound check and the complete local stack/authentication proof;
 - record any explicit check waiver; and
-- use the single-PR merge runbook when requested.
+- use the Merge train runbook when requested, never resolving or pushing a conflict.
 
 After merge or another terminal/blocker transition, run dependency unlock reconciliation and Epic rollup before
 reporting completion or acquiring more work.

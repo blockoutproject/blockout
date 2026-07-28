@@ -56,9 +56,10 @@ The self-contained worker prompt must:
 
 ## Human Release And Restart
 
-Run [`merge.md`](merge.md) only on explicit user request. It releases at most one eligible PR and never refreshes other
-branches. After a stable merge, rejection, or claim release, a later controller cycle may dispatch newly reconciled
-Ready work.
+Run [`merge.md`](merge.md) only on explicit user request. It snapshots all structurally valid non-draft PRs approved by
+that invocation and drains them sequentially through isolated refresh, complete stack/authentication proof, merge, and
+reconciliation. It stops fail-closed on the first conflict or failed gate. After a stable merge, rejection, or claim
+release, a later controller cycle may dispatch newly reconciled Ready work.
 
 ## Stop Report
 

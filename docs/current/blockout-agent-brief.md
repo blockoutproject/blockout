@@ -37,7 +37,9 @@ Use [task discovery](../runbooks/tasks/discovery.md) for read-only inspection,
 [task execution](../runbooks/tasks/execution.md) for an already selected or acquired issue. Use
 [Ready drain](../runbooks/tasks/ready-drain.md) only when the user explicitly authorizes all compatible
 `DEFAULT_EXECUTION` work to be published as separate draft pull requests. Use the
-[single-PR merge runbook](../runbooks/tasks/merge.md) only with explicit current-user merge authorization.
+[Merge train runbook](../runbooks/tasks/merge.md) only with explicit current-user merge authorization. That invocation
+snapshots the structurally valid non-draft PRs, then refreshes, fully validates, merges, and reconciles them sequentially
+while stopping fail-closed on the first conflict or failed gate.
 
 ## Source Routing
 

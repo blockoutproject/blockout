@@ -133,15 +133,20 @@ Before merge:
 
 1. Reread the current PR, base, head, latest diff, linked issue, claim, workset, acceptance criteria, reviews, and
    checks.
-2. Require separate current-user merge authorization.
+2. Require separate current-user merge authorization. A Merge task invocation authorizes only its startup snapshot of
+   structurally valid non-draft PRs; earlier execution, GitFlow approval, or a later ready-for-review transition is
+   insufficient.
 3. Require a non-draft PR whose diff remains inside the workset.
 4. Require every applicable validation and required check to pass. A missing or failing check requires a recorded human
    waiver, except the narrowly documented zero-step GitHub billing classification in the lifecycle and merge runbook.
-5. Merge to `develop` through the repository-supported merge-commit path and delete only the selected PR's remote task
+5. Require the Merge Train Runbook's complete local stack, health, Auth0 authentication, protected application access,
+   and sign-out evidence on the exact head. This release smoke is never reduced to the changed workset.
+6. Merge to `develop` through the repository-supported merge-commit path and delete only the selected PR's remote task
    branch with `--match-head-commit`.
-6. Reread the merged PR, remote branch absence, issue, and Project item.
-7. Complete the issue only after every completion guard passes, then reconcile direct dependents and parent Epics.
-8. Obtain stable post-mutation snapshots before reporting release completion.
+7. Reread the merged PR, remote branch absence, issue, and Project item.
+8. Complete the issue only after every completion guard passes, then reconcile direct dependents and parent Epics.
+9. Obtain stable post-mutation snapshots, then let the Merge train recompute its remaining authorized snapshot against
+   the new `develop`.
 
 Absence of branch protection, rulesets, or required checks never waives these repository rules. Never enable
 auto-merge by inference.
@@ -153,13 +158,19 @@ Refresh a task branch with rebase:
 1. Require a clean task worktree and prove no other worker is writing the branch.
 2. Fetch `origin/develop` and the remote task branch and record the expected remote task head.
 3. Rebase the task branch onto `origin/develop`; never merge `develop` into it.
-4. Resolve only deterministic in-scope conflicts. Otherwise abort and stop.
+4. Resolve only deterministic in-scope conflicts during ordinary task work. Otherwise abort and stop.
 5. Rerun every validation affected by the resulting tree.
 6. Push normally when unpublished; otherwise use `--force-with-lease` against the verified remote head.
 7. Reread PR head, diff, checks, claim, and workset.
 
 Never use plain `--force`, rebase `develop`, or rewrite a branch while another worker owns it. A refreshed head
 invalidates prior checks and release evidence.
+
+The explicitly invoked Merge train may perform this refresh in an isolated detached temporary worktree for each PR in
+its startup snapshot. It must bind `--force-with-lease` to the verified old remote SHA, never mutate an existing local
+task worktree, and never resolve a rebase conflict. On conflict it aborts, leaves the remote head unchanged, returns the
+PR to draft, records evidence, retains `In Review`, and stops. A clean rebase with an equivalent effective diff remains
+covered by the train invocation; a changed diff or risk requires a new approval.
 
 ## Link Mode
 
@@ -177,7 +188,8 @@ A PR title, branch name, or commit message is not structural issue-link evidence
 - Stage only explicit intended paths.
 - Do not mix formatting churn, generated churn, refactors, cleanup, or follow-up outside the issue workset.
 - Never discard user work, use destructive Git, plain force-push, or delete a branch without explicit authority.
-- The merge runbook may delete only the selected merged PR's unchanged remote head branch.
+- The merge runbook may refresh only remote heads in its startup snapshot and delete only each confirmed merged PR's
+  unchanged remote head branch.
 - The controlled task-branch refresh above is the only routine history rewrite.
 - When intended and unrelated changes overlap inseparably in one file, stop and ask.
 - Contract-first work keeps source contracts, required generation, and minimal consumer compilation fixes in one
@@ -201,8 +213,9 @@ After an authorized merge, fetch `origin/develop`, fast-forward local `develop` 
 `git merge --ff-only origin/develop`, and verify status and the resulting commit. If another worktree owns `develop`,
 update only the remote-tracking ref and report the checkout that still needs synchronization.
 
-The explicit merge runbook is the exception: it never mutates local or remaining PR branches and ends with a reminder
-listing branches that need refresh.
+The explicit Merge Train Runbook is the exception: it refreshes only authorized remote PR heads through isolated
+temporary worktrees, never mutates existing local task branches, and ends with a reminder listing local branches that
+need refresh.
 
 ## Final Report
 

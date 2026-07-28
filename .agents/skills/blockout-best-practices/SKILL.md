@@ -46,7 +46,7 @@ the current task. Detailed rules live in the references rather than in this entr
 | Business model ownership or delivered runtime posture                         | `references/baseline-v1-policy.md`, `docs/current/blockout-product-runtime-context.md`, and owning sources  |
 | Roadmap discovery, acquisition, claim, resume, scope, or draft publication    | `references/github-roadmap-operations.md` and the applicable task runbook                                   |
 | Drain compatible Ready issues                                                 | `references/github-roadmap-operations.md` and `docs/runbooks/tasks/ready-drain.md`                          |
-| Merge one pull request                                                        | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`  |
+| Drain an approved PR snapshot                                                 | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`  |
 | Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                    |
 | Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md`                                                                   |
 | Track, issue identifier, label, or Workset area taxonomy                      | `references/github-taxonomy.md`                                                                             |
@@ -103,8 +103,10 @@ generated Orval client. A future contract change requires an explicit task and p
   Markdown task or claim ledger, hidden claim state, lease, or session-token subsystem.
 - Read-only task inspection uses `docs/runbooks/tasks/discovery.md`. Work intended to continue uses
   `docs/runbooks/tasks/acquisition.md`. Selected or acquired work uses `docs/runbooks/tasks/execution.md`.
-- Ready-frontier automation uses `docs/runbooks/tasks/ready-drain.md`; explicit single-PR release uses
-  `docs/runbooks/tasks/merge.md`.
+- Ready-frontier automation uses `docs/runbooks/tasks/ready-drain.md`. Explicit release uses
+  `docs/runbooks/tasks/merge.md`: it snapshots the eligible non-draft PRs authorized by the invocation, refreshes and
+  validates them sequentially, proves the complete local stack and authentication flow, merges each unchanged head
+  separately, and stops fail-closed on the first conflict or failed gate.
 - Never create a task branch, develop a task-specific plan, or edit task files before a successful stable claim.
   `PLAN_REQUIRED` also requires current-user plan approval.
 - Preserve unrelated changes, stage explicit paths, validate honestly, push one coherent task branch, and open one
