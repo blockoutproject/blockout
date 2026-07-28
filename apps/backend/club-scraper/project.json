@@ -5,57 +5,54 @@
   "sourceRoot": "apps/backend/club-scraper",
   "targets": {
     "serve": {
-      "executor": "@nxlv/python:run-commands",
+      "executor": "nx:run-commands",
       "continuous": true,
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python main.py local",
-        "installDependenciesIfNotExists": true
+        "command": "uv run --locked --no-sync python main.py local"
       }
     },
     "syntax-check": {
-      "executor": "@nxlv/python:run-commands",
+      "executor": "nx:run-commands",
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python -m compileall -q main.py scraper tests",
-        "installDependenciesIfNotExists": true
+        "command": "uv run --locked --no-sync python -m compileall -q main.py scraper tests"
       }
     },
     "test": {
-      "executor": "@nxlv/python:run-commands",
+      "executor": "nx:run-commands",
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python -m pytest -q",
-        "installDependenciesIfNotExists": true
+        "command": "uv run --locked --no-sync python -m pytest -q"
       }
     },
     "lint": {
-      "executor": "@nxlv/python:run-commands",
+      "executor": "nx:run-commands",
       "options": {
         "cwd": "apps/backend/club-scraper",
-        "command": "python -m ruff check .",
-        "installDependenciesIfNotExists": true
+        "command": "uv run --locked --no-sync python -m ruff check ."
       }
     },
     "format": {
-      "executor": "@nxlv/python:run-commands",
-      "options": {
-        "cwd": "apps/backend/club-scraper",
-        "commands": ["python -m ruff check --fix .", "python -m ruff format ."],
-        "parallel": false,
-        "installDependenciesIfNotExists": true
-      }
-    },
-    "format-check": {
-      "executor": "@nxlv/python:run-commands",
+      "executor": "nx:run-commands",
       "options": {
         "cwd": "apps/backend/club-scraper",
         "commands": [
-          "python -m ruff check .",
-          "python -m ruff format --check ."
+          "uv run --locked --no-sync python -m ruff check --fix .",
+          "uv run --locked --no-sync python -m ruff format ."
         ],
-        "parallel": false,
-        "installDependenciesIfNotExists": true
+        "parallel": false
+      }
+    },
+    "format-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/backend/club-scraper",
+        "commands": [
+          "uv run --locked --no-sync python -m ruff check .",
+          "uv run --locked --no-sync python -m ruff format --check ."
+        ],
+        "parallel": false
       }
     },
     "docker-build": {

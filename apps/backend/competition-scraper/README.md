@@ -6,12 +6,15 @@ Blockout's internal APIs.
 
 ## Local setup
 
+From the repository root, create the single shared Python environment:
+
 ```shell
 uv sync --locked --all-packages
 ```
 
-The command creates the single ignored workspace `.venv`. Run the local checks
-through Nx from the repository root:
+Do not run `uv sync` from this application directory. Nx uses the root
+workspace `.venv` without synchronizing it, so run the local checks from the
+repository root after the explicit sync:
 
 ```shell
 npm exec nx run @blockout/competition-scraper:format-check

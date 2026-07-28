@@ -2,7 +2,7 @@
 name = "blockout-competition-scraper"
 version = "0.0.0"
 description = "Blockout FFVB and LNV competition ingestion application"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "apscheduler==3.11.3",
     "auth0-python==6.0.0",

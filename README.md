@@ -26,7 +26,7 @@ models and clients from the V1 contracts; generated sources remain outside Git.
 
 - Node.js 22 and npm 10
 - Java 21 and Maven 3.9
-- Python 3.12 and uv 0.11.29
+- Python 3.14.6 and uv 0.11.32
 - Docker with Compose
 - Xcode or Android Studio only for native mobile builds
 
@@ -41,6 +41,9 @@ npm exec -- nx run @blockout/contracts:generate-openapi-bundles
 npm exec -- nx show projects
 mvn -f pom.xml clean package -DskipTests
 ```
+
+Run `uv sync` only from the repository root. uv owns the single workspace
+`.venv`; Nx orchestrates Python tasks without modifying that environment.
 
 Each deployable application owns a safe `.env.example`. Copy only the applications you want to run to an ignored
 `.env.local`, then replace the documented `replace-me` values with development credentials. Never commit local

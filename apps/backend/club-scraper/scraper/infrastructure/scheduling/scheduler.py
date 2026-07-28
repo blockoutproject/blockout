@@ -32,7 +32,7 @@ def run_hourly(job: Callable[[], Awaitable[None]]) -> None:
 
     try:
         loop.run_forever()
-    except (KeyboardInterrupt, SystemExit):
+    except KeyboardInterrupt, SystemExit:
         log_event(
             action="scheduler_shutdown",
             level="info",
