@@ -1,16 +1,12 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  iconSize,
-  layout,
-  spacing,
-  typography,
-  useAppTheme,
-} from "@/src/shared/theme";
+import { iconSize, useAppTheme } from "@/src/shared/theme";
+import { IconAction } from "@/src/shared/ui/icon-action";
+import ScreenHeader from "@/src/shared/ui/entity/screen-header";
 
 export type EntityScreenHeaderProps = {
   title?: string;
@@ -20,13 +16,6 @@ export type EntityScreenHeaderProps = {
   backActionTestID: string;
   editActionTestID: string;
   reportActionTestID: string;
-};
-
-const actionHitSlop = {
-  top: spacing[2],
-  bottom: spacing[2],
-  left: spacing[2],
-  right: spacing[2],
 };
 
 const EntityScreenHeader = ({
@@ -43,18 +32,14 @@ const EntityScreenHeader = ({
   const router = useRouter();
 
   return (
-    <View style={{ paddingTop: insets.top }} testID={testID}>
-      <View style={styles.header}>
-        <View style={styles.leftGroup}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Retour"
+    <View style={{ paddingTop: insets.top }}>
+      <ScreenHeader
+        title={title}
+        testID={testID}
+        leadingAction={
+          <IconAction
             onPress={router.back}
-            style={({ pressed }) => [
-              styles.backAction,
-              pressed ? styles.pressed : undefined,
-            ]}
-            hitSlop={actionHitSlop}
+            accessibilityLabel="Retour"
             testID={backActionTestID}
           >
             <Ionicons
@@ -62,92 +47,40 @@ const EntityScreenHeader = ({
               size={iconSize.navigation}
               color={theme.text}
             />
-          </Pressable>
+          </IconAction>
+        }
+        trailingActions={
+          <>
+            {onEdit ? (
+              <IconAction
+                onPress={onEdit}
+                accessibilityLabel="Modifier"
+                testID={editActionTestID}
+              >
+                <MaterialCommunityIcons
+                  name="pencil-outline"
+                  size={iconSize.navigation}
+                  color={theme.text}
+                />
+              </IconAction>
+            ) : null}
 
-          <Text
-            accessibilityRole="header"
-            style={[styles.title, { color: theme.text }]}
-            adjustsFontSizeToFit
-            lineBreakStrategyIOS="push-out"
-            textBreakStrategy="highQuality"
-            numberOfLines={2}
-          >
-            {title}
-          </Text>
-        </View>
-
-        <View style={styles.rightGroup}>
-          {onEdit ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Modifier"
-              onPress={onEdit}
-              style={({ pressed }) => (pressed ? styles.pressed : undefined)}
-              hitSlop={actionHitSlop}
-              testID={editActionTestID}
+            <IconAction
+              onPress={onOpenReport}
+              accessibilityLabel="Signaler un problème"
+              testID={reportActionTestID}
             >
               <MaterialCommunityIcons
-                name="pencil-outline"
+                name="flag-outline"
                 size={iconSize.navigation}
                 color={theme.text}
               />
-            </Pressable>
-          ) : null}
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Signaler un problème"
-            onPress={onOpenReport}
-            style={({ pressed }) => (pressed ? styles.pressed : undefined)}
-            hitSlop={actionHitSlop}
-            testID={reportActionTestID}
-          >
-            <MaterialCommunityIcons
-              name="flag-outline"
-              size={iconSize.navigation}
-              color={theme.text}
-            />
-          </Pressable>
-        </View>
-      </View>
+            </IconAction>
+          </>
+        }
+      />
     </View>
   );
 };
 
 export default EntityScreenHeader;
-
-const styles = StyleSheet.create({
-  header: {
-    height: layout.header,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing[1],
-    paddingHorizontal: spacing[3],
-  },
-  leftGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexShrink: 1,
-    flexGrow: 1,
-  },
-  rightGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: spacing[2],
-    width: 64,
-  },
-  backAction: {
-    width: iconSize.navigation,
-    height: iconSize.navigation,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing[1],
-  },
-  pressed: { opacity: 0.7 },
-  title: {
-    ...typography.bodyStrong,
-    flexShrink: 1,
-  },
-});

@@ -1,26 +1,15 @@
 import { FlashList, type ListRenderItemInfo } from "@shopify/flash-list";
 import React from "react";
-import {
-  ActivityIndicator,
-  Keyboard,
-  KeyboardAvoidingView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Keyboard, KeyboardAvoidingView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  gradients,
-  layout,
-  spacing,
-  typography,
-  useAppTheme,
-} from "@/src/shared/theme";
+import { gradients, layout, spacing, useAppTheme } from "@/src/shared/theme";
 import { SearchField } from "@/src/shared/ui/search-field";
 import FadeIn from "@/src/shared/ui/animations/fade-in";
 import { GradientPill } from "@/src/shared/ui/pill";
 import ErrorState from "@/src/shared/ui/feedback/error-state";
+import LoadingState from "@/src/shared/ui/feedback/loading-state";
+import SearchState from "@/src/shared/ui/feedback/search-state";
 
 export type SearchResultsProps<T extends { id: string | number }> = {
   search: string;
@@ -78,15 +67,12 @@ const SearchResults = <T extends { id: string | number }>({
       </View>
 
       {isLoading ? (
-        <ActivityIndicator
-          accessibilityLabel="Chargement des résultats"
-          size="small"
-          color={theme.text}
-          style={styles.loader}
+        <LoadingState
+          title="Recherche en cours…"
+          paddingTop="20%"
+          testID="search-loading"
         />
-      ) : null}
-
-      {isError ? (
+      ) : isError ? (
         <ErrorState
           subtitle="Impossible de charger les résultats."
           paddingTop="30%"
@@ -94,44 +80,38 @@ const SearchResults = <T extends { id: string | number }>({
           testID="search-error"
           retryTestID="search-retry-action"
         />
-      ) : null}
-
-      <FlashList
-        data={data ?? []}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={renderItem}
-        ListEmptyComponent={
-          !isLoading && !isError ? (
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: theme.textInactive }]}>
-                {emptyMessage}
-              </Text>
-            </View>
-          ) : null
-        }
-        ListHeaderComponent={
-          showExamples ? (
-            <FadeIn>
-              <View style={styles.examplePillContainer}>
-                <GradientPill
-                  borderWidth={1}
-                  label={exampleLabel}
-                  gradient={gradients.action}
-                />
-              </View>
-            </FadeIn>
-          ) : null
-        }
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        onScrollBeginDrag={Keyboard.dismiss}
-        contentContainerStyle={[
-          styles.listContent,
-          { paddingBottom: insets.bottom + layout.bottomNavigation },
-        ]}
-        scrollEnabled={hasResults}
-        testID={listTestID}
-      />
+      ) : (
+        <FlashList
+          data={data ?? []}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderItem}
+          ListEmptyComponent={
+            <SearchState title={emptyMessage} testID="search-empty" />
+          }
+          ListHeaderComponent={
+            showExamples ? (
+              <FadeIn>
+                <View style={styles.examplePillContainer}>
+                  <GradientPill
+                    borderWidth={1}
+                    label={exampleLabel}
+                    gradient={gradients.action}
+                  />
+                </View>
+              </FadeIn>
+            ) : null
+          }
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onScrollBeginDrag={Keyboard.dismiss}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: insets.bottom + layout.bottomNavigation },
+          ]}
+          scrollEnabled={hasResults}
+          testID={listTestID}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -148,9 +128,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing[2],
     gap: spacing[2],
   },
-  loader: { marginTop: spacing[2] },
-  emptyContainer: { alignItems: "center", marginTop: spacing[4] },
-  emptyText: { ...typography.body, textAlign: "center" },
   examplePillContainer: {
     alignItems: "center",
     marginBottom: spacing[2],

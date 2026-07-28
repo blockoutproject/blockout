@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import StateCard, { StateAction } from "./state-card";
 import { DimensionValue } from "react-native";
 
@@ -29,33 +29,19 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   testID = "empty-state",
   retryTestID = "empty-retry",
 }) => {
-  const [retrying, setRetrying] = useState(false);
-
-  const handleRetry = async () => {
-    if (!onRetry || retrying) {
-      return;
-    }
-    setRetrying(true);
-    try {
-      await Promise.resolve(onRetry());
-    } finally {
-      setRetrying(false);
-    }
-  };
-
   const action: StateAction | undefined = onRetry
     ? {
         label: retryLabel,
-        onPress: handleRetry,
+        onPress: onRetry,
         icon: "refresh",
-        loading: retrying,
-        disabled: retrying,
+        loadingLabel: "Actualisation…",
         testID: retryTestID,
       }
     : undefined;
 
   return (
     <StateCard
+      variant="empty"
       title={title}
       subtitle={subtitle}
       illustrationSource={require("@/assets/images/empty.gif")}

@@ -1,17 +1,12 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {
-  iconSize,
-  layout,
-  spacing,
-  touchTarget,
-  useAppTheme,
-} from "@/src/shared/theme";
+import { iconSize, useAppTheme } from "@/src/shared/theme";
 
 import { useBackOrClose } from "@/src/shared/hooks/use-back-or-close";
 import { IconAction } from "@/src/shared/ui/icon-action";
+import ScreenHeader from "@/src/shared/ui/entity/screen-header";
 
 /** Header for a legal document in a sheet. */
 export type LegalDocumentHeaderProps = {
@@ -32,73 +27,35 @@ const LegalDocumentHeader: React.FC<LegalDocumentHeaderProps> = ({
   const { handleBack } = useBackOrClose(onCloseSheet);
 
   return (
-    <View style={styles.container} testID="legal-doc-header">
-      <View style={styles.header}>
-        <View style={styles.leftGroup}>
+    <View>
+      <ScreenHeader
+        title={title}
+        testID="legal-doc-header"
+        leadingAction={
           <IconAction
             onPress={handleBack}
             accessibilityLabel="Fermer le document"
           >
             <Ionicons name="close" size={iconSize.xl} color={theme.text} />
           </IconAction>
-
-          <Text
-            style={[
-              styles.title,
-              {
-                color: theme.text,
-              },
-            ]}
-            adjustsFontSizeToFit
-            numberOfLines={1}
-          >
-            {title}
-          </Text>
-        </View>
-
-        {onEdit ? (
-          <IconAction
-            onPress={onEdit}
-            accessibilityLabel="Modifier le document"
-          >
-            <MaterialCommunityIcons
-              name="pencil"
-              size={iconSize.lg}
-              color={theme.text}
-            />
-          </IconAction>
-        ) : (
-          <View style={styles.actionSpacer} />
-        )}
-      </View>
+        }
+        trailingActions={
+          onEdit ? (
+            <IconAction
+              onPress={onEdit}
+              accessibilityLabel="Modifier le document"
+            >
+              <MaterialCommunityIcons
+                name="pencil"
+                size={iconSize.lg}
+                color={theme.text}
+              />
+            </IconAction>
+          ) : null
+        }
+      />
     </View>
   );
 };
 
 export default LegalDocumentHeader;
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "transparent",
-  },
-  header: {
-    height: layout.header,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-  },
-  leftGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    gap: spacing[1],
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  actionSpacer: {
-    width: touchTarget.minimum,
-  },
-});

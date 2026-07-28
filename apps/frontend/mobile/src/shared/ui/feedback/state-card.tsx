@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -13,14 +13,21 @@ import {
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAppTheme, withAlpha } from "@/src/shared/theme";
+import {
+  borderWidth,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+  withAlpha,
+} from "@/src/shared/theme";
 
 /** Button-like action attached to the state card. */
 export type StateAction = {
   /** Visible label. */
   label: string;
   /** Press handler. */
-  onPress: () => void;
+  onPress: () => void | Promise<unknown>;
   /** Optional icon name. */
   icon?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   /** Test id for E2E. */
@@ -35,6 +42,8 @@ export type StateAction = {
 
 /** Visual state card with optional illustration and action. */
 export type StateCardProps = {
+  /** Approved feedback anatomy. */
+  variant?: "loading" | "empty" | "search" | "error";
   /** Main title (required). */
   title: string;
   /** Optional subtitle. */
@@ -53,8 +62,18 @@ export type StateCardProps = {
 
 const ICON_SLOT = 20;
 const ICON_SIZE = 16;
+const feedbackIcons: Record<
+  NonNullable<StateCardProps["variant"]>,
+  React.ComponentProps<typeof MaterialCommunityIcons>["name"]
+> = {
+  loading: "progress-clock",
+  empty: "inbox-outline",
+  search: "magnify",
+  error: "alert-circle-outline",
+};
 
 const StateCard: React.FC<StateCardProps> = ({
+  variant = "empty",
   title,
   subtitle,
   illustrationSource,
@@ -64,6 +83,7 @@ const StateCard: React.FC<StateCardProps> = ({
   testID,
 }) => {
   const theme = useAppTheme();
+  const [actionPending, setActionPending] = useState(false);
 
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -75,19 +95,34 @@ const StateCard: React.FC<StateCardProps> = ({
   }, [fade]);
 
   const onPressAction = async () => {
-    if (!action || action.disabled || action.loading) {
+    if (!action || action.disabled || action.loading || actionPending) {
       return;
     }
-    await Haptics.selectionAsync();
-    action.onPress();
+
+    setActionPending(true);
+    try {
+      await Haptics.selectionAsync();
+      await Promise.resolve(action.onPress());
+    } finally {
+      setActionPending(false);
+    }
   };
 
-  const isActionDisabled = Boolean(action?.disabled || action?.loading);
+  const isActionLoading = Boolean(action?.loading || actionPending);
+  const isActionDisabled = Boolean(action?.disabled || isActionLoading);
+  const isCompact = variant !== "empty";
+  const effectiveFallbackIcon = fallbackIcon ?? feedbackIcons[variant];
+  const indicatorColor = {
+    loading: theme.primary,
+    search: theme.warning,
+    error: theme.error,
+  }[variant as "loading" | "search" | "error"];
 
   return (
     <Animated.View
       style={[
         styles.root,
+        !isCompact && styles.emptyRoot,
         {
           backgroundColor: theme.background,
           opacity: fade,
@@ -97,35 +132,52 @@ const StateCard: React.FC<StateCardProps> = ({
       testID={testID}
       accessibilityRole="summary"
     >
-      <View style={styles.centerStack}>
-        <View
-          style={[
-            styles.visualWrap,
-            {
-              backgroundColor: withAlpha(theme.text, 0.06),
-            },
-          ]}
-          accessible
-          accessibilityLabel="Illustration"
-        >
-          {illustrationSource ? (
-            <Image
-              source={illustrationSource}
-              style={styles.image}
-              contentFit="contain"
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name={fallbackIcon ?? "information-outline"}
-              size={44}
-              color={withAlpha(theme.text, 0.6)}
-            />
-          )}
-        </View>
+      <View
+        style={[
+          isCompact ? styles.compactCard : styles.centerStack,
+          isCompact && {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+          },
+        ]}
+      >
+        {isCompact ? (
+          <View
+            style={[
+              styles.compactIndicator,
+              { backgroundColor: indicatorColor },
+            ]}
+          />
+        ) : (
+          <View
+            style={[
+              styles.visualWrap,
+              {
+                backgroundColor: withAlpha(theme.text, 0.06),
+              },
+            ]}
+            accessible
+            accessibilityLabel="Illustration"
+          >
+            {illustrationSource ? (
+              <Image
+                source={illustrationSource}
+                style={styles.image}
+                contentFit="contain"
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name={effectiveFallbackIcon}
+                size={44}
+                color={withAlpha(theme.text, 0.6)}
+              />
+            )}
+          </View>
+        )}
 
         <Text
           style={[
-            styles.title,
+            isCompact ? styles.compactTitle : styles.title,
             {
               color: theme.text,
             },
@@ -141,7 +193,7 @@ const StateCard: React.FC<StateCardProps> = ({
             style={[
               styles.subtitle,
               {
-                color: theme.textInactive,
+                color: isCompact ? theme.textSecondary : theme.textInactive,
               },
             ]}
             numberOfLines={4}
@@ -159,7 +211,7 @@ const StateCard: React.FC<StateCardProps> = ({
               color: withAlpha(theme.text, 0.12),
             }}
             style={({ pressed }) => [
-              styles.button,
+              isCompact ? styles.compactButton : styles.button,
               {
                 backgroundColor:
                   pressed && !isActionDisabled
@@ -172,38 +224,41 @@ const StateCard: React.FC<StateCardProps> = ({
             accessibilityLabel={action.label}
             accessibilityState={{
               disabled: isActionDisabled,
-              busy: Boolean(action.loading),
+              busy: isActionLoading,
             }}
+            hitSlop={isCompact ? spacing[1] : undefined}
             testID={action.testID}
           >
             <View style={styles.btnContent}>
-              <View
-                style={[
-                  styles.iconSlot,
-                  {
-                    width: ICON_SLOT,
-                  },
-                ]}
-              >
-                {action.loading ? (
-                  <ActivityIndicator size="small" color={theme.text} />
-                ) : action.icon ? (
-                  <MaterialCommunityIcons
-                    name={action.icon}
-                    size={ICON_SIZE}
-                    color={theme.text}
-                  />
-                ) : null}
-              </View>
+              {!isCompact && (
+                <View
+                  style={[
+                    styles.iconSlot,
+                    {
+                      width: ICON_SLOT,
+                    },
+                  ]}
+                >
+                  {isActionLoading ? (
+                    <ActivityIndicator size="small" color={theme.text} />
+                  ) : action.icon ? (
+                    <MaterialCommunityIcons
+                      name={action.icon}
+                      size={ICON_SIZE}
+                      color={theme.text}
+                    />
+                  ) : null}
+                </View>
+              )}
               <Text
                 style={[
-                  styles.buttonText,
+                  isCompact ? styles.compactButtonText : styles.buttonText,
                   {
                     color: theme.text,
                   },
                 ]}
               >
-                {action.loading && action.loadingLabel
+                {isActionLoading && action.loadingLabel
                   ? action.loadingLabel
                   : action.label}
               </Text>
@@ -220,7 +275,27 @@ export default StateCard;
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  emptyRoot: {
     paddingHorizontal: 16,
+  },
+  compactCard: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    borderRadius: radius.lg,
+    borderWidth: borderWidth.thin,
+    gap: spacing[3],
+    marginHorizontal: spacing[2],
+    padding: spacing[4],
+  },
+  compactIndicator: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.full,
+  },
+  compactTitle: {
+    ...typography.control,
+    textAlign: "center",
   },
   centerStack: {
     alignItems: "center",
@@ -263,6 +338,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     alignSelf: "center",
   },
+  compactButton: {
+    alignSelf: "center",
+    borderRadius: radius.control,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+  },
   btnContent: {
     flexDirection: "row",
     alignItems: "center",
@@ -277,5 +358,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     letterSpacing: 0.2,
+  },
+  compactButtonText: {
+    ...typography.bodyStrong,
   },
 });
