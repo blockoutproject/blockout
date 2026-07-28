@@ -33,7 +33,6 @@ import * as Haptics from "expo-haptics";
 
 import { useSessionState } from "@/src/modules/session/providers/session-context";
 import { CONFIG } from "@/src/shared/config/config";
-import RevenueCatUI from "react-native-purchases-ui";
 import { GradientPill } from "@/src/shared/ui/pill";
 import { usePurchases } from "@/src/modules/subscription/providers/purchases-provider";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
@@ -54,7 +53,7 @@ const FeedHeader: React.FC<HeaderProps> = ({
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
   const { isAuthenticated } = useSessionState();
-  const { isPro, isHydrated } = usePurchases();
+  const { isPro, isHydrated, presentPaywall } = usePurchases();
 
   const { routes } = props.navigationState;
   const { position } = props;
@@ -108,8 +107,8 @@ const FeedHeader: React.FC<HeaderProps> = ({
 
   const handleOpenPro = useCallback(async () => {
     await Haptics.selectionAsync();
-    await RevenueCatUI.presentPaywall();
-  }, []);
+    await presentPaywall();
+  }, [presentPaywall]);
 
   const showUpgradeCta = isAuthenticated && isHydrated && !isPro;
 

@@ -19,12 +19,15 @@ import { useOnboardingStore } from "@/src/modules/onboarding/model/onboarding-st
 import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
 import { useConsentGDPR } from "@/src/modules/advertising/hooks/use-consent-gdpr";
 import { PurchasesProvider } from "@/src/modules/subscription/providers/purchases-provider";
+import { configureRevenueCat } from "@/src/modules/subscription/providers/revenuecat-client";
 import { QueryProvider } from "@/src/shared/providers/query-provider";
 import type { NotificationResponse } from "expo-notifications";
 import {
   addNotificationListeners,
   openNotificationUrlIfAny,
 } from "@/src/modules/notifications/api/push-notifications";
+
+const revenueCatConfiguration = configureRevenueCat();
 
 export default function Root() {
   validateRequiredConfig();
@@ -41,7 +44,7 @@ export default function Root() {
             >
               <ApiProvider>
                 <SessionProvider>
-                  <PurchasesProvider>
+                  <PurchasesProvider configuration={revenueCatConfiguration}>
                     <SplashScreenController />
                     <RootNavigator />
                   </PurchasesProvider>
