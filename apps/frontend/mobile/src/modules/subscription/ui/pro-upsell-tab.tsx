@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import RevenueCatUI from "react-native-purchases-ui";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,7 +21,7 @@ const ProUpsellTab: React.FC<Props> = ({
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useSessionState();
-  const { isPro, isHydrated } = usePurchases();
+  const { isPro, isHydrated, presentPaywall } = usePurchases();
   const [loading, setLoading] = useState(false);
 
   const canShowCta = isAuthenticated && isHydrated && !isPro;
@@ -31,11 +30,11 @@ const ProUpsellTab: React.FC<Props> = ({
     try {
       setLoading(true);
       await Haptics.selectionAsync();
-      await RevenueCatUI.presentPaywall();
+      await presentPaywall();
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [presentPaywall]);
 
   const badge = useMemo(
     () => (
