@@ -3,7 +3,16 @@
   "analytics": false,
   "namedInputs": {
     "default": ["{projectRoot}/**/*"],
-    "production": ["default"]
+    "production": ["default"],
+    "contractSources": [
+      "{workspaceRoot}/libs/shared/contracts/specs/source/**/*.json",
+      "{workspaceRoot}/libs/shared/contracts/specs/scripts/bundle-openapi.mjs"
+    ],
+    "backendSchemaMappings": [
+      "{workspaceRoot}/libs/shared/contracts/specs/source/shared/schemas/**/*.json",
+      "{workspaceRoot}/libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.mjs",
+      "{workspaceRoot}/apps/backend/pom.xml"
+    ]
   },
   "plugins": [
     {
