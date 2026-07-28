@@ -54,15 +54,15 @@ Start from [`decisions/README.md`](decisions/README.md), then load only the doma
 
 ## Runbook Selection
 
-| Need                                                          | Runbook                                                                                |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Discover the next executable task without mutation            | [`runbooks/tasks/discovery.md`](runbooks/tasks/discovery.md)                           |
-| Acquire and reserve the next executable task                  | [`runbooks/tasks/acquisition.md`](runbooks/tasks/acquisition.md)                       |
-| Execute an approved task end to end                           | [`runbooks/tasks/execution.md`](runbooks/tasks/execution.md)                           |
-| Drain compatible Ready work into separate tasks and draft PRs | [`runbooks/tasks/ready-drain.md`](runbooks/tasks/ready-drain.md)                       |
-| Merge the first eligible pull request                         | [`runbooks/tasks/merge.md`](runbooks/tasks/merge.md)                                   |
-| Select a reusable audit or execution procedure                | [`runbooks/README.md`](runbooks/README.md)                                             |
-| Interact with Figma                                           | [`Figma policy`](../.agents/skills/blockout-best-practices/references/figma-policy.md) |
+| Need                                                            | Runbook                                                                                |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Discover the next executable task without mutation              | [`runbooks/tasks/discovery.md`](runbooks/tasks/discovery.md)                           |
+| Acquire and reserve the next executable task                    | [`runbooks/tasks/acquisition.md`](runbooks/tasks/acquisition.md)                       |
+| Execute an approved task end to end                             | [`runbooks/tasks/execution.md`](runbooks/tasks/execution.md)                           |
+| Drain compatible Ready work into separate tasks and draft PRs   | [`runbooks/tasks/ready-drain.md`](runbooks/tasks/ready-drain.md)                       |
+| Drain approved pull requests through the full-stack Merge train | [`runbooks/tasks/merge.md`](runbooks/tasks/merge.md)                                   |
+| Select a reusable audit or execution procedure                  | [`runbooks/README.md`](runbooks/README.md)                                             |
+| Interact with Figma                                             | [`Figma policy`](../.agents/skills/blockout-best-practices/references/figma-policy.md) |
 
 ## Stability Rules
 

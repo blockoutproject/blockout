@@ -85,19 +85,25 @@ Required post-merge work must be an unchecked acceptance criterion before merge.
 
 ## Review And Release
 
-Draft PR creation authorizes review, never release. Before merge:
+Draft PR creation authorizes review, never release. A current-user Merge task invocation authorizes only the startup
+snapshot of structurally valid non-draft PRs defined by the Merge Train Runbook; making a PR non-draft alone does not
+start or expand a train. Before each merge:
 
 1. Require explicit current-user merge authorization.
 2. Reread the latest PR base, head, diff, linked issue, claim, workset, criteria, reviews, and checks.
 3. Require a ready PR whose diff remains in scope and whose applicable validations pass.
 4. A missing or failing required check needs a recorded explicit human waiver. The sole automatic exception is the
    merge runbook's head-bound zero-step GitHub billing classification.
-5. Merge only after repository and lifecycle guards pass; never infer or enable auto-merge.
-6. Reread the merged PR, issue, and Project item before completion.
+5. Require the Merge Train Runbook's complete local topology, health, authenticated protected flow, and sign-out
+   evidence on the exact candidate head; changed paths or agent judgment never reduce this release smoke.
+6. Merge only after repository and lifecycle guards pass; never infer or enable auto-merge.
+7. Reread the merged PR, issue, and Project item before completion.
 
 When `develop` changed after a candidate's last validation, invalidate prior release evidence. Rebase the branch onto
-current `develop`, rerun affected validation, and request fresh merge authorization when effective diff or risk
-changed. Never merge `develop` into a task branch.
+current `develop`, then rerun all head-bound checks plus the complete release smoke. The Merge train never resolves a
+conflict: it aborts without pushing, returns the PR to draft, records exact evidence, retains the `In Review`
+reservation, and stops. A clean rebase with an equivalent effective diff remains covered by the train invocation; a
+changed diff or risk requires new approval. Never merge `develop` into a task branch.
 
 Classify each check run and head SHA through one bounded path:
 

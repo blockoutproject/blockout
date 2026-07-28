@@ -9,8 +9,7 @@ Runbooks are reusable procedures. They do not own task state, product decisions,
 - [`tasks/execution.md`](tasks/execution.md): execution of an approved task through validation and GitFlow.
 - [`tasks/ready-drain.md`](tasks/ready-drain.md): orchestration of compatible Ready work into separate tasks and draft
   pull requests.
-- [`tasks/merge.md`](tasks/merge.md): deterministic release of at most one eligible pull request without modifying
-  remaining pull-request branches.
+- [`tasks/merge.md`](tasks/merge.md): deterministic full-stack release train for the authorized non-draft PR snapshot.
 - [`mobile/visual-validation.md`](mobile/visual-validation.md): simulator, native, and Figma evidence for an owning
   mobile execution.
 
