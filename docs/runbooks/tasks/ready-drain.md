@@ -3,6 +3,9 @@
 Use this when the user explicitly asks Codex to drain all currently executable work into a human review queue. The
 controller orchestrates and never implements, owns a task branch, or merges.
 
+`Controller` and `worker` name conversational Codex roles for the current explicit invocation. They are not
+repository-hosted programs, durable services, hooks, daemons, workflows, bots, or non-interactive Codex launchers.
+
 ## Outcome
 
 Progressively create fresh Codex worktree tasks for the pairwise-compatible `DEFAULT_EXECUTION` frontier. Each worker
@@ -19,7 +22,8 @@ stable claims. Stop when no further compatible work is executable without human 
 - Create one fresh managed worktree task per issue; never reuse a worker.
 - Workers stop at draft PR and `In Review`. Merge, waiver, rejection, and completion remain human-gated.
 - The controller mutates only assignment and Ready/In Progress fields needed for dispatch and unambiguous rollback.
-- Never create a controller branch, claim ledger, lease, hidden token, or mutating roadmap helper.
+- Never create a controller branch, claim ledger, lease, hidden token, mutating roadmap helper, hook, daemon, workflow,
+  bot, or launcher.
 
 ## Controller Cycle
 
@@ -50,8 +54,8 @@ The self-contained worker prompt must:
 - enter `RESUME` and freshly validate the named claim;
 - stop without replacement if missing, unowned, `PLAN_REQUIRED`, invalid, blocked, delivered, quarantined, or
   conflicting;
-- implement only the Workset, validate, publish one draft PR to the configured integration branch, transition to
-  `In Review`, and retain locks;
+- implement only the Workset through execution's canonical claim-to-draft path, validate the exact tree, verify the
+  pushed SHA and structural PR link, transition stably to `In Review`, and retain locks;
 - never merge, waive checks, release another claim, or acquire another issue; and
 - report issue, branch, commit, PR, validation, skipped checks, and stable review evidence.
 

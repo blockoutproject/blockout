@@ -59,23 +59,33 @@ recalculate conflicts, align areas, and reread. Expansion yields to incumbents a
 
 ## GitFlow
 
-Follow the repository Git workflow:
+Follow one canonical claim-to-draft path:
 
-1. Create or reuse the claimed issue branch from the current integration branch.
-2. Implement only the Workset.
-3. Run scope-appropriate generation and validation.
-4. Inspect and stage only intended files.
-5. Commit and push.
-6. Open or update one draft PR to the configured integration branch.
-7. Apply two to four PR labels as a separate step and use lifecycle's `Refs` or `Closes` link mode.
-8. Verify labels and structural issue link.
-9. Apply lifecycle's `In Progress → In Review` guard and reread target, PR, assignee, Workset, and Status.
+1. Revalidate the stable claim, Workset, conflicts, source gate, Execution Mode, branch, and existing PR.
+2. For `PLAN_REQUIRED`, stop before branch creation or task-file edits until the Planning Gate passes.
+3. Create or reuse one claimed-issue branch from the current integration branch and implement only the Workset.
+4. Run required generation and validation against the exact intended tree.
+5. Inspect status and diff, stage only explicit intended paths, require no unintended remaining change, and commit once.
+6. Push the commit, verify the remote branch at that SHA, and preserve the local commit on any publication failure.
+7. Open or update one draft PR to the configured integration branch with lifecycle's `Refs` or `Closes` link mode.
+8. Apply two to four PR labels as a separate mutation, then verify labels, PR head, base, and structural issue link.
+9. Apply lifecycle's `In Progress → In Review` guard and obtain two stable snapshots of target, PR, assignee, Workset,
+   head, and Status.
 
 A Ready-drain worker stops here and never selects another issue.
 
 This runbook authorizes normal non-destructive Git/GitHub operations for the claimed task. It never authorizes
 destructive Git, unrelated staging, generated hand-edits, auto-merge, force pushes outside controlled refresh, check
 waivers, or merge.
+
+## Recovery
+
+Use operations' delivery recovery table for a conflict, partial claim, scope expansion, interruption, failed commit or
+push, publication failure, or failed review transition. Enter `RESUME` after interruption and continue from the first
+incomplete visible postcondition. Never compensate by opening another issue, branch, commit, or PR.
+
+If a failure changes the intended tree, rerun affected validation before commit or publication. If a draft PR exists
+but its structural link or `In Review` transition is missing, preserve the PR and reconcile only that postcondition.
 
 ## Release
 
