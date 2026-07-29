@@ -133,6 +133,29 @@ set. Apply the repository's review, check, branch, and release-validation profil
 Human release authorization is a distinct decision. Implementation, validation, review, a ready PR, or a recorded
 waiver never creates it implicitly.
 
+### Release Autonomy Gate
+
+Explicit current-user release authorization is the default. A repository may consider bounded release autonomy only
+through a separately approved planning decision when all of these conditions are evidenced:
+
+- recurring operational need demonstrated by contributor-flow measurements or failure history;
+- hosting controls that enforce pull-request-only integration, current-head review, required checks, branch integrity,
+  and bounded release permissions;
+- one narrow, mechanically classifiable eligible change class;
+- a named maintenance owner, monitoring evidence, fail-closed recovery, and reversible rollback; and
+- a separate implementation task approved before any pilot, setting, workflow, bot, application, or policy code.
+
+Available hosting capability, clean checks, review approval, or implementation confidence never opens the gate by
+itself. Satisfying the gate authorizes planning only and creates no pilot or merge authority.
+
+Security, authentication, authorization, dependencies, build or runtime configuration, contracts, generated
+interfaces, public APIs, shared models, persistence schemas, migrations, data transformations, product behavior, user
+experience, and ambiguous or mixed-scope changes remain human-release-only. Stale, failing, waived, unclassifiable, or
+conflict-resolved changes also require an explicit human release decision on the exact head.
+
+Absent an approved repository-specific activation that satisfies this gate, keep automatic merge, merge queues,
+release bots, and equivalent autonomous integration paths disabled.
+
 When the configured integration branch changes after validation, invalidate prior release evidence. Rebase the
 candidate onto the new integration head, then rerun every head-bound check and release proof. The Merge train never
 resolves a conflict: it aborts without pushing, returns the PR to draft, records exact evidence, retains the
