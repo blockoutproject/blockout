@@ -54,7 +54,7 @@
     "formik": "2.4.6",
     "jwt-decode": "4.0.0",
     "react": "19.2.0",
-    "react-native": "0.83.6",
+    "react-native": "0.83.10",
     "react-native-auth0": "5.2.1",
     "react-native-edge-to-edge": "1.7.0",
     "react-native-gesture-handler": "~2.30.0",
