@@ -13,23 +13,13 @@ import {
 import { useAppTheme } from "@/src/shared/theme";
 import { CONFIG } from "@/src/shared/config/config";
 import type { ClubResponse } from "@/src/shared/generated/models";
+import {
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_ZOOM,
+  hasMapCoordinate,
+} from "@/src/shared/model/map-presentation";
 
 const RADIUS = 18;
-
-function hasCoord(
-  lat: number | null | undefined,
-  lng: number | null | undefined,
-): lat is number {
-  return (
-    typeof lat === "number" &&
-    typeof lng === "number" &&
-    Number.isFinite(lat) &&
-    Number.isFinite(lng)
-  );
-}
-
-const DEFAULT_CENTER: [number, number] = [1.888334, 46.603354];
-const DEFAULT_ZOOM = 5;
 
 const iconIdForClub = (clubId: string) => `club-logo-${clubId}`;
 
@@ -41,7 +31,7 @@ const ClubMapCard: React.FC<Props> = ({ club }) => {
   const theme = useAppTheme();
   const cameraRef = useRef<CameraRef>(null);
 
-  const hasCoords = hasCoord(club.latitude, club.longitude);
+  const hasCoords = hasMapCoordinate(club.latitude, club.longitude);
 
   const clubId = String(club.id);
   const iconId = iconIdForClub(clubId);
@@ -84,7 +74,8 @@ const ClubMapCard: React.FC<Props> = ({ club }) => {
   }, [club, iconId]);
 
   const initialCamera = useMemo(() => {
-    if (!hasCoords) return { center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM };
+    if (!hasCoords)
+      return { center: DEFAULT_MAP_CENTER, zoom: DEFAULT_MAP_ZOOM };
     return {
       center: [club.longitude as number, club.latitude as number] as [
         number,

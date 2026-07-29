@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
@@ -25,8 +19,9 @@ import { ReportTypeEnum } from "@/src/shared/generated/models";
 
 import ClubHero from "@/src/modules/club/ui/club-hero";
 import ClubTabs from "@/src/modules/club/ui/club-tabs";
-import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 import type { SelectOption } from "@/src/shared/ui/form/select-sheet";
+import { useSeasonFilter } from "@/src/shared/hooks/use-season-filter";
+import { getEntityScreenState } from "@/src/shared/model/entity-screen-state";
 
 const ClubScreen: React.FC = () => {
   const theme = useAppTheme();
@@ -44,10 +39,6 @@ const ClubScreen: React.FC = () => {
     refetch: refetchTeams,
   } = useTeamListByClubId(clubId);
 
-  const [availableSeasons, setAvailableSeasons] = useState<string[]>([]);
-  const [selectedSeason, setSelectedSeason] = useState<string | undefined>(
-    undefined,
-  );
   const [activeTab, setActiveTab] = useState<string>("info");
 
   const formSheetRef = useRef<BottomSheetModal>(null);
@@ -67,28 +58,17 @@ const ClubScreen: React.FC = () => {
     reportSheetRef.current?.present();
   }, []);
 
-  useEffect(() => {
-    const all = teams ?? [];
-    const seasons = Array.from(
-      new Set(all.map((t) => t.season).filter((s): s is string => !!s)),
-    ).sort((a, b) => b.localeCompare(a));
-
-    setAvailableSeasons(seasons);
-    setSelectedSeason((prev) =>
-      prev && seasons.includes(prev) ? prev : seasons[0],
-    );
-  }, [teams]);
+  const {
+    availableSeasons,
+    selectedSeason,
+    setSelectedSeason,
+    filteredItems: filteredTeams,
+  } = useSeasonFilter(teams);
 
   const seasonOptions: SelectOption<string>[] = useMemo(
     () => availableSeasons.map((s) => ({ value: s, label: s })),
     [availableSeasons],
   );
-
-  const filteredTeams: TeamSummaryResponse[] = useMemo(() => {
-    const all = teams ?? [];
-    if (!selectedSeason) return all;
-    return all.filter((t) => t.season === selectedSeason);
-  }, [teams, selectedSeason]);
 
   const teamIdsForMatches = useMemo(
     () => filteredTeams.map((t) => t.id),
@@ -96,50 +76,47 @@ const ClubScreen: React.FC = () => {
   );
 
   const showSeasonInHero = activeTab !== "info";
+  const screenState = getEntityScreenState({ entity: club, error, isLoading });
 
-  const body = useMemo(() => {
-    if (isLoading) return <EntityScreenSkeleton testID="club-loading" />;
-
-    if (error) {
-      return (
-        <ErrorState
-          subtitle="Impossible de charger ce club."
-          onRetry={refetch}
-          paddingTop="40%"
-          testID="club-error"
-          retryTestID="club-retry-action"
-        />
-      );
-    }
-
-    if (!club) {
-      return (
-        <ErrorState
-          subtitle="Ce club est introuvable."
-          onRetry={refetch}
-          paddingTop="40%"
-          testID="club-not-found"
-          retryTestID="club-not-found-retry-action"
-        />
-      );
-    }
-
-    return (
+  let content: React.ReactNode;
+  if (screenState === "loading") {
+    content = <EntityScreenSkeleton testID="club-loading" />;
+  } else if (screenState === "error") {
+    content = (
+      <ErrorState
+        subtitle="Impossible de charger ce club."
+        onRetry={refetch}
+        paddingTop="40%"
+        testID="club-error"
+        retryTestID="club-retry-action"
+      />
+    );
+  } else if (screenState === "not-found" || !club) {
+    content = (
+      <ErrorState
+        subtitle="Ce club est introuvable."
+        onRetry={refetch}
+        paddingTop="40%"
+        testID="club-not-found"
+        retryTestID="club-not-found-retry-action"
+      />
+    );
+  } else {
+    content = (
       <>
         <ClubHero
           club={club}
           onEdit={canUpdateClub ? openForm : undefined}
           showSeasonSelect={showSeasonInHero}
           seasonOptions={seasonOptions}
-          selectedSeason={selectedSeason}
-          onSelectSeason={(value) => setSelectedSeason(value ?? undefined)}
+          selectedSeason={selectedSeason ?? undefined}
+          onSelectSeason={setSelectedSeason}
           isSeasonLoading={isTeamsLoading}
           isSeasonError={isTeamsError}
         />
 
         <ClubTabs
           club={club}
-          selectedSeason={selectedSeason}
           teams={filteredTeams}
           teamIdsForMatches={teamIdsForMatches}
           onRefreshTeams={refetchTeams}
@@ -161,23 +138,7 @@ const ClubScreen: React.FC = () => {
         />
       </>
     );
-  }, [
-    isLoading,
-    error,
-    club,
-    refetch,
-    canUpdateClub,
-    openForm,
-    closeForm,
-    showSeasonInHero,
-    seasonOptions,
-    selectedSeason,
-    isTeamsLoading,
-    isTeamsError,
-    refetchTeams,
-    filteredTeams,
-    teamIdsForMatches,
-  ]);
+  }
 
   return (
     <View
@@ -186,7 +147,7 @@ const ClubScreen: React.FC = () => {
     >
       <ClubHeader title={club?.name ?? ""} onOpenReport={handleOpenReport} />
 
-      {body}
+      {content}
 
       <ReportFormSheet
         ref={reportSheetRef}
