@@ -96,10 +96,13 @@ request and the merge runbook. Lifecycle owns every later release, completion, r
 
 Bind validation to the exact tree. Reuse it only while relevant tracked and untracked files remain unchanged.
 
-Use the repository router's validation defaults and every focused policy selected for the changed boundaries. Run
-narrow checks while developing and the complete repository-required validation before publication.
+Read the router's risk-based validation policy. Classify every changed boundary, combine all applicable minimum sets,
+then map them to repository commands and every focused policy selected for those boundaries. Use narrow checks while
+developing and run the complete selected set before publication. Do not treat the router's command inventory as a
+blanket suite for a narrow change.
 
-Report intentionally skipped checks and why.
+When ambiguity remains, select the broader profile. Report each skip, fallback, residual risk, and applicable waiver;
+missing mandatory evidence blocks publication.
 
 ## Final Report
 
