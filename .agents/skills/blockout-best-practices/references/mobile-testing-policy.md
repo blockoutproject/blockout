@@ -1,4 +1,4 @@
-# Blockout Mobile Testing Policy
+# Mobile Testing Policy
 
 Read this before adding or changing Expo mobile tests, test selectors, mocks, or component behavior protected by Jest.
 
@@ -10,8 +10,9 @@ Read this before adding or changing Expo mobile tests, test selectors, mocks, or
   directory.
 - Test observable rendering, interaction, navigation intent, request construction, cache behavior, and error recovery.
   Do not assert component internals, private hooks, implementation call order, style objects, or large snapshots.
-- Jest proves behavior, not visual fidelity or native provider behavior. Figma comparison and explicit iOS and Android
-  captures prove appearance; simulator, physical-device, and provider smokes remain separate evidence.
+- Jest proves behavior, not visual fidelity or native provider behavior. Figma comparison and explicit captures on the
+  platforms declared by the repository design profile prove appearance; runtime and provider smokes remain separate
+  evidence.
 - Add a test when behavior can regress and the assertion protects a user or boundary. Do not manufacture tests for
   passive markup or implementation details to increase a coverage number.
 
@@ -59,8 +60,8 @@ add IDs to every nested view or expose implementation structure through selector
   ordinary `disabled`, `loading`, and selection state explicit and simple.
 - Do not add production branches for Jest, test-only props, service locators, dependency-injection containers, mock
   registries, generic factories, or exports of private implementation details.
-- Test shared cross-platform behavior once. Add a focused iOS or Android adapter test only when platform behavior truly
-  differs; do not duplicate the same component suite per platform.
+- Test shared cross-platform behavior once. Add a focused platform adapter test only when behavior truly differs; do
+  not duplicate the same component suite per platform.
 
 ## Rendering And Doubles
 
@@ -79,13 +80,13 @@ add IDs to every nested view or expose implementation structure through selector
 
 - Do not add pixel snapshots, screenshot assertions inside Jest, duplicated Figma fixtures, or a second UI test
   framework. A snapshot may cover a small stable serialized value only when that value is the behavior under test.
-- Compare visual changes with the exact canonical Figma node at the same supported native platform, viewport, theme,
-  authentication mode, and state. Record unavailable evidence instead of fabricating it.
-- Run the narrow test while developing. Before publishing a mobile slice, run formatting, mobile lint, typecheck, the
-  complete Jest suite, and `git diff --check`.
-- Run Expo Doctor when dependencies or Expo configuration change. Run the relevant unsigned iOS or Android build/launch
-  when native modules, provider adapters, routing, safe areas, or platform-specific behavior change. Run both native
-  platforms for a shared visual-system slice before certification.
+- Compare visual changes with the exact canonical Figma node at the platform, viewport, theme, authentication mode, and
+  state selected by the repository design profile. Record unavailable evidence instead of fabricating it.
+- Run the narrow test while developing. Before publishing a mobile slice, run the formatting, lint, typecheck, complete
+  test, and diff commands declared by the repository router.
+- Run Expo Doctor when dependencies or Expo configuration change. Run the relevant unsigned platform build/launch when
+  native modules, provider adapters, routing, safe areas, or platform-specific behavior change. Run every platform
+  required by the repository profile for a shared visual-system slice before certification.
 
 This policy follows the current official [Expo Jest guide](https://docs.expo.dev/develop/unit-testing/) and the React
 Native Testing Library guidance for

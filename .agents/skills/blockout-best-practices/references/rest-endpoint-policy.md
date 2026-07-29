@@ -1,4 +1,4 @@
-# Blockout REST Endpoint Policy
+# Repository REST Endpoint Policy
 
 Read this before changing a controller, request, response, query parameter, API mapper, error response, collection, or
 service-to-service HTTP boundary.
@@ -7,11 +7,11 @@ service-to-service HTTP boundary.
 
 - Design paths around stable business resources and relationships, not controller methods or UI actions.
 - Use plural nouns for collections and stable identifiers for members.
-- Preserve existing V1 paths and methods unless the active task explicitly changes the contract.
+- Preserve existing active paths and methods unless the active task explicitly changes the contract.
 - Use nested paths only when the parent relationship is part of the resource identity or authorization boundary.
 - Model a state-changing operation as a resource or explicit command only when ordinary resource mutation is unclear.
-- Keep mobile-gateway routes client-oriented and internal service routes owner-oriented; do not leak provider topology
-  into the mobile contract.
+- Keep public-gateway routes client-oriented and internal service routes owner-oriented; do not leak provider topology
+  into the public contract.
 
 ## HTTP Semantics
 
@@ -26,9 +26,9 @@ service-to-service HTTP boundary.
 
 ## Contract Shape
 
-- OpenAPI is authoritative for Blockout-owned HTTP contracts. Follow `contract-first.md`.
-- Blockout-owned JSON bodies, responses, and query parameters use native camelCase.
-- Do not add Jackson naming strategies, `@JsonProperty` aliases, or recursive case converters for Blockout-owned fields.
+- OpenAPI is authoritative for repository-owned HTTP contracts. Follow `contract-first.md`.
+- Repository-owned JSON bodies, responses, and query parameters use the convention declared by the repository profile.
+- Do not add naming strategies, field aliases, or recursive case converters for repository-owned fields.
 - Isolate provider-owned fields in provider-specific adapters and models.
 - While a boundary remains handwritten, use explicit names such as `CreateClubInternalRequest` and
   `ClubInternalResponse`.
@@ -63,6 +63,6 @@ service-to-service HTTP boundary.
 
 - Test controller-owned validation, security, status, headers, and error translation.
 - Verify mappers and all changed producers and consumers.
-- Confirm native camelCase serialization and unchanged provider naming.
+- Confirm repository-owned serialization and unchanged provider naming.
 - Regenerate and compare generated boundaries when OpenAPI changes.
 - Run the owning module tests, affected client tests, and `git diff --check`.

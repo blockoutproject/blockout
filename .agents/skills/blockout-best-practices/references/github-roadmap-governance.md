@@ -5,14 +5,14 @@ validation. Ordinary task operations use [`github-roadmap-operations.md`](github
 
 ## Source Ownership
 
-| Question                                                  | Authority                                              |
-| --------------------------------------------------------- | ------------------------------------------------------ |
-| Tasks, Status, Track, Priority, Execution Mode, ownership | Roadmap Project                                        |
-| Compatibility and reservations                            | Live Project items plus issue worksets                 |
-| Objective, acceptance, dependencies, evidence             | Issue, native relationships, comments, linked PR       |
-| Product and architecture boundaries                       | `docs/current/**`, current source, and accepted issues |
-| Delivered history                                         | Closed issues, merged PRs, task evidence, Git history  |
-| Deferred ideas                                            | Relevant source outside the Project until promoted     |
+| Question                                                  | Authority                                             |
+| --------------------------------------------------------- | ----------------------------------------------------- |
+| Tasks, Status, Track, Priority, Execution Mode, ownership | Roadmap Project                                       |
+| Compatibility and reservations                            | Live Project items plus issue worksets                |
+| Objective, acceptance, dependencies, evidence             | Issue, native relationships, comments, linked PR      |
+| Product and architecture boundaries                       | Current sources selected by the repository router     |
+| Delivered history                                         | Closed issues, merged PRs, task evidence, Git history |
+| Deferred ideas                                            | Relevant source outside the Project until promoted    |
 
 No draft item, parallel Markdown ledger, reusable hard-coded ID, or hidden claim store may compete with the Project.
 
@@ -29,9 +29,9 @@ The lifecycle `Status` options, in order, are:
 7. `Blocked`
 8. `Rejected / Replaced`
 
-The ordered Track vocabulary is `ACC`, `CMP`, `ING`, `FIG`, `Foundation`, and `Platform`, with ownership and identifier
-prefixes defined in [`github-taxonomy.md`](github-taxonomy.md). Track follows the primary outcome rather than touched
-paths, does not reserve files, and never decides conflicts.
+The repository taxonomy profile selected by the router owns the ordered Track vocabulary, ownership, and identifier
+prefixes. Track follows the primary outcome rather than touched paths, does not reserve files, and never decides
+conflicts.
 
 Priority is mandatory on every accepted non-Epic item in `Backlog`, `Ready`, `In Progress`, `In Review`, or `Blocked`:
 `High`, `Normal`, then `Low`. `Triage` alone may omit it. Priority orders compatible candidates and is not effort or
@@ -60,19 +60,10 @@ afterward. Operational reuse of IDs follows the freshness rules in operations.
 
 ## Views
 
-GIT-005 reproduces this baseline:
-
-| View                  | Filter                                                      | Presentation                                          |
-| --------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
-| `🎯 Delivery`         | `status:Ready,"In Progress","In Review",Blocked -type:Epic` | Board grouped vertically by Status                    |
-| `🚀 Ready Candidates` | `status:Ready -type:Epic`                                   | Table sorted by Priority then live Track order        |
-| `🧭 By Track`         | `-status:Done -type:Epic`                                   | Table grouped by Track and sorted by Status           |
-| `🧭 Intake & Backlog` | `status:Triage,Backlog,Blocked -type:Epic`                  | Table grouped by Status                               |
-| `✅ Done`             | `status:Done`                                               | Table grouped by Track and sorted by Closed ascending |
-
-Show Priority, Track, Execution Mode, labels, assignees, linked PRs, and sub-issue progress where relevant. Keep only
-the workflows that auto-add native sub-issues and set newly added items to `Triage`. Disable broad issue/PR auto-add
-and automatic lifecycle transitions.
+The repository Roadmap profile selected by the router owns exact view names, filters, layouts, grouping, sorting,
+visible fields, and workflow enabled state. Views must expose enough evidence to distinguish executable work, claims,
+review, blockers, delivered work, priorities, Tracks, relationships, and ownership without creating a parallel task
+authority.
 
 Treat view filters, layout, grouping, sorting, visible fields, and workflow enabled state as live configuration. Use
 GraphQL when exposed and an authenticated browser only for an authorized unexposed operation.

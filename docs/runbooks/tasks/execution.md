@@ -1,6 +1,6 @@
 # Task Execution Runbook
 
-Use this when the user asks to plan or execute a selected or acquired Blockout issue.
+Use this when the user asks to plan or execute a selected or acquired issue.
 
 ## Rules
 
@@ -21,7 +21,7 @@ Always start with `git status --short --branch`, inspect relevant dirty diffs, a
 1. Read Roadmap operations.
 2. Read the complete Project index, target, fields, labels, assignees, dependencies, linked PRs, Workset, and
    active/quarantined claims.
-3. Read current scope-specific policies, source, architecture, contract, evidence, and Figma resources.
+3. Read every current scope-specific authority selected by the repository router.
 4. Confirm source gate, Execution Mode, Ready contract, Workset grammar, and conflicts before claim.
 
 ### `ACQUIRED_SAME_TASK`
@@ -75,14 +75,14 @@ recalculate conflicts, align areas, and reread. Expansion yields to incumbents a
 
 ## GitFlow
 
-Follow `git-workflow.md`:
+Follow the repository Git workflow:
 
-1. Create or reuse the claimed issue branch from current `develop`.
+1. Create or reuse the claimed issue branch from the current integration branch.
 2. Implement only the Workset.
 3. Run scope-appropriate generation and validation.
 4. Inspect and stage only intended files.
 5. Commit and push.
-6. Open or update one draft PR to `develop`.
+6. Open or update one draft PR to the configured integration branch.
 7. Apply two to four PR labels as a separate step and use the correct `Refs` or `Closes` link mode.
 8. Verify labels and structural issue link.
 9. Transition to `In Review` and reread target, PR, assignee, Workset, and Status.
@@ -99,9 +99,9 @@ Merge always needs separate current-user authorization. Before it:
 
 - make the PR ready;
 - reread latest head, base, diff, claim, Workset, criteria, reviews, and checks;
-- authorize only the Merge train's startup snapshot;
-- refresh in an isolated worktree by rebase when `develop` changed;
-- rerun every head-bound check and the complete local stack/authentication proof;
+- authorize only the Merge train candidate set selected by the repository release profile;
+- refresh in an isolated worktree by rebase when the integration branch changed;
+- rerun every head-bound check and the repository-defined release proof;
 - record any explicit check waiver; and
 - use the Merge train runbook when requested, never resolving or pushing a conflict.
 
@@ -112,13 +112,8 @@ reporting completion or acquiring more work.
 
 Bind validation to the exact tree. Reuse it only while relevant tracked and untracked files remain unchanged.
 
-- Documentation/governance: inspect links and terminology, run the compact read when live state is relevant,
-  `npm run format`, `npm run format:check`, and `git diff --check`.
-- Contracts: generate contracts and impacted Java/Python/TypeScript clients or servers and prove generated ownership.
-- Backend: run targeted Java 21 generation, compile/tests, or the complete Maven reactor according to risk.
-- Python: use uv plus owning Nx lint, syntax, and test targets.
-- Mobile: codegen, lint, typecheck, Jest, export, and native checks when a native boundary changes.
-- CI/runtime: parse workflows, validate Compose/configuration, and execute the closest safe local equivalent.
+Use the repository router's validation defaults and every focused policy selected for the changed boundaries. Run
+narrow checks while developing and the complete repository-required validation before publication.
 
 Report intentionally skipped checks and why.
 

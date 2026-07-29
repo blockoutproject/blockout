@@ -1,22 +1,18 @@
-# Blockout Figma Interaction Policy
+# Repository Figma Interaction Policy
 
-Read this policy before any Blockout mobile or product-design task that reads from, writes to, compares against, or
-makes a decision in Figma. This includes visual discovery, token or component work, code-to-Figma calibration,
-Figma-to-code implementation, and visual reconciliation.
+Read this policy before any product-design task that reads from, writes to, compares against, or makes a decision in
+Figma. This includes visual discovery, token or component work, code-to-Figma calibration, Figma-to-code
+implementation, and visual reconciliation.
 
 ## Authority
 
-- The live [Roadmap Project](https://github.com/orgs/blockoutproject/projects/4) controls task existence, status,
-  priority, execution mode, ownership, and claims; the selected issue controls scope, dependencies, Workset, and
-  acceptance evidence.
+- The live Roadmap declared by the repository overlay controls task existence, status, priority, execution mode,
+  ownership, and claims; the selected issue controls scope, dependencies, Workset, and acceptance evidence.
 - Runtime source and the running supported application surfaces control behavior, routes, authorization, data flow,
   copy, accessibility, platform integration, and available states. Figma cannot activate or redefine them.
-- The durable
-  [`Blockout Mobile Design System V1`](../../../../docs/architecture/blockout-mobile-design-system-v1.md) defines the
-  relationship between canonical Figma assets, current runtime source, reusable components, and task-level evidence.
-- The only canonical design file is
-  [`Blockout - Product Design`](https://www.figma.com/design/NwDQmiXqSjKVzQ6gwry0zb) in the Blockout Figma team
-  (`NwDQmiXqSjKVzQ6gwry0zb`). Do not create a parallel canonical file.
+- The durable design-system authority selected by the repository router defines the relationship between canonical
+  Figma assets, current runtime source, reusable components, and task-level evidence.
+- The repository design profile names the only canonical design file. Do not create a parallel canonical file.
 - The canonical Figma file controls visual composition. The application remains the authority for behavior and platform
   functionality.
 - Owning issues, pull requests, Git history, and Figma version history retain detailed certification and delivery
@@ -40,26 +36,26 @@ source, and Figma facts between correction passes.
 
 ### 1. Establish the session
 
-- Inspect the worktree, Docker containers, relevant ports, Java or Python processes, Metro, the installed development
-  client, and the booted simulator before starting anything. After a machine restart, assume processes are stopped
-  until inspection proves otherwise.
-- For an isolated task, derive the smallest complete dependency set from the target state. For the sequential
-  screen-by-screen reconciliation roadmap, start the complete Java application stack and search worker through their
-  Nx targets, then Metro and the iOS development client. `pools-service` keeps its owned port `8081`; run Metro with
-  Expo's official `--port 8100` option. Verify health before attempting authentication or navigation.
+- Inspect the worktree and every runtime component named by the repository runtime profile before starting anything.
+  After a machine restart, assume processes are stopped until inspection proves otherwise.
+- For an isolated task, derive the smallest complete dependency set from the target state. For a sequential
+  screen-by-screen reconciliation roadmap, start the complete topology and client declared by the repository runtime
+  profile. Verify health before attempting authentication or navigation.
 - Record which processes the task started. Keep the healthy session alive through source inspection, Figma mutation,
   focused corrections, and final visual QA. Do not tear it down after the first capture or restart healthy services for
   each Figma adjustment.
 - Preserve processes that were already running for the user. Across consecutive Figma screen tasks, also retain the
-  healthy task-owned application stack, Metro session, and simulator instead of stopping and reconstructing them after
-  every task. Stop them only on user request, at the end of the reconciliation series, or to replace a failed process.
+  healthy task-owned application stack, development-server session, and simulator instead of stopping and
+  reconstructing them after every task. Stop them only on user request, at the end of the reconciliation series, or to
+  replace a failed process.
 
 ### 2. Capture runtime and source truth
 
-- Navigate the iOS simulator to the exact route, state, theme, and authentication mode before changing Figma. Use the
-  normal provider flow and an existing least-privilege test identity; never add a bypass or record account details.
-- If the Google Mobile Ads consent prompt appears, the agent may select its visible **Accept** action and continue.
-  Never encode or fake that provider state in application source, configuration, or committed evidence.
+- Navigate the configured visual capture runtime to the exact route, state, theme, and authentication mode before
+  changing Figma. Use the normal provider flow and an existing least-privilege test identity; never add a bypass or
+  record account details.
+- If a provider consent prompt appears, the agent may select its visible acceptance action and continue. Never encode
+  or fake that provider state in application source, configuration, or committed evidence.
 - Record the simulator model, its actual logical viewport, and the canonical Figma viewport. When the simulator cannot
   render the canonical dimensions exactly, normalize a transient capture proportionally for measurement and document
   both dimensions. Never compare mismatched frames silently.
@@ -78,11 +74,12 @@ source, and Figma facts between correction passes.
 - Compare a reusable component's complete source API, not only the one variant visible on the target screen. Check all
   source-backed sizes, treatments, states, left and right slots, indicators, disabled behavior, and interactive state
   before declaring the Figma family complete.
-- Verify exact icon paths against the pinned Expo icon library. Import or reuse editable vectors through instance-swap
-  properties; never approximate an icon with primitives or a screen-local overlay.
+- Verify exact icon paths against the icon library pinned by the repository profile. Import or reuse editable vectors
+  through instance-swap properties; never approximate an icon with primitives or a screen-local overlay.
 - Attempt the exact product font once. If Figma still reports `hasMissingFont`, retains stale text metrics, or produces
-  no render bounds, use the approved portable Inter weight equivalent in reusable Figma masters. Reapply the text,
-  verify reflow and `hasMissingFont=false`, and record that native source remains the system-font authority.
+  no render bounds, use the portable fallback selected by the repository design profile in reusable Figma masters.
+  Reapply the text, verify reflow and `hasMissingFont=false`, and record that native source remains the system-font
+  authority.
 
 ### 4. Correct in ownership order
 
@@ -135,7 +132,8 @@ source, and Figma facts between correction passes.
 - Treat the shipped mobile application and runtime source as the authority for delivered behavior and reachable states.
 - Produce a clean normalized design-system composition. Do not reproduce incidental alignment drift, duplicated styles,
   unsupported-surface defects, or one-off values as new design rules.
-- Preserve the current dark identity, mobile information hierarchy, copy, and native platform boundaries.
+- Preserve the current product identity, information hierarchy, copy, and platform boundaries declared by the
+  repository design profile.
 
 ### Figma-to-code implementation
 
@@ -149,20 +147,16 @@ source, and Figma facts between correction passes.
 
 ## File And Lifecycle Structure
 
-- Keep one canonical design file named `Blockout - Product Design`.
-- Use deterministic lifecycle pages: `00 - Cover`, `10 - Foundations`, a separator, the compact component group
-  `20 - Actions & Inputs`, `21 - Content & Data`, `22 - Feedback & Overlays`, and `23 - Navigation`, a second
-  separator, `30 - Ready for Development`, and `40 - Shipped`.
+- Keep one canonical design file with the name declared by the repository design profile.
+- Use the deterministic lifecycle pages and component grouping declared by the repository design profile.
 - Name screen frames `Domain / Screen / Viewport / State`.
 - Keep every component master and its guidance together on its owning category page. Do not recreate the old
   single-canvas component page or split a small family into speculative pages.
-- Place approved screen compositions on
-  `30 - Ready for Development`; move them to `40 - Shipped` only after the corresponding runtime implementation and
-  native evidence pass.
-- iOS and Android are the only supported product surfaces. Historical React Native Web evidence may explain an earlier
-  decision, but it does not define a current frame, platform variant, or certification requirement.
-- Use only the iOS simulator for capture, comparison, and Figma synchronization. Android remains a supported technical
-  target, but it is not a second visual authority and must not be launched for Figma work.
+- Move approved and shipped screen compositions through the lifecycle pages declared by the repository design profile
+  only after the corresponding runtime implementation and platform evidence pass.
+- The repository design profile owns supported product surfaces and the visual capture authority. Historical evidence
+  from another surface may explain an earlier decision, but it does not define a current frame, platform variant, or
+  certification requirement.
 
 ## Inspection And Mutation
 

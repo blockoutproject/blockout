@@ -1,4 +1,4 @@
-# Blockout Flyway Policy
+# Repository Flyway Policy
 
 Read this before adding or changing a Flyway migration or evolving a PostgreSQL schema.
 

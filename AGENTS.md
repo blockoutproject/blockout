@@ -1,24 +1,33 @@
 # Blockout Agent Guidance
 
-Repository skills live under `.agents/skills/*/SKILL.md`.
+Repository skills live under `.agents/skills/*/SKILL.md`. Start every repository task with
+`.agents/skills/blockout-best-practices/SKILL.md`; it routes to the smallest authoritative read set for the task.
 
-Start every repository task with `.agents/skills/blockout-best-practices/SKILL.md`. It routes to the detailed policies
-needed for the current scope. Load other skills only when their description or the router explicitly triggers them.
+## Instruction Hierarchy
 
-Global rules:
+Apply repository guidance through five shallow layers:
+
+1. session-level system, developer, and current-user instructions;
+2. this file for repository-wide Blockout invariants and coordinates;
+3. the repository router for source selection, repository structure, and validation defaults;
+4. one focused policy for each decision or boundary; and
+5. one task runbook for the operation sequence.
+
+Higher layers constrain lower layers. Focused policies own decisions; runbooks orchestrate them and must link instead
+of restating their rules. The live issue supplies task scope and evidence but does not override repository invariants.
+Every file under `.agents/skills/blockout-best-practices/references/**` is portable and must remain reusable unchanged
+by another repository router. Blockout-specific values belong in this file, the router, or `overlays/**`.
+
+## Repository Invariants
 
 - Speak French in chat and write repository files in English.
 - Treat the imported standalone applications as the behavioral baseline.
 - Use Maaatch as a read-only structural and naming reference; never copy its business code.
 - Preserve runtime behavior unless the active task explicitly authorizes a correction.
-- Treat the generated V1 contracts as the active transport authority; change them only through an explicit task.
+- Treat generated V1 contracts as the active transport authority and change them only through an explicit task.
 - Treat the organization [Roadmap Project](https://github.com/orgs/blockoutproject/projects/4) as the only operational
-  task and claim authority. Read `.agents/skills/blockout-best-practices/references/github-roadmap-policy.md` and the
-  applicable task runbook before selecting, claiming, executing, or releasing work.
-- Never create a task branch, task-specific plan, or task-file edit before a stable claim. Target `develop` from an
-  issue branch, publish a labeled draft pull request, and require separate current-user authorization plus fresh
-  release evidence before merge.
+  task and claim authority for `blockoutproject/blockout`.
 - Keep generated output, secrets, local environments, caches, logs, and build artifacts out of Git.
-- Before completing a code or configuration change, run `npm run format`, then the relevant lint, typecheck, and tests,
-  and finish with `npm run format:check`. Repository formatters are authoritative; do not reproduce their rules
-  manually or rely on editor-specific formatting.
+
+Roadmap operations, GitFlow, release, and validation details belong to the focused policies and task runbooks selected
+by the repository router.

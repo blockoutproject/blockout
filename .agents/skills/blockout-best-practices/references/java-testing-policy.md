@@ -1,4 +1,4 @@
-# Blockout Java Testing Policy
+# Java Testing Policy
 
 Read this reference before adding or changing backend Java tests.
 
@@ -37,7 +37,7 @@ data and doubles inside the owning test. Add `testkit/data`, `testkit/doubles`, 
 - `testkit/data` creates meaningful domain, application, transport, or persistence examples.
 - `testkit/doubles` contains small reusable fakes or recording adapters, not a second mocking framework.
 - `testkit/spring` contains configuration truly shared by several Spring tests.
-- `testkit/containers` owns reusable PostgreSQL or infrastructure container setup.
+- The configured testkit location owns reusable database or infrastructure container setup.
 
 Keep support in the owning module. Do not create a cross-module test library before active modules share a stable
 testing boundary.
@@ -116,7 +116,7 @@ testing boundary.
 
 - Test handwritten implementations and mapping at generated boundaries, not generated source syntax.
 - Regeneration parity and compilation are stronger evidence than source scans for generated names or methods.
-- Ignore generated examples and default interface methods unless Blockout explicitly relies on their behavior.
+- Ignore generated examples and default interface methods unless the repository explicitly relies on their behavior.
 
 ## Deterministic Data
 
@@ -160,8 +160,9 @@ population, random object graphs, and fixtures with hidden database writes.
 
 - Run the narrowest targeted test while developing.
 - Run the owning module suite before completion.
-- Run the complete backend reactor when a shared transport, parent build, persistence, or runtime boundary changes.
+- Run the complete backend reactor selected by the repository router when a shared transport, parent build,
+  persistence, or runtime boundary changes.
 - Run PostgreSQL/Testcontainers evidence when the contract depends on database behavior.
-- Run repository formatting before the final check.
+- Run the repository formatting commands selected by the router before the final check.
 - Report tests intentionally skipped and why, especially when Docker/Testcontainers is unavailable.
 - Always run `git diff --check`.

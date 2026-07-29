@@ -1,4 +1,4 @@
-# Blockout Python Scraper Testing Policy
+# Python Scraper Testing Policy
 
 Read this before adding, changing, moving, or deleting scraper behavior. The purpose is to preserve supported ingestion
 semantics while allowing implementation structure to change substantially.
@@ -10,13 +10,13 @@ semantics while allowing implementation structure to change substantially.
 - Parser unit tests feed controlled HTML, XML, CSV, or JSON into a pure parser and assert typed provider records.
 - Policy unit tests cover normalization, aliases, matching, source priority, dates, scores, statistics, and update/no-op
   decisions without network or filesystem access.
-- Application scenario tests use small fake provider sources and fake Blockout ports. They assert decisions, ordered
+- Application scenario tests use small fake provider sources and fake repository ports. They assert decisions, ordered
   writes, batching, partial failure, and idempotence.
 - Client integration tests use fake HTTP responses to protect method, path, query parameters, headers, multipart parts,
-  native camelCase bodies, response decoding, timeout, and error translation.
+  repository-configured field naming, response decoding, timeout, and error translation.
 - Lifecycle tests cover enabled/disabled status, overlap prevention, scheduler registration, token refresh ownership,
   cancellation, and graceful shutdown where those behaviors are touched.
-- A controlled local smoke exercises real local Blockout APIs and disposable data only after source changes pass
+- A controlled local smoke exercises real local repository APIs and disposable data only after source changes pass
   offline.
 
 Do not replace a narrow test with an end-to-end test. Each layer proves a different boundary.
@@ -41,7 +41,7 @@ Before replacing a legacy seam, run legacy and replacement code against the same
 - normalized provider records;
 - selected owner identifiers and aliases;
 - source priority and conflict decision;
-- internal request type and serialized camelCase body;
+- internal request type and serialized repository-owned body;
 - ordered create, update, replace, or no-op operations;
 - retry, skip, partial-failure, or terminal-failure outcome.
 
@@ -57,7 +57,7 @@ adapters.
 Until generation is activated, every Python `*InternalRequest` and `*InternalResponse` mirror must have an owner-parity
 test covering:
 
-- exact camelCase field names;
+- exact repository-configured field names;
 - compatible types, nesting, nullability, and enum values;
 - accepted request fields without owner-managed response fields leaking into writes;
 - representative serialization and deserialization.
@@ -72,7 +72,7 @@ compatibility, but they do not create a second source of truth.
 - Assert retry count and final outcome, not wall-clock duration.
 - Exercise bounded concurrency and overlap behavior deterministically with gates or events rather than timing guesses.
 - Prove cancellation closes owned sessions and does not publish additional writes.
-- Cover provider timeout, malformed response, Blockout 4xx, Blockout 5xx, authentication failure, and a partial batch
+- Cover provider timeout, malformed response, repository 4xx, repository 5xx, authentication failure, and a partial batch
   failure when the touched flow distinguishes them.
 
 ## Doubles And Assertions
@@ -97,14 +97,14 @@ compatibility, but they do not create a second source of truth.
 ## Completion Gate
 
 During development run the narrowest affected test. Before completing a characterization task, run the entire owning
-scraper suite and syntax check. Before completing a runtime refactor, also run:
+scraper suite and syntax check declared by the repository router. Before completing a runtime refactor, also run:
 
 - legacy-versus-replacement differential tests for every migrated seam;
 - all internal contract parity tests;
 - import and disabled-startup checks;
 - a controlled local API smoke with no production endpoints or credentials;
 - the other scraper's contract suite when a handwritten boundary is shared;
-- relevant Nx targets and `git diff --check`.
+- relevant repository task targets and `git diff --check`.
 
 Report fixtures or live-provider cases that remain unavailable. Never weaken or skip a gate by replacing it with a claim
 that the refactor is behavior-preserving.

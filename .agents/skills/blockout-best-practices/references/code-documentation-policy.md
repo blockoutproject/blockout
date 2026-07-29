@@ -1,4 +1,4 @@
-# Blockout Code Documentation Policy
+# Repository Code Documentation Policy
 
 Read this reference before adding or changing Javadoc, Python docstrings, TSDoc/JSDoc, exported APIs, service
 interfaces, use cases, private helpers, or module-boundary comments.
