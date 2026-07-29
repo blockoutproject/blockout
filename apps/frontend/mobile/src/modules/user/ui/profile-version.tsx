@@ -19,6 +19,6 @@ const ProfileVersion = () => {
 export default ProfileVersion;
 
 const styles = StyleSheet.create({
-  version: { alignItems: "flex-start", marginTop: 2 },
+  version: { alignItems: "center", marginTop: 2 },
   versionText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.2 },
 });
