@@ -1,6 +1,6 @@
-# Blockout Git Workflow
+# Repository Git Workflow
 
-Read this reference before creating or changing a Blockout issue, branch, commit, push, pull request, label, title, or
+Read this reference before creating or changing an issue, branch, commit, push, pull request, label, title, or
 publication artifact.
 
 Git and GitHub mechanics live here. Roadmap selection, claims, and draft publication use
@@ -28,7 +28,7 @@ Current-user publication limits override the repository defaults below.
 
 ## Private GitHub Free Baseline
 
-The Blockout repository profile assumes a private organization repository on GitHub Free. Revalidate the
+This repository profile assumes a private organization repository on GitHub Free. Revalidate the
 [current GitHub plan capabilities](https://docs.github.com/en/get-started/learning-about-github/githubs-plans) before
 proposing a setting change; public-repository enforcement or a temporary paid feature is not portability evidence.
 
@@ -95,7 +95,7 @@ the rebase procedure below.
 | Large grouped objective                                   | Epic         | `feature/` or `tech/` | `[Epic]`    |
 | Urgent environment or production correction               | Bug/closest  | `hotfix/`             | `[Hotfix]`  |
 
-Epics are never executable branches. The Blockout task identifier, when one exists, is retained as the issue and PR
+Epics are never executable branches. The repository task identifier, when one exists, is retained as the issue and PR
 indicator, for example `[REF-071]`.
 
 ## Labels
@@ -107,7 +107,7 @@ indicator, for example `[REF-071]`.
   duplicate its native type.
 - Pull requests may use one type label plus relevant surface labels.
 - Do not create a `blocked` label. The Project `Status` field owns that state.
-- The complete Blockout label and area catalog, including exact colors and descriptions, is defined in
+- The complete label and area catalog, including exact colors and descriptions, is defined in
   [`github-taxonomy.md`](github-taxonomy.md).
 
 ## Names
@@ -137,7 +137,7 @@ Allowed kinds are `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, and `ci`.
 ## Task Workflow Profile
 
 Use Roadmap operations for claims and scope, lifecycle for transition guards, and the execution runbook for sequencing.
-Blockout task branches start from `develop`, draft pull requests target `develop`, and publication uses the naming,
+Repository task branches start from `develop`, draft pull requests target `develop`, and publication uses the naming,
 label, validation, and link-mode rules in this reference.
 
 ## Review And Release
@@ -235,15 +235,5 @@ need refresh.
 Report issue, claim owner, workset, Project status, branch, commit, push, PR, validations, skipped checks, release
 decision, and any dependency or Epic transition.
 
-The Merge train response must end with the branch reminder in French:
-
-```text
-Pensez à mettre à jour les branches suivantes :
-- <remaining branch>
-```
-
-When none remain, end with:
-
-```text
-Pensez à mettre à jour les branches suivantes : aucune.
-```
+The Merge train response must end with a branch reminder written in the user's chat language. List every remaining
+local branch that needs refresh. When none remain, state explicitly in that language that no branch needs an update.
