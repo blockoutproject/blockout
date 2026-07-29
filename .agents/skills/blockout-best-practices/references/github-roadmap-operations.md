@@ -1,7 +1,8 @@
 # GitHub Roadmap Operations
 
-Read this reference for issue discovery, acquisition, claims, resume, scope expansion, and GitFlow through draft pull
-request publication. Load lifecycle for lifecycle/release decisions and governance for Project structure.
+Read this reference for issue discovery, acquisition, claims, resume, scope expansion, and the Project evidence used
+during draft publication. Use the Git workflow for publication mechanics, lifecycle for transitions or release
+decisions, and governance for Project structure.
 
 ## Local Execution Profile
 
@@ -162,7 +163,7 @@ assigned `Blocked` issue or an incoherent active claim whose locks cannot be iso
    and quarantined claims, Worksets, and conflicts.
 
 Success requires `In Progress`, exactly one intended assignee, an active `AssignedEvent`, no conflict, and stable
-snapshots. `PLAN_REQUIRED` still blocks branch creation and task-file edits pending user plan approval.
+snapshots. A stable claim never overrides lifecycle's `PLAN_REQUIRED` gate.
 
 On failed or ambiguous mutation, reread and complete only a uniquely missing step, or remove the assignee and restore
 `Ready`. Never leave a partial claim discoverable.
@@ -202,34 +203,25 @@ Before touching a new path or external resource:
 Expansion always yields to an incumbent. On conflict restore the former body/labels; partial restoration quarantines
 the task.
 
-## Issue And Draft-PR Operations
+## Issue And Draft-PR Sequencing
 
 - Search open and closed equivalents before issue creation.
-- Create issues unassigned, set native type, add to Project, set `Triage`, then reread.
-- Accept to `Backlog`/`Blocked` only with complete accepted metadata and deterministic justification.
-- Correct body and areas before fields; make `Ready` the final mutation after its full contract passes.
-- Reject or replace with one factual comment and surviving link, terminal status, assignment removal, not-planned
-  closure, and Epic recalculation.
+- Use the Git workflow for issue mechanics and lifecycle for type, acceptance, transition, rejection, and terminal
+  guards.
+- Correct body and areas before fields; apply lifecycle's `Ready` transition only after the complete Ready contract
+  passes.
 - Batch independent field mutations after one fresh schema read and batch labels in one REST update.
-- After implementation, validate, explicitly stage, commit, push, and publish one draft PR to the repository's
-  configured integration branch.
+- After implementation, follow the execution runbook and Git workflow through one draft PR.
 - Apply two to four PR labels as a separate operation, then verify labels and structural issue link.
-- Move to `In Review` only after the link exists and reread target, PR, assignee, Workset, and changed field.
-- Draft publication never authorizes merge.
+- After the link exists, load lifecycle, apply its `In Progress → In Review` guard, and reread target, PR, assignee,
+  Workset, and changed field.
+- Lifecycle's separate release authorization remains required after draft publication.
 
 ## Completion Reconciliation
 
-After merge, completion, rejection, closure, reopening, or blocker changes:
-
-1. Resolve direct native dependents fresh from GitHub.
-2. Fetch each dependent's current body, fields, labels, assignees, linked PRs, Workset, and blocker set.
-3. Keep it `Blocked` while a blocker is open.
-4. When blockers close, repair accepted metadata and promote only after the complete Ready contract, source gate,
-   delivered-state challenge, and conflict calculation pass.
-5. Recalculate parent Epics from final child state.
-6. Require two matching snapshots of triggering issue, dependents, relevant successors, and parents.
-
-Do not begin another acquisition while affected state remains incoherent.
+Lifecycle owns completion, dependency reconciliation, and Epic rollup. Operations supplies its fresh Project,
+Workset, source-gate, delivered-state, and conflict evidence. Do not begin another acquisition while lifecycle's
+affected state remains incoherent.
 
 ## User Progress Gates
 

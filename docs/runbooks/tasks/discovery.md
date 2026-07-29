@@ -7,7 +7,8 @@ use [`acquisition.md`](acquisition.md).
 
 - Stay read-only: no issue, field, label, assignee, comment, branch, commit, push, or PR mutation.
 - Start with `git status --short --branch`.
-- Read `github-roadmap-operations.md` before querying the Project.
+- Read Roadmap operations before querying the Project and lifecycle before classifying Execution Mode or
+  reconciliation drift.
 - Use the compact Project helper and the same authenticated `gh` identity for targeted reads.
 - Fetch detailed bodies and Worksets only for Ready, active/quarantined, and currently challenged issues.
 - Stop fail-closed when the complete Project or a decision-bearing connection cannot be read.
@@ -23,28 +24,15 @@ use [`acquisition.md`](acquisition.md).
 ## Live Calculation
 
 1. Query the compact paginated Project index and all field values.
-2. Collect every non-Epic Ready issue.
-3. Collect all active claims and quarantine inconsistent active/assigned/closed state as defined by operations. Reserve
-   every parseable lock; stop when an active Workset cannot be parsed far enough to determine locks.
-4. Detect reconciliation drift: a Blocked issue whose native blockers are closed or a Done Epic that remains open.
-   Report it and exclude it until lifecycle reconciliation runs.
-5. Validate every Ready candidate against complete Ready and Workset contracts.
-6. Compare each valid candidate with every active/quarantined claim. Exact locks, ancestor directory locks, and exact
-   external locks conflict; areas and read-only scope do not.
-7. Leave conflicts Ready but unavailable and name the issue, owner, and overlapping locks.
-8. Apply a requested Track filter.
-9. Sort by Priority, live Track order, then issue number.
-10. Challenge the first candidate against equivalent issues, merged PRs, Git history, and current source; repeat when
-    delivered or replaced.
-11. Propose the first valid compatible candidate.
+2. Fetch only the detailed candidate, claim, and challenge evidence allowed by operations.
+3. Apply operations' complete read-only discovery calculation, including quarantine, reconciliation-drift detection,
+   contracts, conflicts, any requested Track filter, ranking, and delivered-state challenge.
+4. Propose the first remaining candidate without mutation.
 
 ## Execution Mode Gate
 
-- `DEFAULT_EXECUTION`: source gate is `OK` when bounded implementation is fully determined.
-- `PLAN_REQUIRED`: list the exact decisions a later claimed Plan must resolve.
-- Missing required evidence yields `BLOCK`, never invented scope.
-
-Discovery remains unassigned in every mode.
+Use lifecycle's Execution Mode definitions and the repository source gate. Report the exact unresolved decisions for
+`PLAN_REQUIRED`; missing evidence yields `BLOCK`. Discovery remains unassigned in every mode.
 
 ## Response
 

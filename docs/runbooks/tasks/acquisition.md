@@ -6,7 +6,8 @@ operation; it does not return an unreserved proposal.
 ## Rules
 
 - Preserve unrelated work and start with `git status --short --branch`.
-- Read Roadmap operations before querying or mutating the Project.
+- Read Roadmap operations before querying or mutating the Project and lifecycle when mode or transition decisions are
+  required.
 - Use one authenticated `gh` identity and the compact read-only helper.
 - Resolve IDs live once and reuse them only under operations' freshness guard.
 - Do not create a branch, develop a task plan, or edit task files until the claim is stable.
@@ -33,24 +34,16 @@ the target if it is no longer unassigned Ready or fails its contract.
 
 ## Claim
 
-1. Require source gate not `BLOCK`, complete Ready metadata, unassigned target, and compatibility with every active or
-   quarantined Workset.
-2. Require the intended assignee to equal the authenticated login.
-3. For ordinary acquisition, stop on a same-login In Progress issue, assigned Blocked issue, or incoherent In Review
-   issue. Compatible coherent review reservations remain allowed.
-4. Add exactly the authenticated login as assignee.
-5. Set Project Status to `In Progress`.
-6. Immediately obtain two consecutive matching snapshots of target, assignees, assignment event, active/quarantined
-   claims, Worksets, and conflicts.
-7. Apply operations' partial-claim recovery and simultaneous arbitration on ambiguity or overlap.
-
-Success requires `In Progress`, one intended assignee, an active assignment event, no conflict, and stable snapshots.
-Otherwise leave no partial claim discoverable.
+1. Execute operations' immediate pre-mutation read phase for the selected target.
+2. Apply its assignment and `In Progress` mutation phase.
+3. Apply its partial-claim recovery and simultaneous arbitration on ambiguity or overlap.
+4. Continue only after operations' complete stable-claim postcondition passes; otherwise leave no partial claim
+   discoverable.
 
 ## Execution Handoff
 
 - `DEFAULT_EXECUTION`: enter [`execution.md`](execution.md) as `ACQUIRED_SAME_TASK`.
-- `PLAN_REQUIRED`: create the claimed plan and obtain current-user approval before branch or task-file edits.
+- `PLAN_REQUIRED`: enter the execution runbook's Planning Gate.
 - If planning is abandoned, remove the assignee, restore Ready, and reread both postconditions.
 - If planning exposes a real blocker, use lifecycle's Blocked guard and explicitly retain or release the reservation.
 

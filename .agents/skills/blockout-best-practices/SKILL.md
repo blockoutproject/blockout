@@ -5,8 +5,8 @@ description: Use when working in the Blockout monorepo on GitHub Roadmap governa
 
 # Blockout Best Practices
 
-Use this skill as the Blockout router. Apply the universal guardrails below, then read only the references required by
-the current task. Detailed rules live in the references rather than in this entrypoint.
+Use this skill as the Blockout router. Read only the references required by the current task. Detailed rules live in
+the references rather than in this entrypoint.
 
 ## Ownership And Precedence
 
@@ -24,7 +24,8 @@ Workflow ownership is intentionally narrow:
 - `local-runtime-policy.md`: portable runtime and release-smoke decisions;
 - `overlays/**`: Blockout source, Roadmap, taxonomy, Git, runtime, design, path, version, command, and provider values;
   and
-- `docs/runbooks/tasks/**`: discovery, acquisition, execution, drain, and merge sequences without policy ownership.
+- `docs/runbooks/tasks/**`: discovery, acquisition, execution, drain, merge, and guidance-audit sequences without
+  policy ownership.
 
 Every file under `references/**` must remain repository-neutral and reusable unchanged by another repository router.
 Never add a Blockout or Maaatch name, coordinate, path, branch, command, version, provider, port, design file, or
@@ -73,6 +74,7 @@ taxonomy value there.
 | Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md` and `overlays/github-roadmap-profile.md`                                              |
 | Track, issue identifier, label, or Workset area taxonomy                      | `references/github-taxonomy.md` and `overlays/github-taxonomy.md`                                                               |
 | Issue, branch, commit, push, pull request, label, title, or local Git sync    | `references/git-workflow.md` and `overlays/git-profile.md`                                                                      |
+| Agent guidance ownership, precedence, duplication, or portability audit       | `docs/runbooks/tasks/guidance-audit.md`, then the instruction tree it selects                                                   |
 
 When Figma work requires simulator or service startup, also read `references/local-runtime-policy.md` and
 `overlays/local-runtime-profile.md`.
@@ -83,17 +85,10 @@ deferred plans do not activate work by continuity.
 The Vercel companion skills are intentionally limited to the two repository-relevant packages above. Do not load or
 install their Next.js, deployment, web-design, or writing skills for Blockout mobile work.
 
-## Universal Guardrails
+## Repository Guardrails
 
 - Organize deployable applications under `apps`; reserve `libs/shared` for stable cross-application assets when a real
   shared boundary exists.
-- Keep transport models, application commands/views, persistence entities, provider payloads, and frontend view models
-  at explicit boundaries.
-- Never expose a JPA entity from a controller or use one as an HTTP response.
-- One service owns each complete business resource. Complete mirrors must agree with the owner; purpose-specific events
-  and read projections may remain smaller when their names and consumers make that role explicit.
-- Blockout-owned HTTP bodies, responses, and query parameters use native camelCase. Database columns, environment
-  variables, protocol fields, and provider-owned payloads retain their own naming.
 - Use Nx targets for JavaScript/TypeScript and scraper task orchestration. Use the backend Maven reactor for
   cross-module
   Java validation.
@@ -103,23 +98,10 @@ install their Next.js, deployment, web-design, or writing skills for Blockout mo
 - Follow `references/figma-policy.md` for every task that reads, changes, compares against, or makes a decision in
   Figma. Never create a parallel canonical Blockout design file.
 
-## Contract-First Baseline
-
-The current V1 sources and generated transport boundaries are governed by `references/baseline-v1-policy.md` and
-`references/contract-first.md`: OpenAPI sources are authoritative, generated output remains ignored, Java generated
-models stay within adapters, Python scrapers use the shared generated models and HTTPX clients, and mobile uses its
-generated Orval client. A future contract change requires an explicit task and proportional parity evidence.
-
 ## Roadmap And GitFlow
 
-- `references/github-roadmap-policy.md` routes Roadmap operations to their single owner.
-- Use `docs/runbooks/tasks/discovery.md` for read-only inspection, `acquisition.md` to reserve work, and `execution.md`
-  for selected work through draft publication.
-- Use `ready-drain.md` only for an explicitly requested compatible Ready frontier and `merge.md` only for an explicitly
-  authorized release.
-- Load lifecycle only for lifecycle or release decisions and governance only for Project structure.
-- Apply the managed-checkout transport policy from Roadmap operations, the portable Git workflow, and
-  `overlays/git-profile.md`.
+`references/github-roadmap-policy.md` routes each Roadmap decision to its focused owner. The task runbooks selected
+above supply operation order only; they do not redefine claims, transitions, Git publication, or release guards.
 
 ## Repository Map
 
