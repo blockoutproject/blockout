@@ -5,45 +5,17 @@ description: Use when working in the Blockout monorepo on GitHub Roadmap governa
 
 # Blockout Best Practices
 
-Use this skill as the Blockout router. Read only the references required by the current task. Detailed rules live in
-the references rather than in this entrypoint.
+Use this skill as the Blockout router. Match the task to the smallest row below, read every source named by that row,
+and follow links only when the selected source requires them.
 
-## Ownership And Precedence
+## Guidance Boundaries
 
-`AGENTS.md` owns repository-wide invariants and coordinates. This router owns source selection, the repository map,
-Blockout overlay selection, and validation defaults. Focused references own portable decisions for their boundary;
-`overlays/**` supplies Blockout-specific values without changing those decisions. Task runbooks only sequence them.
-When guidance overlaps, follow that order and replace lower-level repetition with a direct route.
-
-Workflow ownership is intentionally narrow:
-
-- `github-roadmap-operations.md`: Project evidence, Ready, Worksets, claims, conflicts, and scope expansion;
-- `github-roadmap-lifecycle.md`: statuses, execution modes, transitions, completion, dependencies, and Epic rollup;
-- `github-roadmap-governance.md` and `github-taxonomy.md`: portable Project and taxonomy decisions;
-- `git-workflow.md`: portable branch, commit, pull-request, review, and integration decisions;
-- `local-runtime-policy.md`: portable runtime and release-smoke decisions;
-- `overlays/**`: Blockout source, Roadmap, taxonomy, Git, runtime, design, path, version, command, and provider values;
-  and
-- `docs/runbooks/tasks/**`: discovery, acquisition, execution, drain, merge, and guidance-audit sequences without
-  policy ownership.
-
-Every file under `references/**` must remain repository-neutral and reusable unchanged by another repository router.
-Never add a Blockout or Maaatch name, coordinate, path, branch, command, version, provider, port, design file, or
-taxonomy value there.
-
-## Discipline
-
-- Inspect Git, the current sources, and the live Roadmap before acting when more than one interpretation is possible.
+- `AGENTS.md` owns repository-wide constraints and routing context.
+- This router owns source selection, the repository map, and common validation commands.
+- `overlays/**` owns Blockout coordinates, taxonomy, architecture, commands, versions, and provider values.
+- `references/**` owns portable decisions and must contain no Blockout, Maaatch, machine, or repository-specific value.
+- `docs/runbooks/tasks/**` sequences operations without owning their policy.
 - Apply `karpathy-guidelines` whenever writing, reviewing, or refactoring code.
-- Make the smallest coherent change that fits the established architecture. Avoid speculative abstractions and adjacent
-  cleanup.
-- Treat uncommitted changes as user-owned until inspection proves otherwise.
-- State assumptions before relying on an ambiguous product, model, or architecture decision.
-- Validate proportionally to risk: narrow checks while developing, impacted application checks before completion, and
-  the complete local baseline when a shared boundary changes.
-- Before completing a code or configuration change, run `npm run format`, then the relevant validation, and finish with
-  `npm run format:check`. Prettier, Spotless, and Ruff are the repository formatting authorities.
-- Report checks that were intentionally skipped and why.
 
 ## Source Router
 
@@ -69,21 +41,16 @@ taxonomy value there.
 | Business model ownership or delivered runtime posture                         | `references/baseline-v1-policy.md`, `docs/current/blockout-product-runtime-context.md`, and owning sources                      |
 | Roadmap discovery, acquisition, claim, resume, scope, or draft publication    | `references/github-roadmap-operations.md` and the applicable task runbook                                                       |
 | Drain compatible Ready issues                                                 | `references/github-roadmap-operations.md` and `docs/runbooks/tasks/ready-drain.md`                                              |
-| Drain an approved PR snapshot                                                 | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`                      |
+| Pull-request review, review evidence, or review-state transition              | `references/github-roadmap-lifecycle.md` and `references/git-workflow.md`                                                       |
+| Release, integration, or drain an approved PR snapshot                        | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`                      |
 | Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                                        |
 | Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md` and `overlays/github-roadmap-profile.md`                                              |
 | Track, issue identifier, label, or Workset area taxonomy                      | `references/github-taxonomy.md` and `overlays/github-taxonomy.md`                                                               |
 | Issue, branch, commit, push, pull request, label, title, or local Git sync    | `references/git-workflow.md` and `overlays/git-profile.md`                                                                      |
 | Agent guidance ownership, precedence, duplication, or portability audit       | `docs/runbooks/tasks/guidance-audit.md`, then the instruction tree it selects                                                   |
 
-When Figma work requires simulator or service startup, also read `references/local-runtime-policy.md` and
-`overlays/local-runtime-profile.md`.
-
-Apply the source gate in `references/baseline-v1-policy.md` before changing product behavior. Historical code and
-deferred plans do not activate work by continuity.
-
-The Vercel companion skills are intentionally limited to the two repository-relevant packages above. Do not load or
-install their Next.js, deployment, web-design, or writing skills for Blockout mobile work.
+For Figma work that starts a simulator or service, also read the local runtime policy and overlay. Apply the V1 source
+gate before changing product behavior. Load only the two Vercel companion skills named in the table.
 
 ## Repository Guardrails
 
@@ -97,11 +64,6 @@ install their Next.js, deployment, web-design, or writing skills for Blockout mo
   package skeletons.
 - Follow `references/figma-policy.md` for every task that reads, changes, compares against, or makes a decision in
   Figma. Never create a parallel canonical Blockout design file.
-
-## Roadmap And GitFlow
-
-`references/github-roadmap-policy.md` routes each Roadmap decision to its focused owner. The task runbooks selected
-above supply operation order only; they do not redefine claims, transitions, Git publication, or release guards.
 
 ## Repository Map
 
