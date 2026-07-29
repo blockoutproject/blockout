@@ -29,15 +29,37 @@ checks.
 
 ## Verification
 
-For ordinary task smokes, start only the required dependencies. The Merge Train Runbook is the release exception: for
-every candidate, start and reverify both Compose definitions, every third-party container, every Java application and
-worker, both Python scrapers in safe local mode, Metro, the installed development client, and the supported Auth0
-login/protected-flow/sign-out path. Missing credentials, provider configuration, simulator support, or another required
-prerequisite blocks release; never reduce the topology based on changed paths or agent judgment.
-
 Confirm health before application smokes, use non-production data and credentials, and stop or report any external
 write path. Verify effective Compose configuration, application startup, expected port, health endpoint,
 representative local flow, and `git diff --check`.
+
+For ordinary task smokes, start only the required dependencies. The Merge train is the release exception and uses the
+complete profile below for every candidate. Never reduce it based on changed paths, Workset, risk classification, or
+agent judgment.
+
+### Merge Release Profile
+
+1. Inspect existing Docker, ports, application processes, Metro, installed development clients, and simulator or
+   device state. Preserve user-owned processes and record every process started by the train.
+2. Start both Compose definitions under the `blockout` project. Require every declared PostgreSQL, RabbitMQ,
+   Elasticsearch, and pgAdmin container to run and pass its configured health check.
+3. Start every Java application and worker from the exact candidate tree. Verify every configured health endpoint and
+   keep the complete topology alive together.
+4. Start both Python scrapers in their safe local mode with uncontrolled external writes disabled. Verify process
+   readiness and the configuration-service gates for `SCRAPER` and `SCRAPER_CLUBS`.
+5. Start Metro on port `8100`, launch the complete Expo application in an installed supported development client, and
+   verify that the application loads from that candidate tree.
+6. Use a provider-supported local or test Auth0 identity to log in through the visible application, reach a protected
+   surface that exercises the mobile-to-gateway path, and sign out. Never use a bypass, embedded credential, wildcard
+   origin, mocked provider state, or production identity.
+7. Treat missing credentials, provider configuration, simulator support, port availability, unsafe scraper behavior,
+   an unhealthy component, or an incomplete protected flow as a release blocker. Return the pull request to draft,
+   record the clearing condition, stop train-owned processes, and stop the train.
+8. Record the candidate SHA, component inventory, health evidence, authenticated flow, and cleanup result on the pull
+   request without exposing secrets, provider payloads, or personal data.
+
+Healthy infrastructure may be reused for the next candidate only after reverification. Restart every repository
+application from the next candidate tree so evidence always binds to the head being merged.
 
 ## Visual Session Lifecycle
 

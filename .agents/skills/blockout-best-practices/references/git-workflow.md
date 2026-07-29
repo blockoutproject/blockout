@@ -9,27 +9,7 @@ them.
 
 The workflow is idempotent. After interruption, inspect Git and GitHub and continue from the first incomplete
 postcondition. Never create a duplicate issue, branch, commit, or pull request when an equivalent artifact exists.
-
-## Priorities
-
-1. Follow the user's explicit instruction.
-2. Preserve user work and never stage, commit, publish, overwrite, or discard out-of-scope changes.
-3. Reuse an existing artifact that matches the task.
-4. Publish completed implementation work by default through a draft pull request unless the user limits publication.
-5. Apply the defaults below for everything else.
-
-If inspection cannot resolve a conflict between these priorities safely, ask one concise question.
-
-## User Overrides
-
-- `local only`, `no GitHub`, or `do not push/open a PR`: create no remote artifact.
-- `do not create a branch`: remain on the current branch.
-- `do not commit`: do not stage or commit and do not perform a dependent push or PR.
-- `do not push`: a local commit is allowed, but no remote update.
-- `do not open a PR`: stop at the requested local or pushed state.
-- `draft PR`: the change is not ready for review.
-
-For local-only work without an explicit commit request, do not commit.
+Current-user publication limits override the repository defaults below.
 
 ## Defaults
 
@@ -48,7 +28,7 @@ For local-only work without an explicit commit request, do not commit.
 
 ## Private GitHub Free Baseline
 
-Portable repository guidance assumes a private organization repository on GitHub Free. Revalidate the
+The Blockout repository profile assumes a private organization repository on GitHub Free. Revalidate the
 [current GitHub plan capabilities](https://docs.github.com/en/get-started/learning-about-github/githubs-plans) before
 proposing a setting change; public-repository enforcement or a temporary paid feature is not portability evidence.
 
@@ -68,9 +48,8 @@ private repository, every contributor follows these compensating controls:
    requests do not reserve scope.
 2. Each contributor uses one claimed issue branch and publishes a draft pull request with exact-head validation
    evidence. Overlapping Worksets stop before either contributor writes.
-3. Review follows the independent-review or documented solo fallback in
-   [`github-roadmap-lifecycle.md`](github-roadmap-lifecycle.md). A green check, approval, or merge button is evidence,
-   never release authorization.
+3. Review follows the independent-review or documented solo fallback below. A green check, approval, or merge button
+   is evidence, never release authorization.
 4. Integration uses the explicit Merge train. A stale head is rebased onto current `origin/develop` and fully
    revalidated; nobody pushes or merges directly to `develop`, enables auto-merge, or substitutes a different merge
    method.
@@ -81,6 +60,14 @@ private repository, every contributor follows these compensating controls:
 Repository settings remain manual external state. Before any mutation, capture the current values, name one intended
 change and its rollback, obtain separate current-user approval, apply only that change, and reread the postcondition.
 On failure or ambiguity, restore the captured value when uniquely safe; otherwise stop for owner-led recovery.
+
+### Review Evidence Profile
+
+Require approval on the current head from an independent contributor when one is available. New commits invalidate
+that approval. When no independent contributor is available, the current user may authorize the exact head as a
+documented solo fallback only after the author self-reviews the complete diff and every applicable validation passes.
+The fallback must state that independent review was unavailable and never waives a failed check, unresolved review
+request, stale head, Workset violation, or another release guard.
 
 ## Idempotent Start
 
@@ -147,21 +134,11 @@ Commit:
 
 Allowed kinds are `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, and `ci`.
 
-## Standard Flow
+## Task Workflow Profile
 
-1. Snapshot Git.
-2. Identify or create the issue, set its native type, Track, Priority, and Execution Mode, and validate its Ready
-   contract.
-3. Claim it through Roadmap operations and obtain stable post-claim evidence.
-4. For `PLAN_REQUIRED`, obtain current-user plan approval.
-5. Create or reuse the task branch from current `develop`.
-6. Implement only the frozen workset; expand scope through Roadmap operations before touching a new lock.
-7. Run required generation and validation.
-8. Inspect status and diff, stage explicit intended paths, and create one focused commit.
-9. Push with tracking and create or update one draft PR targeting `develop`.
-10. Apply two to four safe PR labels in a distinct metadata step.
-11. Verify the intended labels and the issue's structural closing or cross-reference link.
-12. Transition the issue to `In Review`, retain its assignment and workset reservation, and reread the target state.
+Use Roadmap operations for claims and scope, lifecycle for transition guards, and the execution runbook for sequencing.
+Blockout task branches start from `develop`, draft pull requests target `develop`, and publication uses the naming,
+label, validation, and link-mode rules in this reference.
 
 ## Review And Release
 
@@ -169,16 +146,16 @@ Before merge:
 
 1. Reread the current PR, base, head, latest diff, linked issue, claim, workset, acceptance criteria, reviews, and
    checks.
-2. Require separate current-user merge authorization. A Merge task invocation authorizes only its startup snapshot of
-   structurally valid non-draft PRs; earlier execution, GitFlow approval, or a later ready-for-review transition is
-   insufficient.
+2. Require separate current-user merge authorization. A Merge task invocation authorizes the complete startup snapshot
+   of structurally valid non-draft pull requests targeting `develop`; earlier execution, GitFlow approval, or a later
+   ready-for-review transition is insufficient.
 3. Require a non-draft PR whose diff remains inside the workset.
-4. Require every applicable validation and required check to pass. A missing or failing check requires a recorded human
-   waiver, except the narrowly documented zero-step GitHub billing classification in the lifecycle and merge runbook.
-5. Require the Merge Train Runbook's complete local stack, health, Auth0 authentication, protected application access,
-   and sign-out evidence on the exact head. This release smoke is never reduced to the changed workset.
-6. Merge to `develop` through the repository-supported merge-commit path and delete only the selected PR's remote task
-   branch with `--match-head-commit`.
+4. Require every applicable validation and required check to pass. The sole automatic exception is a terminal GitHub
+   check with no executed step and one annotation proving a billing restriction; record the unchanged head SHA,
+   check-run ID, and annotation. Every other missing or failing check requires an explicit head-bound human waiver.
+5. Execute the complete profile in [`local-runtime-policy.md`](local-runtime-policy.md) on the exact head.
+6. Merge each unchanged head separately with
+   `gh pr merge --merge --delete-branch --match-head-commit <full-head-sha>`.
 7. Reread the merged PR, remote branch absence, issue, and Project item.
 8. Complete the issue only after every completion guard passes, then reconcile direct dependents and parent Epics.
 9. Obtain stable post-mutation snapshots, then let the Merge train recompute its remaining authorized snapshot against
@@ -257,3 +234,16 @@ need refresh.
 
 Report issue, claim owner, workset, Project status, branch, commit, push, PR, validations, skipped checks, release
 decision, and any dependency or Epic transition.
+
+The Merge train response must end with the branch reminder in French:
+
+```text
+Pensez à mettre à jour les branches suivantes :
+- <remaining branch>
+```
+
+When none remain, end with:
+
+```text
+Pensez à mettre à jour les branches suivantes : aucune.
+```

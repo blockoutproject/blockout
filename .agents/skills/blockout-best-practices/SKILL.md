@@ -8,6 +8,21 @@ description: Use when working in the Blockout monorepo on GitHub Roadmap governa
 Use this skill as the Blockout router. Apply the universal guardrails below, then read only the references required by
 the current task. Detailed rules live in the references rather than in this entrypoint.
 
+## Ownership And Precedence
+
+`AGENTS.md` owns repository-wide invariants and coordinates. This router owns source selection, the repository map, and
+validation defaults. Focused references own decisions for their boundary; task runbooks only sequence those decisions.
+When guidance overlaps, follow that order and replace lower-level repetition with a direct route.
+
+Workflow ownership is intentionally narrow:
+
+- `github-roadmap-operations.md`: Project evidence, Ready, Worksets, claims, conflicts, and scope expansion;
+- `github-roadmap-lifecycle.md`: statuses, execution modes, transitions, completion, dependencies, and Epic rollup;
+- `github-roadmap-governance.md` and `github-taxonomy.md`: Blockout Project fields, views, Tracks, labels, and areas;
+- `git-workflow.md`: Blockout branches, commits, pull requests, repository settings, review profile, and integration;
+- `local-runtime-policy.md`: Blockout runtime and release-smoke topology; and
+- `docs/runbooks/tasks/**`: discovery, acquisition, execution, drain, and merge sequences without policy ownership.
+
 ## Discipline
 
 - Inspect Git, the current sources, and the live Roadmap before acting when more than one interpretation is possible.
@@ -74,12 +89,9 @@ install their Next.js, deployment, web-design, or writing skills for Blockout mo
 - Use Nx targets for JavaScript/TypeScript and scraper task orchestration. Use the backend Maven reactor for
   cross-module
   Java validation.
-- Keep generated output, build artifacts, local environments, caches, logs, and secrets out of Git.
 - Remove obsolete and accidentally empty directories. Keep an otherwise empty directory with `.gitkeep` only when the
   current architecture explicitly requires that location before its first implementation; never preserve speculative
   package skeletons.
-- Preserve existing runtime behavior unless the active roadmap task explicitly authorizes a behavior correction.
-- Maaatch is a read-only structural reference. Reuse its policies and vocabulary patterns, never its business code.
 - Follow `references/figma-policy.md` for every task that reads, changes, compares against, or makes a decision in
   Figma. Never create a parallel canonical Blockout design file.
 
@@ -92,27 +104,14 @@ generated Orval client. A future contract change requires an explicit task and p
 
 ## Roadmap And GitFlow
 
-- The organization [Roadmap Project](https://github.com/orgs/blockoutproject/projects/4) is the source of truth for
-  task existence, status, priority, execution mode, ownership, and active claims. The issue owns the objective,
-  acceptance criteria, dependencies, evidence, and frozen Workset.
-- Use `references/github-roadmap-policy.md` only as the operation router. Ordinary work reads operations; load
-  lifecycle or governance only when the current transition requires it.
-- In a managed checkout, route every `gh` call, Git network operation, and `.git` write through the authorized path on
-  its first attempt. Keep repository reads, edits, and local validation in the sandbox.
-- Use one authenticated `gh` identity and the read-only compact Project helper. Do not create a mutating Roadmap CLI,
-  Markdown task or claim ledger, hidden claim state, lease, or session-token subsystem.
-- Read-only task inspection uses `docs/runbooks/tasks/discovery.md`. Work intended to continue uses
-  `docs/runbooks/tasks/acquisition.md`. Selected or acquired work uses `docs/runbooks/tasks/execution.md`.
-- Ready-frontier automation uses `docs/runbooks/tasks/ready-drain.md`. Explicit release uses
-  `docs/runbooks/tasks/merge.md`: it snapshots the eligible non-draft PRs authorized by the invocation, refreshes and
-  validates them sequentially, proves the complete local stack and authentication flow, merges each unchanged head
-  separately, and stops fail-closed on the first conflict or failed gate.
-- Never create a task branch, develop a task-specific plan, or edit task files before a successful stable claim.
-  `PLAN_REQUIRED` also requires current-user plan approval.
-- Preserve unrelated changes, stage explicit paths, validate honestly, push one coherent task branch, and open one
-  draft pull request to `develop`.
-- Merge always requires separate current-user authorization and fresh release evidence. After terminal transitions,
-  reconcile native dependents and parent Epics before selecting more work.
+- `references/github-roadmap-policy.md` routes Roadmap operations to their single owner.
+- Use `docs/runbooks/tasks/discovery.md` for read-only inspection, `acquisition.md` to reserve work, and `execution.md`
+  for selected work through draft publication.
+- Use `ready-drain.md` only for an explicitly requested compatible Ready frontier and `merge.md` only for an explicitly
+  authorized release.
+- Load lifecycle only for lifecycle or release decisions and governance only for Project structure.
+- Apply the managed-checkout transport profile from Roadmap operations and the repository-specific Git and release
+  profile from `git-workflow.md`.
 
 ## Repository Map
 

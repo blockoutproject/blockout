@@ -1,7 +1,7 @@
 # Task Acquisition Runbook
 
-Use this when a developer wants new Blockout work and intends to continue. Acquisition selects and
-reserves one task as one operation; it does not return an unreserved proposal.
+Use this when a developer wants new work and intends to continue. Acquisition selects and reserves one task as one
+operation; it does not return an unreserved proposal.
 
 ## Rules
 
@@ -15,7 +15,7 @@ reserves one task as one operation; it does not return an unreserved proposal.
 ## Required Reads
 
 Read the complete Project index, relevant candidate and active issues, Worksets, native dependencies, linked PRs,
-scope-specific policy/source evidence, and every additional mobile/Figma source required by discovery.
+scope-specific policy/source evidence, and every additional authority selected during discovery.
 
 ## Select Without Announcing
 

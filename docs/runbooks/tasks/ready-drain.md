@@ -1,7 +1,7 @@
 # Ready Drain Runbook
 
-Use this when the user explicitly asks Codex to drain all currently executable Blockout work into a
-human review queue. The controller orchestrates and never implements, owns a task branch, or merges.
+Use this when the user explicitly asks Codex to drain all currently executable work into a human review queue. The
+controller orchestrates and never implements, owns a task branch, or merges.
 
 ## Outcome
 
@@ -23,7 +23,7 @@ stable claims. Stop when no further compatible work is executable without human 
 
 ## Controller Cycle
 
-1. Confirm this runbook and activation policy exist on current `origin/develop`.
+1. Confirm this runbook and the repository activation policy exist on the current remote integration head.
 2. Read the complete compact index and details for Ready, active, and quarantined issues.
 3. Classify active claims from GitHub. Coherent implementation/review reservations retain locks but do not block
    compatible work.
@@ -33,8 +33,8 @@ stable claims. Stop when no further compatible work is executable without human 
    and conflicting candidates. Build a deterministic pairwise-compatible frontier in ranked order.
 6. Before each dispatch, reread target and active claims. Skip a target no longer unassigned Ready. Otherwise perform
    assignment plus In Progress mutation and require two stable conflict-free snapshots.
-7. Create one new Codex task in a managed worktree based on current `origin/develop`. Name the exact issue and require
-   execution through `RESUME` without selection or fallback.
+7. Create one new Codex task in a managed worktree based on the current remote integration head. Name the exact issue
+   and require execution through `RESUME` without selection or fallback.
 8. On unambiguous task-creation failure before a worker exists, roll back only the controller's new claim. On ambiguous
    creation evidence, retain and quarantine the claim to avoid duplicate dispatch.
 9. On later wakes, verify worker outcome from issue, PR, assignee, Workset, Status, and stable snapshots, not thread ID.
@@ -46,20 +46,20 @@ stable claims. Stop when no further compatible work is executable without human 
 The self-contained worker prompt must:
 
 - name exactly one controller-claimed issue;
-- require `git status`, Blockout policies, acquisition, and execution runbooks;
+- require `git status`, the repository router, acquisition, and execution runbooks;
 - enter `RESUME` and freshly validate the named claim;
 - stop without replacement if missing, unowned, `PLAN_REQUIRED`, invalid, blocked, delivered, quarantined, or
   conflicting;
-- implement only the Workset, validate, publish one draft PR to `develop`, transition to `In Review`, and retain locks;
+- implement only the Workset, validate, publish one draft PR to the configured integration branch, transition to
+  `In Review`, and retain locks;
 - never merge, waive checks, release another claim, or acquire another issue; and
 - report issue, branch, commit, PR, validation, skipped checks, and stable review evidence.
 
 ## Human Release And Restart
 
-Run [`merge.md`](merge.md) only on explicit user request. It snapshots all structurally valid non-draft PRs approved by
-that invocation and drains them sequentially through isolated refresh, complete stack/authentication proof, merge, and
-reconciliation. It stops fail-closed on the first conflict or failed gate. After a stable merge, rejection, or claim
-release, a later controller cycle may dispatch newly reconciled Ready work.
+Run [`merge.md`](merge.md) only on explicit user request. The repository release profile defines the authorized
+candidate set and required release proof. After a stable merge, rejection, or claim release, a later controller cycle
+may dispatch newly reconciled Ready work.
 
 ## Stop Report
 

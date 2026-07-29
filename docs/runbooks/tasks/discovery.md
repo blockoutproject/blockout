@@ -1,7 +1,7 @@
 # Task Discovery Runbook
 
-Use this when the user asks to inspect the next executable Blockout task without reserving it. For
-work intended to continue, use [`acquisition.md`](acquisition.md).
+Use this when the user asks to inspect the next executable task without reserving it. For work intended to continue,
+use [`acquisition.md`](acquisition.md).
 
 ## Rules
 
@@ -15,12 +15,10 @@ work intended to continue, use [`acquisition.md`](acquisition.md).
 
 ## Required Read Set
 
-1. The live Blockout Roadmap Project.
-2. `blockout-best-practices` and the scope-specific references it routes.
+1. The live Roadmap Project declared by the repository overlay.
+2. The repository router and the scope-specific references it selects.
 3. The selected issue, native dependencies, linked PRs, labels, assignees, and complete Workset.
-4. Current source and task-specific architecture, product, contract, Figma, or evidence documents.
-
-For mobile visual work, also read the canonical Figma and mobile policies before proposing execution.
+4. Current source and every task-specific authority selected by the repository router.
 
 ## Live Calculation
 

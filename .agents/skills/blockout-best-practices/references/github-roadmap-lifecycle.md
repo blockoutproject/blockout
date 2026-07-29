@@ -85,32 +85,24 @@ Required post-merge work must be an unchecked acceptance criterion before merge.
 
 ## Review And Release
 
-Draft PR creation authorizes review, never release. A current-user Merge task invocation authorizes only the startup
-snapshot of structurally valid non-draft PRs defined by the Merge Train Runbook; making a PR non-draft alone does not
-start or expand a train. Before each merge:
-
-For the private GitHub Free baseline, reviews and checks are evidence rather than enforceable repository rules. Require
-an approval on the current head from an independent contributor when one is available. New commits invalidate that
-approval. When no independent contributor is available, the current user may authorize the exact head as a documented
-solo fallback only after the author has self-reviewed the complete diff and every applicable validation passes. The
-fallback must state that independent review was unavailable and never waives a failed check, unresolved review
-request, stale head, Workset violation, or any other release guard.
+Draft PR creation authorizes review, never release. A current-user Merge task invocation authorizes only the candidate
+set selected at startup by the repository's release profile. Making a PR non-draft alone never starts or expands that
+set. Apply the repository's review, check, branch, and release-validation profiles to the exact candidate head.
 
 1. Require explicit current-user merge authorization.
 2. Reread the latest PR base, head, diff, linked issue, claim, workset, criteria, reviews, and checks.
-3. Require a ready PR whose diff remains in scope and whose applicable validations pass.
-4. A missing or failing required check needs a recorded explicit human waiver. The sole automatic exception is the
-   merge runbook's head-bound zero-step GitHub billing classification.
-5. Require the Merge Train Runbook's complete local topology, health, authenticated protected flow, and sign-out
-   evidence on the exact candidate head; changed paths or agent judgment never reduce this release smoke.
+3. Require a ready PR whose diff remains in scope and whose repository-defined review and validation evidence passes.
+4. A missing or failing required check needs a recorded explicit human waiver unless the repository profile defines a
+   narrower automatic classification.
+5. Require the repository-defined release proof on the exact candidate head.
 6. Merge only after repository and lifecycle guards pass; never infer or enable auto-merge.
 7. Reread the merged PR, issue, and Project item before completion.
 
-When `develop` changed after a candidate's last validation, invalidate prior release evidence. Rebase the branch onto
-current `develop`, then rerun all head-bound checks plus the complete release smoke. The Merge train never resolves a
-conflict: it aborts without pushing, returns the PR to draft, records exact evidence, retains the `In Review`
-reservation, and stops. A clean rebase with an equivalent effective diff remains covered by the train invocation; a
-changed diff or risk requires new approval. Never merge `develop` into a task branch.
+When the configured integration branch changes after validation, invalidate prior release evidence. Rebase the
+candidate onto the new integration head, then rerun every head-bound check and release proof. The Merge train never
+resolves a conflict: it aborts without pushing, returns the PR to draft, records exact evidence, retains the
+`In Review` reservation, and stops. A clean rebase with an equivalent effective diff remains covered by the train
+invocation; a changed diff or risk requires new approval. Never merge the integration branch into a task branch.
 
 Classify each check run and head SHA through one bounded path:
 
@@ -119,8 +111,8 @@ Classify each check run and head SHA through one bounded path:
 3. If steps started, inspect only the failed job or step needed to classify repository versus infrastructure failure.
 4. Reuse the classification only while check-run ID and head SHA are unchanged.
 
-Infrastructure failure is not success. Only the documented billing exception bypasses a check without another waiver.
-Absence of branch protection does not waive release guards.
+Infrastructure failure is not success. Only an exception explicitly owned by the repository release profile bypasses a
+check without another waiver. Missing platform enforcement does not waive repository release guards.
 
 ## Dependency Unlock Reconciliation
 

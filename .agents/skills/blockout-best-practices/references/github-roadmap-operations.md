@@ -95,11 +95,11 @@ Use exactly:
 
 Areas:
 
-- area:mobile
+- <repository-area-label>
 
 Write locks:
 
-- apps/frontend/mobile/**
+- <repository-relative-directory>/**
 
 External locks:
 
@@ -211,7 +211,8 @@ the task.
 - Reject or replace with one factual comment and surviving link, terminal status, assignment removal, not-planned
   closure, and Epic recalculation.
 - Batch independent field mutations after one fresh schema read and batch labels in one REST update.
-- After implementation, validate, explicitly stage, commit, push, and publish one draft PR to `develop`.
+- After implementation, validate, explicitly stage, commit, push, and publish one draft PR to the repository's
+  configured integration branch.
 - Apply two to four PR labels as a separate operation, then verify labels and structural issue link.
 - Move to `In Review` only after the link exists and reread target, PR, assignee, Workset, and changed field.
 - Draft publication never authorizes merge.
