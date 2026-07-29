@@ -29,6 +29,20 @@ use [`acquisition.md`](acquisition.md).
    contracts, conflicts, any requested Track filter, ranking, and delivered-state challenge.
 4. Propose the first remaining candidate without mutation.
 
+## Intake Proposal
+
+When the request is to introduce work rather than select an existing Ready issue:
+
+1. Run operations' intake `Discovery` phase against open and closed issues, merged PRs, Git history, and current
+   sources.
+2. If an existing issue owns the outcome or the work is already delivered, report that evidence and do not propose a
+   duplicate.
+3. Build one `Proposal` containing the exact title, native type, Track, Priority, Execution Mode, acceptance criteria,
+   dependencies, Workset, area labels, and recommended lifecycle status.
+4. Mark unresolved product, UX, architecture, ownership, source-gate, or priority decisions as `PLAN_REQUIRED`; use
+   `Blocked` when missing evidence prevents a testable planning contract.
+5. Stop read-only. Creation, acceptance, Ready promotion, and claim remain separate visible postconditions.
+
 ## Execution Mode Gate
 
 Use lifecycle's Execution Mode definitions and the repository source gate. Report the exact unresolved decisions for
@@ -46,6 +60,9 @@ Report:
 - risks and decisions not to invent;
 - expected claim and GitFlow without mutation; and
 - any reconciliation drift.
+
+For an intake proposal, report every proposed contract value, the duplicate/delivered evidence checked, the recommended
+initial status, and the exact decision required before creation.
 
 If no compatible candidate exists, list exact exclusion reasons.
 
