@@ -6,28 +6,28 @@ decisions, and governance for Project structure.
 
 ## Local Execution Profile
 
-Use one authenticated `gh` identity for Roadmap issue, Project, and PR operations. In a managed checkout, route network
-operations and `.git` writes through the environment's authorized path on the first attempt.
+Use the one authenticated identity and transports selected by the repository Roadmap profile. In a managed checkout,
+follow that profile's local and authorized-operation boundaries.
 
-| Operation                                                | Primary transport              | Fallback                                                 | Stop condition                                                    |
-| -------------------------------------------------------- | ------------------------------ | -------------------------------------------------------- | ----------------------------------------------------------------- |
-| Repository reads, edits, validation, Git status/diff/log | Local command                  | None                                                     | Local precondition or command failure                             |
-| Complete Project index                                   | Read-only compact helper       | Targeted GraphQL for a missing capability                | Incomplete pagination, invalid shape, auth, or permission failure |
-| Issue or PR read                                         | `gh issue view` / `gh pr view` | Targeted REST/GraphQL                                    | Auth, permission, or ambiguous evidence                           |
-| Project mutation                                         | `gh api graphql`               | None                                                     | Mixed state not uniquely reconcilable                             |
-| Issue or PR mutation                                     | Dedicated `gh`/REST            | Connector for a real capability gap with identical login | Auth, permission, identity mismatch, ambiguity                    |
-| Git network or `.git` write                              | Git                            | Same command after one transient network failure         | Divergence, permission, or unsafe worktree                        |
-| Completed check diagnosis                                | PR/check summary               | One annotation; logs only if steps ran                   | Terminal failure classified                                       |
-| Unexposed Project configuration                          | Authenticated browser          | None                                                     | State or identity cannot be verified                              |
+| Operation                                                | Primary transport             | Fallback                                                 | Stop condition                                                    |
+| -------------------------------------------------------- | ----------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------- |
+| Repository reads, edits, validation, Git status/diff/log | Local command                 | None                                                     | Local precondition or command failure                             |
+| Complete Project index                                   | Read-only compact helper      | Targeted GraphQL for a missing capability                | Incomplete pagination, invalid shape, auth, or permission failure |
+| Issue or PR read                                         | Configured repository CLI     | Targeted REST/GraphQL                                    | Auth, permission, or ambiguous evidence                           |
+| Project mutation                                         | Configured Project transport  | None                                                     | Mixed state not uniquely reconcilable                             |
+| Issue or PR mutation                                     | Configured issue/PR transport | Connector for a real capability gap with identical login | Auth, permission, identity mismatch, ambiguity                    |
+| Git network or `.git` write                              | Git                           | Same command after one transient network failure         | Divergence, permission, or unsafe worktree                        |
+| Completed check diagnosis                                | PR/check summary              | One annotation; logs only if steps ran                   | Terminal failure classified                                       |
+| Unexposed Project configuration                          | Authenticated browser         | None                                                     | State or identity cannot be verified                              |
 
-Do not use `gh auth status` as identity evidence and never start interactive login. On authentication failure, stop for
-user-managed login. Quote URLs containing shell metacharacters.
+Do not use an authentication status summary as identity evidence and never start interactive login. On authentication
+failure, stop for user-managed login. Quote URLs containing shell metacharacters.
 
 ## Compact Project Evidence
 
-Use `../scripts/read-roadmap-project.sh` for the complete paginated index. The helper is read-only. It may authenticate,
-paginate, validate bounded nested connections, and normalize JSON. It may not rank, claim, transition, cache hidden
-state, or mutate GitHub.
+Use the complete paginated Project helper selected by the repository Roadmap profile. The helper is read-only. It may
+authenticate, paginate, validate bounded nested connections, and normalize JSON. It may not rank, claim, transition,
+cache hidden state, or mutate the hosting platform.
 
 Its `authenticatedLogin` is the workflow identity. Do not issue a redundant user lookup unless the helper failed before
 returning a login or a fallback transport must be compared.
@@ -137,8 +137,8 @@ External locks:
 - None.
 ```
 
-The complete allowed area catalog and ownership mapping are frozen in
-[`github-taxonomy.md`](github-taxonomy.md). Any other area is invalid.
+[`github-taxonomy.md`](github-taxonomy.md) owns the portable area rules. The repository router selects the taxonomy
+profile that freezes the complete allowed area catalog and ownership mapping; any other area is invalid.
 
 - A write lock is one normalized, case-preserving, POSIX repository-relative file or a directory ending in `/**`.
 - Wildcards other than terminal `/**`, absolute paths, empty segments, and `.` or `..` segments are invalid.

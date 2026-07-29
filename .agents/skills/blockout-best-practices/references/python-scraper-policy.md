@@ -7,27 +7,8 @@ focused tests prove an intentional replacement.
 ## Structure
 
 Keep each scraper independently deployable in the application location selected by the repository profile. A
-refactored scraper uses one importable application package and a small root entrypoint:
-
-```text
-scraper-root/
-├── main.py
-├── scraper/
-│   ├── application/
-│   ├── domain/
-│   ├── infrastructure/
-│   │   ├── internal/
-│   │   ├── provider-a/
-│   │   ├── provider-b/
-│   │   └── scheduling/
-│   ├── config/
-│   └── observability/
-└── tests/
-    ├── characterization/
-    ├── unit/
-    ├── integration/
-    └── fixtures/
-```
+refactored scraper uses one importable application package, a small root entrypoint, explicit application, domain,
+infrastructure, configuration, and observability roles, and the test roles selected by the repository profile.
 
 Create only directories that own real code. A scraper omits every unused provider boundary. Do not create generic
 `utils`, `helpers`, `common`, `manager`, `processor`, or `services` packages. Name reusable behavior by its role:
@@ -42,27 +23,27 @@ local packages on one Python import path.
 
 ## Roles
 
-- `main.py`: composition root only. Load configuration, construct adapters and use cases, install lifecycle handling,
-  and start the application.
-- `application`: scrape use cases, orchestration, ports, explicit commands, and run results. It decides what should be
-  read or written but does not parse HTTP payloads or construct transport requests inline.
-- `domain`: pure typed values, local policies, comparison rules, and invariants. Keep normalized scraper working models
-  here when they have lifecycle or reconciliation semantics distinct from HTTP transport. It has no application,
-  generated-client, aiohttp, scheduler, file, environment, metrics, or provider dependency.
-- `infrastructure/internal`: authentication and clients for internal repository service APIs, including handwritten
-  transport mirrors until contract generation is activated. After adoption, generated imports and transport mappings
-  stay in this adapter; application code depends on domain-shaped ports instead.
-- `infrastructure/<provider>`: provider HTTP access and parsing. Provider vocabulary and payload names remain confined
-  here.
-- `infrastructure/scheduling`: APScheduler and process-lifecycle adapters. Scheduling never owns scrape rules.
-- `config`: immutable typed settings assembled from environment variables at startup.
-- `observability`: metrics and logging setup, without business decisions.
+- The root entrypoint is composition only. Load configuration, construct adapters and use cases, install lifecycle
+  handling, and start the application.
+- The application role owns scrape use cases, orchestration, ports, explicit commands, and run results. It decides what
+  should be read or written but does not parse HTTP payloads or construct transport requests inline.
+- The domain role owns pure typed values, local policies, comparison rules, and invariants. Keep normalized scraper
+  working models there when they have lifecycle or reconciliation semantics distinct from HTTP transport. It has no
+  application, generated-client, HTTP-client, scheduler, file, environment, metrics, or provider dependency.
+- The internal infrastructure adapter owns authentication and clients for repository service APIs, including
+  handwritten transport mirrors until contract generation is activated. After adoption, generated imports and
+  transport mappings stay in this adapter; application code depends on domain-shaped ports instead.
+- Each provider infrastructure adapter owns provider HTTP access and parsing. Provider vocabulary and payload names
+  remain confined there.
+- The scheduling infrastructure adapter owns scheduler and process-lifecycle integration, never scrape rules.
+- The configuration role owns immutable typed settings assembled from environment variables at startup.
+- The observability role owns metrics and logging setup, without business decisions.
 
 Use protocols at real outbound seams that tests or multiple adapters must replace. Do not introduce an interface for a
 pure local helper or add a dependency-injection framework.
 
-Scrapers keep `domain` independent and keep generated/internal transport below `infrastructure/internal`. Application
-workflows depend on a domain-shaped internal port, never on generated packages or adapter functions. A
+Scrapers keep the domain independent and keep generated/internal transport inside the configured internal adapter.
+Application workflows depend on a domain-shaped internal port, never on generated packages or adapter functions. A
 provider-specific workflow may consume a typed provider record or parser directly when adding another protocol would
 only hide a single concrete source behind indirection. Provider vocabulary must not leak into domain models or the
 internal adapter. Prefer one cohesive internal port per scraper over one protocol per endpoint when that keeps the
@@ -90,7 +71,7 @@ declared by the repository profile; generated sources remain untracked, and the 
 Once a contract is adopted:
 
 - no handwritten `*InternalRequest` or `*InternalResponse` mirror remains in a scraper;
-- generated models and API classes are imported only below `infrastructure/internal`;
+- generated models and API classes are imported only inside the configured internal adapter;
 - the adapter maps generated responses immediately to domain values and maps domain values to generated requests;
 - application ports and use cases never mention generated packages, HTTP clients, or transport enums;
 - an available generated operation replaces a manual repository HTTP call instead of wrapping the same route again.
@@ -203,6 +184,6 @@ Provider-owned enums remain provider-specific.
 ## Verification
 
 Follow `python-scraper-testing-policy.md`. At minimum run syntax checks, the owning scraper suite, exact
-internal-request
-serialization, offline fixtures, import/startup behavior, relevant task targets, and `git diff --check`. Run controlled
-local API smokes when production code changes; never call production services or write to external providers.
+internal-request serialization, offline fixtures, import/startup behavior, relevant task targets, and the repository
+diff-hygiene check. Run controlled local API smokes when production code changes; never call production services or
+write to external providers.

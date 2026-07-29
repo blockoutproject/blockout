@@ -30,8 +30,8 @@ service-to-service HTTP boundary.
 - Repository-owned JSON bodies, responses, and query parameters use the convention declared by the repository profile.
 - Do not add naming strategies, field aliases, or recursive case converters for repository-owned fields.
 - Isolate provider-owned fields in provider-specific adapters and models.
-- While a boundary remains handwritten, use explicit names such as `CreateClubInternalRequest` and
-  `ClubInternalResponse`.
+- While a boundary remains handwritten, use explicit names such as `CreateResourceInternalRequest` and
+  `ResourceInternalResponse`.
 - Keep application commands, views, and domain values independent from HTTP and persistence types.
 
 ## Controllers And Mapping
@@ -50,7 +50,7 @@ service-to-service HTTP boundary.
 - Keep authentication, authorization, not-found, validation, conflict, dependency, rate, and unexpected failures
   distinguishable where clients need different recovery.
 - Never leak stack traces, SQL, provider bodies, secrets, tokens, internal hosts, or personal data.
-- Mobile final copy must not depend on an unstable backend detail string; clients branch on stable codes.
+- Client-facing copy must not depend on an unstable backend detail string; clients branch on stable codes.
 
 ## Collections
 
@@ -65,4 +65,4 @@ service-to-service HTTP boundary.
 - Verify mappers and all changed producers and consumers.
 - Confirm repository-owned serialization and unchanged provider naming.
 - Regenerate and compare generated boundaries when OpenAPI changes.
-- Run the owning module tests, affected client tests, and `git diff --check`.
+- Run the owning module tests, affected client tests, and the repository diff-hygiene check.

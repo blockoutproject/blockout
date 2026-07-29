@@ -23,8 +23,8 @@ Do not replace a narrow test with an end-to-end test. Each layer proves a differ
 
 ## Fixture Rules
 
-- Store sanitized, deterministic fixtures derived from real provider responses under the owning scraper's
-  `tests/fixtures` directory.
+- Store sanitized, deterministic fixtures derived from real provider responses under the owning scraper's configured
+  fixture location.
 - Parser tests must not invent provider HTML, XML, CSV, or JSON. Preserve the smallest source-derived response that
   keeps
   the real structure under test; retain a complete page when malformed or cross-table markup affects parsing.
@@ -104,7 +104,7 @@ scraper suite and syntax check declared by the repository router. Before complet
 - import and disabled-startup checks;
 - a controlled local API smoke with no production endpoints or credentials;
 - the other scraper's contract suite when a handwritten boundary is shared;
-- relevant repository task targets and `git diff --check`.
+- relevant repository task targets and the repository diff-hygiene check.
 
 Report fixtures or live-provider cases that remain unavailable. Never weaken or skip a gate by replacing it with a claim
 that the refactor is behavior-preserving.

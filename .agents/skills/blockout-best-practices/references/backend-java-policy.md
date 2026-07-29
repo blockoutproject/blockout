@@ -57,27 +57,27 @@ interfaces to simple internal collaborators without a real boundary.
   application exceptions. Do not use exceptions as ordinary branching or catch a failure only to conceal it.
 - Introduce an outbound port when the application depends on a replaceable database, provider, storage, clock,
   messaging, or identity boundary. Do not create an interface and implementation pair for every class.
-- Put records beside the role that owns them: API transport records in `api.models`, commands and views in
-  `application`, provider records in their adapter, and persistence projections in infrastructure.
+- Put records beside the role that owns them: API transport records in the configured API model location, commands and
+  views in the application role, provider records in their adapter, and persistence projections in infrastructure.
 
 ## Naming
 
-- Boundary interface: `ClubService`, `AuthorizationDecisionService`.
-- Primary implementation: `ClubApplicationService`, `AuthorizationDecisionApplicationService`.
-- Application inputs: `CreateClubCommand`, `UpdateClubCommand`.
-- Application reads: `ClubView`.
-- Persistence: `ClubEntity`.
-- Explicit collaborators: `ClubImageStorage`, `ClubEventPublisher`, `ClubGeocodingJob`.
+- Boundary interface: `ResourceService`, `AuthorizationDecisionService`.
+- Primary implementation: `ResourceApplicationService`, `AuthorizationDecisionApplicationService`.
+- Application inputs: `CreateResourceCommand`, `UpdateResourceCommand`.
+- Application reads: `ResourceView`.
+- Persistence: `ResourceEntity`.
+- Explicit collaborators: `ResourceStorage`, `ResourceEventPublisher`, `ResourceProcessingJob`.
 
 Avoid `*Impl` and weak `Default`, `Jpa`, or `Transactional` prefixes for primary application services. Put records in
-the
-package that owns their role; never create a generic `records` package.
+the package that owns their role; never create a generic `records` package.
 
 ## Transport Boundary
 
 Until its contract-first vertical is adopted, each handwritten transport type stays at the API edge and uses an explicit
-name such as `CreateClubInternalRequest`, `UpdateClubInternalRequest`, or `ClubInternalResponse`. Controllers and API
-mappers translate transport models to application commands and views. Persistence entities never cross the boundary.
+name such as `CreateResourceInternalRequest`, `UpdateResourceInternalRequest`, or `ResourceInternalResponse`.
+Controllers and API mappers translate transport models to application commands and views. Persistence entities never
+cross the boundary.
 
 After adoption, generated transport types and interfaces remain at the same edge. Application commands, views, domain
 objects, persistence entities, provider models, and mapping stay handwritten and explicit.
@@ -94,8 +94,8 @@ Follow `mapping-policy.md`. Put each mapper at the boundary it translates, prefe
 mapping, and keep aggregation or decision-making explicit. Do not create static utility bags; promote shared behavior
 to a named policy, validator, parser, mapper, gateway, projector, or provider.
 
-- Keep transport mappers in `api.mappers`, persistence mappers next to persistence, provider mappers next to the
-  provider adapter, and message mappers next to messaging.
+- Keep transport mappers in the configured API mapping location, persistence mappers next to persistence, provider
+  mappers next to the provider adapter, and message mappers next to messaging.
 - Use handwritten mapping where decisions, conditional enrichment, external lookups, or failure semantics matter.
 - Reuse logic only when two active callers share the same invariant. Similar syntax does not justify a generic helper,
   reflection mapper, base service, manager, registry, or framework.
@@ -109,7 +109,7 @@ to a named policy, validator, parser, mapper, gateway, projector, or provider.
   domain values and policies remain framework-free.
 - Extract authenticated identity and authorization context at the API/security boundary. Pass only application data
   required by the use case.
-- Do not trust client-owned user, club, or scope identifiers when authenticated context owns them.
+- Do not trust client-owned subject, resource, or scope identifiers when authenticated context owns them.
 - Keep health, metrics, and technical endpoints separate from product controllers.
 
 ## Gateway And Service Boundaries
@@ -124,14 +124,14 @@ to a named policy, validator, parser, mapper, gateway, projector, or provider.
 
 ## Messaging
 
-- Treat RabbitMQ messages as transport contracts. Keep event and command records separate from application and
-  persistence models.
+- Treat messages from the broker selected by the repository profile as transport contracts. Keep event and command
+  records separate from application and persistence models.
 - Make queue, exchange, routing-key, retry, dead-letter, ordering, and idempotency behavior explicit at the adapter.
 - A consumer maps the message, validates the boundary, and delegates to one application operation.
 - Do not acknowledge a message before the owned operation reaches its accepted durable outcome.
 - Preserve duplicate-delivery behavior and never assume exactly-once delivery.
 
-## Maven And Dependencies
+## Build And Dependencies
 
 - Keep the backend reactor declared by the repository profile as the build authority and each deployable service as an
   explicit module.
@@ -139,7 +139,7 @@ to a named policy, validator, parser, mapper, gateway, projector, or provider.
 - Add the narrowest dependency to the owning module. Do not add a library for trivial mapping, validation, collection,
   or string logic.
 - Keep generated sources and build output outside Git. Do not hand-edit generator output.
-- Use the Java, Spring Boot, Maven plugin, compiler, formatter, and test versions pinned by the repository profile.
+- Use the language, framework, build-plugin, compiler, formatter, and test versions pinned by the repository profile.
 - Do not mix architecture work with dependency or framework upgrades unless the issue explicitly includes them.
 
 ## Review Triggers
@@ -164,8 +164,8 @@ or obvious control flow.
 
 - Compile the impacted module through the backend reactor selected by the repository router.
 - Run relevant tests and the reactor when a shared boundary changes.
-- Run Spotless through the repository format commands.
+- Run the repository format checks.
 - Inspect for accidental `impl`, `utils`, `helpers`, entity exposure, and transport leakage.
 - Inspect dependency direction, generated-model containment, transaction ownership, and message acknowledgement.
 - Confirm package moves did not alter routes, ports, migrations, queue names, or runtime behavior outside scope.
-- Run `git diff --check`.
+- Run the repository diff-hygiene check.

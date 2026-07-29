@@ -31,8 +31,8 @@ checks.
 ## Verification
 
 Confirm health before application smokes, use non-production data and credentials, and stop or report any external
-write path. Verify effective Compose configuration, application startup, expected port, health endpoint,
-representative local flow, and `git diff --check`.
+write path. Verify effective runtime configuration, application startup, expected port, health endpoint,
+representative local flow, and the repository diff-hygiene check.
 
 For ordinary task smokes, start only the required dependencies. The Merge train is the release exception and uses the
 complete profile below for every candidate. Never reduce it based on changed paths, Workset, risk classification, or

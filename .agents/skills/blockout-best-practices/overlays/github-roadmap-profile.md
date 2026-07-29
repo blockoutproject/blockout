@@ -2,6 +2,17 @@
 
 This overlay supplies repository-specific Project values to the portable Roadmap governance policy.
 
+## Operational Coordinates
+
+- Authenticated CLI: `gh`
+- Complete read-only Project helper:
+  `.agents/skills/blockout-best-practices/scripts/read-roadmap-project.sh`
+- Issue and pull-request reads: `gh issue view` and `gh pr view`
+- Project and relationship mutations: `gh api graphql`
+- Issue, pull-request, label, repository, and branch mutations: dedicated `gh` commands or REST
+- Local repository reads and validation run inside the managed checkout; network operations and `.git` writes use the
+  environment-authorized path on their first attempt.
+
 ## Track Routing
 
 The ordered Track vocabulary is `ACC`, `CMP`, `ING`, `FIG`, `Foundation`, and `Platform`. Ownership and identifier

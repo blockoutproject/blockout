@@ -48,9 +48,10 @@ snapshot may retain ephemeral IDs as evidence, but reusable repository files may
 
 ## Tool Boundaries
 
-- Use `gh api graphql` for Project metadata, fields, items, views, workflows, native issue types and relationships,
-  assignment events, and cross-reference evidence.
-- Use dedicated `gh` commands or REST for issue, PR, label, repository, and branch operations.
+- Use the Project transport selected by the repository Roadmap profile for metadata, fields, items, views, workflows,
+  native issue types and relationships, assignment events, and cross-reference evidence.
+- Use the issue and pull-request transports selected by that profile for issue, PR, label, repository, and branch
+  operations.
 - Use an authenticated browser only for an authorized Project configuration detail that GraphQL cannot expose or
   mutate.
 - Missing permissions or fields are failed preconditions, not authority to guess.

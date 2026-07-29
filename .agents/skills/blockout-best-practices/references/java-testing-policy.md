@@ -16,27 +16,18 @@ regression. Do not test a surface only because it exists in generated code, dele
 - `*IntegrationTest`: full Spring, real database/container, transaction, repository, or infrastructure behavior.
 - `*SmokeTest`: small startup or implemented runtime-entrypoint proof.
 
-Mirror production packages. Use suffixes rather than `unit`, `slice`, or `integration` package directories. Name test
-methods as present-tense behavior. If a name needs `and`, split the test unless both assertions form one observable
-outcome. Add `@DisplayName` to touched classes, nested groups, and test methods.
-
-```text
-src/test/java
-├── <mirrored production packages>
-└── testkit
-    ├── containers
-    ├── data
-    ├── doubles
-    └── spring
-```
+Mirror production packages under the test source root selected by the repository profile. Use suffixes rather than
+`unit`, `slice`, or `integration` package directories. Name test methods as present-tense behavior. If a name needs
+`and`, split the test unless both assertions form one observable outcome. Add `@DisplayName` to touched classes, nested
+groups, and test methods.
 
 Handwritten test classes and non-obvious shared test helpers follow `code-documentation-policy.md`. Keep one-off test
-data and doubles inside the owning test. Add `testkit/data`, `testkit/doubles`, `testkit/spring`, or
-`testkit/containers` only when several tests genuinely reuse that support.
+data and doubles inside the owning test. Add the configured shared data, doubles, framework, or container test-support
+location only when several tests genuinely reuse that support.
 
-- `testkit/data` creates meaningful domain, application, transport, or persistence examples.
-- `testkit/doubles` contains small reusable fakes or recording adapters, not a second mocking framework.
-- `testkit/spring` contains configuration truly shared by several Spring tests.
+- Shared test data creates meaningful domain, application, transport, or persistence examples.
+- Shared doubles contain small reusable fakes or recording adapters, not a second mocking framework.
+- Shared framework support contains configuration truly reused by several framework tests.
 - The configured testkit location owns reusable database or infrastructure container setup.
 
 Keep support in the owning module. Do not create a cross-module test library before active modules share a stable
@@ -58,8 +49,8 @@ testing boundary.
 - Use Mockito only for true collaborators when isolation clarifies behavior. Do not mock records, enums, DTOs, value
   objects, generated models, or simple data containers.
 - Use `@MockitoBean`, not deprecated `@MockBean`, when a Spring context must replace a bean.
-- Use integration tests when transactions, Flyway, PostgreSQL behavior, repository queries, ordering, locks,
-  constraints, JSON columns, or entity lifecycle are part of the contract.
+- Use integration tests when transactions, schema migrations, database-specific behavior, repository queries,
+  ordering, locks, constraints, structured columns, or entity lifecycle are part of the contract.
 - Do not use a full Spring context for code that direct construction can prove.
 - Do not add source-scan architecture tests when targeted inspection is clearer.
 - Do not change production behavior only to satisfy an obsolete or incidental test.
@@ -85,13 +76,14 @@ testing boundary.
 
 ### Repositories
 
-- Use PostgreSQL/Testcontainers for Flyway, JSON, enum strings, constraints, locks, or database-specific queries.
-- Do not parse Flyway SQL in unit tests as a schema oracle. Prefer startup/repository integration and focused source
-  inspection.
+- Use the configured database integration environment for migrations, structured values, enum strings, constraints,
+  locks, or database-specific queries.
+- Do not parse migration sources in unit tests as a schema oracle. Prefer startup/repository integration and focused
+  source inspection.
 - Do not add test-only production mappings or eager loading to make assertions easier.
-- Reuse one maintained PostgreSQL container setup where the module already has it. Do not replace PostgreSQL semantics
-  with H2.
-- Let Flyway initialize the schema; do not hand-create a divergent test schema.
+- Reuse one maintained database container setup where the module already has it. Do not replace supported-database
+  semantics with an in-memory database.
+- Let the configured migration mechanism initialize the schema; do not hand-create a divergent test schema.
 
 ### Mappers
 
@@ -162,7 +154,7 @@ population, random object graphs, and fixtures with hidden database writes.
 - Run the owning module suite before completion.
 - Run the complete backend reactor selected by the repository router when a shared transport, parent build,
   persistence, or runtime boundary changes.
-- Run PostgreSQL/Testcontainers evidence when the contract depends on database behavior.
+- Run configured database-integration evidence when the contract depends on database behavior.
 - Run the repository formatting commands selected by the router before the final check.
 - Report tests intentionally skipped and why, especially when Docker/Testcontainers is unavailable.
-- Always run `git diff --check`.
+- Always run the repository diff-hygiene check.

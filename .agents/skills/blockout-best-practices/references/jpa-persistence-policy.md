@@ -10,7 +10,8 @@ application-to-persistence mapping.
 - Put an entity under the owning service feature and suffix it `Entity`.
 - Never expose an entity from a controller, generated API implementation, message, or application port.
 - Map at the persistence boundary. Follow `mapping-policy.md`; do not make a transport mapper depend on JPA.
-- Treat the Flyway schema as the storage authority and the owning service as the data authority.
+- Treat the schema-migration authority selected by the repository profile as the storage authority and the owning
+  service as the data authority.
 
 ## Entity Mapping
 
@@ -29,8 +30,8 @@ application-to-persistence mapping.
 - Reuse a generated transport enum only when the active contract owns the exact concept and the entity remains isolated
   from that transport type through mapping.
 - Keep open provider keys, catalog identifiers, and forward-compatible external values as strings.
-- Map PostgreSQL JSON columns explicitly and test their real database behavior. Do not use JSON to avoid modeling a
-  stable relational concept.
+- Map vendor-specific structured columns explicitly and test their real database behavior. Do not use structured
+  storage to avoid modeling a stable relational concept.
 
 ## Relationships
 
@@ -44,9 +45,10 @@ application-to-persistence mapping.
 
 - Keep repositories inside infrastructure and expose application ports only when the boundary is real.
 - Prefer derived queries, JPQL, focused projections, specifications, and entity graphs before native SQL.
-- Explain indispensable native SQL locally and verify it against PostgreSQL.
+- Explain indispensable native SQL locally and verify it against the supported database.
 - Make ordering explicit whenever consumers rely on it.
-- Test locks, constraints, JSON operations, database functions, and transaction semantics with PostgreSQL/Testcontainers.
+- Test locks, constraints, structured-value operations, database functions, and transaction semantics with the
+  configured database integration environment.
 - Never return a persistence page or entity directly through an HTTP boundary. Preserve the current application and
   contract collection shape; any new collection-shape decision requires a separate explicit task.
 
@@ -59,9 +61,9 @@ application-to-persistence mapping.
 
 ## Verification
 
-- Compare every changed entity with the applied Flyway schema.
+- Compare every changed entity with the applied schema-migration chain.
 - Run the narrow repository or service test while developing.
-- Use PostgreSQL-backed integration tests for database-specific behavior.
-- Run the owning Maven module and the backend reactor when a shared persistence boundary changes.
+- Use the configured database integration environment for database-specific behavior.
+- Run the owning module and the complete backend build when a shared persistence boundary changes.
 - Inspect for entity leakage, accidental eager loading, and unbounded queries.
-- Run `git diff --check`.
+- Run the repository diff-hygiene check.

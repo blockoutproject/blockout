@@ -57,8 +57,8 @@ case-conversion layers.
 - The consumer language does not change ownership: Python scrapers call the owning backend services directly, so their
   generated transport DTOs also use the internal service names. They never substitute public-gateway DTOs for those
   contracts.
-- Place `Internal` immediately before the shape suffix: `ClubInternalResponse`, `ClubInternalPageResponse`,
-  `CreateClubInternalRequest`, or `UpdateClubInternalRequest`.
+- Place `Internal` immediately before the shape suffix: `ResourceInternalResponse`, `ResourceInternalPageResponse`,
+  `CreateResourceInternalRequest`, or `UpdateResourceInternalRequest`.
 - Use `*ListResponse` only for complete unpaginated list wrappers: `items` only, with no `pageInfo`, `page`, or
   `pageSize` query parameters.
 - Use `*PageResponse` only for paginated wrappers: `items` and `pageInfo`, with endpoint parameters aligned to the REST

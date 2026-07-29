@@ -20,8 +20,8 @@ Current-user publication limits override the repository defaults below.
 - A request to execute GitFlow ends at draft publication; lifecycle owns any later release authorization.
 - One issue owns one coherent branch and one pull request.
 - Issues, branches, commits, PR titles, and PR bodies are written in English.
-- Use one authenticated `gh` identity for issue, Project, and PR operations in a managed checkout. Use a connector only
-  for a real capability gap and prove both identities match before mixing evidence.
+- Use the authenticated hosting identity and transport selected by the repository profiles. Use a connector only for a
+  real capability gap and prove both identities match before mixing evidence.
 - Follow lifecycle for native issue type and never replace it with a label or title convention.
 - Read-only inspection creates no issue, branch, commit, push, or PR.
 
@@ -57,7 +57,7 @@ request, stale head, Workset violation, or another release guard.
 
 Before a Git or GitHub mutation:
 
-1. Run `git status --short --branch`.
+1. Run the initial status command selected by the repository Git profile.
 2. Identify branch, upstream, uncommitted files, and relevant diffs.
 3. Fetch when freshness, lookup, publication, or release depends on the remote.
 4. Search for an equivalent issue, local branch, remote branch, commit, or PR.
@@ -82,8 +82,8 @@ existing task identifier in issue, pull-request, and task-commit titles.
   duplicate its native type.
 - Pull requests may use one type label plus relevant surface labels.
 - Do not create a `blocked` label. The Project `Status` field owns that state.
-- The complete label and area catalog, including exact colors and descriptions, is defined in
-  [`github-taxonomy.md`](github-taxonomy.md).
+- [`github-taxonomy.md`](github-taxonomy.md) owns the portable label and area rules. The selected repository taxonomy
+  profile owns the complete catalog, including exact names, colors, descriptions, and mappings.
 
 ## Names
 

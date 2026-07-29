@@ -14,6 +14,7 @@ This overlay supplies repository-specific Git and GitHub values to the portable 
 - Allowed non-task kinds: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, and `ci`
 - Exact merge command:
   `gh pr merge --merge --delete-branch --match-head-commit <full-head-sha>`
+- Initial status command: `git status --short --branch`
 - Exact label and area catalog: [`github-taxonomy.md`](github-taxonomy.md)
 
 ## GitHub Settings

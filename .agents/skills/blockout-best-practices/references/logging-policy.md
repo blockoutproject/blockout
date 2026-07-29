@@ -75,4 +75,4 @@ numbers, and provider families. Never log:
 - Inspect new and retained log fields for secrets and personal data.
 - Confirm the chosen layer owns the outcome and no adjacent duplicate exists.
 - Assert logs only when the log itself is supported behavior; otherwise test the state, result, or adapter operation.
-- Run impacted tests, format/type checks, and `git diff --check`.
+- Run impacted tests, format/type checks, and the repository diff-hygiene check.
