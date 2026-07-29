@@ -1,0 +1,4 @@
+/.github/CODEOWNERS @hugoecken
+/.github/PULL_REQUEST_TEMPLATE.md @hugoecken
+/.github/workflows/merge-control.yml @hugoecken
+/docs/current/agent-delivery-governance.md @hugoecken

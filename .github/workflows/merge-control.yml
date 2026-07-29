@@ -1,0 +1,100 @@
+name: Merge Control
+
+on:
+  pull_request:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  merge-control:
+    name: merge-control
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify repository merge settings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/blockoutproject/blockout \
+            | jq -e '
+                .visibility == "public"
+                and .default_branch == "develop"
+                and .allow_merge_commit
+                and (.allow_squash_merge | not)
+                and (.allow_rebase_merge | not)
+                and (.allow_auto_merge | not)
+                and .delete_branch_on_merge
+              '
+
+      - name: Verify develop ruleset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ruleset_id="$(
+            gh api repos/blockoutproject/blockout/rulesets \
+              | jq -er '
+                  [.[] | select(.name == "develop-release-controls")]
+                  | select(length == 1)
+                  | .[0].id
+                '
+          )"
+
+          gh api "repos/blockoutproject/blockout/rulesets/${ruleset_id}" \
+            | jq -e '
+                def rule($type):
+                  [.rules[] | select(.type == $type)]
+                  | select(length == 1)
+                  | .[0];
+
+                .name == "develop-release-controls"
+                and .target == "branch"
+                and .enforcement == "active"
+                and (.bypass_actors | length == 0)
+                and (.current_user_can_bypass == "never")
+                and (.conditions.ref_name.include == ["refs/heads/develop"])
+                and (.conditions.ref_name.exclude == [])
+                and ((rule("pull_request").parameters) as $pull_request
+                  | $pull_request.required_approving_review_count == 0
+                  and ($pull_request.require_code_owner_review | not)
+                  and ($pull_request.require_last_push_approval | not)
+                  and $pull_request.required_review_thread_resolution)
+                and ((rule("required_status_checks").parameters) as $checks
+                  | $checks.strict_required_status_checks_policy
+                  and ($checks.do_not_enforce_on_create | not)
+                  and (
+                    $checks.required_status_checks
+                    | map({context, integration_id})
+                    | sort_by(.context)
+                  ) == [
+                    {
+                      "context": "Check repository formatting",
+                      "integration_id": 15368
+                    },
+                    {
+                      "context": "backend",
+                      "integration_id": 15368
+                    },
+                    {
+                      "context": "contracts",
+                      "integration_id": 15368
+                    },
+                    {
+                      "context": "frontend",
+                      "integration_id": 15368
+                    },
+                    {
+                      "context": "merge-control",
+                      "integration_id": 15368
+                    },
+                    {
+                      "context": "python",
+                      "integration_id": 15368
+                    }
+                  ])
+                and (rule("deletion").type == "deletion")
+                and (rule("non_fast_forward").type == "non_fast_forward")
+              '
