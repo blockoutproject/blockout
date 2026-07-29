@@ -3,9 +3,8 @@
 Read this reference before creating or changing an issue, branch, commit, push, pull request, label, title, or
 publication artifact.
 
-Git and GitHub mechanics live here. Roadmap selection, claims, and draft publication use
-`github-roadmap-operations.md`; lifecycle and governance references are loaded only when the current transition needs
-them.
+Git and GitHub mechanics live here. Roadmap selection, claims, and scope use `github-roadmap-operations.md`;
+transition and completion decisions use lifecycle, and the execution runbook sequences draft publication.
 
 The workflow is idempotent. After interruption, inspect Git and GitHub and continue from the first incomplete
 postcondition. Never create a duplicate issue, branch, commit, or pull request when an equivalent artifact exists.
@@ -18,13 +17,12 @@ Current-user publication limits override the repository defaults below.
 - Task branches start from the current configured integration branch.
 - Task pull requests target the configured integration branch.
 - Codex pull requests are draft unless the user explicitly requests otherwise.
-- A request to execute GitFlow authorizes publication through a draft PR, never merge. Merge requires separate,
-  current-user authorization after live release evidence exists.
+- A request to execute GitFlow ends at draft publication; lifecycle owns any later release authorization.
 - One issue owns one coherent branch and one pull request.
 - Issues, branches, commits, PR titles, and PR bodies are written in English.
 - Use one authenticated `gh` identity for issue, Project, and PR operations in a managed checkout. Use a connector only
   for a real capability gap and prove both identities match before mixing evidence.
-- Set a native issue type on every Roadmap issue; never replace it with a label or title convention.
+- Follow lifecycle for native issue type and never replace it with a label or title convention.
 - Read-only inspection creates no issue, branch, commit, push, or PR.
 
 ## Repository Capability Profile
@@ -96,30 +94,14 @@ Titles and branch slugs remain concise and in the repository's configured file l
 
 Use Roadmap operations for claims and scope, lifecycle for transition guards, and the execution runbook for sequencing.
 Task branches start from the configured integration branch, draft pull requests target that branch, and publication
-uses the naming, label, validation, and link-mode rules in this reference.
+uses the naming and label rules in this reference plus lifecycle's structural-link and completion rules.
 
 ## Review And Release
 
-Before merge:
-
-1. Reread the current PR, base, head, latest diff, linked issue, claim, workset, acceptance criteria, reviews, and
-   checks.
-2. Require separate current-user merge authorization. A Merge task invocation authorizes the candidate set selected at
-   startup by the repository Git profile; earlier execution, GitFlow approval, or a later ready-for-review transition
-   is insufficient.
-3. Require a non-draft PR whose diff remains inside the workset.
-4. Require every applicable validation and required check to pass. Apply only an automatic check classification
-   explicitly defined by the repository Git profile; every other missing or failing check requires an explicit
-   head-bound human waiver.
-5. Execute the complete profile in [`local-runtime-policy.md`](local-runtime-policy.md) on the exact head.
-6. Merge each unchanged head separately with the exact head-bound method declared by the repository Git profile.
-7. Reread the merged PR, remote branch absence, issue, and Project item.
-8. Complete the issue only after every completion guard passes, then reconcile direct dependents and parent Epics.
-9. Obtain stable post-mutation snapshots, then let the Merge train recompute its remaining authorized snapshot against
-   the new integration head.
-
-Absence of branch protection, rulesets, or required checks never waives these repository rules. Never enable
-auto-merge by inference.
+Lifecycle owns release authorization, review/check gates, completion, and reconciliation. The merge runbook sequences
+an authorized release. This reference owns the Git-specific requirements: use the configured integration branch and
+merge method, bind every mutation to the verified head, verify remote refs after merge, and never infer or enable
+auto-merge. Missing platform enforcement does not waive those requirements.
 
 ## Branch Refresh
 
@@ -144,13 +126,9 @@ covered by the train invocation; a changed diff or risk requires a new approval.
 
 ## Link Mode
 
-Represent every required post-merge validation, migration, or reconciliation as an unchecked acceptance criterion
-before merge. Keep the issue assigned and `In Review` until it passes.
-
-- Use `Refs #<issue>` while required post-merge criteria remain.
-- Use `Closes #<issue>` only when merge can complete every remaining criterion.
-
-A PR title, branch name, or commit message is not structural issue-link evidence.
+Lifecycle owns whether the PR body uses `Refs #<issue>` or `Closes #<issue>` from the remaining acceptance and
+completion state. Include that exact structural link in the PR body; a title, branch name, or commit message is not
+link evidence.
 
 ## Scope Safety
 
