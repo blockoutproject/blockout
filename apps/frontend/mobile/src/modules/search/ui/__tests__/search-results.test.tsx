@@ -100,4 +100,57 @@ describe("SearchResults", () => {
 
     expect(refetch).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps loading and empty search states distinct", async () => {
+    const screen = await render(
+      <SafeAreaProvider initialMetrics={metrics}>
+        <ThemeProvider>
+          <SearchResults
+            search="Volley"
+            setSearch={jest.fn()}
+            isLoading
+            isError={false}
+            refetch={jest.fn()}
+            placeholder="Rechercher une équipe..."
+            exampleLabel="Exemples d’équipes"
+            emptyMessage="Aucune équipe trouvée."
+            renderItem={() => null}
+            testID="search-team-results"
+            inputTestID="search-team-input"
+            listTestID="search-team-list"
+          />
+        </ThemeProvider>
+      </SafeAreaProvider>,
+    );
+
+    expect(screen.getByTestId("search-loading")).toBeTruthy();
+    expect(screen.queryByTestId("search-team-list")).toBeNull();
+    expect(screen.queryByText("Aucune équipe trouvée.")).toBeNull();
+
+    await screen.rerender(
+      <SafeAreaProvider initialMetrics={metrics}>
+        <ThemeProvider>
+          <SearchResults
+            search="Volley"
+            setSearch={jest.fn()}
+            data={[]}
+            isLoading={false}
+            isError={false}
+            refetch={jest.fn()}
+            placeholder="Rechercher une équipe..."
+            exampleLabel="Exemples d’équipes"
+            emptyMessage="Aucune équipe trouvée."
+            renderItem={() => null}
+            testID="search-team-results"
+            inputTestID="search-team-input"
+            listTestID="search-team-list"
+          />
+        </ThemeProvider>
+      </SafeAreaProvider>,
+    );
+
+    expect(screen.getByTestId("search-empty")).toBeTruthy();
+    expect(screen.getByTestId("search-team-list")).toBeTruthy();
+    expect(screen.queryByTestId("search-loading")).toBeNull();
+  });
 });
