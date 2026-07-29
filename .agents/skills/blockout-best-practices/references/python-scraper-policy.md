@@ -1,13 +1,13 @@
-# Blockout Python Scraper Architecture Policy
+# Python Scraper Architecture Policy
 
-Read this before changing either Python scraper, its models, parsing, orchestration, dependencies, Nx targets, or
-Blockout API calls. Scrapers are critical backend applications: the current implementation is the behavioral reference
-until focused tests prove an intentional replacement.
+Read this before changing a Python scraper, its models, parsing, orchestration, dependencies, task targets, or internal
+API calls. Scrapers are critical backend applications: the current implementation is the behavioral reference until
+focused tests prove an intentional replacement.
 
 ## Structure
 
-Keep each scraper independently deployable under `apps/backend`. A refactored scraper uses one importable application
-package and a small root entrypoint:
+Keep each scraper independently deployable in the application location selected by the repository profile. A
+refactored scraper uses one importable application package and a small root entrypoint:
 
 ```text
 scraper-root/
@@ -16,9 +16,9 @@ scraper-root/
 │   ├── application/
 │   ├── domain/
 │   ├── infrastructure/
-│   │   ├── blockout/
-│   │   ├── ffvb/
-│   │   ├── lnv/
+│   │   ├── internal/
+│   │   ├── provider-a/
+│   │   ├── provider-b/
 │   │   └── scheduling/
 │   ├── config/
 │   └── observability/
@@ -29,19 +29,16 @@ scraper-root/
     └── fixtures/
 ```
 
-Create only directories that own real code. The club scraper may omit LNV and other unused boundaries. Do not create
-generic `utils`, `helpers`, `common`, `manager`, `processor`, or `services` packages. Name reusable behavior by its
-role:
+Create only directories that own real code. A scraper omits every unused provider boundary. Do not create generic
+`utils`, `helpers`, `common`, `manager`, `processor`, or `services` packages. Name reusable behavior by its role:
 parser, normalizer, policy, client, source, writer, scheduler, or use case.
 
 Delete empty legacy directories. Keep a `.gitkeep` only when the accepted scraper architecture requires an empty
 location before its first implementation; never create a complete provider or test skeleton for hypothetical work.
 
-Each application uses the succinct local package name `scraper`. The owning application directory already supplies the
-necessary context: both `club-scraper` and `competition-scraper` therefore contain their own sibling `scraper` and
-`tests` directories. Run and test each application from its own root; do not combine both local `scraper` packages on
-one
-Python import path.
+Each application uses the succinct local package name configured by the repository profile. The owning application
+directory supplies the necessary context. Run and test each application from its own root; do not combine sibling
+local packages on one Python import path.
 
 ## Roles
 
@@ -52,11 +49,11 @@ Python import path.
 - `domain`: pure typed values, local policies, comparison rules, and invariants. Keep normalized scraper working models
   here when they have lifecycle or reconciliation semantics distinct from HTTP transport. It has no application,
   generated-client, aiohttp, scheduler, file, environment, metrics, or provider dependency.
-- `infrastructure/blockout`: authentication and clients for internal Blockout service APIs, including handwritten
+- `infrastructure/internal`: authentication and clients for internal repository service APIs, including handwritten
   transport mirrors until contract generation is activated. After adoption, generated imports and transport mappings
   stay in this adapter; application code depends on domain-shaped ports instead.
-- `infrastructure/ffvb` and `infrastructure/lnv`: provider HTTP access and parsing. Provider vocabulary and payload
-  names remain confined here.
+- `infrastructure/<provider>`: provider HTTP access and parsing. Provider vocabulary and payload names remain confined
+  here.
 - `infrastructure/scheduling`: APScheduler and process-lifecycle adapters. Scheduling never owns scrape rules.
 - `config`: immutable typed settings assembled from environment variables at startup.
 - `observability`: metrics and logging setup, without business decisions.
@@ -64,53 +61,53 @@ Python import path.
 Use protocols at real outbound seams that tests or multiple adapters must replace. Do not introduce an interface for a
 pure local helper or add a dependency-injection framework.
 
-Both scrapers keep `domain` independent and keep generated/internal Blockout transport below
-`infrastructure/blockout`. Application workflows depend on a domain-shaped Blockout port, never on generated packages
-or Blockout adapter functions. A provider-specific workflow may consume a typed provider record or parser directly
-when adding another protocol would only hide a single concrete source behind indirection. Provider vocabulary must not
-leak into domain models or the Blockout adapter. Prefer one cohesive Blockout port per scraper over one protocol per
-endpoint when that keeps the workflow readable.
+Scrapers keep `domain` independent and keep generated/internal transport below `infrastructure/internal`. Application
+workflows depend on a domain-shaped internal port, never on generated packages or adapter functions. A
+provider-specific workflow may consume a typed provider record or parser directly when adding another protocol would
+only hide a single concrete source behind indirection. Provider vocabulary must not leak into domain models or the
+internal adapter. Prefer one cohesive internal port per scraper over one protocol per endpoint when that keeps the
+workflow readable.
 
 ## Internal Contract Ownership
 
-Scrapers bypass the mobile gateway and consume the owning Java services directly. Their Blockout HTTP types are internal
-transport contracts, not scraper-owned domain models.
+Scrapers consume the owner endpoints declared by the repository profile. Their internal HTTP types are transport
+contracts, not scraper-owned domain models.
 
-- OpenAPI transport types use explicit names such as `ClubInternalResponse`, `CreateClubInternalRequest`,
-  `UpdateTeamInternalRequest`, and `MatchInternalResponse` according to the actual owner endpoint.
+- OpenAPI transport types use explicit names such as `ResourceInternalResponse`, `CreateResourceInternalRequest`, and
+  `UpdateResourceInternalRequest` according to the actual owner endpoint.
 - Match the owner service exactly for field names, types, enum values, nullability, nesting, and request semantics.
 - Never add scraper-only fields to an internal transport type or maintain a second almost-identical resource model.
 - Purpose-specific requests may be smaller than the complete resource when the owning endpoint defines that shape.
-- Keep provider records explicit, for example `FfvbClubRecord` or `LnvMatchRecord`; they are not Blockout contracts.
+- Keep provider records explicit, for example `ProviderResourceRecord`; they are not internal contracts.
 - Use a distinct domain value only when it expresses different semantics, such as mutable candidate state,
   reconciliation state, provider-normalized values, or calculated ranking totals. A pure owner resource with no local
-  semantics remains a generated transport type inside the Blockout adapter rather than another copy.
+  semantics remains a generated transport type inside the repository adapter rather than another copy.
 
 Before an owning vertical is adopted, an exact handwritten mirror may exist only as a temporary characterized seam.
-The vertical then generates Java and Python types and clients from the same internal OpenAPI source under
-`libs/shared`; generated sources remain untracked, and the scraper deletes the temporary mirror.
+The vertical then generates every consumer from the same internal OpenAPI source using the locations and commands
+declared by the repository profile; generated sources remain untracked, and the scraper deletes the temporary mirror.
 
 Once a contract is adopted:
 
 - no handwritten `*InternalRequest` or `*InternalResponse` mirror remains in a scraper;
-- generated models and API classes are imported only below `infrastructure/blockout`;
+- generated models and API classes are imported only below `infrastructure/internal`;
 - the adapter maps generated responses immediately to domain values and maps domain values to generated requests;
 - application ports and use cases never mention generated packages, HTTP clients, or transport enums;
-- an available generated operation replaces a manual Blockout HTTP call instead of wrapping the same route again.
+- an available generated operation replaces a manual repository HTTP call instead of wrapping the same route again.
 
-Contract-owned enums such as Format, Gender, and MatchStatus follow the owner service. Application-only policy such as
-`DataSourcePriority` remains local to the competition scraper. Provider-owned enums remain provider-specific.
+Contract-owned enums follow the owner service. Application-only policy remains local to the owning scraper.
+Provider-owned enums remain provider-specific.
 
 ## Provider Parsing And Normalization
 
-- Separate download, decoding, parsing, normalization, matching, and Blockout writes.
+- Separate download, decoding, parsing, normalization, matching, and repository writes.
 - A parser accepts controlled text, bytes, or a parsed document and returns typed provider records without network I/O.
 - Preserve provider encodings, identifiers, missing-value rules, and malformed-record behavior unless a task explicitly
   authorizes a correction.
 - Make name aliases, division mappings, source priority, score interpretation, date parsing, and matching fallbacks
   named
   policies with focused tests.
-- Do not pass BeautifulSoup nodes, XML elements, CSV rows, or provider dictionaries into application or Blockout client
+- Do not pass BeautifulSoup nodes, XML elements, CSV rows, or provider dictionaries into application or repository client
   code.
 - Do not create a universal parser or conversion framework across providers with different semantics.
 
@@ -137,15 +134,15 @@ Contract-owned enums such as Format, Gender, and MatchStatus follow the owner se
 - Never return `None`, an empty collection, or a fabricated resource for a dependency failure unless that exact fallback
   is characterized.
 - Keep retry policy at the failing I/O boundary; never retry an entire scrape implicitly because one write failed.
-- Preserve the order, batching, concurrency, and failure isolation of Blockout writes until tests prove an intentional
+- Preserve the order, batching, concurrency, and failure isolation of repository writes until tests prove an intentional
   change.
 - Express create/update/no-op decisions explicitly. Repeated identical input must retain the current idempotent outcome.
 - Do not compensate, delete, deactivate, or overwrite data unless the current characterized flow performs that action.
 
 ## Python Code And Documentation
 
-- Target Python 3.12 and use modern built-in generics, `X | None`, dataclasses or focused value objects, enums, pathlib,
-  context managers, and explicit return types where they improve the boundary.
+- Use the Python version pinned by the repository profile, modern built-in generics, `X | None`, dataclasses or focused
+  value objects, enums, pathlib, context managers, and explicit return types where they improve the boundary.
 - Type every public function, method, protocol, dataclass field, and I/O boundary. Avoid `Any` and untyped dictionaries
   at
   stable boundaries; allow provider-local dynamic data only while parsing it immediately into typed records.
@@ -181,13 +178,13 @@ Contract-owned enums such as Format, Gender, and MatchStatus follow the owner se
 ## Dependencies And Tooling
 
 - Preserve the current application-specific dependency mechanism until a dedicated task authorizes packaging changes.
-- Nx remains a thin command orchestrator. Python owns execution, tests, syntax checks, and dependency resolution.
-- Use the repository-pinned Ruff release as the only Python formatter, import sorter, and baseline linter. Let
-  `ruff check --fix` and `ruff format` apply their stable Python 3.12 rules; do not hand-maintain an overlapping style,
-  Black, isort, or Flake8 configuration.
-- Keep Ruff in development dependencies and expose `lint`, `format`, and `format-check` through thin Nx targets. Never
-  install it in a production image solely to verify source style.
-- Do not combine source refactoring with uv workspace adoption, an Nx Python plugin, Docker redesign, unrelated
+- The workspace task runner remains a thin command orchestrator. Python owns execution, tests, syntax checks, and
+  dependency resolution.
+- Use the repository-pinned formatter and linter as the only style authority; do not hand-maintain overlapping tool
+  configurations.
+- Keep formatting and lint tools in development dependencies and expose them through the task runner selected by the
+  repository profile. Never install them in a production image solely to verify source style.
+- Do not combine source refactoring with workspace packaging adoption, a task-runner plugin, Docker redesign, unrelated
   dependency upgrades, type-check tool adoption, or generated clients.
 - Never commit virtual environments, caches, credentials, generated files, captured private payloads, or runtime logs.
 
@@ -207,5 +204,5 @@ Contract-owned enums such as Format, Gender, and MatchStatus follow the owner se
 
 Follow `python-scraper-testing-policy.md`. At minimum run syntax checks, the owning scraper suite, exact
 internal-request
-serialization, offline fixtures, import/startup behavior, relevant Nx targets, and `git diff --check`. Run controlled
+serialization, offline fixtures, import/startup behavior, relevant task targets, and `git diff --check`. Run controlled
 local API smokes when production code changes; never call production services or write to external providers.

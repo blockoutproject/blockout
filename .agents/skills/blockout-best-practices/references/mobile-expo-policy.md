@@ -1,35 +1,35 @@
-# Blockout Expo Mobile Policy
+# Expo Mobile Policy
 
 Read this before changing the Expo application, React Native screens, mobile API clients, Formik forms, Yup schemas, or
 mobile transport models.
 
 ## Product And Design Authority
 
-- Blockout mobile supports iOS and Android only. Do not add a Web target, Web compatibility adapter, browser OAuth
-  client, or browser-only verification path.
+- The repository mobile profile owns supported platforms and whether Web is an active target. Do not add another target,
+  compatibility adapter, OAuth client, or verification path without an explicit task.
 - The running application and current source own behavior, navigation, authorization, data, accessibility, and native
-  provider integration. The canonical `Blockout - Product Design` Figma file owns visual composition within those
-  boundaries.
-- Preserve the dark Blockout identity and current product behavior unless the active roadmap task explicitly changes
-  them. Do not add a desktop layout, light theme, new brand layer, or generic UI framework.
+  provider integration. The canonical file selected by the repository design profile owns visual composition within
+  those boundaries.
+- Preserve the product identity and current behavior declared by the repository profiles unless the active roadmap task
+  explicitly changes them. Do not add another layout family, theme, brand layer, or generic UI framework.
 - Use the certified Figma foundations and components. Do not infer a new token, component family, or interaction from a
   one-off screen value.
 
 ## Structure And Boundaries
 
-- Keep Expo Router files under `src/app` and limit them to route registration, navigation, layouts, redirects, and
-  top-level composition. Product screens live under `src/modules/<feature>/ui`.
-- Keep feature-owned UI, hooks, validation, and view models inside their feature. Move UI to `src/shared/ui` only when
-  at least two active features use the same responsibility and behavior, or when it enforces an application-wide
-  technical invariant.
+- Keep Expo Router files in the route location declared by the repository profile and limit them to route registration,
+  navigation, layouts, redirects, and top-level composition. Product screens live in configured feature-owned UI
+  locations.
+- Keep feature-owned UI, hooks, validation, and view models inside their feature. Move UI to the configured shared UI
+  location only when at least two active features use the same responsibility and behavior, or when it enforces an
+  application-wide technical invariant.
 - Similar appearance alone does not create shared ownership. Keep one-off screen layout and business composition local.
-- Use `src/shared/api` for HTTP mechanics, `src/shared/config` for application configuration,
-  `src/shared/providers` for application-wide providers, `src/shared/theme` for tokens and theme ownership, and
-  `src/shared/ui` for proven reusable primitives.
+- Use the API, configuration, provider, theme, and shared UI locations declared by the repository profile for those
+  technical responsibilities.
 - Keep generated Orval clients and transport models at the API boundary. Do not hand-edit, rename, re-export, or wrap
   generated files merely to hide their generated names.
-- Blockout-owned request, response, and query fields use native camelCase. Do not add recursive case converters or
-  transport aliases.
+- Repository-owned request, response, and query fields use the naming convention declared by the repository profile.
+  Do not add recursive case converters or transport aliases.
 - Complete resource mirrors must match the owning backend service. UI-specific view state may be smaller and must not
   masquerade as the complete transport resource.
 - Keep provider and native-framework values at their adapters. Never place provider payloads or platform constants in
@@ -40,7 +40,7 @@ mobile transport models.
 Use only the role folders an active feature needs:
 
 ```text
-src/modules/<feature>
+<feature-root>
 ├── api
 ├── forms
 ├── hooks
@@ -76,8 +76,8 @@ Do not create empty role folders or a feature framework. A small feature may kee
 
 ## Remote Data And Generated Clients
 
-- Orval generates the mobile-gateway client and transport models from its owning OpenAPI source. Mobile does not
-  generate or call every internal service client.
+- The configured generator creates the public application client and transport models from its owning OpenAPI source.
+  Mobile does not generate or call every internal service client.
 - Never hand-edit generated output. Add behavior in a handwritten feature adapter, query, mutation, or mapper.
 - Use TanStack Query for remote state, cache ownership, retries, invalidation, and request lifecycle.
 - Keep query keys deterministic and feature-owned. Invalidate the narrowest owner-controlled data after mutations.
@@ -111,12 +111,13 @@ Do not create empty role folders or a feature framework. A small feature may kee
 
 ## Tokens And Styling
 
-- Keep one exported code-owned token vocabulary in `src/shared/theme`, aligned with the semantic variables certified by
-  Figma. Features import this shared authority instead of defining token copies. They consume semantic roles such as
-  surface, content, border, action, status, spacing, radius, and typography rather than primitive palette values.
-- Expose the supported theme and token surface through one narrow `src/shared/theme` public entry point. Keep primitives
-  and implementation details private when consumers do not need them; do not spread theme exports across feature
-  barrels.
+- Keep one exported code-owned token vocabulary in the configured theme location, aligned with the semantic variables
+  certified by Figma. Features import this shared authority instead of defining token copies. They consume semantic
+  roles such as surface, content, border, action, status, spacing, radius, and typography rather than primitive palette
+  values.
+- Expose the supported theme and token surface through one narrow public entry point selected by the repository
+  profile. Keep primitives and implementation details private when consumers do not need them; do not spread theme
+  exports across feature barrels.
 - Safe-area insets, keyboard dimensions, and device measurements are runtime inputs, not design tokens.
 - Normalize incidental spacing, radius, type, and effect drift to the nearest approved token. Add a token only when a
   certified composition or repeated active use proves a distinct semantic role.
@@ -196,18 +197,18 @@ Do not create empty role folders or a feature framework. A small feature may kee
 - Apply naming changes as files are migrated by the owning roadmap slice. Do not create a standalone mass rename that
   mixes unrelated behavior.
 
-## Public Repository And Completion
+## Publication And Completion
 
 - Keep native and provider credentials outside Git. Never commit Expo caches, native build output, `.env.local`, tokens,
   exported sessions, personal test data, or device-specific files.
 - Use the official provider SDK, Authorization Code with PKCE, exact callback allowlists, and issuer and audience
   validation. Never add an authentication bypass for local or automated tests.
-- Use the iOS simulator as the visual source and comparison surface for Figma synchronization. Android remains a
-  supported runtime and must keep its technical validation, but it is not a second visual capture or Figma authority.
-  Unit tests prove behavior; iOS captures and Figma comparison prove appearance.
-- Run formatting, lint, typecheck, the focused tests, the complete mobile Jest suite, and `git diff --check` before
-  publishing a mobile slice. Add Expo Doctor or an unsigned native build/launch when dependencies, configuration, or a
-  native boundary changes.
+- Use the visual source and comparison surface declared by the repository design profile for Figma synchronization.
+  Other supported runtimes retain their technical validation but are not visual authorities unless the profile says
+  otherwise. Unit tests prove behavior; configured runtime captures and Figma comparison prove appearance.
+- Run the formatting, lint, typecheck, focused test, complete mobile test, and diff commands declared by the repository
+  router before publishing a mobile slice. Add Expo Doctor or an unsigned native build/launch when dependencies,
+  configuration, or a native boundary changes.
 - Run generated-client parity or regeneration evidence when an OpenAPI/mobile API boundary changes.
 - Verify Formik/Yup behavior, stable API error handling, and TanStack Query ownership when those boundaries change.
 

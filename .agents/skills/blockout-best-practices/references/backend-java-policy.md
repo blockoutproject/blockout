@@ -1,4 +1,4 @@
-# Blockout Backend Java Architecture Policy
+# Repository Backend Java Architecture Policy
 
 Read this before moving Java packages, changing Spring services, adding collaborators, or changing backend Maven
 modules.
@@ -114,8 +114,8 @@ to a named policy, validator, parser, mapper, gateway, projector, or provider.
 
 ## Gateway And Service Boundaries
 
-- `mobile-gateway` composes client-oriented workflows and shields mobile from internal topology. It does not become the
-  canonical owner of service data.
+- A public gateway composes client-oriented workflows and shields clients from internal topology. It does not become
+  the canonical owner of service data.
 - Organize a growing gateway by mobile workflow or feature and keep each downstream client in infrastructure.
 - Services own complete business resources and persistence. Cross-service reads use owner-controlled contracts, not
   shared tables or entity imports.
@@ -133,12 +133,13 @@ to a named policy, validator, parser, mapper, gateway, projector, or provider.
 
 ## Maven And Dependencies
 
-- Keep `apps/backend/pom.xml` as the backend reactor authority and each deployable service as an explicit module.
+- Keep the backend reactor declared by the repository profile as the build authority and each deployable service as an
+  explicit module.
 - Put versions and shared plugin configuration in the parent only when multiple modules genuinely share them.
 - Add the narrowest dependency to the owning module. Do not add a library for trivial mapping, validation, collection,
   or string logic.
 - Keep generated sources and build output outside Git. Do not hand-edit generator output.
-- Use Java 21 and the repository-pinned Spring Boot, Maven plugin, compiler, Spotless, and test configuration.
+- Use the Java, Spring Boot, Maven plugin, compiler, formatter, and test versions pinned by the repository profile.
 - Do not mix architecture work with dependency or framework upgrades unless the issue explicitly includes them.
 
 ## Review Triggers
@@ -161,7 +162,7 @@ or obvious control flow.
 
 ## Verification
 
-- Compile the impacted module from `apps/backend/pom.xml`.
+- Compile the impacted module through the backend reactor selected by the repository router.
 - Run relevant tests and the reactor when a shared boundary changes.
 - Run Spotless through the repository format commands.
 - Inspect for accidental `impl`, `utils`, `helpers`, entity exposure, and transport leakage.

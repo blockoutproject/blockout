@@ -1,4 +1,4 @@
-# Blockout JPA Persistence Policy
+# Repository JPA Persistence Policy
 
 Read this before changing an entity, repository, relationship, persistence query, database constraint, or
 application-to-persistence mapping.
@@ -16,8 +16,8 @@ application-to-persistence mapping.
 
 - Declare `@Entity` and `@Table` explicitly. Match identifiers, column names, nullability, lengths, precision, unique
   constraints, indexes, and database types.
-- Prefer explicit `@Column` declarations for durable fields. Database naming remains independent from camelCase HTTP
-  naming.
+- Prefer explicit `@Column` declarations for durable fields. Database naming remains independent from the configured
+  HTTP field convention.
 - Use stable database identifiers. Do not change ID strategy, equality, or hash semantics as incidental cleanup.
 - Keep timestamps and lifecycle fields explicit. Do not introduce automatic auditing without an accepted task.
 - Use `@Version` only when an explicitly designed optimistic-locking column and conflict behavior exist.

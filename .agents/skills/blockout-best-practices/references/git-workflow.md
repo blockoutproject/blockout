@@ -13,9 +13,10 @@ Current-user publication limits override the repository defaults below.
 
 ## Defaults
 
-- Integration branch: `develop`.
-- Task branches start from an up-to-date `develop`.
-- Task pull requests target `develop`.
+- The repository Git profile owns the integration branch, task branch prefixes, pull-request base, merge method,
+  hosting-plan capabilities, and supported settings.
+- Task branches start from the current configured integration branch.
+- Task pull requests target the configured integration branch.
 - Codex pull requests are draft unless the user explicitly requests otherwise.
 - A request to execute GitFlow authorizes publication through a draft PR, never merge. Merge requires separate,
   current-user authorization after live release evidence exists.
@@ -26,36 +27,21 @@ Current-user publication limits override the repository defaults below.
 - Set a native issue type on every Roadmap issue; never replace it with a label or title convention.
 - Read-only inspection creates no issue, branch, commit, push, or PR.
 
-## Private GitHub Free Baseline
+## Repository Capability Profile
 
-This repository profile assumes a private organization repository on GitHub Free. Revalidate the
-[current GitHub plan capabilities](https://docs.github.com/en/get-started/learning-about-github/githubs-plans) before
-proposing a setting change; public-repository enforcement or a temporary paid feature is not portability evidence.
+The repository Git profile must record repository visibility, hosting plan, roles, integration branch, merge methods,
+branch and ruleset enforcement, review and check enforcement, auto-merge availability, and branch-deletion behavior.
+Revalidate the [current GitHub plan capabilities](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)
+before proposing a setting change.
 
-| Posture     | Repository capability or setting                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Decision                                                                                                                                                            |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Required    | Standard repository roles                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Grant `Write` only to contributors who need to push task branches, `Maintain` only to workflow operators, and `Admin` only to access, setting, and recovery owners. |
-| Required    | Default branch and merge methods                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Use `develop` and allow merge commits only. Disable squash, rebase, auto-merge, automatic head deletion, and web-based branch updates.                              |
-| Optional    | Web commit signoff and private forking                                                                                                                                                                                                                                                                                                                                                                                                                                           | Enable only for a separately accepted signoff or contributor-access need; neither replaces claim, review, validation, or release gates.                             |
-| Unavailable | [Protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches) and [rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets)                                                                                                                                                                                                        | Do not claim that direct pushes, force pushes, deletion, pull requests, reviews, or checks are enforced by GitHub.                                                  |
-| Unavailable | Required reviewers, [CODEOWNERS](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners), [auto-merge](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/automatically-merging-a-pull-request), and [merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue) | Reviews and checks remain useful evidence, but GitHub cannot enforce the repository's acceptance and integration gates.                                             |
-| Deferred    | Paid branch protection, rulesets, required reviews or checks, code ownership, and merge queue                                                                                                                                                                                                                                                                                                                                                                                    | Reconsider only after a plan upgrade or a demonstrated workflow need; availability alone does not activate a setting.                                               |
+Roadmap claims and Worksets own task assignment and write conflicts regardless of platform enforcement. GitHub roles,
+local branches, and draft pull requests do not reserve scope. When the configured hosting plan cannot enforce a
+repository guard, use the compensating controls defined by the repository Git profile and never describe evidence as
+platform enforcement.
 
-`Write` permission includes direct push and merge authority. Because GitHub Free cannot separate that authority for a
-private repository, every contributor follows these compensating controls:
-
-1. Roadmap claims and Worksets own task assignment and write conflicts. GitHub roles, local branches, and draft pull
-   requests do not reserve scope.
-2. Each contributor uses one claimed issue branch and publishes a draft pull request with exact-head validation
-   evidence. Overlapping Worksets stop before either contributor writes.
-3. Review follows the independent-review or documented solo fallback below. A green check, approval, or merge button
-   is evidence, never release authorization.
-4. Integration uses the explicit Merge train. A stale head is rebased onto current `origin/develop` and fully
-   revalidated; nobody pushes or merges directly to `develop`, enables auto-merge, or substitutes a different merge
-   method.
-5. On an accidental direct push, merge, force push, branch deletion, or ambiguous setting change, stop further
-   publication, snapshot the remote state, and recover through a reviewed issue and pull request. Never rewrite
-   `develop`; revert harmful integrated changes with a new merge commit.
+On an accidental direct push, merge, force push, branch deletion, or ambiguous setting change, stop further
+publication, snapshot the remote state, and recover through a reviewed issue and pull request. Never rewrite the
+integration branch; revert harmful integrated changes with a new commit using the configured integration method.
 
 Repository settings remain manual external state. Before any mutation, capture the current values, name one intended
 change and its rollback, obtain separate current-user approval, apply only that change, and reread the postcondition.
@@ -77,26 +63,17 @@ Before a Git or GitHub mutation:
 2. Identify branch, upstream, uncommitted files, and relevant diffs.
 3. Fetch when freshness, lookup, publication, or release depends on the remote.
 4. Search for an equivalent issue, local branch, remote branch, commit, or PR.
-5. Verify that `develop` can fast-forward to `origin/develop` when local synchronization is required.
+5. Verify that the local integration branch can fast-forward to its remote-tracking branch when synchronization is
+   required.
 
-Do not merge `origin/develop` into local `develop` during setup. Stop on divergence. Refresh a task branch only through
-the rebase procedure below.
+Do not merge the remote-tracking integration branch into its local branch during setup. Stop on divergence. Refresh a
+task branch only through the rebase procedure below.
 
 ## Work Types
 
-| Work                                                      | Native type  | Branch                | Indicator   |
-| --------------------------------------------------------- | ------------ | --------------------- | ----------- |
-| Accepted roadmap implementation                           | Feature/Tech | `feature/` or `tech/` | task ID     |
-| Product feature outside an existing roadmap identifier    | Feature      | `feature/`            | `[Feature]` |
-| Defect or regression                                      | Bug          | `bugfix/`             | `[Bug]`     |
-| Documentation only                                        | Tech         | `tech/`               | `[Docs]`    |
-| Tooling, workflow, contracts, CI, maintenance, tech debt  | Tech         | `tech/`               | `[Tech]`    |
-| Research, configuration, or decision without runtime code | Action       | `tech/`               | `[Action]`  |
-| Large grouped objective                                   | Epic         | `feature/` or `tech/` | `[Epic]`    |
-| Urgent environment or production correction               | Bug/closest  | `hotfix/`             | `[Hotfix]`  |
-
-Epics are never executable branches. The repository task identifier, when one exists, is retained as the issue and PR
-indicator, for example `[REF-071]`.
+The repository taxonomy profile maps each native issue type to its Track identifier and the repository Git profile
+maps it to branch prefix, title indicator, and commit convention. Epics are never executable branches. Retain an
+existing task identifier in issue, pull-request, and task-commit titles.
 
 ## Labels
 
@@ -112,33 +89,14 @@ indicator, for example `[REF-071]`.
 
 ## Names
 
-Issue and pull request:
-
-```text
-[<indicator>] - <brief action phrase>
-```
-
-Branch:
-
-```text
-feature/<issue-number>-<short-kebab-slug>
-bugfix/<issue-number>-<short-kebab-slug>
-tech/<issue-number>-<short-kebab-slug>
-hotfix/<issue-number>-<short-kebab-slug>
-```
-
-Commit:
-
-- Existing task identifier: `[TASK-ID] <brief action phrase>`.
-- Other work: `<kind>: <brief action phrase>`.
-
-Allowed kinds are `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, and `ci`.
+Use the issue, pull-request, branch, task-commit, and non-task commit formats selected by the repository Git profile.
+Titles and branch slugs remain concise and in the repository's configured file language.
 
 ## Task Workflow Profile
 
 Use Roadmap operations for claims and scope, lifecycle for transition guards, and the execution runbook for sequencing.
-Repository task branches start from `develop`, draft pull requests target `develop`, and publication uses the naming,
-label, validation, and link-mode rules in this reference.
+Task branches start from the configured integration branch, draft pull requests target that branch, and publication
+uses the naming, label, validation, and link-mode rules in this reference.
 
 ## Review And Release
 
@@ -146,20 +104,19 @@ Before merge:
 
 1. Reread the current PR, base, head, latest diff, linked issue, claim, workset, acceptance criteria, reviews, and
    checks.
-2. Require separate current-user merge authorization. A Merge task invocation authorizes the complete startup snapshot
-   of structurally valid non-draft pull requests targeting `develop`; earlier execution, GitFlow approval, or a later
-   ready-for-review transition is insufficient.
+2. Require separate current-user merge authorization. A Merge task invocation authorizes the candidate set selected at
+   startup by the repository Git profile; earlier execution, GitFlow approval, or a later ready-for-review transition
+   is insufficient.
 3. Require a non-draft PR whose diff remains inside the workset.
-4. Require every applicable validation and required check to pass. The sole automatic exception is a terminal GitHub
-   check with no executed step and one annotation proving a billing restriction; record the unchanged head SHA,
-   check-run ID, and annotation. Every other missing or failing check requires an explicit head-bound human waiver.
+4. Require every applicable validation and required check to pass. Apply only an automatic check classification
+   explicitly defined by the repository Git profile; every other missing or failing check requires an explicit
+   head-bound human waiver.
 5. Execute the complete profile in [`local-runtime-policy.md`](local-runtime-policy.md) on the exact head.
-6. Merge each unchanged head separately with
-   `gh pr merge --merge --delete-branch --match-head-commit <full-head-sha>`.
+6. Merge each unchanged head separately with the exact head-bound method declared by the repository Git profile.
 7. Reread the merged PR, remote branch absence, issue, and Project item.
 8. Complete the issue only after every completion guard passes, then reconcile direct dependents and parent Epics.
 9. Obtain stable post-mutation snapshots, then let the Merge train recompute its remaining authorized snapshot against
-   the new `develop`.
+   the new integration head.
 
 Absence of branch protection, rulesets, or required checks never waives these repository rules. Never enable
 auto-merge by inference.
@@ -169,15 +126,15 @@ auto-merge by inference.
 Refresh a task branch with rebase:
 
 1. Require a clean task worktree and prove no other worker is writing the branch.
-2. Fetch `origin/develop` and the remote task branch and record the expected remote task head.
-3. Rebase the task branch onto `origin/develop`; never merge `develop` into it.
+2. Fetch the remote integration branch and remote task branch and record the expected remote task head.
+3. Rebase the task branch onto the remote integration branch; never merge the integration branch into it.
 4. Resolve only deterministic in-scope conflicts during ordinary task work. Otherwise abort and stop.
 5. Rerun every validation affected by the resulting tree.
 6. Push normally when unpublished; otherwise use `--force-with-lease` against the verified remote head.
 7. Reread PR head, diff, checks, claim, and workset.
 
-Never use plain `--force`, rebase `develop`, or rewrite a branch while another worker owns it. A refreshed head
-invalidates prior checks and release evidence.
+Never use plain `--force`, rebase the integration branch, or rewrite a branch while another worker owns it. A
+refreshed head invalidates prior checks and release evidence.
 
 The explicitly invoked Merge train may perform this refresh in an isolated detached temporary worktree for each PR in
 its startup snapshot. It must bind `--force-with-lease` to the verified old remote SHA, never mutate an existing local
@@ -222,9 +179,9 @@ Draft publication does not authorize merge. A merged PR does not alone complete 
 
 ## Post-Merge Local Sync
 
-After an authorized merge, fetch `origin/develop`, fast-forward local `develop` with
-`git merge --ff-only origin/develop`, and verify status and the resulting commit. If another worktree owns `develop`,
-update only the remote-tracking ref and report the checkout that still needs synchronization.
+After an authorized merge, fetch the configured integration branch, fast-forward its local branch with the command
+declared by the repository Git profile, and verify status and the resulting commit. If another worktree owns the local
+integration branch, update only the remote-tracking ref and report the checkout that still needs synchronization.
 
 The explicit Merge Train Runbook is the exception: it refreshes only authorized remote PR heads through isolated
 temporary worktrees, never mutates existing local task branches, and ends with a reminder listing local branches that

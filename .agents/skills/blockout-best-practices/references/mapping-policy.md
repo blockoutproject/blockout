@@ -1,4 +1,4 @@
-# Blockout Mapping Policy
+# Repository Mapping Policy
 
 Read this reference before changing mappings between generated OpenAPI DTOs, application contracts, domain values,
 provider records, frontend view models, and persistence entities.
@@ -8,7 +8,7 @@ provider records, frontend view models, and persistence entities.
 - OpenAPI DTO: HTTP transport shape.
 - Application contract: command, query input, decision, plan, view, or use-case result.
 - Domain: pure business concepts, invariants, value objects, and policies.
-- Provider record: external FFVB, LNV, Auth0, Expo, Mapbox, GitHub, Discord, or S3 shape.
+- Provider record: an external service, identity, storage, mapping, messaging, or content-provider shape.
 - JPA entity or search document: persistence or index shape.
 - Mobile view/form model: feature presentation and editable state.
 
@@ -22,7 +22,7 @@ owns the exact shared concept; application-only and provider-owned enums remain 
 - Application mutation input: `Command` or a more precise role suffix.
 - Application read projection: `View`.
 - Immutable historical state: `Snapshot`.
-- Provider input: explicit owner and role, such as `FfvbClubRecord`.
+- Provider input: explicit owner and role, such as `ProviderClubRecord`.
 - Neutral polymorphic carrier: `Payload`.
 - Value object: business name without a layer suffix.
 - Mobile presentation shape: feature-owned role name; do not append `Dto` to local view state.
@@ -39,8 +39,9 @@ coexist, make the role explicit.
 - Simple entity-to-view mapping lives beside `application/views`; repository-backed assembly and enrichment live in
   `application/projection` as a projector or projection service.
 - Persistence-only conversion lives under `infrastructure/persistence/mappers`.
-- Python generated/internal Blockout transport mapping remains under `infrastructure/blockout`; provider parsing and
-  normalization remain under the provider adapter. Application and domain packages never import generated clients.
+- Python generated/internal transport mapping remains under the internal adapter location declared by the repository
+  profile; provider parsing and normalization remain under the provider adapter. Application and domain packages never
+  import generated clients.
 - Mobile gateway DTO mapping remains in the owning feature API/client boundary. Feature view and form models remain in
   the feature; move a mapping to `shared` only when multiple active features genuinely share the same boundary.
 - Avoid `application/mappers` unless one mapper truly spans several application contract families and no tighter role
@@ -76,7 +77,7 @@ small and explicit; it must not become a second application service.
 ## Python
 
 Use explicit typed functions at the adapter edge. Map generated responses immediately to domain values and domain
-values to generated requests. Keep provider parsing separate from Blockout transport mapping. Do not add a mapping
+values to generated requests. Keep provider parsing separate from repository transport mapping. Do not add a mapping
 framework, generic serializer wrapper, or dictionary-based intermediate shape when direct typed construction is clear.
 
 ## TypeScript And React Native
@@ -103,7 +104,7 @@ polymorphic/error behavior. Do not add tests that only scan source text or prove
 
 ## Verification
 
-- Compile and test each impacted Java module from `apps/backend/pom.xml`.
+- Compile and test each impacted Java module through the backend reactor selected by the repository router.
 - Run the owning scraper suite and architecture guards for Python mapping changes.
 - Run mobile tests and typecheck for mobile mapping changes.
 - Inspect for transport leakage, entity exposure, generic mapper bags, and generated files tracked by Git.

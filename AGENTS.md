@@ -15,6 +15,8 @@ Apply repository guidance through five shallow layers:
 
 Higher layers constrain lower layers. Focused policies own decisions; runbooks orchestrate them and must link instead
 of restating their rules. The live issue supplies task scope and evidence but does not override repository invariants.
+Every file under `.agents/skills/blockout-best-practices/references/**` is portable and must remain reusable unchanged
+by another repository router. Blockout-specific values belong in this file, the router, or `overlays/**`.
 
 ## Repository Invariants
 

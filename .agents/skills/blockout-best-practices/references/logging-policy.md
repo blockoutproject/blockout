@@ -1,4 +1,4 @@
-# Blockout Logging Policy
+# Repository Logging Policy
 
 Read this reference before adding, changing, or keeping logs in Java, Python, or Expo code.
 
@@ -7,9 +7,8 @@ Read this reference before adding, changing, or keeping logs in Java, Python, or
 Every committed log must help diagnose a real failure, explain an operational state change, or operate a scheduled or
 external integration. Do not add decorative entry/exit tracing, payload dumps, or routine per-record success noise.
 
-Blockout currently writes structured JSON to standard output. Java uses Logback with the Logstash encoder and structured
-arguments; both scrapers use their `observability` logging boundary. The mobile application has no shared production
-logging backend and must not invent one during ordinary feature work.
+The repository profile owns output format, sinks, framework adapters, structured-field conventions, and application
+boundaries. Do not introduce another logging backend during ordinary feature work.
 
 ## Levels
 
@@ -47,17 +46,16 @@ numbers, and provider families. Never log:
 
 ## Java
 
-- Use SLF4J through the existing Logback stack.
-- Use parameterized messages and the existing `StructuredArguments.keyValue(...)` fields. Do not concatenate values into
-  messages.
+- Use SLF4J through the configured Java logging stack.
+- Use parameterized messages and the configured structured-field API. Do not concatenate values into messages.
 - Keep stable machine field names and operation values consistent within a service. Existing snake_case log field names
   are observability protocol fields, not API JSON, and remain valid.
-- JSON console output is the current runtime contract. Do not add local files, OpenTelemetry, remote sinks, appenders,
+- Preserve the configured output and sink contract. Do not add local files, telemetry, remote sinks, appenders,
   correlation middleware, or monitoring dependencies without a dedicated task.
 
 ## Python Scrapers
 
-- Emit structured JSON through the scraper's `observability` boundary. Application and adapters must not configure the
+- Emit logs through the scraper's configured `observability` boundary. Application and adapters must not configure the
   root logger independently.
 - Include scraper name, provider or dependency, operation, outcome, counts, and duration when useful.
 - Serialize known typed values safely; do not turn arbitrary objects or provider payloads into log dictionaries.

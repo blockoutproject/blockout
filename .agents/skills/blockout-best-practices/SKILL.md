@@ -10,18 +10,25 @@ the current task. Detailed rules live in the references rather than in this entr
 
 ## Ownership And Precedence
 
-`AGENTS.md` owns repository-wide invariants and coordinates. This router owns source selection, the repository map, and
-validation defaults. Focused references own decisions for their boundary; task runbooks only sequence those decisions.
+`AGENTS.md` owns repository-wide invariants and coordinates. This router owns source selection, the repository map,
+Blockout overlay selection, and validation defaults. Focused references own portable decisions for their boundary;
+`overlays/**` supplies Blockout-specific values without changing those decisions. Task runbooks only sequence them.
 When guidance overlaps, follow that order and replace lower-level repetition with a direct route.
 
 Workflow ownership is intentionally narrow:
 
 - `github-roadmap-operations.md`: Project evidence, Ready, Worksets, claims, conflicts, and scope expansion;
 - `github-roadmap-lifecycle.md`: statuses, execution modes, transitions, completion, dependencies, and Epic rollup;
-- `github-roadmap-governance.md` and `github-taxonomy.md`: Blockout Project fields, views, Tracks, labels, and areas;
-- `git-workflow.md`: Blockout branches, commits, pull requests, repository settings, review profile, and integration;
-- `local-runtime-policy.md`: Blockout runtime and release-smoke topology; and
+- `github-roadmap-governance.md` and `github-taxonomy.md`: portable Project and taxonomy decisions;
+- `git-workflow.md`: portable branch, commit, pull-request, review, and integration decisions;
+- `local-runtime-policy.md`: portable runtime and release-smoke decisions;
+- `overlays/**`: Blockout source, Roadmap, taxonomy, Git, runtime, design, path, version, command, and provider values;
+  and
 - `docs/runbooks/tasks/**`: discovery, acquisition, execution, drain, and merge sequences without policy ownership.
+
+Every file under `references/**` must remain repository-neutral and reusable unchanged by another repository router.
+Never add a Blockout or Maaatch name, coordinate, path, branch, command, version, provider, port, design file, or
+taxonomy value there.
 
 ## Discipline
 
@@ -39,35 +46,36 @@ Workflow ownership is intentionally narrow:
 
 ## Source Router
 
-| Task signal                                                                   | Read                                                                                                        |
-| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Product behavior, V1 scope, source authority, or implementation gate          | `references/baseline-v1-policy.md`, then the applicable current architecture source                         |
-| Java package structure, Spring service, Maven module, or application boundary | `references/backend-java-policy.md`                                                                         |
-| Javadoc, source comments, or a handwritten public/local contract              | `references/code-documentation-policy.md`                                                                   |
-| Mapping between transport, application, domain, provider, and persistence     | `references/mapping-policy.md`                                                                              |
-| Backend Java tests                                                            | `references/java-testing-policy.md`                                                                         |
-| JPA entity, repository, relationship, query, or PostgreSQL mapping            | `references/jpa-persistence-policy.md`                                                                      |
-| Flyway migration or database schema evolution                                 | `references/flyway.md`, then `references/jpa-persistence-policy.md` when entity alignment is relevant       |
-| Request, response, controller, mapping, error, collection, or HTTP boundary   | `references/rest-endpoint-policy.md`                                                                        |
-| OpenAPI contract, DTO, endpoint, generated client/server, or transport enum   | `references/contract-first.md`, then `references/rest-endpoint-policy.md` when relevant                     |
-| Java, Python, or mobile logging                                               | `references/logging-policy.md`                                                                              |
-| Python scraper code, model, dependency, or fixture                            | `references/python-scraper-policy.md` and `references/python-scraper-testing-policy.md`                     |
-| Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | `references/mobile-expo-policy.md`, `references/mobile-testing-policy.md`, and `vercel-react-native-skills` |
-| Figma read/write, mobile visual design, design tokens, or visual comparison   | `references/figma-policy.md`, then the applicable mobile policy and Figma skill                             |
-| Mobile Jest or React Native Testing Library test                              | `references/mobile-testing-policy.md`                                                                       |
-| React component API, provider composition, or reusable mobile UI architecture | `vercel-composition-patterns` in addition to the applicable mobile policy                                   |
-| Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md`                                                                        |
-| Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                                           |
-| Business model ownership or delivered runtime posture                         | `references/baseline-v1-policy.md`, `docs/current/blockout-product-runtime-context.md`, and owning sources  |
-| Roadmap discovery, acquisition, claim, resume, scope, or draft publication    | `references/github-roadmap-operations.md` and the applicable task runbook                                   |
-| Drain compatible Ready issues                                                 | `references/github-roadmap-operations.md` and `docs/runbooks/tasks/ready-drain.md`                          |
-| Drain an approved PR snapshot                                                 | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`  |
-| Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                    |
-| Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md`                                                                   |
-| Track, issue identifier, label, or Workset area taxonomy                      | `references/github-taxonomy.md`                                                                             |
-| Issue, branch, commit, push, pull request, label, title, or local Git sync    | `references/git-workflow.md`                                                                                |
+| Task signal                                                                   | Read                                                                                                                            |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Product behavior, V1 scope, source authority, or implementation gate          | `references/baseline-v1-policy.md`, `overlays/repository-profile.md`, then the applicable current source                        |
+| Java package structure, Spring service, Maven module, or application boundary | `references/backend-java-policy.md` and `overlays/repository-profile.md`                                                        |
+| Javadoc, source comments, or a handwritten public/local contract              | `references/code-documentation-policy.md`                                                                                       |
+| Mapping between transport, application, domain, provider, and persistence     | `references/mapping-policy.md`                                                                                                  |
+| Backend Java tests                                                            | `references/java-testing-policy.md`                                                                                             |
+| JPA entity, repository, relationship, query, or PostgreSQL mapping            | `references/jpa-persistence-policy.md`                                                                                          |
+| Flyway migration or database schema evolution                                 | `references/flyway.md`, then `references/jpa-persistence-policy.md` when entity alignment is relevant                           |
+| Request, response, controller, mapping, error, collection, or HTTP boundary   | `references/rest-endpoint-policy.md`                                                                                            |
+| OpenAPI contract, DTO, endpoint, generated client/server, or transport enum   | `references/contract-first.md`, `overlays/repository-profile.md`, then the REST policy when relevant                            |
+| Java, Python, or mobile logging                                               | `references/logging-policy.md` and `overlays/repository-profile.md`                                                             |
+| Python scraper code, model, dependency, or fixture                            | both scraper references and `overlays/repository-profile.md`                                                                    |
+| Expo, React Native, Formik, Yup, or mobile HTTP boundary                      | both mobile references, `overlays/repository-profile.md`, `overlays/figma-profile.md`, and `vercel-react-native-skills`         |
+| Figma read/write, mobile visual design, design tokens, or visual comparison   | `references/figma-policy.md`, `overlays/figma-profile.md`, `overlays/local-runtime-profile.md`, then the applicable Figma skill |
+| Mobile Jest or React Native Testing Library test                              | `references/mobile-testing-policy.md`                                                                                           |
+| React component API, provider composition, or reusable mobile UI architecture | `vercel-composition-patterns` in addition to the applicable mobile policy                                                       |
+| Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md` and `overlays/local-runtime-profile.md`                                                    |
+| Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                                                               |
+| Business model ownership or delivered runtime posture                         | `references/baseline-v1-policy.md`, `docs/current/blockout-product-runtime-context.md`, and owning sources                      |
+| Roadmap discovery, acquisition, claim, resume, scope, or draft publication    | `references/github-roadmap-operations.md` and the applicable task runbook                                                       |
+| Drain compatible Ready issues                                                 | `references/github-roadmap-operations.md` and `docs/runbooks/tasks/ready-drain.md`                                              |
+| Drain an approved PR snapshot                                                 | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`                      |
+| Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                                        |
+| Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md` and `overlays/github-roadmap-profile.md`                                              |
+| Track, issue identifier, label, or Workset area taxonomy                      | `references/github-taxonomy.md` and `overlays/github-taxonomy.md`                                                               |
+| Issue, branch, commit, push, pull request, label, title, or local Git sync    | `references/git-workflow.md` and `overlays/git-profile.md`                                                                      |
 
-When Figma work requires simulator or service startup, also read `references/local-runtime-policy.md`.
+When Figma work requires simulator or service startup, also read `references/local-runtime-policy.md` and
+`overlays/local-runtime-profile.md`.
 
 Apply the source gate in `references/baseline-v1-policy.md` before changing product behavior. Historical code and
 deferred plans do not activate work by continuity.
@@ -110,8 +118,8 @@ generated Orval client. A future contract change requires an explicit task and p
 - Use `ready-drain.md` only for an explicitly requested compatible Ready frontier and `merge.md` only for an explicitly
   authorized release.
 - Load lifecycle only for lifecycle or release decisions and governance only for Project structure.
-- Apply the managed-checkout transport profile from Roadmap operations and the repository-specific Git and release
-  profile from `git-workflow.md`.
+- Apply the managed-checkout transport policy from Roadmap operations, the portable Git workflow, and
+  `overlays/git-profile.md`.
 
 ## Repository Map
 
