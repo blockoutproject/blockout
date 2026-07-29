@@ -247,6 +247,29 @@ the task.
   Workset, and changed field.
 - Lifecycle's separate release authorization remains required after draft publication.
 
+## Delivery Evidence And Recovery
+
+The claim-to-draft path uses only visible repository, Git, issue, Project, and pull-request state. A conversation,
+thread ID, local plan, worker name, or hidden token is never delivery state.
+
+Bind validation to the exact intended tree. After staging explicit Workset paths, require no unintended staged,
+unstaged, or untracked change; bind the commit to that tree, verify the remote branch at the commit SHA after push, and
+verify the draft PR at the same head. The structural issue link and `In Review` transition are separate visible
+postconditions.
+
+| Situation                  | Preserved state                                                                   | Recovery                                                                                              |
+| -------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Workset conflict           | Candidate remains unassigned `Ready`; incumbent claim is unchanged                | Recalculate from fresh Project evidence and select another compatible issue                           |
+| Partial or ambiguous claim | Mixed state is reserved but invalid                                               | Complete only the uniquely missing mutation or remove the assignee and restore `Ready`                |
+| `PLAN_REQUIRED`            | Stable `In Progress` claim reserves the Workset; no task-file edit exists         | Continue only after current-user approval; otherwise release or apply lifecycle's `Blocked` guard     |
+| Scope expansion            | Existing claim and former valid Workset remain authoritative                      | Update the visible Workset first, recalculate conflicts, then continue or restore the former contract |
+| Interruption               | Existing GitHub and Git artifacts remain authoritative                            | Enter `RESUME` and continue from the first incomplete postcondition without duplicating an artifact   |
+| Commit or push failure     | Issue remains `In Progress`; verified local or remote artifacts are preserved     | Fix only the failed boundary, then revalidate the resulting tree or remote head                       |
+| PR publication failure     | Issue remains `In Progress` unless one structurally linked open PR already exists | Reuse the existing branch/PR, complete the missing link or metadata, and never open a duplicate       |
+| Review-transition failure  | Structurally linked PR remains open; claim stays reserved                         | Reread PR and issue, then complete only the uniquely missing `In Review` postcondition                |
+
+No delivery step grants merge, waiver, rejection, or completion authority. Those remain separate lifecycle decisions.
+
 ## Completion Reconciliation
 
 Lifecycle owns completion, dependency reconciliation, and Epic rollup. Operations supplies its fresh Project,
