@@ -83,6 +83,38 @@ completion without a PR requires:
 Required post-merge work must be an unchecked acceptance criterion before merge. Keep the issue assigned and
 `In Review` until it passes. Use `Refs` while such work remains and `Closes` only when merge can complete the issue.
 
+## Review Evidence
+
+Review evidence is concise Markdown on the ordinary issue or pull request, not an attestation, artifact, schema, or
+parallel state system. Every record names the current full head SHA and includes only:
+
+- frozen Workset and changed paths;
+- validations and checks with their result;
+- intentionally skipped checks with the reason and applicable waiver;
+- review source, actionable findings, and every unresolved finding;
+- scope drift or the explicit statement that none was found; and
+- the separate release decision when one exists.
+
+A new commit makes every earlier validation, approval, self-review, check classification, waiver, and release record
+stale. Reread the new head, rerun affected evidence, and publish a new head-bound record; never edit an old record so
+that it appears to cover another SHA.
+
+Implementation confidence, issue completion percentage, a clean diff, or the absence of comments never substitutes
+for review or applicable tests. A self-review is evidence only through the repository's documented solo fallback and
+does not waive a failed check or unresolved finding.
+
+| Evidence state     | Decision                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------ |
+| Clean current head | Continue only if every other review and release guard passes                                           |
+| Stale head         | Invalidate the record and regenerate affected evidence on the new SHA                                  |
+| Failed check       | Block release unless an explicit current-head human waiver is allowed and recorded                     |
+| Skipped check      | Record the exact reason; treat it as neither pass nor failure and apply the repository release profile |
+| Scope drift        | Return to draft and reconcile the issue Workset before continuing                                      |
+| Unresolved finding | Block release until resolved on a new head or explicitly dispositioned by the authorized human         |
+
+Exclude credentials, tokens, provider payloads, personal data, absolute machine paths, local usernames, and
+machine-specific process details. Report only repository-relative paths and the minimum diagnostic evidence needed.
+
 ## Review And Release
 
 Draft PR creation authorizes review, never release. A current-user Merge task invocation authorizes only the candidate
@@ -97,6 +129,9 @@ set. Apply the repository's review, check, branch, and release-validation profil
 5. Require the repository-defined release proof on the exact candidate head.
 6. Merge only after repository and lifecycle guards pass; never infer or enable auto-merge.
 7. Reread the merged PR, issue, and Project item before completion.
+
+Human release authorization is a distinct decision. Implementation, validation, review, a ready PR, or a recorded
+waiver never creates it implicitly.
 
 When the configured integration branch changes after validation, invalidate prior release evidence. Rebase the
 candidate onto the new integration head, then rerun every head-bound check and release proof. The Merge train never
