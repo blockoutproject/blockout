@@ -8,8 +8,8 @@ eligible later.
 
 Build the authorized snapshot, order it deterministically, and drain it one pull request at a time. Rebase every
 candidate onto the exact current remote integration head, obtain fresh head-bound checks and repository-defined
-release proof, merge through the configured integration path, delete only the merged remote task branch, and reconcile
-Roadmap state before continuing.
+release proof, merge through the configured integration path, clean up only that merged task's verified remote and
+local Git artifacts, synchronize the local integration branch, and reconcile Roadmap state before continuing.
 
 The train stops fail-closed at the first conflict, failed validation, failed repository release proof, unexpected diff,
 moved head, repeated base race, or ambiguous release condition. Earlier successful merges remain merged; unprocessed
@@ -120,20 +120,28 @@ Immediately before each merge:
 4. merge the unchanged head through the exact command and method owned by the repository Git workflow;
 5. reread the merged pull request and remote integration head, then verify that the unchanged remote task ref is
    absent;
-6. complete the linked issue only when every completion guard passes: set `Done`, remove all assignees, close completed,
+6. apply the Git workflow's post-merge local cleanup to the exact merged task: resolve its local branch and linked
+   task worktrees, prove that no user work or active writer would be lost, remove every safe disposable task worktree
+   or move a retained control checkout off the task branch, fast-forward and verify the local integration branch in its
+   owning clean worktree, then delete and verify absence of the merged local task branch;
+7. stop the train with the merge preserved when local cleanup is dirty, divergent, ambiguous, or actively owned;
+   report every preserved artifact and the exact clearing condition rather than forcing removal or branch movement;
+8. complete the linked issue only when every completion guard passes: set `Done`, remove all assignees, close completed,
    and reread;
-7. run dependency-unlock reconciliation, validate newly unblocked issues before `Ready`, recalculate affected Epics,
+9. run dependency-unlock reconciliation, validate newly unblocked issues before `Ready`, recalculate affected Epics,
    and require lifecycle's stable postconditions; and
-8. recompute every unprocessed candidate against the new integration head before continuing.
+10. recompute every unprocessed candidate against the new integration head before continuing.
 
 Require the current-user release authorization independently of implementation, validation, review, or evidence
 normalization. A ready PR and green checks never supply that authorization.
 
-Never merge two candidates as one commit, update a branch outside the startup snapshot, delete a moved ref, enable
-auto-merge, infer a waiver, or roll back an earlier successful merge because a later candidate failed.
+Never merge two candidates as one commit, update a task branch outside the startup snapshot, delete a moved or
+unverified ref, force-remove a worktree, enable auto-merge, infer a waiver, or roll back an earlier successful merge
+because a later candidate or its local cleanup failed.
 
 ## Final Report
 
-Identify every merged pull request and linked Roadmap result in order. When the train stops early, name the exact
-candidate, preserved remote state, completed earlier merges, failure evidence, and clearing condition. Apply any final
-response suffix required by the repository Git workflow.
+Identify every merged pull request and linked Roadmap result in order. For each merge, report remote task-ref deletion,
+local task-worktree removal, local task-branch deletion, and local integration-branch synchronization. When the train
+stops early, name the exact candidate, preserved remote and local state, completed earlier merges, failure evidence,
+and clearing condition. Apply any final response requirements owned by the repository Git workflow.

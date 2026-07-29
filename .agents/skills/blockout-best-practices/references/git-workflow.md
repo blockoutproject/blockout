@@ -137,7 +137,8 @@ link evidence.
 - Do not mix formatting churn, generated churn, refactors, cleanup, or follow-up outside the issue workset.
 - Never discard user work, use destructive Git, plain force-push, or delete a branch without explicit authority.
 - The merge runbook may refresh only remote heads in its startup snapshot and delete only each confirmed merged PR's
-  unchanged remote head branch.
+  unchanged remote head branch. The same release authorization covers removal of that merged task's verified clean
+  local worktree and local branch through the post-merge cleanup below.
 - The controlled task-branch refresh above is the only routine history rewrite.
 - When intended and unrelated changes overlap inseparably in one file, stop and ask.
 - Contract-first work keeps source contracts, required generation, and minimal consumer compilation fixes in one
@@ -155,20 +156,36 @@ Include:
 
 Draft publication does not authorize merge. A merged PR does not alone complete a Roadmap issue.
 
-## Post-Merge Local Sync
+## Post-Merge Local Cleanup
 
-After an authorized merge, fetch the configured integration branch, fast-forward its local branch with the command
-declared by the repository Git profile, and verify status and the resulting commit. If another worktree owns the local
-integration branch, update only the remote-tracking ref and report the checkout that still needs synchronization.
+After an authorized merge, complete every applicable local and remote cleanup postcondition before reporting the
+release reconciled:
 
-The explicit Merge Train Runbook is the exception: it refreshes only authorized remote PR heads through isolated
-temporary worktrees, never mutates existing local task branches, and ends with a reminder listing local branches that
-need refresh.
+1. Reread the merged pull request and remote refs. Require the remote integration head to contain the merge and the
+   unchanged remote task ref to be absent.
+2. Resolve the local task branch and every disposable linked worktree created for that exact branch. Treat an already
+   absent local branch or linked worktree as an idempotent postcondition, never as authority to target a similarly
+   named artifact.
+3. Before removing a linked task worktree, require it to own the exact merged task branch, contain no tracked,
+   untracked, or ignored user-owned work, and have no active writer. On dirty, ambiguous, or actively owned state,
+   preserve both the worktree and branch, record the exact blocker, and leave local cleanup incomplete.
+4. Remove every verified linked task worktree from a separate safe checkout and verify that it is no longer
+   registered. Never force removal to bypass a failed safety check. A retained primary or control checkout is not a
+   disposable task worktree; after the same safety checks, move it off the task branch instead of removing it.
+5. Ensure the configured integration branch is checked out in one retained safe worktree, fetching it first and
+   switching the verified clean retained checkout when no worktree owns it. Require the local integration branch to be
+   non-divergent and its owning worktree to be free of another active writer, then fast-forward it with the command
+   declared by the repository Git profile. When another worktree owns the integration branch, perform and verify the
+   fast-forward there; updating only the remote-tracking ref is not completion.
+6. Require the updated local integration branch to equal the remote integration head and contain the merged task head,
+   then delete only the exact local task branch through a non-force deletion and verify that the ref is absent.
+
+The Merge train applies this cleanup after each confirmed merge. An unsafe local cleanup cannot undo the merge, but it
+stops the train before another candidate and remains an explicit incomplete release postcondition.
 
 ## Final Report
 
 Report issue, claim owner, workset, Project status, branch, commit, push, PR, validations, skipped checks, release
-decision, and any dependency or Epic transition.
-
-The Merge train response must end with a branch reminder written in the user's chat language. List every remaining
-local branch that needs refresh. When none remain, state explicitly in that language that no branch needs an update.
+decision, remote task-ref deletion, local task-worktree removal, local task-branch deletion, local integration-branch
+synchronization, and any dependency or Epic transition. Name every preserved local artifact and its exact clearing
+condition when cleanup remains incomplete.
