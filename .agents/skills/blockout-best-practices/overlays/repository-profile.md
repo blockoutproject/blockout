@@ -29,12 +29,18 @@ This overlay supplies Blockout-specific values to the portable references select
 - Python generated clients: `libs/shared/python-contract-clients/src/blockout_contract_clients/*/**`
 - Mobile generated client: `apps/frontend/mobile/src/shared/generated/**`
 - Java generated transport package: `com.blockout.shared.model`
+- Java test source roots: `apps/backend/*/src/test/java`
 - Python internal API adapters: `infrastructure/blockout`
 - Python scraper local package: `scraper`
-- Reusable Java container test support: `testkit/containers`
+- Reusable Java test support: `testkit/data`, `testkit/doubles`, `testkit/spring`, and `testkit/containers`
 - Workspace task runner: Nx
 - Python formatter and linter: repository-pinned Ruff
 - Public application gateway: `mobile-gateway`
+- Schema migration: Flyway
+- Supported relational database: PostgreSQL
+- Message broker: RabbitMQ
+- Python scraper role packages: `application`, `domain`, `infrastructure`, `config`, and `observability`
+- Python scraper test roles: `characterization`, `unit`, `integration`, and `fixtures`
 
 ## Contract Generation
 

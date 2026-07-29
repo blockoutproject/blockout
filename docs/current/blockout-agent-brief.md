@@ -32,24 +32,60 @@ evidence, and frozen Workset.
 | Product/runtime posture and closed boundaries                             | [`blockout-product-runtime-context.md`](blockout-product-runtime-context.md)                                                                                                                                                                                                                                                                                                                                                         |
 | Architecture, durable decisions, and delivered scope                      | [`docs/architecture`](../architecture/), [`docs/decisions`](../decisions/), and [`docs/releases`](../releases/)                                                                                                                                                                                                                                                                                                                      |
 
-## Read-Only Maaatch Adoption Map
+## Read-Only Maaatch Adoption Handoff
 
-The comparison below was made against the Maaatch repository without modifying it or copying business code. Maaatch
-can consume any file under Blockout `references/**` unchanged; its own router supplies Maaatch-specific overlays.
+The comparison below covers every Blockout focused reference and was made without modifying Maaatch or copying
+business code. Blockout is the export source for these files. A shared boundary is adopted only when the complete
+Maaatch file is byte-for-byte identical; partial copies and repository-specific forks are not adoption.
 
-| Portable layer     | Maaatch counterpart                              | Adoption rule                                                                                     |
-| ------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| Repository router  | `.agents/skills/maaatch-best-practices/SKILL.md` | Select shared references and Maaatch-owned overlays without changing the references.              |
-| Focused policies   | Any applicable file under `references/**`        | Reuse the exact portable file unchanged for the same decision or technical boundary.              |
-| Roadmap operations | `references/github-roadmap-operations.md`        | Reuse the neutral Ready, Workset, claim, conflict, and expansion policy unchanged.                |
-| Roadmap lifecycle  | `references/github-roadmap-lifecycle.md`         | Reuse status and transition semantics; keep repository enforcement in the local Git overlay.      |
-| Task runbooks      | Maaatch-owned task runbooks                      | Orchestrate Maaatch operations while linking shared references instead of copying their policies. |
-| Repository values  | Maaatch-owned `overlays/**`                      | Own Maaatch paths, versions, providers, branches, commands, taxonomy, runtime, and design values. |
-| Stable handoff     | `docs/current/maaatch-agent-brief.md`            | Describe ownership and adoption without duplicating the shared policies.                          |
+### Complete Blockout Compatibility Matrix
 
-The observed differences are overlay decisions, not forks of the portable workflow: Roadmap coordinates, repository
-taxonomy, runtime stack, validation commands, release candidate cardinality, GitHub enforcement posture, and product
-source gates remain repository-owned.
+| Blockout reference                                                                                                             | Technical boundary                | Blockout route                                                   | Maaatch counterpart or target             | Classification and current state                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- | ---------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------- |
+| [`backend-java-policy.md`](../../.agents/skills/blockout-best-practices/references/backend-java-policy.md)                     | Java backend architecture         | Java or backend module work                                      | `references/backend-java-policy.md`       | Shared; counterpart differs and must be replaced exactly                          |
+| [`baseline-v1-policy.md`](../../.agents/skills/blockout-best-practices/references/baseline-v1-policy.md)                       | Product source gate               | Behavior or V1 scope                                             | `references/baseline-v1-policy.md`        | Shared; counterpart differs and must be replaced exactly                          |
+| [`code-documentation-policy.md`](../../.agents/skills/blockout-best-practices/references/code-documentation-policy.md)         | Source documentation              | Handwritten public or local contracts                            | `references/code-documentation-policy.md` | Shared; counterpart differs and must be replaced exactly                          |
+| [`contract-first.md`](../../.agents/skills/blockout-best-practices/references/contract-first.md)                               | OpenAPI and generated boundaries  | Contract, DTO, endpoint, or generated transport                  | `references/contract-first.md`            | Shared; counterpart differs and must be replaced exactly                          |
+| [`figma-policy.md`](../../.agents/skills/blockout-best-practices/references/figma-policy.md)                                   | Figma interaction and design QA   | Figma read, write, or comparison                                 | `references/figma-policy.md`              | Shared; counterpart differs and must be replaced exactly                          |
+| [`flyway.md`](../../.agents/skills/blockout-best-practices/references/flyway.md)                                               | Flyway migrations                 | Flyway-routed schema work                                        | No current counterpart                    | Technology-specific portable policy; adopt exactly only if Maaatch routes Flyway  |
+| [`git-workflow.md`](../../.agents/skills/blockout-best-practices/references/git-workflow.md)                                   | Git and pull-request workflow     | Git or publication work                                          | `references/git-workflow.md`              | Shared; counterpart differs and must be replaced exactly                          |
+| [`github-roadmap-governance.md`](../../.agents/skills/blockout-best-practices/references/github-roadmap-governance.md)         | Project governance                | Project structure or migration                                   | `references/github-roadmap-governance.md` | Shared; counterpart differs and must be replaced exactly                          |
+| [`github-roadmap-lifecycle.md`](../../.agents/skills/blockout-best-practices/references/github-roadmap-lifecycle.md)           | Lifecycle and release             | Status, mode, completion, or release                             | `references/github-roadmap-lifecycle.md`  | Shared; counterpart differs and must be replaced exactly                          |
+| [`github-roadmap-operations.md`](../../.agents/skills/blockout-best-practices/references/github-roadmap-operations.md)         | Discovery, claims, and Worksets   | Roadmap acquisition or scope                                     | `references/github-roadmap-operations.md` | Shared; counterpart differs and must be replaced exactly                          |
+| [`github-roadmap-policy.md`](../../.agents/skills/blockout-best-practices/references/github-roadmap-policy.md)                 | Roadmap owner routing             | Roadmap policy lookup                                            | `references/github-roadmap-policy.md`     | Shared; counterpart differs and must be replaced exactly                          |
+| [`github-taxonomy.md`](../../.agents/skills/blockout-best-practices/references/github-taxonomy.md)                             | Taxonomy decisions                | Track, label, identifier, or area policy                         | No current counterpart                    | Shared and adoptable unchanged; Maaatch keeps exact catalog values in its profile |
+| [`java-testing-policy.md`](../../.agents/skills/blockout-best-practices/references/java-testing-policy.md)                     | Java testing                      | Backend Java tests                                               | `references/java-testing-policy.md`       | Shared; counterpart differs and must be replaced exactly                          |
+| [`jpa-persistence-policy.md`](../../.agents/skills/blockout-best-practices/references/jpa-persistence-policy.md)               | JPA persistence                   | Entity, repository, relationship, or query                       | `references/jpa-persistence-policy.md`    | Shared; counterpart differs and must be replaced exactly                          |
+| [`local-runtime-policy.md`](../../.agents/skills/blockout-best-practices/references/local-runtime-policy.md)                   | Local runtime and smoke lifecycle | Containers, environment, or runtime smoke                        | No current counterpart                    | Shared and adoptable unchanged; topology remains repository-owned                 |
+| [`logging-policy.md`](../../.agents/skills/blockout-best-practices/references/logging-policy.md)                               | Safe operational logging          | Java, Python, or client logging                                  | `references/logging-policy.md`            | Shared; counterpart differs and must be replaced exactly                          |
+| [`mapping-policy.md`](../../.agents/skills/blockout-best-practices/references/mapping-policy.md)                               | Boundary mapping                  | Transport, application, domain, provider, or persistence mapping | `references/mapping-policy.md`            | Shared; counterpart differs and must be replaced exactly                          |
+| [`mobile-expo-policy.md`](../../.agents/skills/blockout-best-practices/references/mobile-expo-policy.md)                       | Expo and React Native             | Mobile application work                                          | No current counterpart                    | Technology-specific portable policy and exact Maaatch adoption target             |
+| [`mobile-testing-policy.md`](../../.agents/skills/blockout-best-practices/references/mobile-testing-policy.md)                 | Mobile testing                    | Jest or React Native Testing Library                             | No current counterpart                    | Technology-specific portable policy and exact Maaatch adoption target             |
+| [`python-scraper-policy.md`](../../.agents/skills/blockout-best-practices/references/python-scraper-policy.md)                 | Python scraper architecture       | Python scraper work                                              | No current counterpart                    | Technology-specific portable policy; route only for a compatible scraper          |
+| [`python-scraper-testing-policy.md`](../../.agents/skills/blockout-best-practices/references/python-scraper-testing-policy.md) | Python scraper testing            | Scraper tests and fixtures                                       | No current counterpart                    | Technology-specific portable policy; route only for a compatible scraper          |
+| [`rest-endpoint-policy.md`](../../.agents/skills/blockout-best-practices/references/rest-endpoint-policy.md)                   | REST endpoints                    | Controller, request, response, or HTTP boundary                  | `references/rest-endpoint-policy.md`      | Shared; counterpart differs and must be replaced exactly                          |
+| [`risk-based-validation-policy.md`](../../.agents/skills/blockout-best-practices/references/risk-based-validation-policy.md)   | Risk-based validation             | Validation plan, skip, or fallback                               | No current counterpart                    | Shared and adoptable unchanged; repository commands remain in the router          |
+
+The 15 same-named counterparts above currently fail exact comparison. Their Maaatch-specific paths, commands, versions,
+providers, migration choices, frontend values, and Project coordinates must move to Maaatch-owned router or overlays
+before Maaatch replaces each applicable reference with the complete Blockout file.
+
+### Maaatch-Only Adjacent Boundaries
+
+| Maaatch reference                      | Classification                    | Blockout decision                                             |
+| -------------------------------------- | --------------------------------- | ------------------------------------------------------------- |
+| `references/frontend-web-policy.md`    | Technology-specific Maaatch route | Do not add or route while Blockout has no web frontend        |
+| `references/liquibase.md`              | Technology-specific Maaatch route | Keep Flyway as Blockout's routed migration policy             |
+| `references/rest-pagination-policy.md` | Maaatch-owned contract boundary   | Do not impose a repository-wide pagination policy on Blockout |
+
+### Exact Adoption Procedure
+
+1. Create a separately owned Maaatch task; this handoff authorizes no Maaatch mutation.
+2. Move Maaatch identity, paths, packages, commands, versions, providers, ports, branches, design identifiers, domain
+   values, and technology selection into its router or overlays.
+3. Replace each applicable focused reference as one complete file from the Blockout export source.
+4. Prove byte-for-byte equality with exact file comparison and walk the Maaatch router for every adopted boundary.
+5. Keep non-applicable technology policies available as targets without routing them.
 
 ## Representative Walkthroughs
 

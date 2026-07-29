@@ -13,9 +13,13 @@ and follow links only when the selected source requires them.
 - `AGENTS.md` owns repository-wide constraints and routing context.
 - This router owns source selection, the repository map, and common validation commands.
 - `overlays/**` owns Blockout coordinates, taxonomy, architecture, commands, versions, and provider values.
-- `references/**` owns portable decisions and must contain no Blockout, Maaatch, machine, or repository-specific value.
+- `references/**` owns portable decisions and must contain no repository identity, coordinate, command, version,
+  provider selection, port, branch, design identifier, or domain value.
 - `docs/runbooks/tasks/**` sequences operations without owning their policy.
 - Apply `karpathy-guidelines` whenever writing, reviewing, or refactoring code.
+
+A technology-specific reference may name the technology whose reusable policy it owns. The router and overlays decide
+whether that technology applies and supply every repository-specific value.
 
 ## Source Router
 
@@ -24,11 +28,11 @@ and follow links only when the selected source requires them.
 | Product behavior, V1 scope, source authority, or implementation gate          | `references/baseline-v1-policy.md`, `overlays/repository-profile.md`, then the applicable current source                        |
 | Java package structure, Spring service, Maven module, or application boundary | `references/backend-java-policy.md` and `overlays/repository-profile.md`                                                        |
 | Javadoc, source comments, or a handwritten public/local contract              | `references/code-documentation-policy.md`                                                                                       |
-| Mapping between transport, application, domain, provider, and persistence     | `references/mapping-policy.md`                                                                                                  |
-| Backend Java tests                                                            | `references/java-testing-policy.md`                                                                                             |
-| JPA entity, repository, relationship, query, or PostgreSQL mapping            | `references/jpa-persistence-policy.md`                                                                                          |
-| Flyway migration or database schema evolution                                 | `references/flyway.md`, then `references/jpa-persistence-policy.md` when entity alignment is relevant                           |
-| Request, response, controller, mapping, error, collection, or HTTP boundary   | `references/rest-endpoint-policy.md`                                                                                            |
+| Mapping between transport, application, domain, provider, and persistence     | `references/mapping-policy.md` and `overlays/repository-profile.md`                                                             |
+| Backend Java tests                                                            | `references/java-testing-policy.md` and `overlays/repository-profile.md`                                                        |
+| JPA entity, repository, relationship, query, or persistence mapping           | `references/jpa-persistence-policy.md` and `overlays/repository-profile.md`                                                     |
+| Flyway migration or database schema evolution                                 | `references/flyway.md`, `overlays/repository-profile.md`, then the JPA policy when entity alignment is relevant                 |
+| Request, response, controller, mapping, error, collection, or HTTP boundary   | `references/rest-endpoint-policy.md` and `overlays/repository-profile.md`                                                       |
 | OpenAPI contract, DTO, endpoint, generated client/server, or transport enum   | `references/contract-first.md`, `overlays/repository-profile.md`, then the REST policy when relevant                            |
 | Java, Python, or mobile logging                                               | `references/logging-policy.md` and `overlays/repository-profile.md`                                                             |
 | Python scraper code, model, dependency, or fixture                            | both scraper references and `overlays/repository-profile.md`                                                                    |
@@ -39,10 +43,10 @@ and follow links only when the selected source requires them.
 | Docker Compose, `.env.example`, local services, or runtime smoke              | `references/local-runtime-policy.md` and `overlays/local-runtime-profile.md`                                                    |
 | Nx projects, targets, tags, graph, or cache                                   | the `nx-workspace-patterns` skill                                                                                               |
 | Business model ownership or delivered runtime posture                         | `references/baseline-v1-policy.md`, `docs/current/blockout-product-runtime-context.md`, and owning sources                      |
-| Roadmap discovery, acquisition, claim, resume, scope, or draft publication    | `references/github-roadmap-operations.md` and the applicable task runbook                                                       |
-| Drain compatible Ready issues                                                 | `references/github-roadmap-operations.md` and `docs/runbooks/tasks/ready-drain.md`                                              |
-| Pull-request review, review evidence, or review-state transition              | `references/github-roadmap-lifecycle.md` and `references/git-workflow.md`                                                       |
-| Release, integration, or drain an approved PR snapshot                        | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`                      |
+| Roadmap discovery, acquisition, claim, resume, scope, or draft publication    | `references/github-roadmap-operations.md`, `overlays/github-roadmap-profile.md`, and the applicable task runbook                |
+| Drain compatible Ready issues                                                 | Roadmap operations, `overlays/github-roadmap-profile.md`, and `docs/runbooks/tasks/ready-drain.md`                              |
+| Pull-request review, review evidence, or review-state transition              | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `overlays/git-profile.md`                           |
+| Release, integration, or drain an approved PR snapshot                        | Lifecycle, Git workflow, Git and runtime profiles, and `docs/runbooks/tasks/merge.md`                                           |
 | Validation plan, risk classification, skipped check, or fallback              | `references/risk-based-validation-policy.md`, then every focused policy selected for the changed boundaries                     |
 | Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                                        |
 | Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md` and `overlays/github-roadmap-profile.md`                                              |

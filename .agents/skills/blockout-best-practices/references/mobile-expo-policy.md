@@ -216,4 +216,4 @@ These rules follow the current React Native guidance for
 [`StyleSheet`](https://reactnative.dev/docs/stylesheet),
 [`useWindowDimensions`](https://reactnative.dev/docs/usewindowdimensions), and
 [accessibility](https://reactnative.dev/docs/accessibility), together with Expo's
-[`react-native-safe-area-context`](https://docs.expo.dev/versions/v55.0.0/sdk/safe-area-context/) guidance.
+[`react-native-safe-area-context`](https://docs.expo.dev/versions/latest/sdk/safe-area-context/) guidance.

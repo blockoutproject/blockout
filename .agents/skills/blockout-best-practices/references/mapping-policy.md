@@ -22,7 +22,7 @@ owns the exact shared concept; application-only and provider-owned enums remain 
 - Application mutation input: `Command` or a more precise role suffix.
 - Application read projection: `View`.
 - Immutable historical state: `Snapshot`.
-- Provider input: explicit owner and role, such as `ProviderClubRecord`.
+- Provider input: explicit owner and role, such as `ProviderResourceRecord`.
 - Neutral polymorphic carrier: `Payload`.
 - Value object: business name without a layer suffix.
 - Mobile presentation shape: feature-owned role name; do not append `Dto` to local view state.
@@ -34,18 +34,18 @@ coexist, make the role explicit.
 ## Ownership And Placement
 
 - Put a mapper at the boundary it translates, never in a generic feature-level mapping bag.
-- Java OpenAPI mappings live in the owning feature's `api/mappers` package.
+- Java OpenAPI mappings live in the owning feature's API mapping location selected by the repository profile.
 - Java generated clients map inside their owning infrastructure adapter package.
-- Simple entity-to-view mapping lives beside `application/views`; repository-backed assembly and enrichment live in
-  `application/projection` as a projector or projection service.
-- Persistence-only conversion lives under `infrastructure/persistence/mappers`.
+- Simple entity-to-view mapping lives beside application views; repository-backed assembly and enrichment live in the
+  configured application projection location as a projector or projection service.
+- Persistence-only conversion lives in the configured persistence mapping location.
 - Python generated/internal transport mapping remains under the internal adapter location declared by the repository
   profile; provider parsing and normalization remain under the provider adapter. Application and domain packages never
   import generated clients.
 - Mobile gateway DTO mapping remains in the owning feature API/client boundary. Feature view and form models remain in
   the feature; move a mapping to `shared` only when multiple active features genuinely share the same boundary.
-- Avoid `application/mappers` unless one mapper truly spans several application contract families and no tighter role
-  package is clearer.
+- Avoid a generic application-level mapping bag unless one mapper truly spans several application contract families
+  and no tighter role package is clearer.
 - Use one mapper per coherent family. Do not create static utility bags, universal converters, reflection mappers, or
   recursive case-conversion helpers.
 
@@ -108,4 +108,4 @@ polymorphic/error behavior. Do not add tests that only scan source text or prove
 - Run the owning scraper suite and architecture guards for Python mapping changes.
 - Run mobile tests and typecheck for mobile mapping changes.
 - Inspect for transport leakage, entity exposure, generic mapper bags, and generated files tracked by Git.
-- Run `git diff --check`.
+- Run the repository diff-hygiene check.

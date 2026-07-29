@@ -67,4 +67,5 @@ Use this standard shape when the tags add real contract information:
 - Inspect all handwritten files in the declared workset, including tests.
 - Confirm generated sources were excluded.
 - Run the impacted formatter, typecheck, compile, or tests only when source changed.
-- For documentation-only work, run targeted inspection, formatting where applicable, and `git diff --check`.
+- For documentation-only work, run targeted inspection, formatting where applicable, and the repository diff-hygiene
+  check.

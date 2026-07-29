@@ -14,8 +14,14 @@ policy layer.
       reconciliation, and Epic rollup through one unbroken owner path.
 - [ ] Search portable references for repository names, paths, branches, commands, versions, providers, ports, design
       files, and taxonomy values.
-- [ ] Compare counterpart references in any read-only structural repository and report exact adoption gaps without
-      mutating or copying its business code.
+- [ ] Inventory every focused reference and record one compatibility-matrix row with its boundary, repository route,
+      counterpart or adoption target, and portability classification.
+- [ ] Compare counterpart references in any read-only structural repository. A boundary adopted by both repositories
+      requires word-for-word and byte-for-byte equality; record every mismatch as an adoption gap rather than merging a
+      partial copy or creating a repository-specific fork.
+- [ ] Keep repository-only technologies in their owning route. A portable technology policy may remain available as an
+      exact adoption target without forcing another repository to route it.
+- [ ] Perform every structural-repository comparison read-only and never mutate or copy its business code.
 - [ ] Confirm the audit adds no workflow, bot, policy engine, fixture framework, scheduled job, manifest, or hidden
       claim state.
 - [ ] Validate changed links and terminology, run repository formatting, and finish with `git diff --check`.

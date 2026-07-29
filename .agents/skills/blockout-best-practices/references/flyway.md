@@ -1,6 +1,6 @@
 # Repository Flyway Policy
 
-Read this before adding or changing a Flyway migration or evolving a PostgreSQL schema.
+Read this before adding or changing a Flyway migration or evolving a relational schema.
 
 ## Migration Authority
 
@@ -30,9 +30,9 @@ Read this before adding or changing a Flyway migration or evolving a PostgreSQL 
 
 ## Verification
 
-- Start or test the owning application against PostgreSQL with the full migration chain.
+- Start or test the owning application against the supported database with the full migration chain.
 - Verify entity/schema alignment and any affected repository behavior.
 - Test meaningful constraints, backfills, defaults, and rollback or recovery assumptions.
 - Do not parse SQL files in unit tests as a schema oracle.
-- Run the owning Maven module, the backend reactor when the shared parent or schema boundary changes, and
-  `git diff --check`.
+- Run the owning module, the complete backend build when the shared parent or schema boundary changes, and the
+  repository diff-hygiene check.
