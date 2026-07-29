@@ -1,14 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
 import { useAppTheme } from "@/src/shared/theme";
-import { useScraperStatuses } from "@/src/modules/administration/hooks/use-scraper-status";
 import { useAppStatus } from "@/src/modules/app-status/hooks/use-app-status";
-import { useApis } from "@/src/shared/providers/api-provider";
-import { ScraperStatusResponse } from "@/src/shared/generated/models";
+import { useMaintenanceControl } from "@/src/modules/administration/hooks/use-maintenance-control";
+import { useAppVersionControl } from "@/src/modules/administration/hooks/use-app-version-control";
+import { useScraperControls } from "@/src/modules/administration/hooks/use-scraper-controls";
 
 import MaintenanceControlCard from "./maintenance-control-card";
 import ScraperControlCard from "./scraper-control-card";
@@ -18,13 +17,13 @@ import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 const AdminScreen: React.FC = () => {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { mobile } = useApis();
-
-  const {
-    data: scrapers,
-    isLoading: scrapersLoading,
-    refetch: refetchScrapers,
-  } = useScraperStatuses();
+  const [apiError, setApiError] = useState<string | null>(null);
+  const showApiError = useCallback((message: string) => {
+    setApiError(message);
+  }, []);
+  const clearApiError = useCallback(() => {
+    setApiError(null);
+  }, []);
 
   const {
     data: appStatus,
@@ -32,197 +31,23 @@ const AdminScreen: React.FC = () => {
     refetch: refetchStatus,
   } = useAppStatus();
 
-  const [maintenanceEnabled, setMaintenanceEnabled] = useState<boolean>(false);
-  const [maintenanceMessage, setMaintenanceMessage] = useState<string>("");
-  const [maintenanceImageUrl, setMaintenanceImageUrl] = useState<string>("");
-  const [savingMaintenance, setSavingMaintenance] = useState(false);
-
-  const [minVersionIos, setMinVersionIos] = useState<string>("");
-  const [minVersionAndroid, setMinVersionAndroid] = useState<string>("");
-  const [forceUpdateMessage, setForceUpdateMessage] = useState<string>("");
-  const [storeUrlIos, setStoreUrlIos] = useState<string>("");
-  const [storeUrlAndroid, setStoreUrlAndroid] = useState<string>("");
-  const [savingVersions, setSavingVersions] = useState(false);
-
-  const [apiError, setApiError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!appStatus) return;
-
-    setMaintenanceEnabled(appStatus.maintenance);
-    setMaintenanceMessage(appStatus.message ?? "");
-    setMaintenanceImageUrl(appStatus.imageUrl ?? "");
-
-    setMinVersionIos(appStatus.minVersionIos ?? "");
-    setMinVersionAndroid(appStatus.minVersionAndroid ?? "");
-    setForceUpdateMessage(appStatus.forceUpdateMessage ?? "");
-    setStoreUrlIos(appStatus.storeUrlIos ?? "");
-    setStoreUrlAndroid(appStatus.storeUrlAndroid ?? "");
-  }, [appStatus]);
-
-  const sortedScrapers: ScraperStatusResponse[] = useMemo(() => {
-    if (!scrapers) return [];
-    return [...scrapers].sort((a, b) => a.name.localeCompare(b.name));
-  }, [scrapers]);
-
-  const toggleScraper = useCallback(
-    async (scraper: ScraperStatusResponse) => {
-      try {
-        setApiError(null);
-        await Haptics.selectionAsync();
-        await mobile.administration.updateScraperStatus(
-          scraper.name,
-          !scraper.enabled,
-        );
-        await refetchScrapers();
-      } catch {
-        setApiError("Mise à jour du scraper impossible, réessaie.");
-        await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Error,
-        ).catch(() => {});
-      }
-    },
-    [mobile, refetchScrapers],
-  );
-
-  const initialMessage = appStatus?.message ?? "";
-  const initialImageUrl = appStatus?.imageUrl ?? "";
-
-  const isMaintenanceDirty =
-    maintenanceMessage !== initialMessage ||
-    maintenanceImageUrl !== initialImageUrl;
-
-  const handleSaveMaintenance = useCallback(async () => {
-    if (savingMaintenance) return;
-
-    const trimmedMessage = maintenanceMessage.trim();
-    const trimmedImageUrl = maintenanceImageUrl.trim();
-
-    if (!trimmedMessage) return;
-
-    try {
-      setApiError(null);
-      setSavingMaintenance(true);
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      await mobile.appStatus.updateAppStatus({
-        maintenance: true,
-        message: trimmedMessage,
-        imageUrl: trimmedImageUrl.length ? trimmedImageUrl : null,
-      });
-
-      await refetchStatus();
-
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      setApiError("Mise à jour de la maintenance impossible, réessaie.");
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Error,
-      ).catch(() => {});
-    } finally {
-      setSavingMaintenance(false);
-    }
-  }, [
-    savingMaintenance,
-    maintenanceMessage,
-    maintenanceImageUrl,
-    mobile,
+  const maintenance = useMaintenanceControl({
+    appStatus,
     refetchStatus,
-  ]);
-
-  const handleDisableMaintenance = useCallback(async () => {
-    if (savingMaintenance) return;
-
-    try {
-      setApiError(null);
-      setSavingMaintenance(true);
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      await mobile.appStatus.updateAppStatus({
-        maintenance: false,
-        message: undefined,
-        imageUrl: undefined,
-      });
-
-      await refetchStatus();
-
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success,
-      ).catch(() => {});
-    } catch {
-      setApiError("Désactivation de la maintenance impossible, réessaie.");
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Error,
-      ).catch(() => {});
-    } finally {
-      setSavingMaintenance(false);
-    }
-  }, [mobile, refetchStatus, savingMaintenance]);
-
-  const initialMinVersionIos = appStatus?.minVersionIos ?? "";
-  const initialMinVersionAndroid = appStatus?.minVersionAndroid ?? "";
-  const initialForceUpdateMessage = appStatus?.forceUpdateMessage ?? "";
-  const initialStoreUrlIos = appStatus?.storeUrlIos ?? "";
-  const initialStoreUrlAndroid = appStatus?.storeUrlAndroid ?? "";
-
-  const isVersionDirty =
-    minVersionIos !== initialMinVersionIos ||
-    minVersionAndroid !== initialMinVersionAndroid ||
-    forceUpdateMessage !== initialForceUpdateMessage ||
-    storeUrlIos !== initialStoreUrlIos ||
-    storeUrlAndroid !== initialStoreUrlAndroid;
-
-  const handleSaveVersions = useCallback(async () => {
-    if (savingVersions) return;
-
-    const trimmedIos = minVersionIos.trim();
-    const trimmedAndroid = minVersionAndroid.trim();
-    const trimmedMsg = forceUpdateMessage.trim();
-    const trimmedStoreIos = storeUrlIos.trim();
-    const trimmedStoreAndroid = storeUrlAndroid.trim();
-
-    try {
-      setApiError(null);
-      setSavingVersions(true);
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      await mobile.appStatus.updateAppStatus({
-        minVersionIos: trimmedIos.length ? trimmedIos : null,
-        minVersionAndroid: trimmedAndroid.length ? trimmedAndroid : null,
-        forceUpdateMessage: trimmedMsg.length ? trimmedMsg : null,
-        storeUrlIos: trimmedStoreIos.length ? trimmedStoreIos : null,
-        storeUrlAndroid: trimmedStoreAndroid.length
-          ? trimmedStoreAndroid
-          : null,
-      });
-
-      await refetchStatus();
-
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success,
-      ).catch(() => {});
-    } catch {
-      setApiError("Mise à jour des versions minimales impossible, réessaie.");
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Error,
-      ).catch(() => {});
-    } finally {
-      setSavingVersions(false);
-    }
-  }, [
-    savingVersions,
-    minVersionIos,
-    minVersionAndroid,
-    forceUpdateMessage,
-    storeUrlIos,
-    storeUrlAndroid,
-    mobile,
+    onStart: clearApiError,
+    onError: showApiError,
+  });
+  const versions = useAppVersionControl({
+    appStatus,
     refetchStatus,
-  ]);
+    onStart: clearApiError,
+    onError: showApiError,
+  });
+  const scrapers = useScraperControls(clearApiError, showApiError);
 
-  const globalLoading = scrapersLoading || statusLoading;
+  const globalLoading = scrapers.isLoading || statusLoading;
 
-  if (globalLoading && !appStatus && !scrapers) {
+  if (globalLoading && !appStatus && !scrapers.hasData) {
     return (
       <>
         <View
@@ -261,43 +86,43 @@ const AdminScreen: React.FC = () => {
         </View>
 
         <MaintenanceControlCard
-          maintenanceEnabled={maintenanceEnabled}
-          maintenanceMessage={maintenanceMessage}
-          maintenanceImageUrl={maintenanceImageUrl}
+          maintenanceEnabled={maintenance.enabled}
+          maintenanceMessage={maintenance.message}
+          maintenanceImageUrl={maintenance.imageUrl}
           lastUpdate={appStatus?.lastUpdate || undefined}
           loading={globalLoading}
-          isDirty={isMaintenanceDirty}
-          saving={savingMaintenance}
-          onChangeMessage={setMaintenanceMessage}
-          onChangeImageUrl={setMaintenanceImageUrl}
-          onSave={handleSaveMaintenance}
-          onDisable={handleDisableMaintenance}
+          isDirty={maintenance.isDirty}
+          saving={maintenance.saving}
+          onChangeMessage={maintenance.setMessage}
+          onChangeImageUrl={maintenance.setImageUrl}
+          onSave={maintenance.save}
+          onDisable={maintenance.disable}
         />
 
         <AppVersionControlCard
-          minVersionIos={minVersionIos}
-          minVersionAndroid={minVersionAndroid}
-          forceUpdateMessage={forceUpdateMessage}
-          storeUrlIos={storeUrlIos}
-          storeUrlAndroid={storeUrlAndroid}
+          minVersionIos={versions.minVersionIos}
+          minVersionAndroid={versions.minVersionAndroid}
+          forceUpdateMessage={versions.forceUpdateMessage}
+          storeUrlIos={versions.storeUrlIos}
+          storeUrlAndroid={versions.storeUrlAndroid}
           lastUpdate={appStatus?.lastUpdate || undefined}
           loading={statusLoading}
-          saving={savingVersions}
-          isDirty={isVersionDirty}
-          onChangeMinVersionIos={setMinVersionIos}
-          onChangeMinVersionAndroid={setMinVersionAndroid}
-          onChangeForceUpdateMessage={setForceUpdateMessage}
-          onChangeStoreUrlIos={setStoreUrlIos}
-          onChangeStoreUrlAndroid={setStoreUrlAndroid}
-          onSave={handleSaveVersions}
+          saving={versions.saving}
+          isDirty={versions.isDirty}
+          onChangeMinVersionIos={versions.setMinVersionIos}
+          onChangeMinVersionAndroid={versions.setMinVersionAndroid}
+          onChangeForceUpdateMessage={versions.setForceUpdateMessage}
+          onChangeStoreUrlIos={versions.setStoreUrlIos}
+          onChangeStoreUrlAndroid={versions.setStoreUrlAndroid}
+          onSave={versions.save}
         />
 
         <ScraperControlCard
-          scrapers={sortedScrapers}
-          loading={scrapersLoading}
-          refreshing={!!scrapersLoading && !!scrapers}
-          onToggleScraper={toggleScraper}
-          onRefresh={refetchScrapers}
+          scrapers={scrapers.scrapers}
+          loading={scrapers.isLoading}
+          refreshing={scrapers.isLoading ? scrapers.hasData : false}
+          onToggleScraper={scrapers.toggle}
+          onRefresh={scrapers.refetch}
         />
       </BottomSheetScrollView>
 

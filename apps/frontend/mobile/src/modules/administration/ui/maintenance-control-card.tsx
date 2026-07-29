@@ -6,6 +6,7 @@ import { useAppTheme } from "@/src/shared/theme";
 import { FormField } from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/sheet-text-input";
 import { Action } from "@/src/shared/ui/action";
+import AdministrationControlCard from "./administration-control-card";
 
 type Props = {
   maintenanceEnabled: boolean;
@@ -104,14 +105,9 @@ const MaintenanceControlCard: React.FC<Props> = ({
   };
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.surface,
-          borderColor: maintenanceEnabled ? theme.warning : theme.border,
-        },
-      ]}
+    <AdministrationControlCard
+      accentColor={maintenanceEnabled ? theme.warning : theme.border}
+      testID="administration-maintenance-card"
     >
       <View style={styles.headerBlock}>
         <View style={styles.titleRow}>
@@ -255,20 +251,13 @@ const MaintenanceControlCard: React.FC<Props> = ({
           </View>
         )}
       </View>
-    </View>
+    </AdministrationControlCard>
   );
 };
 
 export default MaintenanceControlCard;
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-    borderWidth: 1.5,
-    gap: 12,
-  },
   headerBlock: {
     gap: 8,
   },

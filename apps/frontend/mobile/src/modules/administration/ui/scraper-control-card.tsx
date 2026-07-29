@@ -12,6 +12,7 @@ import { iconSize, useAppTheme } from "@/src/shared/theme";
 import { ScraperStatusResponse } from "@/src/shared/generated/models";
 import { IconAction } from "@/src/shared/ui/icon-action";
 import ScraperStatusItem from "./scraper-status-item";
+import AdministrationControlCard from "./administration-control-card";
 
 type Props = {
   scrapers: ScraperStatusResponse[];
@@ -31,17 +32,8 @@ const ScraperControlCard: React.FC<Props> = ({
   const theme = useAppTheme();
 
   const hasScrapers = scrapers && scrapers.length > 0;
-
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.surface,
-          borderColor: theme.border,
-        },
-      ]}
-    >
+    <AdministrationControlCard testID="administration-scraper-card">
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <Text style={[styles.title, { color: theme.text }]}>
@@ -106,18 +98,11 @@ const ScraperControlCard: React.FC<Props> = ({
           </Text>
         ) : null}
       </View>
-    </View>
+    </AdministrationControlCard>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-    borderWidth: 1.5,
-    gap: 12,
-  },
   headerRow: {
     flexDirection: "row",
     alignItems: "flex-start",

@@ -2,92 +2,34 @@ import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { layout, useAppTheme, withAlpha } from "@/src/shared/theme";
+import { layout, useAppTheme } from "@/src/shared/theme";
 import {
   useSessionActions,
   useSessionState,
 } from "@/src/modules/session/providers/session-context";
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
 import { ReportTypeEnum } from "@/src/shared/generated/models";
-import BottomSheetCustomPage from "@/src/shared/ui/bottom-sheet/bottom-sheet-custom-page";
-import LegalDocumentScreen from "@/src/modules/legal/ui/legal-document-screen";
 import ProfileHero from "@/src/modules/user/ui/profile-hero";
 import ProfileHeader from "@/src/modules/user/ui/profile-header";
 import ProfileFormSheet from "@/src/modules/user/ui/profile-form-sheet";
+import ProfileLegalSection from "@/src/modules/user/ui/profile-legal-section";
+import ProfileLegalSheets from "@/src/modules/user/ui/profile-legal-sheets";
+import ProfileAccountSection from "@/src/modules/user/ui/profile-account-section";
+import ProfileVersion from "@/src/modules/user/ui/profile-version";
 import ReportFormSheet from "@/src/modules/report/ui/report-form-sheet";
-
 import { useApis } from "@/src/shared/providers/api-provider";
 import GuestUpsellCard from "@/src/modules/session/ui/guest-upsell-card";
 import { useOnboardingStore } from "@/src/modules/onboarding/model/onboarding-store";
-import { CURRENT_APP_VERSION } from "@/src/modules/app-status/model/app-version";
-import { Action } from "@/src/shared/ui/action";
 
-type LegalItemRowProps = {
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-  label: string;
-  onPress: () => void;
-  testID: string;
-};
-
-const LegalItemRow: React.FC<LegalItemRowProps> = ({
-  icon,
-  label,
-  onPress,
-  testID,
-}) => {
-  const theme = useAppTheme();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      android_ripple={{ color: withAlpha(theme.text, 0.06) }}
-      style={({ pressed }) => [
-        styles.itemRow,
-        {
-          backgroundColor: pressed
-            ? withAlpha(theme.surface, 0.9)
-            : theme.surface,
-          borderColor: withAlpha(theme.text, 0.1),
-        },
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      testID={testID}
-    >
-      <View style={styles.itemLeft}>
-        <MaterialCommunityIcons
-          name={icon}
-          size={18}
-          color={withAlpha(theme.text, 0.8)}
-        />
-        <Text
-          style={[styles.itemText, { color: theme.text }]}
-          numberOfLines={1}
-        >
-          {label}
-        </Text>
-      </View>
-      <Ionicons
-        name="chevron-forward-outline"
-        size={20}
-        color={withAlpha(theme.text, 0.5)}
-      />
-    </Pressable>
-  );
-};
-
-const ProfileScreen: React.FC = () => {
+const ProfileScreen = () => {
   const { mobile } = useApis();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -126,7 +68,7 @@ const ProfileScreen: React.FC = () => {
     setIsLoggingOut(false);
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = () => {
     Alert.alert(
       "Supprimer mon compte",
       "Cette action est irréversible. Toutes vos données de compte seront supprimées. Confirmez-vous la suppression ?",
@@ -161,108 +103,38 @@ const ProfileScreen: React.FC = () => {
     );
   };
 
-  if (isGuest) {
-    return (
-      <View style={styles.container} testID="profile-screen">
-        <ProfileHeader
-          title="Profil"
-          onOpenReport={() => reportSheetRef.current?.present()}
-        />
+  const legalSection = (
+    <ProfileLegalSection
+      onOpenImprint={openLocal(imprintRef)}
+      onOpenTerms={openLocal(termsRef)}
+      onOpenPrivacy={openLocal(privacyRef)}
+    />
+  );
 
+  const scrollContentStyle = [
+    styles.scrollContent,
+    {
+      backgroundColor: theme.background,
+      paddingBottom:
+        insets.bottom + layout.bottomNavigation + layout.sectionSeparator + 4,
+    },
+  ];
+
+  const renderContent = () => {
+    if (isGuest) {
+      return (
         <ScrollView
           showsVerticalScrollIndicator={false}
           testID="profile-scroll"
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              backgroundColor: theme.background,
-              paddingBottom:
-                insets.bottom +
-                layout.bottomNavigation +
-                layout.sectionSeparator +
-                4,
-            },
-          ]}
+          contentContainerStyle={scrollContentStyle}
         >
           <GuestUpsellCard />
-
-          <View style={styles.section}>
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: withAlpha(theme.text, 0.7) },
-              ]}
-            >
-              Légal
-            </Text>
-            <View style={styles.cardList}>
-              <LegalItemRow
-                icon="file-document-outline"
-                label="Mentions légales"
-                onPress={openLocal(imprintRef)}
-                testID="profile-imprint-action"
-              />
-              <LegalItemRow
-                icon="script-text-outline"
-                label="Conditions d'utilisation"
-                onPress={openLocal(termsRef)}
-                testID="profile-terms-action"
-              />
-              <LegalItemRow
-                icon="shield-lock-outline"
-                label="Politique de confidentialité"
-                onPress={openLocal(privacyRef)}
-                testID="profile-privacy-action"
-              />
-            </View>
-          </View>
-
-          <View style={styles.version}>
-            <Text style={[styles.versionText, { color: theme.textInactive }]}>
-              Version {CURRENT_APP_VERSION}
-            </Text>
-          </View>
+          {legalSection}
+          <ProfileVersion />
         </ScrollView>
+      );
+    }
 
-        <BottomSheetCustomPage ref={imprintRef}>
-          <LegalDocumentScreen
-            type="imprint"
-            title="Mentions Légales"
-            onCloseSheet={dismissLocal(imprintRef)}
-          />
-        </BottomSheetCustomPage>
-        <BottomSheetCustomPage ref={termsRef}>
-          <LegalDocumentScreen
-            type="terms"
-            title="Conditions Générales d'Utilisation"
-            onCloseSheet={dismissLocal(termsRef)}
-          />
-        </BottomSheetCustomPage>
-        <BottomSheetCustomPage ref={privacyRef}>
-          <LegalDocumentScreen
-            type="privacy"
-            title="Politique de Confidentialité"
-            onCloseSheet={dismissLocal(privacyRef)}
-          />
-        </BottomSheetCustomPage>
-
-        <ReportFormSheet
-          ref={reportSheetRef}
-          context={{
-            screen: "Profile",
-            defaultType: ReportTypeEnum.DISPLAY_BUG,
-          }}
-          onSuccess={() => {
-            reportSheetRef.current?.dismiss();
-          }}
-          snapPoint="90%"
-          footerLabel="Envoyer"
-        />
-      </View>
-    );
-  }
-
-  const renderBody = () => {
     if (!customUser) {
       return (
         <View
@@ -275,150 +147,24 @@ const ProfileScreen: React.FC = () => {
     }
 
     return (
-      <>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              backgroundColor: theme.background,
-              paddingBottom:
-                insets.bottom +
-                layout.bottomNavigation +
-                layout.sectionSeparator +
-                4,
-            },
-          ]}
-          testID="profile-scroll"
-        >
-          <ProfileHero
-            user={customUser}
-            onEdit={canEdit ? openForm : undefined}
-          />
-
-          <View style={styles.section}>
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: withAlpha(theme.text, 0.7) },
-              ]}
-            >
-              Légal
-            </Text>
-            <View style={styles.cardList}>
-              <LegalItemRow
-                icon="file-document-outline"
-                label="Mentions légales"
-                onPress={openLocal(imprintRef)}
-                testID="profile-imprint-action"
-              />
-              <LegalItemRow
-                icon="script-text-outline"
-                label="Conditions d'utilisation"
-                onPress={openLocal(termsRef)}
-                testID="profile-terms-action"
-              />
-              <LegalItemRow
-                icon="shield-lock-outline"
-                label="Politique de confidentialité"
-                onPress={openLocal(privacyRef)}
-                testID="profile-privacy-action"
-              />
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: withAlpha(theme.text, 0.7) },
-              ]}
-            >
-              Compte
-            </Text>
-
-            <View style={styles.actions}>
-              <Action
-                label="Se déconnecter"
-                loadingLabel="Déconnexion…"
-                variant="destructive"
-                onPress={handleLogout}
-                disabled={busy}
-                loading={isLoggingOut}
-                fullWidth
-                style={styles.profileAction}
-                accessibilityLabel="Se déconnecter"
-                testID="profile-sign-out-action"
-              />
-
-              <Action
-                label="Supprimer mon compte"
-                loadingLabel="Suppression…"
-                variant="destructiveOutline"
-                onPress={handleDeleteAccount}
-                disabled={busy}
-                loading={isDeleting}
-                fullWidth
-                style={styles.profileAction}
-                accessibilityLabel="Supprimer mon compte"
-                testID="profile-delete-account-action"
-              />
-
-              <View style={styles.version}>
-                <Text
-                  style={[styles.versionText, { color: theme.textInactive }]}
-                >
-                  Version {CURRENT_APP_VERSION}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-
-        <BottomSheetCustomPage ref={imprintRef}>
-          <LegalDocumentScreen
-            type="imprint"
-            title="Mentions Légales"
-            onCloseSheet={dismissLocal(imprintRef)}
-          />
-        </BottomSheetCustomPage>
-        <BottomSheetCustomPage ref={termsRef}>
-          <LegalDocumentScreen
-            type="terms"
-            title="Conditions Générales d'Utilisation"
-            onCloseSheet={dismissLocal(termsRef)}
-          />
-        </BottomSheetCustomPage>
-        <BottomSheetCustomPage ref={privacyRef}>
-          <LegalDocumentScreen
-            type="privacy"
-            title="Politique de Confidentialité"
-            onCloseSheet={dismissLocal(privacyRef)}
-          />
-        </BottomSheetCustomPage>
-
-        <ProfileFormSheet
-          ref={formSheetRef}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={scrollContentStyle}
+        testID="profile-scroll"
+      >
+        <ProfileHero
           user={customUser}
-          onSuccess={() => {
-            refetch();
-            formSheetRef.current?.dismiss();
-          }}
+          onEdit={canEdit ? openForm : undefined}
         />
-
-        <ReportFormSheet
-          ref={reportSheetRef}
-          context={{
-            screen: "Profile",
-            defaultType: ReportTypeEnum.DISPLAY_BUG,
-          }}
-          onSuccess={() => {
-            reportSheetRef.current?.dismiss();
-          }}
-          snapPoint="90%"
-          footerLabel="Envoyer"
+        {legalSection}
+        <ProfileAccountSection
+          busy={busy}
+          isLoggingOut={isLoggingOut}
+          isDeleting={isDeleting}
+          onLogout={handleLogout}
+          onDeleteAccount={handleDeleteAccount}
         />
-      </>
+      </ScrollView>
     );
   };
 
@@ -428,7 +174,40 @@ const ProfileScreen: React.FC = () => {
         title="Profil"
         onOpenReport={() => reportSheetRef.current?.present()}
       />
-      {renderBody()}
+      {renderContent()}
+
+      <ProfileLegalSheets
+        imprintRef={imprintRef}
+        termsRef={termsRef}
+        privacyRef={privacyRef}
+        onCloseImprint={dismissLocal(imprintRef)}
+        onCloseTerms={dismissLocal(termsRef)}
+        onClosePrivacy={dismissLocal(privacyRef)}
+      />
+
+      {!isGuest && customUser ? (
+        <ProfileFormSheet
+          ref={formSheetRef}
+          user={customUser}
+          onSuccess={() => {
+            refetch();
+            formSheetRef.current?.dismiss();
+          }}
+        />
+      ) : null}
+
+      <ReportFormSheet
+        ref={reportSheetRef}
+        context={{
+          screen: "Profile",
+          defaultType: ReportTypeEnum.DISPLAY_BUG,
+        }}
+        onSuccess={() => {
+          reportSheetRef.current?.dismiss();
+        }}
+        snapPoint="90%"
+        footerLabel="Envoyer"
+      />
     </View>
   );
 };
@@ -439,32 +218,4 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   scrollContent: { paddingHorizontal: 8, gap: 20 },
-  section: { gap: 12 },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-    textTransform: "uppercase",
-  },
-  cardList: { gap: 10 },
-  itemRow: {
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  itemLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-    minWidth: 0,
-  },
-  itemText: { fontSize: 14, fontWeight: "700", flex: 1 },
-  actions: { gap: 12, marginTop: 4 },
-  profileAction: { height: 46 },
-  version: { alignItems: "flex-start", marginTop: 2 },
-  versionText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.2 },
 });
