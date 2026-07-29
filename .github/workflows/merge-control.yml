@@ -15,21 +15,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Verify repository merge settings
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api repos/blockoutproject/blockout \
-            | jq -e '
-                .visibility == "public"
-                and .default_branch == "develop"
-                and .allow_merge_commit
-                and (.allow_squash_merge | not)
-                and (.allow_rebase_merge | not)
-                and (.allow_auto_merge | not)
-                and .delete_branch_on_merge
-              '
-
       - name: Verify develop ruleset
         env:
           GH_TOKEN: ${{ github.token }}
@@ -61,7 +46,8 @@ jobs:
                   | $pull_request.required_approving_review_count == 0
                   and ($pull_request.require_code_owner_review | not)
                   and ($pull_request.require_last_push_approval | not)
-                  and $pull_request.required_review_thread_resolution)
+                  and $pull_request.required_review_thread_resolution
+                  and ($pull_request.allowed_merge_methods == ["merge"]))
                 and ((rule("required_status_checks").parameters) as $checks
                   | $checks.strict_required_status_checks_policy
                   and ($checks.do_not_enforce_on_create | not)

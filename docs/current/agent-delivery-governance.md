@@ -44,14 +44,17 @@ change leaves the pull request blocked until the branch is refreshed and every r
 
 ## Pull-Request Verification
 
-The `merge-control` job keeps the Blockout-specific assertions directly in its workflow. It reads the live repository
+The `merge-control` job keeps the Blockout-specific assertions directly in its workflow. It reads the live ruleset
 through the GitHub API and fails when:
 
-- repository visibility or merge settings drift;
 - the named ruleset is missing, duplicated, disabled, or retargeted;
 - a bypass actor is introduced;
 - a required rule or status check is missing; or
-- review, conversation-resolution, or freshness parameters change.
+- merge method, review, conversation-resolution, or freshness parameters change.
+
+GitHub does not expose the repository-level merge settings or automatic branch-deletion setting to the default
+read-only workflow token. They are verified with an administrative read during initial activation, recovery, and
+release rather than by adding a privileged long-lived secret to pull-request CI.
 
 The workflow intentionally runs on pull requests to `develop` and through manual dispatch. Continuous or scheduled
 governance monitoring remains owned by issue #71. Reusable configuration, schemas, and policy tooling remain owned by
