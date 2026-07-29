@@ -1,19 +1,12 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import React, { useCallback } from "react";
 import { useSearchTeams } from "@/src/modules/search/hooks/use-search-teams";
 import TeamCard from "@/src/modules/search/ui/team-card";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import SearchResults from "@/src/modules/search/ui/search-results";
-import type { SelectOption } from "@/src/shared/ui/form/select-sheet";
-import DivisionSelect from "@/src/modules/search/ui/division-select";
-import FormatSelect from "@/src/modules/search/ui/format-select";
-import GenderSelect from "@/src/modules/search/ui/gender-select";
-import SeasonSelect from "@/src/shared/ui/form/season-select";
-import { useDivisions } from "@/src/modules/division/hooks/use-divisions";
-import { FormatEnum } from "@/src/shared/view-models/format-labels";
-import { GenderEnum } from "@/src/shared/view-models/gender-labels";
 import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useCompetitionSearchFilters } from "@/src/modules/search/hooks/use-competition-search-filters";
+import CompetitionSearchFilterStrip from "@/src/modules/search/ui/competition-search-filters";
 
 export type SearchTeamScreenProps = {
   search: string;
@@ -21,45 +14,20 @@ export type SearchTeamScreenProps = {
   setSearch: (text: string) => void;
 };
 
-const SEASONS: string[] = ["2026/2027", "2025/2026", "2024/2025"];
-
 const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
   search,
   debouncedQuery,
   setSearch,
 }) => {
-  const { data: divisions } = useDivisions();
   const { handleNavigationWithAd } = useNavigationInterstitial();
-
-  const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
-  const [selectedDivisionId, setSelectedDivisionId] = useState<number | null>(
-    null,
-  );
-  const [selectedFormat, setSelectedFormat] = useState<FormatEnum | null>(null);
-  const [selectedGender, setSelectedGender] = useState<GenderEnum | null>(null);
-
-  const seasonOptions: SelectOption<string>[] = useMemo(
-    () => SEASONS.map((s) => ({ value: s, label: s })),
-    [],
-  );
-
-  const divisionOptions: SelectOption<number>[] = useMemo(
-    () =>
-      (divisions ?? [])
-        .filter((d) => d.active)
-        .map((d) => ({
-          value: d.id,
-          label: d.name,
-        })),
-    [divisions],
-  );
+  const filters = useCompetitionSearchFilters();
 
   const { data, isLoading, isError, refetch } = useSearchTeams(
     debouncedQuery,
-    selectedSeason ?? undefined,
-    selectedDivisionId ?? undefined,
-    selectedFormat ?? undefined,
-    selectedGender ?? undefined,
+    filters.selectedSeason ?? undefined,
+    filters.selectedDivisionId ?? undefined,
+    filters.selectedFormat ?? undefined,
+    filters.selectedGender ?? undefined,
   );
 
   const router = useRouter();
@@ -90,35 +58,10 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
         <TeamCard team={item} onPress={() => handleTeamPress(item.id)} />
       )}
       filters={
-        <ScrollView
-          horizontal
-          contentContainerStyle={styles.filters}
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <SeasonSelect
-            options={seasonOptions}
-            selectedValue={selectedSeason}
-            onValueChange={setSelectedSeason}
-            testID="search-team-season-button"
-          />
-          <DivisionSelect
-            options={divisionOptions}
-            selectedValue={selectedDivisionId}
-            onValueChange={setSelectedDivisionId}
-            testID="search-team-division-button"
-          />
-          <FormatSelect
-            selectedValue={selectedFormat}
-            onValueChange={setSelectedFormat}
-            testID="search-team-format-button"
-          />
-          <GenderSelect
-            selectedValue={selectedGender}
-            onValueChange={setSelectedGender}
-            testID="search-team-gender-button"
-          />
-        </ScrollView>
+        <CompetitionSearchFilterStrip
+          filters={filters}
+          testIDPrefix="search-team"
+        />
       }
       testID="search-team-results"
       inputTestID="search-team-input"
@@ -128,7 +71,3 @@ const SearchTeamScreen: React.FC<SearchTeamScreenProps> = ({
 };
 
 export default SearchTeamScreen;
-
-const styles = StyleSheet.create({
-  filters: { marginTop: 6, gap: 8, paddingRight: 8 },
-});
