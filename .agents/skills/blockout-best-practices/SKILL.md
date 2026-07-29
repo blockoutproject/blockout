@@ -43,6 +43,7 @@ and follow links only when the selected source requires them.
 | Drain compatible Ready issues                                                 | `references/github-roadmap-operations.md` and `docs/runbooks/tasks/ready-drain.md`                                              |
 | Pull-request review, review evidence, or review-state transition              | `references/github-roadmap-lifecycle.md` and `references/git-workflow.md`                                                       |
 | Release, integration, or drain an approved PR snapshot                        | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `docs/runbooks/tasks/merge.md`                      |
+| Validation plan, risk classification, skipped check, or fallback              | `references/risk-based-validation-policy.md`, then every focused policy selected for the changed boundaries                     |
 | Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                                        |
 | Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md` and `overlays/github-roadmap-profile.md`                                              |
 | Track, issue identifier, label, or Workset area taxonomy                      | `references/github-taxonomy.md` and `overlays/github-taxonomy.md`                                                               |
@@ -74,6 +75,9 @@ gate before changing product behavior. Load only the two Vercel companion skills
 - Local runtime: `infra/compose/docker-compose.third-party.yml` and `infra/compose/docker-compose.app.yml`.
 
 ## Common Verification
+
+Use `references/risk-based-validation-policy.md` to select from these repository commands. This is a command inventory,
+not a mandatory blanket suite; focused policies and the release profile may require a broader set.
 
 ```bash
 npm run format
