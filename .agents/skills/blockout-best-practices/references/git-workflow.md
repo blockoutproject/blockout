@@ -46,6 +46,42 @@ For local-only work without an explicit commit request, do not commit.
 - Set a native issue type on every Roadmap issue; never replace it with a label or title convention.
 - Read-only inspection creates no issue, branch, commit, push, or PR.
 
+## Private GitHub Free Baseline
+
+Portable repository guidance assumes a private organization repository on GitHub Free. Revalidate the
+[current GitHub plan capabilities](https://docs.github.com/en/get-started/learning-about-github/githubs-plans) before
+proposing a setting change; public-repository enforcement or a temporary paid feature is not portability evidence.
+
+| Posture     | Repository capability or setting                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Decision                                                                                                                                                            |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Required    | Standard repository roles                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Grant `Write` only to contributors who need to push task branches, `Maintain` only to workflow operators, and `Admin` only to access, setting, and recovery owners. |
+| Required    | Default branch and merge methods                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Use `develop` and allow merge commits only. Disable squash, rebase, auto-merge, automatic head deletion, and web-based branch updates.                              |
+| Optional    | Web commit signoff and private forking                                                                                                                                                                                                                                                                                                                                                                                                                                           | Enable only for a separately accepted signoff or contributor-access need; neither replaces claim, review, validation, or release gates.                             |
+| Unavailable | [Protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches) and [rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets)                                                                                                                                                                                                        | Do not claim that direct pushes, force pushes, deletion, pull requests, reviews, or checks are enforced by GitHub.                                                  |
+| Unavailable | Required reviewers, [CODEOWNERS](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners), [auto-merge](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/automatically-merging-a-pull-request), and [merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue) | Reviews and checks remain useful evidence, but GitHub cannot enforce the repository's acceptance and integration gates.                                             |
+| Deferred    | Paid branch protection, rulesets, required reviews or checks, code ownership, and merge queue                                                                                                                                                                                                                                                                                                                                                                                    | Reconsider only after a plan upgrade or a demonstrated workflow need; availability alone does not activate a setting.                                               |
+
+`Write` permission includes direct push and merge authority. Because GitHub Free cannot separate that authority for a
+private repository, every contributor follows these compensating controls:
+
+1. Roadmap claims and Worksets own task assignment and write conflicts. GitHub roles, local branches, and draft pull
+   requests do not reserve scope.
+2. Each contributor uses one claimed issue branch and publishes a draft pull request with exact-head validation
+   evidence. Overlapping Worksets stop before either contributor writes.
+3. Review follows the independent-review or documented solo fallback in
+   [`github-roadmap-lifecycle.md`](github-roadmap-lifecycle.md). A green check, approval, or merge button is evidence,
+   never release authorization.
+4. Integration uses the explicit Merge train. A stale head is rebased onto current `origin/develop` and fully
+   revalidated; nobody pushes or merges directly to `develop`, enables auto-merge, or substitutes a different merge
+   method.
+5. On an accidental direct push, merge, force push, branch deletion, or ambiguous setting change, stop further
+   publication, snapshot the remote state, and recover through a reviewed issue and pull request. Never rewrite
+   `develop`; revert harmful integrated changes with a new merge commit.
+
+Repository settings remain manual external state. Before any mutation, capture the current values, name one intended
+change and its rollback, obtain separate current-user approval, apply only that change, and reread the postcondition.
+On failure or ambiguity, restore the captured value when uniquely safe; otherwise stop for owner-led recovery.
+
 ## Idempotent Start
 
 Before a Git or GitHub mutation:

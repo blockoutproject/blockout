@@ -89,6 +89,13 @@ Draft PR creation authorizes review, never release. A current-user Merge task in
 snapshot of structurally valid non-draft PRs defined by the Merge Train Runbook; making a PR non-draft alone does not
 start or expand a train. Before each merge:
 
+For the private GitHub Free baseline, reviews and checks are evidence rather than enforceable repository rules. Require
+an approval on the current head from an independent contributor when one is available. New commits invalidate that
+approval. When no independent contributor is available, the current user may authorize the exact head as a documented
+solo fallback only after the author has self-reviewed the complete diff and every applicable validation passes. The
+fallback must state that independent review was unavailable and never waives a failed check, unresolved review
+request, stale head, Workset violation, or any other release guard.
+
 1. Require explicit current-user merge authorization.
 2. Reread the latest PR base, head, diff, linked issue, claim, workset, criteria, reviews, and checks.
 3. Require a ready PR whose diff remains in scope and whose applicable validations pass.
