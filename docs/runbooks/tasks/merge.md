@@ -49,6 +49,21 @@ For every snapshot candidate:
 An unchecked box alone is not evidence that work is incomplete. Normalization never authorizes invented evidence,
 scope expansion, a weakened release guard, or a check waiver.
 
+## Review Evidence Snapshot
+
+For each unchanged candidate head, read lifecycle's concise review evidence from ordinary issue and PR content. Verify
+that it names the full current SHA and records Workset, changed paths, validations, skips, review source, findings,
+scope drift, and any separate release decision.
+
+Classify clean, stale-head, failed-check, skipped-check, scope-drift, and unresolved-finding cases through lifecycle's
+review-evidence table. Self-confidence and absence of comments are never review. A stale record is unusable even when
+its effective diff looks unchanged.
+
+If evidence is missing but can be established from the exact current head, append one concise Markdown comment after
+self-review and validation. Never introduce or require an attestation schema, generated artifact, bot, workflow, or
+privileged integration. Exclude secrets, personal data, provider payloads, absolute machine paths, local usernames,
+and machine-specific process details.
+
 ## Candidate Refresh
 
 Process the ordered snapshot sequentially against fresh remote state:
@@ -98,7 +113,7 @@ or agent judgment do not redefine that profile.
 Immediately before each merge:
 
 1. reread the pull request, head, base, current remote integration head, diff, checks, release evidence, linked issue,
-   criteria, claim, Workset, reviews, and native relationships;
+   criteria, claim, Workset, changed paths, reviews, skips, unresolved findings, and native relationships;
 2. require the candidate branch to contain the exact current remote integration head;
 3. if the integration head changed after validation, invalidate the candidate evidence and restart refresh, checks,
    and release proof; stop after the repository-defined retry bound;
@@ -110,6 +125,9 @@ Immediately before each merge:
 7. run dependency-unlock reconciliation, validate newly unblocked issues before `Ready`, recalculate affected Epics,
    and require lifecycle's stable postconditions; and
 8. recompute every unprocessed candidate against the new integration head before continuing.
+
+Require the current-user release authorization independently of implementation, validation, review, or evidence
+normalization. A ready PR and green checks never supply that authorization.
 
 Never merge two candidates as one commit, update a branch outside the startup snapshot, delete a moved ref, enable
 auto-merge, infer a waiver, or roll back an earlier successful merge because a later candidate failed.
