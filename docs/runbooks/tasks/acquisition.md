@@ -18,6 +18,22 @@ operation; it does not return an unreserved proposal.
 Read the complete Project index, relevant candidate and active issues, Worksets, native dependencies, linked PRs,
 scope-specific policy/source evidence, and every additional authority selected during discovery.
 
+## Accepted Intake Handoff
+
+When the current user explicitly approves creation from a discovery proposal:
+
+1. Rerun the proposal's duplicate and delivered-work challenge immediately before mutation.
+2. Apply operations' `Creation` phase and verify one unassigned `Triage` issue in the Project.
+3. Apply only accepted body, label, native type, Track, Priority, and Execution Mode values.
+4. Validate the resulting contract and apply `Acceptance`: keep incomplete work in `Triage`, retained work in
+   `Backlog`, or blocked work in `Blocked`.
+5. Apply `Ready promotion` only when the complete Ready contract passes, then verify the issue remains unassigned.
+6. Treat any later claim as a separate acquisition: take a fresh compact snapshot and run the canonical claim
+   protocol. Even a request to create and execute must first prove the unassigned intake postcondition.
+
+On duplicate, delivered work, ambiguous approval, or partial mutation, stop creation or reconcile only the uniquely
+missing visible postcondition. Never create a replacement silently or use assignment as intake state.
+
 ## Select Without Announcing
 
 1. Perform discovery's complete calculation.

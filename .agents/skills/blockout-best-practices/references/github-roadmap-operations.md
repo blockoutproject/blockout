@@ -87,6 +87,36 @@ Before `Ready`, every non-Epic must have:
 
 Do not claim an issue that fails any requirement.
 
+## Roadmap Intake
+
+Intake has five explicit phases. Never collapse them into one mutation or treat a prompt, local note, or hidden state as
+an accepted task.
+
+| Phase           | Mutation boundary                                           | Required visible postcondition                                                                                  |
+| --------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Discovery       | Read-only                                                   | Relevant open and closed issues, merged PRs, Git history, and current sources have been challenged              |
+| Proposal        | Read-only                                                   | One reviewable title, type, fields, criteria, dependencies, Workset, labels, and recommended status are shown   |
+| Creation        | Requires explicit current-user creation approval            | One unassigned issue exists in the Project as `Triage`; a last duplicate and delivered-state check was negative |
+| Acceptance      | Mutates only the accepted issue contract and visible fields | The issue is unassigned in `Triage`, `Backlog`, or `Blocked`, with every deficiency or blocker explicit         |
+| Ready promotion | Requires the complete Ready contract                        | The issue is unassigned `Ready` and can enter the separate acquisition protocol                                 |
+
+The proposal must make every required field and section testable before creation. Use native Issue Type, Track,
+Priority, Execution Mode, `## Acceptance criteria`, `## Dependencies`, and `## Workset`; align every `area:*` label
+with `Workset.Areas`. Use `None.` only where the relevant contract permits it.
+
+Immediately before creation and again before Ready promotion, repeat the equivalent and delivered-work challenge.
+Reuse an existing issue when one owns the outcome. Do not create or promote a duplicate merely because its wording,
+Track, or proposed implementation differs.
+
+Creation never assigns the issue. Acceptance keeps incomplete evidence in `Triage`, retains a valid accepted task in
+`Backlog` when it is not promoted, and uses lifecycle's `Blocked` guard for an open dependency or missing evidence.
+An explicit unresolved product, UX, architecture, ownership, source-gate, or priority decision uses
+`PLAN_REQUIRED`; missing evidence that prevents a well-formed planning contract remains `Blocked`.
+
+Ready promotion rereads the complete issue, native blockers, current sources, equivalents, delivered history, labels,
+and Workset, then applies the Ready contract. A request to create or accept an issue does not imply promotion, claim,
+branch creation, or execution.
+
 ## Workset Contract
 
 Use exactly:
@@ -206,10 +236,10 @@ the task.
 ## Issue And Draft-PR Sequencing
 
 - Search open and closed equivalents before issue creation.
-- Use the Git workflow for issue mechanics and lifecycle for type, acceptance, transition, rejection, and terminal
-  guards.
-- Correct body and areas before fields; apply lifecycle's `Ready` transition only after the complete Ready contract
-  passes.
+- Use the intake phases above for issue state, the Git workflow for mechanics, and lifecycle for transitions,
+  rejection, and terminal guards.
+- Correct the body and areas before fields; preserve the unassigned visible intake postcondition before any separate
+  acquisition.
 - Batch independent field mutations after one fresh schema read and batch labels in one REST update.
 - After implementation, follow the execution runbook and Git workflow through one draft PR.
 - Apply two to four PR labels as a separate operation, then verify labels and structural issue link.
