@@ -8,6 +8,10 @@
       "test": {
         "executor": "nx:run-commands",
         "cache": false,
+        "inputs": [
+          "contractSources",
+          "{projectRoot}/specs/scripts/bundle-openapi.test.mjs"
+        ],
         "options": {
           "command": "node --test libs/shared/contracts/specs/scripts/bundle-openapi.test.mjs"
         }
@@ -16,8 +20,7 @@
         "executor": "nx:run-commands",
         "cache": true,
         "inputs": [
-          "{projectRoot}/specs/source/**/*.json",
-          "{projectRoot}/specs/scripts/bundle-openapi.mjs"
+          "contractSources"
         ],
         "outputs": [
           "{projectRoot}/generated/specs/*.json"
@@ -30,9 +33,7 @@
         "executor": "nx:run-commands",
         "cache": false,
         "inputs": [
-          "{projectRoot}/specs/source/shared/schemas/**/*.json",
-          "{projectRoot}/specs/scripts/sync-backend-schema-mappings.mjs",
-          "{workspaceRoot}/apps/backend/pom.xml"
+          "backendSchemaMappings"
         ],
         "outputs": [
           "{workspaceRoot}/apps/backend/pom.xml"
@@ -43,10 +44,7 @@
       },
       "generate-contracts": {
         "executor": "nx:noop",
-        "outputs": [
-          "{projectRoot}/generated/specs/*.json",
-          "{workspaceRoot}/apps/backend/pom.xml"
-        ],
+        "cache": false,
         "dependsOn": [
           {
             "target": "generate-openapi-bundles"
