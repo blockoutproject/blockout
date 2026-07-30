@@ -46,7 +46,7 @@ whether that technology applies and supply every repository-specific value.
 | Roadmap discovery, acquisition, claim, resume, scope, or draft publication    | `references/github-roadmap-operations.md`, `overlays/github-roadmap-profile.md`, and the applicable task runbook                |
 | Drain compatible Ready issues                                                 | Roadmap operations, `overlays/github-roadmap-profile.md`, and `docs/runbooks/tasks/ready-drain.md`                              |
 | Pull-request review, review evidence, or review-state transition              | `references/github-roadmap-lifecycle.md`, `references/git-workflow.md`, and `overlays/git-profile.md`                           |
-| Release, integration, or drain an approved PR snapshot                        | Lifecycle, Git workflow, Git and runtime profiles, and `docs/runbooks/tasks/merge.md`                                           |
+| Release, integration, or drain an approved PR snapshot                        | Lifecycle, Git workflow, risk-based validation, Git and runtime profiles, and `docs/runbooks/tasks/merge.md`                    |
 | Validation plan, risk classification, skipped check, or fallback              | `references/risk-based-validation-policy.md`, then every focused policy selected for the changed boundaries                     |
 | Issue type, execution mode, lifecycle, release, dependency, or Epic decision  | `references/github-roadmap-lifecycle.md`                                                                                        |
 | Project fields, options, tracks, views, workflows, or migration               | `references/github-roadmap-governance.md` and `overlays/github-roadmap-profile.md`                                              |

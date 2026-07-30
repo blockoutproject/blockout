@@ -103,10 +103,17 @@ Never reuse checks, waivers, annotations, reviews, or release evidence from the 
 
 ## Repository Release Proof
 
-Execute the complete release validation profile selected by the repository router against the exact rebased candidate
-tree. Preserve user-owned processes, bind all evidence to the candidate head, record the required inventory and
-cleanup, and stop fail-closed on any missing prerequisite or failed proof. Changed paths, Workset, risk classification,
-or agent judgment do not redefine that profile.
+Classify the complete diff against the risk-based validation policy on the exact rebased candidate tree.
+
+- For a documentation-only candidate, execute the policy's documentation release proof. Record the qualifying paths,
+  exclusions checked, validation results, guidance walk-through when applicable, hosting checks, review evidence, and
+  intentional runtime-profile skip. Do not inspect, stop, restart, or require local runtime components.
+- For every other candidate, execute the complete runtime release profile selected by the repository router. Preserve
+  user-owned processes, bind all evidence to the candidate head, record the required inventory and cleanup, and stop
+  fail-closed on any missing prerequisite or failed proof.
+
+An ambiguous or mixed diff always takes the second path. Workset, labels, titles, and agent judgment never substitute
+for complete-diff classification.
 
 ## Merge And Reconciliation
 
