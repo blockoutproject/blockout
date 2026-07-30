@@ -17,8 +17,8 @@
     <description>Blockout clubs-service</description>
 
     <properties>
-        <java.version>21</java.version>
-        <lombok.version>1.18.38</lombok.version>
+        <java.version>25</java.version>
+        <lombok.version>1.18.42</lombok.version>
     </properties>
 
     <dependencies>
