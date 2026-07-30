@@ -34,9 +34,10 @@ Confirm health before application smokes, use non-production data and credential
 write path. Verify effective runtime configuration, application startup, expected port, health endpoint,
 representative local flow, and the repository diff-hygiene check.
 
-For ordinary task smokes, start only the required dependencies. The Merge train is the release exception and uses the
-complete profile below for every candidate. Never reduce it based on changed paths, Workset, risk classification, or
-agent judgment.
+For ordinary task smokes, start only the required dependencies. During the Merge train, apply the documentation-only
+release classification from the risk-based validation policy before touching local runtime. A qualifying candidate
+uses that policy's documentation release proof and does not execute the runtime profile below. Every other candidate
+uses the complete profile without reduction based on changed paths, Workset, or agent judgment.
 
 ### Merge Release Profile
 
@@ -61,6 +62,9 @@ agent judgment.
 
 Healthy infrastructure may be reused for the next candidate only after reverification. Restart every repository
 application from the next candidate tree so evidence always binds to the head being merged.
+
+For a classified documentation-only candidate, existing local processes and missing runtime prerequisites are
+irrelevant because no runtime evidence is requested. Do not inspect, stop, restart, or reuse them for release proof.
 
 ## Visual Session Lifecycle
 

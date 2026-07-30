@@ -16,4 +16,10 @@ This overlay supplies the exact runtime and release-smoke topology to the portab
 - `pools-service` application port: `8081`
 
 The complete release smoke uses both Compose definitions, the full application topology, the authenticated flow, and
-head-bound cleanup evidence. It must never be reduced from changed paths or risk classification.
+head-bound cleanup evidence.
+
+A candidate that passes the portable documentation-only release classification does not use this runtime smoke.
+Its Blockout release proof is the applicable documentation validation, guidance-consistency walk-through, GitHub
+checks, review evidence, exact-head binding, and explicit human release authorization. Any code, test, contract,
+generated, dependency, configuration, executable, automated-workflow, binary, ambiguous, or mixed diff uses the
+complete runtime smoke above.
