@@ -6,9 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Verifies that notification-service starts against an ephemeral PostgreSQL database. */
 @SpringBootTest(
@@ -21,7 +21,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class NotificationsApplicationSmokeTest {
 
   @Container @ServiceConnection
-  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
+  static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
 
   @MockitoBean Auth0ServiceTokenProvider auth0ServiceTokenProvider;
 
