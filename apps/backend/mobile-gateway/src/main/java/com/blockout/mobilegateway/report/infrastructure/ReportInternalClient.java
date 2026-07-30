@@ -5,7 +5,7 @@ import com.blockout.mobilegateway.report.application.commands.CreateReportComman
 import com.blockout.mobilegateway.report.application.views.ReportView;
 import com.blockout.mobilegateway.report.infrastructure.contract.models.ReportInternalResponse;
 import com.blockout.mobilegateway.shared.infrastructure.http.InternalApiClient;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -16,64 +16,67 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
+import tools.jackson.databind.ObjectMapper;
 
-import java.util.List;
-
-/**
- * Calls the Report internal API through generated transport models.
- */
+/** Calls the Report internal API through generated transport models. */
 @Service
 @RequiredArgsConstructor
 public class ReportInternalClient {
 
-    private final ApiClientProperties apiClientProperties;
-    private final InternalApiClient internalApiClient;
-    private final ObjectMapper objectMapper;
-    private final ReportContractMapper contractMapper;
+  private final ApiClientProperties apiClientProperties;
+  private final InternalApiClient internalApiClient;
+  private final ObjectMapper objectMapper;
+  private final ReportContractMapper contractMapper;
 
-    private String baseUrl() {
-        return apiClientProperties.getReport().getUrl();
+  private String baseUrl() {
+    return apiClientProperties.getReport().getUrl();
+  }
+
+  public ReportView createReport(CreateReportCommand command, List<MultipartFile> images) {
+    String url = baseUrl();
+
+    final String jsonString;
+    try {
+      jsonString = objectMapper.writeValueAsString(contractMapper.toInternalRequest(command));
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to serialize CreateReportRequest", e);
     }
 
-    public ReportView createReport(CreateReportCommand command, List<MultipartFile> images) {
-        String url = baseUrl();
+    HttpHeaders jsonHeaders = new HttpHeaders();
+    jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity<String> dataPart = new HttpEntity<>(jsonString, jsonHeaders);
 
-        final String jsonString;
+    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+    body.add("data", dataPart);
+
+    if (images != null && !images.isEmpty()) {
+      for (MultipartFile image : images) {
         try {
-            jsonString = objectMapper.writeValueAsString(contractMapper.toInternalRequest(command));
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize CreateReportRequest", e);
-        }
-
-        HttpHeaders jsonHeaders = new HttpHeaders();
-        jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> dataPart = new HttpEntity<>(jsonString, jsonHeaders);
-
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("data", dataPart);
-
-        if (images != null && !images.isEmpty()) {
-            for (MultipartFile image : images) {
-                try {
-                    ByteArrayResource resource = new ByteArrayResource(image.getBytes()) {
-                        @Override
-                        public String getFilename() {
-                            return image.getOriginalFilename() != null ? image.getOriginalFilename() : "image";
-                        }
-                    };
-                    HttpHeaders imgHeaders = new HttpHeaders();
-                    imgHeaders.setContentType(MediaType.parseMediaType(
-                        image.getContentType() != null ? image.getContentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE));
-                    HttpEntity<ByteArrayResource> imagePart = new HttpEntity<>(resource, imgHeaders);
-                    body.add("images", imagePart);
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to read image payload", e);
+          ByteArrayResource resource =
+              new ByteArrayResource(image.getBytes()) {
+                @Override
+                public String getFilename() {
+                  return image.getOriginalFilename() != null
+                      ? image.getOriginalFilename()
+                      : "image";
                 }
-            }
+              };
+          HttpHeaders imgHeaders = new HttpHeaders();
+          imgHeaders.setContentType(
+              MediaType.parseMediaType(
+                  image.getContentType() != null
+                      ? image.getContentType()
+                      : MediaType.APPLICATION_OCTET_STREAM_VALUE));
+          HttpEntity<ByteArrayResource> imagePart = new HttpEntity<>(resource, imgHeaders);
+          body.add("images", imagePart);
+        } catch (Exception e) {
+          throw new RuntimeException("Failed to read image payload", e);
         }
-
-        ResponseEntity<ReportInternalResponse> response =
-            internalApiClient.postMultipart(url, body, ReportInternalResponse.class);
-        return contractMapper.toResponse(response.getBody());
+      }
     }
+
+    ResponseEntity<ReportInternalResponse> response =
+        internalApiClient.postMultipart(url, body, ReportInternalResponse.class);
+    return contractMapper.toResponse(response.getBody());
+  }
 }

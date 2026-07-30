@@ -2,10 +2,6 @@ server:
   port: 8091
 
 spring:
-  http:
-    converters:
-      preferred-json-mapper: jackson2
-
   application:
     name: ${APPLICATION_NAME:reports}
 

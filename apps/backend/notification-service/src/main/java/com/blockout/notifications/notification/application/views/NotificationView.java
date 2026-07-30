@@ -2,13 +2,10 @@ package com.blockout.notifications.notification.application.views;
 
 import com.blockout.notifications.notification.application.models.NotificationTargetType;
 import com.blockout.notifications.notification.application.models.NotificationType;
-import com.fasterxml.jackson.databind.JsonNode;
-
 import java.time.Instant;
+import tools.jackson.databind.JsonNode;
 
-/**
- * Represents one user notification at the application boundary.
- */
+/** Represents one user notification at the application boundary. */
 public record NotificationView(
     Long id,
     Long userId,
@@ -23,5 +20,4 @@ public record NotificationView(
     Boolean isOpened,
     Instant createdAt,
     Instant readAt,
-    Instant openedAt) {
-}
+    Instant openedAt) {}

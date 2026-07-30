@@ -2,13 +2,10 @@ package com.blockout.mobilegateway.notification.application.views;
 
 import com.blockout.mobilegateway.shared.application.models.NotificationTargetType;
 import com.blockout.mobilegateway.shared.application.models.NotificationType;
-import com.fasterxml.jackson.databind.JsonNode;
-
 import java.time.Instant;
+import tools.jackson.databind.JsonNode;
 
-/**
- * Transport-independent notification data used by gateway enrichment.
- */
+/** Transport-independent notification data used by gateway enrichment. */
 public record NotificationItemView(
     Long id,
     Long userId,
@@ -24,5 +21,4 @@ public record NotificationItemView(
     Instant createdAt,
     Instant readAt,
     Instant openedAt,
-    String divisionLogoUrl) {
-}
+    String divisionLogoUrl) {}

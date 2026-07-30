@@ -31,10 +31,6 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-jackson2</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
         <dependency>
@@ -68,7 +64,6 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.6.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -154,13 +149,13 @@
                             </typeMappings>
                             <importMappings>
                                 <importMapping>Instant=java.time.Instant</importMapping>
-                                <importMapping>JsonNode=com.fasterxml.jackson.databind.JsonNode</importMapping>
+                                <importMapping>JsonNode=tools.jackson.databind.JsonNode</importMapping>
                                 <importMapping>DevicePlatformEnum=com.blockout.shared.model.DevicePlatformEnum</importMapping>
                                 <importMapping>NotificationTargetTypeEnum=com.blockout.shared.model.NotificationTargetTypeEnum</importMapping>
                                 <importMapping>NotificationTypeEnum=com.blockout.shared.model.NotificationTypeEnum</importMapping>
                             </importMappings>
                             <schemaMappings>
-                                <schemaMapping>NotificationMetadata=com.fasterxml.jackson.databind.JsonNode</schemaMapping>
+                                <schemaMapping>NotificationMetadata=tools.jackson.databind.JsonNode</schemaMapping>
                                 <schemaMapping>DevicePlatformEnum=com.blockout.shared.model.DevicePlatformEnum</schemaMapping>
                                 <schemaMapping>NotificationTargetTypeEnum=com.blockout.shared.model.NotificationTargetTypeEnum</schemaMapping>
                                 <schemaMapping>NotificationTypeEnum=com.blockout.shared.model.NotificationTypeEnum</schemaMapping>
