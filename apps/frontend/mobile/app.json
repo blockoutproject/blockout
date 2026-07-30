@@ -37,6 +37,7 @@
         {
           "androidAppId": "ca-app-pub-9785209593244084~3742317699",
           "iosAppId": "ca-app-pub-9785209593244084~6544397398",
+          "delayAppMeasurementInit": true,
           "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you.",
           "skAdNetworkItems": [
             "cstr6suwn9.skadnetwork",
@@ -102,14 +103,14 @@
         "expo-build-properties",
         {
           "android": {
-            "enableProguardInReleaseBuild": true,
-            "enableShrinkResourcesInReleaseBuild": true,
-            "dependencies": ["com.google.ads.mediation:facebook:6.21.0.0"]
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           },
           "ios": {
-            "pods": [
+            "extraPods": [
               {
-                "name": "GoogleMobileAdsMediationFacebook"
+                "name": "GoogleMobileAdsMediationFacebook",
+                "version": "6.21.1.0"
               }
             ]
           }

@@ -132,10 +132,15 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({
   }, [refetchAppStatus]);
 
   const signIn = useCallback(async () => {
-    await authorize({
-      audience: AUTH0_CONFIG.audience,
-      scope: "openid profile email offline_access",
-    });
+    await authorize(
+      {
+        audience: AUTH0_CONFIG.audience,
+        scope: "openid profile email offline_access",
+      },
+      {
+        customScheme: AUTH0_CONFIG.customScheme,
+      },
+    );
 
     await primeApisWithAuth();
     await refreshUser();
@@ -173,7 +178,9 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({
     async (opts?: { federated?: boolean }) => {
       try {
         if (useGuestSessionStore.getState().isGuest) return leaveGuest();
-        await clearSession(opts);
+        await clearSession(opts, {
+          customScheme: AUTH0_CONFIG.customScheme,
+        });
         await clearQueryCache();
         setMaintenanceBypass(false);
         setUpdateBypass(false);

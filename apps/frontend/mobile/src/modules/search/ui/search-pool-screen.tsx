@@ -4,7 +4,7 @@ import PoolCard from "@/src/modules/search/ui/pool-card";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import SearchResults from "@/src/modules/search/ui/search-results";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 import { useCompetitionSearchFilters } from "@/src/modules/search/hooks/use-competition-search-filters";
 import CompetitionSearchFilterStrip from "@/src/modules/search/ui/competition-search-filters";
 
@@ -19,7 +19,7 @@ const SearchPoolScreen: React.FC<SearchPoolScreenProps> = ({
   debouncedQuery,
   setSearch,
 }) => {
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
   const filters = useCompetitionSearchFilters();
 
   const { data, isLoading, isError, refetch } = useSearchPools(

@@ -8,6 +8,7 @@ type ProfileLegalSectionProps = {
   onOpenImprint: () => void;
   onOpenTerms: () => void;
   onOpenPrivacy: () => void;
+  onOpenAdvertisingPrivacy?: () => void;
 };
 
 type LegalItemRowProps = {
@@ -17,6 +18,7 @@ type LegalItemRowProps = {
   testID: string;
 };
 
+/** Renders one accessible destination in the profile legal section. */
 const LegalItemRow = ({ icon, label, onPress, testID }: LegalItemRowProps) => {
   const theme = useAppTheme();
 
@@ -59,10 +61,12 @@ const LegalItemRow = ({ icon, label, onPress, testID }: LegalItemRowProps) => {
   );
 };
 
+/** Renders legal documents and the conditional UMP privacy destination. */
 const ProfileLegalSection = ({
   onOpenImprint,
   onOpenTerms,
   onOpenPrivacy,
+  onOpenAdvertisingPrivacy,
 }: ProfileLegalSectionProps) => {
   const theme = useAppTheme();
 
@@ -92,6 +96,14 @@ const ProfileLegalSection = ({
           onPress={onOpenPrivacy}
           testID="profile-privacy-action"
         />
+        {onOpenAdvertisingPrivacy ? (
+          <LegalItemRow
+            icon="shield-check-outline"
+            label="Choix de confidentialité publicitaire"
+            onPress={onOpenAdvertisingPrivacy}
+            testID="profile-advertising-privacy-action"
+          />
+        ) : null}
       </View>
     </View>
   );

@@ -28,6 +28,7 @@ import ReportFormSheet from "@/src/modules/report/ui/report-form-sheet";
 import { useApis } from "@/src/shared/providers/api-provider";
 import GuestUpsellCard from "@/src/modules/session/ui/guest-upsell-card";
 import { useOnboardingStore } from "@/src/modules/onboarding/model/onboarding-store";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 
 const ProfileScreen = () => {
   const { mobile } = useApis();
@@ -37,6 +38,7 @@ const ProfileScreen = () => {
   const { customUser, isGuest } = useSessionState();
   const { allowed: canEdit } = useHasScopes(["update:current_user"]);
   const { resetOnboarding } = useOnboardingStore();
+  const { privacyOptionsRequired, showPrivacyOptions } = useAdvertising();
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -108,6 +110,9 @@ const ProfileScreen = () => {
       onOpenImprint={openLocal(imprintRef)}
       onOpenTerms={openLocal(termsRef)}
       onOpenPrivacy={openLocal(privacyRef)}
+      onOpenAdvertisingPrivacy={
+        privacyOptionsRequired ? showPrivacyOptions : undefined
+      }
     />
   );
 

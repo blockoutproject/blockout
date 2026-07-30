@@ -11,7 +11,7 @@ import RemoteEntityList, {
 
 import TeamCard from "@/src/modules/team/ui/team-list-card";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 
 type Props = {
   teams: TeamSummaryResponse[];
@@ -47,7 +47,7 @@ const ClubTeamList: React.FC<Props> = ({
   scrollY,
 }) => {
   const router = useRouter();
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
 
   const handleTeamPress = useCallback(
     async (teamId: number) => {

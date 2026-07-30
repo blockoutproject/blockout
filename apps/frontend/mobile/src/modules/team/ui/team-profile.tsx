@@ -27,7 +27,7 @@ import GuestPromptSheet, {
   GuestPromptSheetRef,
 } from "@/src/modules/session/ui/guest-prompt-sheet";
 
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 
 export type TeamProfileProps = {
   enrichedTeam: TeamResponse;
@@ -41,7 +41,7 @@ type PillConfig = {
 
 const TeamProfile: React.FC<TeamProfileProps> = ({ enrichedTeam }) => {
   const router = useRouter();
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
   const { isFollowing, isProcessing, followersCount, onToggleFollow } =
     useTeamFollowState(enrichedTeam);
   const { isGuest } = useSessionState();

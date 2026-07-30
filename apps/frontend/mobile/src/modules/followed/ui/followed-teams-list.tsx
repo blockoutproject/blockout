@@ -10,7 +10,7 @@ import { spacing } from "@/src/shared/theme";
 import RemoteEntityList, {
   type RemoteEntityListFeedback,
 } from "@/src/shared/ui/entity/remote-entity-list";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 import type { TeamSummaryResponse } from "@/src/shared/generated/models";
 
 type Props = {
@@ -43,7 +43,7 @@ const FollowedTeamsList: React.FC<Props> = ({
   onSeasonsChange,
 }) => {
   const router = useRouter();
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
 
   const { teams, isLoading, isError, refetch } = useFollowedTeamList(teamIds);
 
