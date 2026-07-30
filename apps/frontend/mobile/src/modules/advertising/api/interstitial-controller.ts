@@ -104,7 +104,10 @@ export class InterstitialController {
       return;
     }
 
-    if (this.pendingAction) return;
+    if (this.pendingAction) {
+      this.runAction(action);
+      return;
+    }
 
     this.actionsSinceLastAd += 1;
     const eligible =

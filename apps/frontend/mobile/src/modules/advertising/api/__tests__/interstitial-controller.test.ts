@@ -116,7 +116,7 @@ describe("interstitial controller", () => {
     expect(actions[9]).toHaveBeenCalledTimes(1);
   });
 
-  it("releases a pending action once after a native show error", async () => {
+  it("fails open a second action while releasing the pending action once", async () => {
     const ad = new FakeInterstitial();
     const setFullscreenUiHidden = jest.fn();
     const { controller } = createController({
@@ -140,7 +140,7 @@ describe("interstitial controller", () => {
     await Promise.resolve();
 
     expect(action).toHaveBeenCalledTimes(1);
-    expect(duplicateAction).not.toHaveBeenCalled();
+    expect(duplicateAction).toHaveBeenCalledTimes(1);
     expect(setFullscreenUiHidden).toHaveBeenLastCalledWith(false);
     expect(controller.getState()).toBe("backoff");
 
