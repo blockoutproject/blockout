@@ -1,31 +1,23 @@
-import React, { useCallback, useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { memo, useCallback } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { useAppTheme } from "@/src/shared/theme";
-import {
-  MatchLiveSummaryResponse,
-  LiveLinkStatusEnum,
-} from "@/src/shared/generated/models";
+import { MatchLiveSummaryResponse } from "@/src/shared/generated/models";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
+import {
+  formatModerationDateTime,
+  getLiveLinkStatusPresentation,
+} from "@/src/modules/match/view-models/live-link-moderation";
 
 type Props = {
   match: MatchLiveSummaryResponse;
-  onPress: () => void;
+  onPress: (match: MatchLiveSummaryResponse) => void;
 };
 
 const CARD_RADIUS = 16;
-
-const formatDateTime = (value?: string | number | null) => {
-  if (!value) return "-";
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return String(value);
-  }
-};
 
 const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
   const theme = useAppTheme();
@@ -33,89 +25,24 @@ const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
   const teamALabel = match.teamA.shortName ?? match.teamA.name;
   const teamBLabel = match.teamB.shortName ?? match.teamB.name;
 
-  const matchDateLabel = useMemo(
-    () => formatDateTime(match.matchDate),
-    [match.matchDate],
+  const matchDateLabel = formatModerationDateTime(match.matchDate);
+  const lastLinkCreatedLabel = match.lastLiveLinkCreatedAt
+    ? formatModerationDateTime(match.lastLiveLinkCreatedAt)
+    : "";
+  const statusConfig = getLiveLinkStatusPresentation(
+    match.lastLiveLinkStatus,
+    theme,
   );
-
-  const lastLinkCreatedLabel = useMemo(
-    () =>
-      match.lastLiveLinkCreatedAt
-        ? formatDateTime(match.lastLiveLinkCreatedAt)
-        : "",
-    [match.lastLiveLinkCreatedAt],
-  );
-
-  const statusConfig = useMemo(() => {
-    const base = {
-      label: "Inconnu",
-      backgroundColor: theme.borderSecondary,
-      color: theme.textInactive,
-      icon: "help-circle-outline" as const,
-    };
-
-    switch (match.lastLiveLinkStatus as LiveLinkStatusEnum | null | undefined) {
-      case "PENDING":
-        return {
-          label: "En attente",
-          backgroundColor: theme.surfaceSecondary ?? theme.surface,
-          color: theme.warning ?? theme.text,
-          icon: "clock-outline" as const,
-        };
-      case "ACTIVE":
-        return {
-          label: "Actif",
-          backgroundColor: theme.surfaceSecondary ?? theme.surface,
-          color: theme.success,
-          icon: "check-circle-outline" as const,
-        };
-      case "REJECTED":
-        return {
-          label: "Rejeté",
-          backgroundColor: theme.surfaceSecondary ?? theme.surface,
-          color: theme.error,
-          icon: "close-circle-outline" as const,
-        };
-      case "DEACTIVATED":
-        return {
-          label: "Désactivé",
-          backgroundColor: theme.surfaceSecondary ?? theme.surface,
-          color: theme.textInactive,
-          icon: "eye-off-outline" as const,
-        };
-      case "BANNED":
-        return {
-          label: "Banni",
-          backgroundColor: theme.surfaceSecondary ?? theme.surface,
-          color: theme.error,
-          icon: "block-helper" as const,
-        };
-      case "EXPIRED":
-        return {
-          label: "Expiré",
-          backgroundColor: theme.borderSecondary,
-          color: theme.text,
-          icon: "timer-off-outline" as const,
-        };
-      default:
-        return base;
-    }
-  }, [match.lastLiveLinkStatus, theme]);
-
-  const gradient = useMemo(
-    () =>
-      [
-        match.pool.division.firstGradientColor,
-        match.pool.division.secondGradientColor,
-        match.pool.division.thirdGradientColor,
-      ] as const,
-    [match.pool.division],
-  );
+  const gradient = [
+    match.pool.division.firstGradientColor,
+    match.pool.division.secondGradientColor,
+    match.pool.division.thirdGradientColor,
+  ] as const;
 
   const handlePress = useCallback(async () => {
     await Haptics.selectionAsync();
-    onPress();
-  }, [onPress]);
+    onPress(match);
+  }, [match, onPress]);
 
   return (
     <View style={styles.wrapper}>
@@ -130,12 +57,14 @@ const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
           },
         ]}
       >
-        <TouchableOpacity
+        <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Ouvrir la modération du match ${teamALabel} contre ${teamBLabel}`}
           onPress={handlePress}
-          activeOpacity={0.9}
-          style={styles.cardContent}
+          style={({ pressed }) => [
+            styles.cardContent,
+            pressed ? styles.pressed : undefined,
+          ]}
           testID={`match-moderation-item-${match.id}`}
         >
           <View style={styles.headerRow}>
@@ -265,13 +194,13 @@ const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
               </View>
             )}
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </GradientBorderView>
     </View>
   );
 };
 
-export default MatchLiveModerationItem;
+export default memo(MatchLiveModerationItem);
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -303,6 +232,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
+  pressed: { opacity: 0.9 },
   headerMeta: {
     flex: 1,
     gap: 2,

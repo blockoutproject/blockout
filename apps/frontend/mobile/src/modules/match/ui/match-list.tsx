@@ -12,14 +12,14 @@ import { useRouter } from "expo-router";
 import { FlashList, ListRenderItemInfo } from "@shopify/flash-list";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  DayMatchesResponse,
-  PoolMatchesResponse,
-  MatchStatusEnum,
-} from "@/src/shared/generated/models";
+import { MatchStatusEnum } from "@/src/shared/generated/models";
 import { layout, useAppTheme } from "@/src/shared/theme";
 import { useMatchList } from "@/src/modules/match/hooks/use-match-list";
-import { formatMatchDateHeader } from "@/src/modules/match/view-models/match-date";
+import {
+  buildMatchListRows,
+  getMatchListRowKey,
+  type MatchListRow,
+} from "@/src/modules/match/view-models/match-list-rows";
 import MatchDateHeader from "./match-date-header";
 import MatchPoolSection from "./match-pool-section";
 import EmptyState from "@/src/shared/ui/feedback/empty-state";
@@ -38,11 +38,9 @@ export type MatchListProps = {
   home?: boolean;
 };
 
-type HeaderRow = { type: "sectionHeader"; title: string; sectionKey: string };
-type PoolRow = { type: "pool"; pool: PoolMatchesResponse; sectionKey: string };
-type Row = HeaderRow | PoolRow;
-
-const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<Row>);
+const AnimatedFlashList = Animated.createAnimatedComponent(
+  FlashList<MatchListRow>,
+);
 
 const MatchList: React.FC<MatchListProps> = ({
   poolIds,
@@ -98,29 +96,7 @@ const MatchList: React.FC<MatchListProps> = ({
     [router, handleNavigationWithAd],
   );
 
-  const flatData = useMemo(() => {
-    const rows: Row[] = [];
-
-    dayMatches.forEach((day: DayMatchesResponse) => {
-      const sectionKey = String(day.date);
-
-      rows.push({
-        type: "sectionHeader",
-        title: formatMatchDateHeader(day.date),
-        sectionKey,
-      });
-
-      day.pools.forEach((pool) => {
-        rows.push({
-          type: "pool",
-          pool,
-          sectionKey,
-        });
-      });
-    });
-
-    return rows;
-  }, [dayMatches]);
+  const flatData = useMemo(() => buildMatchListRows(dayMatches), [dayMatches]);
 
   useEffect(() => {
     scrollY.setValue(0);
@@ -131,21 +107,10 @@ const MatchList: React.FC<MatchListProps> = ({
     refetch();
   }, [scrollY, refetch]);
 
-  const getItemType = useCallback((item: Row) => item.type, []);
-
-  const keyExtractor = useCallback((item: Row) => {
-    switch (item.type) {
-      case "sectionHeader":
-        return `h-${item.sectionKey}`;
-      case "pool":
-        return `p-${item.pool.pool.id}-${item.sectionKey}`;
-      default:
-        return "unknown";
-    }
-  }, []);
+  const getItemType = useCallback((item: MatchListRow) => item.type, []);
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<Row>) => {
+    ({ item }: ListRenderItemInfo<MatchListRow>) => {
       switch (item.type) {
         case "sectionHeader":
           return <MatchDateHeader title={item.title} />;
@@ -188,6 +153,27 @@ const MatchList: React.FC<MatchListProps> = ({
     return footerBase;
   }, [isFetchingNextPage, hasNextPage, insets]);
 
+  const empty = useMemo(
+    () => (
+      <EmptyState
+        title="Aucun match trouvé"
+        onRetry={poolIds?.length || teamIds?.length ? refetch : undefined}
+        retryLabel={
+          poolIds?.length || teamIds?.length ? "Réessayer" : undefined
+        }
+        subtitle={
+          poolIds?.length || teamIds?.length
+            ? "Aucun match trouvé pour les équipes ou poules sélectionnées."
+            : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
+        }
+        paddingTop={home ? "30%" : "10%"}
+        testID="match-list-empty"
+        retryTestID="match-list-empty-retry-action"
+      />
+    ),
+    [home, poolIds?.length, refetch, teamIds?.length],
+  );
+
   let body: React.ReactNode;
 
   if (isLoading) {
@@ -219,7 +205,7 @@ const MatchList: React.FC<MatchListProps> = ({
         data={flatData}
         renderItem={renderItem}
         getItemType={getItemType}
-        keyExtractor={keyExtractor}
+        keyExtractor={getMatchListRowKey}
         onEndReached={handleLoadMore}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={header}
@@ -240,23 +226,7 @@ const MatchList: React.FC<MatchListProps> = ({
             : undefined
         }
         scrollEventThrottle={16}
-        ListEmptyComponent={() => (
-          <EmptyState
-            title="Aucun match trouvé"
-            onRetry={poolIds?.length || teamIds?.length ? refetch : undefined}
-            retryLabel={
-              poolIds?.length || teamIds?.length ? "Réessayer" : undefined
-            }
-            subtitle={
-              poolIds?.length || teamIds?.length
-                ? "Aucun match trouvé pour les équipes ou poules sélectionnées."
-                : "Commence par suivre une équipe ou une poule pour voir les matchs ici !"
-            }
-            paddingTop={home ? "30%" : "10%"}
-            testID="match-list-empty"
-            retryTestID="match-list-empty-retry-action"
-          />
-        )}
+        ListEmptyComponent={empty}
         ListFooterComponent={footer}
         testID="match-list"
       />

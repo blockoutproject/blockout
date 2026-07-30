@@ -27,8 +27,8 @@ describe("RankingRow", () => {
             latitude: null,
           }}
           index={1}
+          highlightColor="#123456"
           theme={darkTheme}
-          highlightTeams={[{ teamId: 7, color: "#123456" }]}
           gradient={["#123456", "#234567"]}
           onPress={onPress}
         />

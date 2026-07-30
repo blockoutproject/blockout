@@ -12,30 +12,14 @@ import { useAppTheme } from "@/src/shared/theme";
 import { useApis } from "@/src/shared/providers/api-provider";
 import FormCard from "@/src/shared/ui/form/form-card";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
-import { ApiError } from "@/src/shared/api/api-error";
 import { ReportMatchLiveLinkRequest } from "@/src/shared/generated/models";
 import { FormField } from "@/src/shared/ui/form/form-field";
 import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
+import { getMatchLiveLinkErrorMessage } from "@/src/modules/match/view-models/match-live-link-errors";
 
 export type MatchLiveLinkReportFormProps = {
   matchId: number;
   onSuccess: () => void;
-};
-
-const getReportErrorMessage = (err: unknown): string => {
-  if (err instanceof ApiError) {
-    if (err.status === 0 || err.status >= 500) {
-      return "Le serveur rencontre un problème, réessaie dans quelques instants.";
-    }
-
-    if (err.message && err.message.trim().length > 0) {
-      return err.message;
-    }
-
-    return "Impossible de signaler ce lien.";
-  }
-
-  return "Action impossible, réessaie.";
 };
 
 type FormValues = {
@@ -80,7 +64,10 @@ const MatchLiveLinkReportForm: React.FC<MatchLiveLinkReportFormProps> = ({
         );
         onSuccess();
       } catch (err) {
-        const msg = getReportErrorMessage(err);
+        const msg = getMatchLiveLinkErrorMessage(
+          err,
+          "Impossible de signaler ce lien.",
+        );
         setApiError(msg);
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } finally {

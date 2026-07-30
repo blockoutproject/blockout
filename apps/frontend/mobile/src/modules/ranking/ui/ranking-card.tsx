@@ -3,10 +3,7 @@ import { StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { borderWidth, radius, spacing, useAppTheme } from "@/src/shared/theme";
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
-import type {
-  PoolResponse,
-  TeamWithStatsResponse,
-} from "@/src/shared/generated/models";
+import type { PoolResponse } from "@/src/shared/generated/models";
 import type { TeamHighlight } from "@/src/modules/ranking/model/team-highlight";
 import RankingRow from "./ranking-row";
 import RankingHeader from "./ranking-header";
@@ -57,19 +54,12 @@ const RankingCard: React.FC<RankingCardProps> = ({ pool, highlightTeams }) => {
     });
   }, [router, handleNavigationWithAd, pool.id]);
 
-  const renderItem = useCallback(
-    (item: TeamWithStatsResponse, index: number) => (
-      <RankingRow
-        key={item.id}
-        item={item}
-        index={index}
-        theme={theme}
-        highlightTeams={highlightTeams}
-        gradient={gradient}
-        onPress={handleTeamPress}
-      />
-    ),
-    [gradient, handleTeamPress, highlightTeams, theme],
+  const highlightColors = useMemo(
+    () =>
+      new Map(
+        highlightTeams?.map(({ teamId, color }) => [teamId, color]) ?? [],
+      ),
+    [highlightTeams],
   );
 
   return (
@@ -82,7 +72,17 @@ const RankingCard: React.FC<RankingCardProps> = ({ pool, highlightTeams }) => {
       <View style={styles.innerClip}>
         <RankingHeader pool={pool} onPress={handleHeaderPress} />
         <View style={styles.listContent} testID={`ranking-list-${pool.id}`}>
-          {pool.ranking.map(renderItem)}
+          {pool.ranking.map((item, index) => (
+            <RankingRow
+              key={item.id}
+              item={item}
+              index={index}
+              highlightColor={highlightColors.get(item.id)}
+              theme={theme}
+              gradient={gradient}
+              onPress={handleTeamPress}
+            />
+          ))}
         </View>
       </View>
     </GradientBorderView>

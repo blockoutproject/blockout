@@ -1,13 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Keyboard,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { FlashList } from "@shopify/flash-list";
+import { Keyboard, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
@@ -20,10 +12,33 @@ import {
 import { useMatchLiveLinksHistory } from "@/src/modules/match/hooks/use-match-live-links-history";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import MatchLiveLinksHistoryItem from "@/src/modules/match/ui/moderation/match-live-links-history-item";
+import RemoteEntityList, {
+  type RemoteEntityListFeedback,
+} from "@/src/shared/ui/entity/remote-entity-list";
+import { sortLiveLinkHistory } from "@/src/modules/match/view-models/live-link-moderation";
 
 type MatchLiveLinksHistoryScreenProps = {
   match: MatchLiveSummaryResponse;
 };
+
+const EMPTY_LINKS: MatchLiveLinkHistoryResponse[] = [];
+const getHistoryLinkKey = (item: MatchLiveLinkHistoryResponse) =>
+  String(item.id);
+
+const HISTORY_LIST_FEEDBACK = {
+  loadingTestID: "match-live-history-loading",
+  error: {
+    subtitle: "Impossible de charger l’historique des liens.",
+    testID: "match-live-history-error",
+    retryTestID: "match-live-history-retry-action",
+  },
+  empty: {
+    title: "Aucun lien trouvé",
+    subtitle: "Aucun lien trouvé pour ce match.",
+    testID: "match-live-history-empty",
+    retryTestID: "match-live-history-empty-retry-action",
+  },
+} satisfies RemoteEntityListFeedback;
 
 const MatchLiveLinksHistoryScreen: React.FC<
   MatchLiveLinksHistoryScreenProps
@@ -33,24 +48,11 @@ const MatchLiveLinksHistoryScreen: React.FC<
   const { mobile } = useApis();
 
   const [apiError, setApiError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data, isLoading, refetch } = useMatchLiveLinksHistory(match.id);
 
-  const links = useMemo<MatchLiveLinkHistoryResponse[]>(
-    () => data ?? [],
-    [data],
-  );
-
-  const sortedLinks = useMemo(
-    () =>
-      links.slice().sort((a, b) => {
-        const dateA = new Date(a.createdAt ?? 0).getTime();
-        const dateB = new Date(b.createdAt ?? 0).getTime();
-        return dateB - dateA;
-      }),
-    [links],
-  );
+  const links = data ?? EMPTY_LINKS;
+  const sortedLinks = useMemo(() => sortLiveLinkHistory(links), [links]);
 
   const teamALabel = match.teamA.shortName ?? match.teamA.name;
   const teamBLabel = match.teamB.shortName ?? match.teamB.name;
@@ -58,10 +60,7 @@ const MatchLiveLinksHistoryScreen: React.FC<
 
   const handleRefresh = useCallback(async () => {
     setApiError(null);
-    setIsRefreshing(true);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await refetch();
-    setIsRefreshing(false);
   }, [refetch]);
 
   const handleAction = useCallback(
@@ -124,16 +123,18 @@ const MatchLiveLinksHistoryScreen: React.FC<
     [mobile, handleAction],
   );
 
-  if (isLoading && !data) {
-    return (
-      <>
-        <View style={[styles.center, { backgroundColor: theme.background }]}>
-          <ActivityIndicator size="large" color={theme.text} />
-        </View>
-        <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
-      </>
-    );
-  }
+  const renderItem = useCallback(
+    ({ item }: { item: MatchLiveLinkHistoryResponse }) => (
+      <MatchLiveLinksHistoryItem
+        link={item}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        onDeleteActive={handleDeleteActive}
+        onReactivate={handleReactivate}
+      />
+    ),
+    [handleApprove, handleDeleteActive, handleReactivate, handleReject],
+  );
 
   return (
     <>
@@ -153,39 +154,24 @@ const MatchLiveLinksHistoryScreen: React.FC<
           </Text>
         </View>
 
-        <FlashList
+        <RemoteEntityList
           data={sortedLinks}
-          keyExtractor={(item) => item.id.toString()}
+          feedback={HISTORY_LIST_FEEDBACK}
+          footerSpacing={16}
+          includeBottomNavigationSpacing={false}
+          isError={false}
+          isLoading={Boolean(isLoading && !data)}
+          keyExtractor={getHistoryLinkKey}
           contentContainerStyle={{
             paddingHorizontal: 8,
-            paddingBottom: insets.bottom + 16,
             paddingTop: 8,
           }}
-          renderItem={({ item }) => (
-            <MatchLiveLinksHistoryItem
-              link={item}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onDeleteActive={handleDeleteActive}
-              onReactivate={handleReactivate}
-            />
-          )}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={theme.text}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyState} testID="match-live-history-empty">
-              <Text style={{ color: theme.textInactive }}>
-                Aucun lien trouvé pour ce match.
-              </Text>
-            </View>
-          }
+          onRefresh={handleRefresh}
+          refreshHapticStyle={Haptics.ImpactFeedbackStyle.Light}
+          renderItem={renderItem}
           onScrollBeginDrag={Keyboard.dismiss}
-          showsVerticalScrollIndicator={false}
+          scrollWhenEmpty
+          showEmptyRetry={false}
           testID="match-live-history-list"
         />
       </View>
@@ -218,14 +204,5 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     fontWeight: "500",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emptyState: {
-    alignItems: "center",
-    marginTop: 40,
   },
 });

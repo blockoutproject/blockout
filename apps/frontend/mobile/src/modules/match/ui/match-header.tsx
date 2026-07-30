@@ -1,33 +1,23 @@
 import React from "react";
-import { Animated, Platform, StyleSheet, Text, View } from "react-native";
+import { Animated, Platform, StyleSheet, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { iconSize, layout, useAppTheme, withAlpha } from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
-import GradientBorderView from "@/src/shared/ui/gradient-border-view";
-import { GradientPill } from "@/src/shared/ui/pill";
 import { IconAction } from "@/src/shared/ui/icon-action";
 import * as WebBrowser from "expo-web-browser";
 import * as Haptics from "expo-haptics";
+import MatchHeaderBackground from "@/src/modules/match/ui/match-header-background";
+import MatchHeaderCenter from "@/src/modules/match/ui/match-header-center";
+import {
+  getFfvbCalendarUrl,
+  type MatchHeaderContent,
+} from "@/src/modules/match/view-models/match-header-presentation";
 
 /** Header content rendered over the scroll view. */
-export type HeaderContent = {
-  /** Team A logo url. */
-  teamALogo: string | null;
-  /** Team B logo url. */
-  teamBLogo: string | null;
-  /** Final score text (e.g., "3-1"). */
-  scoreText: string | null;
-  /** Time text for upcoming match. */
-  timeText: string | null;
-  season: string;
-  poolCode: string;
-  leagueCode: string;
-};
+export type HeaderContent = MatchHeaderContent;
 
 /** Props for the match header. */
 export type MatchHeaderProps = {
@@ -40,9 +30,6 @@ export type MatchHeaderProps = {
   /** Gradient colors for the header widgets. */
   headerGradient?: readonly [string, string, ...string[]];
 };
-
-const LOGO_SIZE = 28;
-const LOGO_RADIUS = 8;
 
 const MatchHeader: React.FC<MatchHeaderProps> = ({
   onOpenReport,
@@ -61,22 +48,12 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({
 
   const handleOpenFfvbCalendar = async () => {
     try {
-      const { season, leagueCode, poolCode } = headerContent;
-
-      if (!season || !leagueCode || !poolCode) {
+      const url = getFfvbCalendarUrl(headerContent);
+      if (!url) {
         return;
       }
 
       await Haptics.selectionAsync();
-
-      const query = new URLSearchParams({
-        saison: season,
-        codent: leagueCode,
-        poule: poolCode,
-      }).toString();
-
-      const url = `https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?${query}`;
-
       await WebBrowser.openBrowserAsync(url, {
         enableBarCollapsing: true,
         showTitle: true,
@@ -122,121 +99,17 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({
 
   const androidTint = withAlpha(theme.background, 0.88);
 
-  const BackgroundLayer = (
-    <Animated.View
-      style={[
-        StyleSheet.absoluteFill,
-        {
-          opacity: bgOpacity,
-          zIndex: 0,
-        },
-      ]}
-      pointerEvents="none"
-    >
-      {Platform.OS === "ios" ? (
-        <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
-      ) : (
-        <>
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                backgroundColor: androidTint,
-              },
-            ]}
-          />
-          <LinearGradient
-            colors={[androidTint, "transparent"]}
-            start={{ x: 0, y: 0.35 }}
-            end={{ x: 0, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </>
-      )}
-      <LinearGradient
-        colors={[theme.background, "transparent"]}
-        start={{ x: 0, y: 0.35 }}
-        end={{ x: 0, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-    </Animated.View>
-  );
-
   const CenterContent =
     headerContent && headerGradient ? (
-      <Animated.View
-        pointerEvents="none"
-        needsOffscreenAlphaCompositing
-        renderToHardwareTextureAndroid
-        style={[
-          styles.centerWrap,
-          {
-            opacity: contentOpacity,
-            transform: [{ scale: centerScale }],
-            zIndex: 2,
-          },
-        ]}
-      >
-        <Animated.View
-          style={[
-            {
-              transform: [{ translateX: leftTranslateX }],
-            },
-          ]}
-        >
-          <MaskedImage
-            uri={headerContent.teamALogo}
-            size={LOGO_SIZE}
-            radius={LOGO_RADIUS}
-          />
-        </Animated.View>
-
-        <View style={styles.centerBlock}>
-          {headerContent.scoreText ? (
-            <GradientBorderView
-              gradient={headerGradient}
-              borderRadius={12}
-              borderWidth={2}
-              style={[
-                styles.finalScoreBox,
-                {
-                  backgroundColor: theme.background,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.finalScoreText,
-                  {
-                    color: theme.text,
-                  },
-                ]}
-              >
-                {headerContent.scoreText}
-              </Text>
-            </GradientBorderView>
-          ) : (
-            <GradientPill
-              label={headerContent.timeText || ""}
-              gradient={headerGradient}
-            />
-          )}
-        </View>
-
-        <Animated.View
-          style={[
-            {
-              transform: [{ translateX: rightTranslateX }],
-            },
-          ]}
-        >
-          <MaskedImage
-            uri={headerContent.teamBLogo}
-            size={LOGO_SIZE}
-            radius={LOGO_RADIUS}
-          />
-        </Animated.View>
-      </Animated.View>
+      <MatchHeaderCenter
+        centerScale={centerScale}
+        content={headerContent}
+        contentOpacity={contentOpacity}
+        gradient={headerGradient}
+        leftTranslateX={leftTranslateX}
+        rightTranslateX={rightTranslateX}
+        theme={theme}
+      />
     ) : null;
 
   return (
@@ -256,7 +129,11 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({
       collapsable={false}
       testID="match-header"
     >
-      {BackgroundLayer}
+      <MatchHeaderBackground
+        androidTint={androidTint}
+        backgroundColor={theme.background}
+        opacity={bgOpacity}
+      />
 
       <View
         style={[
@@ -326,30 +203,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 12,
-  },
-  centerWrap: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: layout.header,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    paddingHorizontal: 56,
-  },
-  centerBlock: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  finalScoreBox: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  finalScoreText: {
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: 0.3,
   },
 });

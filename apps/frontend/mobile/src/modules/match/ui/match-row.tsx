@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from "react-native";
 import {
   type DivisionResponse,
   type MatchResponse,
-  MatchStatusEnum,
 } from "@/src/shared/generated/models";
 import {
   borderWidth,
@@ -15,6 +14,7 @@ import {
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { Pill } from "@/src/shared/ui/pill";
+import { createMatchRowPresentation } from "@/src/modules/match/view-models/match-score-presentation";
 
 export type MatchRowProps = {
   match: MatchResponse;
@@ -23,27 +23,13 @@ export type MatchRowProps = {
 
 const MatchRow: React.FC<MatchRowProps> = ({ match, division }) => {
   const theme = useAppTheme();
-
-  const date = new Date(match.matchDate ?? "");
-  const hh = date.getHours().toString().padStart(2, "0");
-  const mm = date.getMinutes().toString().padStart(2, "0");
-  const matchTime = `${hh}:${mm}`;
-
-  const upcoming = match.status === MatchStatusEnum.UPCOMING;
-  const isFinished = match.status === MatchStatusEnum.FINISHED;
-  const hasLiveLink = !!match.liveUrl;
+  const presentation = createMatchRowPresentation(match);
 
   const gradient = [
     division.firstGradientColor,
     division.secondGradientColor,
     division.thirdGradientColor,
   ] as const;
-
-  const livePillLabel = hasLiveLink
-    ? isFinished
-      ? "Rediffusion"
-      : "Live"
-    : null;
 
   return (
     <View
@@ -56,17 +42,17 @@ const MatchRow: React.FC<MatchRowProps> = ({ match, division }) => {
       ]}
       testID={`match-row-${match.id}`}
     >
-      {livePillLabel ? (
+      {presentation.livePillLabel ? (
         <View style={styles.topRow}>
           <Pill
-            label={livePillLabel}
+            label={presentation.livePillLabel}
             leftIcon="video-outline"
             size="sm"
             borderWidth={borderWidth.thin}
             backgroundColor={theme.background}
             borderColor={theme.border}
             textColor={theme.text}
-            showRedDot={!isFinished}
+            showRedDot={!presentation.isFinished}
             style={styles.livePill}
             labelStyle={styles.livePillText}
           />
@@ -87,7 +73,7 @@ const MatchRow: React.FC<MatchRowProps> = ({ match, division }) => {
         </View>
 
         <View style={styles.center}>
-          {upcoming ? (
+          {presentation.isUpcoming ? (
             <View
               style={[
                 styles.timePill,
@@ -98,7 +84,7 @@ const MatchRow: React.FC<MatchRowProps> = ({ match, division }) => {
               ]}
             >
               <Text style={[styles.timeText, { color: theme.text }]}>
-                {matchTime}
+                {presentation.time}
               </Text>
             </View>
           ) : (

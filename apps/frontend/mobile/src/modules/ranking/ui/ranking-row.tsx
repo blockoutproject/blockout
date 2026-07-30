@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
@@ -9,10 +9,9 @@ import {
   spacing,
   typography,
   type AppTheme,
+  withAlpha,
 } from "@/src/shared/theme";
 import type { TeamWithStatsResponse } from "@/src/shared/generated/models";
-import type { TeamHighlight } from "@/src/modules/ranking/model/team-highlight";
-import { withAlpha } from "@/src/shared/theme";
 import MiniStat from "./mini-stat";
 import Medal from "./medal";
 
@@ -21,8 +20,8 @@ const LOGO = 28;
 type Props = {
   item: TeamWithStatsResponse;
   index: number;
+  highlightColor?: string;
   theme: AppTheme;
-  highlightTeams?: TeamHighlight[];
   gradient: readonly [string, string, ...string[]];
   onPress: (teamId: number) => void;
 };
@@ -30,13 +29,15 @@ type Props = {
 const RankingRow: React.FC<Props> = ({
   item,
   index,
+  highlightColor,
   theme,
-  highlightTeams,
   gradient,
   onPress,
 }) => {
   const rank = index + 1;
-  const highlight = highlightTeams?.find(({ teamId }) => teamId === item.id);
+  const handlePress = useCallback(() => {
+    onPress(item.id);
+  }, [item.id, onPress]);
 
   return (
     <Pressable
@@ -47,14 +48,14 @@ const RankingRow: React.FC<Props> = ({
       style={[
         styles.row,
         {
-          backgroundColor: highlight
-            ? withAlpha(highlight.color, 0.4)
+          backgroundColor: highlightColor
+            ? withAlpha(highlightColor, 0.4)
             : "transparent",
           borderWidth: borderWidth.thin,
           borderColor: theme.border,
         },
       ]}
-      onPress={() => onPress(item.id)}
+      onPress={handlePress}
     >
       {/* Rank */}
       <View style={styles.rankCell}>
@@ -108,7 +109,7 @@ const RankingRow: React.FC<Props> = ({
   );
 };
 
-export default RankingRow;
+export default memo(RankingRow);
 
 const styles = StyleSheet.create({
   row: {
