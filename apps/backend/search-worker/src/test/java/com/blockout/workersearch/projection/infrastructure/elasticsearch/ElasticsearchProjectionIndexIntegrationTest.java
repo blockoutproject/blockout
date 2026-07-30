@@ -32,7 +32,7 @@ class ElasticsearchProjectionIndexIntegrationTest {
   @Container
   static final ElasticsearchContainer elasticsearch =
       new ElasticsearchContainer(
-              DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:8.15.5"))
+              DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:9.4.2"))
           .withEnv("xpack.security.enabled", "false")
           .withEnv("xpack.security.http.ssl.enabled", "false");
 

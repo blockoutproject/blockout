@@ -4,9 +4,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Verifies that clubs-service starts against an ephemeral PostgreSQL database. */
 @DisplayName("Clubs application smoke")
@@ -21,7 +21,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class ClubsApplicationSmokeTest {
 
   @Container @ServiceConnection
-  static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17");
+  static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
 
   /** Starts the complete Spring application context after Flyway initializes PostgreSQL. */
   @DisplayName("starts the application context")
