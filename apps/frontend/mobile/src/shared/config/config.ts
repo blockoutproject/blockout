@@ -16,6 +16,7 @@ export const AUTH0_CONFIG = {
   domain: CONFIG.AUTH0_DOMAIN,
   clientId: CONFIG.AUTH0_CLIENT_ID,
   audience: CONFIG.AUTH0_AUDIENCE,
+  customScheme: "com.blockoutproject.blockout.auth0",
 };
 
 type RequiredPublicConfig = Pick<
