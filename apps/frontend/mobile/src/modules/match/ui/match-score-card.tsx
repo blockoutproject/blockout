@@ -17,7 +17,7 @@ import {
 import { GradientPill, Pill, type PillProps } from "@/src/shared/ui/pill";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { useRouter } from "expo-router";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 import { createMatchStatusPresentation } from "@/src/modules/match/view-models/match-score-presentation";
 
 export interface MatchScoreCardProps {
@@ -29,7 +29,7 @@ const LOGO_SIZE = 84;
 const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ match, gradient }) => {
   const theme = useAppTheme();
   const router = useRouter();
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
   const presentation = useMemo(
     () =>
       createMatchStatusPresentation({

@@ -16,8 +16,7 @@ import { SessionProvider } from "@/src/modules/session/providers/session-provide
 import { useSessionState } from "@/src/modules/session/providers/session-context";
 import { SplashScreenController } from "@/src/modules/session/ui/splash-screen-controller";
 import { useOnboardingStore } from "@/src/modules/onboarding/model/onboarding-store";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
-import { useConsentGDPR } from "@/src/modules/advertising/hooks/use-consent-gdpr";
+import { AdvertisingProvider } from "@/src/modules/advertising/providers/advertising-provider";
 import { PurchasesProvider } from "@/src/modules/subscription/providers/purchases-provider";
 import { configureRevenueCat } from "@/src/modules/subscription/providers/revenuecat-client";
 import { QueryProvider } from "@/src/shared/providers/query-provider";
@@ -45,8 +44,10 @@ export default function Root() {
               <ApiProvider>
                 <SessionProvider>
                   <PurchasesProvider configuration={revenueCatConfiguration}>
-                    <SplashScreenController />
-                    <RootNavigator />
+                    <AdvertisingProvider>
+                      <SplashScreenController />
+                      <RootNavigator />
+                    </AdvertisingProvider>
                   </PurchasesProvider>
                 </SessionProvider>
               </ApiProvider>
@@ -59,17 +60,14 @@ export default function Root() {
 }
 
 function RootNavigator() {
-  useConsentGDPR();
   const theme = useAppTheme();
-
-  const { handleNavigationWithAd } = useNavigationInterstitial();
 
   const handleNotificationRespond = useCallback(
     (response: NotificationResponse) => {
       const data = response.notification.request.content.data;
-      openNotificationUrlIfAny(data, handleNavigationWithAd);
+      openNotificationUrlIfAny(data);
     },
-    [handleNavigationWithAd],
+    [],
   );
 
   useEffect(() => {

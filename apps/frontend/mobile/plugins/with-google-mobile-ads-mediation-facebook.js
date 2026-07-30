@@ -1,38 +1,34 @@
-const { withAppBuildGradle, withPodfile } = require("expo/config-plugins");
+const { withAppBuildGradle } = require("expo/config-plugins");
 
-const withGoogleMobileAdsMediationFacebook = (config) => {
-  config = withPodfile(config, (c) => {
-    const line = "pod 'GoogleMobileAdsMediationFacebook'";
-    if (!c.modResults.contents.includes(line)) {
-      const i = c.modResults.contents.indexOf("use_expo_modules!");
-      if (i !== -1) {
-        const j = c.modResults.contents.indexOf("\n", i);
-        const k = j === -1 ? c.modResults.contents.length : j + 1;
-        c.modResults.contents =
-          c.modResults.contents.slice(0, k) +
-          `  ${line}\n` +
-          c.modResults.contents.slice(k);
-      } else {
-        c.modResults.contents = c.modResults.contents + `\n${line}\n`;
-      }
+const FACEBOOK_MEDIATION_DEPENDENCY =
+  'implementation "com.google.ads.mediation:facebook:6.21.0.1"';
+
+/**
+ * Adds the Android Meta mediation adapter to Expo's generated app module.
+ */
+function withGoogleMobileAdsMediationFacebook(config) {
+  return withAppBuildGradle(config, (buildGradleConfig) => {
+    const { contents } = buildGradleConfig.modResults;
+    if (contents.includes(FACEBOOK_MEDIATION_DEPENDENCY)) {
+      return buildGradleConfig;
     }
-    return c;
-  });
 
-  config = withAppBuildGradle(config, (c) => {
-    const dep = 'implementation "com.google.ads.mediation:facebook:6.21.0.0"';
-    const r = /dependencies\s*\{([\s\S]*?)\n\}/m;
-    const m = c.modResults.contents.match(r);
-    if (m && !m[1].includes(dep)) {
-      c.modResults.contents = c.modResults.contents.replace(
-        r,
-        `dependencies {${m[1]}\n    ${dep}\n}`,
+    const dependenciesBlock = "dependencies {";
+    const blockIndex = contents.indexOf(dependenciesBlock);
+    if (blockIndex === -1) {
+      throw new Error(
+        "Unable to locate the Android app dependencies block for Meta mediation.",
       );
     }
-    return c;
-  });
 
-  return config;
-};
+    const insertionIndex = blockIndex + dependenciesBlock.length;
+    buildGradleConfig.modResults.contents =
+      contents.slice(0, insertionIndex) +
+      `\n    ${FACEBOOK_MEDIATION_DEPENDENCY}` +
+      contents.slice(insertionIndex);
+
+    return buildGradleConfig;
+  });
+}
 
 module.exports = withGoogleMobileAdsMediationFacebook;

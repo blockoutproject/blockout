@@ -12,7 +12,7 @@ import {
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 import { createMatchScoreBreakdown } from "@/src/modules/match/view-models/match-score-presentation";
 
 /** Per-set score breakdown. */
@@ -29,7 +29,7 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
 }) => {
   const theme = useAppTheme();
   const router = useRouter();
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
 
   const gradient = [
     match.pool.division.firstGradientColor,

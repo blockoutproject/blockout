@@ -9,7 +9,7 @@ import { spacing } from "@/src/shared/theme";
 import RemoteEntityList, {
   type RemoteEntityListFeedback,
 } from "@/src/shared/ui/entity/remote-entity-list";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 import type { PoolSummaryResponse } from "@/src/shared/generated/models";
 
 type Props = {
@@ -42,7 +42,7 @@ const FollowedPoolsList: React.FC<Props> = ({
   onSeasonsChange,
 }) => {
   const router = useRouter();
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
 
   const { pools, isLoading, isError, refetch } = useFollowedPoolList(poolIds);
 

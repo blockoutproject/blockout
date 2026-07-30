@@ -17,7 +17,7 @@ import { GradientPill } from "@/src/shared/ui/pill";
 import { useRouter } from "expo-router";
 import { openPdf } from "@/src/modules/pdf/api/open-pdf";
 import { isLNV } from "@/src/shared/view-models/league";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 
 /** Info card with league/pool/date/venue/referees. */
 export type MatchInfoCardProps = {
@@ -28,7 +28,7 @@ export type MatchInfoCardProps = {
 const MatchInfoCard: React.FC<MatchInfoCardProps> = ({ match }) => {
   const theme = useAppTheme();
   const router = useRouter();
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
 
   const division = match.pool.division;
   const gradient = [

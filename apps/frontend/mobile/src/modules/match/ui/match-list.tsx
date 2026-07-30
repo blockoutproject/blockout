@@ -25,7 +25,7 @@ import MatchPoolSection from "./match-pool-section";
 import EmptyState from "@/src/shared/ui/feedback/empty-state";
 import ErrorState from "@/src/shared/ui/feedback/error-state";
 
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 
 export type MatchListProps = {
   poolIds?: number[];
@@ -65,7 +65,7 @@ const MatchList: React.FC<MatchListProps> = ({
     refetch,
   } = useMatchList(status, poolIds, teamIds);
 
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 

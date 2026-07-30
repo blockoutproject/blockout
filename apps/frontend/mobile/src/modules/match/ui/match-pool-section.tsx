@@ -19,7 +19,7 @@ import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import FadeIn from "@/src/shared/ui/animations/fade-in";
 import RankingHeader from "@/src/modules/ranking/ui/ranking-header";
 import MatchRow from "@/src/modules/match/ui/match-row";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 
 /** Carte listant les matchs d’une poule. */
 export type MatchPoolSectionProps = {
@@ -66,7 +66,7 @@ const MatchPoolSection: React.FC<MatchPoolSectionProps> = ({
 }) => {
   const theme = useAppTheme();
   const router = useRouter();
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
   const division = poolMatches.pool.division;
 
   const gradient = [

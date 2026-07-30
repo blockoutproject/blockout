@@ -8,7 +8,7 @@ import type { TeamHighlight } from "@/src/modules/ranking/model/team-highlight";
 import RankingRow from "./ranking-row";
 import RankingHeader from "./ranking-header";
 import { useRouter } from "expo-router";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 
 type RankingCardProps = {
   pool: PoolResponse;
@@ -18,7 +18,7 @@ type RankingCardProps = {
 const RankingCard: React.FC<RankingCardProps> = ({ pool, highlightTeams }) => {
   const theme = useAppTheme();
   const router = useRouter();
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
 
   const { division } = pool;
   const gradient = useMemo(

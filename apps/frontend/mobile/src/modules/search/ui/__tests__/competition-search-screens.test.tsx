@@ -36,14 +36,11 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 
-jest.mock(
-  "@/src/modules/advertising/hooks/use-navigation-interstitial",
-  () => ({
-    useNavigationInterstitial: () => ({
-      handleNavigationWithAd: (navigate: () => void) => navigate(),
-    }),
+jest.mock("@/src/modules/advertising/providers/advertising-provider", () => ({
+  useAdvertising: () => ({
+    handleNavigationWithAd: (navigate: () => void) => navigate(),
   }),
-);
+}));
 
 jest.mock("expo-haptics", () => ({
   selectionAsync: jest.fn().mockResolvedValue(undefined),

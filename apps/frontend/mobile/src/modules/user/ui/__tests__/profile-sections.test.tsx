@@ -53,6 +53,45 @@ describe("profile sections", () => {
     expect(onOpenPrivacy).toHaveBeenCalledTimes(1);
   });
 
+  it("exposes advertising privacy choices only when UMP requires them", async () => {
+    const onOpenAdvertisingPrivacy = jest.fn();
+    const user = userEvent.setup();
+    const screen = await render(
+      <ThemeProvider>
+        <ProfileLegalSection
+          onOpenImprint={jest.fn()}
+          onOpenTerms={jest.fn()}
+          onOpenPrivacy={jest.fn()}
+          onOpenAdvertisingPrivacy={onOpenAdvertisingPrivacy}
+        />
+      </ThemeProvider>,
+    );
+
+    await user.press(
+      screen.getByRole("button", {
+        name: "Choix de confidentialité publicitaire",
+      }),
+    );
+
+    expect(onOpenAdvertisingPrivacy).toHaveBeenCalledTimes(1);
+
+    await screen.rerender(
+      <ThemeProvider>
+        <ProfileLegalSection
+          onOpenImprint={jest.fn()}
+          onOpenTerms={jest.fn()}
+          onOpenPrivacy={jest.fn()}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(
+      screen.queryByRole("button", {
+        name: "Choix de confidentialité publicitaire",
+      }),
+    ).toBeNull();
+  });
+
   it("keeps account commands explicit and disables both while busy", async () => {
     const onLogout = jest.fn();
     const onDeleteAccount = jest.fn();

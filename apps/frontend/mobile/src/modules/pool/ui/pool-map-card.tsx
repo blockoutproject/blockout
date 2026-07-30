@@ -18,7 +18,7 @@ import type {
   TeamWithStatsResponse,
 } from "@/src/shared/generated/models";
 import { CONFIG } from "@/src/shared/config/config";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 import { useAppTheme } from "@/src/shared/theme";
 
 type Props = {
@@ -70,7 +70,7 @@ const iconIdForTeam = (teamId: string) => `team-logo-${teamId}`;
 const PoolMapCard: React.FC<Props> = ({ enrichedPool }) => {
   const router = useRouter();
   const { division } = enrichedPool;
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
   const theme = useAppTheme();
   const cameraRef = useRef<CameraRef>(null);
 

@@ -14,7 +14,7 @@ import MatchLiveLinkFormSheet from "@/src/modules/match/ui/match-live-link-form-
 import MatchLiveLinkDeleteFormSheet from "@/src/modules/match/ui/match-live-link-delete-form-sheet";
 import { useSessionState } from "@/src/modules/session/providers/session-context";
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
-import { useWebLinkInterstitial } from "@/src/modules/advertising/hooks/use-web-link-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 import { createMatchLiveLinkCardPresentation } from "@/src/modules/match/view-models/match-live-link-card-presentation";
 
 type Props = {
@@ -33,7 +33,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
   onRequireAuth,
 }) => {
   const theme = useAppTheme();
-  const { openLinkWithInterstitial } = useWebLinkInterstitial();
+  const { openLinkWithInterstitial } = useAdvertising();
 
   const reportSheetRef = useRef<BottomSheetModal>(null);
   const editSheetRef = useRef<BottomSheetModal>(null);

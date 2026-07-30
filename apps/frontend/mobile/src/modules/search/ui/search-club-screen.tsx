@@ -4,7 +4,7 @@ import ClubCard from "@/src/modules/search/ui/club-card";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import SearchResults from "@/src/modules/search/ui/search-results";
-import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 
 export type SearchClubScreenProps = {
   search: string;
@@ -17,7 +17,7 @@ const SearchClubScreen: React.FC<SearchClubScreenProps> = ({
   debouncedQuery,
   setSearch,
 }) => {
-  const { handleNavigationWithAd } = useNavigationInterstitial();
+  const { handleNavigationWithAd } = useAdvertising();
   const { data, isLoading, isError, refetch } = useSearchClubs(
     debouncedQuery,
     search.length === 0,
