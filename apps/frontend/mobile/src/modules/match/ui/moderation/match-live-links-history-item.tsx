@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { memo, useCallback } from "react";
 import {
   Linking,
   StyleSheet,
@@ -16,11 +16,13 @@ import {
   withAlpha,
 } from "@/src/shared/theme";
 import { Pill } from "@/src/shared/ui/pill";
+import { MatchLiveLinkHistoryResponse } from "@/src/shared/generated/models";
 import {
-  LiveLinkStatusEnum,
-  LiveProviderEnum,
-  MatchLiveLinkHistoryResponse,
-} from "@/src/shared/generated/models";
+  formatModerationDateTime,
+  getLiveLinkModerationActions,
+  getLiveLinkStatusPresentation,
+  getLiveProviderIcon,
+} from "@/src/modules/match/view-models/live-link-moderation";
 
 type Props = {
   link: MatchLiveLinkHistoryResponse;
@@ -28,15 +30,6 @@ type Props = {
   onReject?: (link: MatchLiveLinkHistoryResponse) => void;
   onDeleteActive?: (link: MatchLiveLinkHistoryResponse) => void;
   onReactivate?: (link: MatchLiveLinkHistoryResponse) => void;
-};
-
-const formatDateTime = (value?: string | number | null) => {
-  if (!value) return "-";
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return String(value);
-  }
 };
 
 const MatchLiveLinksHistoryItem: React.FC<Props> = ({
@@ -48,75 +41,12 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
 }) => {
   const theme = useAppTheme();
 
-  const createdAtLabel = useMemo(
-    () => formatDateTime(link.createdAt),
-    [link.createdAt],
-  );
-
-  const lastUpdateLabel = useMemo(
-    () => (link.lastUpdate ? formatDateTime(link.lastUpdate) : ""),
-    [link.lastUpdate],
-  );
-
-  const statusConfig = useMemo(() => {
-    switch (link.status as LiveLinkStatusEnum) {
-      case "PENDING":
-        return {
-          label: "En attente",
-          backgroundColor: theme.surfaceSecondary ?? theme.surface,
-          color: theme.warning ?? theme.text,
-        };
-      case "ACTIVE":
-        return {
-          label: "Actif",
-          backgroundColor: theme.surfaceSecondary ?? theme.surface,
-          color: theme.success,
-        };
-      case "REJECTED":
-        return {
-          label: "Rejeté",
-          backgroundColor: theme.surfaceSecondary ?? theme.surface,
-          color: theme.error,
-        };
-      case "DEACTIVATED":
-        return {
-          label: "Désactivé",
-          backgroundColor: theme.surfaceSecondary ?? theme.surface,
-          color: theme.textInactive,
-        };
-      case "BANNED":
-        return {
-          label: "Banni",
-          backgroundColor: theme.surfaceSecondary ?? theme.surface,
-          color: theme.error,
-        };
-      case "EXPIRED":
-        return {
-          label: "Expiré",
-          backgroundColor: theme.borderSecondary,
-          color: theme.text,
-        };
-      default:
-        return {
-          label: "Inconnu",
-          backgroundColor: theme.borderSecondary,
-          color: theme.textInactive,
-        };
-    }
-  }, [link.status, theme]);
-
-  const providerIconName = useMemo(() => {
-    switch (link.provider as LiveProviderEnum | null) {
-      case "YOUTUBE":
-        return "youtube";
-      case "TWITCH":
-        return "twitch";
-      case "FACEBOOK":
-        return "facebook";
-      default:
-        return "video-outline";
-    }
-  }, [link.provider]);
+  const createdAtLabel = formatModerationDateTime(link.createdAt);
+  const lastUpdateLabel = link.lastUpdate
+    ? formatModerationDateTime(link.lastUpdate)
+    : "";
+  const statusConfig = getLiveLinkStatusPresentation(link.status, theme);
+  const providerIconName = getLiveProviderIcon(link.provider);
 
   const handleOpenUrl = useCallback(async () => {
     if (!link.url) return;
@@ -131,18 +61,11 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
     }
   }, [link.url]);
 
-  const isPending = link.status === "PENDING";
-  const isActive = link.status === "ACTIVE";
-  const isReactivable =
-    link.status === "REJECTED" ||
-    link.status === "EXPIRED" ||
-    link.status === "BANNED" ||
-    link.status === "DEACTIVATED";
-
-  const canApprove = isPending && !!onApprove;
-  const canReject = isPending && !!onReject;
-  const canDeleteActive = isActive && !!onDeleteActive;
-  const canReactivate = isReactivable && !!onReactivate;
+  const availableActions = getLiveLinkModerationActions(link.status);
+  const canApprove = availableActions.approve && !!onApprove;
+  const canReject = availableActions.reject && !!onReject;
+  const canDeleteActive = availableActions.deleteActive && !!onDeleteActive;
+  const canReactivate = availableActions.reactivate && !!onReactivate;
 
   return (
     <View
@@ -311,7 +234,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
   );
 };
 
-export default MatchLiveLinksHistoryItem;
+export default memo(MatchLiveLinksHistoryItem);
 
 const styles = StyleSheet.create({
   card: {

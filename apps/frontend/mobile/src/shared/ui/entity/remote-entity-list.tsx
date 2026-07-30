@@ -36,8 +36,16 @@ export type RemoteEntityListProps<T> = Omit<
   footerSpacing: number;
   isError: boolean;
   isLoading: boolean;
+  /** Adds the shared bottom-navigation height to the list footer. */
+  includeBottomNavigationSpacing?: boolean;
   onRefresh: () => Promise<unknown>;
   onRetry?: () => unknown;
+  /** Selects the feedback intensity used for pull-to-refresh. */
+  refreshHapticStyle?: Haptics.ImpactFeedbackStyle;
+  /** Keeps pull-to-refresh available when the list has no rows. */
+  scrollWhenEmpty?: boolean;
+  /** Shows the default retry action in the empty state. */
+  showEmptyRetry?: boolean;
 };
 
 /**
@@ -50,8 +58,12 @@ const RemoteEntityList = <T,>({
   footerSpacing,
   isError,
   isLoading,
+  includeBottomNavigationSpacing = true,
   onRefresh,
   onRetry,
+  refreshHapticStyle = Haptics.ImpactFeedbackStyle.Medium,
+  scrollWhenEmpty = false,
+  showEmptyRetry = true,
   ...listProps
 }: RemoteEntityListProps<T>) => {
   const insets = useSafeAreaInsets();
@@ -59,24 +71,27 @@ const RemoteEntityList = <T,>({
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await Haptics.impactAsync(refreshHapticStyle);
     try {
       await onRefresh();
     } finally {
       setIsRefreshing(false);
     }
-  }, [onRefresh]);
+  }, [onRefresh, refreshHapticStyle]);
 
   const handleRetry = onRetry ?? handleRefresh;
   const footer = useMemo(
     () => (
       <View
         style={{
-          height: insets.bottom + layout.bottomNavigation + footerSpacing,
+          height:
+            insets.bottom +
+            (includeBottomNavigationSpacing ? layout.bottomNavigation : 0) +
+            footerSpacing,
         }}
       />
     ),
-    [footerSpacing, insets.bottom],
+    [footerSpacing, includeBottomNavigationSpacing, insets.bottom],
   );
 
   if (isLoading && !isRefreshing) {
@@ -93,10 +108,13 @@ const RemoteEntityList = <T,>({
       data={data}
       ListFooterComponent={footer}
       ListEmptyComponent={
-        <EmptyState {...feedback.empty} onRetry={handleRetry} />
+        <EmptyState
+          {...feedback.empty}
+          onRetry={showEmptyRetry ? handleRetry : undefined}
+        />
       }
       alwaysBounceVertical
-      scrollEnabled={data.length > 0}
+      scrollEnabled={data.length > 0 || scrollWhenEmpty}
       scrollEventThrottle={16}
       showsVerticalScrollIndicator={false}
       refreshing={isRefreshing}

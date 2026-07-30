@@ -13,6 +13,7 @@ import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { createMatchScoreBreakdown } from "@/src/modules/match/view-models/match-score-presentation";
 
 /** Per-set score breakdown. */
 export type MatchScoreDetailsCardProps = {
@@ -36,16 +37,8 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
     match.pool.division.thirdGradientColor,
   ] as const;
 
-  const setsArray = match.score
-    ? match.score
-        .split(",")
-        .map((s) => s.split("-").map((n) => parseInt(n, 10)))
-    : [];
-  const [homeFinal = "0", awayFinal = "0"] = (match.set || "0-0").split("-");
-  const maxSets = Math.max(setsArray.length, 0);
-
-  const homeSets = setsArray.map(([h]) => h);
-  const awaySets = setsArray.map(([, a]) => a);
+  const { awayFinal, awaySets, homeFinal, homeSets, maxSets } =
+    createMatchScoreBreakdown(match);
 
   const handleTeamPress = useCallback(
     async (teamId: number) => {

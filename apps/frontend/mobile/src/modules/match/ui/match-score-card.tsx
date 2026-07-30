@@ -9,17 +9,16 @@ import {
   useAppTheme,
   withAlpha,
 } from "@/src/shared/theme";
-import { formatMatchDateTime } from "@/src/modules/match/view-models/match-date";
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import {
   type MatchResponse,
-  MatchStatusEnum,
   type TeamDetailsResponse,
 } from "@/src/shared/generated/models";
 import { GradientPill, Pill, type PillProps } from "@/src/shared/ui/pill";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { useRouter } from "expo-router";
 import { useNavigationInterstitial } from "@/src/modules/advertising/hooks/use-navigation-interstitial";
+import { createMatchStatusPresentation } from "@/src/modules/match/view-models/match-score-presentation";
 
 export interface MatchScoreCardProps {
   match: MatchResponse;
@@ -30,17 +29,16 @@ const LOGO_SIZE = 84;
 const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ match, gradient }) => {
   const theme = useAppTheme();
   const router = useRouter();
-  const { date, time } = formatMatchDateTime(match.matchDate);
   const { handleNavigationWithAd } = useNavigationInterstitial();
-
-  const hasLiveLink = !!match.liveUrl;
-  const isFinished = match.status === MatchStatusEnum.FINISHED;
-
-  const isMatchStarted = useMemo(() => {
-    const matchMs = new Date(match.matchDate).getTime();
-    if (Number.isNaN(matchMs)) return false;
-    return Date.now() >= matchMs;
-  }, [match.matchDate]);
+  const presentation = useMemo(
+    () =>
+      createMatchStatusPresentation({
+        liveUrl: match.liveUrl,
+        matchDate: match.matchDate,
+        status: match.status,
+      }),
+    [match.liveUrl, match.matchDate, match.status],
+  );
 
   const handleTeamPress = useCallback(
     async (teamId: number) => {
@@ -113,13 +111,13 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ match, gradient }) => {
         </View>
 
         <View style={styles.headerCenter}>
-          {hasLiveLink && !isFinished ? (
+          {presentation.hasLiveLink && !presentation.isFinished ? (
             <BasicPill label="Live" icon="video-outline" redDot />
           ) : null}
         </View>
 
         <View style={styles.headerSideRight}>
-          {date ? <BasicPill label={date} /> : null}
+          {presentation.date ? <BasicPill label={presentation.date} /> : null}
         </View>
       </View>
 
@@ -144,17 +142,19 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ match, gradient }) => {
                 </Text>
               </GradientBorderView>
 
-              {time ? <BasicPill label={time} /> : null}
+              {presentation.time ? (
+                <BasicPill label={presentation.time} />
+              ) : null}
             </>
           ) : (
             <>
-              {time ? (
+              {presentation.time ? (
                 <Text style={[styles.timeLarge, { color: theme.text }]}>
-                  {time}
+                  {presentation.time}
                 </Text>
               ) : null}
 
-              {!isMatchStarted ? (
+              {!presentation.isMatchStarted ? (
                 <GradientPill label="À venir" gradient={gradient} />
               ) : null}
             </>

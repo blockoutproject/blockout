@@ -3,7 +3,11 @@ import { Pressable, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
-import type { PoolMatchesResponse } from "@/src/shared/generated/models";
+import type {
+  DivisionResponse,
+  MatchResponse,
+  PoolMatchesResponse,
+} from "@/src/shared/generated/models";
 import {
   borderWidth,
   layout,
@@ -27,6 +31,34 @@ export type MatchPoolSectionProps = {
   showHeader?: boolean;
 };
 
+type MatchPoolItemProps = {
+  division: DivisionResponse;
+  match: MatchResponse;
+  onPress: (id: number) => void;
+};
+
+const MatchPoolItem = React.memo(function MatchPoolItem({
+  division,
+  match,
+  onPress,
+}: MatchPoolItemProps) {
+  const handlePress = useCallback(() => {
+    onPress(match.id);
+  }, [match.id, onPress]);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Ouvrir le match ${match.teamA.shortName} contre ${match.teamB.shortName}`}
+      onPress={handlePress}
+      style={({ pressed }) => (pressed ? styles.pressed : undefined)}
+      testID={`match-item-${match.id}`}
+    >
+      <MatchRow match={match} division={division} />
+    </Pressable>
+  );
+});
+
 const MatchPoolSection: React.FC<MatchPoolSectionProps> = ({
   poolMatches,
   handleMatchPress,
@@ -43,16 +75,13 @@ const MatchPoolSection: React.FC<MatchPoolSectionProps> = ({
     division.thirdGradientColor,
   ] as const;
 
-  const handleHeaderPress = useCallback(
-    async (poolId: number) => {
-      await Haptics.selectionAsync();
+  const handleHeaderPress = useCallback(async () => {
+    await Haptics.selectionAsync();
 
-      handleNavigationWithAd(() => {
-        router.push(`/pool/${poolId}`);
-      });
-    },
-    [router, handleNavigationWithAd],
-  );
+    handleNavigationWithAd(() => {
+      router.push(`/pool/${poolMatches.pool.id}`);
+    });
+  }, [handleNavigationWithAd, poolMatches.pool.id, router]);
 
   return (
     <FadeIn>
@@ -72,24 +101,18 @@ const MatchPoolSection: React.FC<MatchPoolSectionProps> = ({
             {showHeader ? (
               <RankingHeader
                 pool={poolMatches.pool}
-                onPress={() => handleHeaderPress(poolMatches.pool.id)}
+                onPress={handleHeaderPress}
               />
             ) : null}
 
             <View style={styles.matchList}>
               {poolMatches.matches.map((match) => (
-                <Pressable
+                <MatchPoolItem
                   key={match.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Ouvrir le match ${match.teamA.shortName} contre ${match.teamB.shortName}`}
-                  onPress={() => handleMatchPress(match.id)}
-                  style={({ pressed }) =>
-                    pressed ? styles.pressed : undefined
-                  }
-                  testID={`match-item-${match.id}`}
-                >
-                  <MatchRow match={match} division={division} />
-                </Pressable>
+                  match={match}
+                  division={division}
+                  onPress={handleMatchPress}
+                />
               ))}
             </View>
           </View>

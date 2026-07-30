@@ -9,7 +9,7 @@ import { useApis } from "@/src/shared/providers/api-provider";
 import FormCard from "@/src/shared/ui/form/form-card";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import { useFormSheetBinding } from "@/src/shared/ui/form/form-sheet";
-import { getLiveLinkErrorMessage } from "./match-live-link-form";
+import { getMatchLiveLinkErrorMessage } from "@/src/modules/match/view-models/match-live-link-errors";
 
 export type MatchLiveLinkDeleteFormProps = {
   matchId: number;
@@ -39,7 +39,7 @@ const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
     } catch (err) {
-      const msg = getLiveLinkErrorMessage(err);
+      const msg = getMatchLiveLinkErrorMessage(err);
       setApiError(msg);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {

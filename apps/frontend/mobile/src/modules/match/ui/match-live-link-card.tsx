@@ -8,18 +8,14 @@ import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import { GradientPill, Pill } from "@/src/shared/ui/pill";
 import { iconSize, useAppTheme } from "@/src/shared/theme";
 import { IconAction } from "@/src/shared/ui/icon-action";
-import {
-  LiveProviderEnum,
-  MatchResponse,
-  MatchStatusEnum,
-} from "@/src/shared/generated/models";
-import { LIVE_PROVIDER_LABELS } from "@/src/modules/match/view-models/live-provider-labels";
+import { MatchResponse } from "@/src/shared/generated/models";
 import MatchLiveLinkReportFormSheet from "@/src/modules/match/ui/match-live-link-report-form-sheet";
 import MatchLiveLinkFormSheet from "@/src/modules/match/ui/match-live-link-form-sheet";
 import MatchLiveLinkDeleteFormSheet from "@/src/modules/match/ui/match-live-link-delete-form-sheet";
 import { useSessionState } from "@/src/modules/session/providers/session-context";
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
 import { useWebLinkInterstitial } from "@/src/modules/advertising/hooks/use-web-link-interstitial";
+import { createMatchLiveLinkCardPresentation } from "@/src/modules/match/view-models/match-live-link-card-presentation";
 
 type Props = {
   match: MatchResponse;
@@ -58,81 +54,54 @@ const MatchLiveLinkCard: React.FC<Props> = ({
 
   const { customUser, isGuest } = useSessionState();
 
-  const hasLiveLink = !!match.liveUrl;
-  const isFinished = match.status === MatchStatusEnum.FINISHED;
-  const isLive = hasLiveLink && !isFinished;
-
-  const isOwner = useMemo(() => {
-    if (!customUser?.auth0Id || !match.liveOwnerAuth0Id) return false;
-    return match.liveOwnerAuth0Id === customUser.auth0Id;
-  }, [customUser?.auth0Id, match.liveOwnerAuth0Id]);
-
-  const matchDate = useMemo(
-    () => (match.matchDate ? new Date(match.matchDate) : null),
-    [match.matchDate],
+  const presentation = useMemo(
+    () =>
+      createMatchLiveLinkCardPresentation({
+        isGuest,
+        match,
+        scopes: {
+          canCreate: canCreateLiveLinkScope,
+          canDelete: canDeleteLiveLinkScope,
+          canModerate: canModerateLiveLinkScope,
+          canReport: canReportLiveLinkScope,
+        },
+        userAuth0Id: customUser?.auth0Id,
+      }),
+    [
+      canCreateLiveLinkScope,
+      canDeleteLiveLinkScope,
+      canModerateLiveLinkScope,
+      canReportLiveLinkScope,
+      customUser?.auth0Id,
+      isGuest,
+      match,
+    ],
   );
 
-  const isBeforeLiveWindow = useMemo(() => {
-    if (!matchDate) return false;
-    const now = new Date();
-    const oneHourBefore = new Date(matchDate.getTime() - 60 * 60 * 1000);
-    return now < oneHourBefore;
-  }, [matchDate]);
-
-  const canCreateLiveLink = !hasLiveLink && canCreateLiveLinkScope;
-
-  const canEditExistingLink =
-    hasLiveLink &&
-    (canModerateLiveLinkScope || (isOwner && canCreateLiveLinkScope));
-
-  const canDeleteLiveLink =
-    hasLiveLink &&
-    (canModerateLiveLinkScope || (isOwner && canDeleteLiveLinkScope));
-
-  const canReportLiveLink = hasLiveLink && !isOwner && canReportLiveLinkScope;
-  const showReportButton = canReportLiveLink || (hasLiveLink && isGuest);
-
-  const providerLabel = useMemo(() => {
-    if (!match.liveProvider) return "";
-    const key = match.liveProvider as LiveProviderEnum;
-    return LIVE_PROVIDER_LABELS[key] ?? "";
-  }, [match.liveProvider]);
-
-  const leftIcon = useMemo(() => {
-    switch (match.liveProvider as LiveProviderEnum | null) {
-      case "YOUTUBE":
-        return "youtube";
-      case "TWITCH":
-        return "twitch";
-      case "FACEBOOK":
-        return "facebook";
-      default:
-        return "play-circle-outline";
-    }
-  }, [match.liveProvider]);
-
   const handleOpenEdit = async () => {
-    if (!canCreateLiveLink && !canEditExistingLink) return;
+    if (!presentation.canCreateLiveLink && !presentation.canEditExistingLink) {
+      return;
+    }
     await Haptics.selectionAsync();
     editSheetRef.current?.present();
   };
 
   const handleOpenDelete = async () => {
-    if (!canDeleteLiveLink) return;
+    if (!presentation.canDeleteLiveLink) return;
     await Haptics.selectionAsync();
     deleteSheetRef.current?.present();
   };
 
   const handleOpenReportSheet = async () => {
-    if (!canReportLiveLink) return;
+    if (!presentation.canReportLiveLink) return;
     await Haptics.selectionAsync();
     reportSheetRef.current?.present();
   };
 
   const handlePressReportButton = async () => {
-    if (!showReportButton) return;
+    if (!presentation.showReportButton) return;
 
-    if (canReportLiveLink) {
+    if (presentation.canReportLiveLink) {
       await handleOpenReportSheet();
     } else if (isGuest) {
       await Haptics.notificationAsync(
@@ -148,26 +117,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
     openLinkWithInterstitial(match.liveUrl);
   };
 
-  const liveLabel = useMemo(() => {
-    if (isFinished) return "Regarder la rediffusion";
-    if (providerLabel) return `Regarder le live sur ${providerLabel}`;
-    return "Regarder le live";
-  }, [isFinished, providerLabel]);
-
-  const emptyStateLabel = useMemo(
-    () =>
-      isFinished
-        ? "Ajouter un lien de rediffusion"
-        : "Vous diffusez ce match ?",
-    [isFinished],
-  );
-
-  const canShowEmptyStateCta = !hasLiveLink && (canCreateLiveLink || isGuest);
-  const shouldShowCard = hasLiveLink || canShowEmptyStateCta;
-
-  if (!shouldShowCard) return null;
-
-  const headerTitle = isFinished ? "Rediffusion" : "Live";
+  if (!presentation.shouldShowCard) return null;
 
   return (
     <>
@@ -180,16 +130,16 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         <View style={styles.headerRow}>
           <View style={styles.titleRow}>
             <Text style={[styles.title, { color: theme.text }]}>
-              {headerTitle}
+              {presentation.headerTitle}
             </Text>
-            {!!isLive && (
+            {!!presentation.isLive && (
               <View
                 style={[styles.liveDot, { backgroundColor: theme.error }]}
               />
             )}
           </View>
 
-          {!!showReportButton && (
+          {!!presentation.showReportButton && (
             <Pill
               accessibilityLabel="Signaler le lien du match"
               onPress={handlePressReportButton}
@@ -206,25 +156,28 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         </View>
 
         <View style={styles.content}>
-          {!!hasLiveLink && (
+          {!!presentation.hasLiveLink && (
             <View style={styles.liveBlock}>
               <View style={styles.livePillRow}>
                 <View style={styles.livePillWrap}>
                   <GradientPill
-                    leftIcon={leftIcon}
+                    leftIcon={presentation.leftIcon}
                     rightIcon="chevron-forward-outline"
-                    label={liveLabel}
+                    label={presentation.liveLabel}
                     gradient={gradient}
                     treatment="filled"
                     onPress={handleOpenLive}
-                    accessibilityLabel={`Ouvrir ${liveLabel}`}
+                    accessibilityLabel={`Ouvrir ${presentation.liveLabel}`}
                     testID="match-live-open-action"
                   />
                 </View>
 
-                {!!(canEditExistingLink || canDeleteLiveLink) && (
+                {!!(
+                  presentation.canEditExistingLink ||
+                  presentation.canDeleteLiveLink
+                ) && (
                   <View style={styles.actionsRow}>
-                    {!!canEditExistingLink && (
+                    {!!presentation.canEditExistingLink && (
                       <IconAction
                         accessibilityLabel="Modifier le lien du match"
                         onPress={handleOpenEdit}
@@ -239,7 +192,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
                       </IconAction>
                     )}
 
-                    {!!canDeleteLiveLink && (
+                    {!!presentation.canDeleteLiveLink && (
                       <IconAction
                         accessibilityLabel="Supprimer le lien du match"
                         onPress={handleOpenDelete}
@@ -259,16 +212,20 @@ const MatchLiveLinkCard: React.FC<Props> = ({
             </View>
           )}
 
-          {!hasLiveLink && !!canShowEmptyStateCta && (
+          {!presentation.hasLiveLink && !!presentation.canShowEmptyStateCta && (
             <View style={styles.addPillWrap}>
               <GradientPill
                 leftIcon="plus-circle-outline"
                 rightIcon="chevron-forward-outline"
-                label={emptyStateLabel}
+                label={presentation.emptyStateLabel}
                 gradient={[theme.borderSecondary, theme.border]}
                 treatment="border"
-                onPress={canCreateLiveLink ? handleOpenEdit : onRequireAuth}
-                accessibilityLabel={emptyStateLabel}
+                onPress={
+                  presentation.canCreateLiveLink
+                    ? handleOpenEdit
+                    : onRequireAuth
+                }
+                accessibilityLabel={presentation.emptyStateLabel}
                 testID="match-live-add-action"
               />
             </View>
@@ -280,9 +237,11 @@ const MatchLiveLinkCard: React.FC<Props> = ({
         <MatchLiveLinkFormSheet
           ref={editSheetRef}
           matchId={match.id}
-          isMatchFinished={isFinished}
+          isMatchFinished={presentation.isFinished}
           initialUrl={match.liveUrl}
-          isBeforeLiveWindow={!isFinished && isBeforeLiveWindow}
+          isBeforeLiveWindow={
+            !presentation.isFinished && presentation.isBeforeLiveWindow
+          }
           onSuccess={() => {
             refetch();
             editSheetRef.current?.dismiss();

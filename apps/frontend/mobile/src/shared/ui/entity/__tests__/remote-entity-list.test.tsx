@@ -247,4 +247,29 @@ describe("RemoteEntityList", () => {
       expect(onRefresh).toHaveBeenCalledTimes(1);
     });
   });
+
+  it("can preserve a passive empty state for feature-owned retry behavior", async () => {
+    const screen = await render(
+      <ThemeProvider>
+        <RemoteEntityList
+          data={[]}
+          feedback={feedback}
+          footerSpacing={4}
+          includeBottomNavigationSpacing={false}
+          isError={false}
+          isLoading={false}
+          keyExtractor={(item: Item) => String(item.id)}
+          onRefresh={jest.fn().mockResolvedValue(undefined)}
+          renderItem={({ item }) => <Text>{item.name}</Text>}
+          scrollWhenEmpty
+          showEmptyRetry={false}
+          testID="entity-list"
+        />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByTestId("entity-empty")).toBeTruthy();
+    expect(screen.queryByTestId("entity-empty-retry-action")).toBeNull();
+    expect(screen.getByTestId("entity-list").props.scrollEnabled).toBe(true);
+  });
 });
