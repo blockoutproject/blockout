@@ -1,10 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { AppState } from "react-native";
 import {
   focusManager,
   onlineManager,
   QueryClient,
   QueryClientProvider,
+  useQueryClient,
 } from "@tanstack/react-query";
 import * as Network from "expo-network";
 
@@ -24,6 +25,15 @@ export const createMobileQueryClient = () =>
   });
 
 const queryClient = createMobileQueryClient();
+
+export const useResetQueryCache = () => {
+  const client = useQueryClient();
+
+  return useCallback(async () => {
+    await client.cancelQueries();
+    client.clear();
+  }, [client]);
+};
 
 export const QueryProvider: React.FC<React.PropsWithChildren> = ({
   children,
