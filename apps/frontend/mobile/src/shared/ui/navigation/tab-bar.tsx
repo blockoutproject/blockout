@@ -29,6 +29,7 @@ import {
   withAlpha,
 } from "@/src/shared/theme";
 import { TabBarItem } from "@/src/shared/ui/navigation/tab-bar-item";
+import { isTabRouteVisible } from "@/src/modules/session/navigation/tab-route-access";
 
 const SPRING = { damping: 25, stiffness: 340, mass: 0.8 };
 const ACTIVE_PILL_WIDTH = 50;
@@ -44,11 +45,19 @@ export default function TabBar({
 }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
-  const { isMaintenance } = useSessionState();
+  const { isAuthenticated, isMaintenance } = useSessionState();
   const { isPro } = usePurchases();
+  const focusedRouteKey = state.routes[state.index]?.key;
+  const visibleRoutes = state.routes.filter((route) =>
+    isTabRouteVisible({ isAuthenticated, routeName: route.name }),
+  );
+  const focusedVisibleIndex = visibleRoutes.findIndex(
+    (route) => route.key === focusedRouteKey,
+  );
+  const currentVisibleIndex = Math.max(0, focusedVisibleIndex);
   const layoutsRef = useRef<LayoutMap>({});
   const pillX = useSharedValue(0);
-  const activeIndex: SharedValue<number> = useSharedValue(state.index);
+  const activeIndex: SharedValue<number> = useSharedValue(currentVisibleIndex);
 
   const computePillX = useCallback((index: number) => {
     const itemLayout = layoutsRef.current[index];
@@ -71,8 +80,8 @@ export default function TabBar({
   );
 
   useEffect(() => {
-    requestAnimationFrame(() => animateToIndex(state.index));
-  }, [animateToIndex, state.index, state.routes.length]);
+    requestAnimationFrame(() => animateToIndex(currentVisibleIndex));
+  }, [animateToIndex, currentVisibleIndex, visibleRoutes.length]);
 
   const pillStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: pillX.value }],
@@ -93,7 +102,7 @@ export default function TabBar({
       const { x, width } = event.nativeEvent.layout;
       layoutsRef.current[index] = { x, width };
 
-      if (index === state.index) {
+      if (index === currentVisibleIndex) {
         requestAnimationFrame(() => animateToIndex(index));
       }
     };
@@ -131,7 +140,7 @@ export default function TabBar({
         <View
           style={styles.row}
           onLayout={() => {
-            requestAnimationFrame(() => animateToIndex(state.index));
+            requestAnimationFrame(() => animateToIndex(currentVisibleIndex));
           }}
         >
           <Animated.View
@@ -139,9 +148,9 @@ export default function TabBar({
             style={[styles.activePill, pillStyle]}
           />
 
-          {state.routes.map((route, index) => {
+          {visibleRoutes.map((route, index) => {
             const { options } = descriptors[route.key];
-            const isFocused = index === state.index;
+            const isFocused = route.key === focusedRouteKey;
 
             const onPress = () => {
               const event = navigation.emit({

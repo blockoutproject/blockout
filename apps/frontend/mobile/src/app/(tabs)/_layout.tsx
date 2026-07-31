@@ -9,7 +9,7 @@ import { useSessionState } from "@/src/modules/session/providers/session-context
 import TabBar from "@/src/shared/ui/navigation/tab-bar";
 
 export default function TabLayout() {
-  const { customUser, isGuest, isAuthenticated } = useSessionState();
+  const { customUser } = useSessionState();
 
   const avatarSource = customUser?.pictureUrl
     ? { uri: customUser.pictureUrl }
@@ -23,23 +23,20 @@ export default function TabLayout() {
       }}
       tabBar={(props) => <TabBar {...props} />}
     >
-      <Tabs.Protected guard={isAuthenticated}>
-        <Tabs.Screen
-          name="(feed)"
-          options={{
-            href: isGuest ? null : undefined,
-            tabBarAccessibilityLabel: "Accueil",
-            tabBarButtonTestID: "navigation-home-action",
-            tabBarIcon: ({ color, focused }) => (
-              <MaterialCommunityIcons
-                name={focused ? "home" : "home-outline"}
-                color={color}
-                size={iconSize.navigation}
-              />
-            ),
-          }}
-        />
-      </Tabs.Protected>
+      <Tabs.Screen
+        name="(feed)"
+        options={{
+          tabBarAccessibilityLabel: "Accueil",
+          tabBarButtonTestID: "navigation-home-action",
+          tabBarIcon: ({ color, focused }) => (
+            <MaterialCommunityIcons
+              name={focused ? "home" : "home-outline"}
+              color={color}
+              size={iconSize.navigation}
+            />
+          ),
+        }}
+      />
 
       <Tabs.Screen
         name="(search)"
@@ -56,23 +53,20 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Protected guard={isAuthenticated}>
-        <Tabs.Screen
-          name="(notifications)"
-          options={{
-            href: isGuest ? null : undefined,
-            tabBarAccessibilityLabel: "Suivis",
-            tabBarButtonTestID: "navigation-followed-action",
-            tabBarIcon: ({ color, focused }) => (
-              <MaterialCommunityIcons
-                name={focused ? "whistle" : "whistle-outline"}
-                color={color}
-                size={iconSize.navigation}
-              />
-            ),
-          }}
-        />
-      </Tabs.Protected>
+      <Tabs.Screen
+        name="(notifications)"
+        options={{
+          tabBarAccessibilityLabel: "Suivis",
+          tabBarButtonTestID: "navigation-followed-action",
+          tabBarIcon: ({ color, focused }) => (
+            <MaterialCommunityIcons
+              name={focused ? "whistle" : "whistle-outline"}
+              color={color}
+              size={iconSize.navigation}
+            />
+          ),
+        }}
+      />
 
       <Tabs.Screen
         name="profile"
