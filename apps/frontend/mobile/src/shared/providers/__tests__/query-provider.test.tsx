@@ -1,12 +1,23 @@
 import React from "react";
-import { act, render, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  render,
+  renderHook,
+  waitFor,
+} from "@testing-library/react-native";
 import { AppState, Platform, Text } from "react-native";
-import { focusManager, onlineManager } from "@tanstack/react-query";
+import {
+  focusManager,
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import * as Network from "expo-network";
 
 import {
   createMobileQueryClient,
   QueryProvider,
+  useResetQueryCache,
 } from "@/src/shared/providers/query-provider";
 
 jest.mock("expo-network", () => ({
@@ -92,5 +103,24 @@ describe("mobile Query provider", () => {
     });
     expect(removeAppStateListener).toHaveBeenCalledTimes(1);
     expect(removeNetworkListener).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels active queries before clearing session-owned cache data", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["current-user"], { id: 7 });
+    const cancelQueries = jest.spyOn(queryClient, "cancelQueries");
+    const wrapper = ({ children }: React.PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = await renderHook(() => useResetQueryCache(), {
+      wrapper,
+    });
+
+    await act(async () => {
+      await result.current();
+    });
+
+    expect(cancelQueries).toHaveBeenCalledTimes(1);
+    expect(queryClient.getQueryData(["current-user"])).toBeUndefined();
   });
 });

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React from "react";
 import { StatusBar } from "react-native";
 import { Stack } from "expo-router";
 import { Auth0Provider } from "@/src/modules/session/auth/auth-provider";
@@ -20,11 +20,9 @@ import { AdvertisingProvider } from "@/src/modules/advertising/providers/adverti
 import { PurchasesProvider } from "@/src/modules/subscription/providers/purchases-provider";
 import { configureRevenueCat } from "@/src/modules/subscription/providers/revenuecat-client";
 import { QueryProvider } from "@/src/shared/providers/query-provider";
-import type { NotificationResponse } from "expo-notifications";
-import {
-  addNotificationListeners,
-  openNotificationUrlIfAny,
-} from "@/src/modules/notifications/api/push-notifications";
+import { NotificationResponseController } from "@/src/modules/notifications/providers/notification-response-controller";
+import { PushRegistrationController } from "@/src/modules/notifications/providers/push-registration-controller";
+import { getRootNavigationState } from "@/src/modules/session/navigation/root-navigation-state";
 
 const revenueCatConfiguration = configureRevenueCat();
 
@@ -45,6 +43,8 @@ export default function Root() {
                 <SessionProvider>
                   <PurchasesProvider configuration={revenueCatConfiguration}>
                     <AdvertisingProvider>
+                      <NotificationResponseController />
+                      <PushRegistrationController />
                       <SplashScreenController />
                       <RootNavigator />
                     </AdvertisingProvider>
@@ -62,21 +62,6 @@ export default function Root() {
 function RootNavigator() {
   const theme = useAppTheme();
 
-  const handleNotificationRespond = useCallback(
-    (response: NotificationResponse) => {
-      const data = response.notification.request.content.data;
-      openNotificationUrlIfAny(data);
-    },
-    [],
-  );
-
-  useEffect(() => {
-    const remove = addNotificationListeners({
-      onRespond: handleNotificationRespond,
-    });
-    return remove;
-  }, [handleNotificationRespond]);
-
   const {
     isAuthenticated,
     isGuest,
@@ -88,9 +73,15 @@ function RootNavigator() {
 
   const { hasCompletedOnboarding } = useOnboardingStore();
 
-  const isBlockedByUpdate = isUpdateRequired && !updateBypass;
-  const isBlockedByMaintenance = isMaintenance && !maintenanceBypass;
-  const isGloballyBlocked = isBlockedByUpdate || isBlockedByMaintenance;
+  const navigation = getRootNavigationState({
+    isAuthenticated,
+    isGuest,
+    isMaintenance,
+    maintenanceBypass,
+    isUpdateRequired,
+    updateBypass,
+    hasCompletedOnboarding,
+  });
 
   return (
     <BottomSheetModalProvider>
@@ -101,35 +92,29 @@ function RootNavigator() {
           contentStyle: { backgroundColor: theme.background },
         }}
       >
-        <Stack.Protected guard={isBlockedByMaintenance}>
+        <Stack.Protected guard={navigation.showMaintenance}>
           <Stack.Screen
             name="maintenance"
             options={{ animation: "fade_from_bottom", animationDuration: 300 }}
           />
         </Stack.Protected>
 
-        <Stack.Protected
-          guard={Boolean(isBlockedByUpdate && !isBlockedByMaintenance)}
-        >
+        <Stack.Protected guard={navigation.showUpdateRequired}>
           <Stack.Screen
             name="update-required"
             options={{ animation: "fade_from_bottom", animationDuration: 300 }}
           />
         </Stack.Protected>
 
-        <Stack.Protected
-          guard={!(isGuest || isAuthenticated) && !isGloballyBlocked}
-        >
+        <Stack.Protected guard={navigation.showSignIn}>
           <Stack.Screen
             name="sign-in"
             options={{ animation: "fade_from_bottom", animationDuration: 300 }}
           />
         </Stack.Protected>
 
-        <Stack.Protected
-          guard={Boolean((isGuest || isAuthenticated) && !isGloballyBlocked)}
-        >
-          <Stack.Protected guard={!hasCompletedOnboarding}>
+        <Stack.Protected guard={navigation.showApplication}>
+          <Stack.Protected guard={navigation.showOnboarding}>
             <Stack.Screen
               name="onboarding"
               options={{
