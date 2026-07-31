@@ -50,7 +50,6 @@
                             <schemaMappings combine.self="override"/>
                             <configOptions>
                                 <interfaceOnly>true</interfaceOnly>
-                                <useSpringBoot3>true</useSpringBoot3>
                                 <useTags>true</useTags>
                                 <useOneOfInterfaces>true</useOneOfInterfaces>
                                 <openApiNullable>false</openApiNullable>

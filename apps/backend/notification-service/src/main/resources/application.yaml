@@ -2,10 +2,6 @@ server:
   port: 8092
 
 spring:
-  http:
-    converters:
-      preferred-json-mapper: jackson2
-
   application:
     name: ${APPLICATION_NAME:notifications}
 
@@ -35,6 +31,10 @@ spring:
       ddl-auto: none
     show-sql: ${JPA_SHOW_SQL:false}
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        type:
+          json_format_mapper: jackson3
 
   datasource:
     url: ${DATASOURCE_URL}
