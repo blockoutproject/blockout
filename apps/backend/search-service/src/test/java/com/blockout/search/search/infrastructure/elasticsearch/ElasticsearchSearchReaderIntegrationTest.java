@@ -1,6 +1,7 @@
 package com.blockout.search.search.infrastructure.elasticsearch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Refresh;
@@ -8,6 +9,7 @@ import com.blockout.search.config.ElasticsearchConfig;
 import com.blockout.search.config.ElasticsearchProperties;
 import com.blockout.search.search.infrastructure.elasticsearch.documents.ClubSearchDocument;
 import java.io.StringReader;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -96,9 +98,13 @@ class ElasticsearchSearchReaderIntegrationTest {
                         "lyon", "Blockout Lyon", "https://example.test/lyon.png", "Lyon"))
                 .refresh(Refresh.True));
 
-    var results = searchReader.searchClubs("paris");
-
-    assertThat(results).extracting("id").containsExactly("paris");
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () ->
+                assertThat(searchReader.searchClubs("paris"))
+                    .extracting("id")
+                    .containsExactly("paris"));
   }
 
   @SpringBootConfiguration

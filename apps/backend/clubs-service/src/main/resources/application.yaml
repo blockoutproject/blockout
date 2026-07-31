@@ -24,8 +24,6 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: ${JPA_SHOW_SQL:false}
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-
   datasource:
     url: ${DATASOURCE_URL}
     username: ${DATASOURCE_USERNAME}
