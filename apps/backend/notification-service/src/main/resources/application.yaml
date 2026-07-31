@@ -30,7 +30,6 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: ${JPA_SHOW_SQL:false}
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
         type:
