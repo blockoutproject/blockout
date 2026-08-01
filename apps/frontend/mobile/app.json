@@ -28,9 +28,6 @@
       "package": "com.blockoutproject.blockout",
       "permissions": ["com.google.android.gms.permission.AD_ID"]
     },
-    "androidNavigationBar": {
-      "barStyle": "dark-content"
-    },
     "plugins": [
       [
         "react-native-google-mobile-ads",
@@ -127,6 +124,13 @@
             "backgroundColor": "#0b0c0d"
           },
           "imageWidth": 200
+        }
+      ],
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "barStyle": "dark"
         }
       ],
       [
