@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 
 import type { ClubResponse } from "@/src/shared/generated/models";
 import Hero from "@/src/shared/ui/hero";
@@ -30,28 +30,11 @@ const ClubHero: React.FC<ClubHeroProps> = ({
   isSeasonError,
 }) => {
   const presentation = toClubHeroPresentation(club);
-  const topAccessory = useMemo(() => {
-    if (!showSeasonSelect) return null;
-    if (isSeasonLoading) return null;
-    if (isSeasonError) return null;
-    if (seasonOptions.length === 0) return null;
-
-    return (
-      <SeasonSelect
-        options={seasonOptions}
-        selectedValue={selectedSeason ?? null}
-        onValueChange={onSelectSeason}
-        testID="club-hero-season-button"
-      />
-    );
-  }, [
-    showSeasonSelect,
-    isSeasonLoading,
-    isSeasonError,
-    seasonOptions,
-    selectedSeason,
-    onSelectSeason,
-  ]);
+  const showSeason =
+    showSeasonSelect &&
+    !isSeasonLoading &&
+    !isSeasonError &&
+    seasonOptions.length > 0;
 
   return (
     <Hero
@@ -64,7 +47,16 @@ const ClubHero: React.FC<ClubHeroProps> = ({
       onEdit={onEdit}
       testID="club-hero"
       editTestID="club-hero-edit-action"
-      topAccessory={topAccessory}
+      topAccessory={
+        showSeason ? (
+          <SeasonSelect
+            options={seasonOptions}
+            selectedValue={selectedSeason ?? null}
+            onValueChange={onSelectSeason}
+            testID="club-hero-season-button"
+          />
+        ) : null
+      }
     />
   );
 };
