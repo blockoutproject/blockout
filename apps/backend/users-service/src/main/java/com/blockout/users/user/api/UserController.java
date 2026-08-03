@@ -43,7 +43,7 @@ public class UserController implements UserApi {
     UpdateUserInternalRequest request = readData(data);
     return ResponseEntity.ok(
         mapper.toInternalResponse(
-            userService.updateUser(auth0Id, mapper.toCommand(request, image))));
+            userService.updateUser(currentSubject(), mapper.toCommand(request, image))));
   }
 
   @Override
