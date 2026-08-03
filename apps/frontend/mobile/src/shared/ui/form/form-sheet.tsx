@@ -154,10 +154,10 @@ export function FormSheet({
   );
 
   return (
-    <FormSheetContext.Provider value={contextValue}>
-      <BottomSheetCustomModal {...modalProps} footerComponent={renderFooter}>
+    <BottomSheetCustomModal {...modalProps} footerComponent={renderFooter}>
+      <FormSheetContext.Provider value={contextValue}>
         {children}
-      </BottomSheetCustomModal>
-    </FormSheetContext.Provider>
+      </FormSheetContext.Provider>
+    </BottomSheetCustomModal>
   );
 }
