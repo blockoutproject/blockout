@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams } from "expo-router";
@@ -14,6 +14,7 @@ import { ReportTypeEnum } from "@/src/shared/generated/models";
 import ReportFormSheet from "@/src/modules/report/ui/report-form-sheet";
 import TeamFormSheet from "@/src/modules/team/ui/team-form-sheet";
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
+import { getEntityScreenState } from "@/src/shared/model/entity-screen-state";
 
 const TeamScreen: React.FC = () => {
   const theme = useAppTheme();
@@ -24,44 +25,44 @@ const TeamScreen: React.FC = () => {
   const formSheetRef = useRef<BottomSheetModal>(null);
   const reportSheetRef = useRef<BottomSheetModal>(null);
 
-  const openForm = () => {
+  const openForm = useCallback(() => {
     if (!team) return;
     Haptics.selectionAsync();
     formSheetRef.current?.present();
-  };
-  const closeForm = () => formSheetRef.current?.dismiss();
+  }, [team]);
+  const closeForm = useCallback(() => formSheetRef.current?.dismiss(), []);
 
   const handleOpenReport = useCallback(() => {
     reportSheetRef.current?.present();
   }, []);
 
-  const body = useMemo(() => {
-    if (isLoading) {
-      return <EntityScreenSkeleton testID="team-loading" />;
-    }
-    if (error) {
-      return (
-        <ErrorState
-          subtitle="Impossible de charger l'équipe."
-          onRetry={refetch}
-          paddingTop={"40%"}
-          testID="team-error"
-          retryTestID="team-retry-action"
-        />
-      );
-    }
-    if (!team) {
-      return (
-        <ErrorState
-          subtitle="Cette équipe est introuvable."
-          onRetry={refetch}
-          paddingTop={"40%"}
-          testID="team-not-found"
-          retryTestID="team-not-found-retry-action"
-        />
-      );
-    }
-    return (
+  const screenState = getEntityScreenState({ entity: team, error, isLoading });
+  let content: React.ReactNode;
+
+  if (screenState === "loading") {
+    content = <EntityScreenSkeleton testID="team-loading" />;
+  } else if (screenState === "error") {
+    content = (
+      <ErrorState
+        subtitle="Impossible de charger l'équipe."
+        onRetry={refetch}
+        paddingTop="40%"
+        testID="team-error"
+        retryTestID="team-retry-action"
+      />
+    );
+  } else if (screenState === "not-found" || !team) {
+    content = (
+      <ErrorState
+        subtitle="Cette équipe est introuvable."
+        onRetry={refetch}
+        paddingTop="40%"
+        testID="team-not-found"
+        retryTestID="team-not-found-retry-action"
+      />
+    );
+  } else {
+    content = (
       <>
         <TeamProfile enrichedTeam={team} />
         <TeamTabs enrichedTeam={team} />
@@ -77,7 +78,7 @@ const TeamScreen: React.FC = () => {
         />
       </>
     );
-  }, [isLoading, error, team, refetch]);
+  }
 
   return (
     <View
@@ -99,7 +100,7 @@ const TeamScreen: React.FC = () => {
         reportActionTestID="team-report-action"
       />
 
-      {body}
+      {content}
 
       <ReportFormSheet
         ref={reportSheetRef}

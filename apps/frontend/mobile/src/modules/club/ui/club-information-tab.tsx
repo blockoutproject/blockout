@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { Animated, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
@@ -21,11 +21,9 @@ const ClubInformationsTab: React.FC<ClubInformationsTabProps> = ({
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
 
-  const websiteDisplay = useMemo(() => {
-    return club?.website
-      ? String(club.website).replace(/^https?:\/\//, "")
-      : null;
-  }, [club?.website]);
+  const websiteDisplay = club.website
+    ? club.website.replace(/^https?:\/\//, "")
+    : null;
 
   const openWebsite = () => {
     if (!club?.website) return;

@@ -18,7 +18,6 @@ import { usePurchases } from "@/src/modules/subscription/providers/purchases-pro
 
 type ClubTabsProps = {
   club: ClubResponse;
-  selectedSeason?: string;
   teams: TeamSummaryResponse[];
   teamIdsForMatches: number[];
   onRefreshTeams: () => Promise<unknown>;
@@ -26,6 +25,13 @@ type ClubTabsProps = {
   isTeamsError: boolean;
   onTabChange?: (key: string) => void;
 };
+
+const CLUB_TABS = [
+  { key: "info", title: "Informations" },
+  { key: "teams", title: "Équipes" },
+  { key: "upcoming", title: "À venir" },
+  { key: "finished", title: "Terminés" },
+] as const;
 
 const ClubTabs: React.FC<ClubTabsProps> = ({
   club,
@@ -38,16 +44,6 @@ const ClubTabs: React.FC<ClubTabsProps> = ({
 }) => {
   const { isPro } = usePurchases();
 
-  const tabs = useMemo(
-    () => [
-      { key: "info", title: "Informations" },
-      { key: "teams", title: "Équipes" },
-      { key: "upcoming", title: "À venir" },
-      { key: "finished", title: "Terminés" },
-    ],
-    [],
-  );
-
   const scrollYs = useRef<Record<string, Animated.Value>>({
     info: new Animated.Value(0),
     upcoming: new Animated.Value(0),
@@ -55,80 +51,66 @@ const ClubTabs: React.FC<ClubTabsProps> = ({
     teams: new Animated.Value(0),
   }).current;
 
-  const informations = useMemo(
-    () => <ClubInformationsTab club={club} scrollY={scrollYs.info} />,
-    [club, scrollYs],
-  );
-
-  const teamsTab = useMemo(
-    () => (
-      <ClubTeamListTab
-        teams={teams}
-        isLoading={isTeamsLoading}
-        isError={isTeamsError}
-        onRefresh={onRefreshTeams}
-        scrollY={scrollYs.teams}
-      />
-    ),
-    [teams, isTeamsLoading, isTeamsError, onRefreshTeams, scrollYs],
-  );
-
-  const upcoming = useMemo(() => {
-    if (!isPro) {
-      return (
-        <ProUpsellTab subtitle="Accède aux matchs à venir du club avec Blockout Pro." />
-      );
-    }
-
-    return (
-      <MatchList
-        teamIds={teamIdsForMatches}
-        status={MatchStatusEnum.UPCOMING}
-        scrollY={scrollYs.upcoming}
-        headerOffset={layout.tabs}
-        contentContainerStyle={[{ paddingHorizontal: 4 }]}
-        home={false}
-      />
-    );
-  }, [isPro, teamIdsForMatches, scrollYs]);
-
-  const finished = useMemo(() => {
-    if (!isPro) {
-      return (
-        <ProUpsellTab subtitle="Accède aux matchs terminés du club avec Blockout Pro." />
-      );
-    }
-
-    return (
-      <MatchList
-        teamIds={teamIdsForMatches}
-        status={MatchStatusEnum.FINISHED}
-        scrollY={scrollYs.finished}
-        headerOffset={layout.tabs}
-        contentContainerStyle={[{ paddingHorizontal: 4 }]}
-        home={false}
-      />
-    );
-  }, [isPro, teamIdsForMatches, scrollYs]);
-
-  const renderTabs = useMemo(
+  const tabs = useMemo(
     () =>
-      tabs.map((tab) => {
-        if (tab.key === "info") return { ...tab, render: () => informations };
-        if (tab.key === "teams") return { ...tab, render: () => teamsTab };
-        if (tab.key === "upcoming") return { ...tab, render: () => upcoming };
-        if (tab.key === "finished") return { ...tab, render: () => finished };
-        return { ...tab, render: () => null };
-      }),
-    [tabs, informations, upcoming, finished, teamsTab],
+      CLUB_TABS.map((tab) => ({
+        ...tab,
+        render: () => {
+          if (tab.key === "info") {
+            return <ClubInformationsTab club={club} scrollY={scrollYs.info} />;
+          }
+          if (tab.key === "teams") {
+            return (
+              <ClubTeamListTab
+                teams={teams}
+                isLoading={isTeamsLoading}
+                isError={isTeamsError}
+                onRefresh={onRefreshTeams}
+                scrollY={scrollYs.teams}
+              />
+            );
+          }
+          if (!isPro) {
+            return (
+              <ProUpsellTab
+                subtitle={
+                  tab.key === "upcoming"
+                    ? "Accède aux matchs à venir du club avec Blockout Pro."
+                    : "Accède aux matchs terminés du club avec Blockout Pro."
+                }
+              />
+            );
+          }
+          return (
+            <MatchList
+              teamIds={teamIdsForMatches}
+              status={
+                tab.key === "upcoming"
+                  ? MatchStatusEnum.UPCOMING
+                  : MatchStatusEnum.FINISHED
+              }
+              scrollY={scrollYs[tab.key]}
+              headerOffset={layout.tabs}
+              contentContainerStyle={[{ paddingHorizontal: 4 }]}
+              home={false}
+            />
+          );
+        },
+      })),
+    [
+      club,
+      isPro,
+      isTeamsError,
+      isTeamsLoading,
+      onRefreshTeams,
+      scrollYs,
+      teamIdsForMatches,
+      teams,
+    ],
   );
 
   return (
-    <EntityTabView
-      tabs={renderTabs}
-      scrollYs={scrollYs}
-      onTabChange={onTabChange}
-    />
+    <EntityTabView tabs={tabs} scrollYs={scrollYs} onTabChange={onTabChange} />
   );
 };
 

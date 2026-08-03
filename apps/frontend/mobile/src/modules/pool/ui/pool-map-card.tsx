@@ -20,6 +20,14 @@ import type {
 import { CONFIG } from "@/src/shared/config/config";
 import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
 import { useAppTheme } from "@/src/shared/theme";
+import {
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_ZOOM,
+  getMapCoordinateBounds,
+  getMapCoordinateCenter,
+  hasMapCoordinate,
+  type MapCoordinate,
+} from "@/src/shared/model/map-presentation";
 
 type Props = {
   enrichedPool: PoolResponse;
@@ -27,41 +35,7 @@ type Props = {
 
 const RADIUS = 18;
 
-function hasCoord(
-  lat: number | null | undefined,
-  lng: number | null | undefined,
-): lat is number {
-  return (
-    typeof lat === "number" &&
-    typeof lng === "number" &&
-    Number.isFinite(lat) &&
-    Number.isFinite(lng)
-  );
-}
-
-const DEFAULT_CENTER: [number, number] = [1.888334, 46.603354];
-const DEFAULT_ZOOM = 5;
-
 const EDGE_PADDING = 60;
-
-function computeBounds(coords: [number, number][]) {
-  let minLng = Infinity;
-  let maxLng = -Infinity;
-  let minLat = Infinity;
-  let maxLat = -Infinity;
-
-  for (const [lng, lat] of coords) {
-    if (lng < minLng) minLng = lng;
-    if (lng > maxLng) maxLng = lng;
-    if (lat < minLat) minLat = lat;
-    if (lat > maxLat) maxLat = lat;
-  }
-
-  const southWest: [number, number] = [minLng, minLat];
-  const northEast: [number, number] = [maxLng, maxLat];
-
-  return { southWest, northEast };
-}
 
 // Astuce perf : on évite les clés “exotiques” dans le style layer
 // et on stocke des string ids simples.
@@ -76,7 +50,7 @@ const PoolMapCard: React.FC<Props> = ({ enrichedPool }) => {
 
   const teamsWithCoords = useMemo(() => {
     return enrichedPool.ranking.filter((t) =>
-      hasCoord(t.latitude, t.longitude),
+      hasMapCoordinate(t.latitude, t.longitude),
     ) as TeamWithStatsResponse[];
   }, [enrichedPool.ranking]);
 
@@ -125,7 +99,7 @@ const PoolMapCard: React.FC<Props> = ({ enrichedPool }) => {
 
   const initialCamera = useMemo(() => {
     if (teamsWithCoords.length === 0)
-      return { center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM };
+      return { center: DEFAULT_MAP_CENTER, zoom: DEFAULT_MAP_ZOOM };
     if (teamsWithCoords.length === 1)
       return {
         center: [
@@ -135,14 +109,11 @@ const PoolMapCard: React.FC<Props> = ({ enrichedPool }) => {
         zoom: 10,
       };
 
-    const avgLng =
-      teamsWithCoords.reduce((s, t) => s + (t.longitude as number), 0) /
-      teamsWithCoords.length;
-    const avgLat =
-      teamsWithCoords.reduce((s, t) => s + (t.latitude as number), 0) /
-      teamsWithCoords.length;
-
-    return { center: [avgLng, avgLat] as [number, number], zoom: 6 };
+    const coordinates = teamsWithCoords.map(
+      (team) =>
+        [team.longitude as number, team.latitude as number] as MapCoordinate,
+    );
+    return { center: getMapCoordinateCenter(coordinates), zoom: 6 };
   }, [teamsWithCoords]);
 
   const fitAllPoints = useCallback(() => {
@@ -161,10 +132,11 @@ const PoolMapCard: React.FC<Props> = ({ enrichedPool }) => {
       return;
     }
 
-    const coords = teamsWithCoords.map(
-      (t) => [t.longitude as number, t.latitude as number] as [number, number],
+    const coordinates = teamsWithCoords.map(
+      (team) =>
+        [team.longitude as number, team.latitude as number] as MapCoordinate,
     );
-    const { southWest, northEast } = computeBounds(coords);
+    const { southWest, northEast } = getMapCoordinateBounds(coordinates);
     cameraRef.current.fitBounds(northEast, southWest, EDGE_PADDING, 0);
   }, [teamsWithCoords]);
 

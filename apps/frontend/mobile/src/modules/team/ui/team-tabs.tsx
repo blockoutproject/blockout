@@ -35,56 +35,33 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
     [enrichedTeam.pools],
   );
 
-  const scrollYs = useMemo(() => {
-    return Object.fromEntries(
-      tabs.map((tab) => [tab.key, new Animated.Value(0)]),
-    );
-  }, [tabs]);
-
-  const finished = useMemo(
-    () => (
-      <MatchList
-        teamIds={[enrichedTeam.id]}
-        status={MatchStatusEnum.FINISHED}
-        scrollY={scrollYs["finished"]}
-        headerOffset={layout.tabs}
-        contentContainerStyle={[
-          {
-            paddingHorizontal: 4,
-          },
-        ]}
-        home={false}
-      />
-    ),
-    [enrichedTeam.id, scrollYs],
+  const scrollYs = useMemo(
+    () =>
+      Object.fromEntries(tabs.map((tab) => [tab.key, new Animated.Value(0)])),
+    [tabs],
   );
 
-  const upcoming = useMemo(
-    () => (
-      <MatchList
-        teamIds={[enrichedTeam.id]}
-        status={MatchStatusEnum.UPCOMING}
-        scrollY={scrollYs["upcoming"]}
-        headerOffset={layout.tabs}
-        contentContainerStyle={[
-          {
-            paddingHorizontal: 4,
-          },
-        ]}
-        home={false}
-      />
-    ),
-    [enrichedTeam.id, scrollYs],
-  );
-
-  const renderTabs = useMemo(
+  const renderedTabs = useMemo(
     () =>
       tabs.map((tab) => {
-        if (tab.key === "finished") {
-          return { ...tab, render: () => finished };
-        }
-        if (tab.key === "upcoming") {
-          return { ...tab, render: () => upcoming };
+        if (tab.key === "finished" || tab.key === "upcoming") {
+          return {
+            ...tab,
+            render: () => (
+              <MatchList
+                teamIds={[enrichedTeam.id]}
+                status={
+                  tab.key === "upcoming"
+                    ? MatchStatusEnum.UPCOMING
+                    : MatchStatusEnum.FINISHED
+                }
+                scrollY={scrollYs[tab.key]}
+                headerOffset={layout.tabs}
+                contentContainerStyle={[{ paddingHorizontal: 4 }]}
+                home={false}
+              />
+            ),
+          };
         }
 
         const poolId = Number(tab.key.replace("pool-", ""));
@@ -107,10 +84,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
             ) : null,
         };
       }),
-    [tabs, finished, upcoming, enrichedTeam.pools, enrichedTeam.id],
+    [enrichedTeam.id, enrichedTeam.pools, scrollYs, tabs],
   );
 
-  return <EntityTabView tabs={renderTabs} scrollYs={scrollYs} />;
+  return <EntityTabView tabs={renderedTabs} scrollYs={scrollYs} />;
 };
 
 export default TeamTabs;

@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, Keyboard, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -24,6 +18,7 @@ import EntityListSkeleton from "@/src/shared/ui/entity/entity-list-skeleton";
 import type { SelectOption } from "@/src/shared/ui/form/select-sheet";
 import SeasonSelect from "@/src/shared/ui/form/season-select";
 import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
+import { useSeasonFilter } from "@/src/shared/hooks/use-season-filter";
 
 const TeamListScreen: React.FC = () => {
   const theme = useAppTheme();
@@ -39,9 +34,6 @@ const TeamListScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const reportSheetRef = useRef<BottomSheetModal>(null);
-
-  const [availableSeasons, setAvailableSeasons] = useState<string[]>([]);
-  const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
 
   const handleOpenReport = useCallback(() => {
     reportSheetRef.current?.present();
@@ -78,64 +70,44 @@ const TeamListScreen: React.FC = () => {
     [handleTeamPress],
   );
 
-  useEffect(() => {
-    const allTeams = data ?? [];
-    const seasons = Array.from(
-      new Set(allTeams.map((t) => t.season).filter((s): s is string => !!s)),
-    ).sort((a, b) => b.localeCompare(a));
-
-    setAvailableSeasons(seasons);
-
-    if (seasons.length === 0) {
-      setSelectedSeason(null);
-    } else if (!selectedSeason || !seasons.includes(selectedSeason)) {
-      setSelectedSeason(seasons[0]);
-    }
-  }, [data, selectedSeason]);
+  const {
+    availableSeasons,
+    selectedSeason,
+    setSelectedSeason,
+    filteredItems: filteredData,
+  } = useSeasonFilter(data);
 
   const seasonOptions: SelectOption<string>[] = useMemo(
     () => availableSeasons.map((s) => ({ value: s, label: s })),
     [availableSeasons],
   );
 
-  const filteredData: TeamSummaryResponse[] = useMemo(() => {
-    const all = data ?? [];
-    if (!selectedSeason) return all;
-    return all.filter((t) => t.season === selectedSeason);
-  }, [data, selectedSeason]);
-
   const hasData = filteredData.length > 0;
-
-  const body = useMemo(() => {
-    if (isLoading && !refreshing) {
-      return <EntityListSkeleton testID="team-list-loading" />;
-    }
-
-    if (isError) {
-      return (
-        <ErrorState
-          subtitle="Impossible de charger les équipes."
-          onRetry={refetch}
-          paddingTop={"40%"}
-          testID="team-list-error"
-          retryTestID="team-list-retry-action"
-        />
-      );
-    }
-
-    if (!filteredData || filteredData.length === 0) {
-      return (
-        <ErrorState
-          subtitle="Aucune équipe trouvée pour ce club."
-          onRetry={refetch}
-          paddingTop={"30%"}
-          testID="team-list-empty"
-          retryTestID="team-list-empty-retry-action"
-        />
-      );
-    }
-
-    return (
+  let content: React.ReactNode;
+  if (isLoading && !refreshing) {
+    content = <EntityListSkeleton testID="team-list-loading" />;
+  } else if (isError) {
+    content = (
+      <ErrorState
+        subtitle="Impossible de charger les équipes."
+        onRetry={refetch}
+        paddingTop="40%"
+        testID="team-list-error"
+        retryTestID="team-list-retry-action"
+      />
+    );
+  } else if (!hasData) {
+    content = (
+      <ErrorState
+        subtitle="Aucune équipe trouvée pour ce club."
+        onRetry={refetch}
+        paddingTop="30%"
+        testID="team-list-empty"
+        retryTestID="team-list-empty-retry-action"
+      />
+    );
+  } else {
+    content = (
       <FlatList
         data={filteredData}
         keyExtractor={(item) => String(item.id)}
@@ -147,23 +119,13 @@ const TeamListScreen: React.FC = () => {
           paddingHorizontal: 8,
           paddingBottom: insets.bottom + layout.bottomNavigation,
         }}
-        scrollEnabled={hasData}
+        scrollEnabled
         testID="team-list"
         refreshing={refreshing}
         onRefresh={onRefresh}
       />
     );
-  }, [
-    isLoading,
-    isError,
-    filteredData,
-    refetch,
-    renderItem,
-    insets.bottom,
-    refreshing,
-    onRefresh,
-    hasData,
-  ]);
+  }
 
   return (
     <View
@@ -185,7 +147,7 @@ const TeamListScreen: React.FC = () => {
         }
       />
 
-      {body}
+      {content}
 
       <ReportFormSheet
         ref={reportSheetRef}

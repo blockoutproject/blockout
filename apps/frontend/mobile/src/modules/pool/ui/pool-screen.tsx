@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams } from "expo-router";
@@ -14,6 +14,7 @@ import { ReportTypeEnum } from "@/src/shared/generated/models";
 import ReportFormSheet from "@/src/modules/report/ui/report-form-sheet";
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
 import PoolFormSheet from "@/src/modules/pool/ui/pool-form-sheet";
+import { getEntityScreenState } from "@/src/shared/model/entity-screen-state";
 
 const PoolScreen: React.FC = () => {
   const theme = useAppTheme();
@@ -24,44 +25,44 @@ const PoolScreen: React.FC = () => {
   const formSheetRef = useRef<BottomSheetModal>(null);
   const reportSheetRef = useRef<BottomSheetModal>(null);
 
-  const openForm = () => {
+  const openForm = useCallback(() => {
     if (!pool) return;
     Haptics.selectionAsync();
     formSheetRef.current?.present();
-  };
-  const closeForm = () => formSheetRef.current?.dismiss();
+  }, [pool]);
+  const closeForm = useCallback(() => formSheetRef.current?.dismiss(), []);
 
   const handleOpenReport = useCallback(() => {
     reportSheetRef.current?.present();
   }, []);
 
-  const body = useMemo(() => {
-    if (isLoading) {
-      return <EntityScreenSkeleton testID="pool-loading" />;
-    }
-    if (error) {
-      return (
-        <ErrorState
-          subtitle="Impossible de charger la poule."
-          onRetry={refetch}
-          paddingTop="40%"
-          testID="pool-error"
-          retryTestID="pool-retry-action"
-        />
-      );
-    }
-    if (!pool) {
-      return (
-        <ErrorState
-          subtitle="Cette poule est introuvable."
-          onRetry={refetch}
-          paddingTop="40%"
-          testID="pool-not-found"
-          retryTestID="pool-not-found-retry-action"
-        />
-      );
-    }
-    return (
+  const screenState = getEntityScreenState({ entity: pool, error, isLoading });
+  let content: React.ReactNode;
+
+  if (screenState === "loading") {
+    content = <EntityScreenSkeleton testID="pool-loading" />;
+  } else if (screenState === "error") {
+    content = (
+      <ErrorState
+        subtitle="Impossible de charger la poule."
+        onRetry={refetch}
+        paddingTop="40%"
+        testID="pool-error"
+        retryTestID="pool-retry-action"
+      />
+    );
+  } else if (screenState === "not-found" || !pool) {
+    content = (
+      <ErrorState
+        subtitle="Cette poule est introuvable."
+        onRetry={refetch}
+        paddingTop="40%"
+        testID="pool-not-found"
+        retryTestID="pool-not-found-retry-action"
+      />
+    );
+  } else {
+    content = (
       <>
         <PoolProfile enrichedPool={pool} />
         <PoolTabs enrichedPool={pool} />
@@ -77,7 +78,7 @@ const PoolScreen: React.FC = () => {
         />
       </>
     );
-  }, [isLoading, error, pool, refetch]);
+  }
 
   return (
     <View
@@ -99,7 +100,7 @@ const PoolScreen: React.FC = () => {
         reportActionTestID="pool-report-action"
       />
 
-      {body}
+      {content}
 
       <ReportFormSheet
         ref={reportSheetRef}

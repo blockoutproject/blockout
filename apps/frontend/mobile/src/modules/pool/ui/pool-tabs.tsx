@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { Animated } from "react-native";
 
 import EntityTabView from "@/src/shared/ui/entity/entity-tab-view";
@@ -18,81 +18,58 @@ export type PoolTabsProps = {
   enrichedPool: PoolResponse;
 };
 
+const POOL_TABS = [
+  { key: "ranking", title: "Classement" },
+  { key: "upcoming", title: "À Venir" },
+  { key: "finished", title: "Terminés" },
+  { key: "map", title: "Carte" },
+] as const;
+
 const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
   const { isPro } = usePurchases();
 
+  const scrollYs = useRef<Record<string, Animated.Value>>({
+    ranking: new Animated.Value(0),
+    upcoming: new Animated.Value(0),
+    finished: new Animated.Value(0),
+    map: new Animated.Value(0),
+  }).current;
+
   const tabs = useMemo(
-    () => [
-      { key: "ranking", title: "Classement" },
-      { key: "upcoming", title: "À Venir" },
-      { key: "finished", title: "Terminés" },
-      { key: "map", title: "Carte" },
-    ],
-    [],
-  );
-
-  const scrollYs = useMemo(() => {
-    return Object.fromEntries(
-      tabs.map((tab) => [tab.key, new Animated.Value(0)]),
-    );
-  }, [tabs]);
-
-  const ranking = useMemo(
-    () => <RankingTab pool={enrichedPool} />,
-    [enrichedPool],
-  );
-
-  const finished = useMemo(
-    () => (
-      <MatchList
-        poolIds={[enrichedPool.id]}
-        status={MatchStatusEnum.FINISHED}
-        scrollY={scrollYs["finished"]}
-        headerOffset={layout.tabs}
-        contentContainerStyle={[{ paddingHorizontal: 4 }]}
-        showPoolHeader={false}
-      />
-    ),
-    [enrichedPool.id, scrollYs],
-  );
-
-  const upcoming = useMemo(
-    () => (
-      <MatchList
-        poolIds={[enrichedPool.id]}
-        status={MatchStatusEnum.UPCOMING}
-        scrollY={scrollYs["upcoming"]}
-        headerOffset={layout.tabs}
-        contentContainerStyle={[{ paddingHorizontal: 4 }]}
-        showPoolHeader={false}
-      />
-    ),
-    [enrichedPool.id, scrollYs],
-  );
-
-  const map = useMemo(() => {
-    if (!isPro) {
-      return (
-        <ProUpsellTab subtitle="Accède à la carte géographique des équipes de la poule avec Blockout Pro." />
-      );
-    }
-
-    return <PoolMapTab enrichedPool={enrichedPool} />;
-  }, [enrichedPool, isPro]);
-
-  const renderTabs = useMemo(
     () =>
-      tabs.map((tab) => {
-        if (tab.key === "ranking") return { ...tab, render: () => ranking };
-        if (tab.key === "finished") return { ...tab, render: () => finished };
-        if (tab.key === "upcoming") return { ...tab, render: () => upcoming };
-        if (tab.key === "map") return { ...tab, render: () => map };
-        return { ...tab, render: () => null };
-      }),
-    [tabs, ranking, finished, upcoming, map],
+      POOL_TABS.map((tab) => ({
+        ...tab,
+        render: () => {
+          if (tab.key === "ranking") {
+            return <RankingTab pool={enrichedPool} />;
+          }
+          if (tab.key === "map") {
+            return isPro ? (
+              <PoolMapTab enrichedPool={enrichedPool} />
+            ) : (
+              <ProUpsellTab subtitle="Accède à la carte géographique des équipes de la poule avec Blockout Pro." />
+            );
+          }
+          return (
+            <MatchList
+              poolIds={[enrichedPool.id]}
+              status={
+                tab.key === "upcoming"
+                  ? MatchStatusEnum.UPCOMING
+                  : MatchStatusEnum.FINISHED
+              }
+              scrollY={scrollYs[tab.key]}
+              headerOffset={layout.tabs}
+              contentContainerStyle={[{ paddingHorizontal: 4 }]}
+              showPoolHeader={false}
+            />
+          );
+        },
+      })),
+    [enrichedPool, isPro, scrollYs],
   );
 
-  return <EntityTabView tabs={renderTabs} scrollYs={scrollYs} />;
+  return <EntityTabView tabs={tabs} scrollYs={scrollYs} />;
 };
 
 export default PoolTabs;
