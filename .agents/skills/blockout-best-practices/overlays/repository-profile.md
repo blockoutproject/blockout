@@ -14,7 +14,12 @@ This overlay supplies Blockout-specific values to the portable references select
 ## Repository Layout And Versions
 
 - Backend reactor: `apps/backend/pom.xml`
-- Java: 21 with repository-pinned Spring Boot and Maven configuration
+- Java: 25 with Eclipse Temurin in CI
+- Spring Boot: 4.1.0 with Spring Framework 7 and Jackson 3 managed by the parent
+- Java explicit pins: springdoc 3.0.3, Lombok 1.18.42, MapStruct 1.6.3, OpenAPI Generator 7.23.0,
+  build-helper-maven-plugin 3.6.1, and maven-compiler-plugin 3.15.0
+- Maven: 3.9.14 through Maven Wrapper 3.3.4 at the workspace root and Maven 3.9.14 Temurin 25 builder images
+- Nx Maven plugin: 0.0.17
 - Python: 3.12 with Ruff and uv
 - Mobile: `apps/frontend/mobile`, iOS and Android only
 - Club scraper: `apps/backend/club-scraper`

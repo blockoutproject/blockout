@@ -50,7 +50,6 @@
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
-            <version>8.0</version>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -72,12 +71,10 @@
         <dependency>
             <groupId>jakarta.el</groupId>
             <artifactId>jakarta.el-api</artifactId>
-            <version>6.0.1</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
-            <version>2.31.76</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

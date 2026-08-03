@@ -74,7 +74,7 @@ gate before changing product behavior. Load only the two Vercel companion skills
 
 - Workspace: Nx 23 and npm workspaces.
 - Mobile: `apps/frontend/mobile`, Expo and React Native.
-- Backend: `apps/backend`, Maven reactor, Java 21, Spring Boot, JPA, Flyway, PostgreSQL, and RabbitMQ.
+- Backend: `apps/backend`, Maven reactor, Java 25, Spring Boot 4.1, JPA, Flyway, PostgreSQL, and RabbitMQ.
 - Scrapers: `apps/backend/club-scraper` and `apps/backend/competition-scraper`, Python 3.12 applications.
 - Local runtime: `infra/compose/docker-compose.third-party.yml` and `infra/compose/docker-compose.app.yml`.
 
