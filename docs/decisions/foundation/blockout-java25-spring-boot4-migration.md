@@ -1,22 +1,24 @@
 # Java 25 And Spring Boot 4 Migration Baseline
 
-Date: 2026-07-30.
+Date: 2026-07-30. Finalized: 2026-08-03.
 
-Document role: durable, evidence-backed version-pin, compatibility-ownership, and rollback record for the Blockout
-Java 25 and Spring Boot 4 migration.
+Document role: durable, evidence-backed version-pin, compatibility-ownership, migration, and rollback record for the
+delivered Blockout Java 25 and Spring Boot 4 baseline.
 
-GitHub issue: [FND-012 / #116](https://github.com/blockoutproject/blockout/issues/116).
+GitHub issues: [FND-012 / #116](https://github.com/blockoutproject/blockout/issues/116) and
+[FND-017 / #121](https://github.com/blockoutproject/blockout/issues/121).
 
-Source gate: `OK` for this documentation-only decision and the staged migration below. Maaatch is used only as a
-read-only structural and version reference. This decision copies no Maaatch business code and authorizes no Maven,
-Java, generated-source, CI, compose, environment, contract, runtime, or product-behavior change by itself.
+Source gate: `OK`. Maaatch is used only as a read-only structural and version reference. The staged Roadmap issues,
+not this decision alone, authorized the delivered Maven, Java, CI, generation, and runtime changes. No Maaatch business
+code, configuration, contract, domain model, or product behavior was copied.
 
 ## Decision
 
-Blockout will converge on the backend toolchain and framework versions delivered by Maaatch at commit
-[`f1b59a6e`](https://github.com/maaatch/maaatch/commit/f1b59a6ea248d54815207b66e13b1f3a337083de):
+Blockout uses the backend toolchain and framework versions originally selected from Maaatch commit
+[`f1b59a6e`](https://github.com/maaatch/maaatch/commit/f1b59a6ea248d54815207b66e13b1f3a337083de) and revalidated against Maaatch `develop` commit
+[`bd7da207`](https://github.com/maaatch/maaatch/commit/bd7da2073758f654d3917c1b2c264bf9edd968ec):
 
-- Eclipse Temurin 25 in Maven and every Java CI job;
+- Java 25 in Maven and Eclipse Temurin 25 in every Java CI job;
 - Spring Boot 4.1.0 and its Spring Framework 7 dependency baseline;
 - Jackson 3 as the application and generated-code JSON boundary, while leaving Jackson versions under Spring Boot;
 - springdoc 3.0.3;
@@ -25,7 +27,7 @@ Blockout will converge on the backend toolchain and framework versions delivered
 - OpenAPI Generator 7.23.0;
 - build-helper-maven-plugin 3.6.1;
 - maven-compiler-plugin 3.15.0;
-- Maven 3.9.14 through Maven Wrapper 3.3.4; and
+- Maven 3.9.14 through Maven Wrapper 3.3.4 and in every backend builder image; and
 - Nx Maven 0.0.17.
 
 The common Spring Boot parent is the single version authority for every dependency that it manages. Blockout must not
@@ -105,7 +107,7 @@ This rule applies to the shared boundaries currently used by Blockout:
 - PostgreSQL, Caffeine, and Hibernate Validator;
 - Spring Boot Testcontainers plus PostgreSQL, RabbitMQ, and Elasticsearch Testcontainers modules when their Boot 4
   coordinates are managed; and
-- Jackson 3 core and databind plus supported Jackson 2 transitive compatibility during the bounded migration only.
+- Jackson 3 core and databind, with no Jackson 2 core/databind default or migration bridge.
 
 springdoc, Lombok, MapStruct, OpenAPI Generator, build-helper, and maven-compiler remain explicit because the delivered
 Maaatch parent explicitly owns those versions. Blockout-only libraries that are outside Boot dependency management
@@ -113,9 +115,9 @@ remain explicit and follow the compatibility matrix below.
 
 ## Spring Boot 4 Modularization Inventory
 
-FND-014 owns compile-level modularization. It must apply the
+FND-014 delivered compile-level modularization by applying the
 [official Spring Boot 4 migration guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide)
-to the current reactor rather than relying on the broader Boot 3 classpath.
+to the reactor rather than relying on the broader Boot 3 classpath.
 
 | Current Blockout boundary                                                            | Spring Boot 4 disposition                                                                                                                                                  |
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -127,14 +129,13 @@ to the current reactor rather than relying on the broader Boot 3 classpath.
 | Testcontainers `junit-jupiter` and `postgresql` coordinates                          | Move to the Boot 4/Testcontainers coordinates resolved by the delivered parent, including `testcontainers-junit-jupiter` and `testcontainers-postgresql`.                  |
 | Direct Boot auto-configuration imports in messaging tests and application exclusions | Move imports to their Boot 4 module packages while preserving the same selected/excluded auto-configuration behavior.                                                      |
 
-The current direct imports requiring inspection include AMQP `RabbitAutoConfiguration` in eight integration-test
-areas and JDBC/JPA auto-configuration exclusions in mobile-gateway, search-service, and search-worker. FND-014 owns
-the package and module changes needed for compilation. FND-016 owns runtime proof that the resulting classpath has
-neither missing nor accidental auto-configuration.
+FND-014 migrated the direct AMQP `RabbitAutoConfiguration` imports and the JDBC/JPA auto-configuration exclusions in
+mobile-gateway, search-service, and search-worker. FND-016 then proved that the resulting classpath has neither missing
+nor accidental auto-configuration.
 
 ## OpenAPI And Jackson Boundary
 
-FND-015 owns the complete generator and JSON transition:
+FND-015 delivered the complete generator and JSON transition:
 
 1. Upgrade OpenAPI Generator to 7.23.0 and springdoc to 3.0.3.
 2. Set `useSpringBoot4=true` and `useJackson3=true` in the parent configuration used by all applicable Spring
@@ -151,26 +152,26 @@ Jackson 2 only as temporary scaffolding under the rule below.
 
 ## Blockout-Specific Compatibility Matrix
 
-| Boundary and current form                                                | Disposition                                                                          | Implementation owner              | Required evidence                                             |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | --------------------------------- | ------------------------------------------------------------- |
-| Flyway PostgreSQL, versionless                                           | `MIGRATE` to Boot 4 Flyway starter ownership                                         | FND-014; runtime proof in FND-016 | Effective graph, migration chain, service startup             |
-| PostgreSQL driver, Boot-managed                                          | `KEEP` Boot-managed                                                                  | FND-014; FND-016                  | Effective graph, JPA/Flyway integration                       |
-| Testcontainers base, PostgreSQL, RabbitMQ, Elasticsearch                 | `MIGRATE` coordinates and focused test starters                                      | FND-014; FND-016                  | Existing container tests plus full verify                     |
-| Spring AMQP and RabbitMQ                                                 | `KEEP` Boot-managed; migrate module/test imports                                     | FND-014; FND-016                  | Topology, publish/consume, failure behavior                   |
-| Spring Data Elasticsearch and Elasticsearch Testcontainers               | `KEEP` Boot-managed; adapt Boot 4 client/module APIs                                 | FND-014; FND-016                  | Index projection, search, retry/idempotency tests             |
-| Spring Security resource server and direct `spring-security-oauth2-jose` | `RENAME` starter and keep both Boot-managed                                          | FND-014; FND-016                  | Issuer, audience, JWT decoding, authorization, negative cases |
-| Auth0 SDK 2.18.0 and 2.20.0 child overrides                              | `CENTRALIZE`, then verify Boot 4/Jackson compatibility                               | FND-014; FND-016                  | Token acquisition and provider failure tests                  |
-| Logstash Logback Encoder 8.0                                             | `CENTRALIZE` explicit Blockout version and verify                                    | FND-014; FND-016                  | Structured-log startup and representative fields              |
-| Apache HttpClient 5.5.1 and manual `RestTemplate` clients                | `KEEP` only if compatible; use focused Boot rest-client support                      | FND-014; FND-016                  | Internal/external HTTP success, error, timeout behavior       |
-| AWS SDK S3 2.31.76                                                       | `CENTRALIZE` explicit Blockout version and verify                                    | FND-014; FND-016                  | Client construction, upload/link path, failure behavior       |
-| Expo SDK 3.1.5                                                           | `KEEP` explicit Blockout version and verify                                          | FND-014; FND-016                  | Client startup, batching, provider error mapping              |
-| Caffeine, Boot-managed                                                   | `KEEP` Boot-managed                                                                  | FND-014; FND-016                  | Cache hit/miss and invalidation behavior                      |
-| Hibernate Validator, Boot-managed; Jakarta EL 6.0.1 explicit             | `KEEP` validator managed; remove or centralize EL only from effective-model evidence | FND-014; FND-016                  | Validation startup and representative constraints             |
-| JJWT 0.13.0                                                              | `CENTRALIZE` explicit Blockout version and verify Jackson coupling                   | FND-015; FND-016                  | PDF-link token sign/verify and failure cases                  |
-| GitHub API 1.329                                                         | `KEEP` explicit Blockout version if Java 25/Boot 4 compatible                        | FND-014; FND-016                  | Configuration GitHub client startup and error path            |
-| Commons Lang 3.20.0                                                      | `KEEP` explicit Blockout version if compatible                                       | FND-014                           | Compilation and owning tests                                  |
-| Spotless 3.8.0 and google-java-format 1.35.0                             | `KEEP` explicit Blockout plugins if Java 25 compatible                               | FND-013; FND-017                  | Repository format check under Java 25                         |
-| Docker Compose service graph                                             | `KEEP` topology and values                                                           | FND-016                           | Compose config plus representative full-stack smokes          |
+| Boundary and current form                                                | Disposition                                                                    | Implementation owner              | Required evidence                                             |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | --------------------------------- | ------------------------------------------------------------- |
+| Flyway PostgreSQL, versionless                                           | `MIGRATE` to Boot 4 Flyway starter ownership                                   | FND-014; runtime proof in FND-016 | Effective graph, migration chain, service startup             |
+| PostgreSQL driver, Boot-managed                                          | `KEEP` Boot-managed                                                            | FND-014; FND-016                  | Effective graph, JPA/Flyway integration                       |
+| Testcontainers base, PostgreSQL, RabbitMQ, Elasticsearch                 | `MIGRATE` coordinates and focused test starters                                | FND-014; FND-016                  | Existing container tests plus full verify                     |
+| Spring AMQP and RabbitMQ                                                 | `KEEP` Boot-managed; migrate module/test imports                               | FND-014; FND-016                  | Topology, publish/consume, failure behavior                   |
+| Spring Data Elasticsearch and Elasticsearch Testcontainers               | `KEEP` Boot-managed; adapt Boot 4 client/module APIs                           | FND-014; FND-016                  | Index projection, search, retry/idempotency tests             |
+| Spring Security resource server and direct `spring-security-oauth2-jose` | `RENAME` starter and keep both Boot-managed                                    | FND-014; FND-016                  | Issuer, audience, JWT decoding, authorization, negative cases |
+| Auth0 SDK 2.20.0, parent-managed                                         | `KEEP` the centralized explicit Blockout version                               | FND-017                           | Token acquisition and provider failure tests                  |
+| Logstash Logback Encoder 8.0, parent-managed                             | `KEEP` the centralized explicit Blockout version                               | FND-017                           | Structured-log startup and representative fields              |
+| Apache HttpClient 5.6.1 and manual `RestTemplate` clients                | `KEEP` Boot-managed; use focused Boot rest-client support                      | FND-017                           | Internal/external HTTP success, error, timeout behavior       |
+| AWS SDK S3 2.31.76, parent-managed                                       | `KEEP` the centralized explicit Blockout version                               | FND-017                           | Client construction, upload/link path, failure behavior       |
+| Expo SDK 3.1.5                                                           | `KEEP` explicit Blockout version and verify                                    | FND-014; FND-016                  | Client startup, batching, provider error mapping              |
+| Caffeine, Boot-managed                                                   | `KEEP` Boot-managed                                                            | FND-014; FND-016                  | Cache hit/miss and invalidation behavior                      |
+| Hibernate Validator, Boot-managed; Jakarta EL 6.0.1 parent-managed       | `KEEP` validator managed and the centralized explicit EL version               | FND-017                           | Validation startup and representative constraints             |
+| JJWT 0.13.0, parent-managed                                              | `KEEP` the centralized explicit Blockout version and verified Jackson coupling | FND-017                           | PDF-link token sign/verify and failure cases                  |
+| GitHub API 1.330                                                         | `KEEP` explicit Blockout version after Java 25/Boot 4 runtime proof            | FND-016                           | Configuration GitHub client startup and error path            |
+| Commons Lang 3.20.0, Boot-managed                                        | `KEEP` Boot-managed                                                            | FND-017                           | Compilation and owning tests                                  |
+| Spotless 3.8.0 and google-java-format 1.35.0                             | `KEEP` explicit Blockout plugins if Java 25 compatible                         | FND-013; FND-017                  | Repository format check under Java 25                         |
+| Docker Compose service graph                                             | `KEEP` topology and values                                                     | FND-016                           | Compose config plus representative full-stack smokes          |
 
 No row authorizes a provider redesign, queue/index topology change, persistence business migration, OpenAPI semantic
 change, or product behavior change. An incompatible Blockout-only library requires an issue Workset expansion or a
@@ -178,21 +179,22 @@ separate accepted task before replacement.
 
 ## Configuration And Removed-API Migration
 
-FND-014 owns compilation failures caused by removed Spring Boot 3/Spring Framework 6 APIs, package moves, Jakarta EE 11,
-Servlet 6.1, Spring Security 7, Spring Data, AMQP, and modular auto-configuration. It must not change behavior to hide a
-failure.
+FND-014 resolved compilation failures caused by removed Spring Boot 3/Spring Framework 6 APIs, package moves,
+Jakarta EE 11, Servlet 6.1, Spring Security 7, Spring Data, AMQP, and modular auto-configuration without changing
+behavior to hide a failure.
 
-FND-016 owns the twelve service configuration files. It runs every service with
-`spring-boot-properties-migrator`, records each renamed or removed property, updates only the equivalent Boot 4 key,
-and then proves that no migration diagnostic remains. It also validates configuration binding, health, logging,
+FND-016 inspected the twelve service configuration files. It ran every service with
+`spring-boot-properties-migrator`, recorded each renamed or removed property, updated only the equivalent Boot 4 key,
+and proved that no migration diagnostic remained. It also validated
+configuration binding, health, logging,
 scheduled work, security, persistence, messaging, search, cache, S3, Expo, and internal HTTP clients through the
 compose-backed flows in its issue.
 
-FND-017 removes the migrator and every other migration-only bridge before clean validation.
+FND-017 removed the migrator and every other migration-only bridge before clean validation.
 
-## Temporary Scaffolding Allow-List
+## Retired Temporary Scaffolding
 
-Only the following temporary mechanisms are permitted:
+The migration temporarily allowed only the following mechanisms before FND-017:
 
 1. `spring-boot-properties-migrator` while FND-016 identifies and replaces configuration keys.
 2. `spring-boot-starter-classic` or `spring-boot-starter-test-classic` inside FND-014 only when needed to isolate a
@@ -203,9 +205,10 @@ Only the following temporary mechanisms are permitted:
    integration cannot compile or start otherwise; the introducing PR must name the upstream incompatibility and
    FND-017 removal condition.
 
-Deprecated starters, disabled generator options, suppressed nullability checks, skipped service contexts, and
-unrecorded version overrides are not scaffolding. Any mechanism outside this allow-list requires visible Roadmap scope
-expansion before it is introduced.
+FND-017 removed every temporary mechanism and transitive-version override. Deprecated starters, disabled generator
+options, suppressed nullability checks, skipped service contexts, Jackson 2 core/databind defaults, and unrecorded
+version overrides are prohibited in the delivered baseline. Any future compatibility bridge requires a separately
+accepted Roadmap task and an explicit removal condition.
 
 ## Staged Sequence And Rollback Gates
 
@@ -237,6 +240,15 @@ business behavior.
 Blockout-only coordinates are checked against the compatibility matrix and FND-016 runtime evidence rather than being
 forced to match an unrelated Maaatch dependency.
 
+The final FND-017 comparison generated the effective POM for every backend module in both repositories. Against
+Maaatch `develop` at `bd7da207`, all 1,881 common dependency coordinates and all 35 common plugin coordinates resolve
+to identical version sets. In particular, Byte Buddy resolves through Spring Boot to 1.18.10 and Apache HttpClient 5
+resolves through Spring Boot to 5.6.1, with no Blockout override.
+
+Blockout-only shared versions are centralized in the backend parent: Auth0 2.20.0, AWS SDK S3 2.31.76, Jakarta EL
+6.0.1, JJWT 0.13.0, and Logstash Logback Encoder 8.0. Expo Server SDK 3.1.5 and GitHub API 1.330 remain explicit in
+their sole owning modules. Spotless 3.8.0 and google-java-format 1.35.0 remain explicit parent-owned build pins.
+
 ## Invariants
 
 - No Maven, Java, generated artifact, CI, compose, environment, runtime, contract, or product behavior changes in
@@ -246,4 +258,4 @@ forced to match an unrelated Maaatch dependency.
 - Maaatch remains a read-only structural and version reference.
 - PLT-033 exclusively owns Maven wrapper consolidation. This migration only consumes and later verifies that result.
 - Every shared Boot-managed dependency remains versionless in child modules.
-- Every temporary compatibility mechanism is removed before FND-017 completes.
+- No temporary compatibility mechanism remains in the delivered baseline.

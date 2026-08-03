@@ -19,8 +19,9 @@ not a roadmap and does not track task status.
 - Blockout is a mobile-first volleyball companion. The Expo and React Native application consumes the mobile gateway
   and generated V1 clients for account, discovery, competition, notification, moderation, support, and application
   status flows.
-- The backend is a Java 21 Spring Boot service system. Each complete business resource has one owning service; the
-  mobile gateway coordinates mobile-facing views without becoming the persistence owner.
+- The backend is a Java 25 Spring Boot 4.1 service system using the Spring Framework 7 and Jackson 3 baseline. Each
+  complete business resource has one owning service; the mobile gateway coordinates mobile-facing views without
+  becoming the persistence owner.
 - Source OpenAPI fragments under `libs/shared/contracts` own Blockout transport boundaries. Java adapters, the mobile
   Orval client, and shared Python HTTPX clients are generated outputs and remain outside Git.
 - The club and competition scrapers are Python 3.12 applications. They preserve provider-specific parsing inside

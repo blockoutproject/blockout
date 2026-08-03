@@ -1,6 +1,6 @@
 # Build from the repository root:
 # docker build -f apps/backend/clubs-service/Dockerfile .
-FROM maven:3.9.11-eclipse-temurin-25-alpine AS builder
+FROM maven:3.9.14-eclipse-temurin-25-alpine AS builder
 WORKDIR /workspace
 COPY apps/backend/pom.xml apps/backend/pom.xml
 COPY apps/backend/shared-models/pom.xml apps/backend/shared-models/pom.xml
