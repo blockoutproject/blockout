@@ -45,5 +45,15 @@ describe("season filtering", () => {
 
     expect(result.current?.selectedSeason).toBe("2027");
     expect(result.current?.filteredItems).toEqual([{ id: 5, season: "2027" }]);
+
+    await rerender({
+      items: [
+        { id: 6, season: "2027" },
+        { id: 7, season: "2025" },
+      ],
+    });
+
+    expect(result.current?.selectedSeason).toBe("2027");
+    expect(result.current?.filteredItems).toEqual([{ id: 6, season: "2027" }]);
   });
 });

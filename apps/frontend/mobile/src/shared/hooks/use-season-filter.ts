@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type SeasonItem = {
   season?: string | null;
@@ -24,15 +24,20 @@ export const filterBySeason = <T extends SeasonItem>(
 export const useSeasonFilter = <T extends SeasonItem>(
   items: readonly T[] | null | undefined,
 ) => {
-  const [requestedSeason, setRequestedSeason] = useState<string | null>(null);
+  const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
   const availableSeasons = useMemo(
     () => getAvailableSeasons(items ?? []),
     [items],
   );
-  const selectedSeason =
-    requestedSeason && availableSeasons.includes(requestedSeason)
-      ? requestedSeason
-      : (availableSeasons[0] ?? null);
+
+  useEffect(() => {
+    setSelectedSeason((currentSeason) =>
+      currentSeason && availableSeasons.includes(currentSeason)
+        ? currentSeason
+        : (availableSeasons[0] ?? null),
+    );
+  }, [availableSeasons]);
+
   const filteredItems = useMemo(
     () => filterBySeason(items ?? [], selectedSeason),
     [items, selectedSeason],
@@ -41,7 +46,7 @@ export const useSeasonFilter = <T extends SeasonItem>(
   return {
     availableSeasons,
     selectedSeason,
-    setSelectedSeason: setRequestedSeason,
+    setSelectedSeason,
     filteredItems,
   };
 };
