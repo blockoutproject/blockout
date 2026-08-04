@@ -4,7 +4,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
+import pytest
 from scraper.application import calendar_ingestion as pipeline
+from scraper.application.source import Scraper
 from scraper.domain.models import Pool, Team
 from scraper.infrastructure.ffvb import calendar as file_utils
 from scraper.infrastructure.ffvb.calendar import download_and_parse_csv
@@ -126,6 +128,7 @@ class RecordingScraper:
     """Record the complete CSV application trace."""
 
     def __init__(self) -> None:
+        self.name = "test_scraper"
         self.blockout = SimpleNamespace()
         self._matches_cache = {}
         self._associations_cache = {}
@@ -143,6 +146,13 @@ class RecordingScraper:
 
     def schedule_association_update(self, pool_id, team_id, stats):
         self.stats.append((pool_id, team_id, stats))
+
+
+class OwnerPreloadScraper(Scraper):
+    """Exercise the real owner-state change sets through the pool pipeline."""
+
+    async def run_scraping(self) -> None:
+        return None
 
 
 def test_csv_pipeline_preserves_owner_write_order_and_cleanup_inputs(
@@ -326,5 +336,123 @@ def test_invalid_csv_rows_stop_before_any_owner_write(monkeypatch) -> None:
         await pipeline.handle_csv_download_and_parse(scraper, _pool(), "2026/2027")
 
         assert scraper.matches == []
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    ("failed_operation", "expected_preloads"),
+    [
+        ("load_matches", ["load_matches"]),
+        (
+            "load_active_team_associations",
+            ["load_matches", "load_active_team_associations"],
+        ),
+    ],
+)
+def test_owner_preload_failure_stops_pool_before_dependent_writes(
+    monkeypatch,
+    failed_operation: str,
+    expected_preloads: list[str],
+) -> None:
+    """Prove incomplete owner state cannot authorize dependent reconciliation."""
+
+    async def scenario() -> None:
+        preloads: list[str] = []
+        owner_writes: list[str] = []
+        events: list[dict] = []
+
+        class Owner:
+            async def get_matches(self, _pool_id):
+                preloads.append("load_matches")
+                if failed_operation == "load_matches":
+                    raise RuntimeError("injected owner failure")
+                return []
+
+            async def get_active_team_associations(self, _pool_id):
+                preloads.append("load_active_team_associations")
+                if failed_operation == "load_active_team_associations":
+                    raise RuntimeError("injected owner failure")
+                return []
+
+            async def get_teams(self, *_args, **_kwargs):
+                raise AssertionError("Owner preload failure must stop dependent work")
+
+            async def add_team_to_pool(self, *_args):
+                raise AssertionError("Owner preload failure must stop dependent work")
+
+            async def update_pool(self, *_args):
+                raise AssertionError("Owner preload failure must stop dependent work")
+
+            async def bulk_deactivate_teams(self, *_args):
+                raise AssertionError("Owner preload failure must stop dependent work")
+
+            async def bulk_deactivate_matches(self, *_args):
+                raise AssertionError("Owner preload failure must stop dependent work")
+
+        scraper = OwnerPreloadScraper(None, Owner(), "test_scraper")
+
+        async def download(*_args):
+            return FfvbCalendarSnapshot(
+                matches=(
+                    FfvbCalendarMatch(
+                        league_code="LNAQ",
+                        match_code="M001",
+                        home_club_id="club-a",
+                        away_club_id="club-b",
+                        home_team_name="TOURS VB",
+                        away_team_name="PARIS",
+                        match_date="2026-10-04",
+                        match_time="18:30",
+                        set_score="3/1",
+                        points_score="25-20,25-22,20-25,25-18",
+                        venue="GYMNASE CENTRAL",
+                        first_referee="ARBITRE A",
+                        second_referee="ARBITRE B",
+                    ),
+                ),
+                complete=True,
+            )
+
+        async def save_pool(_session, candidate, _existing, _allow):
+            owner_writes.append("pool")
+            candidate.id = 10
+            return candidate
+
+        async def unexpected_owner_call(*_args, **_kwargs):
+            raise AssertionError("Owner preload failure must stop dependent work")
+
+        def record_event(action, level="info", **details):
+            events.append({"action": action, "level": level, **details})
+
+        monkeypatch.setattr(pipeline, "download_and_parse_csv", download)
+        monkeypatch.setattr(pipeline, "add_or_update_pool", save_pool)
+        monkeypatch.setattr(pipeline, "add_or_update_team", unexpected_owner_call)
+        monkeypatch.setattr(pipeline, "extract_club_stats_list", unexpected_owner_call)
+        monkeypatch.setattr(pipeline, "log_event", record_event)
+
+        with pytest.raises(pipeline.OwnerStatePreloadError):
+            await pipeline.handle_csv_download_and_parse(
+                scraper,
+                _pool(),
+                "2026/2027",
+            )
+
+        assert preloads == expected_preloads
+        assert owner_writes == ["pool"]
+        assert events == [
+            {
+                "action": "owner_state_preload_error",
+                "level": "error",
+                "scraper": "test_scraper",
+                "pool_id": 10,
+                "operation": failed_operation,
+                "error_type": "RuntimeError",
+                "exception_context": (
+                    "Owner API state is unavailable; inspect the dependency and "
+                    "retry before reconciling this pool."
+                ),
+            }
+        ]
 
     asyncio.run(scenario())
