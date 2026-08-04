@@ -37,7 +37,7 @@ auth0:
   client-id: ${AUTH0_CLIENT_ID}
   client-secret: ${AUTH0_CLIENT_SECRET}
   audience: ${AUTH0_AUDIENCE}
-  token-refresh-delay: 48h
+  token-refresh-delay: 30s
 
 api:
   club:

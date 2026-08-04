@@ -49,7 +49,7 @@ auth0:
   client-secret: ${AUTH0_CLIENT_SECRET}
   audience: ${AUTH0_AUDIENCE}
   default-user-role-id: ${AUTH0_DEFAULT_ROLE_ID}
-  token-refresh-delay: 24h
+  token-refresh-delay: 30s
 
 auth:
   api-key: ${AUTH_API_KEY}
