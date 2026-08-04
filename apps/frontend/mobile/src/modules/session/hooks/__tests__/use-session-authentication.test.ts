@@ -148,7 +148,7 @@ describe("session authentication", () => {
     expect(result.current.state.isAuthenticated).toBe(false);
   });
 
-  it("preserves sign-in, guest, sign-out, cache, and redirect transitions", async () => {
+  it("preserves sign-in, guest, local sign-out, cache, and redirect transitions", async () => {
     mockAuth0 = { ...mockAuth0, isLoading: true };
     const onAuthenticatedSessionEnded = jest.fn();
     const { result } = await renderHook(() =>
@@ -188,15 +188,98 @@ describe("session authentication", () => {
     expect(mockRefreshUser).toHaveBeenCalledTimes(1);
     expect(mockLeaveGuest).toHaveBeenCalledTimes(2);
     expect(mockRouterPush).toHaveBeenCalledWith("/(tabs)/(feed)");
+  });
+
+  it("completes local logout after successful Auth0 SSO logout", async () => {
+    mockAuth0 = { ...mockAuth0, isLoading: true };
+    const onAuthenticatedSessionEnded = jest.fn();
+    const { result } = await renderHook(() =>
+      useSessionAuthentication({ onAuthenticatedSessionEnded }),
+    );
 
     await act(async () => {
       await result.current.actions.signOutSSO({ federated: true });
     });
+
     expect(mockClearSession).toHaveBeenCalledWith(
       { federated: true },
       expect.any(Object),
     );
-    expect(mockResetQueryCache).toHaveBeenCalledTimes(3);
-    expect(onAuthenticatedSessionEnded).toHaveBeenCalledTimes(2);
+    expect(mockClearCredentials).toHaveBeenCalledTimes(1);
+    expect(mockSetAuthOnApis).toHaveBeenCalledWith(
+      mockApis,
+      undefined,
+      undefined,
+    );
+    expect(mockResetQueryCache).toHaveBeenCalledTimes(1);
+    expect(onAuthenticatedSessionEnded).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["cancelled", new Error("a0.session.user_cancelled")],
+    ["network-failed", new Error("Network request failed")],
+  ])(
+    "completes local logout when Auth0 SSO logout is %s",
+    async (_outcome, error) => {
+      mockAuth0 = { ...mockAuth0, isLoading: true };
+      mockClearSession.mockRejectedValueOnce(error);
+      const onAuthenticatedSessionEnded = jest.fn();
+      const { result } = await renderHook(() =>
+        useSessionAuthentication({ onAuthenticatedSessionEnded }),
+      );
+
+      await act(async () => {
+        await result.current.actions.signOutSSO();
+      });
+
+      expect(mockClearCredentials).toHaveBeenCalledTimes(1);
+      expect(mockSetAuthOnApis).toHaveBeenCalledWith(
+        mockApis,
+        undefined,
+        undefined,
+      );
+      expect(mockResetQueryCache).toHaveBeenCalledTimes(1);
+      expect(onAuthenticatedSessionEnded).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("finishes the remaining local logout steps when credential cleanup fails", async () => {
+    mockAuth0 = { ...mockAuth0, isLoading: true };
+    mockClearCredentials.mockRejectedValueOnce(new Error("cleanup failed"));
+    const onAuthenticatedSessionEnded = jest.fn();
+    const { result } = await renderHook(() =>
+      useSessionAuthentication({ onAuthenticatedSessionEnded }),
+    );
+
+    await act(async () => {
+      await result.current.actions.signOutSSO();
+    });
+
+    expect(mockSetAuthOnApis).toHaveBeenCalledWith(
+      mockApis,
+      undefined,
+      undefined,
+    );
+    expect(mockResetQueryCache).toHaveBeenCalledTimes(1);
+    expect(onAuthenticatedSessionEnded).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps guest SSO logout behavior unchanged", async () => {
+    mockAuth0 = { ...mockAuth0, isLoading: true };
+    mockGuestState = true;
+    const onAuthenticatedSessionEnded = jest.fn();
+    const { result } = await renderHook(() =>
+      useSessionAuthentication({ onAuthenticatedSessionEnded }),
+    );
+
+    await act(async () => {
+      await result.current.actions.signOutSSO();
+    });
+
+    expect(mockLeaveGuest).toHaveBeenCalledTimes(1);
+    expect(mockResetQueryCache).toHaveBeenCalledTimes(1);
+    expect(mockClearSession).not.toHaveBeenCalled();
+    expect(mockClearCredentials).not.toHaveBeenCalled();
+    expect(onAuthenticatedSessionEnded).not.toHaveBeenCalled();
   });
 });

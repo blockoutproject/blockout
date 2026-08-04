@@ -96,7 +96,11 @@ export const useSessionAuthentication = ({
   const softResetAuth = useCallback(async () => {
     try {
       await clearCredentials();
-      setAuthOnApis(apis, undefined, undefined);
+    } catch {}
+
+    setAuthOnApis(apis, undefined, undefined);
+
+    try {
       await resetQueryCache();
     } catch {}
   }, [apis, clearCredentials, resetQueryCache]);
@@ -109,16 +113,18 @@ export const useSessionAuthentication = ({
 
   const signOutSSO = useCallback(
     async (opts?: { federated?: boolean }) => {
+      if (useGuestSessionStore.getState().isGuest) return leaveGuest();
+
       try {
-        if (useGuestSessionStore.getState().isGuest) return leaveGuest();
         await clearSession(opts, {
           customScheme: AUTH0_CONFIG.customScheme,
         });
-        await resetQueryCache();
-        onAuthenticatedSessionEnded();
       } catch {}
+
+      await softResetAuth();
+      onAuthenticatedSessionEnded();
     },
-    [clearSession, leaveGuest, onAuthenticatedSessionEnded, resetQueryCache],
+    [clearSession, leaveGuest, onAuthenticatedSessionEnded, softResetAuth],
   );
 
   useEffect(() => {
