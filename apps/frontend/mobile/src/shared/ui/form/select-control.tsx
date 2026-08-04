@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
@@ -26,6 +26,7 @@ export type SelectControlProps<Value extends SelectValue> = {
   options: readonly SelectOption<Value>[];
   selectedValue: Value | null;
   onValueChange: (value: Value | null) => void;
+  loading?: boolean;
   testID?: string;
 };
 
@@ -39,11 +40,12 @@ export function SelectControl<Value extends SelectValue>({
   options,
   selectedValue,
   onValueChange,
+  loading = false,
   testID,
 }: SelectControlProps<Value>) {
   const theme = useAppTheme();
   const sheetRef = useRef<SelectSheetRef>(null);
-  const isDisabled = options.length === 0;
+  const isDisabled = loading || options.length === 0;
 
   const label = useMemo(
     () =>
@@ -66,7 +68,7 @@ export function SelectControl<Value extends SelectValue>({
         accessibilityRole="button"
         accessibilityLabel={title}
         accessibilityValue={{ text: label }}
-        accessibilityState={{ disabled: isDisabled }}
+        accessibilityState={{ disabled: isDisabled, busy: loading }}
         style={({ pressed }) => [
           styles.trigger,
           {
@@ -91,11 +93,15 @@ export function SelectControl<Value extends SelectValue>({
         <Text style={[styles.label, { color: theme.text }]} numberOfLines={1}>
           {label}
         </Text>
-        <MaterialCommunityIcons
-          name="chevron-down"
-          size={iconSize.sm}
-          color={theme.textInactive}
-        />
+        {loading ? (
+          <ActivityIndicator size="small" color={theme.textInactive} />
+        ) : (
+          <MaterialCommunityIcons
+            name="chevron-down"
+            size={iconSize.sm}
+            color={theme.textInactive}
+          />
+        )}
       </Pressable>
 
       <SelectSheet
