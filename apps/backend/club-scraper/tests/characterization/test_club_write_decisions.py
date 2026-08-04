@@ -1,4 +1,6 @@
 import asyncio
+import json
+import logging
 from dataclasses import replace
 from pathlib import Path
 
@@ -168,6 +170,63 @@ def test_skips_deactivation_when_no_provider_page_was_retrieved() -> None:
         assert blockout.deactivations == []
 
     asyncio.run(scenario())
+
+
+def test_owner_preload_failure_aborts_before_provider_or_owner_writes(caplog) -> None:
+    """Fail the ingestion attempt closed when owner state cannot be loaded."""
+
+    async def scenario() -> None:
+        class FailingBlockout(RecordingBlockout):
+            def __init__(self) -> None:
+                super().__init__(identifiers=["club-1"])
+                self.identifier_reads = 0
+
+            async def get_all_clubs(self):
+                raise RuntimeError("credential-bearing owner response")
+
+            async def get_unique_club_ids(self):
+                self.identifier_reads += 1
+                return self.identifiers
+
+        class RecordingFfvb:
+            def __init__(self) -> None:
+                self.fetches: list[str] = []
+
+            async def fetch_club_page(self, identifier):
+                self.fetches.append(identifier)
+                return _fixture("portable_two_lines_with_website.html")
+
+        blockout = FailingBlockout()
+        ffvb = RecordingFfvb()
+
+        with pytest.raises(RuntimeError, match="credential-bearing owner response"):
+            await ClubIngestion(blockout, ffvb, Gauge()).run()
+
+        events = [
+            json.loads(record.message)
+            for record in caplog.records
+            if record.name == "scraper.observability.logging"
+        ]
+        assert len(events) == 1
+        event = events[0]
+        assert event["action"] == "owner_clubs_preload_failed"
+        assert event["level"] == "error"
+        assert event["scraper"] == "club_scraper"
+        assert event["dependency"] == "clubs_service"
+        assert event["operation"] == "get_all_clubs"
+        assert event["error_type"] == "RuntimeError"
+        assert event["message"] == (
+            "Club owner-state preload failed; ingestion attempt aborted."
+        )
+        assert "credential-bearing owner response" not in caplog.text
+        assert blockout.identifier_reads == 0
+        assert ffvb.fetches == []
+        assert blockout.creates == []
+        assert blockout.updates == []
+        assert blockout.deactivations == []
+
+    with caplog.at_level(logging.ERROR, logger="scraper.observability.logging"):
+        asyncio.run(scenario())
 
 
 def test_provider_merge_preserves_owner_only_fields() -> None:
