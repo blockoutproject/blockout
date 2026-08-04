@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from datetime import UTC, datetime
 
 import httpx
@@ -111,15 +112,23 @@ async def app() -> None:
     configure_logging(LOG_LEVEL)
     start_http_server(8000)
 
-    asyncio.create_task(refresh_token_task())
-    log_event(
-        action="refresh_token_task_started",
-        level="info",
-        message="Tâche de rafraîchissement de token démarrée.",
-    )
+    refresh_task = asyncio.create_task(refresh_token_task())
+    scheduler = None
 
-    schedule_scraper(scrape_fn=main)
-    await asyncio.Event().wait()
+    try:
+        log_event(
+            action="refresh_token_task_started",
+            level="info",
+            message="Tâche de rafraîchissement de token démarrée.",
+        )
+        scheduler = schedule_scraper(scrape_fn=main)
+        await asyncio.Event().wait()
+    finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
+        refresh_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await refresh_task
 
 
 if __name__ == "__main__":

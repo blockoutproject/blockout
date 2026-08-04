@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -56,7 +57,10 @@ async def maybe_run_scraper(scrape_fn):
             _last_run = now
 
 
-def schedule_scraper(scrape_fn):
+def schedule_scraper(
+    scrape_fn: Callable[[], Awaitable[bool]],
+) -> AsyncIOScheduler:
+    """Start and return the application-owned competition scheduler."""
     scheduler = AsyncIOScheduler()
 
     scheduler.add_job(
@@ -78,3 +82,4 @@ def schedule_scraper(scrape_fn):
         level="info",
         message="Scheduler démarré (gating toutes les 60s).",
     )
+    return scheduler
