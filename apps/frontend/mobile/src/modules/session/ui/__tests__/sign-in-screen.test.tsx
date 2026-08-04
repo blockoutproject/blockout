@@ -116,14 +116,33 @@ describe("SignInScreen", () => {
 
   it("shows a recoverable message when authentication fails", async () => {
     const actions = createActions();
-    actions.signIn = jest
-      .fn()
-      .mockRejectedValue(new Error("provider unavailable"));
+    actions.signIn = jest.fn().mockRejectedValue(
+      Object.assign(new Error("provider unavailable"), {
+        type: "NETWORK_ERROR",
+      }),
+    );
     const user = userEvent.setup();
     const screen = await renderScreen(actions);
 
     await user.press(screen.getByRole("button", { name: "Se connecter" }));
 
     expect(screen.getByText("Connexion impossible, réessaie.")).toBeTruthy();
+  });
+
+  it("returns to the idle state when authentication is cancelled", async () => {
+    const actions = createActions();
+    actions.signIn = jest.fn().mockRejectedValue(
+      Object.assign(new Error("User cancelled"), {
+        type: "USER_CANCELLED",
+      }),
+    );
+    const user = userEvent.setup();
+    const screen = await renderScreen(actions);
+
+    const action = screen.getByRole("button", { name: "Se connecter" });
+    await user.press(action);
+
+    expect(screen.queryByText("Connexion impossible, réessaie.")).toBeNull();
+    expect(action).toBeEnabled();
   });
 });

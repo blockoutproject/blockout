@@ -26,6 +26,7 @@ import { Pill } from "@/src/shared/ui/pill";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import { Action } from "@/src/shared/ui/action";
 import { ApiError } from "@/src/shared/api/api-error";
+import { isAuth0LoginCancellation } from "@/src/modules/session/auth/auth-error";
 
 /** Returns safe user-facing copy for an authentication boundary failure. */
 export const getSignInErrorMessage = (err: unknown): string => {
@@ -56,7 +57,8 @@ const SignInScreen: React.FC = () => {
     if (
       !isSigningIn &&
       error &&
-      !["NO_CREDENTIALS", "USER_CANCELLED"].includes(error.name)
+      error.name !== "NO_CREDENTIALS" &&
+      !isAuth0LoginCancellation(error)
     ) {
       const msg = getSignInErrorMessage(error);
       setApiError(msg);
@@ -68,8 +70,10 @@ const SignInScreen: React.FC = () => {
       setIsSigningIn(true);
       setApiError(null);
       await signIn();
-    } catch {
-      setApiError("Connexion impossible, réessaie.");
+    } catch (error) {
+      if (!isAuth0LoginCancellation(error)) {
+        setApiError("Connexion impossible, réessaie.");
+      }
     } finally {
       setIsSigningIn(false);
     }
