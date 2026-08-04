@@ -29,21 +29,12 @@ class MatchChangeSet:
 
     async def load(self, pool_id: int) -> None:
         """Load existing pool matches with database ownership priority."""
-        try:
-            existing_matches = await self._blockout.get_matches(pool_id)
-            for match in existing_matches:
-                key = (match.league_code, match.match_code)
-                self.entries.setdefault(
-                    key,
-                    (match, replace(match), [], DataSourcePriority.DB),
-                )
-        except Exception as error:
-            log_event(
-                action="init_matches_cache_error",
-                level="error",
-                poolId=pool_id,
-                error_type=type(error).__name__,
-                message="Erreur lors du chargement des matchs existants",
+        existing_matches = await self._blockout.get_matches(pool_id)
+        for match in existing_matches:
+            key = (match.league_code, match.match_code)
+            self.entries.setdefault(
+                key,
+                (match, replace(match), [], DataSourcePriority.DB),
             )
 
     def schedule(

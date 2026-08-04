@@ -5,7 +5,10 @@ import xml.etree.ElementTree as ET
 from dataclasses import replace
 from datetime import date
 
-from scraper.application.calendar_ingestion import handle_csv_download_and_parse
+from scraper.application.calendar_ingestion import (
+    OwnerStatePreloadError,
+    handle_csv_download_and_parse,
+)
 from scraper.application.ports import BlockoutPort, ProviderHttpPort
 from scraper.application.source import Scraper
 from scraper.application.team_writer import (
@@ -191,6 +194,8 @@ class ProScraper(Scraper):
                 lnv_xml_matches_url, lnv_xml_rank_url, pool
             )
             await self.add_match_live_code(lnv_url, pool)
+        except OwnerStatePreloadError:
+            return
         except Exception as e:
             log_event(
                 action="task_chain_error",

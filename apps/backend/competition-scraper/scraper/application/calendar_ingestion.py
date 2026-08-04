@@ -23,6 +23,10 @@ class CalendarIngestionResult:
     complete: bool
 
 
+class OwnerStatePreloadError(RuntimeError):
+    """Stop one pool when its owner reconciliation baseline is unavailable."""
+
+
 async def handle_csv_download_and_parse(
     scraper: Scraper,
     pool: Pool,
@@ -80,8 +84,7 @@ async def handle_csv_download_and_parse(
         )
         # Professional enrichment reuses the owner identifier assigned here.
         pool.id = new_pool.id
-        await scraper.init_matches_cache(new_pool.id)
-        await scraper.init_associations_cache(new_pool.id)
+        await _preload_owner_state(scraper, new_pool.id)
 
         existing_teams = (
             await scraper.blockout.get_teams(
@@ -280,6 +283,8 @@ async def handle_csv_download_and_parse(
             complete=observation_complete,
         )
 
+    except OwnerStatePreloadError:
+        raise
     except Exception as e:
         log_event(
             "parse_csv_error",
@@ -288,6 +293,31 @@ async def handle_csv_download_and_parse(
             message="Erreur lors du parsing CSV",
         )
         raise
+
+
+async def _preload_owner_state(scraper: Scraper, pool_id: int) -> None:
+    for operation, loader in (
+        ("load_matches", scraper.init_matches_cache),
+        ("load_active_team_associations", scraper.init_associations_cache),
+    ):
+        try:
+            await loader(pool_id)
+        except Exception as error:
+            log_event(
+                action="owner_state_preload_error",
+                level="error",
+                scraper=scraper.name,
+                pool_id=pool_id,
+                operation=operation,
+                error_type=type(error).__name__,
+                exception_context=(
+                    "Owner API state is unavailable; inspect the dependency and "
+                    "retry before reconciling this pool."
+                ),
+            )
+            raise OwnerStatePreloadError(
+                f"Owner state preload failed during {operation} for pool {pool_id}."
+            ) from error
 
 
 def _ranking_stats(ranking: FfvbRanking) -> AssociationStats:

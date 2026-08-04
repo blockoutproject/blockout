@@ -22,39 +22,30 @@ class AssociationChangeSet:
 
     async def load(self, pool_id: int) -> None:
         """Load active owner associations and reset their candidate statistics."""
-        try:
-            associations = await self._blockout.get_active_team_associations(pool_id)
-            for association in associations:
-                original = AssociationStats(
-                    played=association.played,
-                    wins=association.wins,
-                    losses=association.losses,
-                    points=association.points,
-                    wins_three_to_zero=association.wins_three_to_zero,
-                    wins_three_to_one=association.wins_three_to_one,
-                    wins_three_to_two=association.wins_three_to_two,
-                    losses_zero_to_three=association.losses_zero_to_three,
-                    losses_one_to_three=association.losses_one_to_three,
-                    losses_two_to_three=association.losses_two_to_three,
-                    won_points=association.won_points,
-                    lost_points=association.lost_points,
-                    won_sets=association.won_sets,
-                    lost_sets=association.lost_sets,
-                    points_penalty=association.points_penalty,
-                    coefficient_sets=association.coefficient_sets,
-                    coefficient_points=association.coefficient_points,
-                )
-                self.entries[(association.pool_id, association.team_id)] = (
-                    original,
-                    AssociationStats(),
-                )
-        except Exception as error:
-            log_event(
-                action="init_associations_cache_error",
-                level="error",
-                pool_id=pool_id,
-                error_type=type(error).__name__,
-                message="Erreur lors du chargement des associations existantes",
+        associations = await self._blockout.get_active_team_associations(pool_id)
+        for association in associations:
+            original = AssociationStats(
+                played=association.played,
+                wins=association.wins,
+                losses=association.losses,
+                points=association.points,
+                wins_three_to_zero=association.wins_three_to_zero,
+                wins_three_to_one=association.wins_three_to_one,
+                wins_three_to_two=association.wins_three_to_two,
+                losses_zero_to_three=association.losses_zero_to_three,
+                losses_one_to_three=association.losses_one_to_three,
+                losses_two_to_three=association.losses_two_to_three,
+                won_points=association.won_points,
+                lost_points=association.lost_points,
+                won_sets=association.won_sets,
+                lost_sets=association.lost_sets,
+                points_penalty=association.points_penalty,
+                coefficient_sets=association.coefficient_sets,
+                coefficient_points=association.coefficient_points,
+            )
+            self.entries[(association.pool_id, association.team_id)] = (
+                original,
+                AssociationStats(),
             )
 
     def accumulate(

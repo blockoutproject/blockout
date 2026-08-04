@@ -4,6 +4,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
+from scraper.application.calendar_ingestion import OwnerStatePreloadError
 from scraper.domain.data_source_priority import DataSourcePriority
 from scraper.domain.models import Match, Pool, Team
 from scraper.infrastructure.lnv import professional as pro_module
@@ -113,6 +114,40 @@ def test_professional_chain_keeps_csv_then_xml_then_live_order(monkeypatch) -> N
         )
 
         assert order == ["csv", "xml", "live"]
+
+    asyncio.run(scenario())
+
+
+def test_professional_chain_stops_after_owner_preload_failure(monkeypatch) -> None:
+    """Keep XML and live enrichment behind successful owner-state initialization."""
+
+    async def scenario() -> None:
+        scraper = ProScraper(object(), object())
+        dependent_steps: list[str] = []
+
+        async def fail_csv(*_args, **_kwargs):
+            raise OwnerStatePreloadError("injected owner preload failure")
+
+        async def xml(*_args):
+            dependent_steps.append("xml")
+
+        async def live(*_args):
+            dependent_steps.append("live")
+
+        monkeypatch.setattr(pro_module, "handle_csv_download_and_parse", fail_csv)
+        monkeypatch.setattr(scraper, "parse_and_update_matches", xml)
+        monkeypatch.setattr(scraper, "add_match_live_code", live)
+
+        await scraper.execute_task_chain(
+            _pool(),
+            None,
+            "2026/2027",
+            "https://live.invalid",
+            "https://matches.invalid",
+            "https://rank.invalid",
+        )
+
+        assert dependent_steps == []
 
     asyncio.run(scenario())
 
