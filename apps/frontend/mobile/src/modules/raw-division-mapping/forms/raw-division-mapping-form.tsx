@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
@@ -20,11 +14,8 @@ import {
   GenderEnum,
   GenderLabels,
 } from "@/src/shared/view-models/gender-labels";
-import FormSelect from "@/src/modules/raw-division-mapping/ui/form-select";
-import SelectSheet, {
-  type SelectOption,
-  type SelectSheetRef,
-} from "@/src/shared/ui/form/select-sheet";
+import { SelectControl } from "@/src/shared/ui/form/select-control";
+import type { SelectOption } from "@/src/shared/ui/form/select-sheet";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import FormCard from "@/src/shared/ui/form/form-card";
 import { useApis } from "@/src/shared/providers/api-provider";
@@ -82,16 +73,6 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
     [divisions],
   );
 
-  const formatLabel = format ? FormatLabels[format] : null;
-  const genderLabel = gender ? GenderLabels[gender] : null;
-  const divisionLabel = divisionId
-    ? (divisionOptions.find((o) => o.value === divisionId)?.label ?? null)
-    : null;
-
-  const formatRef = useRef<SelectSheetRef>(null);
-  const genderRef = useRef<SelectSheetRef>(null);
-  const divisionRef = useRef<SelectSheetRef>(null);
-
   const handleSubmit = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsSubmitting(true);
@@ -148,58 +129,41 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
         </FormCard>
 
         <FormCard title="Format">
-          <FormSelect
-            label="Format"
-            valueLabel={formatLabel}
-            onPress={() => formatRef.current?.present()}
+          <SelectControl
+            title="Choisir un format"
+            placeholder="Format"
+            icon="account-group-outline"
+            options={formatOptions}
+            selectedValue={format || null}
+            onValueChange={(value) => setFormat(value ?? "")}
           />
         </FormCard>
 
         <FormCard title="Genre">
-          <FormSelect
-            label="Genre"
-            valueLabel={genderLabel}
-            onPress={() => genderRef.current?.present()}
+          <SelectControl
+            title="Choisir un genre"
+            placeholder="Genre"
+            icon="gender-male-female"
+            options={genderOptions}
+            selectedValue={gender || null}
+            onValueChange={(value) => setGender(value ?? "")}
           />
         </FormCard>
 
         <FormCard title="Division">
-          <FormSelect
-            label="Division"
-            valueLabel={divisionLabel}
-            onPress={() => divisionRef.current?.present()}
+          <SelectControl
+            title="Choisir une division"
+            placeholder="Division"
+            icon="trophy-outline"
+            options={divisionOptions}
+            selectedValue={divisionId || null}
+            onValueChange={(value) => setDivisionId(value ?? "")}
             loading={loadingDivisions}
-            disabled={loadingDivisions}
           />
         </FormCard>
       </BottomSheetScrollView>
 
       <ApiErrorToast message={apiError} onHidden={() => setApiError(null)} />
-
-      <SelectSheet
-        ref={formatRef}
-        title="Choisir un format"
-        options={formatOptions}
-        selectedValue={format || null}
-        onSelect={(option) => setFormat(option.value)}
-        onClear={() => setFormat("")}
-      />
-      <SelectSheet
-        ref={genderRef}
-        title="Choisir un genre"
-        options={genderOptions}
-        selectedValue={gender || null}
-        onSelect={(option) => setGender(option.value)}
-        onClear={() => setGender("")}
-      />
-      <SelectSheet
-        ref={divisionRef}
-        title="Choisir une division"
-        options={divisionOptions}
-        selectedValue={divisionId || null}
-        onSelect={(option) => setDivisionId(option.value)}
-        onClear={() => setDivisionId("")}
-      />
     </>
   );
 };

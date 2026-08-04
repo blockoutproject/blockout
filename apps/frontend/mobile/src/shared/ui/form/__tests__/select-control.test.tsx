@@ -92,7 +92,10 @@ describe("SelectControl", () => {
     });
     expect(trigger).toBe(screen.getByTestId("season-select"));
     expect(trigger.props.accessibilityValue).toEqual({ text: "Saison" });
-    expect(trigger.props.accessibilityState).toEqual({ disabled: false });
+    expect(trigger.props.accessibilityState).toEqual({
+      disabled: false,
+      busy: false,
+    });
 
     await user.press(trigger);
 
@@ -149,7 +152,41 @@ describe("SelectControl", () => {
     const trigger = screen.getByRole("button", {
       name: "Choisir une saison",
     });
-    expect(trigger.props.accessibilityState).toEqual({ disabled: true });
+    expect(trigger.props.accessibilityState).toEqual({
+      disabled: true,
+      busy: false,
+    });
+
+    await user.press(trigger);
+
+    expect(mockPresent).not.toHaveBeenCalled();
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it("exposes a busy disabled state while options are loading", async () => {
+    const onValueChange = jest.fn();
+    const user = userEvent.setup();
+    const screen = await render(
+      <ThemeProvider>
+        <SelectControl
+          title="Choisir une division"
+          placeholder="Division"
+          icon="trophy-outline"
+          options={options}
+          selectedValue={null}
+          onValueChange={onValueChange}
+          loading
+        />
+      </ThemeProvider>,
+    );
+
+    const trigger = screen.getByRole("button", {
+      name: "Choisir une division",
+    });
+    expect(trigger.props.accessibilityState).toEqual({
+      disabled: true,
+      busy: true,
+    });
 
     await user.press(trigger);
 
