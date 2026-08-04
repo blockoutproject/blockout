@@ -37,33 +37,39 @@ class ClubIngestion:
         """Load owner state, ingest every referenced club, and record duration."""
         current_scraper.set("club_scraper")
         started_at = datetime.now(UTC)
+        owner_state_loaded = False
         try:
             await self._initialize_cache()
+            owner_state_loaded = True
             club_ids = await self._blockout.get_unique_club_ids()
             await self._ingest_clubs(club_ids)
         except Exception as error:
-            log_event(
-                action="scraping_error",
-                level="error",
-                error_type=type(error).__name__,
-                message="Erreur dans le scraper club_scraper",
-            )
+            if owner_state_loaded:
+                log_event(
+                    action="scraping_error",
+                    level="error",
+                    error_type=type(error).__name__,
+                    message="Erreur dans le scraper club_scraper",
+                )
+            else:
+                log_event(
+                    action="owner_clubs_preload_failed",
+                    level="error",
+                    dependency="clubs_service",
+                    operation="get_all_clubs",
+                    error_type=type(error).__name__,
+                    message=(
+                        "Club owner-state preload failed; ingestion attempt aborted."
+                    ),
+                )
             raise
         finally:
             duration = (datetime.now(UTC) - started_at).total_seconds()
             self._duration_gauge.set(duration)
 
     async def _initialize_cache(self) -> None:
-        try:
-            for club in await self._blockout.get_all_clubs() or []:
-                self._clubs.setdefault(club.id, (club, replace(club)))
-        except Exception as error:
-            log_event(
-                action="init_clubs_cache_error",
-                level="error",
-                error_type=type(error).__name__,
-                message="Erreur lors du chargement des clubs existants",
-            )
+        for club in await self._blockout.get_all_clubs() or []:
+            self._clubs.setdefault(club.id, (club, replace(club)))
 
     async def _ingest_clubs(self, identifiers: list[str]) -> None:
         try:
