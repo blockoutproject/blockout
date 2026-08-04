@@ -50,18 +50,23 @@ const Filters: React.FC<FiltersProps> = ({
 
   const toggleFilter = useCallback(
     async (index: number) => {
-      const updated = [...filters];
-
       if (singleSelect) {
-        const alreadyActive = updated[index].isActive;
+        const alreadyActive = filters[index].isActive;
         const isLastActive =
-          updated.filter((f) => f.isActive).length === 1 && alreadyActive;
+          filters.filter((filter) => filter.isActive).length === 1 &&
+          alreadyActive;
         if (requireSelection && isLastActive) return;
-        updated.forEach((f) => (f.isActive = false));
-        if (!alreadyActive) updated[index].isActive = true;
-      } else {
-        updated[index].isActive = !updated[index].isActive;
       }
+
+      const updated = filters.map((filter, filterIndex) => ({
+        ...filter,
+        isActive:
+          filterIndex === index
+            ? !filter.isActive
+            : singleSelect
+              ? false
+              : filter.isActive,
+      }));
 
       setFilters(updated);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
