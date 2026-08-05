@@ -127,10 +127,26 @@ jobs:
       - name: Check affected formatting
         run: npm exec -- nx format:check --base="$NX_BASE" --head="$NX_HEAD"
 
+      - name: Prepare affected consumers
+        run: >-
+          npm exec -- nx affected -t prepare-consumers
+          --exclude=com.blockout:blockout,com.blockout:backend
+
       - name: Verify affected projects
         run: >-
-          npm exec -- nx affected
-          -t verify,mvn-verify,mvn-spotless:check,prepare-consumers
+          npm exec -- nx affected -t verify
+          --exclude=com.blockout:blockout,com.blockout:backend
+          --parallel=3
+
+      - name: Verify affected Maven projects
+        run: >-
+          npm exec -- nx affected -t mvn-verify
+          --exclude=com.blockout:blockout,com.blockout:backend
+          --parallel=3
+
+      - name: Check affected Maven formatting
+        run: >-
+          npm exec -- nx affected -t mvn-spotless:check
           --exclude=com.blockout:blockout,com.blockout:backend
           --parallel=3
 
