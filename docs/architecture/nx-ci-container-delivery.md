@@ -77,8 +77,10 @@ which image corresponds to the commit.
 ## Local And CI Verification
 
 `npm run verify` remains the complete clean-workspace gate and the single source of truth for full local verification.
-CI does not duplicate that orchestration in YAML: it calls the existing project targets through `nx affected`, excludes
-the two Maven aggregator nodes, and checks formatting only across the selected Git range.
+CI does not rerun that workspace-wide aggregator: it calls the existing project targets through `nx affected`, excludes
+the workspace gate and the two Maven aggregator nodes, and checks formatting only across the selected Git range. The
+general project verifications run sequentially on the shared runner; the dedicated Maven and Docker steps keep their
+bounded parallelism.
 
 Useful focused commands are:
 
