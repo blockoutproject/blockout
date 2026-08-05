@@ -1,0 +1,72 @@
+{
+  "name": "com.blockout:backend",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "verify": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "dependsOn": [
+        {
+          "projects": "@blockout/contracts",
+          "target": "verify"
+        }
+      ],
+      "inputs": [
+        "{projectRoot}/pom.xml",
+        "{workspaceRoot}/pom.xml",
+        "{workspaceRoot}/mvnw",
+        "{workspaceRoot}/.mvn/wrapper/**/*",
+        "{projectRoot}/*/pom.xml",
+        "{projectRoot}/*/src/**/*",
+        "{workspaceRoot}/libs/shared/contracts/generated/specs/*.json",
+        {
+          "runtime": "java -version 2>&1 | head -n 1"
+        }
+      ],
+      "outputs": ["{projectRoot}/target", "{projectRoot}/*/target"],
+      "options": {
+        "command": "./mvnw -f apps/backend/pom.xml clean verify",
+        "env": {
+          "AUTH0_AUDIENCE": "https://api.blockout.invalid",
+          "AUTH0_CLIENT_ID": "unused",
+          "AUTH0_CLIENT_SECRET": "unused",
+          "AUTH0_DEFAULT_ROLE_ID": "unused",
+          "AUTH0_DOMAIN": "blockout.invalid",
+          "AUTH0_ISSUER": "http://localhost/unused",
+          "AUTH_API_KEY": "unused",
+          "AWS_ACCESS_KEY_ID": "unused",
+          "AWS_REGION": "eu-west-3",
+          "AWS_S3_BUCKET_NAME": "unused",
+          "AWS_SECRET_ACCESS_KEY": "unused",
+          "CLUB_API_URL": "http://127.0.0.1:1",
+          "COMPETITION_API_URL": "http://127.0.0.1:1",
+          "CONFIG_API_URL": "http://127.0.0.1:1",
+          "DATASOURCE_PASSWORD": "unused",
+          "DATASOURCE_URL": "jdbc:postgresql://127.0.0.1:1/unused",
+          "DATASOURCE_USERNAME": "unused",
+          "DISCORD_WEBHOOK_URL": "http://127.0.0.1:1",
+          "ELASTICSEARCH_HOST": "127.0.0.1:1",
+          "ELASTICSEARCH_PASSWORD": "unused",
+          "ELASTICSEARCH_USERNAME": "unused",
+          "FFVB_PROXY_HOST": "127.0.0.1",
+          "FFVB_PROXY_PORT": "1",
+          "GITHUB_TOKEN": "unused",
+          "MAPBOX_ACCESS_TOKEN": "unused",
+          "MATCH_API_URL": "http://127.0.0.1:1",
+          "MOBILE_GATEWAY_API_URL": "http://127.0.0.1:1",
+          "NOTIFICATION_API_URL": "http://127.0.0.1:1",
+          "PDF_LINK_TOKEN_SECRET": "workspace-verify-pdf-signing-key-not-a-secret",
+          "POOL_API_URL": "http://127.0.0.1:1",
+          "RABBITMQ_HOST": "127.0.0.1",
+          "RABBITMQ_PASSWORD": "unused",
+          "RABBITMQ_PORT": "1",
+          "RABBITMQ_USERNAME": "unused",
+          "REPORT_API_URL": "http://127.0.0.1:1",
+          "SEARCH_API_URL": "http://127.0.0.1:1",
+          "TEAM_API_URL": "http://127.0.0.1:1",
+          "USER_API_URL": "http://127.0.0.1:1"
+        }
+      }
+    }
+  }
+}

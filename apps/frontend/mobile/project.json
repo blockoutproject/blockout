@@ -27,7 +27,7 @@
       "dependsOn": [
         {
           "projects": "@blockout/contracts",
-          "target": "generate-openapi-bundles"
+          "target": "verify"
         }
       ],
       "outputs": ["{projectRoot}/src/shared/generated"],
@@ -99,6 +99,11 @@
     },
     "export": {
       "dependsOn": ["codegen"]
+    },
+    "verify": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": ["lint", "typecheck", "test", "export"]
     }
   },
   "tags": ["scope:frontend", "type:application"]

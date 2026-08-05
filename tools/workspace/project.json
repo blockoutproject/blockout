@@ -1,0 +1,37 @@
+{
+  "name": "@blockout/workspace",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "verify-python": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": [
+        {
+          "projects": "@blockout/club-scraper",
+          "target": "verify"
+        },
+        {
+          "projects": "@blockout/competition-scraper",
+          "target": "verify"
+        }
+      ]
+    },
+    "verify": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": [
+        {
+          "projects": "com.blockout:backend",
+          "target": "verify"
+        },
+        {
+          "target": "verify-python"
+        },
+        {
+          "projects": "@blockout/mobile",
+          "target": "verify"
+        }
+      ]
+    }
+  }
+}

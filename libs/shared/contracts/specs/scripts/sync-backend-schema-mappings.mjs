@@ -10,6 +10,7 @@ const backendPom = path.resolve(
 );
 const markerStart = "<!-- BEGIN generated schemaMappings -->";
 const markerEnd = "<!-- END generated schemaMappings -->";
+const checkOnly = process.argv.includes("--check");
 
 async function schemaNames() {
   const files = (await readdir(sharedSchemasDir))
@@ -54,9 +55,18 @@ try {
   const blockEnd = endOfLine === -1 ? pom.length : endOfLine + 1;
   const updated = `${pom.slice(0, blockStart)}${mappingBlock(await schemaNames())}\n${pom.slice(blockEnd)}`;
   if (updated !== pom) {
+    if (checkOnly) {
+      throw new Error(
+        "Backend schema mappings are stale. Run the sync-backend-schema-mappings target and commit the result.",
+      );
+    }
     await writeFile(backendPom, updated, "utf8");
   }
-  console.log(`Schema mappings synced to ${backendPom}`);
+  console.log(
+    checkOnly
+      ? "Backend schema mappings are fresh"
+      : `Schema mappings synced to ${backendPom}`,
+  );
 } catch (error) {
   console.error(error);
   process.exitCode = 1;

@@ -3,6 +3,7 @@
   "name": "@blockout/competition-scraper",
   "projectType": "application",
   "sourceRoot": "apps/backend/competition-scraper",
+  "implicitDependencies": ["@blockout/python-contract-clients"],
   "targets": {
     "serve": {
       "executor": "nx:run-commands",
@@ -51,6 +52,26 @@
         "commands": [
           "uv run --locked --no-sync python -m ruff check .",
           "uv run --locked --no-sync python -m ruff format --check ."
+        ],
+        "parallel": false
+      }
+    },
+    "verify": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "default",
+        "{workspaceRoot}/pyproject.toml",
+        "{workspaceRoot}/uv.lock",
+        "^contractSources"
+      ],
+      "dependsOn": ["^verify"],
+      "options": {
+        "cwd": "apps/backend/competition-scraper",
+        "commands": [
+          "uv run --locked --no-sync python -m ruff check .",
+          "uv run --locked --no-sync python -m compileall -q main.py scraper tests",
+          "uv run --locked --no-sync python -m pytest -q"
         ],
         "parallel": false
       }

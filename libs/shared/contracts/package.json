@@ -42,6 +42,16 @@
           "command": "node libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.mjs"
         }
       },
+      "check-backend-schema-mappings": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "backendSchemaMappings"
+        ],
+        "options": {
+          "command": "node libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.mjs --check"
+        }
+      },
       "generate-contracts": {
         "executor": "nx:noop",
         "cache": false,
@@ -51,6 +61,21 @@
           },
           {
             "target": "sync-backend-schema-mappings"
+          }
+        ]
+      },
+      "verify": {
+        "executor": "nx:noop",
+        "cache": false,
+        "dependsOn": [
+          {
+            "target": "test"
+          },
+          {
+            "target": "generate-openapi-bundles"
+          },
+          {
+            "target": "check-backend-schema-mappings"
           }
         ]
       }

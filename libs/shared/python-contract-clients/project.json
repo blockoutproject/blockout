@@ -22,7 +22,7 @@
       "dependsOn": [
         {
           "projects": "@blockout/contracts",
-          "target": "generate-openapi-bundles"
+          "target": "verify"
         }
       ],
       "options": {
@@ -69,6 +69,18 @@
       "options": {
         "command": "uv run --locked --no-sync python -m pytest -q libs/shared/python-contract-clients/tests"
       }
+    },
+    "verify": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": [
+        {
+          "target": "build"
+        },
+        {
+          "target": "test"
+        }
+      ]
     }
   },
   "tags": ["scope:shared", "type:library", "language:python"]

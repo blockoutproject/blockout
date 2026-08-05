@@ -25,25 +25,32 @@ models and clients from the V1 contracts; generated sources remain outside Git.
 ## Prerequisites
 
 - Node.js 22 and npm 10
-- Java 21 and Maven 3.9
+- Java 25; Maven 3.9.14 is provided by the root Maven Wrapper
 - Python 3.14.6 and uv 0.11.32
-- Docker with Compose
-- Xcode or Android Studio only for native mobile builds
+- Docker with Compose and a running Docker daemon for backend integration tests
+- Xcode or Android Studio only for native mobile builds, not workspace verification
 
-## Bootstrap
+## Verify The Workspace
 
-Install the JavaScript and Python workspaces, inspect the Nx projects, and build the backend:
+From a clean checkout, install the locked workspaces and verify every application with one command:
 
 ```bash
-npm ci
-uv sync --locked --all-packages
-npm exec -- nx run @blockout/contracts:generate-openapi-bundles
-npm exec -- nx show projects
-mvn -f pom.xml clean package -DskipTests
+npm run verify
 ```
 
-Run `uv sync` only from the repository root. uv owns the single workspace
-`.venv`; Nx orchestrates Python tasks without modifying that environment.
+The command synchronizes the locked npm and root uv workspaces, then delegates to one cache-disabled Nx aggregate.
+The graph tests and bundles contracts, checks backend schema-mapping freshness, verifies the complete backend once
+through the root Maven Wrapper, generates and tests the shared Python client wheel before both scraper verifications,
+and runs mobile generation, lint, type checking, Jest, and Expo export. Independent backend, Python, and mobile
+branches run in parallel after their shared contract prerequisites pass.
+
+After success, `node_modules`, the root `.venv`, ignored generated clients, backend `target` directories, the Python
+wheel under `dist`, and the mobile export are ready for the existing native development commands. Application startup
+still requires each owner's documented `.env.local` values.
+
+Verification does not start Docker Compose, repository services, scrapers, Metro, a simulator, an EAS build, or a
+deployment. Run `uv sync` only from the repository root; uv owns the single workspace `.venv`, while Nx remains a thin
+orchestrator over Maven, Python tools, and Expo.
 
 Each deployable application owns a safe `.env.example`. Copy only the applications you want to run to an ignored
 `.env.local`, then replace the documented `replace-me` values with development credentials. Never commit local
@@ -61,7 +68,9 @@ docker compose --project-name blockout \
 Application processes run outside Compose through their native commands or Nx targets. Inspect the owning project with
 `npm exec -- nx show project <project-name>` before starting a process.
 
-## Verification
+## Focused Commands
+
+The focused project targets remain independently runnable:
 
 ```bash
 npm run format
@@ -70,7 +79,7 @@ npm exec -- nx run @blockout/club-scraper:test
 npm exec -- nx run @blockout/competition-scraper:test
 npm exec -- nx run @blockout/mobile:typecheck
 npm exec -- nx run @blockout/mobile:test
-mvn -f pom.xml test
+./mvnw -f apps/backend/pom.xml test
 npm run format:check
 ```
 
