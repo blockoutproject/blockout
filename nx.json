@@ -25,7 +25,7 @@
     ]
   },
   "targetDefaults": {
-    "mvn-verify": [
+    "mvn-verify-ci": [
       {
         "filter": {
           "plugin": "@nx/maven",
@@ -37,12 +37,12 @@
             "target": "prepare-consumers"
           },
           {
-            "target": "mvn-install",
-            "dependencies": true,
+            "target": "mvn-package-ci",
             "params": "forward"
           },
           {
-            "target": "mvn-post-integration-test",
+            "target": "mvn-install-ci",
+            "dependencies": true,
             "params": "forward"
           }
         ]

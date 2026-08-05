@@ -79,7 +79,9 @@ which image corresponds to the commit.
 `npm run verify` remains the complete clean-workspace gate and the single source of truth for full local verification.
 CI does not rerun that workspace-wide aggregator: it calls the existing project targets through `nx affected`, excludes
 the workspace gate and the two Maven aggregator nodes, and checks formatting only across the selected Git range. The
-general project verifications run sequentially on the shared runner; the dedicated Maven and Docker steps keep their
+general project verifications run sequentially on the shared runner. Maven uses the inferred `mvn-verify-ci` target
+recommended by the official `@nx/maven` CI generator. Maven batch execution is disabled with Nx's standard `--batch`
+option because `@nx/maven` 23.1.0 can recursively duplicate multi-project output; Maven and Docker otherwise keep their
 bounded parallelism.
 
 Useful focused commands are:

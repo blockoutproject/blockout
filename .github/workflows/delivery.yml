@@ -164,15 +164,17 @@ jobs:
 
       - name: Verify affected Maven projects
         run: >-
-          npm exec -- nx affected -t mvn-verify
+          npm exec -- nx affected -t mvn-verify-ci
           --exclude=com.blockout:blockout,com.blockout:backend
           --parallel=3
+          --batch=false
 
       - name: Check affected Maven formatting
         run: >-
           npm exec -- nx affected -t mvn-spotless:check
           --exclude=com.blockout:blockout,com.blockout:backend
           --parallel=3
+          --batch=false
 
       - name: Prepare container contracts
         if: steps.containers.outputs.has-containers == 'true'
