@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from contextlib import asynccontextmanager
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -329,6 +330,111 @@ def test_auth0_token_cache_refreshes_inside_the_safety_window(monkeypatch) -> No
         await auth0.ensure_token()
         assert fetches == [1]
         assert auth0._get_headers() == {"Authorization": "Bearer token"}
+
+    asyncio.run(scenario())
+
+
+def test_auth0_fetch_keeps_the_event_loop_responsive(monkeypatch) -> None:
+    """Prove blocking token I/O runs outside the application event loop."""
+
+    async def scenario() -> None:
+        loop = asyncio.get_running_loop()
+        token_call_started = asyncio.Event()
+        heartbeat_progressed = threading.Event()
+        calls: list[tuple[str, ...]] = []
+
+        class Client:
+            def __init__(self, *credentials: str) -> None:
+                calls.append(credentials)
+
+            def client_credentials(self, audience: str) -> dict[str, str | int]:
+                calls.append((audience,))
+                loop.call_soon_threadsafe(token_call_started.set)
+                if not heartbeat_progressed.wait(timeout=1):
+                    raise AssertionError("The event loop did not progress")
+                return {"access_token": "service-token", "expires_in": 7200}
+
+        async def heartbeat() -> None:
+            await token_call_started.wait()
+            heartbeat_progressed.set()
+
+        monkeypatch.setattr(auth0, "GetToken", Client)
+
+        heartbeat_task = asyncio.create_task(heartbeat())
+        token = await auth0.fetch_auth0_token()
+        await heartbeat_task
+
+        assert token == ("service-token", 7200)
+        assert calls == [
+            (auth0.AUTH0_DOMAIN, auth0.AUTH0_CLIENT_ID, auth0.AUTH0_CLIENT_SECRET),
+            (auth0.AUTH0_AUDIENCE,),
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_auth0_fetch_propagates_dependency_failure(monkeypatch) -> None:
+    """Preserve the Auth0 failure outcome at the fetch boundary."""
+
+    async def scenario() -> None:
+        class Client:
+            def __init__(self, *_credentials: str) -> None:
+                pass
+
+            def client_credentials(self, _audience: str) -> dict[str, str]:
+                raise RuntimeError("auth0 unavailable")
+
+        monkeypatch.setattr(auth0, "GetToken", Client)
+
+        with pytest.raises(RuntimeError, match="auth0 unavailable"):
+            await auth0.fetch_auth0_token()
+
+    asyncio.run(scenario())
+
+
+def test_auth0_fetch_cancellation_preserves_the_token_cache(monkeypatch) -> None:
+    """Keep cancellation visible without replacing or locking the token cache."""
+
+    async def scenario() -> None:
+        loop = asyncio.get_running_loop()
+        token_call_started = asyncio.Event()
+        release_token_call = threading.Event()
+        token_call_finished = threading.Event()
+
+        class Client:
+            def __init__(self, *_credentials: str) -> None:
+                pass
+
+            def client_credentials(self, _audience: str) -> dict[str, str | int]:
+                loop.call_soon_threadsafe(token_call_started.set)
+                try:
+                    if not release_token_call.wait(timeout=1):
+                        raise AssertionError("Cancellation did not release the caller")
+                    return {
+                        "access_token": "replacement-token",
+                        "expires_in": 7200,
+                    }
+                finally:
+                    token_call_finished.set()
+
+        monkeypatch.setattr(auth0, "GetToken", Client)
+        monkeypatch.setattr(auth0, "M2M_ENABLED", True)
+        monkeypatch.setattr(auth0, "_MIRROR_TOKEN", "current-token")
+        monkeypatch.setattr(auth0, "_TOKEN_EXP_EPOCH", 0.0)
+        task = asyncio.create_task(auth0.ensure_token())
+
+        await token_call_started.wait()
+        task.cancel()
+        try:
+            with pytest.raises(asyncio.CancelledError):
+                await task
+        finally:
+            release_token_call.set()
+            await asyncio.to_thread(token_call_finished.wait)
+
+        assert auth0.get_token() == "current-token"
+        assert auth0._TOKEN_EXP_EPOCH == 0.0
+        assert auth0._TOKEN_LOCK.locked() is False
 
     asyncio.run(scenario())
 

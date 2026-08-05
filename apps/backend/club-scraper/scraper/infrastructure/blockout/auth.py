@@ -36,12 +36,16 @@ class Auth0TokenRefresher:
         self._token_store = token_store
 
     async def fetch(self) -> str:
+        """Acquire a token without blocking the application event loop."""
         client = GetToken(
             self._settings.auth0_domain,
             self._settings.auth0_client_id,
             self._settings.auth0_client_secret,
         )
-        token = client.client_credentials(self._settings.auth0_audience)
+        token = await asyncio.to_thread(
+            client.client_credentials,
+            self._settings.auth0_audience,
+        )
         return token["access_token"]
 
     async def run(self) -> None:
