@@ -53,6 +53,21 @@
             "target": "sync-backend-schema-mappings"
           }
         ]
+      },
+      "prepare-consumers": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          {
+            "target": "test"
+          },
+          {
+            "target": "generate-contracts"
+          }
+        ],
+        "options": {
+          "command": "git diff --exit-code -- apps/backend/pom.xml"
+        }
       }
     }
   }

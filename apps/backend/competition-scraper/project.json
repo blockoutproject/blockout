@@ -3,6 +3,7 @@
   "name": "@blockout/competition-scraper",
   "projectType": "application",
   "sourceRoot": "apps/backend/competition-scraper",
+  "implicitDependencies": ["@blockout/python-contract-clients"],
   "targets": {
     "serve": {
       "executor": "nx:run-commands",
@@ -14,6 +15,12 @@
     },
     "syntax-check": {
       "executor": "nx:run-commands",
+      "dependsOn": [
+        {
+          "projects": "@blockout/python-contract-clients",
+          "target": "verify"
+        }
+      ],
       "options": {
         "cwd": "apps/backend/competition-scraper",
         "command": "uv run --locked --no-sync python -m compileall -q main.py scraper tests"
@@ -21,6 +28,12 @@
     },
     "test": {
       "executor": "nx:run-commands",
+      "dependsOn": [
+        {
+          "projects": "@blockout/python-contract-clients",
+          "target": "verify"
+        }
+      ],
       "options": {
         "cwd": "apps/backend/competition-scraper",
         "command": "uv run --locked --no-sync python -m pytest -q"
@@ -28,6 +41,12 @@
     },
     "lint": {
       "executor": "nx:run-commands",
+      "dependsOn": [
+        {
+          "projects": "@blockout/python-contract-clients",
+          "target": "verify"
+        }
+      ],
       "options": {
         "cwd": "apps/backend/competition-scraper",
         "command": "uv run --locked --no-sync python -m ruff check ."
@@ -54,6 +73,11 @@
         ],
         "parallel": false
       }
+    },
+    "verify": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": ["lint", "syntax-check", "test"]
     },
     "docker-build": {
       "executor": "nx:run-commands",

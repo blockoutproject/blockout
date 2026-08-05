@@ -25,25 +25,28 @@ models and clients from the V1 contracts; generated sources remain outside Git.
 ## Prerequisites
 
 - Node.js 22 and npm 10
-- Java 21 and Maven 3.9
+- Java 25
 - Python 3.14.6 and uv 0.11.32
 - Docker with Compose
 - Xcode or Android Studio only for native mobile builds
 
-## Bootstrap
+## Verify The Workspace
 
-Install the JavaScript and Python workspaces, inspect the Nx projects, and build the backend:
+Verify every workspace owner from a clean checkout with one command:
 
 ```bash
-npm ci
-uv sync --locked --all-packages
-npm exec -- nx run @blockout/contracts:generate-openapi-bundles
-npm exec -- nx show projects
-mvn -f pom.xml clean package -DskipTests
+npm run verify
 ```
 
-Run `uv sync` only from the repository root. uv owns the single workspace
-`.venv`; Nx orchestrates Python tasks without modifying that environment.
+The command installs the locked Node and Python dependencies, tests and regenerates the contracts, verifies backend
+schema-mapping freshness, runs the complete backend Maven reactor through the root wrapper, builds and tests the shared
+Python contract-client wheel before verifying both scrapers, and generates, lints, typechecks, tests, and exports the
+Expo mobile application. It bypasses Nx's cache so every clean verification step executes and leaves generated clients,
+backend artifacts, the Python wheel, and the mobile export available to the focused native development commands.
+
+Backend verification uses repository-defined, non-secret test values equivalent to CI; it does not read or replace
+local runtime credentials. Run `uv sync` only from the repository root. uv owns the single workspace `.venv`; Nx
+orchestrates Python tasks without modifying that environment.
 
 Each deployable application owns a safe `.env.example`. Copy only the applications you want to run to an ignored
 `.env.local`, then replace the documented `replace-me` values with development credentials. Never commit local
@@ -63,14 +66,19 @@ Application processes run outside Compose through their native commands or Nx ta
 
 ## Verification
 
+Verification does not start Docker Compose, databases, brokers, backend services, scrapers, Metro, simulators, EAS, or
+store builds. Application `.env.local` files and service startup remain separate local-runtime steps.
+
+The complete command keeps the focused targets independently available:
+
 ```bash
 npm run format
-npm exec -- nx run @blockout/contracts:test
-npm exec -- nx run @blockout/club-scraper:test
-npm exec -- nx run @blockout/competition-scraper:test
-npm exec -- nx run @blockout/mobile:typecheck
-npm exec -- nx run @blockout/mobile:test
-mvn -f pom.xml test
+npm exec nx run @blockout/contracts:test
+npm exec nx run @blockout/python-contract-clients:verify
+npm exec nx run @blockout/club-scraper:verify
+npm exec nx run @blockout/competition-scraper:verify
+npm exec nx run @blockout/mobile:verify
+./mvnw -f apps/backend/pom.xml verify
 npm run format:check
 ```
 
