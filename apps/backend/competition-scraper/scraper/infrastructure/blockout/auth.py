@@ -42,8 +42,12 @@ def _get_headers() -> dict:
 
 
 async def fetch_auth0_token() -> tuple[str, int]:
+    """Acquire a token without blocking the application event loop."""
     get_token_client = GetToken(AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET)
-    token = get_token_client.client_credentials(AUTH0_AUDIENCE)
+    token = await asyncio.to_thread(
+        get_token_client.client_credentials,
+        AUTH0_AUDIENCE,
+    )
     return token["access_token"], int(token.get("expires_in", 3600))
 
 
