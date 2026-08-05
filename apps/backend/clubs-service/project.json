@@ -1,5 +1,11 @@
 {
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "name": "@blockout/clubs-service",
+  "implicitDependencies": ["@blockout/contracts"],
+  "release": {
+    "docker": {
+      "repositoryName": "blockoutproject/blockout-api-clubs"
+    }
+  },
   "tags": ["type:application", "scope:backend", "language:java"]
 }

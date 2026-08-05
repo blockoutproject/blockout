@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  validate:
+    name: Validate affected projects
+    runs-on: ubuntu-latest
+    env:
+      AUTH0_AUDIENCE: https://api.blockout.invalid
+      AUTH0_CLIENT_ID: unused
+      AUTH0_CLIENT_SECRET: unused
+      AUTH0_DEFAULT_ROLE_ID: unused
+      AUTH0_DOMAIN: blockout.invalid
+      AUTH0_ISSUER: http://localhost/unused
+      AUTH_API_KEY: unused
+      AWS_ACCESS_KEY_ID: unused
+      AWS_REGION: eu-west-3
+      AWS_S3_BUCKET_NAME: unused
+      AWS_SECRET_ACCESS_KEY: unused
+      CLUB_API_URL: http://127.0.0.1:1
+      COMPETITION_API_URL: http://127.0.0.1:1
+      CONFIG_API_URL: http://127.0.0.1:1
+      DATASOURCE_PASSWORD: unused
+      DATASOURCE_URL: jdbc:postgresql://127.0.0.1:1/unused
+      DATASOURCE_USERNAME: unused
+      DISCORD_WEBHOOK_URL: http://127.0.0.1:1
+      ELASTICSEARCH_HOST: 127.0.0.1:1
+      ELASTICSEARCH_PASSWORD: unused
+      ELASTICSEARCH_USERNAME: unused
+      EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID: ca-app-pub-3940256099942544/6300978111
+      EXPO_PUBLIC_ADS_BANNER_HOME_IOS: ca-app-pub-3940256099942544/2934735716
+      EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID: ca-app-pub-3940256099942544/6300978111
+      EXPO_PUBLIC_ADS_BANNER_MATCH_IOS: ca-app-pub-3940256099942544/2934735716
+      EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID: ca-app-pub-3940256099942544/1033173712
+      EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS: ca-app-pub-3940256099942544/4411468910
+      EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID: ca-app-pub-3940256099942544/1033173712
+      EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS: ca-app-pub-3940256099942544/4411468910
+      EXPO_PUBLIC_API_CLUBS_BASE_URL: http://localhost:8086/api/v1/clubs
+      EXPO_PUBLIC_API_COMPETITIONS_BASE_URL: http://localhost:8084/api/v1/competitions
+      EXPO_PUBLIC_API_CONFIG_BASE_URL: http://localhost:8090/api/v1/config
+      EXPO_PUBLIC_API_GATEWAY_BASE_URL: http://localhost:8089/api/v1/mobile
+      EXPO_PUBLIC_API_MATCHES_BASE_URL: http://localhost:8083/api/v1/matches
+      EXPO_PUBLIC_API_NOTIFICATIONS_BASE_URL: http://localhost:8092/api/v1/notifications
+      EXPO_PUBLIC_API_POOLS_BASE_URL: http://localhost:8081/api/v1/pools
+      EXPO_PUBLIC_API_REPORTS_BASE_URL: http://localhost:8091/api/v1/reports
+      EXPO_PUBLIC_API_SEARCH_BASE_URL: http://localhost:8088/api/v1/search
+      EXPO_PUBLIC_API_TEAMS_BASE_URL: http://localhost:8082/api/v1/teams
+      EXPO_PUBLIC_API_USERS_BASE_URL: http://localhost:8085/api/v1/users
+      EXPO_PUBLIC_AUTH0_AUDIENCE: https://api.blockout.local/
+      EXPO_PUBLIC_AUTH0_CLIENT_ID: ci-client
+      EXPO_PUBLIC_AUTH0_DOMAIN: login.blockout.local
+      EXPO_PUBLIC_ENTITLEMENT_BLOCKOUT_PRO: blockout_pro
+      EXPO_PUBLIC_INSTAGRAM_URL: https://www.instagram.com/
+      EXPO_PUBLIC_MAP_URL: https://demotiles.maplibre.org/style.json
+      EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY: replace-me
+      EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: replace-me
+      FFVB_PROXY_HOST: 127.0.0.1
+      FFVB_PROXY_PORT: 1
+      GITHUB_TOKEN: unused
+      MAPBOX_ACCESS_TOKEN: unused
+      MATCH_API_URL: http://127.0.0.1:1
+      MOBILE_GATEWAY_API_URL: http://127.0.0.1:1
+      NOTIFICATION_API_URL: http://127.0.0.1:1
+      PDF_LINK_TOKEN_SECRET: ci-only-pdf-link-signing-key-not-a-secret
+      POOL_API_URL: http://127.0.0.1:1
+      RABBITMQ_HOST: 127.0.0.1
+      RABBITMQ_PASSWORD: unused
+      RABBITMQ_PORT: 1
+      RABBITMQ_USERNAME: unused
+      REPORT_API_URL: http://127.0.0.1:1
+      SEARCH_API_URL: http://127.0.0.1:1
+      TEAM_API_URL: http://127.0.0.1:1
+      USER_API_URL: http://127.0.0.1:1
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          filter: tree:0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          version: "0.11.32"
+
+      - name: Install JavaScript dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Python dependencies
+        run: uv sync --locked --all-packages
+
+      - name: Set affected commit range
+        uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1
+
+      - name: Check affected formatting
+        run: npm exec -- nx format:check --base="$NX_BASE" --head="$NX_HEAD"
+
+      - name: Verify affected projects
+        run: >-
+          npm exec -- nx affected
+          -t verify,mvn-verify,mvn-spotless:check,prepare-consumers
+          --exclude=com.blockout:blockout,com.blockout:backend
+          --parallel=3
+
+      - name: Build affected container images
+        run: npm exec -- nx affected -t docker:build --parallel=2

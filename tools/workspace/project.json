@@ -7,6 +7,9 @@
       "cache": false,
       "dependsOn": [
         {
+          "target": "test-affected-containers"
+        },
+        {
           "projects": "com.blockout:backend",
           "target": "verify"
         },
@@ -18,6 +21,19 @@
           "target": "verify"
         }
       ]
+    },
+    "test-affected-containers": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{workspaceRoot}/nx.json",
+        "{workspaceRoot}/tools/workspace/scripts/affected-containers.test.mjs",
+        "{workspaceRoot}/apps/backend/*/project.json",
+        "{workspaceRoot}/apps/backend/shared-models/pom.xml"
+      ],
+      "options": {
+        "command": "node --test tools/workspace/scripts/affected-containers.test.mjs"
+      }
     },
     "verify-python": {
       "executor": "nx:noop",

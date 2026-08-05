@@ -1,0 +1,113 @@
+# Nx CI And Container Delivery
+
+## Decision
+
+Nx owns project discovery, dependency propagation, task ordering, and affected selection. Maven, uv, Expo, and Docker
+remain the native executors for their ecosystems. GitHub Actions owns event trust, credentials, the publication matrix,
+and status reporting. Docker Hub stores images, and each Dokploy application owns its deployment after its webhook is
+called.
+
+The repository deliberately uses no Nx Cloud, Nx Agents, Nx Release, EAS delivery, GHCR, reusable workflow, or custom
+scheduler. `@nx/docker` is installed at the workspace's Nx version and supplies the inferred `docker:build` targets. Its
+23.1.0 initializer still labels Docker support as experimental, so its role is deliberately limited to local inferred
+build targets. Registry authentication, immutable commit tags, and publication remain delegated to Docker's official
+GitHub Actions.
+
+## Workflow Boundaries
+
+| Workflow   | Events                                                 | Authority                                                                                    |
+| ---------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `CI`       | Pull requests to `develop` or `main`; `develop` pushes | Format, verify, and build only affected projects and images. It has no delivery credentials. |
+| `Delivery` | `main` pushes only                                     | Revalidate, publish affected images, then call only their Dokploy webhooks.                  |
+
+Both workflows check out full Git history and use `nrwl/nx-set-shas` so `nx affected` compares the current commit with
+the last successful workflow run. Actions are pinned to immutable commit SHAs and the workflows grant only
+`actions: read` and `contents: read`.
+
+Pull requests never log in to Docker Hub, push an image, read a Dokploy webhook, or call a deployment endpoint. The
+delivery job checks that all three credentials required by its selected matrix entry exist before it publishes.
+
+## Nx Graph And Container Inputs
+
+Every deployable Dockerfile is discovered by `@nx/docker` and exposes `docker:build`. The inferred target runs from the
+repository root because all current Dockerfiles use the monorepo root as their build context.
+
+The target inputs model the files outside each project root that Docker actually consumes:
+
+- `.dockerignore` affects every image;
+- OpenAPI contract sources affect Java images and their other real consumers;
+- Maven project dependencies propagate backend parent and shared-model changes;
+- root uv files and all Python workspace manifests affect the two scraper images;
+- documentation is not a container input.
+
+`docker:build` prepares the ignored OpenAPI bundles before Docker runs. It does not run a second host-native application
+build because each Dockerfile already owns its reproducible Maven or uv build. The two former explicit scraper
+`docker-build` targets were removed so one target owns local container builds.
+
+## Docker Hub And Dokploy Contract
+
+Delivery publishes two tags for each selected image:
+
+- the full Git commit SHA for immutable traceability and rollback;
+- `latest`, which is the tag followed by the existing Dokploy applications.
+
+The exact repositories and webhook secrets are:
+
+| Nx project                       | Docker Hub repository                        | Dokploy secret                         |
+| -------------------------------- | -------------------------------------------- | -------------------------------------- |
+| `@blockout/club-scraper`         | `blockoutproject/blockout-scraper-clubs`     | `DOKPLOY_WEBHOOK_CLUB_SCRAPER`         |
+| `@blockout/clubs-service`        | `blockoutproject/blockout-api-clubs`         | `DOKPLOY_WEBHOOK_CLUBS_SERVICE`        |
+| `@blockout/competition-scraper`  | `blockoutproject/blockout-scraper`           | `DOKPLOY_WEBHOOK_COMPETITION_SCRAPER`  |
+| `@blockout/competition-service`  | `blockoutproject/blockout-api-competitions`  | `DOKPLOY_WEBHOOK_COMPETITION_SERVICE`  |
+| `@blockout/config-service`       | `blockoutproject/blockout-api-config`        | `DOKPLOY_WEBHOOK_CONFIG_SERVICE`       |
+| `@blockout/matches-service`      | `blockoutproject/blockout-api-matches`       | `DOKPLOY_WEBHOOK_MATCHES_SERVICE`      |
+| `@blockout/mobile-gateway`       | `blockoutproject/blockout-mobile-gateway`    | `DOKPLOY_WEBHOOK_MOBILE_GATEWAY`       |
+| `@blockout/notification-service` | `blockoutproject/blockout-api-notifications` | `DOKPLOY_WEBHOOK_NOTIFICATION_SERVICE` |
+| `@blockout/pools-service`        | `blockoutproject/blockout-api-pools`         | `DOKPLOY_WEBHOOK_POOLS_SERVICE`        |
+| `@blockout/reports-service`      | `blockoutproject/blockout-api-reports`       | `DOKPLOY_WEBHOOK_REPORTS_SERVICE`      |
+| `@blockout/search-service`       | `blockoutproject/blockout-api-search`        | `DOKPLOY_WEBHOOK_SEARCH_SERVICE`       |
+| `@blockout/search-worker`        | `blockoutproject/blockout-worker-search`     | `DOKPLOY_WEBHOOK_SEARCH_WORKER`        |
+| `@blockout/teams-service`        | `blockoutproject/blockout-api-teams`         | `DOKPLOY_WEBHOOK_TEAMS_SERVICE`        |
+| `@blockout/users-service`        | `blockoutproject/blockout-api-users`         | `DOKPLOY_WEBHOOK_USERS_SERVICE`        |
+
+Docker Hub authentication uses `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`. A publication failure prevents that
+application's webhook step. A webhook failure remains a visible failed matrix job and can be retried without changing
+which image corresponds to the commit.
+
+## Local And CI Verification
+
+`npm run verify` remains the complete clean-workspace gate and the single source of truth for full local verification.
+CI does not duplicate that orchestration in YAML: it calls the existing project targets through `nx affected`, excludes
+the two Maven aggregator nodes, and checks formatting only across the selected Git range.
+
+Useful focused commands are:
+
+```bash
+npm exec -- nx show projects --with-target docker:build
+npm exec -- nx show projects --affected --with-target docker:build
+npm exec -- nx run @blockout/workspace:test-affected-containers
+npm exec -- nx affected -t docker:build
+```
+
+## Alternatives Not Selected
+
+- Keeping separate contract, Java, Python, Expo, and formatting jobs would continue to duplicate the graph in YAML.
+- Nx Release would add release groups, version plans, changelogs, and Git tags that this `main`-driven deployment does
+  not require.
+- A custom affected-image script or scheduler would duplicate Nx project selection and create a second graph owner.
+- Nx Cloud and distributed agents are unnecessary for correctness and can be reconsidered only from measured CI cost.
+- Publishing from `develop`, pull requests, or a manual dispatch would broaden trusted delivery authority without a
+  product requirement.
+
+## Official References
+
+- [Nx Docker](https://nx.dev/docs/technologies/build-tools/docker/introduction)
+- [Nx GitHub Actions integration](https://nx.dev/docs/features/ci-features/github-integration)
+- [Nx affected](https://nx.dev/ci/features/affected)
+- [Nx Maven](https://nx.dev/docs/technologies/java/maven/introduction)
+- [Nx Expo](https://nx.dev/docs/technologies/react/expo/introduction)
+- [GitHub Actions contexts](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts)
+- [GitHub Actions secrets](https://docs.github.com/en/actions/concepts/security/secrets)
+- [Docker GitHub Actions](https://docs.docker.com/build/ci/github-actions/)
+- [uv with GitHub Actions](https://docs.astral.sh/uv/guides/integration/github/)
+- [Dokploy auto deploy](https://docs.dokploy.com/docs/core/auto-deploy)

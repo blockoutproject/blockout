@@ -4,6 +4,11 @@
   "projectType": "application",
   "sourceRoot": "apps/backend/competition-scraper",
   "implicitDependencies": ["@blockout/python-contract-clients"],
+  "release": {
+    "docker": {
+      "repositoryName": "blockoutproject/blockout-scraper"
+    }
+  },
   "targets": {
     "serve": {
       "executor": "nx:run-commands",
@@ -78,13 +83,6 @@
       "executor": "nx:noop",
       "cache": false,
       "dependsOn": ["lint", "syntax-check", "test"]
-    },
-    "docker-build": {
-      "executor": "nx:run-commands",
-      "options": {
-        "cwd": ".",
-        "command": "docker build -f apps/backend/competition-scraper/Dockerfile -t blockout/competition-scraper:local ."
-      }
     }
   },
   "tags": ["scope:backend", "type:application", "language:python"]

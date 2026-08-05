@@ -12,6 +12,68 @@
       "{workspaceRoot}/libs/shared/contracts/specs/source/shared/schemas/**/*.json",
       "{workspaceRoot}/libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.mjs",
       "{workspaceRoot}/apps/backend/pom.xml"
+    ],
+    "dockerContext": ["{workspaceRoot}/.dockerignore", "contractSources"],
+    "pythonDockerContext": [
+      "dockerContext",
+      "{workspaceRoot}/pyproject.toml",
+      "{workspaceRoot}/uv.lock",
+      "{workspaceRoot}/.python-version",
+      "{workspaceRoot}/libs/shared/python-contract-clients/pyproject.toml",
+      "{workspaceRoot}/apps/backend/club-scraper/pyproject.toml",
+      "{workspaceRoot}/apps/backend/competition-scraper/pyproject.toml"
+    ]
+  },
+  "targetDefaults": {
+    "mvn-verify": [
+      {
+        "filter": {
+          "plugin": "@nx/maven",
+          "projects": ["tag:language:java"]
+        },
+        "dependsOn": [
+          {
+            "projects": "@blockout/contracts",
+            "target": "prepare-consumers"
+          },
+          {
+            "target": "mvn-install",
+            "dependencies": true,
+            "params": "forward"
+          },
+          {
+            "target": "mvn-post-integration-test",
+            "params": "forward"
+          }
+        ]
+      }
+    ],
+    "docker:build": [
+      {
+        "filter": {
+          "plugin": "@nx/docker"
+        },
+        "dependsOn": [
+          {
+            "projects": "@blockout/contracts",
+            "target": "prepare-consumers"
+          }
+        ],
+        "inputs": ["default", "^default", "dockerContext"]
+      },
+      {
+        "filter": {
+          "plugin": "@nx/docker",
+          "projects": ["tag:language:python"]
+        },
+        "dependsOn": [
+          {
+            "projects": "@blockout/contracts",
+            "target": "prepare-consumers"
+          }
+        ],
+        "inputs": ["default", "^default", "pythonDockerContext"]
+      }
     ]
   },
   "plugins": [
@@ -44,6 +106,19 @@
       "options": {
         "packageManager": "uv",
         "inferDependencies": false
+      }
+    },
+    {
+      "plugin": "@nx/docker",
+      "options": {
+        "buildTarget": {
+          "name": "docker:build",
+          "cwd": ".",
+          "args": ["--file", "{projectRoot}/Dockerfile"]
+        },
+        "runTarget": {
+          "name": "docker:run"
+        }
       }
     }
   ]
