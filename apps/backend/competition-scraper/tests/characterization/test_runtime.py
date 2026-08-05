@@ -292,7 +292,7 @@ def test_scheduler_polls_every_minute_without_overlap(monkeypatch) -> None:
     monkeypatch.setattr(scheduler_module, "AsyncIOScheduler", lambda: scheduler)
     monkeypatch.setattr(scheduler_module, "log_event", lambda **_event: None)
 
-    scheduler_module.schedule_scraper(lambda: None)
+    result = scheduler_module.schedule_scraper(lambda: None)
 
     args, kwargs = scheduler.job
     assert args == (scheduler_module.maybe_run_scraper, "interval")
@@ -302,6 +302,7 @@ def test_scheduler_polls_every_minute_without_overlap(monkeypatch) -> None:
     assert kwargs["max_instances"] == 1
     assert kwargs["coalesce"] is True
     assert scheduler.started is True
+    assert result is scheduler
 
 
 def test_auth0_token_cache_refreshes_inside_the_safety_window(monkeypatch) -> None:
@@ -335,36 +336,66 @@ def test_auth0_token_cache_refreshes_inside_the_safety_window(monkeypatch) -> No
 def test_application_startup_exposes_metrics_and_supervises_background_work(
     monkeypatch,
 ) -> None:
-    """Exercise startup wiring without contacting providers or Blockout APIs."""
+    """Prove startup owns and cancels every long-lived background task."""
 
     async def scenario() -> None:
+        loop = asyncio.get_running_loop()
         ports: list[int] = []
         scheduled: list = []
-        tasks: list = []
+        scheduler_shutdowns: list[bool] = []
+        refresh_wait = loop.create_future()
+        scheduled_wait = loop.create_future()
+        refresh_cancelled = False
+        scheduled_cancelled = False
+
+        async def refresh() -> None:
+            nonlocal refresh_cancelled
+            try:
+                await refresh_wait
+            finally:
+                refresh_cancelled = True
+
+        async def scheduled_work() -> None:
+            nonlocal scheduled_cancelled
+            try:
+                await scheduled_wait
+            finally:
+                scheduled_cancelled = True
+
+        class Scheduler:
+            def __init__(self) -> None:
+                self.task = asyncio.create_task(scheduled_work())
+
+            def shutdown(self, wait: bool = True) -> None:
+                scheduler_shutdowns.append(wait)
+                self.task.cancel()
+
+        scheduler = Scheduler()
 
         class Event:
-            async def wait(self):
-                return None
+            async def wait(self) -> None:
+                await asyncio.sleep(0)
+                raise asyncio.CancelledError
 
-        def create_task(coroutine):
-            tasks.append(coroutine)
-            coroutine.close()
+        def schedule(scrape_fn):
+            scheduled.append(scrape_fn)
+            return scheduler
 
         monkeypatch.setattr(competition_main, "start_http_server", ports.append)
-        monkeypatch.setattr(
-            competition_main,
-            "schedule_scraper",
-            lambda scrape_fn: scheduled.append(scrape_fn),
-        )
-        monkeypatch.setattr(competition_main.asyncio, "create_task", create_task)
+        monkeypatch.setattr(competition_main, "refresh_token_task", refresh)
+        monkeypatch.setattr(competition_main, "schedule_scraper", schedule)
         monkeypatch.setattr(competition_main.asyncio, "Event", Event)
         monkeypatch.setattr(competition_main, "log_event", lambda **_event: None)
 
-        await competition_main.app()
+        with pytest.raises(asyncio.CancelledError):
+            await competition_main.app()
 
         assert ports == [8000]
         assert scheduled == [competition_main.main]
-        assert len(tasks) == 1
+        assert scheduler_shutdowns == [False]
+        assert scheduler.task.done()
+        assert refresh_cancelled is True
+        assert scheduled_cancelled is True
 
     asyncio.run(scenario())
 
