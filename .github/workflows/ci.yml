@@ -141,14 +141,12 @@ jobs:
           npm exec -- nx affected -t mvn-verify-ci
           --exclude=com.blockout:blockout,com.blockout:backend
           --parallel=3
-          --batch=false
 
       - name: Check affected Maven formatting
         run: >-
           npm exec -- nx affected -t mvn-spotless:check
           --exclude=com.blockout:blockout,com.blockout:backend
           --parallel=3
-          --batch=false
 
       - name: Build affected container images
         run: npm exec -- nx affected -t docker:build --parallel=2

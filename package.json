@@ -7,6 +7,7 @@
     "libs/shared/*"
   ],
   "scripts": {
+    "postinstall": "node tools/workspace/scripts/patch-nx-maven-batch-runner.cjs",
     "verify": "npm ci && uv sync --locked --all-packages && nx run @blockout/workspace:verify --skip-nx-cache",
     "format": "npm run format:prettier && npm run format:java && npm run format:python",
     "format:check": "npm run format:prettier:check && npm run format:java:check && npm run format:python:check",
