@@ -1,7 +1,6 @@
 {
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "name": "@blockout/competition-service",
-  "implicitDependencies": ["@blockout/contracts"],
   "release": {
     "docker": {
       "repositoryName": "blockoutproject/blockout-api-competitions"

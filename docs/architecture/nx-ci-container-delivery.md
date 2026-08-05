@@ -10,7 +10,7 @@ called.
 The repository deliberately uses no Nx Cloud, Nx Agents, Nx Release, EAS delivery, GHCR, reusable workflow, or custom
 scheduler. `@nx/docker` is installed at the workspace's Nx version and supplies the inferred `docker:build` targets. Its
 23.1.0 initializer still labels Docker support as experimental, so its role is deliberately limited to local inferred
-build targets. Registry authentication, immutable commit tags, and publication remain delegated to Docker's official
+build targets. Registry authentication, commit-scoped tags, and publication remain delegated to Docker's official
 GitHub Actions.
 
 ## Workflow Boundaries
@@ -21,8 +21,8 @@ GitHub Actions.
 | `Delivery` | `main` pushes only                                     | Revalidate, publish affected images, then call only their Dokploy webhooks.                  |
 
 Both workflows check out full Git history and use `nrwl/nx-set-shas` so `nx affected` compares the current commit with
-the last successful workflow run. Actions are pinned to immutable commit SHAs and the workflows grant only
-`actions: read` and `contents: read`.
+the last successful workflow run. CI names `develop` explicitly as its main branch; Delivery retains `main`. Actions
+are pinned to immutable commit SHAs and the workflows grant only `actions: read` and `contents: read`.
 
 Pull requests never log in to Docker Hub, push an image, read a Dokploy webhook, or call a deployment endpoint. The
 delivery job checks that all three credentials required by its selected matrix entry exist before it publishes.
@@ -40,16 +40,27 @@ The target inputs model the files outside each project root that Docker actually
 - root uv files and all Python workspace manifests affect the two scraper images;
 - documentation is not a container input.
 
-`docker:build` prepares the ignored OpenAPI bundles before Docker runs. It does not run a second host-native application
-build because each Dockerfile already owns its reproducible Maven or uv build. The two former explicit scraper
-`docker-build` targets were removed so one target owns local container builds.
+Nx preserves the `build` and `^build` dependencies inferred by `@nx/docker`, then prepares the ignored OpenAPI bundles.
+For Python images, the dependency build generates and packages the shared Python contract clients before Docker runs.
+For Maven projects, the contract preparation dependency is attached to the inferred `generate-sources` phase, so the
+ordering is contracts, generated clients and models, then application compilation. Each Dockerfile still owns its
+reproducible Maven or uv image build. The two former explicit scraper `docker-build` targets were removed so one target
+owns local container builds.
+
+Delivery transfers ignored generated inputs between its validation and publication jobs. Every selected image receives
+the OpenAPI bundles, while only Python matrix entries receive the generated Python clients. A clean publication checkout
+therefore contains the same generated inputs as a local `docker:build` task without committing generated files.
 
 ## Docker Hub And Dokploy Contract
 
 Delivery publishes two tags for each selected image:
 
-- the full Git commit SHA for immutable traceability and rollback;
-- `latest`, which is the tag followed by the existing Dokploy applications.
+- the full Git commit SHA for commit-scoped traceability and rollback;
+- mutable `latest`, which is the tag followed by the existing Dokploy applications.
+
+A publication job first verifies that its event SHA is still the current `main` head. An older queued run fails before
+reading delivery secrets or updating `latest`, so it cannot replace a newer image. Docker Hub tag immutability is not
+assumed.
 
 The exact repositories and webhook secrets are:
 
@@ -74,15 +85,24 @@ Docker Hub authentication uses `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`. A pub
 application's webhook step. A webhook failure remains a visible failed matrix job and can be retried without changing
 which image corresponds to the commit.
 
+To roll back one application, retag its known-good full-SHA image as `latest`, trigger the corresponding Dokploy
+webhook, and verify that the deployed digest matches the known-good image. This changes only the selected application;
+the immutable identity is the image digest, not the mutable Docker tag.
+
 ## Local And CI Verification
 
 `npm run verify` remains the complete clean-workspace gate and the single source of truth for full local verification.
 CI does not rerun that workspace-wide aggregator: it calls the existing project targets through `nx affected`, excludes
 the workspace gate and the two Maven aggregator nodes, and checks formatting only across the selected Git range. The
-general project verifications run sequentially on the shared runner. Maven uses the inferred `mvn-verify-ci` target
+general project verifications use Nx's default bounded parallelism. Maven uses the inferred `mvn-verify-ci` target
 recommended by the official `@nx/maven` CI generator. Maven batch execution is disabled with Nx's standard `--batch`
 option because `@nx/maven` 23.1.0 can recursively duplicate multi-project output; Maven and Docker otherwise keep their
 bounded parallelism.
+
+Both workflows explicitly run the small native Node regression test for affected container selection. The test invokes
+the public `npm exec nx` interface and covers application-only, shared Maven model, contract, Docker-context, and
+documentation changes plus the resolved Docker task ordering. A separate script or dependency-graph implementation is
+not maintained.
 
 Useful focused commands are:
 
@@ -106,12 +126,15 @@ npm exec -- nx affected -t docker:build
 ## Official References
 
 - [Nx Docker](https://nx.dev/docs/technologies/build-tools/docker/introduction)
+- [Nx configuration and target defaults](https://nx.dev/docs/reference/nx-json)
 - [Nx GitHub Actions integration](https://nx.dev/docs/features/ci-features/github-integration)
 - [Nx affected](https://nx.dev/ci/features/affected)
 - [Nx Maven](https://nx.dev/docs/technologies/java/maven/introduction)
+- [Maven build lifecycle](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html)
 - [Nx Expo](https://nx.dev/docs/technologies/react/expo/introduction)
 - [GitHub Actions contexts](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts)
 - [GitHub Actions secrets](https://docs.github.com/en/actions/concepts/security/secrets)
 - [Docker GitHub Actions](https://docs.docker.com/build/ci/github-actions/)
 - [uv with GitHub Actions](https://docs.astral.sh/uv/guides/integration/github/)
+- [uv in Docker](https://docs.astral.sh/uv/guides/integration/docker/)
 - [Dokploy auto deploy](https://docs.dokploy.com/docs/core/auto-deploy)

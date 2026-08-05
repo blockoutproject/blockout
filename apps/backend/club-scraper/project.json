@@ -82,7 +82,7 @@
     "verify": {
       "executor": "nx:noop",
       "cache": false,
-      "dependsOn": ["lint", "syntax-check", "test"]
+      "dependsOn": ["format-check", "syntax-check", "test"]
     }
   },
   "tags": ["scope:backend", "type:application", "language:python"]

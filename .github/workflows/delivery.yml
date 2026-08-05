@@ -134,13 +134,15 @@ jobs:
             config="$(npm exec -- nx show project "$project" --json)"
             root="$(jq -r '.root' <<<"$config")"
             image="$(jq -r '.release.docker.repositoryName' <<<"$config")"
+            language="$(jq -r '[.tags[] | select(startswith("language:")) | sub("^language:"; "")][0] // empty' <<<"$config")"
             webhook_secret="$(jq -nr --arg project "$project" '$project | sub("^@blockout/"; "") | ascii_upcase | gsub("-"; "_") | "DOKPLOY_WEBHOOK_" + .')"
-            entry="$(jq -nc --arg project "$project" --arg root "$root" --arg image "$image" --arg webhookSecret "$webhook_secret" '{project: $project, root: $root, image: $image, webhookSecret: $webhookSecret}')"
+            entry="$(jq -nc --arg project "$project" --arg root "$root" --arg image "$image" --arg language "$language" --arg webhookSecret "$webhook_secret" '{project: $project, root: $root, image: $image, language: $language, webhookSecret: $webhookSecret}')"
             matrix="$(jq -c --argjson entry "$entry" '. + [$entry]' <<<"$matrix")"
           done < <(jq -r '.[]' <<<"$projects")
 
-          jq -e 'all(.[]; .root != "" and .image != "" and .image != "null")' <<<"$matrix" >/dev/null
+          jq -e 'all(.[]; .root != "" and .image != "" and .image != "null" and .language != "")' <<<"$matrix" >/dev/null
           echo "matrix=$matrix" >>"$GITHUB_OUTPUT"
+          echo "has-python-containers=$(jq -r 'any(.[]; .language == "python")' <<<"$matrix")" >>"$GITHUB_OUTPUT"
 
           if jq -e 'length > 0' <<<"$matrix" >/dev/null; then
             echo "has-containers=true" >>"$GITHUB_OUTPUT"
@@ -148,19 +150,16 @@ jobs:
             echo "has-containers=false" >>"$GITHUB_OUTPUT"
           fi
 
+      - name: Test affected container selection
+        run: npm exec -- nx run @blockout/workspace:test-affected-containers
+
       - name: Check affected formatting
         run: npm exec -- nx format:check --base="$NX_BASE" --head="$NX_HEAD"
-
-      - name: Prepare affected consumers
-        run: >-
-          npm exec -- nx affected -t prepare-consumers
-          --exclude=com.blockout:blockout,com.blockout:backend
 
       - name: Verify affected projects
         run: >-
           npm exec -- nx affected -t verify
           --exclude=@blockout/workspace,com.blockout:blockout,com.blockout:backend
-          --parallel=1
 
       - name: Verify affected Maven projects
         run: >-
@@ -176,9 +175,13 @@ jobs:
           --parallel=3
           --batch=false
 
-      - name: Prepare container contracts
+      - name: Prepare OpenAPI bundles
         if: steps.containers.outputs.has-containers == 'true'
         run: npm exec -- nx run @blockout/contracts:prepare-consumers
+
+      - name: Generate Python contract clients
+        if: steps.containers.outputs.has-python-containers == 'true'
+        run: npm exec -- nx run @blockout/python-contract-clients:generate
 
       - name: Upload OpenAPI bundles
         if: steps.containers.outputs.has-containers == 'true'
@@ -186,6 +189,14 @@ jobs:
         with:
           name: openapi-bundles
           path: libs/shared/contracts/generated/specs/*.json
+          if-no-files-found: error
+
+      - name: Upload Python contract clients
+        if: steps.containers.outputs.has-python-containers == 'true'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: python-contract-clients
+          path: libs/shared/python-contract-clients/src/blockout_contract_clients
           if-no-files-found: error
 
   publish:
@@ -197,18 +208,22 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.validate.outputs.container-matrix) }}
-    env:
-      DOKPLOY_WEBHOOK_URL: ${{ secrets[matrix.webhookSecret] }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
+      - name: Require current main head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
+
       - name: Require delivery secrets
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets[matrix.webhookSecret] }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         shell: bash
         run: |
           test -n "$DOCKERHUB_USERNAME"
@@ -221,14 +236,21 @@ jobs:
           name: openapi-bundles
           path: libs/shared/contracts/generated/specs
 
+      - name: Download Python contract clients
+        if: matrix.language == 'python'
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: python-contract-clients
+          path: libs/shared/python-contract-clients/src/blockout_contract_clients
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Log in to Docker Hub
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
-          username: ${{ env.DOCKERHUB_USERNAME }}
-          password: ${{ env.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -244,5 +266,7 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
       - name: Redeploy Dokploy application
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets[matrix.webhookSecret] }}
         shell: bash
         run: curl --fail-with-body --silent --show-error --request POST "$DOKPLOY_WEBHOOK_URL"

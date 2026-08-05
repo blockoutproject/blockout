@@ -15,7 +15,6 @@
     ],
     "dockerContext": ["{workspaceRoot}/.dockerignore", "contractSources"],
     "pythonDockerContext": [
-      "dockerContext",
       "{workspaceRoot}/pyproject.toml",
       "{workspaceRoot}/uv.lock",
       "{workspaceRoot}/.python-version",
@@ -25,27 +24,20 @@
     ]
   },
   "targetDefaults": {
-    "mvn-verify-ci": [
+    "mvn-generate-sources*": [
       {
         "filter": {
           "plugin": "@nx/maven",
-          "projects": ["tag:language:java"]
+          "projects": ["tag:maven:jar"]
         },
         "dependsOn": [
+          "...",
           {
             "projects": "@blockout/contracts",
             "target": "prepare-consumers"
-          },
-          {
-            "target": "mvn-package-ci",
-            "params": "forward"
-          },
-          {
-            "target": "mvn-install-ci",
-            "dependencies": true,
-            "params": "forward"
           }
-        ]
+        ],
+        "inputs": ["...", "contractSources"]
       }
     ],
     "docker:build": [
@@ -54,25 +46,20 @@
           "plugin": "@nx/docker"
         },
         "dependsOn": [
+          "...",
           {
             "projects": "@blockout/contracts",
             "target": "prepare-consumers"
           }
         ],
-        "inputs": ["default", "^default", "dockerContext"]
+        "inputs": ["...", "dockerContext"]
       },
       {
         "filter": {
           "plugin": "@nx/docker",
           "projects": ["tag:language:python"]
         },
-        "dependsOn": [
-          {
-            "projects": "@blockout/contracts",
-            "target": "prepare-consumers"
-          }
-        ],
-        "inputs": ["default", "^default", "pythonDockerContext"]
+        "inputs": ["...", "pythonDockerContext"]
       }
     ]
   },

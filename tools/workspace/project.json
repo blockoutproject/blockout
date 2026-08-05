@@ -24,13 +24,7 @@
     },
     "test-affected-containers": {
       "executor": "nx:run-commands",
-      "cache": true,
-      "inputs": [
-        "{workspaceRoot}/nx.json",
-        "{workspaceRoot}/tools/workspace/scripts/affected-containers.test.mjs",
-        "{workspaceRoot}/apps/backend/*/project.json",
-        "{workspaceRoot}/apps/backend/shared-models/pom.xml"
-      ],
+      "cache": false,
       "options": {
         "command": "node --test tools/workspace/scripts/affected-containers.test.mjs"
       }

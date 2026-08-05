@@ -123,20 +123,19 @@ jobs:
 
       - name: Set affected commit range
         uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1
+        with:
+          main-branch-name: develop
+
+      - name: Test affected container selection
+        run: npm exec -- nx run @blockout/workspace:test-affected-containers
 
       - name: Check affected formatting
         run: npm exec -- nx format:check --base="$NX_BASE" --head="$NX_HEAD"
-
-      - name: Prepare affected consumers
-        run: >-
-          npm exec -- nx affected -t prepare-consumers
-          --exclude=com.blockout:blockout,com.blockout:backend
 
       - name: Verify affected projects
         run: >-
           npm exec -- nx affected -t verify
           --exclude=@blockout/workspace,com.blockout:blockout,com.blockout:backend
-          --parallel=1
 
       - name: Verify affected Maven projects
         run: >-

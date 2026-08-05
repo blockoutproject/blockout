@@ -4,27 +4,41 @@ import path from "node:path";
 import test from "node:test";
 
 const workspaceRoot = path.resolve(import.meta.dirname, "../../..");
-const nxCli = path.join(workspaceRoot, "node_modules/nx/dist/bin/nx.js");
+const allContainers = [
+  "@blockout/club-scraper",
+  "@blockout/clubs-service",
+  "@blockout/competition-scraper",
+  "@blockout/competition-service",
+  "@blockout/config-service",
+  "@blockout/matches-service",
+  "@blockout/mobile-gateway",
+  "@blockout/notification-service",
+  "@blockout/pools-service",
+  "@blockout/reports-service",
+  "@blockout/search-service",
+  "@blockout/search-worker",
+  "@blockout/teams-service",
+  "@blockout/users-service",
+];
+
+function nxJson(args) {
+  const output = execFileSync("npm", ["exec", "--", "nx", ...args], {
+    cwd: workspaceRoot,
+    encoding: "utf8",
+  });
+
+  return JSON.parse(output);
+}
 
 function affectedContainers(file) {
-  const output = execFileSync(
-    process.execPath,
-    [
-      nxCli,
-      "show",
-      "projects",
-      "--affected",
-      `--files=${file}`,
-      "--with-target=docker:build",
-      "--json",
-    ],
-    {
-      cwd: workspaceRoot,
-      encoding: "utf8",
-    },
-  );
-
-  return JSON.parse(output).sort();
+  return nxJson([
+    "show",
+    "projects",
+    "--affected",
+    `--files=${file}`,
+    "--with-target=docker:build",
+    "--json",
+  ]).sort();
 }
 
 test("Nx selects only containers affected by representative changes", () => {
@@ -49,25 +63,35 @@ test("Nx selects only containers affected by representative changes", () => {
     "@blockout/users-service",
   ]);
 
-  assert.deepEqual(affectedContainers(".dockerignore"), [
-    "@blockout/club-scraper",
-    "@blockout/clubs-service",
-    "@blockout/competition-scraper",
-    "@blockout/competition-service",
-    "@blockout/config-service",
-    "@blockout/matches-service",
-    "@blockout/mobile-gateway",
-    "@blockout/notification-service",
-    "@blockout/pools-service",
-    "@blockout/reports-service",
-    "@blockout/search-service",
-    "@blockout/search-worker",
-    "@blockout/teams-service",
-    "@blockout/users-service",
-  ]);
+  assert.deepEqual(
+    affectedContainers(
+      "libs/shared/contracts/specs/source/shared/schemas/identifier.json",
+    ),
+    allContainers,
+  );
+
+  assert.deepEqual(affectedContainers(".dockerignore"), allContainers);
 
   assert.deepEqual(
     affectedContainers("docs/current/blockout-product-runtime-context.md"),
     [],
   );
+});
+
+test("Docker builds preserve inferred tasks before contract preparation", () => {
+  const project = nxJson([
+    "show",
+    "project",
+    "@blockout/club-scraper",
+    "--json",
+  ]);
+
+  assert.deepEqual(project.targets["docker:build"].dependsOn, [
+    "build",
+    "^build",
+    {
+      projects: "@blockout/contracts",
+      target: "prepare-consumers",
+    },
+  ]);
 });

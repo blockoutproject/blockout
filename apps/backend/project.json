@@ -1,6 +1,7 @@
 {
   "name": "com.blockout:backend",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "implicitDependencies": ["@blockout/contracts"],
   "targets": {
     "verify": {
       "executor": "nx:run-commands",
