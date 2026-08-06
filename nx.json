@@ -2,8 +2,6 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "analytics": false,
   "namedInputs": {
-    "default": ["{projectRoot}/**/*"],
-    "production": ["default"],
     "contractSources": [
       "{workspaceRoot}/libs/shared/contracts/specs/source/**/*.json",
       "{workspaceRoot}/libs/shared/contracts/specs/scripts/bundle-openapi.mjs"
@@ -12,38 +10,73 @@
       "{workspaceRoot}/libs/shared/contracts/specs/source/shared/schemas/**/*.json",
       "{workspaceRoot}/libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.mjs",
       "{workspaceRoot}/apps/backend/pom.xml"
+    ],
+    "dockerContext": ["{workspaceRoot}/.dockerignore", "contractSources"],
+    "pythonDockerContext": [
+      "{workspaceRoot}/pyproject.toml",
+      "{workspaceRoot}/uv.lock",
+      "{workspaceRoot}/.python-version",
+      "{workspaceRoot}/libs/shared/python-contract-clients/pyproject.toml",
+      "{workspaceRoot}/apps/backend/club-scraper/pyproject.toml",
+      "{workspaceRoot}/apps/backend/competition-scraper/pyproject.toml"
+    ]
+  },
+  "targetDefaults": {
+    "mvn-generate-sources*": [
+      {
+        "filter": {
+          "plugin": "@nx/maven",
+          "projects": ["tag:maven:jar"]
+        },
+        "dependsOn": [
+          "...",
+          {
+            "projects": "@blockout/contracts",
+            "target": "prepare-consumers"
+          }
+        ],
+        "inputs": ["...", "contractSources"]
+      }
+    ],
+    "docker:build": [
+      {
+        "filter": {
+          "plugin": "@nx/docker"
+        },
+        "dependsOn": [
+          "...",
+          {
+            "projects": "@blockout/contracts",
+            "target": "prepare-consumers"
+          }
+        ],
+        "inputs": ["...", "dockerContext"]
+      },
+      {
+        "filter": {
+          "plugin": "@nx/docker",
+          "projects": ["tag:language:python"]
+        },
+        "inputs": ["...", "pythonDockerContext"]
+      }
     ]
   },
   "plugins": [
-    {
-      "plugin": "@nx/expo/plugin",
-      "options": {
-        "startTargetName": "start",
-        "buildTargetName": "build",
-        "prebuildTargetName": "prebuild",
-        "serveTargetName": "serve",
-        "installTargetName": "install",
-        "exportTargetName": "export",
-        "submitTargetName": "submit",
-        "runIosTargetName": "run-ios",
-        "runAndroidTargetName": "run-android",
-        "buildDepsTargetName": "build-deps",
-        "watchDepsTargetName": "watch-deps"
-      }
-    },
+    "@nx/expo/plugin",
     {
       "plugin": "@nx/maven",
-      "include": ["pom.xml", "apps/backend/**/pom.xml"],
       "options": {
-        "targetNamePrefix": "mvn-",
-        "verbose": false
+        "targetNamePrefix": "mvn-"
       }
     },
+    "@nxlv/python",
     {
-      "plugin": "@nxlv/python",
+      "plugin": "@nx/docker",
       "options": {
-        "packageManager": "uv",
-        "inferDependencies": false
+        "buildTarget": {
+          "cwd": ".",
+          "args": ["--file", "{projectRoot}/Dockerfile"]
+        }
       }
     }
   ]

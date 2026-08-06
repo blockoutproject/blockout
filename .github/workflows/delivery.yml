@@ -1,0 +1,282 @@
+name: Delivery
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: delivery-main
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  validate:
+    name: Validate and select affected containers
+    runs-on: ubuntu-latest
+    outputs:
+      container-matrix: ${{ steps.containers.outputs.matrix }}
+      has-containers: ${{ steps.containers.outputs.has-containers }}
+    env:
+      AUTH0_AUDIENCE: https://api.blockout.invalid
+      AUTH0_CLIENT_ID: unused
+      AUTH0_CLIENT_SECRET: unused
+      AUTH0_DEFAULT_ROLE_ID: unused
+      AUTH0_DOMAIN: blockout.invalid
+      AUTH0_ISSUER: http://localhost/unused
+      AUTH_API_KEY: unused
+      AWS_ACCESS_KEY_ID: unused
+      AWS_REGION: eu-west-3
+      AWS_S3_BUCKET_NAME: unused
+      AWS_SECRET_ACCESS_KEY: unused
+      CLUB_API_URL: http://127.0.0.1:1
+      COMPETITION_API_URL: http://127.0.0.1:1
+      CONFIG_API_URL: http://127.0.0.1:1
+      DATASOURCE_PASSWORD: unused
+      DATASOURCE_URL: jdbc:postgresql://127.0.0.1:1/unused
+      DATASOURCE_USERNAME: unused
+      DISCORD_WEBHOOK_URL: http://127.0.0.1:1
+      ELASTICSEARCH_HOST: 127.0.0.1:1
+      ELASTICSEARCH_PASSWORD: unused
+      ELASTICSEARCH_USERNAME: unused
+      EXPO_PUBLIC_ADS_BANNER_HOME_ANDROID: ca-app-pub-3940256099942544/6300978111
+      EXPO_PUBLIC_ADS_BANNER_HOME_IOS: ca-app-pub-3940256099942544/2934735716
+      EXPO_PUBLIC_ADS_BANNER_MATCH_ANDROID: ca-app-pub-3940256099942544/6300978111
+      EXPO_PUBLIC_ADS_BANNER_MATCH_IOS: ca-app-pub-3940256099942544/2934735716
+      EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_ANDROID: ca-app-pub-3940256099942544/1033173712
+      EXPO_PUBLIC_ADS_INTERSTITIAL_NAV_IOS: ca-app-pub-3940256099942544/4411468910
+      EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_ANDROID: ca-app-pub-3940256099942544/1033173712
+      EXPO_PUBLIC_ADS_INTERSTITIAL_WEB_IOS: ca-app-pub-3940256099942544/4411468910
+      EXPO_PUBLIC_API_CLUBS_BASE_URL: http://localhost:8086/api/v1/clubs
+      EXPO_PUBLIC_API_COMPETITIONS_BASE_URL: http://localhost:8084/api/v1/competitions
+      EXPO_PUBLIC_API_CONFIG_BASE_URL: http://localhost:8090/api/v1/config
+      EXPO_PUBLIC_API_GATEWAY_BASE_URL: http://localhost:8089/api/v1/mobile
+      EXPO_PUBLIC_API_MATCHES_BASE_URL: http://localhost:8083/api/v1/matches
+      EXPO_PUBLIC_API_NOTIFICATIONS_BASE_URL: http://localhost:8092/api/v1/notifications
+      EXPO_PUBLIC_API_POOLS_BASE_URL: http://localhost:8081/api/v1/pools
+      EXPO_PUBLIC_API_REPORTS_BASE_URL: http://localhost:8091/api/v1/reports
+      EXPO_PUBLIC_API_SEARCH_BASE_URL: http://localhost:8088/api/v1/search
+      EXPO_PUBLIC_API_TEAMS_BASE_URL: http://localhost:8082/api/v1/teams
+      EXPO_PUBLIC_API_USERS_BASE_URL: http://localhost:8085/api/v1/users
+      EXPO_PUBLIC_AUTH0_AUDIENCE: https://api.blockout.local/
+      EXPO_PUBLIC_AUTH0_CLIENT_ID: ci-client
+      EXPO_PUBLIC_AUTH0_DOMAIN: login.blockout.local
+      EXPO_PUBLIC_ENTITLEMENT_BLOCKOUT_PRO: blockout_pro
+      EXPO_PUBLIC_INSTAGRAM_URL: https://www.instagram.com/
+      EXPO_PUBLIC_MAP_URL: https://demotiles.maplibre.org/style.json
+      EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY: replace-me
+      EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: replace-me
+      FFVB_PROXY_HOST: 127.0.0.1
+      FFVB_PROXY_PORT: 1
+      GITHUB_TOKEN: unused
+      MAPBOX_ACCESS_TOKEN: unused
+      MATCH_API_URL: http://127.0.0.1:1
+      MOBILE_GATEWAY_API_URL: http://127.0.0.1:1
+      NOTIFICATION_API_URL: http://127.0.0.1:1
+      PDF_LINK_TOKEN_SECRET: ci-only-pdf-link-signing-key-not-a-secret
+      POOL_API_URL: http://127.0.0.1:1
+      RABBITMQ_HOST: 127.0.0.1
+      RABBITMQ_PASSWORD: unused
+      RABBITMQ_PORT: 1
+      RABBITMQ_USERNAME: unused
+      REPORT_API_URL: http://127.0.0.1:1
+      SEARCH_API_URL: http://127.0.0.1:1
+      TEAM_API_URL: http://127.0.0.1:1
+      USER_API_URL: http://127.0.0.1:1
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+          version: "0.11.32"
+
+      - name: Install JavaScript dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Python dependencies
+        run: uv sync --locked --all-packages
+
+      - name: Set affected commit range
+        uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1
+        with:
+          fallback-sha: 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+
+      - name: Select affected containers
+        id: containers
+        shell: bash
+        run: |
+          projects="$(npm exec -- nx show projects --affected --with-target docker:build --json)"
+          matrix='[]'
+
+          while IFS= read -r project; do
+            config="$(npm exec -- nx show project "$project" --json)"
+            root="$(jq -r '.root' <<<"$config")"
+            image="$(jq -r '.release.docker.repositoryName' <<<"$config")"
+            language="$(jq -r '[.tags[] | select(startswith("language:")) | sub("^language:"; "")][0] // empty' <<<"$config")"
+            webhook_secret="$(jq -nr --arg project "$project" '$project | sub("^@blockout/"; "") | ascii_upcase | gsub("-"; "_") | "DOKPLOY_WEBHOOK_" + .')"
+            entry="$(jq -nc --arg project "$project" --arg root "$root" --arg image "$image" --arg language "$language" --arg webhookSecret "$webhook_secret" '{project: $project, root: $root, image: $image, language: $language, webhookSecret: $webhookSecret}')"
+            matrix="$(jq -c --argjson entry "$entry" '. + [$entry]' <<<"$matrix")"
+          done < <(jq -r '.[]' <<<"$projects")
+
+          jq -e 'all(.[]; .root != "" and .image != "" and .image != "null" and .language != "")' <<<"$matrix" >/dev/null
+          echo "matrix=$matrix" >>"$GITHUB_OUTPUT"
+          echo "has-python-containers=$(jq -r 'any(.[]; .language == "python")' <<<"$matrix")" >>"$GITHUB_OUTPUT"
+
+          if jq -e 'length > 0' <<<"$matrix" >/dev/null; then
+            echo "has-containers=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "has-containers=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Test affected container selection
+        run: npm exec -- nx run @blockout/workspace:test-affected-containers
+
+      - name: Check affected formatting
+        run: npm exec -- nx format:check --base="$NX_BASE" --head="$NX_HEAD"
+
+      - name: Verify affected projects
+        run: >-
+          npm exec -- nx affected -t verify
+          --exclude=@blockout/workspace,com.blockout:backend
+
+      - name: Verify affected Maven projects
+        run: >-
+          npm exec -- nx affected -t mvn-verify-ci
+          --exclude=com.blockout:blockout,com.blockout:backend
+          --parallel=3
+
+      - name: Check affected Maven formatting
+        run: >-
+          npm exec -- nx affected -t mvn-spotless:check
+          --exclude=com.blockout:blockout,com.blockout:backend
+          --parallel=3
+
+      - name: Prepare OpenAPI bundles
+        if: steps.containers.outputs.has-containers == 'true'
+        run: npm exec -- nx run @blockout/contracts:prepare-consumers
+
+      - name: Generate Python contract clients
+        if: steps.containers.outputs.has-python-containers == 'true'
+        run: npm exec -- nx run @blockout/python-contract-clients:generate
+
+      - name: Upload OpenAPI bundles
+        if: steps.containers.outputs.has-containers == 'true'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: openapi-bundles
+          path: libs/shared/contracts/generated/specs/*.json
+          if-no-files-found: error
+
+      - name: Upload Python contract clients
+        if: steps.containers.outputs.has-python-containers == 'true'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: python-contract-clients
+          path: libs/shared/python-contract-clients/src/blockout_contract_clients
+          if-no-files-found: error
+
+  publish:
+    name: Publish and deploy ${{ matrix.project }}
+    if: needs.validate.outputs.has-containers == 'true'
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.validate.outputs.container-matrix) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Require current main head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
+
+      - name: Require delivery secrets
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets[matrix.webhookSecret] }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        shell: bash
+        run: |
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$DOCKERHUB_TOKEN"
+          test -n "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Download OpenAPI bundles
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: openapi-bundles
+          path: libs/shared/contracts/generated/specs
+
+      - name: Download Python contract clients
+        if: matrix.language == 'python'
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: python-contract-clients
+          path: libs/shared/python-contract-clients/src/blockout_contract_clients
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          scope: ${{ matrix.image }}@push
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: ${{ matrix.root }}/Dockerfile
+          push: true
+          tags: ${{ matrix.image }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Require current main head before promotion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
+
+      - name: Promote image digest to latest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: ${{ matrix.image }}
+        run: docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE@$DIGEST"
+
+      - name: Redeploy Dokploy application
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets[matrix.webhookSecret] }}
+        shell: bash
+        run: curl --fail-with-body --silent --show-error --request POST "$DOKPLOY_WEBHOOK_URL"

@@ -34,7 +34,7 @@ migration record.
 | Layer           | Location                                   | Keep here                                                                                |
 | --------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
 | Current context | [`current/`](current/)                     | Product/runtime posture and minimal agent routing.                                       |
-| Architecture    | [`architecture/`](architecture/)           | Current system, ingestion, mobile, and design-system models.                             |
+| Architecture    | [`architecture/`](architecture/)           | Current system, ingestion, mobile, CI/delivery, and design-system models.                |
 | Decisions       | [`decisions/`](decisions/)                 | Durable product and architecture decisions that source code alone cannot explain safely. |
 | Releases        | [`releases/`](releases/)                   | Stable delivered-scope snapshots.                                                        |
 | Runbooks        | [`runbooks/README.md`](runbooks/README.md) | Reusable procedures, never task state or delivery history.                               |

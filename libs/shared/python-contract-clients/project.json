@@ -71,10 +71,7 @@
       }
     },
     "verify": {
-      "executor": "nx:noop",
-      "cache": false,
       "dependsOn": ["build", "test"]
     }
-  },
-  "tags": ["scope:shared", "type:library", "language:python"]
+  }
 }

@@ -1,5 +1,10 @@
 {
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "name": "@blockout/notification-service",
-  "tags": ["type:application", "scope:backend", "language:java"]
+  "release": {
+    "docker": {
+      "repositoryName": "blockoutproject/blockout-api-notifications"
+    }
+  },
+  "tags": ["language:java"]
 }

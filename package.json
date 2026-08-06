@@ -7,6 +7,7 @@
     "libs/shared/*"
   ],
   "scripts": {
+    "postinstall": "node tools/workspace/scripts/patch-nx-maven-batch-runner.cjs",
     "verify": "npm ci && uv sync --locked --all-packages && nx run @blockout/workspace:verify --skip-nx-cache",
     "format": "npm run format:prettier && npm run format:java && npm run format:python",
     "format:check": "npm run format:prettier:check && npm run format:java:check && npm run format:python:check",
@@ -15,10 +16,7 @@
     "format:java": "./mvnw -f apps/backend/pom.xml spotless:apply",
     "format:java:check": "./mvnw -f apps/backend/pom.xml spotless:check",
     "format:python": "nx run-many -t format --projects=@blockout/club-scraper,@blockout/competition-scraper",
-    "format:python:check": "nx run-many -t format-check --projects=@blockout/club-scraper,@blockout/competition-scraper",
-    "graph": "nx graph",
-    "mobile:check": "nx run-many --targets=lint,typecheck,test,export --projects=@blockout/mobile --parallel=1 --outputStyle=stream",
-    "show-projects": "nx show projects"
+    "format:python:check": "nx run-many -t format-check --projects=@blockout/club-scraper,@blockout/competition-scraper"
   },
   "overrides": {
     "js-yaml": "4.3.0",
@@ -30,6 +28,7 @@
     "react": "19.2.0"
   },
   "devDependencies": {
+    "@nx/docker": "23.1.0",
     "@nx/expo": "23.1.0",
     "@nx/js": "23.1.0",
     "@nx/maven": "23.1.0",

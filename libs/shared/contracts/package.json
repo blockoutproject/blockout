@@ -7,7 +7,6 @@
     "targets": {
       "test": {
         "executor": "nx:run-commands",
-        "cache": false,
         "inputs": [
           "contractSources",
           "{projectRoot}/specs/scripts/bundle-openapi.test.mjs"
@@ -31,20 +30,14 @@
       },
       "sync-backend-schema-mappings": {
         "executor": "nx:run-commands",
-        "cache": false,
         "inputs": [
           "backendSchemaMappings"
-        ],
-        "outputs": [
-          "{workspaceRoot}/apps/backend/pom.xml"
         ],
         "options": {
           "command": "node libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.mjs"
         }
       },
       "generate-contracts": {
-        "executor": "nx:noop",
-        "cache": false,
         "dependsOn": [
           {
             "target": "generate-openapi-bundles"
@@ -56,7 +49,6 @@
       },
       "prepare-consumers": {
         "executor": "nx:run-commands",
-        "cache": false,
         "dependsOn": [
           {
             "target": "test"

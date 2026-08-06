@@ -86,6 +86,13 @@ npm run format:check
 YAML, and Markdown; Spotless with google-java-format handles Java; and Ruff handles Python. Editors may run these tools
 on save, but repository commands remain authoritative for agents and contributors.
 
+## Continuous Integration And Delivery
+
+GitHub Actions uses Nx affected selection for validation and container builds. Pull requests and `develop` pushes never
+publish or deploy images. Only a successful `main` push may publish affected Docker Hub images and call their matching
+Dokploy webhooks. See [Nx CI and container delivery](docs/architecture/nx-ci-container-delivery.md) for the ownership
+model, image mapping, required secrets, and focused commands.
+
 See the [documentation index](docs/README.md), the
 [live Roadmap](https://github.com/orgs/blockoutproject/projects/4), and the
 [Blockout V1 baseline](docs/releases/blockout-v1-baseline.md).
