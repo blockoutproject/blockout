@@ -1,4 +1,8 @@
-query RoadmapProjectIndex($owner: String!, $projectNumber: Int!, $endCursor: String) {
+query RoadmapProjectIndex(
+  $owner: String!
+  $projectNumber: Int!
+  $endCursor: String
+) {
   organization(login: $owner) {
     projectV2(number: $projectNumber) {
       id
