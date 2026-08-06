@@ -6,5 +6,5 @@
       "repositoryName": "blockoutproject/blockout-api-pools"
     }
   },
-  "tags": ["type:application", "scope:backend", "language:java"]
+  "tags": ["language:java"]
 }

@@ -16,10 +16,7 @@
     "format:java": "./mvnw -f apps/backend/pom.xml spotless:apply",
     "format:java:check": "./mvnw -f apps/backend/pom.xml spotless:check",
     "format:python": "nx run-many -t format --projects=@blockout/club-scraper,@blockout/competition-scraper",
-    "format:python:check": "nx run-many -t format-check --projects=@blockout/club-scraper,@blockout/competition-scraper",
-    "graph": "nx graph",
-    "mobile:check": "nx run-many --targets=lint,typecheck,test,export --projects=@blockout/mobile --parallel=1 --outputStyle=stream",
-    "show-projects": "nx show projects"
+    "format:python:check": "nx run-many -t format-check --projects=@blockout/club-scraper,@blockout/competition-scraper"
   },
   "overrides": {
     "js-yaml": "4.3.0",

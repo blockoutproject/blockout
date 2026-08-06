@@ -4,7 +4,6 @@
   "targets": {
     "verify": {
       "executor": "nx:noop",
-      "cache": false,
       "dependsOn": [
         {
           "target": "test-affected-containers"
@@ -13,26 +12,6 @@
           "projects": "com.blockout:backend",
           "target": "verify"
         },
-        {
-          "target": "verify-python"
-        },
-        {
-          "projects": "@blockout/mobile",
-          "target": "verify"
-        }
-      ]
-    },
-    "test-affected-containers": {
-      "executor": "nx:run-commands",
-      "cache": false,
-      "options": {
-        "command": "node --test tools/workspace/scripts/affected-containers.test.mjs"
-      }
-    },
-    "verify-python": {
-      "executor": "nx:noop",
-      "cache": false,
-      "dependsOn": [
         {
           "projects": "@blockout/python-contract-clients",
           "target": "verify"
@@ -44,8 +23,18 @@
         {
           "projects": "@blockout/competition-scraper",
           "target": "verify"
+        },
+        {
+          "projects": "@blockout/mobile",
+          "target": "verify"
         }
       ]
+    },
+    "test-affected-containers": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --test tools/workspace/scripts/affected-containers.test.mjs"
+      }
     }
   }
 }

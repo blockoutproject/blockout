@@ -6,5 +6,5 @@
       "repositoryName": "blockoutproject/blockout-worker-search"
     }
   },
-  "tags": ["type:application", "scope:backend", "language:java"]
+  "tags": ["language:java"]
 }

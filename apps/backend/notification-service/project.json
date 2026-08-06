@@ -6,5 +6,5 @@
       "repositoryName": "blockoutproject/blockout-api-notifications"
     }
   },
-  "tags": ["type:application", "scope:backend", "language:java"]
+  "tags": ["language:java"]
 }

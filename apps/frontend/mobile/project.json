@@ -103,9 +103,7 @@
     },
     "verify": {
       "executor": "nx:noop",
-      "cache": false,
       "dependsOn": ["lint", "typecheck", "test", "export"]
     }
-  },
-  "tags": ["scope:frontend", "type:application"]
+  }
 }

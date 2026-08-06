@@ -6,5 +6,5 @@
       "repositoryName": "blockoutproject/blockout-api-teams"
     }
   },
-  "tags": ["type:application", "scope:backend", "language:java"]
+  "tags": ["language:java"]
 }

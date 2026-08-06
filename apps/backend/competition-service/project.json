@@ -6,5 +6,5 @@
       "repositoryName": "blockoutproject/blockout-api-competitions"
     }
   },
-  "tags": ["type:application", "scope:backend", "language:java"]
+  "tags": ["language:java"]
 }

@@ -160,7 +160,7 @@ jobs:
       - name: Verify affected projects
         run: >-
           npm exec -- nx affected -t verify
-          --exclude=@blockout/workspace,com.blockout:blockout,com.blockout:backend
+          --exclude=@blockout/workspace,com.blockout:backend
 
       - name: Verify affected Maven projects
         run: >-

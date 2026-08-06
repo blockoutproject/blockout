@@ -3,7 +3,6 @@
   "name": "@blockout/club-scraper",
   "projectType": "application",
   "sourceRoot": "apps/backend/club-scraper",
-  "implicitDependencies": ["@blockout/python-contract-clients"],
   "release": {
     "docker": {
       "repositoryName": "blockoutproject/blockout-scraper-clubs"
@@ -81,9 +80,8 @@
     },
     "verify": {
       "executor": "nx:noop",
-      "cache": false,
       "dependsOn": ["format-check", "syntax-check", "test"]
     }
   },
-  "tags": ["scope:backend", "type:application", "language:python"]
+  "tags": ["language:python"]
 }
