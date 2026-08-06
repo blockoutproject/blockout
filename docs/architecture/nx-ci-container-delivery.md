@@ -118,7 +118,9 @@ without nested `NX_RESULT` payloads after a clean install and stays within the a
 Both workflows explicitly run the small native Node regression test for affected container selection. The test invokes
 the public `npm exec nx` interface and covers application-only, shared Maven model, contract, Docker-context, and
 documentation changes plus the resolved Docker task ordering. A separate script or dependency-graph implementation is
-not maintained.
+not maintained. Mobile verification also runs the inferred Expo export target. That CPU- and memory-intensive export
+opts out of same-machine task parallelism: this expresses a real shared-runner resource limit without inventing a
+dependency edge between otherwise independent mobile tests and bundling.
 
 Useful focused commands are:
 
