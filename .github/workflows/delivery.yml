@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: delivery-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   actions: read
@@ -121,6 +121,8 @@ jobs:
 
       - name: Set affected commit range
         uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1
+        with:
+          fallback-sha: 4b825dc642cb6eb9a060e54bf8d69288fbee4904
 
       - name: Select affected containers
         id: containers
@@ -248,19 +250,30 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+          scope: ${{ matrix.image }}@push
 
       - name: Build and push image
+        id: build
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           file: ${{ matrix.root }}/Dockerfile
           push: true
-          tags: |
-            ${{ matrix.image }}:${{ github.sha }}
-            ${{ matrix.image }}:latest
+          tags: ${{ matrix.image }}:${{ github.sha }}
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Require current main head before promotion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
+
+      - name: Promote image digest to latest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: ${{ matrix.image }}
+        run: docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE@$DIGEST"
 
       - name: Redeploy Dokploy application
         env:
