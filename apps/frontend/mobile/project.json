@@ -50,7 +50,6 @@
       }
     },
     "lint": {
-      "executor": "nx:run-commands",
       "cache": true,
       "inputs": [
         "default",
@@ -59,14 +58,9 @@
           "externalDependencies": ["eslint", "eslint-config-expo", "orval"]
         }
       ],
-      "dependsOn": ["codegen"],
-      "options": {
-        "cwd": "apps/frontend/mobile",
-        "command": "npm run lint"
-      }
+      "dependsOn": ["codegen"]
     },
     "test": {
-      "executor": "nx:run-commands",
       "cache": true,
       "inputs": [
         "default",
@@ -75,11 +69,7 @@
           "externalDependencies": ["jest", "jest-expo", "orval"]
         }
       ],
-      "dependsOn": ["codegen"],
-      "options": {
-        "cwd": "apps/frontend/mobile",
-        "command": "npm test"
-      }
+      "dependsOn": ["codegen"]
     },
     "typecheck": {
       "executor": "nx:run-commands",
@@ -102,7 +92,6 @@
       "dependsOn": ["codegen"]
     },
     "verify": {
-      "executor": "nx:noop",
       "dependsOn": ["lint", "typecheck", "test", "export"]
     }
   }

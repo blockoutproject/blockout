@@ -79,7 +79,6 @@
       }
     },
     "verify": {
-      "executor": "nx:noop",
       "dependsOn": ["format-check", "syntax-check", "test"]
     }
   },

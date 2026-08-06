@@ -71,7 +71,6 @@
       }
     },
     "verify": {
-      "executor": "nx:noop",
       "dependsOn": ["build", "test"]
     }
   }
