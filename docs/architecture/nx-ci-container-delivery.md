@@ -20,9 +20,10 @@ GitHub Actions.
 | `CI`       | Pull requests to `develop` or `main`; `develop` pushes | Format, verify, and build only affected projects and images. It has no delivery credentials. |
 | `Delivery` | `main` pushes only                                     | Revalidate, publish affected images, then call only their Dokploy webhooks.                  |
 
-Both workflows check out full Git history and use `nrwl/nx-set-shas` so `nx affected` compares the current commit with
-the last successful workflow run. CI names `develop` explicitly as its main branch; Delivery retains `main`. Actions
-are pinned to immutable commit SHAs and the workflows grant only `actions: read` and `contents: read`.
+Both workflows check out full Git history and use `nrwl/nx-set-shas`. Pull requests compare against their target branch,
+while branch pushes compare against the last successful workflow run. CI names `develop` explicitly as its main branch;
+Delivery retains `main`. Actions are pinned to immutable commit SHAs and the workflows grant only `actions: read` and
+`contents: read`.
 
 Pull requests never log in to Docker Hub, push an image, read a Dokploy webhook, or call a deployment endpoint. The
 delivery job checks that all three credentials required by its selected matrix entry exist before it publishes.
@@ -58,9 +59,11 @@ Delivery publishes two tags for each selected image:
 - the full Git commit SHA for commit-scoped traceability and rollback;
 - mutable `latest`, which is the tag followed by the existing Dokploy applications.
 
-A publication job first verifies that its event SHA is still the current `main` head. An older queued run fails before
-reading delivery secrets or updating `latest`, so it cannot replace a newer image. Docker Hub tag immutability is not
-assumed.
+A publication job first verifies that its event SHA is still the current `main` head. An already stale queued run fails
+before reading delivery secrets or updating `latest`, and the workflow concurrency group prevents delivery runs from
+executing simultaneously. This check is not an atomic lock against a future push that arrives after publication starts;
+the next serialized run restores `latest` to the newest successfully delivered commit. Docker Hub tag immutability is
+not assumed.
 
 The exact repositories and webhook secrets are:
 
@@ -95,9 +98,11 @@ the immutable identity is the image digest, not the mutable Docker tag.
 CI does not rerun that workspace-wide aggregator: it calls the existing project targets through `nx affected`, excludes
 the workspace gate and the two Maven aggregator nodes, and checks formatting only across the selected Git range. The
 general project verifications use Nx's default bounded parallelism. Maven uses the inferred `mvn-verify-ci` target
-recommended by the official `@nx/maven` CI generator. Maven batch execution is disabled with Nx's standard `--batch`
-option because `@nx/maven` 23.1.0 can recursively duplicate multi-project output; Maven and Docker otherwise keep their
-bounded parallelism.
+recommended by the official `@nx/maven` CI generator. The default batch path is retained because it materially reduces
+CI duration, but `@nx/maven` 23.1.0 has an unresolved result-transport race when its resident runner uses several
+workers. A version-guarded postinstall workaround limits only that runner JVM to one reported processor; Nx task
+parallelism and forked test JVMs remain unchanged. Remove the workaround only after a published `@nx/maven` version is
+validated by a clean install and the complete affected Maven checks.
 
 Both workflows explicitly run the small native Node regression test for affected container selection. The test invokes
 the public `npm exec nx` interface and covers application-only, shared Maven model, contract, Docker-context, and
@@ -130,6 +135,7 @@ npm exec -- nx affected -t docker:build
 - [Nx GitHub Actions integration](https://nx.dev/docs/features/ci-features/github-integration)
 - [Nx affected](https://nx.dev/ci/features/affected)
 - [Nx Maven](https://nx.dev/docs/technologies/java/maven/introduction)
+- [Nx Maven batch result transport fix](https://github.com/nrwl/nx/pull/34046)
 - [Maven build lifecycle](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html)
 - [Nx Expo](https://nx.dev/docs/technologies/react/expo/introduction)
 - [GitHub Actions contexts](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts)
