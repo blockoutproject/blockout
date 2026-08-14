@@ -44,6 +44,3 @@ local/
 .DS_Store
 Thumbs.db
 *.iml
-
-.claude/worktrees
-.claude/settings.local.json
