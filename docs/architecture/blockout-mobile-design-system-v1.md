@@ -8,7 +8,7 @@ task-specific visual certification records; those records remain available throu
 - One canonical Blockout Figma file owns accepted visual composition, variables, components, and screen states.
 - Repository tokens and components own runtime implementation.
 - The Figma policy governs every read, comparison, decision, or mutation involving the canonical file.
-- A task may change design or implementation only within its explicit Workset and external Figma lock.
+- A task may change design or implementation only within the designated issue scope and exact Figma nodes.
 
 ## Foundations
 

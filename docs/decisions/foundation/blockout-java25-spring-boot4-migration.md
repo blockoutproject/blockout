@@ -8,7 +8,7 @@ delivered Blockout Java 25 and Spring Boot 4 baseline.
 GitHub issues: [FND-012 / #116](https://github.com/blockoutproject/blockout/issues/116) and
 [FND-017 / #121](https://github.com/blockoutproject/blockout/issues/121).
 
-Source gate: `OK`. Maaatch is used only as a read-only structural and version reference. The staged Roadmap issues,
+Source gate: `OK`. Maaatch is used only as a read-only structural and version reference. The staged issues,
 not this decision alone, authorized the delivered Maven, Java, CI, generation, and runtime changes. No Maaatch business
 code, configuration, contract, domain model, or product behavior was copied.
 
@@ -174,8 +174,8 @@ Jackson 2 only as temporary scaffolding under the rule below.
 | Docker Compose service graph                                             | `KEEP` topology and values                                                     | FND-016                           | Compose config plus representative full-stack smokes          |
 
 No row authorizes a provider redesign, queue/index topology change, persistence business migration, OpenAPI semantic
-change, or product behavior change. An incompatible Blockout-only library requires an issue Workset expansion or a
-separate accepted task before replacement.
+change, or product behavior change. An incompatible Blockout-only library requires an explicit issue scope expansion
+or a separate accepted task before replacement.
 
 ## Configuration And Removed-API Migration
 
@@ -208,7 +208,7 @@ The migration temporarily allowed only the following mechanisms before FND-017:
 FND-017 removed every temporary mechanism and transitive-version override. Deprecated starters, disabled generator
 options, suppressed nullability checks, skipped service contexts, Jackson 2 core/databind defaults, and unrecorded
 version overrides are prohibited in the delivered baseline. Any future compatibility bridge requires a separately
-accepted Roadmap task and an explicit removal condition.
+accepted issue and an explicit removal condition.
 
 ## Staged Sequence And Rollback Gates
 

@@ -1,18 +1,17 @@
 # Blockout Product And Runtime Context
 
-This document summarizes the delivered Blockout posture and the boundaries that must not reopen by continuity. It is
-not a roadmap and does not track task status.
+This document summarizes the delivered Blockout posture and the boundaries that must not reopen by continuity. It does
+not track task status.
 
 ## Sources Of Truth
 
-| Question                                                   | Source                                                                                                                                       |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Committed tasks, status, priority, ownership, and blockers | [Roadmap GitHub Project](https://github.com/orgs/blockoutproject/projects/4)                                                                 |
-| Delivered runtime behavior                                 | Current OpenAPI sources, application source, and tests                                                                                       |
-| Product and architecture boundaries                        | [`../architecture/`](../architecture/) and [`../decisions/`](../decisions/)                                                                  |
-| Delivered V1 summary                                       | [`../releases/blockout-v1-baseline.md`](../releases/blockout-v1-baseline.md)                                                                 |
-| Roadmap operating rules                                    | [`GitHub Roadmap Policy`](../../.agents/skills/blockout-best-practices/references/github-roadmap-policy.md)                                  |
-| Canonical visual design                                    | The Blockout Figma file governed by the repository [`Figma policy`](../../.agents/skills/blockout-best-practices/references/figma-policy.md) |
+| Question                            | Source                                                                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Task scope, ownership, and blockers | The designated GitHub issue and native issue relationships                                                                            |
+| Delivered runtime behavior          | Current OpenAPI sources, application source, and tests                                                                                |
+| Product and architecture boundaries | [`../architecture/`](../architecture/) and [`../decisions/`](../decisions/)                                                           |
+| Delivered V1 summary                | [`../releases/blockout-v1-baseline.md`](../releases/blockout-v1-baseline.md)                                                          |
+| Canonical visual design             | The Blockout Figma file governed by the repository [`Figma policy`](../../.agents/skills/blockout-best-practices/references/figma.md) |
 
 ## Current Runtime Posture
 
@@ -49,9 +48,9 @@ are not authority.
 - Scraper cleanup and deactivation remain guarded by complete provider observations. A timeout, malformed source, or
   partial crawl is never permission for destructive owner updates.
 - Deferred product behavior, unsupported provider rules, new public surfaces, and contract changes require a sourced
-  `Ready` issue. Documentation or historical sequencing does not activate them.
-- The retired local roadmap and Markdown completion-ledger patterns must not be recreated. GitHub Project fields,
-  native relationships, issues, Worksets, pull requests, and Git history own operational state.
+  issue with explicit scope and acceptance criteria. Documentation or historical sequencing does not activate them.
+- Issues, native relationships, pull requests, and Git history own operational state. Do not recreate task ledgers in
+  repository Markdown.
 
 ## Maintenance
 

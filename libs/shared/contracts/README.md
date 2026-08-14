@@ -25,6 +25,6 @@ npm exec nx run @blockout/python-contract-clients:build
 mvn -f apps/backend/pom.xml -pl shared-models package
 ```
 
-Each service contract is added by its dedicated roadmap task only after focused parity tests prove that its handwritten
+Each service contract is added by its dedicated issue only after focused parity tests prove that its handwritten
 DTOs already use the final role names and owner shape. Code generation only replaces those handwritten mirrors; it
 must not hide a second DTO refactor.
