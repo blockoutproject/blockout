@@ -1,4 +1,0 @@
-interface:
-  display_name: "Nx Workspace Patterns"
-  short_description: "Maintain Blockout Nx workspace conventions"
-  default_prompt: "Use $nx-workspace-patterns to change the Blockout Nx workspace safely."

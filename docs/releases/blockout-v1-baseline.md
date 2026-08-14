@@ -2,7 +2,7 @@
 
 This document summarizes the delivered Blockout V1 baseline after contract-first migration, application-boundary
 cleanup, and mobile alignment. It records active capabilities and known limits; it does not replace source contracts,
-architecture models, or the Roadmap.
+architecture models, or designated issues.
 
 ## Active Capabilities
 
@@ -44,8 +44,8 @@ architecture models, or the Roadmap.
 - Native distribution, store release, production credentials, and production infrastructure are outside this source
   baseline.
 - Android visual certification is not implied by iOS canonical screen evidence.
-- A documented or historical capability is not active work until a real Roadmap issue owns its objective, Workset,
-  source gate, and acceptance criteria.
+- A documented or historical capability is not active work until a real issue owns its objective, scope, sources, and
+  acceptance criteria.
 
 ## Validation Baseline
 
@@ -60,4 +60,4 @@ architecture models, or the Roadmap.
 
 Current source, contracts, tests, and canonical Figma assets determine the delivered result. Closed issues, merged pull
 requests, and Git history retain detailed completion evidence. Any new behavior, contract, provider rule, or product
-surface requires a dedicated Roadmap issue.
+surface requires a dedicated issue.

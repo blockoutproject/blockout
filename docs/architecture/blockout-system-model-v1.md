@@ -58,5 +58,5 @@ for mobile, and Docker Compose for local infrastructure.
 ## Architecture Gate
 
 Source and current tests must support a proposed behavior before it becomes executable. New services, shared libraries,
-complete mirrors, transport changes, or ownership changes require an explicit Roadmap issue and proportionate
-generation and consumer validation.
+complete mirrors, transport changes, or ownership changes require an explicit issue and proportionate generation and
+consumer validation.

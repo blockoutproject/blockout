@@ -15,7 +15,7 @@ libs/shared/
   python-contract-clients/ Ignored generated Python models and HTTPX clients
 infra/
   compose/   Local PostgreSQL, RabbitMQ, Elasticsearch, and pgAdmin services
-docs/        Architecture records, completed refactor evidence, and runbooks
+docs/        Architecture, current context, durable decisions, and release snapshots
 ```
 
 Nx 23 provides the project graph and task orchestration. Maven remains authoritative for Java, uv for Python, Expo for
@@ -93,8 +93,7 @@ publish or deploy images. Only a successful `main` push may publish affected Doc
 Dokploy webhooks. See [Nx CI and container delivery](docs/architecture/nx-ci-container-delivery.md) for the ownership
 model, image mapping, required secrets, and focused commands.
 
-See the [documentation index](docs/README.md), the
-[live Roadmap](https://github.com/orgs/blockoutproject/projects/4), and the
+See the [documentation index](docs/README.md) and the
 [Blockout V1 baseline](docs/releases/blockout-v1-baseline.md).
 
 ## Security
