@@ -7,8 +7,18 @@
     "libs/shared/*"
   ],
   "scripts": {
-    "postinstall": "node tools/workspace/scripts/patch-nx-maven-batch-runner.cjs",
-    "verify": "npm ci && uv sync --locked --all-packages && nx run @blockout/workspace:verify --skip-nx-cache",
+    "contracts:test": "nx run @blockout/contracts:test",
+    "contracts:generate": "nx run @blockout/contracts:generate-contracts",
+    "contracts:check-mappings": "nx run @blockout/contracts:check-schema-mappings",
+    "backend:verify": "nx run com.blockout:backend:verify",
+    "python-clients:verify": "nx run-many -t build,test --projects=@blockout/python-contract-clients",
+    "scrapers:verify": "nx run-many -t format-check,syntax-check,test --projects=@blockout/club-scraper,@blockout/competition-scraper",
+    "mobile:codegen": "nx run @blockout/mobile:codegen",
+    "mobile:lint": "nx run @blockout/mobile:lint",
+    "mobile:typecheck": "nx run @blockout/mobile:typecheck",
+    "mobile:test": "nx run @blockout/mobile:test",
+    "mobile:export": "nx run @blockout/mobile:export",
+    "verify": "npm run contracts:test && npm run contracts:generate && npm run contracts:check-mappings && npm run backend:verify && npm run python-clients:verify && npm run scrapers:verify && npm run mobile:codegen && npm run mobile:lint && npm run mobile:typecheck && npm run mobile:test && npm run mobile:export && npm run format:check",
     "format": "npm run format:prettier && npm run format:java && npm run format:python",
     "format:check": "npm run format:prettier:check && npm run format:java:check && npm run format:python:check",
     "format:prettier": "prettier \"**/*.{cjs,mjs,js,jsx,ts,tsx,json,json5,jsonc,yml,yaml,md,mdx,css,scss,html}\" --write --ignore-unknown",
@@ -28,12 +38,8 @@
     "react": "19.2.0"
   },
   "devDependencies": {
-    "@nx/docker": "23.1.0",
     "@nx/expo": "23.1.0",
-    "@nx/js": "23.1.0",
     "@nx/maven": "23.1.0",
-    "@nx/react": "23.1.0",
-    "@nx/workspace": "23.1.0",
     "@nxlv/python": "22.2.2",
     "nx": "23.1.0",
     "orval": "8.22.0",

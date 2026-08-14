@@ -16,18 +16,10 @@
     "codegen": {
       "executor": "nx:run-commands",
       "cache": true,
-      "inputs": [
-        "{projectRoot}/orval.config.ts",
-        "{projectRoot}/src/shared/api/orval-fetch.ts",
-        "^contractSources",
-        {
-          "externalDependencies": ["orval"]
-        }
-      ],
       "dependsOn": [
         {
           "projects": "@blockout/contracts",
-          "target": "prepare-consumers"
+          "target": "generate-contracts"
         }
       ],
       "outputs": ["{projectRoot}/src/shared/generated"],
@@ -50,37 +42,13 @@
       }
     },
     "lint": {
-      "cache": true,
-      "inputs": [
-        "default",
-        "^contractSources",
-        {
-          "externalDependencies": ["eslint", "eslint-config-expo", "orval"]
-        }
-      ],
       "dependsOn": ["codegen"]
     },
     "test": {
-      "cache": true,
-      "inputs": [
-        "default",
-        "^contractSources",
-        {
-          "externalDependencies": ["jest", "jest-expo", "orval"]
-        }
-      ],
       "dependsOn": ["codegen"]
     },
     "typecheck": {
       "executor": "nx:run-commands",
-      "cache": true,
-      "inputs": [
-        "default",
-        "^contractSources",
-        {
-          "externalDependencies": ["orval", "typescript"]
-        }
-      ],
       "dependsOn": ["codegen"],
       "options": {
         "cwd": "apps/frontend/mobile",
@@ -90,9 +58,6 @@
     "export": {
       "parallelism": false,
       "dependsOn": ["codegen"]
-    },
-    "verify": {
-      "dependsOn": ["lint", "typecheck", "test", "export"]
     }
   }
 }

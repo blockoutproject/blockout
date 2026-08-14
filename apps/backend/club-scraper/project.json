@@ -3,11 +3,6 @@
   "name": "@blockout/club-scraper",
   "projectType": "application",
   "sourceRoot": "apps/backend/club-scraper",
-  "release": {
-    "docker": {
-      "repositoryName": "blockoutproject/blockout-scraper-clubs"
-    }
-  },
   "targets": {
     "serve": {
       "executor": "nx:run-commands",
@@ -22,7 +17,7 @@
       "dependsOn": [
         {
           "projects": "@blockout/python-contract-clients",
-          "target": "verify"
+          "target": "generate"
         }
       ],
       "options": {
@@ -35,7 +30,7 @@
       "dependsOn": [
         {
           "projects": "@blockout/python-contract-clients",
-          "target": "verify"
+          "target": "generate"
         }
       ],
       "options": {
@@ -48,7 +43,7 @@
       "dependsOn": [
         {
           "projects": "@blockout/python-contract-clients",
-          "target": "verify"
+          "target": "generate"
         }
       ],
       "options": {
@@ -77,9 +72,6 @@
         ],
         "parallel": false
       }
-    },
-    "verify": {
-      "dependsOn": ["format-check", "syntax-check", "test"]
     }
   },
   "tags": ["language:python"]

@@ -1,64 +1,15 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "develop",
   "analytics": false,
   "namedInputs": {
-    "contractSources": [
-      "{workspaceRoot}/libs/shared/contracts/specs/source/**/*.json",
-      "{workspaceRoot}/libs/shared/contracts/specs/scripts/bundle-openapi.mjs"
-    ],
-    "backendSchemaMappings": [
-      "{workspaceRoot}/libs/shared/contracts/specs/source/shared/schemas/**/*.json",
-      "{workspaceRoot}/libs/shared/contracts/specs/scripts/sync-backend-schema-mappings.mjs",
-      "{workspaceRoot}/apps/backend/pom.xml"
-    ],
-    "dockerContext": ["{workspaceRoot}/.dockerignore", "contractSources"],
-    "pythonDockerContext": [
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": ["default"],
+    "sharedGlobals": [
+      "{workspaceRoot}/nx.json",
+      "{workspaceRoot}/package.json",
       "{workspaceRoot}/pyproject.toml",
-      "{workspaceRoot}/uv.lock",
-      "{workspaceRoot}/.python-version",
-      "{workspaceRoot}/libs/shared/python-contract-clients/pyproject.toml",
-      "{workspaceRoot}/apps/backend/club-scraper/pyproject.toml",
-      "{workspaceRoot}/apps/backend/competition-scraper/pyproject.toml"
-    ]
-  },
-  "targetDefaults": {
-    "mvn-generate-sources*": [
-      {
-        "filter": {
-          "plugin": "@nx/maven",
-          "projects": ["tag:maven:jar"]
-        },
-        "dependsOn": [
-          "...",
-          {
-            "projects": "@blockout/contracts",
-            "target": "prepare-consumers"
-          }
-        ],
-        "inputs": ["...", "contractSources"]
-      }
-    ],
-    "docker:build": [
-      {
-        "filter": {
-          "plugin": "@nx/docker"
-        },
-        "dependsOn": [
-          "...",
-          {
-            "projects": "@blockout/contracts",
-            "target": "prepare-consumers"
-          }
-        ],
-        "inputs": ["...", "dockerContext"]
-      },
-      {
-        "filter": {
-          "plugin": "@nx/docker",
-          "projects": ["tag:language:python"]
-        },
-        "inputs": ["...", "pythonDockerContext"]
-      }
+      "{workspaceRoot}/uv.lock"
     ]
   },
   "plugins": [
@@ -66,18 +17,10 @@
     {
       "plugin": "@nx/maven",
       "options": {
-        "targetNamePrefix": "mvn-"
+        "targetNamePrefix": "mvn-",
+        "verbose": false
       }
     },
-    "@nxlv/python",
-    {
-      "plugin": "@nx/docker",
-      "options": {
-        "buildTarget": {
-          "cwd": ".",
-          "args": ["--file", "{projectRoot}/Dockerfile"]
-        }
-      }
-    }
+    "@nxlv/python"
   ]
 }

@@ -24,7 +24,7 @@ models and clients from the V1 contracts; generated sources remain outside Git.
 
 ## Prerequisites
 
-- Node.js 22 and npm 10
+- Node.js 24 and npm 11
 - Java 25
 - Python 3.14.6 and uv 0.11.32
 - Docker with Compose
@@ -32,17 +32,23 @@ models and clients from the V1 contracts; generated sources remain outside Git.
 
 ## Verify The Workspace
 
-Verify every workspace owner from a clean checkout with one command:
+Install the locked dependencies:
+
+```bash
+npm ci
+uv sync --locked --all-packages
+```
+
+Verify every workspace owner with one command:
 
 ```bash
 npm run verify
 ```
 
-The command installs the locked Node and Python dependencies, tests and regenerates the contracts, verifies backend
-schema-mapping freshness, runs the complete backend Maven reactor through the root wrapper, builds and tests the shared
-Python contract-client wheel before verifying both scrapers, and generates, lints, typechecks, tests, and exports the
-Expo mobile application. It bypasses Nx's cache so every clean verification step executes and leaves generated clients,
-backend artifacts, the Python wheel, and the mobile export available to the focused native development commands.
+The command tests and regenerates the contracts, verifies backend schema-mapping freshness, runs the complete backend
+Maven reactor through the root wrapper, builds and tests the shared Python contract-client wheel, verifies both
+scrapers, and generates, lints, typechecks, tests, and exports the Expo mobile application. Nx uses local caching while
+Maven, uv, and Expo remain authoritative for their own toolchains.
 
 Backend verification uses repository-defined, non-secret test values equivalent to CI; it does not read or replace
 local runtime credentials. Run `uv sync` only from the repository root. uv owns the single workspace `.venv`; Nx
@@ -69,16 +75,21 @@ Application processes run outside Compose through their native commands or Nx ta
 Verification does not start Docker Compose, databases, brokers, backend services, scrapers, Metro, simulators, EAS, or
 store builds. Application `.env.local` files and service startup remain separate local-runtime steps.
 
-The complete command keeps the focused targets independently available:
+The complete command keeps the focused entry points independently available:
 
 ```bash
+npm run contracts:test
+npm run contracts:generate
+npm run contracts:check-mappings
+npm run backend:verify
+npm run python-clients:verify
+npm run scrapers:verify
+npm run mobile:codegen
+npm run mobile:lint
+npm run mobile:typecheck
+npm run mobile:test
+npm run mobile:export
 npm run format
-npm exec nx run @blockout/contracts:test
-npm exec nx run @blockout/python-contract-clients:verify
-npm exec nx run @blockout/club-scraper:verify
-npm exec nx run @blockout/competition-scraper:verify
-npm exec nx run @blockout/mobile:verify
-./mvnw -f apps/backend/pom.xml verify
 npm run format:check
 ```
 
@@ -86,12 +97,10 @@ npm run format:check
 YAML, and Markdown; Spotless with google-java-format handles Java; and Ruff handles Python. Editors may run these tools
 on save, but repository commands remain authoritative for agents and contributors.
 
-## Continuous Integration And Delivery
+## Continuous Integration
 
-GitHub Actions uses Nx affected selection for validation and container builds. Pull requests and `develop` pushes never
-publish or deploy images. Only a successful `main` push may publish affected Docker Hub images and call their matching
-Dokploy webhooks. See [Nx CI and container delivery](docs/architecture/nx-ci-container-delivery.md) for the ownership
-model, image mapping, required secrets, and focused commands.
+GitHub Actions installs the locked dependencies and runs the same `npm run verify` command used locally. The workflow
+contains one verification job; container build and delivery can be introduced independently from this baseline.
 
 See the [documentation index](docs/README.md) and the
 [Blockout V1 baseline](docs/releases/blockout-v1-baseline.md).

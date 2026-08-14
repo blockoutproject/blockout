@@ -8,13 +8,6 @@
     "generate": {
       "executor": "nx:run-commands",
       "cache": true,
-      "inputs": [
-        "{projectRoot}/*openapi-generator.json",
-        "{projectRoot}/pyproject.toml",
-        "{workspaceRoot}/pyproject.toml",
-        "{workspaceRoot}/uv.lock",
-        "^contractSources"
-      ],
       "outputs": [
         "{projectRoot}/src/.openapi-generator",
         "{projectRoot}/src/blockout_contract_clients/*"
@@ -22,7 +15,7 @@
       "dependsOn": [
         {
           "projects": "@blockout/contracts",
-          "target": "prepare-consumers"
+          "target": "generate-contracts"
         }
       ],
       "options": {
@@ -41,12 +34,6 @@
     "build": {
       "executor": "@nxlv/python:build",
       "cache": true,
-      "inputs": [
-        "default",
-        "{workspaceRoot}/pyproject.toml",
-        "{workspaceRoot}/uv.lock",
-        "^contractSources"
-      ],
       "dependsOn": ["generate"],
       "outputs": ["{workspaceRoot}/dist/libs/shared/python-contract-clients"],
       "options": {
@@ -59,19 +46,10 @@
     "test": {
       "executor": "nx:run-commands",
       "cache": true,
-      "inputs": [
-        "default",
-        "{workspaceRoot}/pyproject.toml",
-        "{workspaceRoot}/uv.lock",
-        "^contractSources"
-      ],
       "dependsOn": ["generate"],
       "options": {
         "command": "uv run --locked --no-sync python -m pytest -q libs/shared/python-contract-clients/tests"
       }
-    },
-    "verify": {
-      "dependsOn": ["build", "test"]
     }
   }
 }
