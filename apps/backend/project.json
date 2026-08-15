@@ -5,27 +5,8 @@
   "targets": {
     "verify": {
       "executor": "nx:run-commands",
-      "cache": true,
-      "dependsOn": [
-        {
-          "projects": "@blockout/contracts",
-          "target": "prepare-consumers"
-        }
-      ],
-      "inputs": [
-        "{projectRoot}/pom.xml",
-        "{workspaceRoot}/mvnw",
-        "{workspaceRoot}/.mvn/wrapper/**/*",
-        "{projectRoot}/*/pom.xml",
-        "{projectRoot}/*/src/**/*",
-        "{workspaceRoot}/libs/shared/contracts/generated/specs/*.json",
-        {
-          "runtime": "java -version 2>&1 | head -n 1"
-        }
-      ],
-      "outputs": ["{projectRoot}/target", "{projectRoot}/*/target"],
       "options": {
-        "command": "./mvnw -f apps/backend/pom.xml clean verify",
+        "command": "./mvnw -f apps/backend/pom.xml verify",
         "env": {
           "AUTH0_AUDIENCE": "https://api.blockout.invalid",
           "AUTH0_CLIENT_ID": "unused",

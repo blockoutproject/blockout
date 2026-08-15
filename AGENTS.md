@@ -8,6 +8,7 @@
 - Use `feature/<issue>-<slug>`, `bugfix/<issue>-<slug>`, or `tech/<issue>-<slug>`. Organize commits intentionally, then open a draft pull request targeting `develop`; use `Closes #N` for complete delivery and `Refs #N` only for explicitly non-closing work.
 - Never consult an archived or external repository unless a human explicitly asks.
 - Edit OpenAPI source fragments first. Generated bundles, Java sources, Python clients, and TypeScript clients are reproducible outputs and must stay out of Git.
+- Keep Nx as a thin local orchestrator behind stable `npm run` entry points. Nx uses local caching only; GitHub Actions runs `npm run verify`, GitHub provides CI evidence, and Docker builds and delivers containers directly.
 - Never merge without an explicit human request. Before merging, verify available review and CI evidence, then use a merge commit only. After a successful merge, verify issue closure, unassign it, delete the merged topic branch locally and remotely, and synchronize local `develop` without overwriting unrelated work.
 - For Figma-only delivery, record evidence and obtain explicit human approval, then close and unassign the issue without opening a documentation pull request.
 - Run the validations selected by `.agents/skills/blockout-best-practices/SKILL.md` and report evidence.

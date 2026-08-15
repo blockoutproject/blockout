@@ -1,10 +1,5 @@
 {
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "name": "@blockout/search-worker",
-  "release": {
-    "docker": {
-      "repositoryName": "blockoutproject/blockout-worker-search"
-    }
-  },
   "tags": ["language:java"]
 }
