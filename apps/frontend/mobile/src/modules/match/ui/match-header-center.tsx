@@ -1,8 +1,14 @@
 import React from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 
-import type { AppTheme } from "@/src/shared/theme";
-import { layout } from "@/src/shared/theme";
+import {
+  type AppTheme,
+  fontWeight,
+  layout,
+  letterSpacing,
+  spacing,
+  typography,
+} from "@/src/shared/theme";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import { GradientPill } from "@/src/shared/ui/pill";
@@ -97,21 +103,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: spacing.compact,
     paddingHorizontal: 56,
   },
   centerBlock: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
   finalScoreBox: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
   },
   finalScoreText: {
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: 0.3,
+    fontSize: typography.title.fontSize,
+    fontWeight: fontWeight.extraBold,
+    letterSpacing: letterSpacing.overline,
   },
 });

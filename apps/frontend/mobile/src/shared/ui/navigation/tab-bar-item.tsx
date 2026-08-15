@@ -11,6 +11,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import type { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
+import { colors, touchTarget } from "@/src/shared/theme";
 
 const SPRING = { damping: 25, stiffness: 340, mass: 0.8 };
 
@@ -62,7 +63,7 @@ export function TabBarItem({
       onLayout={onLayout}
       style={[styles.item, style]}
       android_ripple={{
-        color: "rgba(255,255,255,0.05)",
+        color: colors.overlay.navigationPress,
         borderless: true,
       }}
       accessibilityRole="tab"
@@ -82,7 +83,7 @@ export function TabBarItem({
 const styles = StyleSheet.create({
   item: {
     width: 74,
-    height: 44,
+    height: touchTarget.minimum,
     alignItems: "center",
     justifyContent: "center",
   },

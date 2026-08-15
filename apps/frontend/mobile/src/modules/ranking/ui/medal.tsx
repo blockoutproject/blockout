@@ -7,7 +7,14 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { withAlpha } from "@/src/shared/theme";
+import {
+  iconSize,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
+  withAlpha,
+} from "@/src/shared/theme";
 import type { AppTheme } from "@/src/shared/theme";
 
 const Medal: React.FC<{ rank: 1 | 2 | 3; theme: AppTheme }> = ({
@@ -24,7 +31,11 @@ const Medal: React.FC<{ rank: 1 | 2 | 3; theme: AppTheme }> = ({
         { backgroundColor: withAlpha(color, 0.22), borderColor: color },
       ]}
     >
-      <MaterialCommunityIcons name="medal" size={14} color={theme.text} />
+      <MaterialCommunityIcons
+        name="medal"
+        size={iconSize.compact}
+        color={theme.text}
+      />
       <Text style={[styles.medalRank, { color: theme.text }]}>{rank}</Text>
     </View>
   );
@@ -36,11 +47,14 @@ const styles = StyleSheet.create({
   medalWrap: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
+    gap: spacing.optical,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radius.full,
     borderWidth: RNStyleSheet.hairlineWidth,
   },
-  medalRank: { fontSize: 12, fontWeight: "800" },
+  medalRank: {
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.extraBold,
+  },
 });

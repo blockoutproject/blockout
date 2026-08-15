@@ -2,7 +2,13 @@ import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { iconSize, layout, spacing, useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  layout,
+  spacing,
+  stateOpacity,
+  useAppTheme,
+} from "@/src/shared/theme";
 
 import Filters from "@/src/shared/ui/filters";
 import { Filter } from "@/src/shared/view-models/filter";
@@ -73,6 +79,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: spacing[3],
   },
-  filters: { paddingHorizontal: 0 },
-  pressed: { opacity: 0.7 },
+  filters: { paddingHorizontal: spacing[0] },
+  pressed: { opacity: stateOpacity.muted },
 });

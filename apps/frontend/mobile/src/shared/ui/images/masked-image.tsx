@@ -7,7 +7,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { Image, type ImageProps } from "expo-image";
-import { useAppTheme } from "@/src/shared/theme";
+import { colors, elevation, useAppTheme } from "@/src/shared/theme";
 import * as Haptics from "expo-haptics";
 
 export type MaskedImageProps = {
@@ -71,7 +71,7 @@ const MaskedImage: React.FC<MaskedImageProps> = memo(function MaskedImage({
       justifyContent: "center" as const,
       backgroundColor: backgroundColor ?? theme.text,
       borderWidth,
-      borderColor: borderColor ?? "transparent",
+      borderColor: borderColor ?? colors.transparent,
     },
     style,
   ];
@@ -101,10 +101,6 @@ export default MaskedImage;
 
 const styles = StyleSheet.create({
   shadow: {
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    ...elevation.maskedImage,
   },
 });

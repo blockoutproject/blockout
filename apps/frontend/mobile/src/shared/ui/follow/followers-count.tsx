@@ -1,7 +1,12 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  fontWeight,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 
 type Props = {
   count: number;
@@ -14,7 +19,7 @@ const FollowersCounter: React.FC<Props> = ({ count }) => {
     <View style={styles.container}>
       <MaterialCommunityIcons
         name="account-multiple"
-        size={20}
+        size={iconSize.md}
         color={theme.text}
         style={{ marginRight: 6 }}
       />
@@ -29,8 +34,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   counterText: {
-    fontWeight: "600",
-    fontSize: 14,
+    fontWeight: fontWeight.semiBold,
+    fontSize: typography.body.fontSize,
   },
 });
 

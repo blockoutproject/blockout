@@ -26,7 +26,15 @@ import {
 } from "@/src/shared/generated/models";
 import { useApis } from "@/src/shared/providers/api-provider";
 import { useSessionState } from "@/src/modules/session/providers/session-context";
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  borderWidth,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import Filters from "@/src/shared/ui/filters";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 import { FormField } from "@/src/shared/ui/form/form-field";
@@ -287,7 +295,7 @@ const ReportForm = ({ context, onSuccess }: ReportFormProps) => {
             >
               <MaterialCommunityIcons
                 name="image-plus"
-                size={20}
+                size={iconSize.md}
                 color={theme.textInactive}
               />
               <Text
@@ -308,27 +316,30 @@ const ReportForm = ({ context, onSuccess }: ReportFormProps) => {
 export default ReportForm;
 
 const styles = StyleSheet.create({
-  scroll: { gap: 12, padding: 8, paddingBottom: 100 },
-  filters: { paddingHorizontal: 0 },
+  scroll: { gap: spacing[3], padding: spacing[2], paddingBottom: 100 },
+  filters: { paddingHorizontal: spacing[0] },
   textarea: { maxHeight: 200, textAlignVertical: "top", minHeight: 180 },
-  images: { gap: 10 },
+  images: { gap: spacing.compact },
   thumbnailFrame: {
     width: 84,
     height: 84,
-    borderRadius: 14,
+    borderRadius: radius.card,
     overflow: "hidden",
-    borderWidth: 1.5,
+    borderWidth: borderWidth.subtle,
   },
   thumbnail: { width: "100%", height: "100%" },
   addImageAction: {
     height: 84,
-    paddingHorizontal: 14,
-    borderWidth: 1.5,
-    borderRadius: 14,
+    paddingHorizontal: spacing.inset,
+    borderWidth: borderWidth.subtle,
+    borderRadius: radius.card,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: 6,
+    gap: spacing.tight,
   },
-  addImageLabel: { fontSize: 12, fontWeight: "700" },
+  addImageLabel: {
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.bold,
+  },
 });

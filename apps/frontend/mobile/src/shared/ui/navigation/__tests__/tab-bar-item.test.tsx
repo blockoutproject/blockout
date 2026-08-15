@@ -3,6 +3,7 @@ import { Text } from "react-native";
 import { render, userEvent } from "@testing-library/react-native";
 import type { SharedValue } from "react-native-reanimated";
 
+import { iconSize } from "@/src/shared/theme";
 import { TabBarItem } from "@/src/shared/ui/navigation/tab-bar-item";
 
 jest.mock("react-native-reanimated", () => {
@@ -30,7 +31,7 @@ describe("TabBarItem", () => {
         index={0}
         isFocused
         color="#ffffff"
-        size={26}
+        size={iconSize.tab}
         activeIndex={{ value: 0 } as SharedValue<number>}
         onPress={onPress}
         onLongPress={jest.fn()}

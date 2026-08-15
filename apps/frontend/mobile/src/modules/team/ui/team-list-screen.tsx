@@ -5,7 +5,7 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { layout, useAppTheme } from "@/src/shared/theme";
+import { layout, spacing, useAppTheme } from "@/src/shared/theme";
 
 import ErrorState from "@/src/shared/ui/feedback/error-state";
 import TeamCard from "@/src/modules/team/ui/team-list-card";
@@ -116,7 +116,7 @@ const TeamListScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
         onScrollBeginDrag={Keyboard.dismiss}
         contentContainerStyle={{
-          paddingHorizontal: 8,
+          paddingHorizontal: spacing[2],
           paddingBottom: insets.bottom + layout.bottomNavigation,
         }}
         scrollEnabled

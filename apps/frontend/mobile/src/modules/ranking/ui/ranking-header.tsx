@@ -18,6 +18,7 @@ import {
   iconSize,
   radius,
   spacing,
+  stateOpacity,
   typography,
   useAppTheme,
   withAlpha,
@@ -68,7 +69,7 @@ const RankingHeader: React.FC<Props> = ({ pool, onPress }) => {
         <View style={styles.headerLeft}>
           <MaskedImage
             uri={pool.division.logoUrl}
-            size={26}
+            size={iconSize.tab}
             radius={radius.sm}
             style={styles.logo}
             shadow
@@ -110,7 +111,7 @@ export default RankingHeader;
 const styles = StyleSheet.create({
   headerRow: {
     minHeight: 51,
-    paddingHorizontal: 10,
+    paddingHorizontal: spacing.compact,
     paddingVertical: spacing[2],
     flexDirection: "row",
     alignItems: "center",
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
   },
   textContent: {
     flex: 1,
-    gap: 0,
+    gap: spacing[0],
   },
   headerTitle: {
     ...typography.compactStrong,
@@ -138,5 +139,5 @@ const styles = StyleSheet.create({
     flex: 1,
     ...typography.captionStrong,
   },
-  pressed: { opacity: 0.85 },
+  pressed: { opacity: stateOpacity.pressedSubtle },
 });

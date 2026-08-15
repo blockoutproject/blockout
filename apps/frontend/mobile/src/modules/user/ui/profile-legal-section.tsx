@@ -2,7 +2,16 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useAppTheme, withAlpha } from "@/src/shared/theme";
+import {
+  iconSize,
+  fontWeight,
+  letterSpacing,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+  withAlpha,
+} from "@/src/shared/theme";
 
 type ProfileLegalSectionProps = {
   onOpenImprint: () => void;
@@ -42,7 +51,7 @@ const LegalItemRow = ({ icon, label, onPress, testID }: LegalItemRowProps) => {
       <View style={styles.itemLeft}>
         <MaterialCommunityIcons
           name={icon}
-          size={18}
+          size={iconSize.control}
           color={withAlpha(theme.text, 0.8)}
         />
         <Text
@@ -54,7 +63,7 @@ const LegalItemRow = ({ icon, label, onPress, testID }: LegalItemRowProps) => {
       </View>
       <Ionicons
         name="chevron-forward-outline"
-        size={20}
+        size={iconSize.md}
         color={withAlpha(theme.text, 0.5)}
       />
     </Pressable>
@@ -112,17 +121,17 @@ const ProfileLegalSection = ({
 export default ProfileLegalSection;
 
 const styles = StyleSheet.create({
-  section: { gap: 12 },
+  section: { gap: spacing[3] },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.3,
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.extraBold,
+    letterSpacing: letterSpacing.overline,
     textTransform: "uppercase",
   },
-  cardList: { gap: 10 },
+  cardList: { gap: spacing.compact },
   itemRow: {
-    padding: 14,
-    borderRadius: 14,
+    padding: spacing.inset,
+    borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     alignItems: "center",
@@ -131,9 +140,13 @@ const styles = StyleSheet.create({
   itemLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: spacing.compact,
     flex: 1,
     minWidth: 0,
   },
-  itemText: { fontSize: 14, fontWeight: "700", flex: 1 },
+  itemText: {
+    flex: 1,
+    fontSize: typography.body.fontSize,
+    fontWeight: fontWeight.bold,
+  },
 });

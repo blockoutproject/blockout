@@ -5,7 +5,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  borderWidth,
+  colors,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { DivisionResponse } from "@/src/shared/generated/models";
 import { useApis } from "@/src/shared/providers/api-provider";
 
@@ -103,7 +112,7 @@ const DivisionItem: React.FC<DivisionItemProps> = ({
         >
           <MaterialCommunityIcons
             name="close"
-            size={20}
+            size={iconSize.md}
             color={theme.textInactive}
             style={{ marginLeft: 16 }}
           />
@@ -119,10 +128,10 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-    marginBottom: 12,
+    borderRadius: radius.hero,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[4],
+    marginBottom: spacing[3],
   },
   detailsAction: {
     flex: 1,
@@ -130,25 +139,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   id: {
-    fontSize: 12,
+    fontSize: typography.metadata.fontSize,
     width: 24,
     textAlign: "left",
   },
   avatar: {
     width: 40,
     aspectRatio: 1,
-    borderRadius: 12,
-    marginHorizontal: 8,
-    backgroundColor: "#ccc",
+    borderRadius: radius.md,
+    marginHorizontal: spacing[2],
+    backgroundColor: colors.surface.avatarPlaceholder,
   },
-  textContainer: { flex: 1, paddingHorizontal: 8 },
-  name: { fontSize: 14, fontWeight: "600" },
-  status: { fontSize: 12, marginTop: 4 },
+  textContainer: { flex: 1, paddingHorizontal: spacing[2] },
+  name: {
+    fontSize: typography.body.fontSize,
+    fontWeight: fontWeight.semiBold,
+  },
+  status: {
+    fontSize: typography.metadata.fontSize,
+    marginTop: spacing[1],
+  },
   colorCircle: {
     width: 30,
     height: 30,
-    borderRadius: 20,
-    marginHorizontal: 4,
-    borderWidth: 1,
+    borderRadius: radius.full,
+    marginHorizontal: spacing[1],
+    borderWidth: borderWidth.thin,
   },
 });

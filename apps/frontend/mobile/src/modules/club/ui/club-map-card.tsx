@@ -10,7 +10,15 @@ import {
   SymbolLayer,
 } from "@maplibre/maplibre-react-native";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  borderWidth,
+  colors,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { CONFIG } from "@/src/shared/config/config";
 import type { ClubResponse } from "@/src/shared/generated/models";
 import {
@@ -19,7 +27,7 @@ import {
   hasMapCoordinate,
 } from "@/src/shared/model/map-presentation";
 
-const RADIUS = 18;
+const RADIUS = radius.hero;
 
 const iconIdForClub = (clubId: string) => `club-logo-${clubId}`;
 
@@ -184,41 +192,41 @@ export default ClubMapCard;
 
 const styles = StyleSheet.create({
   innerClip: {
-    borderRadius: RADIUS - 1,
+    borderRadius: RADIUS - borderWidth.thin,
     overflow: "hidden",
     height: 220,
-    borderWidth: 2,
+    borderWidth: borderWidth.medium,
   },
   noCoords: {
     position: "absolute",
-    left: 12,
-    right: 12,
-    top: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    left: spacing[3],
+    right: spacing[3],
+    top: spacing[3],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing.compact,
+    borderRadius: radius.card,
+    backgroundColor: colors.overlay.mapAttribution,
   },
   noCoordsTitle: {
-    fontSize: 13,
-    fontWeight: "800",
+    fontSize: typography.label.fontSize,
+    fontWeight: fontWeight.extraBold,
   },
   noCoordsSub: {
-    marginTop: 2,
-    fontSize: 12,
-    fontWeight: "600",
+    marginTop: spacing.optical,
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.semiBold,
   },
   attribution: {
     position: "absolute",
-    bottom: 6,
-    right: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    bottom: spacing.tight,
+    right: spacing[2],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radius.compact,
+    backgroundColor: colors.overlay.mapAttribution,
   },
   attributionText: {
-    fontSize: 10,
-    color: "#D0D0D0",
+    fontSize: typography.attribution.fontSize,
+    color: colors.text.attribution,
   },
 });

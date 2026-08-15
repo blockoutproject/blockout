@@ -8,7 +8,7 @@ import ProUpsellTab from "@/src/modules/subscription/ui/pro-upsell-tab";
 
 import { MatchStatusEnum } from "@/src/shared/generated/models";
 import type { PoolResponse } from "@/src/shared/generated/models";
-import { layout } from "@/src/shared/theme";
+import { layout, spacing } from "@/src/shared/theme";
 import PoolMapTab from "./pool-map-tab";
 import { usePurchases } from "@/src/modules/subscription/providers/purchases-provider";
 
@@ -60,7 +60,7 @@ const PoolTabs: React.FC<PoolTabsProps> = ({ enrichedPool }) => {
               }
               scrollY={scrollYs[tab.key]}
               headerOffset={layout.tabs}
-              contentContainerStyle={[{ paddingHorizontal: 4 }]}
+              contentContainerStyle={[{ paddingHorizontal: spacing[1] }]}
               showPoolHeader={false}
             />
           );

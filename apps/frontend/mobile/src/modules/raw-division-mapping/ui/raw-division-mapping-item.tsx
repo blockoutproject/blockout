@@ -2,7 +2,14 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  borderWidth,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { RawDivisionMappingResponse } from "@/src/shared/generated/models";
 
 type RawDivisionMappingItemProps = {
@@ -80,21 +87,30 @@ export default RawDivisionMappingItem;
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
+    padding: spacing[4],
+    borderRadius: radius.lg,
+    marginBottom: spacing[3],
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  leftContent: { flex: 1, marginRight: 12 },
-  label: { fontWeight: "700", fontSize: 16 },
-  subLabel: { fontSize: 12, marginTop: 4 },
-  statusWrapper: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderRadius: 16,
+  leftContent: { flex: 1, marginRight: spacing[3] },
+  label: {
+    fontWeight: fontWeight.bold,
+    fontSize: typography.control.fontSize,
   },
-  status: { fontSize: 12, fontWeight: "700" },
+  subLabel: {
+    fontSize: typography.metadata.fontSize,
+    marginTop: spacing[1],
+  },
+  statusWrapper: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing.tight,
+    borderWidth: borderWidth.thin,
+    borderRadius: radius.lg,
+  },
+  status: {
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.bold,
+  },
 });

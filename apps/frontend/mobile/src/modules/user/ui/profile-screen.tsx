@@ -10,7 +10,7 @@ import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { layout, useAppTheme } from "@/src/shared/theme";
+import { layout, spacing, useAppTheme } from "@/src/shared/theme";
 import {
   useSessionActions,
   useSessionState,
@@ -222,5 +222,5 @@ export default ProfileScreen;
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  scrollContent: { paddingHorizontal: 8, gap: 20 },
+  scrollContent: { paddingHorizontal: spacing[2], gap: spacing[5] },
 });

@@ -4,10 +4,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 
 import {
+  iconSize,
   borderWidth,
   layout,
   radius,
   spacing,
+  stateOpacity,
   touchTarget,
   typography,
   useAppTheme,
@@ -63,7 +65,7 @@ export function SearchField({
     >
       <MaterialCommunityIcons
         name="magnify"
-        size={18}
+        size={iconSize.control}
         color={theme.textInactive}
       />
 
@@ -90,7 +92,7 @@ export function SearchField({
         >
           <MaterialCommunityIcons
             name="close-circle"
-            size={18}
+            size={iconSize.control}
             color={theme.textInactive}
           />
         </Pressable>
@@ -113,9 +115,9 @@ const styles = StyleSheet.create({
     ...typography.body,
     flex: 1,
     minWidth: 0,
-    paddingVertical: 0,
+    paddingVertical: spacing[0],
   },
   pressed: {
-    opacity: 0.7,
+    opacity: stateOpacity.muted,
   },
 });

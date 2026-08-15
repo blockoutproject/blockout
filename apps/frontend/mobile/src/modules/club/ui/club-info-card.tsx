@@ -100,7 +100,7 @@ export const InfoRow: React.FC<ClubInfoRowProps> = ({
       {onPress ? (
         <Ionicons
           name="chevron-forward-outline"
-          size={20}
+          size={iconSize.md}
           color={withAlpha(theme.text, 0.5)}
           style={styles.chevron}
         />

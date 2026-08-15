@@ -6,6 +6,7 @@ import PdfViewerHeader from "@/src/modules/pdf/ui/pdf-viewer-header";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import ReportFormSheet from "@/src/modules/report/ui/report-form-sheet";
 import { ReportTypeEnum } from "@/src/shared/generated/models";
+import { colors } from "@/src/shared/theme";
 
 export default function PdfViewer() {
   const params = useLocalSearchParams<{ url: string; title?: string }>();
@@ -87,14 +88,14 @@ export default function PdfViewer() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "black",
+    backgroundColor: colors.background.media,
   },
   webviewWrap: {
     flex: 1,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "black",
+    backgroundColor: colors.background.media,
     alignItems: "center",
     justifyContent: "center",
   },

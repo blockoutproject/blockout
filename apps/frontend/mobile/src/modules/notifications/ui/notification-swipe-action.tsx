@@ -2,7 +2,14 @@ import React, { ReactNode, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  colors,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 
 type Props = {
   children: ReactNode;
@@ -51,11 +58,15 @@ const styles = StyleSheet.create({
   deleteAction: {
     justifyContent: "center",
     alignItems: "flex-end",
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    marginHorizontal: 8,
-    marginBottom: 12,
+    paddingHorizontal: spacing[4],
+    borderRadius: radius.lg,
+    marginHorizontal: spacing[2],
+    marginBottom: spacing[3],
   },
-  deleteLabel: { color: "white", fontWeight: "700", fontSize: 14 },
+  deleteLabel: {
+    color: colors.text.primary,
+    fontSize: typography.body.fontSize,
+    fontWeight: fontWeight.bold,
+  },
   children: { flex: 1 },
 });

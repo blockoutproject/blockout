@@ -157,7 +157,7 @@ export function Action({
               : variant === "destructive"
                 ? { backgroundColor: theme.error }
                 : {
-                    backgroundColor: "transparent",
+                    backgroundColor: colors.transparent,
                     borderColor: theme.error,
                     borderWidth: borderWidth.thin,
                   },

@@ -4,7 +4,7 @@ import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import Markdown from "react-native-markdown-display";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAppTheme } from "@/src/shared/theme";
+import { spacing, typography, useAppTheme } from "@/src/shared/theme";
 import { useLegalDocument } from "@/src/modules/legal/hooks/use-legal-document";
 import LegalDocumentHeader from "@/src/modules/legal/ui/legal-document-header";
 import useHasScopes from "@/src/modules/user/hooks/use-has-scopes";
@@ -63,40 +63,33 @@ const LegalDocumentScreen: React.FC<LegalDocumentScreenProps> = ({
       <>
         <BottomSheetScrollView
           contentContainerStyle={[
-            { paddingTop: 8, paddingBottom: insets.bottom },
+            { paddingTop: spacing[2], paddingBottom: insets.bottom },
           ]}
         >
           <Markdown
             style={{
-              body: { paddingHorizontal: 16 },
+              body: { paddingHorizontal: spacing[4] },
               paragraph: {
-                paddingLeft: 8,
+                paddingLeft: spacing[2],
                 color: theme.text,
-                fontSize: 14,
-                lineHeight: 22,
-                marginBottom: 24,
+                ...typography.documentBody,
+                marginBottom: spacing[6],
               },
               heading1: {
                 color: theme.text,
-                fontSize: 24,
-                fontWeight: "700",
-                lineHeight: 30,
-                marginBottom: 12,
+                ...typography.documentTitle,
+                marginBottom: spacing[3],
               },
               heading2: {
                 color: theme.text,
-                fontSize: 20,
-                fontWeight: "700",
-                lineHeight: 26,
+                ...typography.documentHeading,
               },
               heading3: {
                 color: theme.text,
-                fontSize: 16,
-                fontWeight: "600",
-                lineHeight: 22,
+                ...typography.documentSubheading,
               },
-              bullet_list: { marginBottom: 8 },
-              list_item: { fontSize: 14, lineHeight: 22, color: theme.text },
+              bullet_list: { marginBottom: spacing[2] },
+              list_item: { ...typography.documentBody, color: theme.text },
             }}
           >
             {data.content}
@@ -141,5 +134,9 @@ export default LegalDocumentScreen;
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  update: { textAlign: "center", fontSize: 12, marginTop: 12 },
+  update: {
+    textAlign: "center",
+    fontSize: typography.metadata.fontSize,
+    marginTop: spacing[3],
+  },
 });

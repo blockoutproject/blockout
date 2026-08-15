@@ -5,7 +5,7 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import { useAppTheme } from "@/src/shared/theme";
+import { spacing, useAppTheme } from "@/src/shared/theme";
 import type { LegalDocumentResponse } from "@/src/shared/generated/models";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
 
@@ -146,5 +146,5 @@ const LegalDocumentForm: React.FC<LegalDocumentFormProps> = ({
 export default LegalDocumentForm;
 
 const styles = StyleSheet.create({
-  content: { padding: 8, paddingBottom: 100, gap: 12 },
+  content: { padding: spacing[2], paddingBottom: 100, gap: spacing[3] },
 });

@@ -16,7 +16,7 @@ import {
 import { FlatList } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import { useAppTheme } from "@/src/shared/theme";
+import { spacing, useAppTheme } from "@/src/shared/theme";
 import { useRawDivisionMappings } from "@/src/modules/raw-division-mapping/hooks/use-raw-division-mapping";
 import { RawDivisionMappingResponse } from "@/src/shared/generated/models";
 import { Filter } from "@/src/shared/view-models/filter";
@@ -221,9 +221,9 @@ const RawDivisionMappingScreen: React.FC = () => {
 export default RawDivisionMappingScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, gap: 16 },
+  container: { flex: 1, gap: spacing[4] },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  filterWrapper: { flexDirection: "column", gap: 6 },
-  flatList: { paddingHorizontal: 8 },
+  filterWrapper: { flexDirection: "column", gap: spacing.tight },
+  flatList: { paddingHorizontal: spacing[2] },
   emptyState: { alignItems: "center", marginTop: 32 },
 });

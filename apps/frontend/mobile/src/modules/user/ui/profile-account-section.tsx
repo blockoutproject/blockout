@@ -1,7 +1,14 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { useAppTheme, withAlpha } from "@/src/shared/theme";
+import {
+  fontWeight,
+  letterSpacing,
+  spacing,
+  typography,
+  useAppTheme,
+  withAlpha,
+} from "@/src/shared/theme";
 import { Action } from "@/src/shared/ui/action";
 import ProfileVersion from "./profile-version";
 
@@ -66,13 +73,13 @@ const ProfileAccountSection = ({
 export default ProfileAccountSection;
 
 const styles = StyleSheet.create({
-  section: { gap: 12 },
+  section: { gap: spacing[3] },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.3,
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.extraBold,
+    letterSpacing: letterSpacing.overline,
     textTransform: "uppercase",
   },
-  actions: { gap: 12, marginTop: 4 },
+  actions: { gap: spacing[3], marginTop: spacing[1] },
   profileAction: { height: 46 },
 });

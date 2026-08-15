@@ -7,7 +7,12 @@ import React, { memo } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { borderWidth, spacing, useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  borderWidth,
+  spacing,
+  useAppTheme,
+} from "@/src/shared/theme";
 import {
   Action,
   type ActionProps,
@@ -72,7 +77,7 @@ const BottomSheetFormFooter = ({
             icon ? (
               <MaterialCommunityIcons
                 name={icon}
-                size={18}
+                size={iconSize.control}
                 color={foreground}
               />
             ) : undefined

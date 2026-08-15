@@ -3,9 +3,11 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
+  iconSize,
   borderWidth,
   radius,
   spacing,
+  stateOpacity,
   typography,
   useAppTheme,
   withAlpha,
@@ -72,7 +74,7 @@ const EntityCard = ({ presentation, onPress, testID }: EntityCardProps) => {
           <View style={styles.mainRow}>
             <MaskedImage
               uri={presentation.imageUri}
-              size={44}
+              size={iconSize.illustration}
               radius={radius.md}
               shadow
             />
@@ -140,6 +142,6 @@ const styles = StyleSheet.create({
     gap: spacing[1],
   },
   pressed: {
-    opacity: 0.9,
+    opacity: stateOpacity.pressed,
   },
 });

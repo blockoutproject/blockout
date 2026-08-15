@@ -6,7 +6,16 @@ import {
 } from "@gorhom/bottom-sheet";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useAppTheme, withAlpha } from "@/src/shared/theme";
+import {
+  iconSize,
+  borderWidth,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+  withAlpha,
+} from "@/src/shared/theme";
 import FormCard from "@/src/shared/ui/form/form-card";
 import { FormField } from "@/src/shared/ui/form/form-field";
 import type { MatchLiveLinkFormPresentation } from "@/src/modules/match/view-models/match-live-link-form-presentation";
@@ -60,7 +69,7 @@ const MatchLiveLinkFormContent = ({
             >
               <MaterialCommunityIcons
                 name={icon}
-                size={18}
+                size={iconSize.control}
                 color={theme.textInactive}
               />
             </View>
@@ -83,7 +92,7 @@ const MatchLiveLinkFormContent = ({
           >
             <MaterialCommunityIcons
               name="shield-check-outline"
-              size={18}
+              size={iconSize.control}
               color={theme.warning}
             />
             <Text style={[styles.warningText, { color: theme.warning }]}>
@@ -102,7 +111,7 @@ const MatchLiveLinkFormContent = ({
             <View style={styles.lockBanner}>
               <MaterialCommunityIcons
                 name="clock-outline"
-                size={16}
+                size={iconSize.sm}
                 color={theme.warning}
               />
               <Text style={[styles.lockHint, { color: theme.warning }]}>
@@ -146,78 +155,78 @@ export default MatchLiveLinkFormContent;
 
 const styles = StyleSheet.create({
   scroll: {
-    gap: 12,
-    padding: 8,
+    gap: spacing[3],
+    padding: spacing[2],
     paddingBottom: 100,
   },
   subtitle: {
-    fontSize: 13,
-    fontWeight: "500",
+    fontSize: typography.label.fontSize,
+    fontWeight: fontWeight.medium,
   },
   platformRow: {
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
+    gap: spacing[2],
+    marginTop: spacing[2],
   },
   platformIcon: {
     width: 28,
     height: 28,
-    borderRadius: 999,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
+    borderWidth: borderWidth.subtle,
   },
   platformHint: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.semiBold,
   },
   warningBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    marginTop: 10,
+    gap: spacing[2],
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.compact,
+    paddingVertical: spacing[2],
+    borderWidth: borderWidth.thin,
+    marginTop: spacing.compact,
   },
   warningText: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.bold,
     flex: 1,
   },
   fieldBlock: {
-    gap: 8,
-    marginTop: 12,
+    gap: spacing[2],
+    marginTop: spacing[3],
   },
   label: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: typography.label.fontSize,
+    fontWeight: fontWeight.bold,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    borderWidth: borderWidth.subtle,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.compact,
+    paddingVertical: spacing[2],
   },
   input: {
     flex: 1,
-    fontSize: 14,
-    paddingVertical: 2,
+    fontSize: typography.body.fontSize,
+    paddingVertical: spacing.optical,
   },
   lockBanner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginTop: 2,
+    gap: spacing[2],
+    marginTop: spacing.optical,
   },
   lockHint: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.bold,
     flex: 1,
   },
 });

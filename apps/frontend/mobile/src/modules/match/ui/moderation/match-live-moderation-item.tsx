@@ -3,7 +3,16 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  borderWidth,
+  fontWeight,
+  radius,
+  spacing,
+  stateOpacity,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { MatchLiveSummaryResponse } from "@/src/shared/generated/models";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
@@ -17,7 +26,7 @@ type Props = {
   onPress: (match: MatchLiveSummaryResponse) => void;
 };
 
-const CARD_RADIUS = 16;
+const CARD_RADIUS = radius.lg;
 
 const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
   const theme = useAppTheme();
@@ -104,7 +113,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
 
             <MaterialCommunityIcons
               name="chevron-right"
-              size={22}
+              size={iconSize.card}
               color={theme.textInactive}
             />
           </View>
@@ -113,7 +122,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
             <View style={styles.teamColumnLeft}>
               <MaskedImage
                 uri={match.teamA.logoUrl}
-                size={32}
+                size={iconSize.xl}
                 radius={10}
                 shadow
               />
@@ -156,7 +165,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
               </Text>
               <MaskedImage
                 uri={match.teamB.logoUrl}
-                size={32}
+                size={iconSize.xl}
                 radius={10}
                 shadow
               />
@@ -167,7 +176,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
             <View style={styles.metaItem}>
               <MaterialCommunityIcons
                 name="clock-outline"
-                size={14}
+                size={iconSize.compact}
                 color={theme.textInactive}
               />
               <Text
@@ -182,7 +191,7 @@ const MatchLiveModerationItem: React.FC<Props> = ({ match, onPress }) => {
               <View style={styles.metaItem}>
                 <MaterialCommunityIcons
                   name="video-outline"
-                  size={14}
+                  size={iconSize.compact}
                   color={theme.textInactive}
                 />
                 <Text
@@ -204,70 +213,70 @@ export default memo(MatchLiveModerationItem);
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 12,
+    marginBottom: spacing[3],
   },
   card: {
     borderRadius: CARD_RADIUS,
   },
   cardContent: {
-    borderRadius: CARD_RADIUS - 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 10,
+    borderRadius: CARD_RADIUS - borderWidth.thin,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing.compact,
+    gap: spacing.compact,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: spacing.compact,
   },
   statusPill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    gap: 4,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radius.full,
+    gap: spacing[1],
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.bold,
   },
-  pressed: { opacity: 0.9 },
+  pressed: { opacity: stateOpacity.pressed },
   headerMeta: {
     flex: 1,
-    gap: 2,
+    gap: spacing.optical,
   },
   headerTitle: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: typography.label.fontSize,
+    fontWeight: fontWeight.bold,
   },
   headerSubtitle: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.medium,
   },
   teamsRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
-    marginTop: 2,
+    gap: spacing[2],
+    marginTop: spacing.optical,
   },
   teamColumnLeft: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: spacing[2],
   },
   teamColumnRight: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    gap: 8,
+    gap: spacing[2],
   },
   teamName: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: typography.body.fontSize,
+    fontWeight: fontWeight.semiBold,
     flexShrink: 1,
   },
   centerBlock: {
@@ -276,29 +285,29 @@ const styles = StyleSheet.create({
     minWidth: 70,
   },
   scoreBox: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.compact,
+    paddingVertical: spacing[1],
   },
   scoreText: {
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: typography.title.fontSize,
+    fontWeight: fontWeight.extraBold,
   },
   vsText: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.bold,
     textTransform: "uppercase",
   },
   metaRow: {
-    gap: 2,
-    marginTop: 2,
+    gap: spacing.optical,
+    marginTop: spacing.optical,
   },
   metaItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
   metaText: {
-    fontSize: 11,
+    fontSize: typography.caption.fontSize,
     flexShrink: 1,
   },
 });

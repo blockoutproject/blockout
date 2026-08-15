@@ -3,7 +3,12 @@ import { StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  fontWeight,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { useDivisions } from "@/src/modules/division/hooks/use-divisions";
 import { RawDivisionMappingResponse } from "@/src/shared/generated/models";
 import {
@@ -119,8 +124,8 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
             <Text
               style={{
                 color: theme.textInactive,
-                fontSize: 12,
-                fontWeight: "600",
+                fontSize: typography.metadata.fontSize,
+                fontWeight: fontWeight.semiBold,
               }}
             >
               {mapping.leagueCode} • {mapping.season}
@@ -171,7 +176,14 @@ const RawDivisionMappingForm: React.FC<RawDivisionMappingFormProps> = ({
 export default RawDivisionMappingForm;
 
 const styles = StyleSheet.create({
-  fieldContainer: { padding: 8, gap: 12, paddingBottom: 100 },
-  sourceBlock: { gap: 4 },
-  sourceName: { fontSize: 16, fontWeight: "700" },
+  fieldContainer: {
+    padding: spacing[2],
+    gap: spacing[3],
+    paddingBottom: 100,
+  },
+  sourceBlock: { gap: spacing[1] },
+  sourceName: {
+    fontSize: typography.control.fontSize,
+    fontWeight: fontWeight.bold,
+  },
 });

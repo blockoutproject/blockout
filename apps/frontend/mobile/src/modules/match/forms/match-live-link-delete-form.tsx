@@ -4,7 +4,15 @@ import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  borderWidth,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { useApis } from "@/src/shared/providers/api-provider";
 import FormCard from "@/src/shared/ui/form/form-card";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
@@ -69,7 +77,7 @@ const MatchLiveLinkDeleteForm: React.FC<MatchLiveLinkDeleteFormProps> = ({
             >
               <MaterialCommunityIcons
                 name="alert-circle-outline"
-                size={22}
+                size={iconSize.card}
                 color={theme.error}
               />
             </View>
@@ -113,49 +121,49 @@ export default MatchLiveLinkDeleteForm;
 
 const styles = StyleSheet.create({
   scroll: {
-    gap: 12,
-    padding: 8,
+    gap: spacing[3],
+    padding: spacing[2],
     paddingBottom: 100,
   },
   warningRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: spacing.compact,
     alignItems: "flex-start",
   },
   warningIconWrap: {
     width: 34,
     height: 34,
-    borderRadius: 999,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },
   warningTextBlock: {
     flex: 1,
-    gap: 4,
+    gap: spacing[1],
   },
   warningTitle: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: typography.body.fontSize,
+    fontWeight: fontWeight.bold,
   },
   warningSubtitle: {
-    fontSize: 13,
-    fontWeight: "500",
+    fontSize: typography.label.fontSize,
+    fontWeight: fontWeight.medium,
   },
   urlBlock: {
-    marginTop: 14,
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
+    marginTop: spacing.inset,
+    padding: spacing.compact,
+    borderRadius: radius.md,
+    borderWidth: borderWidth.thin,
     borderStyle: "dashed",
   },
   urlLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.semiBold,
+    marginBottom: spacing[1],
     textTransform: "uppercase",
   },
   urlValue: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.medium,
   },
 });

@@ -116,13 +116,13 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    gap: 6,
+    gap: spacing.tight,
   },
   pillsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
   actionsRow: {
     flexDirection: "row",

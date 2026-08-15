@@ -14,7 +14,7 @@ import {
 import { AppStatusLayout } from "@/src/modules/app-status/ui/app-status-layout";
 import { Action } from "@/src/shared/ui/action";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
-import { useAppTheme } from "@/src/shared/theme";
+import { iconSize, useAppTheme } from "@/src/shared/theme";
 
 /** Renders the configuration-owned maintenance gate and its authorized actions. */
 const MaintenanceScreen: React.FC = () => {
@@ -77,7 +77,7 @@ const MaintenanceScreen: React.FC = () => {
             leftIcon={
               <MaterialCommunityIcons
                 name="reload"
-                size={18}
+                size={iconSize.control}
                 color={theme.onPrimary}
               />
             }

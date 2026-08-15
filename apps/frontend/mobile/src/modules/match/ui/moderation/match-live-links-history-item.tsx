@@ -10,8 +10,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import {
+  iconSize,
   borderWidth,
   colors,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
   useAppTheme,
   withAlpha,
 } from "@/src/shared/theme";
@@ -105,7 +110,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
           <View style={styles.providerRow}>
             <MaterialCommunityIcons
               name={providerIconName}
-              size={16}
+              size={iconSize.sm}
               color={theme.textInactive}
             />
             <Text style={[styles.providerText, { color: theme.textInactive }]}>
@@ -175,7 +180,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
               leftIcon="close"
               size="lg"
               borderWidth={borderWidth.medium}
-              backgroundColor="transparent"
+              backgroundColor={colors.transparent}
               borderColor={theme.error}
               textColor={theme.error}
               iconColor={theme.error}
@@ -191,7 +196,7 @@ const MatchLiveLinksHistoryItem: React.FC<Props> = ({
               leftIcon="delete-outline"
               size="lg"
               borderWidth={borderWidth.medium}
-              backgroundColor="transparent"
+              backgroundColor={colors.transparent}
               borderColor={theme.error}
               textColor={theme.error}
               iconColor={theme.error}
@@ -238,11 +243,11 @@ export default memo(MatchLiveLinksHistoryItem);
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
-    borderWidth: 1.5,
-    padding: 12,
-    marginBottom: 12,
-    gap: 8,
+    borderRadius: radius.card,
+    borderWidth: borderWidth.subtle,
+    padding: spacing[3],
+    marginBottom: spacing[3],
+    gap: spacing[2],
   },
   headerRow: {
     flexDirection: "row",
@@ -252,40 +257,40 @@ const styles = StyleSheet.create({
   statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: spacing[2],
   },
   providerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
   providerText: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.semiBold,
     textTransform: "uppercase",
   },
   urlRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
   urlText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.semiBold,
     textDecorationLine: "underline",
     flex: 1,
   },
   metaBlock: {
-    gap: 2,
+    gap: spacing.optical,
   },
   metaText: {
-    fontSize: 11,
+    fontSize: typography.caption.fontSize,
   },
   actionsRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    gap: 8,
-    marginTop: 4,
+    gap: spacing[2],
+    marginTop: spacing[1],
   },
 });

@@ -8,7 +8,13 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  borderWidth,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { useApis } from "@/src/shared/providers/api-provider";
 import FormCard from "@/src/shared/ui/form/form-card";
 import ApiErrorToast from "@/src/shared/ui/feedback/api-error-toast";
@@ -129,16 +135,16 @@ export default MatchLiveLinkReportForm;
 
 const styles = StyleSheet.create({
   scroll: {
-    gap: 12,
-    padding: 8,
+    gap: spacing[3],
+    padding: spacing[2],
     paddingBottom: 100,
   },
   input: {
-    borderWidth: 1.5,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
+    borderWidth: borderWidth.subtle,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.inset,
+    paddingVertical: spacing[3],
+    fontSize: typography.body.fontSize,
     minHeight: 140,
     textAlignVertical: "top",
   },

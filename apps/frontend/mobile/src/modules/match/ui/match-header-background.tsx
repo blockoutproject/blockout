@@ -2,6 +2,7 @@ import React from "react";
 import { Animated, Platform, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import { colors } from "@/src/shared/theme";
 
 export type MatchHeaderBackgroundProps = {
   androidTint: string;
@@ -40,7 +41,7 @@ const MatchHeaderBackground = ({
           ]}
         />
         <LinearGradient
-          colors={[androidTint, "transparent"]}
+          colors={[androidTint, colors.transparent]}
           start={{ x: 0, y: 0.35 }}
           end={{ x: 0, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -48,7 +49,7 @@ const MatchHeaderBackground = ({
       </>
     )}
     <LinearGradient
-      colors={[backgroundColor, "transparent"]}
+      colors={[backgroundColor, colors.transparent]}
       start={{ x: 0, y: 0.35 }}
       end={{ x: 0, y: 1 }}
       style={StyleSheet.absoluteFill}

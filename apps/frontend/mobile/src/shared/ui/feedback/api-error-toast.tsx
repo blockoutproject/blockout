@@ -1,7 +1,17 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, StyleSheet, Text, ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { layout, useAppTheme, withAlpha } from "@/src/shared/theme";
+import {
+  iconSize,
+  borderWidth,
+  fontWeight,
+  layout,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+  withAlpha,
+} from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useKeyboardVisible } from "@/src/shared/ui/feedback/use-keyboard-visible";
@@ -114,7 +124,7 @@ const ApiErrorToast: React.FC<ApiErrorToastProps> = ({
     >
       <MaterialCommunityIcons
         name="alert-circle-outline"
-        size={18}
+        size={iconSize.control}
         color={colors.icon}
       />
       <Text style={[styles.text, { color: colors.text }]}>{message}</Text>
@@ -129,15 +139,19 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 12,
     right: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: radius.md,
+    borderWidth: borderWidth.thin,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-    gap: 8,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    marginBottom: spacing[2],
+    gap: spacing[2],
     zIndex: 20,
   },
-  text: { flex: 1, fontSize: 14, fontWeight: "600" },
+  text: {
+    flex: 1,
+    fontSize: typography.body.fontSize,
+    fontWeight: fontWeight.semiBold,
+  },
 });

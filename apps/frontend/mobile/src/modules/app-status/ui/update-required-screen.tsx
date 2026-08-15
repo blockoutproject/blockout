@@ -14,7 +14,7 @@ import {
   useSessionActions,
   useSessionState,
 } from "@/src/modules/session/providers/session-context";
-import { useAppTheme } from "@/src/shared/theme";
+import { iconSize, useAppTheme } from "@/src/shared/theme";
 import { Action } from "@/src/shared/ui/action";
 
 /** Renders the platform update gate without changing store or bypass policy. */
@@ -96,7 +96,7 @@ const UpdateRequiredScreen: React.FC = () => {
             leftIcon={
               <MaterialCommunityIcons
                 name="open-in-new"
-                size={18}
+                size={iconSize.control}
                 color={theme.onPrimary}
               />
             }

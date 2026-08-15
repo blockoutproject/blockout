@@ -2,7 +2,13 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { CURRENT_APP_VERSION } from "@/src/modules/app-status/model/app-version";
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  fontWeight,
+  letterSpacing,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 
 const ProfileVersion = () => {
   const theme = useAppTheme();
@@ -19,6 +25,10 @@ const ProfileVersion = () => {
 export default ProfileVersion;
 
 const styles = StyleSheet.create({
-  version: { alignItems: "center", marginTop: 2 },
-  versionText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.2 },
+  version: { alignItems: "center", marginTop: spacing.optical },
+  versionText: {
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.bold,
+    letterSpacing: letterSpacing.metadata,
+  },
 });

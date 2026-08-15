@@ -5,6 +5,7 @@ import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import {
   borderWidth,
+  colors,
   radius,
   spacing,
   typography,
@@ -50,7 +51,7 @@ const RankingRow: React.FC<Props> = ({
         {
           backgroundColor: highlightColor
             ? withAlpha(highlightColor, 0.4)
-            : "transparent",
+            : colors.transparent,
           borderWidth: borderWidth.thin,
           borderColor: theme.border,
         },
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     marginHorizontal: spacing[2],
     paddingHorizontal: spacing[2],
-    paddingVertical: 10,
+    paddingVertical: spacing.compact,
     gap: spacing[2],
     overflow: "hidden",
   },
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
   pointsBadge: {
     width: 34,

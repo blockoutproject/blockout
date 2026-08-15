@@ -5,7 +5,14 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import * as Haptics from "expo-haptics";
 
-import { radius, useAppTheme } from "@/src/shared/theme";
+import {
+  borderWidth,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import type {
   PoolDetailsResponse,
   PoolResponse,
@@ -78,7 +85,7 @@ const PoolForm: React.FC<PoolFormProps> = ({ pool, onSuccess }) => {
         showsVerticalScrollIndicator={false}
       >
         <FormCard>
-          <Text style={{ color: theme.text, fontWeight: "900" }}>
+          <Text style={{ color: theme.text, fontWeight: fontWeight.black }}>
             {pool.rawName}
           </Text>
         </FormCard>
@@ -138,10 +145,10 @@ export default PoolForm;
 
 const styles = StyleSheet.create({
   form: { flex: 1 },
-  scroll: { gap: 12, padding: 8, paddingBottom: 100 },
+  scroll: { gap: spacing[3], padding: spacing[2], paddingBottom: 100 },
   logoWrap: {
-    borderWidth: 1.5,
-    borderRadius: 22,
+    borderWidth: borderWidth.subtle,
+    borderRadius: radius.panel,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -149,22 +156,28 @@ const styles = StyleSheet.create({
   logoMask: {
     width: 100,
     aspectRatio: 1,
-    borderRadius: 18,
+    borderRadius: radius.hero,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 16,
+    marginVertical: spacing[4],
   },
   logo: { width: "100%", height: "100%" },
-  logoPlaceholder: { alignItems: "center", gap: 6 },
-  logoHint: { fontSize: 12, fontWeight: "600" },
+  logoPlaceholder: { alignItems: "center", gap: spacing.tight },
+  logoHint: {
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.semiBold,
+  },
   logoBtn: {
     alignSelf: "flex-start",
     flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: spacing.tight,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
     borderRadius: radius.full,
   },
-  logoBtnText: { fontSize: 12, fontWeight: "700" },
+  logoBtnText: {
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.bold,
+  },
 });

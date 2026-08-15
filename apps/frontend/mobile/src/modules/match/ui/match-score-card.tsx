@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing[1],
   },
   headerSideRight: {
     flex: 1,
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   finalScoreBox: {
     paddingHorizontal: spacing[3],
-    paddingVertical: 6,
+    paddingVertical: spacing.tight,
   },
   finalScoreText: {
     ...typography.display,

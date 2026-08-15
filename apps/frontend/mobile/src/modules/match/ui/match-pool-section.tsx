@@ -10,9 +10,11 @@ import type {
 } from "@/src/shared/generated/models";
 import {
   borderWidth,
+  colors,
   layout,
   radius,
   spacing,
+  stateOpacity,
   useAppTheme,
 } from "@/src/shared/theme";
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
@@ -138,7 +140,7 @@ const styles = StyleSheet.create({
   matchList: {
     padding: spacing[2],
     gap: spacing[2],
-    backgroundColor: "transparent",
+    backgroundColor: colors.transparent,
   },
-  pressed: { opacity: 0.85 },
+  pressed: { opacity: stateOpacity.pressedSubtle },
 });

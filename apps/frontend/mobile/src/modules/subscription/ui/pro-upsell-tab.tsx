@@ -5,7 +5,19 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { gradients, layout, useAppTheme, withAlpha } from "@/src/shared/theme";
+import {
+  iconSize,
+  colors,
+  borderWidth,
+  fontWeight,
+  gradients,
+  layout,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+  withAlpha,
+} from "@/src/shared/theme";
 import { usePurchases } from "@/src/modules/subscription/providers/purchases-provider";
 import { useSessionState } from "@/src/modules/session/providers/session-context";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
@@ -41,7 +53,7 @@ const ProUpsellTab: React.FC<Props> = ({
       <View style={styles.badgeRow}>
         <MaskedImage
           fallback={require("@/assets/images/blockout-logo-dark.png")}
-          size={28}
+          size={iconSize.navigation}
           radius={7}
         />
         <View style={styles.brandCol}>
@@ -80,7 +92,7 @@ const ProUpsellTab: React.FC<Props> = ({
       >
         <LinearGradient
           pointerEvents="none"
-          colors={[withAlpha(theme.gold, 0.22), "transparent"]}
+          colors={[withAlpha(theme.gold, 0.22), colors.transparent]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -101,7 +113,7 @@ const ProUpsellTab: React.FC<Props> = ({
             >
               <MaterialCommunityIcons
                 name="lock-outline"
-                size={18}
+                size={iconSize.control}
                 color={theme.gold}
               />
             </View>
@@ -124,7 +136,7 @@ const ProUpsellTab: React.FC<Props> = ({
               leftIcon={
                 <MaterialCommunityIcons
                   name="rocket-launch-outline"
-                  size={18}
+                  size={iconSize.control}
                   color={theme.onPrimary}
                 />
               }
@@ -149,71 +161,71 @@ export default ProUpsellTab;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing[1],
   },
 
   fullCard: {
     flex: 1,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 18,
+    borderRadius: radius.hero,
     overflow: "hidden",
   },
 
   content: {
     flex: 1,
-    padding: 24,
+    padding: spacing[6],
     justifyContent: "center",
-    gap: 12,
+    gap: spacing[3],
   },
 
   badgeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
     alignSelf: "center",
   },
   brandCol: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 6,
+    gap: spacing.tight,
   },
   brand: {
-    fontFamily: "Outfit",
-    fontSize: 30,
-    fontWeight: "900",
+    fontFamily: typography.brandDisplay.fontFamily,
+    fontSize: typography.brandDisplay.fontSize,
+    fontWeight: fontWeight.black,
   },
   pro: {
-    fontFamily: "Outfit",
-    fontSize: 30,
-    fontWeight: "400",
+    fontFamily: typography.brandDisplayRegular.fontFamily,
+    fontSize: typography.brandDisplayRegular.fontSize,
+    fontWeight: fontWeight.regular,
   },
 
   messageRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingTop: 6,
+    gap: spacing.compact,
+    paddingTop: spacing.tight,
   },
   iconBubble: {
     width: 34,
     height: 34,
-    borderRadius: 12,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
+    borderWidth: borderWidth.thin,
   },
   subtitle: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "700",
+    fontSize: typography.body.fontSize,
+    lineHeight: typography.body.lineHeight,
+    fontWeight: fontWeight.bold,
   },
 
   spacer: { height: 6 },
 
   hint: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: typography.label.fontSize,
+    fontWeight: fontWeight.bold,
     textAlign: "center",
     paddingTop: 2,
   },

@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 
 import Filters from "@/src/shared/ui/filters";
 import { Filter } from "@/src/shared/view-models/filter";
-import { spacing, useAppTheme } from "@/src/shared/theme";
+import { colors, spacing, useAppTheme } from "@/src/shared/theme";
 
 type Props = {
   filters: Filter[];
@@ -44,7 +44,7 @@ const FollowedListHeader: React.FC<Props> = ({
           requireSelection
           scrollable={false}
           style={{
-            backgroundColor: "transparent",
+            backgroundColor: colors.transparent,
           }}
         />
 
