@@ -9,7 +9,16 @@ import { Image } from "expo-image";
 import type { ImageSource } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { iconSize, spacing, useAppTheme, withAlpha } from "@/src/shared/theme";
+import {
+  fontWeight,
+  iconSize,
+  letterSpacing,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+  withAlpha,
+} from "@/src/shared/theme";
 import MaskedImage from "@/src/shared/ui/images/masked-image";
 import { Pill } from "@/src/shared/ui/pill";
 import { IconAction } from "@/src/shared/ui/icon-action";
@@ -181,7 +190,7 @@ const styles = StyleSheet.create({
   wrapper: {
     overflow: "hidden",
     position: "relative",
-    borderRadius: 18,
+    borderRadius: radius.hero,
     borderCurve: "continuous",
   },
   topAccessory: {
@@ -192,35 +201,35 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing[3],
   },
   contentWithMeta: {
-    gap: 8,
-    paddingVertical: 18,
+    gap: spacing[2],
+    paddingVertical: spacing.roomy,
   },
   titleOnlyContent: {
-    gap: 6,
+    gap: spacing.tight,
     paddingTop: 18,
     paddingBottom: 16,
   },
   title: {
     textAlign: "center",
-    fontSize: 20,
-    fontWeight: "800",
-    letterSpacing: 0.2,
-    paddingHorizontal: 24,
+    fontSize: typography.heading.fontSize,
+    fontWeight: fontWeight.extraBold,
+    letterSpacing: letterSpacing.metadata,
+    paddingHorizontal: spacing[6],
   },
   titleOnlyTitle: {
-    fontWeight: "700",
-    lineHeight: 28,
-    letterSpacing: 0,
+    fontWeight: fontWeight.bold,
+    lineHeight: typography.heading.lineHeight,
+    letterSpacing: letterSpacing.reset,
   },
   metaRow: {
     marginTop: 2,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 8,
+    gap: spacing.tight,
+    paddingHorizontal: spacing[2],
   },
   fab: {
     position: "absolute",

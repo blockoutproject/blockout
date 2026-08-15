@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
+import { radius, spacing } from "@/src/shared/theme";
 import { Skeleton } from "@/src/shared/ui/skeleton";
 
 const NotificationsSkeleton = () => {
@@ -16,6 +17,6 @@ const NotificationsSkeleton = () => {
 export default NotificationsSkeleton;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, gap: 12, paddingHorizontal: 4 },
-  item: { borderRadius: 18 },
+  container: { flex: 1, gap: spacing[3], paddingHorizontal: spacing[1] },
+  item: { borderRadius: radius.hero },
 });

@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { colors, useAppTheme } from "@/src/shared/theme";
+import { colors, spacing, useAppTheme } from "@/src/shared/theme";
 import { useDivisions } from "@/src/modules/division/hooks/use-divisions";
 import { DivisionResponse } from "@/src/shared/generated/models";
 import { Filter } from "@/src/shared/view-models/filter";
@@ -121,7 +121,7 @@ const DivisionScreen: React.FC = () => {
 export default DivisionScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, gap: 16 },
+  container: { flex: 1, gap: spacing[4] },
   center: {
     flex: 1,
     justifyContent: "center",
@@ -130,8 +130,8 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 8,
-    marginTop: 16,
-    gap: 12,
+    marginHorizontal: spacing[2],
+    marginTop: spacing[4],
+    gap: spacing[3],
   },
 });

@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
-import { useAppTheme } from "@/src/shared/theme";
+import { radius, spacing, useAppTheme } from "@/src/shared/theme";
 import { Skeleton } from "@/src/shared/ui/skeleton";
 
 export type EntityScreenSkeletonProps = {
@@ -32,17 +32,17 @@ const EntityScreenSkeleton = ({ testID }: EntityScreenSkeletonProps) => {
 export default EntityScreenSkeleton;
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 12 },
+  container: { paddingHorizontal: spacing[3] },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: spacing[4],
   },
-  logo: { borderRadius: 18 },
+  logo: { borderRadius: radius.hero },
   info: {
     flex: 1,
     justifyContent: "center",
   },
-  title: { marginBottom: 10 },
-  infoLine: { borderRadius: 18, marginBottom: 6 },
+  title: { marginBottom: spacing.compact },
+  infoLine: { borderRadius: radius.hero, marginBottom: spacing.tight },
 });

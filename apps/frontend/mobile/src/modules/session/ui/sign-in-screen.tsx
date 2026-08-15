@@ -11,9 +11,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  iconSize,
   product,
   radius,
   spacing,
+  touchTarget,
   typography,
   useAppTheme,
 } from "@/src/shared/theme";
@@ -104,7 +106,7 @@ const SignInScreen: React.FC = () => {
         <View style={styles.brandRow}>
           <MaskedImage
             fallback={require("@/assets/images/blockout-logo-dark.png")}
-            size={36}
+            size={iconSize.brand}
             radius={radius.sm}
             shadow
           />
@@ -152,7 +154,7 @@ const SignInScreen: React.FC = () => {
             leftIcon={
               <MaterialCommunityIcons
                 name="account"
-                size={18}
+                size={iconSize.control}
                 color={theme.onPrimary}
               />
             }
@@ -214,7 +216,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: spacing.compact,
   },
   title: {
     ...typography.hero,
@@ -239,7 +241,7 @@ const styles = StyleSheet.create({
     width: "80%",
   },
   guestButton: {
-    minHeight: 44,
+    minHeight: touchTarget.minimum,
     paddingVertical: spacing[2],
     paddingHorizontal: spacing[4],
     alignItems: "center",

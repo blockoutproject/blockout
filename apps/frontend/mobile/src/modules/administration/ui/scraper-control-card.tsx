@@ -8,7 +8,13 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { iconSize, useAppTheme } from "@/src/shared/theme";
+import {
+  fontWeight,
+  iconSize,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { ScraperStatusResponse } from "@/src/shared/generated/models";
 import { IconAction } from "@/src/shared/ui/icon-action";
 import ScraperStatusItem from "./scraper-status-item";
@@ -81,7 +87,7 @@ const ScraperControlCard: React.FC<Props> = ({
             style={styles.scroll}
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ gap: 10 }}
+            contentContainerStyle={{ gap: spacing.compact }}
             testID="administration-scraper-list"
           >
             {scrapers.map((scraper) => (
@@ -107,26 +113,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 12,
+    gap: spacing[3],
   },
   headerLeft: {
     flex: 1,
-    gap: 6,
+    gap: spacing.tight,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
   },
   title: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: typography.control.fontSize,
+    fontWeight: fontWeight.bold,
   },
   subtitle: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.medium,
   },
   listContainer: {
-    marginTop: 4,
+    marginTop: spacing[1],
     maxHeight: 260,
   },
   scroll: {
@@ -135,18 +141,18 @@ const styles = StyleSheet.create({
   inlineLoaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginBottom: 8,
+    gap: spacing.tight,
+    marginBottom: spacing[2],
   },
   inlineLoaderText: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.medium,
   },
   emptyText: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.medium,
     textAlign: "left",
-    marginTop: 2,
+    marginTop: spacing.optical,
   },
 });
 

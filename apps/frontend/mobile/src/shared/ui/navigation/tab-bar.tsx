@@ -19,6 +19,7 @@ import * as Haptics from "expo-haptics";
 import { useSessionState } from "@/src/modules/session/providers/session-context";
 import { usePurchases } from "@/src/modules/subscription/providers/purchases-provider";
 import {
+  iconSize,
   borderWidth,
   colors,
   elevation,
@@ -183,7 +184,7 @@ export default function TabBar({
                 index={index}
                 isFocused={isFocused}
                 color={isFocused ? activeColor : theme.textInactive}
-                size={26}
+                size={iconSize.tab}
                 activeIndex={activeIndex}
                 onPress={onPress}
                 onLongPress={onLongPress}
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing[3],
-    paddingVertical: 10,
+    paddingVertical: spacing.compact,
   },
   activePill: {
     position: "absolute",

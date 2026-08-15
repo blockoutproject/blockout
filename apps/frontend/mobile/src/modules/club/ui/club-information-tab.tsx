@@ -3,7 +3,7 @@ import { Animated, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
 
-import { layout, useAppTheme } from "@/src/shared/theme";
+import { layout, spacing, useAppTheme } from "@/src/shared/theme";
 import { InfoCard, InfoRow } from "@/src/modules/club/ui/club-info-card";
 
 import type { ClubResponse } from "@/src/shared/generated/models";
@@ -124,7 +124,7 @@ export default ClubInformationsTab;
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: 8,
-    gap: 20,
+    paddingHorizontal: spacing[2],
+    gap: spacing[5],
   },
 });

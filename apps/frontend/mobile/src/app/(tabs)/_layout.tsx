@@ -3,7 +3,7 @@ import { Tabs } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Image } from "expo-image";
 import { StyleSheet } from "react-native";
-import { iconSize } from "@/src/shared/theme";
+import { iconSize, radius } from "@/src/shared/theme";
 import { useSessionState } from "@/src/modules/session/providers/session-context";
 
 import TabBar from "@/src/shared/ui/navigation/tab-bar";
@@ -94,5 +94,5 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  avatar: { borderRadius: 100 },
+  avatar: { borderRadius: radius.full },
 });

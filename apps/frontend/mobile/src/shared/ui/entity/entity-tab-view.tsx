@@ -10,7 +10,13 @@ import {
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { layout, spacing, typography, useAppTheme } from "@/src/shared/theme";
+import {
+  colors,
+  layout,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 
 export type TabDefinition = {
   key: string;
@@ -102,7 +108,7 @@ const EntityTabView: React.FC<EntityTabViewProps> = ({
             </Animated.View>
 
             <LinearGradient
-              colors={[theme.background, "transparent"]}
+              colors={[theme.background, colors.transparent]}
               start={{ x: 0, y: 0.35 }}
               end={{ x: 0, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -115,7 +121,9 @@ const EntityTabView: React.FC<EntityTabViewProps> = ({
             styles.tabBarContainer,
             {
               backgroundColor:
-                Platform.OS === "android" ? theme.background : "transparent",
+                Platform.OS === "android"
+                  ? theme.background
+                  : colors.transparent,
             },
           ]}
         >
@@ -160,7 +168,7 @@ const styles = StyleSheet.create({
   tabBar: {
     flex: 1,
     height: layout.tabs,
-    backgroundColor: "transparent",
+    backgroundColor: colors.transparent,
   },
   tabStyle: {
     width: "auto",

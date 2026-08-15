@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Filter } from "@/src/shared/view-models/filter";
-import { useAppTheme } from "@/src/shared/theme";
+import { spacing, useAppTheme } from "@/src/shared/theme";
 import { GradientPill } from "@/src/shared/ui/pill";
 
 export type FiltersProps = {
@@ -127,7 +127,7 @@ export default Filters;
 
 const styles = StyleSheet.create({
   row: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing[2],
     flexDirection: "row",
     alignItems: "center",
   },

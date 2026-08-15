@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { radius, useAppTheme } from "@/src/shared/theme";
+import { borderWidth, radius, spacing, useAppTheme } from "@/src/shared/theme";
 import ColorPicker, {
   HueSlider,
   Panel1,
@@ -79,7 +79,9 @@ const CircleColorPicker: React.FC<Props> = ({
       />
 
       <BottomSheetCustomModal ref={sheetRef}>
-        <BottomSheetView style={{ padding: 8, paddingBottom: insets.bottom }}>
+        <BottomSheetView
+          style={{ padding: spacing[2], paddingBottom: insets.bottom }}
+        >
           <ColorPicker
             value={tempColor}
             onCompleteJS={(c) => setTempColor(c.hex)}
@@ -106,12 +108,12 @@ const CircleColorPicker: React.FC<Props> = ({
 const styles = StyleSheet.create({
   circle: {
     borderRadius: radius.full,
-    borderWidth: 2,
+    borderWidth: borderWidth.medium,
   },
   buttonRow: {
     borderRadius: radius.full,
-    padding: 4,
-    marginHorizontal: 10,
+    padding: spacing[1],
+    marginHorizontal: spacing.compact,
   },
 });
 

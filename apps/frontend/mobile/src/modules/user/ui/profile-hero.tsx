@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import Hero from "@/src/shared/ui/hero";
 import type { UserResponse } from "@/src/shared/generated/models";
 import { usePurchases } from "@/src/modules/subscription/providers/purchases-provider";
-import { gradients, useAppTheme } from "@/src/shared/theme";
+import { fontWeight, gradients, radius, useAppTheme } from "@/src/shared/theme";
 import { GradientPill } from "@/src/shared/ui/pill";
 
 export type UserHeroProps = {
@@ -32,7 +32,7 @@ const ProfileHero: React.FC<UserHeroProps> = ({ user, onEdit }) => {
         label="Pro"
         textColor={theme.gold}
         iconColor={theme.gold}
-        labelStyle={{ color: theme.gold, fontWeight: "900" }}
+        labelStyle={{ color: theme.gold, fontWeight: fontWeight.black }}
         style={styles.proPill}
       />
     );
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   proPill: {
     height: 28,
     alignSelf: "flex-start",
-    borderRadius: 999,
+    borderRadius: radius.full,
   },
 });
 

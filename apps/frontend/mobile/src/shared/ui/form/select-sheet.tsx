@@ -9,6 +9,7 @@ import {
   borderWidth,
   iconSize,
   layout,
+  letterSpacing,
   radius,
   spacing,
   stateOpacity,
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
   title: {
     ...typography.compactStrong,
     textTransform: "uppercase",
-    letterSpacing: 0.3,
+    letterSpacing: letterSpacing.overline,
     flexShrink: 1,
   },
   clearAction: {

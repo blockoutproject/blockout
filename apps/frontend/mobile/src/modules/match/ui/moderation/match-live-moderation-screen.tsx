@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
-import { useAppTheme } from "@/src/shared/theme";
+import { spacing, useAppTheme } from "@/src/shared/theme";
 import { useLiveModerationMatches } from "@/src/modules/match/hooks/use-live-moderation-matches";
 import {
   MatchLiveSummaryResponse,
@@ -168,11 +168,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchRow: {
-    marginHorizontal: 8,
-    marginTop: 8,
+    marginHorizontal: spacing[2],
+    marginTop: spacing[2],
   },
   filtersRow: {
-    paddingHorizontal: 8,
-    paddingTop: 6,
+    paddingHorizontal: spacing[2],
+    paddingTop: spacing.tight,
   },
 });

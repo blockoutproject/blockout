@@ -13,7 +13,7 @@ import {
   MatchStatusEnum,
   type TeamSummaryResponse,
 } from "@/src/shared/generated/models";
-import { layout } from "@/src/shared/theme";
+import { layout, spacing } from "@/src/shared/theme";
 import { usePurchases } from "@/src/modules/subscription/providers/purchases-provider";
 
 type ClubTabsProps = {
@@ -91,7 +91,7 @@ const ClubTabs: React.FC<ClubTabsProps> = ({
               }
               scrollY={scrollYs[tab.key]}
               headerOffset={layout.tabs}
-              contentContainerStyle={[{ paddingHorizontal: 4 }]}
+              contentContainerStyle={[{ paddingHorizontal: spacing[1] }]}
               home={false}
             />
           );

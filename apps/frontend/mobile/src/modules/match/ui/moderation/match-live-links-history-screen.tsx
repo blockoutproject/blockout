@@ -3,7 +3,12 @@ import { Keyboard, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  fontWeight,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { useApis } from "@/src/shared/providers/api-provider";
 import {
   MatchLiveSummaryResponse,
@@ -163,8 +168,8 @@ const MatchLiveLinksHistoryScreen: React.FC<
           isLoading={Boolean(isLoading && !data)}
           keyExtractor={getHistoryLinkKey}
           contentContainerStyle={{
-            paddingHorizontal: 8,
-            paddingTop: 8,
+            paddingHorizontal: spacing[2],
+            paddingTop: spacing[2],
           }}
           onRefresh={handleRefresh}
           refreshHapticStyle={Haptics.ImpactFeedbackStyle.Light}
@@ -192,17 +197,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 4,
-    gap: 4,
+    paddingHorizontal: spacing[3],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[1],
+    gap: spacing[1],
   },
   title: {
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: typography.title.fontSize,
+    fontWeight: fontWeight.extraBold,
   },
   subtitle: {
-    fontSize: 13,
-    fontWeight: "500",
+    fontSize: typography.label.fontSize,
+    fontWeight: fontWeight.medium,
   },
 });

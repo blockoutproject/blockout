@@ -4,7 +4,15 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { NotificationResponse } from "@/src/shared/generated/models";
 import { formatNotificationAge } from "@/src/modules/notifications/view-models/format-notification-age";
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  colors,
+  fontWeight,
+  radius,
+  spacing,
+  touchTarget,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import FadeIn from "@/src/shared/ui/animations/fade-in";
 import NotificationSwipeAction from "@/src/modules/notifications/ui/notification-swipe-action";
 
@@ -94,20 +102,30 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    marginHorizontal: 8,
-    marginBottom: 12,
-    borderRadius: 16,
+    padding: spacing.inset,
+    marginHorizontal: spacing[2],
+    marginBottom: spacing[3],
+    borderRadius: radius.lg,
   },
   logo: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    marginRight: 12,
-    backgroundColor: "#eeeeee",
+    width: touchTarget.minimum,
+    height: touchTarget.minimum,
+    borderRadius: radius.compact,
+    marginRight: spacing[3],
+    backgroundColor: colors.surface.logoPlaceholder,
   },
   content: { flex: 1 },
-  title: { fontSize: 15, fontWeight: "700" },
-  body: { fontSize: 14, marginTop: 2, lineHeight: 18 },
-  time: { fontSize: 12, marginTop: 6 },
+  title: {
+    fontSize: typography.bodyStrong.fontSize,
+    fontWeight: fontWeight.bold,
+  },
+  body: {
+    fontSize: typography.body.fontSize,
+    marginTop: spacing.optical,
+    lineHeight: typography.compactStrong.lineHeight,
+  },
+  time: {
+    fontSize: typography.metadata.fontSize,
+    marginTop: spacing.tight,
+  },
 });

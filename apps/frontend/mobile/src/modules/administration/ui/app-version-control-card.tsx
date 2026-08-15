@@ -2,7 +2,12 @@ import React, { useMemo } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import * as Application from "expo-application";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  fontWeight,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { FormField } from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/sheet-text-input";
 import { Action } from "@/src/shared/ui/action";
@@ -273,7 +278,7 @@ export default AppVersionControlCard;
 
 const styles = StyleSheet.create({
   headerBlock: {
-    gap: 8,
+    gap: spacing[2],
   },
   titleRow: {
     flexDirection: "row",
@@ -281,51 +286,51 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: typography.control.fontSize,
+    fontWeight: fontWeight.bold,
   },
   subtitle: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.medium,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginTop: 2,
+    gap: spacing.tight,
+    marginTop: spacing.optical,
   },
   infoLabel: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.medium,
   },
   infoValue: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.bold,
   },
   buttonsRow: {
     alignItems: "stretch",
-    gap: 10,
-    marginTop: 10,
+    gap: spacing.compact,
+    marginTop: spacing.compact,
   },
   footerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
-    marginTop: 4,
+    gap: spacing[2],
+    marginTop: spacing[1],
   },
   lastUpdate: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.medium,
     flexShrink: 1,
   },
   miniLoaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
   miniLoaderText: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.medium,
   },
 });

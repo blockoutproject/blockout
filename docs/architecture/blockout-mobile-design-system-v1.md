@@ -13,9 +13,14 @@ task-specific visual certification records; those records remain available throu
 ## Foundations
 
 - Color, typography, spacing, radius, elevation, and icon usage use semantic roles rather than screen-specific values.
+- `apps/frontend/mobile/src/shared/theme` owns the runtime token definitions and `@/src/shared/theme` is their public
+  application import boundary.
+- App-owned mobile styles reference canonical color tokens. ESLint rejects color literals outside the token definition;
+  narrow exclusions require an unavoidable technical boundary and explicit configuration.
 - Platform-native behavior and safe-area constraints remain visible in component design.
 - Repeated adjacent values converge only when they express the same semantic role.
 - A design token is not introduced merely to rename a single literal.
+- Feature-owned geometry remains local when it does not express a shared visual role.
 
 ## Components
 

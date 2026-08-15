@@ -1,7 +1,14 @@
 import React from "react";
 import { Animated, Platform, StyleSheet, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { iconSize, layout, useAppTheme, withAlpha } from "@/src/shared/theme";
+import {
+  colors,
+  iconSize,
+  layout,
+  spacing,
+  useAppTheme,
+  withAlpha,
+} from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -157,7 +164,7 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({
         <View style={styles.rightGroup}>
           <MaskedImage
             fallback={require("@/assets/images/ffvb-logo.png")}
-            size={28}
+            size={iconSize.navigation}
             radius={6}
             onPress={handleOpenFfvbCalendar}
             accessibilityLabel="Ouvrir le calendrier FFVB"
@@ -186,7 +193,7 @@ export default MatchHeader;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "transparent",
+    backgroundColor: colors.transparent,
     position: "absolute",
     top: 0,
     left: 0,
@@ -195,13 +202,13 @@ const styles = StyleSheet.create({
   rightGroup: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: spacing[4],
   },
   header: {
     height: layout.header,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing[3],
   },
 });

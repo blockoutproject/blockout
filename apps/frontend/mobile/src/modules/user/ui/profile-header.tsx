@@ -1,7 +1,13 @@
 import React, { useCallback, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { iconSize, layout, useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  layout,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -169,11 +175,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing[3],
   },
   title: {
-    fontSize: 18,
-    fontWeight: "900",
+    fontSize: typography.title.fontSize,
+    fontWeight: typography.title.fontWeight,
     flex: 1,
     marginRight: 10,
   },

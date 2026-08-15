@@ -2,7 +2,15 @@ import React, { useMemo } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  borderWidth,
+  fontWeight,
+  letterSpacing,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { FormField } from "@/src/shared/ui/form/form-field";
 import SheetTextInput from "@/src/shared/ui/form/sheet-text-input";
 import { Action } from "@/src/shared/ui/action";
@@ -259,7 +267,7 @@ export default MaintenanceControlCard;
 
 const styles = StyleSheet.create({
   headerBlock: {
-    gap: 8,
+    gap: spacing[2],
   },
   titleRow: {
     flexDirection: "row",
@@ -267,34 +275,34 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: typography.control.fontSize,
+    fontWeight: fontWeight.bold,
   },
   subtitle: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.medium,
   },
   statusPill: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.compact,
+    paddingVertical: spacing[1],
   },
   statusPillText: {
-    fontSize: 11,
-    fontWeight: "800",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.extraBold,
     textTransform: "uppercase",
-    letterSpacing: 0.3,
+    letterSpacing: letterSpacing.overline,
   },
   imageRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: spacing.compact,
   },
   previewBox: {
     width: PREVIEW_SIZE,
     height: PREVIEW_SIZE,
-    borderRadius: 12,
-    borderWidth: 1.5,
+    borderRadius: radius.md,
+    borderWidth: borderWidth.subtle,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
@@ -304,35 +312,35 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   previewPlaceholder: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.bold,
     textTransform: "uppercase",
-    letterSpacing: 0.3,
+    letterSpacing: letterSpacing.overline,
   },
   buttonsRow: {
     alignItems: "stretch",
-    gap: 10,
-    marginTop: 6,
+    gap: spacing.compact,
+    marginTop: spacing.tight,
   },
   footerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
-    marginTop: 2,
+    gap: spacing[2],
+    marginTop: spacing.optical,
   },
   lastUpdate: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.medium,
     flexShrink: 1,
   },
   miniLoaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
   miniLoaderText: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.medium,
   },
 });

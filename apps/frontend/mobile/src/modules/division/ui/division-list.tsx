@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
 
 import type { DivisionResponse } from "@/src/shared/generated/models";
-import { useAppTheme } from "@/src/shared/theme";
+import { spacing, useAppTheme } from "@/src/shared/theme";
 import DivisionItem from "@/src/modules/division/ui/division-item";
 
 type DivisionListProps = {
@@ -62,6 +62,6 @@ const DivisionList: React.FC<DivisionListProps> = ({
 export default DivisionList;
 
 const styles = StyleSheet.create({
-  list: { paddingHorizontal: 8 },
+  list: { paddingHorizontal: spacing[2] },
   emptyState: { alignItems: "center", marginTop: 32 },
 });

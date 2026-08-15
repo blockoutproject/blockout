@@ -14,7 +14,10 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
+  iconSize,
   borderWidth,
+  fontWeight,
+  letterSpacing,
   radius,
   spacing,
   typography,
@@ -168,7 +171,7 @@ const StateCard: React.FC<StateCardProps> = ({
             ) : (
               <MaterialCommunityIcons
                 name={effectiveFallbackIcon}
-                size={44}
+                size={iconSize.illustration}
                 color={withAlpha(theme.text, 0.6)}
               />
             )}
@@ -277,7 +280,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emptyRoot: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing[4],
   },
   compactCard: {
     alignItems: "center",
@@ -301,8 +304,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingTop: 24,
-    paddingBottom: 24,
-    gap: 12,
+    paddingBottom: spacing[6],
+    gap: spacing[3],
   },
   visualWrap: {
     width: 120,
@@ -314,28 +317,28 @@ const styles = StyleSheet.create({
   image: {
     width: 120,
     height: 120,
-    borderRadius: 24,
+    borderRadius: radius.xl,
   },
   title: {
     marginTop: 4,
     textAlign: "center",
-    fontSize: 20,
-    fontWeight: "900",
-    letterSpacing: 0.2,
-    paddingHorizontal: 8,
+    fontSize: typography.heading.fontSize,
+    fontWeight: fontWeight.black,
+    letterSpacing: letterSpacing.metadata,
+    paddingHorizontal: spacing[2],
   },
   subtitle: {
     textAlign: "center",
-    fontSize: 14,
-    lineHeight: 20,
-    paddingHorizontal: 8,
+    fontSize: typography.body.fontSize,
+    lineHeight: typography.body.lineHeight,
+    paddingHorizontal: spacing[2],
     maxWidth: 320,
   },
   button: {
-    marginTop: 6,
-    borderRadius: 999,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    marginTop: spacing.tight,
+    borderRadius: radius.full,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing.roomy,
     alignSelf: "center",
   },
   compactButton: {
@@ -347,7 +350,7 @@ const styles = StyleSheet.create({
   btnContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: spacing[2],
   },
   iconSlot: {
     height: ICON_SIZE,
@@ -355,9 +358,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonText: {
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 0.2,
+    fontSize: typography.body.fontSize,
+    fontWeight: fontWeight.extraBold,
+    letterSpacing: letterSpacing.metadata,
   },
   compactButtonText: {
     ...typography.bodyStrong,

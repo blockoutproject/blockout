@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import {
   borderWidth as borderWidths,
+  colors,
   gradients as designGradients,
   radius,
   spacing,
@@ -349,7 +350,7 @@ const styles = StyleSheet.create({
   },
   transparentSurface: {
     height: "100%",
-    backgroundColor: "transparent",
+    backgroundColor: colors.transparent,
   },
   borderedContent: {
     borderRadius: radius.full,

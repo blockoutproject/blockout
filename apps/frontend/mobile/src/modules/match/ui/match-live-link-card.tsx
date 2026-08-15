@@ -6,7 +6,16 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
 import GradientBorderView from "@/src/shared/ui/gradient-border-view";
 import { GradientPill, Pill } from "@/src/shared/ui/pill";
-import { iconSize, useAppTheme } from "@/src/shared/theme";
+import {
+  colors,
+  fontWeight,
+  iconSize,
+  letterSpacing,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { IconAction } from "@/src/shared/ui/icon-action";
 import { MatchResponse } from "@/src/shared/generated/models";
 import MatchLiveLinkReportFormSheet from "@/src/modules/match/ui/match-live-link-report-form-sheet";
@@ -24,7 +33,7 @@ type Props = {
   onRequireAuth: () => void;
 };
 
-const RADIUS = 18;
+const RADIUS = radius.hero;
 
 const MatchLiveLinkCard: React.FC<Props> = ({
   match,
@@ -147,7 +156,7 @@ const MatchLiveLinkCard: React.FC<Props> = ({
               leftIcon="flag-outline"
               size="md"
               borderWidth={0}
-              backgroundColor="transparent"
+              backgroundColor={colors.transparent}
               textColor={theme.textInactive}
               iconColor={theme.textInactive}
               testID="match-live-report-action"
@@ -277,29 +286,41 @@ const MatchLiveLinkCard: React.FC<Props> = ({
 export default MatchLiveLinkCard;
 
 const styles = StyleSheet.create({
-  card: { borderRadius: RADIUS, padding: 14, gap: 16 },
+  card: {
+    borderRadius: RADIUS,
+    padding: spacing.inset,
+    gap: spacing[4],
+  },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  title: {
-    fontSize: 14,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.3,
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.tight,
   },
-  liveDot: { width: 8, height: 8, borderRadius: 4 },
-  content: { gap: 12 },
-  liveBlock: { gap: 8 },
+  title: {
+    fontSize: typography.body.fontSize,
+    fontWeight: fontWeight.extraBold,
+    textTransform: "uppercase",
+    letterSpacing: letterSpacing.overline,
+  },
+  liveDot: { width: 8, height: 8, borderRadius: radius.full },
+  content: { gap: spacing[3] },
+  liveBlock: { gap: spacing[2] },
   livePillRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
+    gap: spacing[2],
   },
   livePillWrap: { flexShrink: 1 },
-  actionsRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing[2],
+  },
   addPillWrap: { alignSelf: "flex-start" },
 });

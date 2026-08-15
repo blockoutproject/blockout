@@ -3,7 +3,12 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  fontWeight,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { useAppStatus } from "@/src/modules/app-status/hooks/use-app-status";
 import { useMaintenanceControl } from "@/src/modules/administration/hooks/use-maintenance-control";
 import { useAppVersionControl } from "@/src/modules/administration/hooks/use-app-version-control";
@@ -139,20 +144,20 @@ export default AdminScreen;
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingTop: 8,
-    paddingHorizontal: 12,
-    gap: 16,
+    paddingTop: spacing[2],
+    paddingHorizontal: spacing[3],
+    gap: spacing[4],
   },
   headerWrapper: {
-    gap: 8,
+    gap: spacing[2],
   },
   screenTitle: {
-    fontSize: 20,
-    fontWeight: "800",
+    fontSize: typography.heading.fontSize,
+    fontWeight: fontWeight.extraBold,
   },
   screenSubtitle: {
-    fontSize: 13,
-    fontWeight: "500",
+    fontSize: typography.label.fontSize,
+    fontWeight: fontWeight.medium,
   },
   center: {
     flex: 1,

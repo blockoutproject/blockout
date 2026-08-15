@@ -2,7 +2,16 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  borderWidth,
+  fontWeight,
+  letterSpacing,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import { ScraperStatusResponse } from "@/src/shared/generated/models";
 
 interface Props {
@@ -43,7 +52,7 @@ const ScraperStatusItem: React.FC<Props> = ({ scraper, onToggle }) => {
         >
           <MaterialCommunityIcons
             name={isEnabled ? "cloud-check-outline" : "cloud-off-outline"}
-            size={18}
+            size={iconSize.control}
             color={theme.background}
           />
         </View>
@@ -89,7 +98,7 @@ const ScraperStatusItem: React.FC<Props> = ({ scraper, onToggle }) => {
       <View style={styles.rightBlock}>
         <MaterialCommunityIcons
           name="chevron-right"
-          size={22}
+          size={iconSize.card}
           color={theme.textInactive}
         />
       </View>
@@ -99,24 +108,24 @@ const ScraperStatusItem: React.FC<Props> = ({ scraper, onToggle }) => {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
+    borderRadius: radius.hero,
+    paddingVertical: spacing.inset,
+    paddingHorizontal: spacing.inset,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderWidth: 1.5,
+    borderWidth: borderWidth.subtle,
   },
   leftBlock: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: spacing.compact,
     flex: 1,
   },
   iconCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -125,39 +134,39 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: typography.bodyStrong.fontSize,
+    fontWeight: fontWeight.semiBold,
+    marginBottom: spacing[1],
   },
   chipRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
   statusChip: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 6,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    gap: spacing.tight,
   },
   statusDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: radius.full,
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: typography.caption.fontSize,
+    fontWeight: fontWeight.bold,
     textTransform: "uppercase",
-    letterSpacing: 0.3,
+    letterSpacing: letterSpacing.overline,
   },
   rightBlock: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginLeft: 12,
+    gap: spacing.tight,
+    marginLeft: spacing[3],
   },
 });
 

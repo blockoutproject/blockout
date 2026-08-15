@@ -7,7 +7,7 @@ import RankingTab from "@/src/modules/ranking/ui/ranking-tab";
 
 import { MatchStatusEnum } from "@/src/shared/generated/models";
 import type { TeamResponse } from "@/src/shared/generated/models";
-import { layout } from "@/src/shared/theme";
+import { layout, spacing } from "@/src/shared/theme";
 
 /** Tabs for team: Upcoming / Finished / Pools-as-ranking. */
 export type TeamTabsProps = {
@@ -57,7 +57,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ enrichedTeam }) => {
                 }
                 scrollY={scrollYs[tab.key]}
                 headerOffset={layout.tabs}
-                contentContainerStyle={[{ paddingHorizontal: 4 }]}
+                contentContainerStyle={[{ paddingHorizontal: spacing[1] }]}
                 home={false}
               />
             ),

@@ -19,12 +19,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import {
+  colors,
+  fontWeight,
   gradients,
   iconSize,
   layout,
   product,
   radius,
   spacing,
+  stateOpacity,
   typography,
   useAppTheme,
   withAlpha,
@@ -134,7 +137,7 @@ const FeedHeader: React.FC<HeaderProps> = ({
                 />
               </Animated.View>
               <LinearGradient
-                colors={[theme.background, "transparent"]}
+                colors={[theme.background, colors.transparent]}
                 start={{ x: 0, y: 0.35 }}
                 end={{ x: 0, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -149,7 +152,7 @@ const FeedHeader: React.FC<HeaderProps> = ({
                 ]}
               />
               <LinearGradient
-                colors={[androidTint, "transparent"]}
+                colors={[androidTint, colors.transparent]}
                 start={{ x: 0, y: 0.35 }}
                 end={{ x: 0, y: 1 }}
                 style={StyleSheet.absoluteFill}
@@ -170,7 +173,7 @@ const FeedHeader: React.FC<HeaderProps> = ({
             <View style={styles.brandRow}>
               <MaskedImage
                 fallback={require("@/assets/images/blockout-logo-dark.png")}
-                size={26}
+                size={iconSize.tab}
                 radius={6}
               />
               <Text style={[styles.title, { color: theme.text }]}>
@@ -215,7 +218,7 @@ const FeedHeader: React.FC<HeaderProps> = ({
                 <GradientPill
                   size="md"
                   borderWidth={1}
-                  backgroundColor="transparent"
+                  backgroundColor={colors.transparent}
                   treatment="border"
                   gradient={gradients.premium}
                   leftIcon="rocket-launch-outline"
@@ -225,7 +228,10 @@ const FeedHeader: React.FC<HeaderProps> = ({
                   testID="feed-pro-action"
                   textColor={theme.gold}
                   iconColor={theme.gold}
-                  labelStyle={{ color: theme.gold, fontWeight: "900" }}
+                  labelStyle={{
+                    color: theme.gold,
+                    fontWeight: fontWeight.black,
+                  }}
                   style={styles.proPill}
                 />
               </View>
@@ -264,14 +270,14 @@ const styles = StyleSheet.create({
   leftCluster: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
     flexShrink: 1,
   },
 
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
 
   title: {
@@ -290,7 +296,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: layout.tabs,
     marginLeft: 6,
-    backgroundColor: "transparent",
+    backgroundColor: colors.transparent,
   },
   tabStyle: { width: "auto", paddingHorizontal: spacing[1] },
   indicator: { width: 0.5, height: layout.tabIndicator },
@@ -298,13 +304,13 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
     paddingRight: spacing[3],
   },
 
   proAction: { marginRight: spacing[1] },
   proPill: { alignSelf: "flex-start", borderRadius: radius.full },
-  pressed: { opacity: 0.85 },
+  pressed: { opacity: stateOpacity.pressedSubtle },
 });
 
 export default FeedHeader;

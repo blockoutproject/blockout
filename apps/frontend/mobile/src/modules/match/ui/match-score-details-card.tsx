@@ -4,8 +4,10 @@ import { MatchResponse } from "@/src/shared/generated/models";
 import type { TeamDetailsResponse } from "@/src/shared/generated/models";
 import {
   borderWidth,
+  fontWeight,
   radius,
   spacing,
+  stateOpacity,
   typography,
   useAppTheme,
 } from "@/src/shared/theme";
@@ -167,8 +169,11 @@ const MatchScoreDetailsCard: React.FC<MatchScoreDetailsCardProps> = ({
               style={[
                 styles.setScoreText,
                 isWinner
-                  ? { color: theme.text, fontWeight: "800" }
-                  : { color: theme.textInactive, fontWeight: "600" },
+                  ? { color: theme.text, fontWeight: fontWeight.extraBold }
+                  : {
+                      color: theme.textInactive,
+                      fontWeight: fontWeight.semiBold,
+                    },
               ]}
             >
               {played ? val : "—"}
@@ -274,5 +279,5 @@ const styles = StyleSheet.create({
   setScoreText: {
     ...typography.control,
   },
-  pressed: { opacity: 0.85 },
+  pressed: { opacity: stateOpacity.pressedSubtle },
 });

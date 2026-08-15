@@ -5,6 +5,7 @@ import {
   type MatchResponse,
 } from "@/src/shared/generated/models";
 import {
+  iconSize,
   borderWidth,
   radius,
   spacing,
@@ -69,7 +70,11 @@ const MatchRow: React.FC<MatchRowProps> = ({ match, division }) => {
             {match.teamA.shortName}
           </Text>
 
-          <MaskedImage uri={match.teamA.logoUrl} size={28} radius={8} />
+          <MaskedImage
+            uri={match.teamA.logoUrl}
+            size={iconSize.navigation}
+            radius={8}
+          />
         </View>
 
         <View style={styles.center}>
@@ -103,7 +108,11 @@ const MatchRow: React.FC<MatchRowProps> = ({ match, division }) => {
         </View>
 
         <View style={[styles.team, styles.teamLeft]}>
-          <MaskedImage uri={match.teamB.logoUrl} size={28} radius={8} />
+          <MaskedImage
+            uri={match.teamB.logoUrl}
+            size={iconSize.navigation}
+            radius={8}
+          />
 
           <Text
             style={[styles.teamName, { color: theme.text }]}
@@ -127,8 +136,8 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     borderWidth: borderWidth.thin,
     paddingHorizontal: spacing[2],
-    paddingVertical: 10,
-    gap: 6,
+    paddingVertical: spacing.compact,
+    gap: spacing.tight,
   },
   topRow: {
     marginTop: -4,

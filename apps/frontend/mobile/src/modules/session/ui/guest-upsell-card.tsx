@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
+  iconSize,
   borderWidth,
   radius,
   spacing,
@@ -51,7 +52,7 @@ const GuestUpsellCard: React.FC<GuestUpsellCardProps> = ({
       <View style={styles.headerRow}>
         <MaterialCommunityIcons
           name="account-arrow-right-outline"
-          size={18}
+          size={iconSize.control}
           color={theme.textSecondary}
         />
         <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
@@ -78,7 +79,7 @@ const GuestUpsellCard: React.FC<GuestUpsellCardProps> = ({
         leftIcon={
           <MaterialCommunityIcons
             name="account"
-            size={18}
+            size={iconSize.control}
             color={theme.onPrimary}
           />
         }
@@ -103,7 +104,7 @@ const Benefit: React.FC<BenefitProps> = ({ icon, label }) => {
     <View style={styles.benefitRow}>
       <MaterialCommunityIcons
         name={icon}
-        size={16}
+        size={iconSize.sm}
         color={theme.textSecondary}
       />
       <Text style={[styles.benefitText, { color: theme.textSecondary }]}>

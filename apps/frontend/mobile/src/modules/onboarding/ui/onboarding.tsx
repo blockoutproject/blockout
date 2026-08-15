@@ -31,6 +31,7 @@ import {
   colors,
   radius,
   spacing,
+  touchTarget,
   typography,
   useAppTheme,
 } from "@/src/shared/theme";
@@ -454,7 +455,7 @@ const styles = StyleSheet.create({
   skipAction: {
     position: "absolute",
     right: spacing[4],
-    minHeight: 44,
+    minHeight: touchTarget.minimum,
     paddingHorizontal: spacing[2],
     alignItems: "center",
     justifyContent: "center",
@@ -467,7 +468,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.secondary,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.tight,
   },
   dot: {
     height: 8,

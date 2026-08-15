@@ -9,7 +9,15 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { radius, useAppTheme } from "@/src/shared/theme";
+import {
+  iconSize,
+  borderWidth,
+  fontWeight,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import {
   DivisionResponse,
   UpsertDivisionRequest,
@@ -179,7 +187,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
                 <View style={styles.logoPlaceholder}>
                   <MaterialCommunityIcons
                     name="camera-plus-outline"
-                    size={28}
+                    size={iconSize.navigation}
                     color={theme.textInactive}
                   />
                   <Text
@@ -203,7 +211,7 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
           >
             <MaterialCommunityIcons
               name="pencil-outline"
-              size={16}
+              size={iconSize.sm}
               color={theme.text}
             />
             <Text style={[styles.logoBtnText, { color: theme.text }]}>
@@ -268,10 +276,10 @@ const DivisionForm: React.FC<DivisionFormProps> = ({ division, onSuccess }) => {
 export default DivisionForm;
 
 const styles = StyleSheet.create({
-  scroll: { gap: 12, padding: 8, paddingBottom: 100 },
+  scroll: { gap: spacing[3], padding: spacing[2], paddingBottom: 100 },
   logoWrap: {
-    borderWidth: 1.5,
-    borderRadius: 22,
+    borderWidth: borderWidth.subtle,
+    borderRadius: radius.panel,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -279,23 +287,34 @@ const styles = StyleSheet.create({
   logoMask: {
     width: 100,
     aspectRatio: 1,
-    borderRadius: 18,
+    borderRadius: radius.hero,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 16,
+    marginVertical: spacing[4],
   },
   logo: { width: "100%", height: "100%" },
-  logoPlaceholder: { alignItems: "center", gap: 6 },
-  logoHint: { fontSize: 12, fontWeight: "600" },
+  logoPlaceholder: { alignItems: "center", gap: spacing.tight },
+  logoHint: {
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.semiBold,
+  },
   logoBtn: {
     alignSelf: "flex-start",
     flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: spacing.tight,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
     borderRadius: radius.full,
   },
-  logoBtnText: { fontSize: 12, fontWeight: "700" },
-  colorRow: { flexDirection: "row", gap: 16, marginTop: 8, marginLeft: 8 },
+  logoBtnText: {
+    fontSize: typography.metadata.fontSize,
+    fontWeight: fontWeight.bold,
+  },
+  colorRow: {
+    flexDirection: "row",
+    gap: spacing[4],
+    marginTop: spacing[2],
+    marginLeft: spacing[2],
+  },
 });

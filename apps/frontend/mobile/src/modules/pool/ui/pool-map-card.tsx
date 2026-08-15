@@ -19,7 +19,14 @@ import type {
 } from "@/src/shared/generated/models";
 import { CONFIG } from "@/src/shared/config/config";
 import { useAdvertising } from "@/src/modules/advertising/providers/advertising-provider";
-import { useAppTheme } from "@/src/shared/theme";
+import {
+  borderWidth,
+  colors,
+  radius,
+  spacing,
+  typography,
+  useAppTheme,
+} from "@/src/shared/theme";
 import {
   DEFAULT_MAP_CENTER,
   DEFAULT_MAP_ZOOM,
@@ -33,7 +40,7 @@ type Props = {
   enrichedPool: PoolResponse;
 };
 
-const RADIUS = 18;
+const RADIUS = radius.hero;
 
 const EDGE_PADDING = 60;
 
@@ -219,22 +226,22 @@ export default PoolMapCard;
 
 const styles = StyleSheet.create({
   innerClip: {
-    borderRadius: RADIUS - 1,
+    borderRadius: RADIUS - borderWidth.thin,
     overflow: "hidden",
     flex: 1,
-    borderWidth: 2,
+    borderWidth: borderWidth.medium,
   },
   attribution: {
     position: "absolute",
-    bottom: 6,
-    right: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    bottom: spacing.tight,
+    right: spacing[2],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radius.compact,
+    backgroundColor: colors.overlay.mapAttribution,
   },
   attributionText: {
-    fontSize: 10,
-    color: "#D0D0D0",
+    fontSize: typography.attribution.fontSize,
+    color: colors.text.attribution,
   },
 });

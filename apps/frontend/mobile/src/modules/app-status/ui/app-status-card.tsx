@@ -5,8 +5,10 @@ import * as Haptics from "expo-haptics";
 
 import {
   borderWidth,
+  letterSpacing,
   radius,
   spacing,
+  touchTarget,
   typography,
   useAppTheme,
 } from "@/src/shared/theme";
@@ -143,11 +145,11 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     textTransform: "uppercase",
-    letterSpacing: 0.3,
+    letterSpacing: letterSpacing.overline,
   },
   title: typography.title,
   bypassAction: {
-    minHeight: 44,
+    minHeight: touchTarget.minimum,
     borderRadius: radius.full,
     borderWidth: borderWidth.thin,
     paddingHorizontal: spacing[3],
@@ -159,6 +161,6 @@ const styles = StyleSheet.create({
   bypassLabel: {
     ...typography.micro,
     textTransform: "uppercase",
-    letterSpacing: 0.3,
+    letterSpacing: letterSpacing.overline,
   },
 });
