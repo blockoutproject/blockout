@@ -27,6 +27,7 @@ models and clients from the V1 contracts; generated sources remain outside Git.
 
 - Node.js 24 and npm 11
 - Java 25
+- JDK 21 for the Android Gradle daemon (selected by the checked-in Gradle daemon JVM criteria)
 - Python 3.14.6 and uv 0.11.32
 - Docker with Compose
 - Xcode or Android Studio only for native mobile builds
@@ -70,6 +71,14 @@ docker compose --project-name blockout \
 
 Application processes run outside Compose through their native commands or Nx targets. Inspect the owning project with
 `npm exec -- nx show project <project-name>` before starting a process.
+
+Mobile development uses Metro on the repository-owned port `8093`:
+
+```bash
+npm run mobile:serve
+npm run mobile:android
+npm run mobile:ios
+```
 
 ## Verification
 
