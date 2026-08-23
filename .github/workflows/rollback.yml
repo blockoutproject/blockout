@@ -83,11 +83,15 @@ jobs:
       - name: Restore competition-scraper
         if: inputs.component == 'competition-scraper'
         env:
-          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_WEBHOOK_URL }}
+          DOKPLOY_DEPARTMENTAL_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_DEPARTMENTAL_WEBHOOK_URL }}
+          DOKPLOY_NAT_PRO_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_NAT_PRO_WEBHOOK_URL }}
+          DOKPLOY_REGIONAL_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_REGIONAL_WEBHOOK_URL }}
         run: |
           echo "Restoring $REVISION from $DIGEST"
           docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-competition-scraper:production "ghcr.io/blockoutproject/blockout-competition-scraper@$DIGEST"
-          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_DEPARTMENTAL_WEBHOOK_URL"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_NAT_PRO_WEBHOOK_URL"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_REGIONAL_WEBHOOK_URL"
 
       - name: Restore competition-service
         if: inputs.component == 'competition-service'

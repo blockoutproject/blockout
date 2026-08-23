@@ -100,6 +100,9 @@ jobs:
       - name: Build affected container images
         run: npm exec nx -- affected -t container --base="$NX_BASE" --head="$NX_HEAD" --parallel=2 --nxBail
 
+      - name: Build affected migration images
+        run: npm exec nx -- affected -t migration-container --base="$NX_BASE" --head="$NX_HEAD" --parallel=2 --nxBail
+
   release:
     name: release production
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.verify.outputs.deployable-projects != '[]'
@@ -116,6 +119,15 @@ jobs:
     env:
       AFFECTED_PROJECTS: ${{ needs.verify.outputs.deployable-projects }}
       CONTAINER_PLATFORM: ${{ vars.CONTAINER_PLATFORM }}
+      DOKPLOY_URL: ${{ vars.DOKPLOY_URL }}
+      DOKPLOY_CLUBS_SERVICE_MIGRATION_SCHEDULE_ID: ${{ vars.DOKPLOY_CLUBS_SERVICE_MIGRATION_SCHEDULE_ID }}
+      DOKPLOY_COMPETITION_SERVICE_MIGRATION_SCHEDULE_ID: ${{ vars.DOKPLOY_COMPETITION_SERVICE_MIGRATION_SCHEDULE_ID }}
+      DOKPLOY_CONFIG_SERVICE_MIGRATION_SCHEDULE_ID: ${{ vars.DOKPLOY_CONFIG_SERVICE_MIGRATION_SCHEDULE_ID }}
+      DOKPLOY_MATCHES_SERVICE_MIGRATION_SCHEDULE_ID: ${{ vars.DOKPLOY_MATCHES_SERVICE_MIGRATION_SCHEDULE_ID }}
+      DOKPLOY_NOTIFICATION_SERVICE_MIGRATION_SCHEDULE_ID: ${{ vars.DOKPLOY_NOTIFICATION_SERVICE_MIGRATION_SCHEDULE_ID }}
+      DOKPLOY_POOLS_SERVICE_MIGRATION_SCHEDULE_ID: ${{ vars.DOKPLOY_POOLS_SERVICE_MIGRATION_SCHEDULE_ID }}
+      DOKPLOY_TEAMS_SERVICE_MIGRATION_SCHEDULE_ID: ${{ vars.DOKPLOY_TEAMS_SERVICE_MIGRATION_SCHEDULE_ID }}
+      DOKPLOY_USERS_SERVICE_MIGRATION_SCHEDULE_ID: ${{ vars.DOKPLOY_USERS_SERVICE_MIGRATION_SCHEDULE_ID }}
     steps:
       - name: Check out the verified revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -369,6 +381,182 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
+      - name: Publish immutable clubs-service migration image
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/clubs-service')
+        id: clubs_service_migration_image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: apps/backend/clubs-service/Migration.Dockerfile
+          platforms: ${{ env.CONTAINER_PLATFORM }}
+          push: true
+          tags: ghcr.io/blockoutproject/blockout-clubs-service-migration:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Publish immutable competition-service migration image
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/competition-service')
+        id: competition_service_migration_image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: apps/backend/competition-service/Migration.Dockerfile
+          platforms: ${{ env.CONTAINER_PLATFORM }}
+          push: true
+          tags: ghcr.io/blockoutproject/blockout-competition-service-migration:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Publish immutable config-service migration image
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/config-service')
+        id: config_service_migration_image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: apps/backend/config-service/Migration.Dockerfile
+          platforms: ${{ env.CONTAINER_PLATFORM }}
+          push: true
+          tags: ghcr.io/blockoutproject/blockout-config-service-migration:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Publish immutable matches-service migration image
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/matches-service')
+        id: matches_service_migration_image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: apps/backend/matches-service/Migration.Dockerfile
+          platforms: ${{ env.CONTAINER_PLATFORM }}
+          push: true
+          tags: ghcr.io/blockoutproject/blockout-matches-service-migration:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Publish immutable notification-service migration image
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/notification-service')
+        id: notification_service_migration_image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: apps/backend/notification-service/Migration.Dockerfile
+          platforms: ${{ env.CONTAINER_PLATFORM }}
+          push: true
+          tags: ghcr.io/blockoutproject/blockout-notification-service-migration:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Publish immutable pools-service migration image
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/pools-service')
+        id: pools_service_migration_image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: apps/backend/pools-service/Migration.Dockerfile
+          platforms: ${{ env.CONTAINER_PLATFORM }}
+          push: true
+          tags: ghcr.io/blockoutproject/blockout-pools-service-migration:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Publish immutable teams-service migration image
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/teams-service')
+        id: teams_service_migration_image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: apps/backend/teams-service/Migration.Dockerfile
+          platforms: ${{ env.CONTAINER_PLATFORM }}
+          push: true
+          tags: ghcr.io/blockoutproject/blockout-teams-service-migration:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Publish immutable users-service migration image
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/users-service')
+        id: users_service_migration_image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: apps/backend/users-service/Migration.Dockerfile
+          platforms: ${{ env.CONTAINER_PLATFORM }}
+          push: true
+          tags: ghcr.io/blockoutproject/blockout-users-service-migration:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Run blocking clubs-service migration Schedule Job
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/clubs-service')
+        env:
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+        run: |
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-clubs-service-migration:production ghcr.io/blockoutproject/blockout-clubs-service-migration@${{ steps.clubs_service_migration_image.outputs.digest }}
+          npm exec --yes --package=@dokploy/cli@0.30.0 -- dokploy schedule run-manually --scheduleId "$DOKPLOY_CLUBS_SERVICE_MIGRATION_SCHEDULE_ID" --json | jq -e '.status == "done"' > /dev/null
+
+      - name: Run blocking competition-service migration Schedule Job
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/competition-service')
+        env:
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+        run: |
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-competition-service-migration:production ghcr.io/blockoutproject/blockout-competition-service-migration@${{ steps.competition_service_migration_image.outputs.digest }}
+          npm exec --yes --package=@dokploy/cli@0.30.0 -- dokploy schedule run-manually --scheduleId "$DOKPLOY_COMPETITION_SERVICE_MIGRATION_SCHEDULE_ID" --json | jq -e '.status == "done"' > /dev/null
+
+      - name: Run blocking config-service migration Schedule Job
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/config-service')
+        env:
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+        run: |
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-config-service-migration:production ghcr.io/blockoutproject/blockout-config-service-migration@${{ steps.config_service_migration_image.outputs.digest }}
+          npm exec --yes --package=@dokploy/cli@0.30.0 -- dokploy schedule run-manually --scheduleId "$DOKPLOY_CONFIG_SERVICE_MIGRATION_SCHEDULE_ID" --json | jq -e '.status == "done"' > /dev/null
+
+      - name: Run blocking matches-service migration Schedule Job
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/matches-service')
+        env:
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+        run: |
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-matches-service-migration:production ghcr.io/blockoutproject/blockout-matches-service-migration@${{ steps.matches_service_migration_image.outputs.digest }}
+          npm exec --yes --package=@dokploy/cli@0.30.0 -- dokploy schedule run-manually --scheduleId "$DOKPLOY_MATCHES_SERVICE_MIGRATION_SCHEDULE_ID" --json | jq -e '.status == "done"' > /dev/null
+
+      - name: Run blocking notification-service migration Schedule Job
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/notification-service')
+        env:
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+        run: |
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-notification-service-migration:production ghcr.io/blockoutproject/blockout-notification-service-migration@${{ steps.notification_service_migration_image.outputs.digest }}
+          npm exec --yes --package=@dokploy/cli@0.30.0 -- dokploy schedule run-manually --scheduleId "$DOKPLOY_NOTIFICATION_SERVICE_MIGRATION_SCHEDULE_ID" --json | jq -e '.status == "done"' > /dev/null
+
+      - name: Run blocking pools-service migration Schedule Job
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/pools-service')
+        env:
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+        run: |
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-pools-service-migration:production ghcr.io/blockoutproject/blockout-pools-service-migration@${{ steps.pools_service_migration_image.outputs.digest }}
+          npm exec --yes --package=@dokploy/cli@0.30.0 -- dokploy schedule run-manually --scheduleId "$DOKPLOY_POOLS_SERVICE_MIGRATION_SCHEDULE_ID" --json | jq -e '.status == "done"' > /dev/null
+
+      - name: Run blocking teams-service migration Schedule Job
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/teams-service')
+        env:
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+        run: |
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-teams-service-migration:production ghcr.io/blockoutproject/blockout-teams-service-migration@${{ steps.teams_service_migration_image.outputs.digest }}
+          npm exec --yes --package=@dokploy/cli@0.30.0 -- dokploy schedule run-manually --scheduleId "$DOKPLOY_TEAMS_SERVICE_MIGRATION_SCHEDULE_ID" --json | jq -e '.status == "done"' > /dev/null
+
+      - name: Run blocking users-service migration Schedule Job
+        if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/users-service')
+        env:
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+        run: |
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-users-service-migration:production ghcr.io/blockoutproject/blockout-users-service-migration@${{ steps.users_service_migration_image.outputs.digest }}
+          npm exec --yes --package=@dokploy/cli@0.30.0 -- dokploy schedule run-manually --scheduleId "$DOKPLOY_USERS_SERVICE_MIGRATION_SCHEDULE_ID" --json | jq -e '.status == "done"' > /dev/null
+
       - name: Deploy config-service
         if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/config-service')
         env:
@@ -476,7 +664,11 @@ jobs:
       - name: Deploy competition-scraper
         if: contains(fromJSON(env.AFFECTED_PROJECTS), '@blockout/competition-scraper')
         env:
-          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_WEBHOOK_URL }}
+          DOKPLOY_DEPARTMENTAL_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_DEPARTMENTAL_WEBHOOK_URL }}
+          DOKPLOY_NAT_PRO_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_NAT_PRO_WEBHOOK_URL }}
+          DOKPLOY_REGIONAL_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_REGIONAL_WEBHOOK_URL }}
         run: |
           docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-competition-scraper:production ghcr.io/blockoutproject/blockout-competition-scraper@${{ steps.competition_scraper_image.outputs.digest }}
-          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_DEPARTMENTAL_WEBHOOK_URL"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_NAT_PRO_WEBHOOK_URL"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_REGIONAL_WEBHOOK_URL"

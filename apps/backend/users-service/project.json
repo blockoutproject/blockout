@@ -12,6 +12,14 @@
       "options": {
         "command": "docker build --build-arg APP_REVISION=0000000000000000000000000000000000000000 --file apps/backend/users-service/Dockerfile --tag blockout-users-service:local ."
       }
+    },
+    "migration-container": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "inputs": ["default", "{workspaceRoot}/.dockerignore"],
+      "options": {
+        "command": "docker build --platform=linux/amd64 --file apps/backend/users-service/Migration.Dockerfile --tag blockout-users-service-migration:local ."
+      }
     }
   },
   "tags": ["language:java"]

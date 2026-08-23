@@ -33,8 +33,9 @@ npm exec nx -- show projects --affected \
 ```
 
 The JSON is allow-listed against the 14 deployable backend projects and becomes the release job input. The job then
-runs `npm run verify` and builds only the affected `container` targets. Pull requests cannot publish images, read
-Dokploy webhooks, or trigger deployment.
+runs `npm run verify`, builds the affected `container` targets, and builds the affected `migration-container` targets
+owned by the eight database-backed services. Pull requests cannot publish images, read Dokploy credentials, or trigger
+deployment.
 
 Each container target delegates directly to the application-owned Dockerfile. Java targets depend on generated OpenAPI
 bundles. Scraper targets depend on generated Python contract clients, which depend on the OpenAPI sources. Maven parent
@@ -50,23 +51,39 @@ Only a successful push to `main` can enter the protected `production` environmen
 skips release before environment access. The release job:
 
 1. reproduces generated OpenAPI and Python inputs from the locked checkout;
-2. publishes every selected image to GHCR with the full Git SHA;
+2. publishes every selected application image and database-owner migration image to GHCR with the full Git SHA;
 3. records the immutable digest returned by Buildx;
-4. after all selected publications succeed, retags each selected digest as `production`;
-5. calls only the selected Dokploy Auto Deploy webhooks.
+4. after all selected publications succeed, retags each selected migration digest as `production` and runs its
+   blocking Dokploy Schedule Job;
+5. only after every selected migration job reports `done`, retags the application digests as `production` and calls
+   only the selected Dokploy Auto Deploy webhooks.
 
-All image build steps precede all deployment steps. A publication failure therefore leaves every production pointer
-unchanged. Deployment runs in dependency-aware operational order, ending with the mobile gateway and scrapers.
-Production concurrency never cancels an in-progress release.
+All image build steps precede migrations and application deployment. A publication failure therefore leaves every
+production pointer unchanged. A migration failure leaves every application pointer unchanged and stops the release.
+Previously completed migrations are not reversed, so every production migration must follow expand-contract and stay
+compatible with the currently deployed application. Application deployment runs in dependency-aware operational
+order, ending with the mobile gateway and scrapers. Production concurrency never cancels an in-progress release.
 
 The immutable digest is the rollback identity. The SHA tag is traceability, and `production` is only the mutable pull
 pointer used by Dokploy. Every runtime image also carries `APP_REVISION` and OCI source/revision labels.
+
+## Flyway Ownership
+
+Each of the eight PostgreSQL-owning Spring Boot services also owns one minimal image based on the same Flyway version
+resolved by the Maven reactor. The image contains only that service's `db/migration` SQL and runs the default `migrate`
+command. Dokploy provides `FLYWAY_URL`, `FLYWAY_USER`, and `FLYWAY_PASSWORD` through a service-specific host env file.
+
+Spring Boot startup migration remains enabled for local Maven runs and tests. It is disabled only in the production
+application containers, where the blocking Schedule Job is the single migration owner. The production path does not
+run `clean`, `repair`, `baseline`, or `undo` automatically.
 
 ## Rollback
 
 The manual `Roll back application` workflow accepts exactly one component, a previously published digest, and its
 source revision. It retags only that digest as the component's `production` pointer and calls only that component's
-Dokploy webhook. It never rebuilds source, changes databases, or rolls back another application.
+Dokploy webhook. It never rebuilds source, changes databases, runs Flyway, or rolls back another application. A schema
+mistake is corrected with a new forward migration; database restoration remains an explicit backup or point-in-time
+recovery incident procedure.
 
 Dokploy webhook acceptance proves that a deployment was requested, not that application-specific readiness has passed.
 Dokploy must therefore own finite health checks and deployment failure visibility for every application. Adding public
@@ -83,6 +100,9 @@ revision-aware health APIs is outside issue #161 and must be handled as a separa
 - [Docker image digests](https://docs.docker.com/dhi/explore/security-concepts/digests/)
 - [uv with GitHub Actions](https://docs.astral.sh/uv/guides/integration/github/)
 - [Dokploy Auto Deploy](https://docs.dokploy.com/docs/core/auto-deploy)
+- [Dokploy Schedule Jobs](https://docs.dokploy.com/docs/core/schedule-jobs)
 - [Dokploy webhooks](https://docs.dokploy.com/docs/core/webhook)
 - [Dokploy rollbacks](https://docs.dokploy.com/docs/core/applications/rollbacks)
+- [Flyway Docker images](https://documentation.red-gate.com/fd/flyway-open-source-docker-205226374.html)
+- [Flyway migrate](https://documentation.red-gate.com/fd/migrate-277578887.html)
 - [Expo application deployment](https://docs.expo.dev/deploy/build-project/)

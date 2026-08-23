@@ -6,40 +6,73 @@ configuration.
 
 ## One-Time Configuration
 
-Create one Dokploy Docker application for each deployable image below. Configure each application to pull the
+Reuse the existing Dokploy Docker application for each deployable image below. Configure each application to pull the
 `production` tag, enable Auto Deploy, keep runtime secrets only in Dokploy, and record its generated webhook as the
 matching GitHub `production` environment secret.
 
-| Component              | GHCR image                                                         | GitHub secret                              |
-| ---------------------- | ------------------------------------------------------------------ | ------------------------------------------ |
-| `club-scraper`         | `ghcr.io/blockoutproject/blockout-club-scraper:production`         | `DOKPLOY_CLUB_SCRAPER_WEBHOOK_URL`         |
-| `clubs-service`        | `ghcr.io/blockoutproject/blockout-clubs-service:production`        | `DOKPLOY_CLUBS_SERVICE_WEBHOOK_URL`        |
-| `competition-scraper`  | `ghcr.io/blockoutproject/blockout-competition-scraper:production`  | `DOKPLOY_COMPETITION_SCRAPER_WEBHOOK_URL`  |
-| `competition-service`  | `ghcr.io/blockoutproject/blockout-competition-service:production`  | `DOKPLOY_COMPETITION_SERVICE_WEBHOOK_URL`  |
-| `config-service`       | `ghcr.io/blockoutproject/blockout-config-service:production`       | `DOKPLOY_CONFIG_SERVICE_WEBHOOK_URL`       |
-| `matches-service`      | `ghcr.io/blockoutproject/blockout-matches-service:production`      | `DOKPLOY_MATCHES_SERVICE_WEBHOOK_URL`      |
-| `mobile-gateway`       | `ghcr.io/blockoutproject/blockout-mobile-gateway:production`       | `DOKPLOY_MOBILE_GATEWAY_WEBHOOK_URL`       |
-| `notification-service` | `ghcr.io/blockoutproject/blockout-notification-service:production` | `DOKPLOY_NOTIFICATION_SERVICE_WEBHOOK_URL` |
-| `pools-service`        | `ghcr.io/blockoutproject/blockout-pools-service:production`        | `DOKPLOY_POOLS_SERVICE_WEBHOOK_URL`        |
-| `reports-service`      | `ghcr.io/blockoutproject/blockout-reports-service:production`      | `DOKPLOY_REPORTS_SERVICE_WEBHOOK_URL`      |
-| `search-service`       | `ghcr.io/blockoutproject/blockout-search-service:production`       | `DOKPLOY_SEARCH_SERVICE_WEBHOOK_URL`       |
-| `search-worker`        | `ghcr.io/blockoutproject/blockout-search-worker:production`        | `DOKPLOY_SEARCH_WORKER_WEBHOOK_URL`        |
-| `teams-service`        | `ghcr.io/blockoutproject/blockout-teams-service:production`        | `DOKPLOY_TEAMS_SERVICE_WEBHOOK_URL`        |
-| `users-service`        | `ghcr.io/blockoutproject/blockout-users-service:production`        | `DOKPLOY_USERS_SERVICE_WEBHOOK_URL`        |
+| Component              | GHCR image                                                         | GitHub secret                                          |
+| ---------------------- | ------------------------------------------------------------------ | ------------------------------------------------------ |
+| `club-scraper`         | `ghcr.io/blockoutproject/blockout-club-scraper:production`         | `DOKPLOY_CLUB_SCRAPER_WEBHOOK_URL`                     |
+| `clubs-service`        | `ghcr.io/blockoutproject/blockout-clubs-service:production`        | `DOKPLOY_CLUBS_SERVICE_WEBHOOK_URL`                    |
+| `scraper-departmental` | `ghcr.io/blockoutproject/blockout-competition-scraper:production`  | `DOKPLOY_COMPETITION_SCRAPER_DEPARTMENTAL_WEBHOOK_URL` |
+| `scraper-nat-pro`      | `ghcr.io/blockoutproject/blockout-competition-scraper:production`  | `DOKPLOY_COMPETITION_SCRAPER_NAT_PRO_WEBHOOK_URL`      |
+| `scraper-regional`     | `ghcr.io/blockoutproject/blockout-competition-scraper:production`  | `DOKPLOY_COMPETITION_SCRAPER_REGIONAL_WEBHOOK_URL`     |
+| `competition-service`  | `ghcr.io/blockoutproject/blockout-competition-service:production`  | `DOKPLOY_COMPETITION_SERVICE_WEBHOOK_URL`              |
+| `config-service`       | `ghcr.io/blockoutproject/blockout-config-service:production`       | `DOKPLOY_CONFIG_SERVICE_WEBHOOK_URL`                   |
+| `matches-service`      | `ghcr.io/blockoutproject/blockout-matches-service:production`      | `DOKPLOY_MATCHES_SERVICE_WEBHOOK_URL`                  |
+| `mobile-gateway`       | `ghcr.io/blockoutproject/blockout-mobile-gateway:production`       | `DOKPLOY_MOBILE_GATEWAY_WEBHOOK_URL`                   |
+| `notification-service` | `ghcr.io/blockoutproject/blockout-notification-service:production` | `DOKPLOY_NOTIFICATION_SERVICE_WEBHOOK_URL`             |
+| `pools-service`        | `ghcr.io/blockoutproject/blockout-pools-service:production`        | `DOKPLOY_POOLS_SERVICE_WEBHOOK_URL`                    |
+| `reports-service`      | `ghcr.io/blockoutproject/blockout-reports-service:production`      | `DOKPLOY_REPORTS_SERVICE_WEBHOOK_URL`                  |
+| `search-service`       | `ghcr.io/blockoutproject/blockout-search-service:production`       | `DOKPLOY_SEARCH_SERVICE_WEBHOOK_URL`                   |
+| `search-worker`        | `ghcr.io/blockoutproject/blockout-search-worker:production`        | `DOKPLOY_SEARCH_WORKER_WEBHOOK_URL`                    |
+| `teams-service`        | `ghcr.io/blockoutproject/blockout-teams-service:production`        | `DOKPLOY_TEAMS_SERVICE_WEBHOOK_URL`                    |
+| `users-service`        | `ghcr.io/blockoutproject/blockout-users-service:production`        | `DOKPLOY_USERS_SERVICE_WEBHOOK_URL`                    |
 
 Configure GHCR credentials in Dokploy when the packages are private. The GitHub workflow publishes with its scoped
 `GITHUB_TOKEN`; no registry password or Dokploy runtime secret is passed into image builds.
 
-The 14 GitHub environment secrets currently contain component-specific URLs under the reserved
-`https://dokploy.example.invalid/` domain. These placeholders are intentionally non-routable. Replace each secret with
-the webhook generated by the matching Dokploy application only when the first controlled production release is
-authorized.
+## Flyway Schedule Jobs
+
+Create one disabled recurring Schedule Job per database owner. As in the Vytruve deployment, the intentionally dormant
+cron expression is `0 0 1 1 *`; GitHub runs each job explicitly through the Dokploy CLI. Each job pulls the mutable
+migration pointer and exits when Flyway `migrate` completes:
+
+```bash
+docker run --rm --pull=always --network dokploy-network \
+  --env-file /etc/dokploy/blockout/<service>-migration.env \
+  ghcr.io/blockoutproject/blockout-<service>-migration:production
+```
+
+| Database owner         | Migration image                                                              | GitHub variable                                      |
+| ---------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `clubs-service`        | `ghcr.io/blockoutproject/blockout-clubs-service-migration:production`        | `DOKPLOY_CLUBS_SERVICE_MIGRATION_SCHEDULE_ID`        |
+| `competition-service`  | `ghcr.io/blockoutproject/blockout-competition-service-migration:production`  | `DOKPLOY_COMPETITION_SERVICE_MIGRATION_SCHEDULE_ID`  |
+| `config-service`       | `ghcr.io/blockoutproject/blockout-config-service-migration:production`       | `DOKPLOY_CONFIG_SERVICE_MIGRATION_SCHEDULE_ID`       |
+| `matches-service`      | `ghcr.io/blockoutproject/blockout-matches-service-migration:production`      | `DOKPLOY_MATCHES_SERVICE_MIGRATION_SCHEDULE_ID`      |
+| `notification-service` | `ghcr.io/blockoutproject/blockout-notification-service-migration:production` | `DOKPLOY_NOTIFICATION_SERVICE_MIGRATION_SCHEDULE_ID` |
+| `pools-service`        | `ghcr.io/blockoutproject/blockout-pools-service-migration:production`        | `DOKPLOY_POOLS_SERVICE_MIGRATION_SCHEDULE_ID`        |
+| `teams-service`        | `ghcr.io/blockoutproject/blockout-teams-service-migration:production`        | `DOKPLOY_TEAMS_SERVICE_MIGRATION_SCHEDULE_ID`        |
+| `users-service`        | `ghcr.io/blockoutproject/blockout-users-service-migration:production`        | `DOKPLOY_USERS_SERVICE_MIGRATION_SCHEDULE_ID`        |
+
+Each root-owned env file is mode `600` and contains only the credentials for its database:
+
+```dotenv
+FLYWAY_URL=jdbc:postgresql://<dokploy-postgres-service>:5432/<database>
+FLYWAY_USER=<database-user>
+FLYWAY_PASSWORD=<database-password>
+```
+
+Application containers set `SPRING_FLYWAY_ENABLED=false`. Local Maven and Testcontainers execution keep the existing
+Spring Boot Flyway startup behavior.
 
 Configure the GitHub `production` environment with:
 
 - a custom deployment branch policy limited to `main`;
 - no administrator bypass;
-- the 14 webhook secrets listed above;
+- the 16 application webhook secrets listed above;
+- the `DOKPLOY_API_KEY` secret used only by blocking migration jobs;
+- the non-secret `DOKPLOY_URL` and eight migration Schedule Job ID variables listed above;
 - the non-secret `CONTAINER_PLATFORM` variable, normally `linux/amd64`.
 
 Protect `develop` and `main` with pull requests, resolved conversations, and the `verify` check. The workflow also
@@ -64,9 +97,10 @@ Nx selects affected applications from the last successful workflow range. A docu
 container target skips production. Shared OpenAPI, Maven parent/shared-model, Python workspace, or Docker-context
 changes propagate through the Nx graph to their real image consumers.
 
-The workflow publishes all selected immutable SHA images before changing any `production` tag. It then deploys selected
-applications sequentially. A failed publication prevents every deployment. A failed Dokploy webhook stops subsequent
-deployment steps and remains visible in the GitHub release job.
+The workflow publishes all selected immutable SHA images before changing any `production` tag. It then runs every
+selected migration job sequentially before changing any application pointer. A failed publication prevents every
+migration and deployment. A failed migration prevents every application deployment. A failed Dokploy webhook stops
+subsequent deployment steps and remains visible in the GitHub release job.
 
 ## Rollback
 

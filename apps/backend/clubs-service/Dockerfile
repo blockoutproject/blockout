@@ -12,7 +12,8 @@ RUN --mount=type=cache,target=/root/.m2 mvn -f apps/backend/pom.xml -N install -
 FROM eclipse-temurin:25-alpine
 WORKDIR /app
 ARG APP_REVISION
-ENV APP_REVISION=${APP_REVISION}
+ENV APP_REVISION=${APP_REVISION} \
+    SPRING_FLYWAY_ENABLED=false
 COPY --from=builder /workspace/apps/backend/clubs-service/target/*.jar app.jar
 EXPOSE 8086
 ENTRYPOINT ["java", "-jar", "app.jar"]
