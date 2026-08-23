@@ -1,5 +1,18 @@
 {
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "name": "@blockout/competition-service",
+  "targets": {
+    "container": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "inputs": ["default", "^default", "{workspaceRoot}/.dockerignore"],
+      "dependsOn": [
+        { "projects": "@blockout/contracts", "target": "generate-contracts" }
+      ],
+      "options": {
+        "command": "docker build --build-arg APP_REVISION=0000000000000000000000000000000000000000 --file apps/backend/competition-service/Dockerfile --tag blockout-competition-service:local ."
+      }
+    }
+  },
   "tags": ["language:java"]
 }

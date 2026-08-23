@@ -3,6 +3,9 @@
   "name": "@blockout/club-scraper",
   "projectType": "application",
   "sourceRoot": "apps/backend/club-scraper",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "pythonWorkspace", "sharedGlobals"]
+  },
   "targets": {
     "serve": {
       "executor": "nx:run-commands",
@@ -71,6 +74,20 @@
           "uv run --locked --no-sync python -m ruff format --check ."
         ],
         "parallel": false
+      }
+    },
+    "container": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "inputs": ["default", "^default", "{workspaceRoot}/.dockerignore"],
+      "dependsOn": [
+        {
+          "projects": "@blockout/python-contract-clients",
+          "target": "generate"
+        }
+      ],
+      "options": {
+        "command": "docker build --build-arg APP_REVISION=0000000000000000000000000000000000000000 --file apps/backend/club-scraper/Dockerfile --tag blockout-club-scraper:local ."
       }
     }
   },

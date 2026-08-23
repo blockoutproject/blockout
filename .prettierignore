@@ -21,5 +21,6 @@ apps/backend/club-scraper/tests/fixtures/
 apps/backend/competition-scraper/tests/fixtures/
 
 # Native dependency and build output
-apps/frontend/mobile/android/build/
-apps/frontend/mobile/ios/Pods/
+apps/frontend/mobile/android/
+apps/frontend/mobile/ios/
+apps/frontend/mobile/expo-env.d.ts
