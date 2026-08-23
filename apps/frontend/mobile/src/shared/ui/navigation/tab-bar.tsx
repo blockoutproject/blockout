@@ -30,6 +30,7 @@ import {
   withAlpha,
 } from "@/src/shared/theme";
 import { TabBarItem } from "@/src/shared/ui/navigation/tab-bar-item";
+import { getCenteredPillX } from "@/src/shared/ui/navigation/tab-bar-position";
 import { isTabRouteVisible } from "@/src/modules/session/navigation/tab-route-access";
 
 const SPRING = { damping: 25, stiffness: 340, mass: 0.8 };
@@ -65,7 +66,7 @@ export default function TabBar({
     if (!itemLayout) {
       return null;
     }
-    return itemLayout.x + (itemLayout.width - ACTIVE_PILL_WIDTH) / 2;
+    return getCenteredPillX(itemLayout, ACTIVE_PILL_WIDTH);
   }, []);
 
   const animateToIndex = useCallback(
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
   },
   activePill: {
     position: "absolute",
-    left: spacing[3],
+    left: 0,
     width: ACTIVE_PILL_WIDTH,
     height: ACTIVE_PILL_HEIGHT,
     borderRadius: radius.full,

@@ -20,6 +20,8 @@ const SearchState = ({
     variant="search"
     title={title}
     subtitle={subtitle}
+    illustrationSource={require("@/assets/images/search.gif")}
+    fallbackIcon="magnify"
     containerStyle={{ paddingTop }}
     testID={testID}
   />

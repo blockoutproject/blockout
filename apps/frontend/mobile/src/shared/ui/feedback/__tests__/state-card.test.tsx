@@ -9,7 +9,13 @@ import {
 import * as Haptics from "expo-haptics";
 
 import { ThemeProvider } from "@/src/shared/theme";
+import EmptyState from "@/src/shared/ui/feedback/empty-state";
+import ErrorState from "@/src/shared/ui/feedback/error-state";
+import LoadingState from "@/src/shared/ui/feedback/loading-state";
+import SearchState from "@/src/shared/ui/feedback/search-state";
 import StateCard from "@/src/shared/ui/feedback/state-card";
+
+let mockReducedMotion = false;
 
 jest.mock("expo-haptics", () => ({
   selectionAsync: jest.fn().mockResolvedValue(undefined),
@@ -19,9 +25,14 @@ jest.mock("expo-image", () => ({
   Image: "Image",
 }));
 
+jest.mock("@/src/shared/ui/feedback/use-reduced-motion", () => ({
+  useReducedMotion: () => mockReducedMotion,
+}));
+
 describe("StateCard", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockReducedMotion = false;
   });
 
   it("renders its stable content and performs an enabled action", async () => {
@@ -48,24 +59,62 @@ describe("StateCard", () => {
     });
   });
 
-  it.each(["loading", "search", "error"] as const)(
-    "renders the compact %s feedback anatomy without an illustration",
-    async (variant) => {
-      const screen = await render(
-        <ThemeProvider>
-          <StateCard
-            variant={variant}
-            title="État compact"
-            subtitle="Message de contexte."
-          />
-        </ThemeProvider>,
-      );
+  it.each([
+    [
+      "loading",
+      <LoadingState key="loading" />,
+      "Animation de chargement",
+      "loading-state",
+      true,
+    ],
+    [
+      "empty",
+      <EmptyState key="empty" />,
+      "Illustration d’état vide",
+      "empty-state",
+      false,
+    ],
+    [
+      "search",
+      <SearchState key="search" title="Aucun résultat" />,
+      "Illustration de recherche",
+      "search-state",
+      false,
+    ],
+    [
+      "error",
+      <ErrorState key="error" onRetry={jest.fn()} />,
+      "Illustration d’erreur",
+      "error-state",
+      false,
+    ],
+  ] as const)(
+    "renders the %s feedback with its representative illustration",
+    async (_variant, feedback, illustrationLabel, testID, busy) => {
+      const screen = await render(<ThemeProvider>{feedback}</ThemeProvider>);
 
-      expect(screen.getByRole("header", { name: "État compact" })).toBeTruthy();
-      expect(screen.getByText("Message de contexte.")).toBeTruthy();
-      expect(screen.queryByLabelText("Illustration")).toBeNull();
+      expect(
+        screen.getByRole("image", { name: illustrationLabel }),
+      ).toBeTruthy();
+      expect(screen.getByTestId(`${testID}-illustration`)).toBeTruthy();
+      expect(screen.getByTestId(testID).props.accessibilityState).toEqual({
+        busy,
+      });
     },
   );
+
+  it("stops animated feedback when reduced motion is enabled", async () => {
+    mockReducedMotion = true;
+    const screen = await render(
+      <ThemeProvider>
+        <LoadingState />
+      </ThemeProvider>,
+    );
+
+    expect(
+      screen.getByTestId("loading-state-illustration").props.autoplay,
+    ).toBe(false);
+  });
 
   it("keeps a loading action disabled and exposes its loading label", async () => {
     const onPress = jest.fn();
