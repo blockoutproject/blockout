@@ -15,7 +15,6 @@ import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   iconSize,
-  borderWidth,
   fontWeight,
   letterSpacing,
   radius,
@@ -24,6 +23,7 @@ import {
   useAppTheme,
   withAlpha,
 } from "@/src/shared/theme";
+import { useReducedMotion } from "@/src/shared/ui/feedback/use-reduced-motion";
 
 /** Button-like action attached to the state card. */
 export type StateAction = {
@@ -74,6 +74,15 @@ const feedbackIcons: Record<
   search: "magnify",
   error: "alert-circle-outline",
 };
+const feedbackIllustrationLabels: Record<
+  NonNullable<StateCardProps["variant"]>,
+  string
+> = {
+  loading: "Animation de chargement",
+  empty: "Illustration d’état vide",
+  search: "Illustration de recherche",
+  error: "Illustration d’erreur",
+};
 
 const StateCard: React.FC<StateCardProps> = ({
   variant = "empty",
@@ -86,16 +95,27 @@ const StateCard: React.FC<StateCardProps> = ({
   testID,
 }) => {
   const theme = useAppTheme();
+  const reduceMotion = useReducedMotion();
   const [actionPending, setActionPending] = useState(false);
 
-  const fade = useRef(new Animated.Value(0)).current;
+  const fade = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   useEffect(() => {
-    Animated.timing(fade, {
+    if (reduceMotion) {
+      fade.stopAnimation();
+      fade.setValue(1);
+      return;
+    }
+
+    fade.setValue(0);
+    const animation = Animated.timing(fade, {
       toValue: 1,
       duration: 220,
       useNativeDriver: true,
-    }).start();
-  }, [fade]);
+    });
+    animation.start();
+
+    return () => animation.stop();
+  }, [fade, reduceMotion]);
 
   const onPressAction = async () => {
     if (!action || action.disabled || action.loading || actionPending) {
@@ -113,19 +133,12 @@ const StateCard: React.FC<StateCardProps> = ({
 
   const isActionLoading = Boolean(action?.loading || actionPending);
   const isActionDisabled = Boolean(action?.disabled || isActionLoading);
-  const isCompact = variant !== "empty";
   const effectiveFallbackIcon = fallbackIcon ?? feedbackIcons[variant];
-  const indicatorColor = {
-    loading: theme.primary,
-    search: theme.warning,
-    error: theme.error,
-  }[variant as "loading" | "search" | "error"];
 
   return (
     <Animated.View
       style={[
         styles.root,
-        !isCompact && styles.emptyRoot,
         {
           backgroundColor: theme.background,
           opacity: fade,
@@ -134,58 +147,39 @@ const StateCard: React.FC<StateCardProps> = ({
       ]}
       testID={testID}
       accessibilityRole="summary"
+      accessibilityState={{ busy: variant === "loading" }}
     >
-      <View
-        style={[
-          isCompact ? styles.compactCard : styles.centerStack,
-          isCompact && {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-          },
-        ]}
-      >
-        {isCompact ? (
-          <View
-            style={[
-              styles.compactIndicator,
-              { backgroundColor: indicatorColor },
-            ]}
-          />
-        ) : (
-          <View
-            style={[
-              styles.visualWrap,
-              {
-                backgroundColor: withAlpha(theme.text, 0.06),
-              },
-            ]}
-            accessible
-            accessibilityLabel="Illustration"
-          >
-            {illustrationSource ? (
-              <Image
-                source={illustrationSource}
-                style={styles.image}
-                contentFit="contain"
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name={effectiveFallbackIcon}
-                size={iconSize.illustration}
-                color={withAlpha(theme.text, 0.6)}
-              />
-            )}
-          </View>
-        )}
-
-        <Text
+      <View style={styles.centerStack}>
+        <View
           style={[
-            isCompact ? styles.compactTitle : styles.title,
+            styles.visualWrap,
             {
-              color: theme.text,
+              backgroundColor: withAlpha(theme.text, 0.06),
             },
           ]}
-          numberOfLines={2}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={feedbackIllustrationLabels[variant]}
+        >
+          {illustrationSource ? (
+            <Image
+              source={illustrationSource}
+              style={styles.image}
+              contentFit="contain"
+              autoplay={!reduceMotion}
+              testID={testID ? `${testID}-illustration` : undefined}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name={effectiveFallbackIcon}
+              size={iconSize.illustration}
+              color={withAlpha(theme.text, 0.6)}
+            />
+          )}
+        </View>
+
+        <Text
+          style={[styles.title, { color: theme.text }]}
           accessibilityRole="header"
         >
           {title}
@@ -193,13 +187,7 @@ const StateCard: React.FC<StateCardProps> = ({
 
         {Boolean(subtitle) && (
           <Text
-            style={[
-              styles.subtitle,
-              {
-                color: isCompact ? theme.textSecondary : theme.textInactive,
-              },
-            ]}
-            numberOfLines={4}
+            style={[styles.subtitle, { color: theme.textInactive }]}
             accessibilityHint={subtitle}
           >
             {subtitle}
@@ -214,7 +202,7 @@ const StateCard: React.FC<StateCardProps> = ({
               color: withAlpha(theme.text, 0.12),
             }}
             style={({ pressed }) => [
-              isCompact ? styles.compactButton : styles.button,
+              styles.button,
               {
                 backgroundColor:
                   pressed && !isActionDisabled
@@ -229,38 +217,21 @@ const StateCard: React.FC<StateCardProps> = ({
               disabled: isActionDisabled,
               busy: isActionLoading,
             }}
-            hitSlop={isCompact ? spacing[1] : undefined}
             testID={action.testID}
           >
             <View style={styles.btnContent}>
-              {!isCompact && (
-                <View
-                  style={[
-                    styles.iconSlot,
-                    {
-                      width: ICON_SLOT,
-                    },
-                  ]}
-                >
-                  {isActionLoading ? (
-                    <ActivityIndicator size="small" color={theme.text} />
-                  ) : action.icon ? (
-                    <MaterialCommunityIcons
-                      name={action.icon}
-                      size={ICON_SIZE}
-                      color={theme.text}
-                    />
-                  ) : null}
-                </View>
-              )}
-              <Text
-                style={[
-                  isCompact ? styles.compactButtonText : styles.buttonText,
-                  {
-                    color: theme.text,
-                  },
-                ]}
-              >
+              <View style={[styles.iconSlot, { width: ICON_SLOT }]}>
+                {isActionLoading ? (
+                  <ActivityIndicator size="small" color={theme.text} />
+                ) : action.icon ? (
+                  <MaterialCommunityIcons
+                    name={action.icon}
+                    size={ICON_SIZE}
+                    color={theme.text}
+                  />
+                ) : null}
+              </View>
+              <Text style={[styles.buttonText, { color: theme.text }]}>
                 {isActionLoading && action.loadingLabel
                   ? action.loadingLabel
                   : action.label}
@@ -278,27 +249,7 @@ export default StateCard;
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  emptyRoot: {
     paddingHorizontal: spacing[4],
-  },
-  compactCard: {
-    alignItems: "center",
-    alignSelf: "stretch",
-    borderRadius: radius.lg,
-    borderWidth: borderWidth.thin,
-    gap: spacing[3],
-    marginHorizontal: spacing[2],
-    padding: spacing[4],
-  },
-  compactIndicator: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.full,
-  },
-  compactTitle: {
-    ...typography.control,
-    textAlign: "center",
   },
   centerStack: {
     alignItems: "center",
@@ -341,12 +292,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.roomy,
     alignSelf: "center",
   },
-  compactButton: {
-    alignSelf: "center",
-    borderRadius: radius.control,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-  },
   btnContent: {
     flexDirection: "row",
     alignItems: "center",
@@ -361,8 +306,5 @@ const styles = StyleSheet.create({
     fontSize: typography.body.fontSize,
     fontWeight: fontWeight.extraBold,
     letterSpacing: letterSpacing.metadata,
-  },
-  compactButtonText: {
-    ...typography.bodyStrong,
   },
 });

@@ -20,6 +20,8 @@ const LoadingState = ({
     variant="loading"
     title={title}
     subtitle={subtitle}
+    illustrationSource={require("@/assets/images/ready.gif")}
+    fallbackIcon="progress-clock"
     containerStyle={{ paddingTop }}
     testID={testID}
   />
