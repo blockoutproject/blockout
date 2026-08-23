@@ -6,6 +6,8 @@ import { Platform } from "react-native";
 
 import { DevicePlatformEnum } from "@/src/shared/generated/models";
 
+let didReportUnsupportedPushEnvironment = false;
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true,
@@ -47,17 +49,22 @@ export function platformToNotificationDevice(): DevicePlatformEnum {
 export async function registerForPushNotificationsAsync(): Promise<
   string | null
 > {
+  if (!Device.isDevice) {
+    if (__DEV__ && !didReportUnsupportedPushEnvironment) {
+      console.warn(
+        "[notifications] Push registration skipped on simulator or emulator.",
+      );
+      didReportUnsupportedPushEnvironment = true;
+    }
+    return null;
+  }
+
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {
       name: "default",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
     });
-  }
-
-  if (!Device.isDevice) {
-    alert("Must use physical device for push notifications");
-    return null;
   }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
