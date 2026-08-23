@@ -125,7 +125,7 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ match, gradient }) => {
       <View style={styles.teamsRow}>
         <TeamBlock team={match.teamA} role="Locaux" />
 
-        <View style={styles.centerBlock}>
+        <View style={styles.centerBlock} testID="match-score-center-column">
           {match.set ? (
             <>
               <GradientBorderView
@@ -155,7 +155,11 @@ const MatchScoreCard: React.FC<MatchScoreCardProps> = ({ match, gradient }) => {
               ) : null}
 
               {!presentation.isMatchStarted ? (
-                <GradientPill label="À venir" gradient={gradient} />
+                <GradientPill
+                  label="À venir"
+                  gradient={gradient}
+                  style={styles.upcomingStatusPill}
+                />
               ) : null}
             </>
           )}
@@ -230,5 +234,8 @@ const styles = StyleSheet.create({
   },
   timeLarge: {
     ...typography.display,
+  },
+  upcomingStatusPill: {
+    alignSelf: "center",
   },
 });
