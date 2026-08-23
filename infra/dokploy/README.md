@@ -63,6 +63,11 @@ FLYWAY_USER=<database-user>
 FLYWAY_PASSWORD=<database-password>
 ```
 
+When database credentials rotate, update the owning application's `DATASOURCE_*` values and its migration env file
+together. Before the next release, verify that `FLYWAY_URL`, `FLYWAY_USER`, and `FLYWAY_PASSWORD` still match the
+application's `DATASOURCE_URL`, `DATASOURCE_USERNAME`, and `DATASOURCE_PASSWORD`, and preserve root ownership and mode
+`600` on the migration env file.
+
 Application containers set `SPRING_FLYWAY_ENABLED=false`. Local Maven and Testcontainers execution keep the existing
 Spring Boot Flyway startup behavior.
 
