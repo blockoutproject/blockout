@@ -7,9 +7,15 @@
     "production": ["default"],
     "sharedGlobals": [
       "{workspaceRoot}/nx.json",
-      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/package.json"
+    ],
+    "pythonWorkspace": [
+      "{workspaceRoot}/.python-version",
       "{workspaceRoot}/pyproject.toml",
-      "{workspaceRoot}/uv.lock"
+      "{workspaceRoot}/uv.lock",
+      "{workspaceRoot}/apps/backend/club-scraper/pyproject.toml",
+      "{workspaceRoot}/apps/backend/competition-scraper/pyproject.toml",
+      "{workspaceRoot}/libs/shared/python-contract-clients/pyproject.toml"
     ]
   },
   "plugins": [

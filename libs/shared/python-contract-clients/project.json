@@ -3,6 +3,9 @@
   "name": "@blockout/python-contract-clients",
   "projectType": "library",
   "sourceRoot": "libs/shared/python-contract-clients/src",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "pythonWorkspace", "sharedGlobals"]
+  },
   "implicitDependencies": ["@blockout/contracts"],
   "targets": {
     "generate": {

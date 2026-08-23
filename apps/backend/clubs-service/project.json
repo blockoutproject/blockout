@@ -1,5 +1,29 @@
 {
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "name": "@blockout/clubs-service",
+  "targets": {
+    "container": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "inputs": ["default", "^default", "{workspaceRoot}/.dockerignore"],
+      "dependsOn": [
+        {
+          "projects": "@blockout/contracts",
+          "target": "generate-contracts"
+        }
+      ],
+      "options": {
+        "command": "docker build --build-arg APP_REVISION=0000000000000000000000000000000000000000 --file apps/backend/clubs-service/Dockerfile --tag blockout-clubs-service:local ."
+      }
+    },
+    "migration-container": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "inputs": ["default", "{workspaceRoot}/.dockerignore"],
+      "options": {
+        "command": "docker build --platform=linux/amd64 --file apps/backend/clubs-service/Migration.Dockerfile --tag blockout-clubs-service-migration:local ."
+      }
+    }
+  },
   "tags": ["language:java"]
 }

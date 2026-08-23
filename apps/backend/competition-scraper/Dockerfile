@@ -18,7 +18,9 @@ FROM python:3.14.6-alpine
 
 WORKDIR /app
 
-ENV TZ=UTC \
+ARG APP_REVISION
+ENV APP_REVISION=${APP_REVISION} \
+    TZ=UTC \
     PATH="/app/.venv/bin:$PATH"
 
 COPY --from=builder /workspace/.venv /app/.venv

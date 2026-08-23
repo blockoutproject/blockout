@@ -1,0 +1,193 @@
+name: Roll back application
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Application to restore
+        required: true
+        type: choice
+        options:
+          - club-scraper
+          - clubs-service
+          - competition-scraper
+          - competition-service
+          - config-service
+          - matches-service
+          - mobile-gateway
+          - notification-service
+          - pools-service
+          - reports-service
+          - search-service
+          - search-worker
+          - teams-service
+          - users-service
+      digest:
+        description: Previously published sha256 digest
+        required: true
+        type: string
+      revision:
+        description: Full source revision carried by the image
+        required: true
+        type: string
+
+permissions:
+  packages: write
+
+jobs:
+  rollback:
+    name: rollback ${{ inputs.component }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    env:
+      DIGEST: ${{ inputs.digest }}
+      REVISION: ${{ inputs.revision }}
+    steps:
+      - name: Validate immutable inputs
+        run: |
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$REVISION" =~ ^[0-9a-f]{40}$ ]]
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Restore club-scraper
+        if: inputs.component == 'club-scraper'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_CLUB_SCRAPER_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-club-scraper:production "ghcr.io/blockoutproject/blockout-club-scraper@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore clubs-service
+        if: inputs.component == 'clubs-service'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_CLUBS_SERVICE_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-clubs-service:production "ghcr.io/blockoutproject/blockout-clubs-service@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore competition-scraper
+        if: inputs.component == 'competition-scraper'
+        env:
+          DOKPLOY_DEPARTMENTAL_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_DEPARTMENTAL_WEBHOOK_URL }}
+          DOKPLOY_NAT_PRO_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_NAT_PRO_WEBHOOK_URL }}
+          DOKPLOY_REGIONAL_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SCRAPER_REGIONAL_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-competition-scraper:production "ghcr.io/blockoutproject/blockout-competition-scraper@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_DEPARTMENTAL_WEBHOOK_URL"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_NAT_PRO_WEBHOOK_URL"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_REGIONAL_WEBHOOK_URL"
+
+      - name: Restore competition-service
+        if: inputs.component == 'competition-service'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_COMPETITION_SERVICE_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-competition-service:production "ghcr.io/blockoutproject/blockout-competition-service@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore config-service
+        if: inputs.component == 'config-service'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_CONFIG_SERVICE_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-config-service:production "ghcr.io/blockoutproject/blockout-config-service@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore matches-service
+        if: inputs.component == 'matches-service'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_MATCHES_SERVICE_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-matches-service:production "ghcr.io/blockoutproject/blockout-matches-service@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore mobile-gateway
+        if: inputs.component == 'mobile-gateway'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_MOBILE_GATEWAY_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-mobile-gateway:production "ghcr.io/blockoutproject/blockout-mobile-gateway@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore notification-service
+        if: inputs.component == 'notification-service'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_NOTIFICATION_SERVICE_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-notification-service:production "ghcr.io/blockoutproject/blockout-notification-service@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore pools-service
+        if: inputs.component == 'pools-service'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_POOLS_SERVICE_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-pools-service:production "ghcr.io/blockoutproject/blockout-pools-service@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore reports-service
+        if: inputs.component == 'reports-service'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_REPORTS_SERVICE_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-reports-service:production "ghcr.io/blockoutproject/blockout-reports-service@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore search-service
+        if: inputs.component == 'search-service'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_SEARCH_SERVICE_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-search-service:production "ghcr.io/blockoutproject/blockout-search-service@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore search-worker
+        if: inputs.component == 'search-worker'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_SEARCH_WORKER_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-search-worker:production "ghcr.io/blockoutproject/blockout-search-worker@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore teams-service
+        if: inputs.component == 'teams-service'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_TEAMS_SERVICE_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-teams-service:production "ghcr.io/blockoutproject/blockout-teams-service@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"
+
+      - name: Restore users-service
+        if: inputs.component == 'users-service'
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_USERS_SERVICE_WEBHOOK_URL }}
+        run: |
+          echo "Restoring $REVISION from $DIGEST"
+          docker buildx imagetools create --tag ghcr.io/blockoutproject/blockout-users-service:production "ghcr.io/blockoutproject/blockout-users-service@$DIGEST"
+          curl --fail --silent --show-error --request POST --output /dev/null "$DOKPLOY_WEBHOOK_URL"

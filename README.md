@@ -15,6 +15,7 @@ libs/shared/
   python-contract-clients/ Ignored generated Python models and HTTPX clients
 infra/
   compose/   Local PostgreSQL, RabbitMQ, Elasticsearch, and pgAdmin services
+  dokploy/   Production image and deployment handover
 docs/        Architecture, current context, durable decisions, and release snapshots
 ```
 
@@ -100,7 +101,12 @@ on save, but repository commands remain authoritative for agents and contributor
 ## Continuous Integration
 
 GitHub Actions installs the locked dependencies and runs the same `npm run verify` command used locally. The workflow
-contains one verification job; container build and delivery can be introduced independently from this baseline.
+uses the official Nx affected range to build only impacted backend and scraper images. Pull requests validate affected
+images without publication. Successful `main` pushes publish immutable GHCR images, advance only the selected
+`production` tags by digest, and trigger only the corresponding Dokploy applications.
+
+See the [Nx affected delivery architecture](docs/architecture/nx-affected-delivery.md) and the
+[Dokploy production handover](infra/dokploy/README.md).
 
 See the [documentation index](docs/README.md) and the
 [Blockout V1 baseline](docs/releases/blockout-v1-baseline.md).
