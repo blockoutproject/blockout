@@ -111,8 +111,17 @@ async def download_and_parse_csv(
                 snapshot = parse_csv_from_content(
                     raw_content.decode("windows-1252", errors="replace")
                 )
+                if not snapshot.matches and snapshot.complete:
+                    action = "download_empty"
+                    outcome = "empty"
+                elif snapshot.complete:
+                    action = "download_success"
+                    outcome = "complete"
+                else:
+                    action = "download_partial"
+                    outcome = "partial"
                 log_event(
-                    action="download_success",
+                    action=action,
                     level="info",
                     attempt=attempt,
                     leagueCode=pool.league_code,
@@ -120,6 +129,7 @@ async def download_and_parse_csv(
                     status=response.status_code,
                     bytes=len(raw_content),
                     content_type=response.headers.get("Content-Type"),
+                    outcome=outcome,
                     message=f"CSV téléchargé pour {name}.",
                 )
                 return snapshot

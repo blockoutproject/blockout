@@ -334,6 +334,36 @@ def test_auth0_token_cache_refreshes_inside_the_safety_window(monkeypatch) -> No
     asyncio.run(scenario())
 
 
+def test_initial_auth0_acquisition_retries_twice_then_fails_closed(
+    monkeypatch,
+) -> None:
+    """Prove startup retries are bounded before the scheduler can exist."""
+
+    async def scenario() -> None:
+        attempts = 0
+        sleeps: list[int] = []
+
+        async def fail() -> None:
+            nonlocal attempts
+            attempts += 1
+            raise RuntimeError("auth0 unavailable")
+
+        async def sleep(delay: int) -> None:
+            sleeps.append(delay)
+
+        monkeypatch.setattr(auth0, "ensure_token", fail)
+        monkeypatch.setattr(auth0.asyncio, "sleep", sleep)
+        monkeypatch.setattr(auth0, "log_event", lambda **_event: None)
+
+        with pytest.raises(RuntimeError, match="auth0 unavailable"):
+            await auth0.acquire_initial_token()
+
+        assert attempts == 3
+        assert sleeps == [60, 60]
+
+    asyncio.run(scenario())
+
+
 def test_auth0_fetch_keeps_the_event_loop_responsive(monkeypatch) -> None:
     """Prove blocking token I/O runs outside the application event loop."""
 
@@ -453,6 +483,11 @@ def test_application_startup_exposes_metrics_and_supervises_background_work(
         scheduled_wait = loop.create_future()
         refresh_cancelled = False
         scheduled_cancelled = False
+        token_ready = False
+
+        async def acquire_initial() -> None:
+            nonlocal token_ready
+            token_ready = True
 
         async def refresh() -> None:
             nonlocal refresh_cancelled
@@ -484,10 +519,16 @@ def test_application_startup_exposes_metrics_and_supervises_background_work(
                 raise asyncio.CancelledError
 
         def schedule(scrape_fn):
+            assert token_ready is True
             scheduled.append(scrape_fn)
             return scheduler
 
         monkeypatch.setattr(competition_main, "start_http_server", ports.append)
+        monkeypatch.setattr(
+            competition_main,
+            "acquire_initial_token",
+            acquire_initial,
+        )
         monkeypatch.setattr(competition_main, "refresh_token_task", refresh)
         monkeypatch.setattr(competition_main, "schedule_scraper", schedule)
         monkeypatch.setattr(competition_main.asyncio, "Event", Event)

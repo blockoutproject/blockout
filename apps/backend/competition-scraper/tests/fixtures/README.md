@@ -27,3 +27,7 @@ The live LNV XML endpoints were temporarily unavailable during REF-026. Their
 URLs, transport, parsing, and fixtures are intentionally unchanged by this task.
 The existing XML fixtures remain reduced excerpts of official responses archived
 by the Internet Archive on 2023-01-30.
+
+`ffvb/calendar-empty.csv` preserves the header-only shape of the approximately
+90-byte FFVB calendar exports observed during the 2026-08-23 full-topology run.
+It contains no provider row or personal data and represents a valid empty export.

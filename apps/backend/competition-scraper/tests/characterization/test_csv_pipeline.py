@@ -18,6 +18,7 @@ from scraper.infrastructure.ffvb.models import (
 from scraper.infrastructure.provider_http import ProviderHttpClient
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "ffvb" / "calendar.csv"
+EMPTY_FIXTURE = Path(__file__).parents[1] / "fixtures" / "ffvb" / "calendar-empty.csv"
 
 
 class _Content:
@@ -120,6 +121,43 @@ def test_csv_download_preserves_post_shape_encoding_timeout_and_retries(
         )
         assert request.extensions["timeout"]["read"] == 20
         assert sleeps == [5, 5]
+
+    asyncio.run(scenario())
+
+
+def test_header_only_csv_is_classified_as_a_valid_empty_source(monkeypatch) -> None:
+    """Protect the observed short FFVB response from invalid-row classification."""
+
+    async def scenario() -> None:
+        events: list[dict] = []
+
+        def respond(_request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                content=EMPTY_FIXTURE.read_bytes(),
+                headers={"Content-Type": "text/csv"},
+            )
+
+        monkeypatch.setattr(
+            file_utils,
+            "log_event",
+            lambda **event: events.append(event),
+        )
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            provider = ProviderHttpClient(client)
+            scraper = type(
+                "Scraper",
+                (),
+                {"post_provider_form": provider.post_form},
+            )()
+            snapshot = await download_and_parse_csv(scraper, _pool(), "2026/2027")
+
+        assert snapshot == FfvbCalendarSnapshot(matches=(), complete=True)
+        assert len(EMPTY_FIXTURE.read_bytes()) < 100
+        assert events[-1]["action"] == "download_empty"
+        assert events[-1]["outcome"] == "empty"
+        assert "content" not in events[-1]
 
     asyncio.run(scenario())
 
@@ -294,6 +332,45 @@ def test_failed_csv_download_keeps_an_existing_pool_active(monkeypatch) -> None:
 
         assert observed == {10}
         assert scraper.matches == []
+
+    asyncio.run(scenario())
+
+
+def test_empty_csv_keeps_an_existing_pool_active_without_invalid_row_error(
+    monkeypatch,
+) -> None:
+    """Preserve a known pool when its provider calendar is valid but empty."""
+
+    async def scenario() -> None:
+        scraper = RecordingScraper()
+        existing = _pool()
+        observed: set[int] = set()
+        events: list[dict] = []
+
+        async def empty(*_args):
+            return FfvbCalendarSnapshot(matches=(), complete=True)
+
+        monkeypatch.setattr(pipeline, "download_and_parse_csv", empty)
+        monkeypatch.setattr(
+            pipeline,
+            "log_event",
+            lambda action, level="info", **details: events.append(
+                {"action": action, "level": level, **details}
+            ),
+        )
+
+        result = await pipeline.handle_csv_download_and_parse(
+            scraper,
+            _pool(),
+            "2026/2027",
+            existing_pool=existing,
+            scraped_pool_ids=observed,
+        )
+
+        assert result == pipeline.CalendarIngestionResult(pool_id=10, complete=True)
+        assert observed == {10}
+        assert scraper.matches == []
+        assert [event["action"] for event in events] == ["empty_calendar_observed"]
 
     asyncio.run(scenario())
 

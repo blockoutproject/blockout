@@ -298,6 +298,45 @@ def test_auth0_refresh_keeps_the_token_for_172800_seconds(monkeypatch) -> None:
     asyncio.run(scenario())
 
 
+def test_initial_auth0_acquisition_retries_twice_then_fails_closed(
+    monkeypatch,
+) -> None:
+    """Prove startup retries are bounded and never expose an empty token."""
+
+    async def scenario() -> None:
+        token_store = TokenStore()
+        refresher = Auth0TokenRefresher(_settings(), token_store)
+        attempts = 0
+        sleeps: list[int] = []
+
+        async def fail() -> str:
+            nonlocal attempts
+            attempts += 1
+            raise RuntimeError("auth0 unavailable")
+
+        async def sleep(delay: int) -> None:
+            sleeps.append(delay)
+
+        monkeypatch.setattr(refresher, "fetch", fail)
+        monkeypatch.setattr(
+            "scraper.infrastructure.blockout.auth.asyncio.sleep",
+            sleep,
+        )
+        monkeypatch.setattr(
+            "scraper.infrastructure.blockout.auth.log_event",
+            lambda **_event: None,
+        )
+
+        with pytest.raises(RuntimeError, match="auth0 unavailable"):
+            await refresher.acquire_initial_token()
+
+        assert attempts == 3
+        assert sleeps == [60, 60]
+        assert token_store.is_ready() is False
+
+    asyncio.run(scenario())
+
+
 def test_auth0_fetch_keeps_the_event_loop_responsive(monkeypatch) -> None:
     """Prove blocking token I/O runs outside the application event loop."""
 
@@ -427,7 +466,10 @@ def test_application_startup_uses_the_running_loop_and_cleans_up(
 
         class Refresher:
             def __init__(self, *_args) -> None:
-                pass
+                self.ready = False
+
+            async def acquire_initial_token(self) -> None:
+                self.ready = True
 
             async def run(self) -> None:
                 await asyncio.Event().wait()
@@ -440,11 +482,19 @@ def test_application_startup_uses_the_running_loop_and_cleans_up(
         monkeypatch.setattr(bootstrap, "start_http_server", ports.append)
         monkeypatch.setattr(bootstrap, "Auth0TokenRefresher", Refresher)
         monkeypatch.setattr(bootstrap.asyncio, "Event", Event)
+
+        def run_hourly(job):
+            assert bootstrap_refresher.ready is True
+            jobs.append(job)
+            return scheduler
+
+        bootstrap_refresher = Refresher()
         monkeypatch.setattr(
             bootstrap,
-            "run_hourly",
-            lambda job: jobs.append(job) or scheduler,
+            "Auth0TokenRefresher",
+            lambda *_args: bootstrap_refresher,
         )
+        monkeypatch.setattr(bootstrap, "run_hourly", run_hourly)
         monkeypatch.setattr(bootstrap, "log_event", lambda **_event: None)
 
         await bootstrap.app()
