@@ -3,10 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start --dev-client --port 8093",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo run:android --port 8093",
-    "ios": "expo run:ios --port 8093",
     "test": "jest --runInBand --no-watchman",
     "test:watch": "jest --watch --no-watchman",
     "lint": "expo lint --max-warnings=0"

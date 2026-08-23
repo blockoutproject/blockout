@@ -65,11 +65,8 @@ const ProfileScreen = () => {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    try {
-      await signOutSSO();
-    } finally {
-      setIsLoggingOut(false);
-    }
+    await signOutSSO();
+    setIsLoggingOut(false);
   };
 
   const handleDeleteAccount = () => {

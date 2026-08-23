@@ -84,12 +84,10 @@ async def acquire_initial_token() -> None:
         try:
             await ensure_token()
             return
-        except asyncio.CancelledError:
-            raise
         except Exception as error:
             log_event(
                 action="initial_token_error",
-                level="error",
+                level=("error" if attempt == _INITIAL_TOKEN_ATTEMPTS else "warning"),
                 attempt=attempt,
                 attempts=_INITIAL_TOKEN_ATTEMPTS,
                 error_type=type(error).__name__,

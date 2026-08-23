@@ -4,13 +4,6 @@ const mockSetNotificationChannel = jest.fn();
 const mockGetPermissions = jest.fn();
 const mockRequestPermissions = jest.fn();
 const mockGetExpoPushToken = jest.fn();
-let mockIsDevice = false;
-
-jest.mock("expo-device", () => ({
-  get isDevice() {
-    return mockIsDevice;
-  },
-}));
 
 jest.mock("expo-constants", () => ({
   expoConfig: { extra: { eas: { projectId: "project-id" } } },
@@ -30,31 +23,31 @@ jest.mock("expo-notifications", () => ({
 describe("push notification registration boundary", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockIsDevice = false;
+    mockGetPermissions.mockResolvedValue({ status: "granted" });
   });
 
-  it("skips simulators twice with one diagnostic and no blocking alert", async () => {
+  it("degrades twice with one diagnostic and no blocking alert", async () => {
     const warning = jest
       .spyOn(console, "warn")
       .mockImplementation(() => undefined);
     const alert = jest.fn();
     global.alert = alert;
+    mockGetExpoPushToken.mockRejectedValue(
+      new Error("push unavailable in this environment"),
+    );
 
     await expect(registerForPushNotificationsAsync()).resolves.toBeNull();
     await expect(registerForPushNotificationsAsync()).resolves.toBeNull();
 
     expect(warning).toHaveBeenCalledTimes(1);
     expect(alert).not.toHaveBeenCalled();
-    expect(mockSetNotificationChannel).not.toHaveBeenCalled();
-    expect(mockGetPermissions).not.toHaveBeenCalled();
+    expect(mockGetPermissions).toHaveBeenCalledTimes(2);
 
     warning.mockRestore();
     delete (global as { alert?: typeof global.alert }).alert;
   });
 
-  it("preserves the real-device permission and token path", async () => {
-    mockIsDevice = true;
-    mockGetPermissions.mockResolvedValue({ status: "granted" });
+  it("preserves the successful permission and token path", async () => {
     mockGetExpoPushToken.mockResolvedValue({ data: "ExponentPushToken[7]" });
 
     await expect(registerForPushNotificationsAsync()).resolves.toBe(

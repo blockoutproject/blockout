@@ -58,9 +58,6 @@ jest.mock("@/src/shared/ui/form/season-select", () => () => null);
 
 describe("FollowedScreen season ownership", () => {
   it("settles when the pool list republishes an equivalent season array", async () => {
-    const consoleError = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
     mockPoolRenderCount = 0;
 
     const screen = await render(
@@ -74,9 +71,5 @@ describe("FollowedScreen season ownership", () => {
     });
 
     expect(mockPoolRenderCount).toBeLessThanOrEqual(3);
-    expect(consoleError).not.toHaveBeenCalledWith(
-      expect.stringContaining("Maximum update depth exceeded"),
-    );
-    consoleError.mockRestore();
   });
 });

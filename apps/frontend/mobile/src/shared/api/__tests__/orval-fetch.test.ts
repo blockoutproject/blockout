@@ -67,17 +67,6 @@ describe("generated mobile-gateway fetch boundary", () => {
     );
   });
 
-  it("leaves Host authority to the native transport", async () => {
-    mockFetch.mockResolvedValue(response(204));
-
-    await orvalFetch<void>("/api/v1/mobile/public/pools/by-ids", {
-      headers: { Host: "http://192.168.1.54:8082" },
-    });
-
-    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
-    expect(new Headers(options.headers).get("Host")).toBeNull();
-  });
-
   it("preserves gateway problem details and invokes unauthorized cleanup", async () => {
     const onUnauthorized = jest.fn();
     setMobileGatewayAuthContext(

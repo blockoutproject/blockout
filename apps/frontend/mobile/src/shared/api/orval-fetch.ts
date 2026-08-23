@@ -25,7 +25,6 @@ export async function orvalFetch<T>(
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
   headers.delete("Authorization");
-  headers.delete("Host");
 
   if (path.includes("/secure/") && tokenSupplier) {
     try {

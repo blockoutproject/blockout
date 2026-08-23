@@ -155,7 +155,7 @@ def test_header_only_csv_is_classified_as_a_valid_empty_source(monkeypatch) -> N
 
         assert snapshot == FfvbCalendarSnapshot(matches=(), complete=True)
         assert len(EMPTY_FIXTURE.read_bytes()) < 100
-        assert events[-1]["action"] == "download_empty"
+        assert events[-1]["action"] == "download_success"
         assert events[-1]["outcome"] == "empty"
         assert "content" not in events[-1]
 

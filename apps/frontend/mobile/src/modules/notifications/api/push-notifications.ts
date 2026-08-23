@@ -1,12 +1,11 @@
 import Constants from "expo-constants";
-import * as Device from "expo-device";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 import { DevicePlatformEnum } from "@/src/shared/generated/models";
 
-let didReportUnsupportedPushEnvironment = false;
+let didReportPushRegistrationFailure = false;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -49,16 +48,6 @@ export function platformToNotificationDevice(): DevicePlatformEnum {
 export async function registerForPushNotificationsAsync(): Promise<
   string | null
 > {
-  if (!Device.isDevice) {
-    if (__DEV__ && !didReportUnsupportedPushEnvironment) {
-      console.warn(
-        "[notifications] Push registration skipped on simulator or emulator.",
-      );
-      didReportUnsupportedPushEnvironment = true;
-    }
-    return null;
-  }
-
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {
       name: "default",
@@ -86,8 +75,18 @@ export async function registerForPushNotificationsAsync(): Promise<
     return null;
   }
 
-  const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
-  return data ?? null;
+  try {
+    const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+    return data ?? null;
+  } catch {
+    if (__DEV__ && !didReportPushRegistrationFailure) {
+      console.warn(
+        "[notifications] Push registration is currently unavailable.",
+      );
+      didReportPushRegistrationFailure = true;
+    }
+    return null;
+  }
 }
 
 /** Subscribe to foreground notifications and user responses. */
