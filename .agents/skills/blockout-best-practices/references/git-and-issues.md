@@ -6,6 +6,8 @@ When a human asks which issue should be taken next, inspect repository issues an
 
 An issue is eligible when it is open, unassigned, has no open native blocker, has no obvious open pull request delivering the same scope, and contains enough context, scope, acceptance criteria, and source authority for execution.
 
+A Figma issue resolves to the sources and evidence required by `figma.md`.
+
 When several issues are eligible:
 
 1. Compare them with assigned issues, open pull requests, and other visible work in progress, including issue-linked local branches or worktrees when relevant.

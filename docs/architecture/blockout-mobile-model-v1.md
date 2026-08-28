@@ -38,7 +38,7 @@ history or canonical Figma content.
 - An extraction must reduce duplication and cognitive load. Generic renderers, registries, helper factories, or
   advanced type machinery require a demonstrated current need.
 - Accessible names and roles are the preferred test and interaction boundary.
-- The canonical Figma file owns accepted visual truth; implementation must follow the repository Figma and mobile
+- The canonical Figma assets own accepted visual truth; implementation must follow the repository Figma and mobile
   policies.
 
 ## Validation
