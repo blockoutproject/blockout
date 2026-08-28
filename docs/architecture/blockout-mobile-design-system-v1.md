@@ -5,9 +5,10 @@ task-specific visual certification records; those records remain available throu
 
 ## Authority
 
-- One canonical Blockout Figma file owns accepted visual composition, variables, components, and screen states.
+- Blockout UI Library owns accepted variables, styles, and shared components.
+- Blockout Product Design owns accepted product patterns, explorations, and representative screen states.
 - Repository tokens and components own runtime implementation.
-- The Figma policy governs every read, comparison, decision, or mutation involving the canonical file.
+- The Figma policy governs every read, comparison, decision, or mutation involving either canonical file.
 - A task may change design or implementation only within the designated issue scope and exact Figma nodes.
 
 ## Foundations
@@ -35,7 +36,7 @@ task-specific visual certification records; those records remain available throu
 
 - Expo Router and feature modules own runtime screen composition.
 - Figma screens preserve representative states without becoming a second routing or business specification.
-- Visual validation compares the current runtime state against the exact canonical frame and records deviations in the
+- Visual validation compares the current runtime state against the exact accepted frame and records deviations in the
   owning issue.
 - Screen delivery evidence, simulator state, screenshots, and task-level certification do not become permanent
   documentation.

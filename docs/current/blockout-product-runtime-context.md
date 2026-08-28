@@ -5,13 +5,13 @@ not track task status.
 
 ## Sources Of Truth
 
-| Question                            | Source                                                                                                                                |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Task scope, ownership, and blockers | The designated GitHub issue and native issue relationships                                                                            |
-| Delivered runtime behavior          | Current OpenAPI sources, application source, and tests                                                                                |
-| Product and architecture boundaries | [`../architecture/`](../architecture/) and [`../decisions/`](../decisions/)                                                           |
-| Delivered V1 summary                | [`../releases/blockout-v1-baseline.md`](../releases/blockout-v1-baseline.md)                                                          |
-| Canonical visual design             | The Blockout Figma file governed by the repository [`Figma policy`](../../.agents/skills/blockout-best-practices/references/figma.md) |
+| Question                            | Source                                                                                                                                                         |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Task scope, ownership, and blockers | The designated GitHub issue and native issue relationships                                                                                                     |
+| Delivered runtime behavior          | Current OpenAPI sources, application source, and tests                                                                                                         |
+| Product and architecture boundaries | [`../architecture/`](../architecture/) and [`../decisions/`](../decisions/)                                                                                    |
+| Delivered V1 summary                | [`../releases/blockout-v1-baseline.md`](../releases/blockout-v1-baseline.md)                                                                                   |
+| Canonical visual design             | The Blockout UI Library and Product Design files governed by the repository [`Figma policy`](../../.agents/skills/blockout-best-practices/references/figma.md) |
 
 ## Current Runtime Posture
 
@@ -28,7 +28,7 @@ not track task status.
   when provider evidence is incomplete.
 - PostgreSQL, RabbitMQ, Elasticsearch, and pgAdmin run through the local Compose boundary. Application processes retain
   their native Maven, uv, Nx, and Expo toolchains.
-- The canonical Figma file owns accepted visual truth. Repository mobile architecture owns implementation boundaries,
+- The canonical Figma assets own accepted visual truth. Repository mobile architecture owns implementation boundaries,
   while screen-specific delivery evidence remains in its GitHub issue and pull request.
 
 Verify these statements against current source before changing behavior. Generated artifacts and closed-task documents

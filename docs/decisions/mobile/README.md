@@ -8,7 +8,8 @@ The following decisions are active:
 - Feature modules own workflows and screen composition. Shared code requires repeated semantic ownership or an
   application-wide invariant.
 - Provider and platform behavior remain behind native or Expo adapters.
-- One canonical Figma file owns accepted visual truth; repository documents and screenshots cannot replace it.
+- Blockout UI Library owns accepted foundations and shared components; Blockout Product Design owns accepted product
+  patterns, explorations, and representative screen states. Repository documents and screenshots cannot replace them.
 
 The current implementation boundary lives in
 [`blockout-mobile-model-v1.md`](../../architecture/blockout-mobile-model-v1.md), and the durable visual boundary lives

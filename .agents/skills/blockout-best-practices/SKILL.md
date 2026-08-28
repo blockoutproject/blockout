@@ -5,7 +5,7 @@ description: Route Blockout work to the smallest repository policy for GitHub is
 
 # Blockout Best Practices
 
-Read `AGENTS.md`, then select only the rows needed for the designated issue. Apply `karpathy-guidelines` whenever writing, reviewing, or refactoring code.
+Read `AGENTS.md`, then select only the rows needed for the current request or confirmed issue. Apply `karpathy-guidelines` whenever writing, reviewing, or refactoring code.
 
 | Signal                                                      | Read                                                                                     |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
