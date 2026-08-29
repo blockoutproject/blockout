@@ -17,8 +17,7 @@ Read `AGENTS.md`, then select only the rows needed for the current request or co
 | REST route, controller, HTTP semantics, or pagination       | `references/rest.md` and `references/contracts.md`                                |
 | Application logging or operational diagnostics              | `references/logging.md`                                                           |
 | Javadoc, docstrings, TSDoc, comments, or exported contracts | `references/code-documentation.md`                                                |
-| Expo, React Native, mobile routing, forms, or UI            | `references/mobile-expo.md`, then the applicable technical skill                  |
-| Nx project, target, dependency graph, or cache              | `nx-workspace-patterns`                                                           |
+| Expo, React Native, Nx, mobile routing, forms, or UI        | `references/mobile-expo.md`, then the applicable technical skill                  |
 | OIDC, Auth0, login, token storage, or logout                | `references/authentication.md`                                                    |
 | Mobile test or component behavior                           | `references/mobile-testing.md` and `references/testing-and-validation.md`         |
 | Python scraper, provider parser, or ingestion flow          | `references/python-scrapers.md`                                                   |

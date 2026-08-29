@@ -9,8 +9,89 @@ Accepted specifications and explicit human decisions are the only sources that m
 model does not define product journeys, screens, permissions, validation messages, endpoint shapes, or implementation
 status. A concept represented here is not evidence that a product capability is exposed.
 
-Contracts, source code, and tests own delivered transport and runtime projections. Product specifications own
-observable intent.
+### Four Authority Layers
+
+| Layer                   | Authority                                                                   |
+| ----------------------- | --------------------------------------------------------------------------- |
+| Product vision          | Product direction and principles                                            |
+| Domain architecture     | Durable vocabulary, relationships, ownership, and cross-feature invariants  |
+| Accepted specifications | Observable product intent, journeys, rules, and acceptance criteria         |
+| Executable system       | Delivered transport and runtime behavior through contracts, code, and tests |
+
+Each layer constrains the layers below it without replacing their authority.
+
+### Explicitly Non-Authoritative Material
+
+Generated transport models, persistence entities, provider records, search documents, design explorations, issue
+descriptions, and implementation notes do not redefine the Blockout domain. They remain explicit projections or
+evidence at their own boundaries.
+
+## Modeling Principles
+
+### Product Meaning Before Projection
+
+Blockout concepts are defined by stable product meaning before service, endpoint, storage, provider, or screen
+projection. Provider terminology is translated at ingestion boundaries.
+
+### One Owner Per Complete Resource
+
+Each complete product resource has one authoritative runtime owner. A gateway may compose views and commands without
+becoming a second business-resource owner.
+
+### Projection Is Not Authority
+
+Rankings, search results, mobile views, notifications, and generated types are projections of authoritative state.
+They never become independent write authorities.
+
+### Identity And Deactivation
+
+Stable identity is independent from display labels and provider payloads. Deactivation preserves identity and
+relationships; it does not silently create a replacement resource.
+
+### Competition Coherence
+
+References between clubs, teams, pools, competition associations, and matches preserve one coherent season and
+competition context.
+
+## Semantic Data Roles
+
+### Durable State
+
+Stable identities, owned relationships, lifecycle state, user preferences, and explicit product decisions are
+durable state.
+
+### Calculated State
+
+Competition statistics and ordering calculated from authoritative inputs remain reproducible and do not replace
+their inputs.
+
+### Provider Evidence
+
+Provider identifiers, payloads, observations, and reconciliation evidence remain inside provider adapters. A complete
+and structurally valid observation is required before missing-resource deactivation can be authorized.
+
+### Derived Projection
+
+Search documents, ranking views, mobile read models, and notification delivery state are derived projections with an
+explicit source and refresh path.
+
+## V1 Capability Boundaries
+
+### Modeled Within V1
+
+V1 models clubs, divisions, teams, pools, competition associations, rankings, matches, users, favorites,
+notifications, reports, provider ingestion, and mobile-facing composition. Their presence defines shared meaning, not
+automatic product exposure.
+
+### Explicitly Deferred
+
+Any additional competition format, audience relationship, moderation workflow, or provider capability requires an
+accepted specification and an explicit extension of this model when it changes shared meaning or invariants.
+
+### Outside V1
+
+This model does not authorize product journeys, screens, permissions, validation messages, endpoint shapes, or
+implementation status.
 
 ## Competition Model
 
@@ -81,13 +162,30 @@ push tokens are delivery addresses for a user and do not become identity or auth
 A `Report` is a user submission with an explicit report type, title, optional description, and applicable diagnostic
 context. Reports support review workflows and do not directly mutate a product resource.
 
-## Invariants
+## Logical-Persistence Requirements
 
-- Each complete product resource has one authoritative owner.
-- References between clubs, teams, pools, associations, and matches preserve one coherent season and competition
-  context.
-- Provider records are evidence at ingestion boundaries and are mapped explicitly into Blockout-owned concepts.
-- Search results and rankings are derived projections and never independent write authorities.
-- The mobile gateway composes mobile-facing operations without owning the underlying product resources.
-- Deactivation preserves identity and relationships; it does not silently create a replacement resource.
-- Generated transport models, persistence entities, provider records, and product concepts remain distinct.
+### Identity And Uniqueness
+
+Durable product identity uses Blockout-owned keys and explicit uniqueness rules. Provider keys are scoped to their
+source and never substitute for product identity.
+
+### Calculated And Derived Information
+
+Calculated values and derived projections identify their authoritative inputs and remain reproducible. They do not
+silently become durable domain facts.
+
+### Cross-Feature Integrity
+
+Plans that affect shared concepts preserve resource ownership, season and competition coherence, external identity
+mapping, deactivation semantics, and projection boundaries.
+
+## Shared Model Change Protocol
+
+A specification or plan that changes shared vocabulary, identities, relationships, ownership, lifecycle semantics,
+or cross-feature invariants must identify the affected concepts and update this document through explicit human
+approval before implementation.
+
+## Purification Guard
+
+Provider, transport, persistence, search, and presentation concerns may project the model but must not leak back into
+its product meaning. New abstractions require a present accepted need and a declared authoritative owner.
