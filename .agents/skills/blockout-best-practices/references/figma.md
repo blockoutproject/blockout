@@ -2,8 +2,8 @@
 
 ## Issue Evidence
 
-- Cite the exact clarified product-source snapshots and relevant acceptance criteria.
-- Group product sources only when they form one coherent journey or shared pattern.
+- Cite the exact clarified specification snapshots and relevant acceptance criteria.
+- Group specifications only when they form one coherent journey or shared pattern.
 - Record exact node links and screenshots for downstream planning.
 
 ## Design Rules

@@ -1,7 +1,7 @@
 # Backend Java Architecture
 
 Apply this policy when changing Java packages, Spring components, Maven modules, or backend boundaries. Build only the
-architecture required by the designated issue; do not infer future services, persistence, security, caching, or messaging.
+architecture required by the accepted plan; do not infer future services, persistence, security, caching, or messaging.
 
 ## Structure And Ownership
 

@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report
 - Version change: none -> 1.0.0
-- Added principles: Specification-Led Product Intent; Domain And Runtime Integrity;
+- Added principles: Specification-Led Product Intent; Domain Integrity;
   Design-Ready User Interfaces; Source-First Contracts And Reproducible Generation;
   Traceable, Verifiable Simplicity
-- Added sections: Project Constraints; Delivery Workflow; Governance
+- Added sections: Project Constraints; Spec Kit Integration; Governance
 - Removed sections: none
 - Follow-up TODOs: none
 -->
@@ -15,25 +15,23 @@ Sync Impact Report
 
 ### I. Specification-Led Product Intent
 
-An accepted `specs/<feature>/spec.md` MUST own every material addition or intentional
-change to observable product behavior. Specifications define user needs, journeys,
-outcomes, rules, and acceptance criteria without prescribing implementation. A concept
-present in product vision or architecture MUST NOT be treated as exposed or selected
-unless an accepted specification says so.
+An accepted `specs/<feature>/spec.md` MUST be the source of future observable product
+intent for that feature. The constitution governs it; the approved `plan.md` and
+`tasks.md` are derived artifacts. Current contracts, source code, and tests remain
+evidence of delivered behavior, not authority for changing future intent.
 
-Contracts, application source, and tests own executable behavior. A specification that
-changes that behavior MUST identify the affected behavior explicitly; silence never
-authorizes drift.
-
-### II. Domain And Runtime Integrity
+### II. Domain Integrity
 
 The approved domain model MUST constrain shared vocabulary, identities, relationships,
-ownership, lifecycle semantics, and cross-feature invariants. Product specifications own
-observable intent, while technical plans derive runtime projections without collapsing
-domain, transport, application, persistence, provider, or presentation models.
+ownership, lifecycle semantics, and cross-feature invariants. Specifications own
+user-visible behavior, while plans derive technical projections without inventing product
+capability or reverse-engineering intent from historical code. A concept present in the
+domain model MUST NOT be treated as exposed or selected unless an accepted specification
+says so.
 
-Runtime owners remain explicit. Complete resources have one authoritative owner,
-generated contracts remain at transport boundaries, provider evidence remains inside
+Complete resources MUST have one authoritative runtime owner. Domain, transport,
+application, persistence, provider, and presentation models remain explicit boundaries.
+Generated contracts remain at transport boundaries, provider evidence remains inside
 adapters, and the mobile gateway coordinates mobile views without becoming a business
 resource owner.
 
@@ -41,9 +39,9 @@ resource owner.
 
 A feature that creates or materially changes a user interface MUST have approved Figma
 evidence before its technical plan is finalized. Design begins after the specification is
-clarified and MUST cover the required journeys, platforms, states, accessibility,
-readability, and recovery paths. A change with no material interface impact MAY skip this
-gate.
+clarified and MUST cover the required journeys and states. A feature with no material
+interface impact MAY skip this gate. If accepted product intent changes after approval,
+the affected design MUST be revalidated before planning continues.
 
 Blockout UI Library owns reusable visual foundations and components. Blockout Product
 Design owns approved product patterns and representative screen states. The repository
@@ -55,20 +53,19 @@ OpenAPI source fragments MUST be edited before any generated projection. Generat
 bundles, Java sources, TypeScript clients, Python clients, build outputs, and caches MUST
 remain outside Git and MUST be reproducible from committed sources.
 
-Shared schemas and domain concepts MUST have one authoritative source. Contract changes
-MUST validate generation and every affected server, mobile, scraper, and shared-client
-consumer before delivery.
+Shared schemas and domain concepts MUST have one authoritative source; transport,
+application, persistence, and UI projections MUST remain explicit derived boundaries.
+Contract changes MUST validate generation and every affected server, mobile, scraper,
+and shared-client consumer before delivery.
 
 ### V. Traceable, Verifiable Simplicity
 
 Every material plan decision MUST state its need, selected solution, simpler alternative,
-consequences, and verification. Tasks MUST trace to an accepted specification, approved
-plan, this constitution, or a directly sourced maintenance issue and MUST name concrete,
-verifiable outcomes.
-
-Implementation MUST use the simplest solution that satisfies accepted intent. New
-abstractions, shared libraries, services, providers, or compatibility layers require a
-demonstrated owner and present need.
+consequences, and verification. Tasks MUST trace to the accepted specification, approved
+plan, this constitution, or a directly sourced maintenance issue and MUST name concrete
+outcomes and paths where applicable. Implementation MUST use the simplest solution that
+satisfies current accepted intent, with proportionate automated and manual evidence for
+every changed boundary.
 
 ## Project Constraints
 
@@ -86,25 +83,16 @@ demonstrated owner and present need.
 - Secrets, credentials, personal data, provider payloads, and internal diagnostics MUST
   remain outside public artifacts and user-visible failures.
 
-## Delivery Workflow
+## Spec Kit Integration
 
-For specification-led work, the sequence is:
+The official `speckit-*` skills own the Spec Kit workflow and MUST be used without local
+replacement logic. Blockout adds only the constraints stated by this constitution.
 
-```text
-specification
--> clarification
--> approved Figma evidence when applicable
--> technical plan
--> tasks
--> consistency analysis
--> GitHub issues
--> implementation
--> verification
-```
-
-Plans and tasks MUST be derived from the accepted specification and constitution. Task
-identifiers MUST be globally unique and use `T<feature><sequence>`, with both numeric parts
-padded to at least three digits; feature `001` therefore begins with `T001001`.
+Task identifiers MUST be globally unique within the repository because
+`speckit-taskstoissues` deduplicates them against all repository issues. Use
+`T<feature><sequence>`, with both numeric parts padded to at least three digits; for
+example, feature `001` uses `T001001`, `T001002`, and so on. Convergence MUST continue
+from the maximum identifier already present in that feature's `tasks.md`.
 
 Operational ownership lives in GitHub issues, native blockers, pull requests, and Git
 history. Repository Markdown MUST NOT duplicate task status, assignments, delivery logs,
@@ -114,11 +102,10 @@ or completion evidence.
 
 This constitution governs Blockout specifications, plans, tasks, and implementation
 reviews. `AGENTS.md` and routed Blockout references govern operational and technical
-execution and MUST NOT contradict it.
-
-Amendments require explicit human approval, an updated Sync Impact Report, and semantic
-versioning: MAJOR for incompatible governance changes, MINOR for added or materially
-expanded rules, and PATCH for non-semantic clarification. Every plan, analysis, and final
-review MUST verify the applicable principles and record any justified exception.
+execution but MUST NOT contradict this constitution. Amendments require explicit human
+approval, an updated Sync Impact Report, and a semantic version change: MAJOR for
+incompatible governance changes, MINOR for added or materially expanded principles, and
+PATCH for non-semantic clarifications. Every plan, analysis, and final review MUST verify
+the applicable principles and record any justified exception before work proceeds.
 
 **Version**: 1.0.0 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-08-29

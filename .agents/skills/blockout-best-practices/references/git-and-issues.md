@@ -34,7 +34,7 @@ Do not self-assign or begin work on the recommended issue until the human confir
 7. Push the topic branch and open a draft pull request targeting `develop`. Use `Closes #N` when merging the pull request will completely deliver the issue. Use `Refs #N` only when the pull request is intentionally partial or the issue must remain open, and explain why in the pull request body.
 8. Report the draft pull request and stop. Readiness, further review changes, and merge remain human-directed dialogue.
 
-## Merging On Human Request
+## Integrating Topic Pull Requests
 
 An explicit human request to merge authorizes taking the pull request out of draft when necessary, unless the human separates those approvals.
 
@@ -45,14 +45,24 @@ Before merging:
 3. Confirm that required checks are green. If checks are running, failing, stale, or cannot be verified, do not merge; report the exact state instead.
 4. Confirm that the intended topic branch and local checkout are known and that cleanup will not overwrite unrelated or uncommitted work.
 
-Merge with a merge commit only. After GitHub reports a successful merge:
+Rebase-merge the topic pull request into `develop`. Preserve an intentional commit series; use squash merging only when a human explicitly requests a single commit for a non-semantic series. After GitHub reports a successful merge:
 
 1. Verify that the linked issue is closed when delivery is complete; close it if necessary, then unassign it.
 2. Switch the working checkout to `develop`, fetch `origin`, and fast-forward local `develop` to `origin/develop`. Never discard unrelated local changes to force synchronization.
 3. Resolve and verify the exact merged topic branch, then delete that branch from the remote and from local storage. Never broaden cleanup to other branches, and stop if deletion is unsafe or the branch is checked out elsewhere.
-4. Report the merge commit, issue state, branch cleanup, synchronized checkout state, and any remaining limitation.
+4. Report the integrated commit range, issue state, branch cleanup, synchronized checkout state, and any remaining limitation.
 
 Closing a blocker can make several issues eligible. Do not claim another issue automatically; when asked what comes next, recompute eligibility from current issue, assignment, dependency, and pull request state.
+
+## Direct Changes To Develop
+
+Direct pushes to `develop` are reserved for explicit human direction on small, non-functional repository maintenance such as documentation wording or repository metadata. Synchronize with `origin/develop` using fast-forward-only operations, make one focused commit, run proportionate validation, and report the pushed commit.
+
+Use a confirmed issue, topic branch, and pull request for changes to product behavior, contracts, dependencies, migrations, authentication, CI, or architecture. Never use a direct push to bypass review, unresolved feedback, failing checks, or an active overlapping pull request.
+
+## Promoting Develop To Main
+
+Create a release pull request from `develop` to `main`. Verify its release scope, review state, mergeability, and required checks for the current head commit. Merge it with a merge commit only after an explicit human request, then verify that `main` contains the expected release and synchronize local branches with fast-forward-only operations.
 
 ## Figma-Only Delivery
 

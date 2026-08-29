@@ -16,6 +16,6 @@ personal mobile experiences for players, supporters, clubs, and competition staf
 
 This vision does not define a capability, screen, contract, or delivered behavior. Product intent is owned by the
 accepted `specs/<feature>/spec.md`. Current contracts, source code, and tests remain the authority for delivered
-behavior; GitHub issues track design and execution work.
+behavior; GitHub issues only track design or execution work.
 
 Changes to this vision require explicit human approval and the normal Blockout review and release path.
