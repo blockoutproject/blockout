@@ -105,10 +105,12 @@ async def app() -> None:
     runtime = ClubScraperRuntime(settings)
     refresher = Auth0TokenRefresher(settings, runtime.tokens)
     start_http_server(8001)
-    refresher_task = asyncio.create_task(refresher.run())
+    refresher_task = None
     scheduler = None
 
     try:
+        await refresher.acquire_initial_token()
+        refresher_task = asyncio.create_task(refresher.run())
         log_event(
             action="refresh_token_task_started",
             level="info",
@@ -123,9 +125,11 @@ async def app() -> None:
             message="Erreur lors du démarrage",
             error_type=type(error).__name__,
         )
+        raise
     finally:
         if scheduler is not None:
             scheduler.shutdown(wait=False)
-        refresher_task.cancel()
-        with suppress(asyncio.CancelledError):
-            await refresher_task
+        if refresher_task is not None:
+            refresher_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await refresher_task

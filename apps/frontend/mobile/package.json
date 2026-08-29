@@ -3,10 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
     "test": "jest --runInBand --no-watchman",
     "test:watch": "jest --watch --no-watchman",
     "lint": "expo lint --max-warnings=0"

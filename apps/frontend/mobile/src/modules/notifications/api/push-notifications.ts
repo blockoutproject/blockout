@@ -1,10 +1,11 @@
 import Constants from "expo-constants";
-import * as Device from "expo-device";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 import { DevicePlatformEnum } from "@/src/shared/generated/models";
+
+let didReportPushRegistrationFailure = false;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -55,11 +56,6 @@ export async function registerForPushNotificationsAsync(): Promise<
     });
   }
 
-  if (!Device.isDevice) {
-    alert("Must use physical device for push notifications");
-    return null;
-  }
-
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
@@ -79,8 +75,18 @@ export async function registerForPushNotificationsAsync(): Promise<
     return null;
   }
 
-  const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
-  return data ?? null;
+  try {
+    const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+    return data ?? null;
+  } catch {
+    if (__DEV__ && !didReportPushRegistrationFailure) {
+      console.warn(
+        "[notifications] Push registration is currently unavailable.",
+      );
+      didReportPushRegistrationFailure = true;
+    }
+    return null;
+  }
 }
 
 /** Subscribe to foreground notifications and user responses. */

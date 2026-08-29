@@ -53,6 +53,21 @@ async def handle_csv_download_and_parse(
                 complete=False,
             )
 
+        if not snapshot.matches and snapshot.complete:
+            if scraped_pool_ids is not None and existing_pool:
+                scraped_pool_ids.add(existing_pool.id)
+            log_event(
+                "empty_calendar_observed",
+                "info",
+                pool_name=pool.name,
+                season=raw_season,
+                message="Calendrier FFVB vide observé.",
+            )
+            return CalendarIngestionResult(
+                pool_id=existing_pool.id if existing_pool else None,
+                complete=True,
+            )
+
         valid_rows = [
             row
             for row in snapshot.matches

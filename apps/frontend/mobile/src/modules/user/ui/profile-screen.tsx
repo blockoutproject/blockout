@@ -66,7 +66,6 @@ const ProfileScreen = () => {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await signOutSSO();
-    resetOnboarding();
     setIsLoggingOut(false);
   };
 

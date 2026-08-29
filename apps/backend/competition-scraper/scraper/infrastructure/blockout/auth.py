@@ -22,6 +22,8 @@ _TOKEN_EXP_EPOCH: float = float("inf")
 _TOKEN_LOCK = asyncio.Lock()
 
 _REFRESH_SAFETY_SECONDS = 5 * 60
+_INITIAL_TOKEN_ATTEMPTS = 3
+_INITIAL_TOKEN_RETRY_SECONDS = 60
 
 
 def set_token(token: str, expires_in: int):
@@ -74,6 +76,26 @@ async def ensure_token() -> None:
             message="Token M2M récupéré / mis à jour (cache).",
             expires_in_seconds=expires_in,
         )
+
+
+async def acquire_initial_token() -> None:
+    """Acquire a usable startup token with bounded retries."""
+    for attempt in range(1, _INITIAL_TOKEN_ATTEMPTS + 1):
+        try:
+            await ensure_token()
+            return
+        except Exception as error:
+            log_event(
+                action="initial_token_error",
+                level=("error" if attempt == _INITIAL_TOKEN_ATTEMPTS else "warning"),
+                attempt=attempt,
+                attempts=_INITIAL_TOKEN_ATTEMPTS,
+                error_type=type(error).__name__,
+                message="Impossible d'acquérir le token initial.",
+            )
+            if attempt == _INITIAL_TOKEN_ATTEMPTS:
+                raise
+            await asyncio.sleep(_INITIAL_TOKEN_RETRY_SECONDS)
 
 
 async def refresh_token_task() -> None:

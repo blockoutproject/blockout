@@ -95,6 +95,7 @@
           "fonts": ["./assets/fonts/Outfit-VariableFont_wght.ttf"]
         }
       ],
+      "./plugins/with-android-gradle-daemon-jvm",
       "./plugins/with-google-mobile-ads-mediation-facebook",
       [
         "expo-build-properties",

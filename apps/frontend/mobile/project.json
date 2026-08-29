@@ -10,7 +10,19 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "apps/frontend/mobile",
-        "command": "expo start --dev-client"
+        "command": "expo start --dev-client --port 8093"
+      }
+    },
+    "run-ios": {
+      "continuous": false,
+      "options": {
+        "args": ["--port", "8093"]
+      }
+    },
+    "run-android": {
+      "continuous": false,
+      "options": {
+        "args": ["--port", "8093"]
       }
     },
     "codegen": {

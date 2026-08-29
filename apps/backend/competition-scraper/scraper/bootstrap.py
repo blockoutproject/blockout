@@ -11,7 +11,10 @@ from prometheus_client import Gauge, start_http_server
 
 from scraper.application.ports import BlockoutPort, ProviderHttpPort
 from scraper.config.settings import LOG_LEVEL, SCRAPER_TYPES
-from scraper.infrastructure.blockout.auth import refresh_token_task
+from scraper.infrastructure.blockout.auth import (
+    acquire_initial_token,
+    refresh_token_task,
+)
 from scraper.infrastructure.blockout.clients import open_blockout_clients
 from scraper.infrastructure.provider_http import ProviderHttpClient
 from scraper.infrastructure.scheduling.scheduler import schedule_scraper
@@ -112,10 +115,12 @@ async def app() -> None:
     configure_logging(LOG_LEVEL)
     start_http_server(8000)
 
-    refresh_task = asyncio.create_task(refresh_token_task())
+    refresh_task = None
     scheduler = None
 
     try:
+        await acquire_initial_token()
+        refresh_task = asyncio.create_task(refresh_token_task())
         log_event(
             action="refresh_token_task_started",
             level="info",
@@ -126,9 +131,10 @@ async def app() -> None:
     finally:
         if scheduler is not None:
             scheduler.shutdown(wait=False)
-        refresh_task.cancel()
-        with suppress(asyncio.CancelledError):
-            await refresh_task
+        if refresh_task is not None:
+            refresh_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await refresh_task
 
 
 if __name__ == "__main__":

@@ -15,6 +15,10 @@ export type FollowedScreenListProps = {
   headerOffset: number;
 };
 
+const haveSameSeasons = (current: string[], next: string[]) =>
+  current.length === next.length &&
+  current.every((season, index) => season === next[index]);
+
 const FollowedScreen: React.FC<FollowedScreenListProps> = ({
   poolIds,
   teamIds,
@@ -67,14 +71,18 @@ const FollowedScreen: React.FC<FollowedScreenListProps> = ({
   );
 
   const handleTeamSeasonsChange = useCallback((seasons: string[]) => {
-    setTeamSeasons(seasons);
+    setTeamSeasons((current) =>
+      haveSameSeasons(current, seasons) ? current : seasons,
+    );
     setSelectedTeamSeason((prev) =>
       prev && seasons.includes(prev) ? prev : seasons[0],
     );
   }, []);
 
   const handlePoolSeasonsChange = useCallback((seasons: string[]) => {
-    setPoolSeasons(seasons);
+    setPoolSeasons((current) =>
+      haveSameSeasons(current, seasons) ? current : seasons,
+    );
     setSelectedPoolSeason((prev) =>
       prev && seasons.includes(prev) ? prev : seasons[0],
     );
