@@ -45,11 +45,19 @@ Before merging:
 3. Confirm that required checks are green. If checks are running, failing, stale, or cannot be verified, do not merge; report the exact state instead.
 4. Confirm that the intended topic branch and local checkout are known and that cleanup will not overwrite unrelated or uncommitted work.
 
-Rebase-merge the topic pull request into `develop`. Preserve an intentional commit series; use squash merging only when a human explicitly requests a single commit for a non-semantic series. After GitHub reports a successful merge:
+If the topic branch is behind `origin/develop`, rebase the topic branch onto the current
+`origin/develop`, push the rewritten topic branch with `--force-with-lease`, and restart
+verification on its new head. Never rebase or force-push `develop` or `main`.
+
+Merge the topic pull request into `develop` with a merge commit. Do not use GitHub rebase
+merge or squash merge: the merge commit preserves the pull request boundary, while the
+topic commits preserve the delivery history. After GitHub reports a successful merge:
 
 1. Verify that the linked issue is closed when delivery is complete; close it if necessary, then unassign it.
 2. Switch the working checkout to `develop`, fetch `origin`, and fast-forward local `develop` to `origin/develop`. Never discard unrelated local changes to force synchronization.
-3. Resolve and verify the exact merged topic branch, then delete that branch from the remote and from local storage. Never broaden cleanup to other branches, and stop if deletion is unsafe or the branch is checked out elsewhere.
+3. Resolve and verify the exact merged topic branch, confirm GitHub deleted it remotely or
+   delete it if needed, then delete it from local storage. Never broaden cleanup to other
+   branches, and stop if deletion is unsafe or the branch is checked out elsewhere.
 4. Report the integrated commit range, issue state, branch cleanup, synchronized checkout state, and any remaining limitation.
 
 Closing a blocker can make several issues eligible. Do not claim another issue automatically; when asked what comes next, recompute eligibility from current issue, assignment, dependency, and pull request state.
