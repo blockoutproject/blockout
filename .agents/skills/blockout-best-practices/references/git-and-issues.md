@@ -10,8 +10,8 @@ An issue is eligible when it is open, unassigned, has no open native blocker, ha
 - An implementation issue contains a task identifier that resolves uniquely through `tasks.md` to the approved plan and specification.
 - A repository or maintenance issue states its objective, scope, acceptance criteria, and authoritative sources directly.
 
-Do not create a separate functional issue solely to authorize Spec Kit artifacts. Use the official
-`speckit-taskstoissues` skill to create implementation issues after `tasks.md` has been analyzed.
+Do not create a separate functional issue solely to authorize Spec Kit artifacts. The applicable
+official `speckit-*` skills govern those artifacts and their implementation issues.
 
 When several issues are eligible:
 
