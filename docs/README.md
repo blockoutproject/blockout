@@ -1,8 +1,9 @@
-# Blockout Documentation
+# Documentation
 
-- `architecture` defines the current system, ingestion, mobile, design-system, and delivery boundaries.
-- `current` summarizes delivered product and runtime posture.
-- `decisions` records durable decisions that source code alone cannot explain safely.
-- `releases` records stable delivered-scope snapshots.
+- [Product vision](product/vision.md)
+- [Blockout V1 domain model](architecture/blockout-domain-model-v1.md)
+- [Mobile and identity architecture V1](architecture/mobile-and-identity-architecture-v1.md)
+- [Contract pipeline](engineering/contract-pipeline.md)
 
-Current source, tests, OpenAPI contracts, architecture, and the designated GitHub issue own implementation work. Task state and delivery evidence belong in GitHub issues, pull requests, and Git history rather than repository Markdown.
+Accepted feature specifications live under `specs/`. Technical plans and tasks are derived per feature through the
+official Spec Kit workflow and are not part of the repository foundation.

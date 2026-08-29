@@ -1,6 +1,6 @@
 # Expo Mobile Architecture
 
-Apply this policy to the Expo application, React Native, Expo Router, TypeScript, Formik, Yup, and mobile API adaptation. Treat `docs/architecture/blockout-mobile-model-v1.md` and `docs/architecture/blockout-mobile-design-system-v1.md` as the canonical architectural boundaries. Use the focused technical skills routed by the task in addition to this repository policy.
+Apply this policy to the Expo application, React Native, Expo Router, TypeScript, Formik, Yup, and mobile API adaptation. Treat `docs/architecture/mobile-and-identity-architecture-v1.md` as the canonical mobile and identity boundary, and follow `figma.md` for accepted visual evidence. Use the focused technical skills routed by the task in addition to this repository policy.
 
 ## Ownership And Structure
 

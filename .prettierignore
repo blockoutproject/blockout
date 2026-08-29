@@ -17,8 +17,14 @@ apps/frontend/mobile/src/shared/generated/
 # Imported guidance and authentic provider fixtures
 .agents/skills/vercel-composition-patterns/
 .agents/skills/vercel-react-native-skills/
+.agents/skills/speckit-*/
 apps/backend/club-scraper/tests/fixtures/
 apps/backend/competition-scraper/tests/fixtures/
+
+# Official Spec Kit artifacts; the Blockout constitution remains formatted
+.specify/**/*.json
+.specify/templates/
+.specify/workflows/
 
 # Native dependency and build output
 apps/frontend/mobile/android/

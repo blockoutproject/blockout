@@ -16,7 +16,7 @@ libs/shared/
 infra/
   compose/   Local PostgreSQL, RabbitMQ, Elasticsearch, and pgAdmin services
   dokploy/   Production image and deployment handover
-docs/        Architecture, current context, durable decisions, and release snapshots
+docs/        Product, architecture, and engineering foundations
 ```
 
 Nx 23 provides the project graph and task orchestration. Maven remains authoritative for Java, uv for Python, Expo for
@@ -114,11 +114,7 @@ uses the official Nx affected range to build only impacted backend and scraper i
 images without publication. Successful `main` pushes publish immutable GHCR images, advance only the selected
 `production` tags by digest, and trigger only the corresponding Dokploy applications.
 
-See the [Nx affected delivery architecture](docs/architecture/nx-affected-delivery.md) and the
-[Dokploy production handover](infra/dokploy/README.md).
-
-See the [documentation index](docs/README.md) and the
-[Blockout V1 baseline](docs/releases/blockout-v1-baseline.md).
+See the [Dokploy production handover](infra/dokploy/README.md) and the [documentation index](docs/README.md).
 
 ## Security
 

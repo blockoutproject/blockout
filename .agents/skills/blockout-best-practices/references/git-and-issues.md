@@ -4,9 +4,14 @@
 
 When a human asks which issue should be taken next, inspect repository issues and recommend one. This read-only triage does not claim or start work.
 
-An issue is eligible when it is open, unassigned, has no open native blocker, has no obvious open pull request delivering the same scope, and contains enough context, scope, acceptance criteria, and source authority for execution.
+An issue is eligible when it is open, unassigned, has no open native blocker, has no obvious open pull request delivering the same scope, and contains or resolves to the authority required for its kind of work.
 
-A Figma issue resolves to the sources and evidence required by `figma.md`.
+- A Figma issue resolves to the sources and evidence required by `figma.md`.
+- An implementation issue contains a task identifier that resolves uniquely through `tasks.md` to the approved plan and specification.
+- A repository or maintenance issue states its objective, scope, acceptance criteria, and authoritative sources directly.
+
+Do not create a separate functional issue solely to authorize Spec Kit artifacts. Use the official
+`speckit-taskstoissues` skill to create implementation issues after `tasks.md` has been analyzed.
 
 When several issues are eligible:
 
@@ -20,7 +25,7 @@ Do not self-assign or begin work on the recommended issue until the human confir
 
 ## Executing A Confirmed Issue
 
-1. Read the confirmed issue, its native blockers, and cited sources again because state may have changed since recommendation.
+1. Read the confirmed issue, its native blockers, and resolved sources again because state may have changed since recommendation. For an implementation issue, resolve its task ID to `tasks.md`, then load the corresponding `plan.md`, `spec.md`, and constitution.
 2. Refuse if an open blocker remains or the issue is assigned to someone else. Check open pull requests for obvious overlap.
 3. Self-assign.
 4. Synchronize `develop`, then branch as `feature/<issue>-<slug>`, `bugfix/<issue>-<slug>`, or `tech/<issue>-<slug>`.
