@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: none -> 1.0.0
-- Added principles: Specification-Led Product Intent; Domain Integrity;
-  Design-Ready User Interfaces; Source-First Contracts And Reproducible Generation;
-  Traceable, Verifiable Simplicity
-- Added sections: Project Constraints; Spec Kit Integration; Governance
+- Version change: 1.0.0 -> 2.0.0
+- Modified sections: Project Constraints; Spec Kit Integration
+- Removed rules: local Spec Kit task identifier format; local convergence numbering
+- Added principles: none
+- Added sections: none
 - Removed sections: none
 - Follow-up TODOs: none
 -->
@@ -70,8 +70,8 @@ every changed boundary.
 ## Project Constraints
 
 - Official Spec Kit skills, scripts, templates, workflows, and manifests MUST change only
-  through an explicit official installation or upgrade. Blockout-specific rules remain in
-  this constitution, `AGENTS.md`, and routed Blockout references.
+  through an explicit official installation or upgrade. Their procedures MUST NOT be
+  restated or replaced by Blockout-specific guidance.
 - A bug that restores established executable behavior, a behavior-preserving refactor,
   infrastructure maintenance, dependency maintenance, and documentation-only work MAY be
   owned directly by a sourced GitHub issue without a product specification.
@@ -85,14 +85,9 @@ every changed boundary.
 
 ## Spec Kit Integration
 
-The official `speckit-*` skills own the Spec Kit workflow and MUST be used without local
-replacement logic. Blockout adds only the constraints stated by this constitution.
-
-Task identifiers MUST be globally unique within the repository because
-`speckit-taskstoissues` deduplicates them against all repository issues. Use
-`T<feature><sequence>`, with both numeric parts padded to at least three digits; for
-example, feature `001` uses `T001001`, `T001002`, and so on. Convergence MUST continue
-from the maximum identifier already present in that feature's `tasks.md`.
+The applicable official `speckit-*` skill is the sole procedural authority for each Spec
+Kit step and MUST be used without local replacement or duplicated instructions. Blockout
+adds only the constraints stated by this constitution.
 
 Operational ownership lives in GitHub issues, native blockers, pull requests, and Git
 history. Repository Markdown MUST NOT duplicate task status, assignments, delivery logs,
@@ -108,4 +103,4 @@ incompatible governance changes, MINOR for added or materially expanded principl
 PATCH for non-semantic clarifications. Every plan, analysis, and final review MUST verify
 the applicable principles and record any justified exception before work proceeds.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-08-29
+**Version**: 2.0.0 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-08-29
