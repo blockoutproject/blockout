@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-30
 
-**Status**: Draft — pending explicit human approval
+**Status**: Accepted — explicitly approved for merge on 2026-08-30
 
 **Input**: User description: "Specify the complete Blockout mobile UI redesign and its owned design system without changing delivered business behavior."
 
