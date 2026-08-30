@@ -17,6 +17,90 @@
 - Use live published instances for reusable UI. Never detach an instance or redraw a foundation or component already owned by Blockout UI Library.
 - Keep documentation-only canvas helpers private, generic, and visually separate from product components.
 
+## Product Screen Organization
+
+These rules govern full product screens and journeys. They do not prescribe which
+screens a product must contain; screen scope remains owned by the approved product
+specification or issue.
+
+### Classify the artifact before creating it
+
+- **Utility components** are private documentation or canvas-presentation helpers.
+- **Library components** are reusable product primitives.
+- **Patterns** are reusable compositions with stable behavior that can serve more
+  than one product journey.
+- **Product screens** are domain-specific compositions that solve one user or
+  system scenario.
+- **Journeys** group related product screens into one meaningful outcome.
+- **Explorations** are unresolved directions and are never a permanent home for
+  approved work.
+
+Do not classify a complete product journey as a Pattern solely because it uses
+patterns internally.
+
+### Choose the right page and section
+
+Before creating a screen, inspect the existing file structure and identify its
+durable product boundary: audience, workspace, domain, or lifecycle area.
+
+- Use one durable product page per meaningful boundary when that boundary is
+  expected to accumulate related journeys over time.
+- Use sections within that page for journeys.
+- Use frames within a journey for screens and scenario coverage.
+- Do not create one page per screen by default.
+- Do not create a generic `Flows` page by default. A page name must communicate
+  a durable product boundary, not merely an artifact type.
+- Create a new product page only when the existing page would mix unrelated
+  audiences or domains, become difficult to scan, or cannot reasonably grow
+  with the product area.
+- Keep status tracking outside the page taxonomy. Page names must describe
+  product structure, not transient maturity such as draft or shipped.
+
+### Document journeys and screens consistently
+
+Each journey section must use the private linked documentation presentation
+components available in the file and state:
+
+- the user or system context;
+- the intended outcome;
+- the authoritative source, such as an issue or specification;
+- the relevant viewport, theme, state, and accessibility coverage.
+
+Use deterministic names:
+
+- `Journey / <domain> / <outcome>`
+- `Screen / <domain> / <journey> / <scenario>`
+
+A screen is a frame by default. Promote it to a component or a component set only
+when it is a stable template with demonstrated reuse or meaningful state axes.
+Do not create screen variants merely to catalogue every screen.
+
+### Compose and promote deliberately
+
+Product screens must be composed from live published Blockout UI Library instances
+and approved Pattern instances where they fit. Never detach instances.
+
+Promote a composition from a product screen to `Patterns` only when it has a
+clear reusable contract and serves, or is expected to serve, multiple independent
+journeys. Keep domain-specific copy, data, and navigation in the product screen.
+
+### Cover scenarios proportionately
+
+For each journey, explicitly select the relevant viewport, theme, state,
+keyboard/focus, touch-target, loading, empty, validation, permission, failure,
+and recovery coverage. Do not multiply variants mechanically when they do not
+change behavior, layout, or a meaningful visual contract.
+
+### Maintain an idempotent file structure
+
+Before creating a page, section, screen, or pattern:
+
+1. Inspect the existing product boundary and naming conventions.
+2. Reuse or extend the existing destination when it fits.
+3. Create a new destination only when the boundary is genuinely new.
+4. Move approved work out of `Explorations` rather than duplicating it.
+5. Preserve links between journey screens, approved patterns, and their sources.
+
 ## Evidence Rules
 
 - Cite the exact accepted or clarified specification snapshot and relevant acceptance criteria.
