@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: backend-worker
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 6
+      minimum-idle: 1
+      connection-timeout: 3000
+      connection-init-sql: "SET TIME ZONE 'UTC'; SET statement_timeout = '10s'; SET lock_timeout = '3s'"
+  sql:
+    init:
+      mode: never
+  liquibase:
+    enabled: false
+  flyway:
+    enabled: false
+  lifecycle:
+    timeout-per-shutdown-phase: 35s
+server:
+  port: 8080
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 32
+    accept-count: 32
+management:
+  server:
+    port: 9090
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db,schema,jobWorker
+        liveness:
+          include: livenessState
+logging:
+  structured:
+    format:
+      console: logstash
+blockout:
+  worker:
+    concurrency: 2
+    poll: 1s
+    lease: 60s
+    renewal: 20s
+    deadline: 2m
+    shutdown-grace: 30s

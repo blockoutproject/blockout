@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <include file="db/changelog/db.changelog-master.xml"/>
+    <changeSet id="test-invalid" author="test">
+        <createTable schemaName="operations" tableName="invalid_probe">
+            <column name="id" type="integer"/>
+        </createTable>
+        <addNotNullConstraint schemaName="operations" tableName="table_that_does_not_exist" columnName="id" columnDataType="integer"/>
+    </changeSet>
+</databaseChangeLog>

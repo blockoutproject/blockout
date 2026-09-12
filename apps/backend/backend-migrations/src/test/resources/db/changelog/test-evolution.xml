@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <include file="db/changelog/db.changelog-master.xml"/>
+    <changeSet id="test-additive" author="test">
+        <createTable schemaName="operations" tableName="evolution_probe">
+            <column name="note" type="varchar(100)"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

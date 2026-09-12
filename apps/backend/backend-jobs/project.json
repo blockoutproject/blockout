@@ -1,0 +1,6 @@
+{
+  "name": "@blockout/backend-jobs",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "targets": {},
+  "tags": ["type:library", "scope:backend", "language:java"]
+}

@@ -1,0 +1,91 @@
+name: blockout-foundation
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: blockout
+      POSTGRES_USER: blockout_bootstrap
+      POSTGRES_PASSWORD: local-bootstrap
+    volumes:
+      - foundation-data:/var/lib/postgresql/data
+      - ./backend/bootstrap.sql:/docker-entrypoint-initdb.d/001-bootstrap.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blockout_bootstrap -d blockout"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    mem_limit: 512m
+    cpus: 1
+  migrations:
+    image: backend-migrations:local
+    environment:
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://database:5432/blockout
+      LIQUIBASE_COMMAND_USERNAME: blockout_migration
+      LIQUIBASE_COMMAND_PASSWORD: local-migration
+      LIQUIBASE_LIQUIBASE_SCHEMA_NAME: migrations
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: "no"
+    mem_limit: 512m
+    cpus: 1
+  api:
+    image: backend-api:local
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/blockout
+      SPRING_DATASOURCE_USERNAME: blockout_api
+      SPRING_DATASOURCE_PASSWORD: local-api
+      BLOCKOUT_AUTH_ISSUER: ${BLOCKOUT_AUTH_ISSUER:-https://blockout.invalid/}
+      BLOCKOUT_AUTH_AUDIENCE: ${BLOCKOUT_AUTH_AUDIENCE:-https://api.blockout.invalid/}
+      BLOCKOUT_AUTH_JWK_SET_URI: ${BLOCKOUT_AUTH_JWK_SET_URI:-https://blockout.invalid/.well-known/jwks.json}
+    ports:
+      - "127.0.0.1:18080:8080"
+      - "127.0.0.1:19090:9090"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:9090/actuator/health/readiness",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+    mem_limit: 768m
+    cpus: 1
+    stop_grace_period: 40s
+  worker:
+    image: backend-worker:local
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/blockout
+      SPRING_DATASOURCE_USERNAME: blockout_worker
+      SPRING_DATASOURCE_PASSWORD: local-worker
+    ports:
+      - "127.0.0.1:19091:9090"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:9090/actuator/health/readiness",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+    mem_limit: 768m
+    cpus: 1
+    stop_grace_period: 40s
+volumes:
+  foundation-data:

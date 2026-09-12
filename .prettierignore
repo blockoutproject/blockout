@@ -30,3 +30,6 @@ apps/backend/competition-scraper/tests/fixtures/
 apps/frontend/mobile/android/
 apps/frontend/mobile/ios/
 apps/frontend/mobile/expo-env.d.ts
+
+# Portable Liquibase policy copied byte-for-byte from Maaatch
+.agents/skills/blockout-best-practices/references/liquibase.md

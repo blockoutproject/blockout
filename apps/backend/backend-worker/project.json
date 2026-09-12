@@ -1,0 +1,21 @@
+{
+  "name": "@blockout/backend-worker",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "container": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/scripts/backend-foundation/**/*",
+        "{workspaceRoot}/.dockerignore"
+      ],
+      "options": {
+        "command": "scripts/backend-foundation/build.sh backend-worker",
+        "cwd": "."
+      }
+    }
+  },
+  "tags": ["type:application", "scope:backend", "language:java"]
+}
