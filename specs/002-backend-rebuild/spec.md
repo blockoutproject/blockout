@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-12
 
-**Status**: Draft for repository review — transcribes the human-approved implementation direction; not evidence of implementation, Figma approval, or production readiness.
+**Status**: Draft for repository review.
 
 **Input**: Rebuild Blockout around coherent business ownership, preserve delivered capabilities on fresh business data, retain external identities and paid subscriptions, display dates in the device timezone, and redesign search reliability and relevance.
 
@@ -12,7 +12,7 @@
 
 This specification defines the replacement's observable behavior. The [constitution](../../.specify/memory/constitution.md) and [domain model](../../docs/architecture/blockout-domain-model-v1.md) govern it. The [baseline](../../docs/engineering/backend-preservation-baseline.md), its [data inventory](../../docs/engineering/backend-preservation/data.md), and [contract inventory](../../docs/engineering/backend-preservation/contracts.md) supply evidence, not an obligation to reproduce defects or retain old records.
 
-The [mobile redesign specification](../001-mobile-ui-redesign/spec.md) continues to own visual language, navigation, accessibility, and design authority. The explicit changes here amend its behavior-preservation assumption for reset, subscription enforcement, secure account linking, device-timezone dates, unknown times, stable continuation, and search failure/empty-query behavior. New or materially changed UI states require approved design evidence before their technical plans are finalized.
+The [mobile redesign specification](../001-mobile-ui-redesign/spec.md) owns visual language, navigation, accessibility, and design authority. This specification owns reset, subscription enforcement, secure account linking, device-timezone dates, unknown times, official standings, continuation, and search behavior. UI states require approved design evidence before their technical plans are finalized.
 
 The [architecture decision](../../docs/architecture/backend-rebuild-architecture.md) records implementation constraints separately. The [coverage map](coverage.md) traces all epic obligations without duplicating GitHub progress tracking.
 
@@ -45,7 +45,7 @@ An existing subscriber installs the new app, reconnects with the existing accoun
 
 ### User Story 2 - Read Correct Match Dates Anywhere (Priority: P1)
 
-A follower sees a match's time, date, list section, and relative-day label agree with the device timezone, without changing the actual scheduled instant.
+A follower sees a precisely scheduled match's time, date, list section, and relative-day label agree with the device timezone. A match without a known time retains its announced competition date and clearly communicates that no precise instant is available.
 
 **Why this priority**: Inconsistent day and time interpretation can cause users to miss a match.
 
@@ -58,6 +58,9 @@ A follower sees a match's time, date, list section, and relative-day label agree
 3. **Given** a device timezone changes while the app is backgrounded, **When** the app resumes, **Then** the visible consultation is rebuilt consistently rather than continuing the previous timezone's list.
 4. **Given** a 23-hour or 25-hour local day, **When** its matches are requested, **Then** every qualifying match appears once within that day's actual boundaries.
 5. **Given** a user changes the device timezone, **When** attempting a time-restricted action, **Then** eligibility and daily quotas remain governed by trusted business time.
+6. **Given** a date-only match viewed from Paris, Montreal, UTC, or Kolkata, **When** filtering and paginating, **Then** it is selected by its announced civil date and placed after timed matches within its day/pool group, with unknown-time presentation and source-calendar relative labels.
+7. **Given** a date-only match later receives a trustworthy kickoff time, **When** refreshed, **Then** it moves to the appropriate device-local day/time; an incompatible old continuation requires refresh.
+8. **Given** an unknown kickoff time before the match is finished, **When** a nonmoderator attempts a live publication requiring the one-hour window, **Then** the time-dependent action is unavailable until the time is known; moderator and post-finish rules remain explicit exceptions.
 
 ### User Story 3 - Receive Coherent Sporting Updates (Priority: P1)
 
@@ -69,13 +72,16 @@ A follower receives valid new competition information while an operator can iden
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid complete pool observation, **When** it is published, **Then** its teams, associations, matches, and relevant ranking inputs become coherent together.
+1. **Given** a valid complete pool observation, **When** it is published, **Then** its teams, associations, and matches become coherent together; unavailable official standings do not block a valid calendar.
 2. **Given** an invalid pool and another valid pool, **When** processing completes, **Then** the invalid pool retains its last valid state while the valid pool advances.
 3. **Given** duplicate observations or a renamed team, **When** imported, **Then** no duplicate business entity or user notification is created.
 4. **Given** an incomplete or suspiciously empty source, **When** reconciliation runs, **Then** absence is not interpreted as authority for mass deactivation.
 5. **Given** a manual correction, **When** a conflicting observation arrives, **Then** the displayed correction remains until explicitly removed.
 6. **Given** a previously published result disappears, **When** the source is observed again, **Then** the last valid result remains and an operator-visible conflict is recorded.
-7. **Given** a valid official ranking disagrees with calculated results, **When** displayed, **Then** the official order remains authoritative and the discrepancy is detectable.
+7. **Given** new results or a manual match correction while official standings are unchanged, **When** displayed, **Then** the published official positions, ties, points, and penalties remain unchanged; no local ranking is calculated.
+8. **Given** a missing, partial, malformed, wrong-pool, or wrong-season standing observation, **When** processed, **Then** it cannot replace the last usable official snapshot for that pool/season; without one, the app displays a ranking-unavailable state.
+9. **Given** official standings containing tied positions, **When** displayed, **Then** source positions and row order remain intact without a local tie-break.
+10. **Given** an unchanged official snapshot fetched recently, **When** its freshness is displayed, **Then** collection time is distinguished from the official update time, and a recent fetch does not imply recent official results.
 
 ### User Story 4 - Browse and Discover Relevant Competition (Priority: P1)
 
@@ -138,10 +144,13 @@ A user who controls two sign-in identities can link them without email-based acc
 **Acceptance Scenarios**:
 
 1. **Given** matching email addresses without proof of both accounts, **When** linking is attempted, **Then** no automatic merge occurs.
-2. **Given** both identities are proven and at most one independently paid subscription exists, **When** linking succeeds, **Then** both sign-in methods reach the principal profile and its preserved paid access.
-3. **Given** two distinct active paid subscriptions, **When** linking is requested, **Then** automatic completion is blocked for assisted resolution without cancellation or loss of either existing access.
+2. **Given** both identities are proven and at most one independently paid subscription exists, **When** linking succeeds, **Then** both sign-in methods reach the initiating signed-in business profile, retaining its ID, pseudonym and photo, merged favorites, and the existing subscription binding.
+3. **Given** two distinct active paid subscriptions, **When** linking is requested, **Then** linking stops before identity/profile merge, both accounts remain usable, and an explanation plus the existing support contact path is offered without promising cancellation, refund, or purchase merge.
 4. **Given** interrupted linking, **When** the user retries, **Then** they can recover without a second merge or unexplained entitlement transfer.
 5. **Given** different privileges, **When** profiles are linked, **Then** privileged grants are not automatically unioned.
+6. **Given** linking starts from a free account and the other account holds the sole active subscription, **When** linking succeeds, **Then** the initiating profile is retained and paid access remains associated with its existing billing identity.
+7. **Given** two verified identities alias the same subscription, **When** checked, **Then** they are not classified as two independently paid subscriptions.
+8. **Given** a previously blocked dual-subscription conflict is resolved, **When** linking resumes, **Then** both identities and current subscription state are verified again before merge.
 
 ### User Story 8 - Open the Replacement Reliably (Priority: P1)
 
@@ -158,6 +167,9 @@ An operator prepares the new season, verifies paying-user continuity and peak lo
 3. **Given** an unsuccessful readiness check, **When** opening is considered, **Then** cutover is postponed; the new app is never routed to the old business backend.
 4. **Given** a background processing backlog during peak reads, **When** traffic continues, **Then** foreground usability and processing freshness meet the qualification criteria.
 5. **Given** an old match link or push, **When** opened after reset, **Then** it cannot resolve to an unrelated newly created resource.
+6. **Given** fault-free peak qualification and a complete valid observation, **When** publication takes five minutes or longer after durable receipt, **Then** freshness qualification fails even if the delay is correctly alerted.
+7. **Given** an injected source/worker failure, **When** processing cannot advance, **Then** the last valid state remains visible, the failure is distinguishable from freshness, and recovery is tested separately from fault-free timing.
+8. **Given** a post-opening incident, **When** service is restored, **Then** recovery uses compatible replacement code/data and never sends the new app to the legacy business API.
 
 ### Edge Cases
 
@@ -184,32 +196,32 @@ An operator prepares the new season, verifies paying-user continuity and peak lo
 - **FR-006**: Existing subscribers MUST recover their valid paid access through their retained subscription identity without repurchase; restore and renewal/expiry changes MUST be supported.
 - **FR-007**: Protected club-wide match lists and pool maps MUST enforce current paid access at the owning service, independently of client UI. Paid presentation and advertising suppression MUST remain coherent with entitlement state.
 - **FR-008**: During provider outage, a previously verified positive entitlement MAY remain usable until the earlier of 24 elapsed hours after that verification and a known access expiry. Confirmed revocation/ineligibility ends grace immediately. Without proof, expose a retryable indeterminate state rather than a confirmed absence of purchase.
-- **FR-009**: New voluntary account linking MUST require recent proof of both accounts, preserve the chosen principal profile, union/deduplicate favorites, and avoid automatic privilege union.
-- **FR-010**: Linking two independently paid accounts MUST require assisted resolution before automatic completion. Existing access remains intact; no automatic cancellation or purchase transfer is permitted.
+- **FR-009**: New voluntary account linking MUST require recent proof of both accounts, preserve the initiating signed-in business profile ID, pseudonym and photo, union/deduplicate favorites, and avoid automatic privilege union. Business-profile retention MUST NOT replace the existing billing identity.
+- **FR-010**: Two independently active paid subscriptions MUST block linking before any identity/profile merge. Both accounts remain usable and an explanation plus the existing support contact path is provided, without automatic cancellation, refund, or purchase transfer. Aliases of one subscription are not independent subscriptions. A resumed attempt MUST reverify both identities and current subscriptions.
 
 #### Time and competition
 
 - **FR-011**: Known match instants MUST display using the device timezone consistently across time, date, grouping, detail, and relative-day labels.
-- **FR-012**: Date-only values MUST preserve their announced civil date, identify unknown time, and never masquerade as a precise instant. Ambiguous provider midnight conventions MUST be resolved per source rather than globally guessed.
+- **FR-012**: Date-only values MUST retain the announced source civil date and display "Horaire non communiqué" rather than a fabricated instant. They are grouped and filtered by that date and placed after timed matches within each day/pool group in a stable order. Their relative-day labels use the competition calendar. Provider midnight conventions MUST be established per format, never globally guessed.
 - **FR-013**: Changing the display timezone MUST rebuild affected consultations and prevent mixed-timezone continuation. Language or time-format preferences MUST NOT change the scheduled instant.
-- **FR-014**: Day selection MUST include all and only matches within that local calendar day's actual boundaries, including daylight-saving transitions.
+- **FR-014**: Known-instant matches MUST be selected within the requested device-local day's actual half-open boundaries, including daylight-saving transitions. Date-only matches MUST instead match the announced source civil date, without timezone conversion; combined results preserve day/pool grouping and FR-012 ordering.
 - **FR-015**: Source time interpretation MUST be independent of machine configuration, preserve its source timezone context, and reject unresolved ambiguous/nonexistent precise times without overwriting trusted values.
 - **FR-016**: Server-authorized elapsed-time windows MUST use trusted current time. Daily quotas and scraper schedules MUST retain the current Europe/Paris business calendar independently of device timezone.
 - **FR-017**: Club/team/pool/division identity, season relationships, names, logos, contact/location information, participants, score, sets, venue, officials, and relevant ranking information MUST remain available on fresh valid data.
 - **FR-018**: Renames and repeated observations MUST preserve entity identity. Identical provider codes in different source/season contexts MUST NOT collide.
-- **FR-019**: Match status, corrected results, and dependent views MUST remain consistent. A removed source score MUST retain the last valid result and expose an operator conflict; explicit manual removal remains possible.
-- **FR-020**: Valid official standings MUST prevail over calculated standings. The calculated fallback MUST preserve established sport-specific ordering and penalties, and discrepancies MUST be detectable without treating disagreement alone as invalidity.
+- **FR-019**: Match status, corrected results, and match-derived views MUST remain consistent. A removed source score MUST retain the last valid result and expose an operator conflict; explicit manual removal remains possible. Match changes MUST NOT recompute or modify the official standings.
+- **FR-020**: Standings MUST come exclusively from the official competition source, preserving its positions, ties, row order, points, penalties and statistics. No calculated ranking, fallback, or local tie-break is permitted. Apply the Official Standings Rules below for usability, provenance and unavailability.
 
 #### Imports and freshness
 
 - **FR-021**: Accepted observations MUST be durably recoverable and expose distinct received, validation, published, rejected, and temporarily failed outcomes. Repeated submission MUST NOT duplicate effects.
-- **FR-022**: Publication MUST be coherent per pool. A failed pool keeps its previous valid state while independent valid pools can advance.
+- **FR-022**: Calendar publication MUST be coherent per pool. A failed calendar observation keeps its previous valid state while independent valid pools can advance. Missing or unusable official standings MUST NOT block a valid calendar; standings retain their own source provenance and usable snapshot.
 - **FR-023**: Partial, failed, or suspiciously empty observations MUST NOT authorize destructive reconciliation. Complete scoped evidence is required for deactivation.
 - **FR-024**: Supported FFVB departmental/regional/national formats, LNV/DataProject enrichment, and club directory/contact/location information MUST retain the useful field coverage recorded in the baseline.
 - **FR-025**: Field-specific source priority MUST be preserved; an older observation MUST NOT overwrite a newer accepted observation. Missing optional enrichment MUST NOT erase the last valid enrichment or block a valid primary calendar.
-- **FR-026**: Manual corrections MUST override imported values until explicitly removed. Subsequent observations remain available as the underlying source value.
+- **FR-026**: Manual corrections to owned sporting fields MUST override imported values until explicitly removed; subsequent observations remain available as the underlying source value. Official standing positions and statistics MUST NOT be manually overridden or recalculated from corrected match data.
 - **FR-027**: Processing MUST support bounded retry, operator-visible failure, replay, and safe shutdown. Replay MUST NOT duplicate business data or logical notifications.
-- **FR-028**: Competition collection MUST retain five-minute cadence in existing busy weekend windows and thirty-minute cadence otherwise. Operators MUST distinguish last successful observation, last actual change, and publication freshness.
+- **FR-028**: Competition collection MUST run every five minutes in existing busy weekend windows and every thirty minutes otherwise. Fault-free qualification MUST publish each complete valid observation less than five minutes after durable receipt. Operators MUST distinguish collection cadence, publication delay, last successful observation, last actual change, and incident state. An alert does not satisfy the publication-delay objective.
 - **FR-029**: Initial loading of already completed matches MUST NOT notify users of historical results.
 
 #### Lists and search
@@ -230,7 +242,7 @@ An operator prepares the new season, verifies paying-user continuity and peak lo
 - **FR-040**: Device registration, reassignment, invalidation, delivery feedback, and retries MUST respect authenticated ownership; another user's device or inbox cannot be controlled by a caller-supplied identity.
 - **FR-041**: Correcting an announced result MUST update its stored inbox content without a new correction push; an already delivered system notification is not promised to change.
 - **FR-042**: Live creation/replacement/deletion/reporting/history/approval/rejection/reactivation MUST preserve baseline ownership and moderation rules, with at most one active link per match.
-- **FR-043**: The seven-day live-publishing age MUST use trusted external account age. Existing one-hour pre-match window, pre-finish nonmoderator quotas (three versions/match and three distinct matches/day), professional-league exclusion, post-finish pending review, and report thresholds (three upcoming, ten finished) MUST be preserved.
+- **FR-043**: The seven-day live-publishing age MUST use trusted external account age. Preserve the one-hour pre-match window, pre-finish nonmoderator quotas (three versions/match and three distinct matches/day), professional-league exclusion, post-finish pending review, and report thresholds (three upcoming, ten finished). Unknown kickoff time MUST NOT authorize a time-dependent pre-match action; moderator and post-finish exceptions retain their defined rules.
 - **FR-044**: Profile, pseudonym, photo, and deliberate account deletion MUST remain supported with explicit validation and recoverable errors. Technical reset MUST NOT invoke identity deletion.
 - **FR-045**: Legal/privacy content, signed competition documents, reports/attachments, and media replacement/cleanup MUST remain available with their baseline guest/user/staff permissions and safe upstream-failure behavior.
 - **FR-046**: Authorized staff MUST retain division/provider mappings, scraper switches/status, maintenance/minimum versions, legal updates, and moderation controls. Guest/user/editor/moderator/admin ownership and permissions MUST be verified at the service boundary.
@@ -245,12 +257,21 @@ An operator prepares the new season, verifies paying-user continuity and peak lo
 - **FR-052**: Cutover MUST be rehearsed with actual old/new mobile builds and controlled identity/subscription accounts. Opening MUST be postponed when critical checks fail. Planned maintenance targets at most thirty minutes; post-opening recovery repairs the replacement instead of redirecting new clients to the old business system.
 - **FR-053**: Legacy writers and messages MUST be isolated before opening. Irreversible retirement and production actions MUST remain explicit release decisions, separate from implementing this specification.
 
+### Official Standings Rules
+
+- The official source is identified per competition. A usable snapshot belongs to the requested pool and season, contains interpretable standing rows, and resolves its teams without evidence of partial observation. Malformed positions, unexplained duplicate team rows or unresolved teams prevent publication; officially tied positions are valid.
+- Store and display official positions, row order, ties, points, penalties and statistics as supplied. Missing optional statistics remain absent; they are not calculated from matches or filled with invented zeroes.
+- An unusable or absent observation never replaces a usable official snapshot for the same pool and season. A snapshot from another season/pool is never a substitute.
+- Retain the last usable official snapshot when the source is unavailable, incomplete or unchanged. Without one, display "Classement indisponible" rather than an empty completed ranking.
+- Collection time and the source's own update time are separate. Preserve the latter only when supplied; a recent successful collection does not establish that the official standings incorporate the newest results.
+- Match corrections and new results do not modify standings. Display the official snapshot independently of calendar freshness; no comparison with a calculated ranking is required.
+
 ### Key Entities
 
 - **Club, Division, Team, Pool, CompetitionAssociation, Match**: Existing domain concepts with stable identity and coherent competition/season relationships.
 - **Match Schedule**: Source-local civil date, optional known time, source timezone context, and an actual instant only when trustworthy evidence resolves one.
 - **Observation and Correction**: Scoped provider evidence and an explicit manual override with separate provenance.
-- **Ranking**: Official or calculated presentation with identifiable authoritative inputs.
+- **Ranking**: An official standing snapshot for a specific pool and season, preserving source positions, row order, ties, statistics and provenance; never calculated locally.
 - **User and External Identity**: Local business profile associated with proved external identities, independent of email and purchase identifiers.
 - **Entitlement Evidence**: Provider-verified access state, verification time, known expiry, and identity association.
 - **Favorite, Live Link, Notification, Device Registration, Report, Media**: Owned relationships/resources whose future capabilities survive reset without old rows.
@@ -267,19 +288,19 @@ An operator prepares the new season, verifies paying-user continuity and peak lo
 - **SC-005**: Every labeled exact-name/prefix search case finds its intended eligible entity within the first twenty suggestions; all returned results meet selected filters.
 - **SC-006**: Search restart/rebuild tests produce no empty-result window caused by discarding the active generation; all concurrent changes are represented at switchover.
 - **SC-007**: All negative authorization tests deny cross-user, wrong-role, and unentitled protected operations, including direct requests outside the UI.
-- **SC-008**: At the FR-051 qualification workload, user-visible read latency at the 95th percentile and failure rate do not exceed the measured existing-system reference under equivalent conditions. Reference workload, volumes, durations, and thresholds are recorded before acceptance execution.
-- **SC-009**: Busy-period imports complete publication before the next scheduled cycle under the qualified workload, or expose an actionable backlog/failure rather than falsely reporting fresh data.
+- **SC-008**: At matched representative workloads, the replacement's user-visible read latency at the 95th percentile and failure rate MUST not exceed the existing-system reference under equivalent data, resources and request mix. Also qualify the replacement at twice the measured Sunday peak against those reference thresholds. Record dataset, workloads, resource limits, run duration and thresholds before execution.
+- **SC-009**: In fault-free peak qualification, every complete valid observation is published less than five minutes after durable receipt; any violation fails qualification regardless of alerting. Separate fault-injection tests MUST prove distinguishable incident reporting, preservation of the last valid state, and successful replay/recovery.
 - **SC-010**: A rehearsed successful cutover completes within thirty minutes; failed pre-opening checks keep the replacement closed and legacy writers isolated according to the rehearsed procedure.
 - **SC-011**: Every old-ID collision, interrupted reset, and account-switch scenario reaches the correct unavailable/recovery state with zero unrelated resource exposure.
 - **SC-012**: Every requirement has acceptance evidence mapped to an implementation delivery before the epic can be completed; documentation alone never satisfies runtime criteria.
 
 ## Assumptions and Dependencies
 
-- Device timezone is the approved display rule. Date-only records retain source civil dates because they contain no convertible instant. Business-day quotas and existing scraper schedules remain Europe/Paris.
-- Cursor invalidation with an explicit refresh, deterministic empty search, union of favorites on account linking, assisted handling of two independently paid accounts, and no correction push were proposed defaults included in the plan subsequently requested for implementation.
+- Device timezone governs known-instant display. Date-only records retain source civil dates and source-calendar relative labels because they contain no convertible instant. Business-day quotas and scraper schedules remain Europe/Paris.
+- Continuation invalidation offers explicit refresh; empty search is deterministic. Linking retains the initiating profile and unions favorites. Two independently paid accounts require conflict resolution before linking. Result corrections do not generate another push.
 - Secure linking does not authorize automatic unlinking, subscription cancellation, privilege transfer, or changing the existing subscription project's restore policy.
 - Provider-specific meanings of midnight/missing dates must be established from controlled evidence before parser changes. Unresolved evidence is quarantined, never silently replaced by a fabricated date.
-- Existing ranking tie-breaks remain the baseline policy; the plan must centralize them rather than silently introduce a different competition rule.
+- Standings come exclusively from the official competition source. Local points, standings, statistical ranking inputs, and tie-break calculations are outside the product scope.
 - Source timezone assignments are maintained as trusted source/competition configuration, not inferred from the device or a postal address alone.
 - Real deployed versions, peak measurements, provider tenant settings, and store subscription behavior require controlled verification; repository evidence does not certify them.
 - The powerful single VPS is retained. Resource isolation is required, but replicas and multi-node availability are not implied.

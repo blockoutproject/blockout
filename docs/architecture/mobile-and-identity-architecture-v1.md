@@ -8,14 +8,14 @@ capabilities explicit without duplicating business authority in the application.
 
 ## Decision
 
-### Replacement Backend Direction
+### Runtime Boundaries
 
-The [backend rebuild architecture](backend-rebuild-architecture.md) records the explicitly approved replacement
-direction: in-process mobile composition in a modular Java backend, separate API/worker executables, fresh
-Liquibase-managed state, durable database jobs, retained Auth0/RevenueCat associations, and device-timezone date
-presentation. The [rebuild specification](../../specs/002-backend-rebuild/spec.md) defines its observable behavior.
-The named service topology below describes the existing runtime until replaced; it is not a requirement to retain
-those deployment boundaries or RabbitMQ in the replacement. This amendment does not claim the replacement is deployed.
+The [backend architecture](backend-rebuild-architecture.md) defines in-process mobile composition in a modular Java
+backend, separate API/worker executables, fresh Liquibase-managed state, durable database jobs, retained
+Auth0/RevenueCat associations, official standings, and device-timezone presentation of known instants. Date-only
+schedules preserve their announced competition date. The [backend specification](../../specs/002-backend-rebuild/spec.md)
+owns observable behavior. The service topology below describes the existing runtime; replacement deployment
+boundaries and delivery state are defined independently.
 
 ### Mobile Application
 

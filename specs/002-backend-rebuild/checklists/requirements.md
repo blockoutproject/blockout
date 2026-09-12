@@ -33,10 +33,12 @@
 - [x] The defined outcomes can be verified without claiming existing production evidence.
 - [x] Contract, storage, version and deployment mechanics are kept in the separate architecture decision.
 
-## Review Notes
+## Review Boundaries
 
-- This built-in specification checklist was reviewed as part of the official `speckit-specify` workflow, not marked by an implementation agent as proof of work.
-- One review correction clarified that maintenance is a successful-cutover target; post-opening recovery never redirects new clients to the old backend.
-- One review correction separated known instants from date-only schedules, which cannot be converted to device-local time without inventing information.
-- Exact external identity-linking mechanics, provider midnight evidence, effective dependency versions and peak measurements remain technical planning/qualification inputs, not invented product answers.
-- The feature can proceed to bounded technical planning after repository review. Material UI planning still requires approved Figma evidence. This checklist does not waive that gate.
+- Official standing positions, ties, statistics, context validation, unavailable states and freshness provenance are defined without a calculated fallback.
+- Known instants and date-only schedules have explicit selection, grouping, relative-label and authorization rules.
+- Linking retains the initiating business profile independently of billing identity; distinct paid subscriptions stop the merge with a support path and mandatory reverification.
+- Publication latency is a pass/fail objective independent of incident alerting. Fault-free performance and fault-injection recovery have separate acceptance criteria.
+- Cutover qualification and compatible post-opening recovery are consistent across mobile and backend specifications.
+- Provider operations, midnight-format evidence, effective dependency versions and measured workload remain technical planning/qualification inputs.
+- Material UI planning requires approved Figma evidence. Requirements-quality checks do not waive this gate or constitute runtime acceptance.

@@ -2,7 +2,7 @@
 
 ## Authority and Scope
 
-This decision transcribes the rebuild direction approved in conversation and requested for implementation on 2026-09-12. It describes the target, not the deployed runtime. Observable behavior belongs to [the rebuild specification](../../specs/002-backend-rebuild/spec.md); the [domain model](blockout-domain-model-v1.md) remains the vocabulary and ownership authority. The existing [mobile architecture](mobile-and-identity-architecture-v1.md) applies except for the explicit target amendments below.
+This document defines the replacement backend architecture. Observable behavior belongs to [the rebuild specification](../../specs/002-backend-rebuild/spec.md), vocabulary and resource ownership to the [domain model](blockout-domain-model-v1.md), and native application boundaries to the [mobile architecture](mobile-and-identity-architecture-v1.md). The target architecture does not certify the deployed runtime.
 
 This is an architectural decision record, not a substitute for feature-specific `plan.md`, generated tasks, detailed OpenAPI contracts, Figma approval, or production evidence. Technical plans must resolve the integration checks below before creating executable implementation issues. The constitution's UI gate must not be bypassed by calling UI implementation an architectural task.
 
@@ -27,15 +27,15 @@ This is an architectural decision record, not a substitute for feature-specific 
 
 Use feature-first modules with API, application, domain, and infrastructure boundaries. Two thin executable Maven modules assemble the same business modules for foreground and background roles. Generated transport models remain at adapters, not in application/domain types.
 
-| Owner                  | Authoritative resources or operations                                                                                                                 |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sports                 | Clubs, divisions, teams, pools, competition associations, matches, source mappings relevant to sports, ranking policy and manual sporting corrections |
-| Identity/access        | Business profiles, external identity mappings, permissions, account linking, subscription evidence                                                    |
-| Community              | Favorites and live-link moderation, using sports/identity application boundaries for referenced resources                                             |
-| Communications         | Inbox, device registrations, delivery attempts, recipient processing                                                                                  |
-| Administration/support | Application status, legal content, reports, media lifecycle and operational controls; delegates changes to the actual business owner                  |
-| Search adapter         | Derived club/team/pool documents and search reads; never authoritative sporting or authorization state                                                |
-| Mobile composition     | Client-specific reads/commands through owner application boundaries; no duplicate business rules or HTTP calls to the same backend                    |
+| Owner                  | Authoritative resources or operations                                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sports                 | Clubs, divisions, teams, pools, competition associations, matches, source mappings relevant to sports, official standing snapshots and manual match/catalog corrections |
+| Identity/access        | Business profiles, external identity mappings, permissions, account linking, subscription evidence                                                                      |
+| Community              | Favorites and live-link moderation, using sports/identity application boundaries for referenced resources                                                               |
+| Communications         | Inbox, device registrations, delivery attempts, recipient processing                                                                                                    |
+| Administration/support | Application status, legal content, reports, media lifecycle and operational controls; delegates changes to the actual business owner                                    |
+| Search adapter         | Derived club/team/pool documents and search reads; never authoritative sporting or authorization state                                                                  |
+| Mobile composition     | Client-specific reads/commands through owner application boundaries; no duplicate business rules or HTTP calls to the same backend                                      |
 
 A shared database does not authorize arbitrary cross-module entity access. Owners expose focused read/application operations; composition uses bounded owner-controlled projections. Transactions belong to the operation owning the business write. External HTTP calls are performed outside those transactions.
 
@@ -47,11 +47,11 @@ Configure foreground/background SQL pools, query/statement timeouts, job concurr
 - Seed required divisions, provider mappings, legal content and application-status configuration deterministically. Test restart and repeated seed execution.
 - Public IDs must not reuse legacy numerical IDs. Provider identities include source and season where relevant; mutable names do not define identity.
 - Enforce unique external identity, favorite relationship, competition association, and active live-link constraints in the database.
-- Source values and manual overrides remain separate. Track observation, publication, business modification and correction times distinctly.
+- Source values and manual overrides remain separate for owned match/catalog fields. Official standings are source-owned snapshots and accept neither manual overrides nor calculated replacements. Track observation, publication, business modification and correction times distinctly.
 - A lot's source/scope/season and idempotency identity are immutable. Same key/same payload returns the existing outcome; same key/different payload is a conflict.
 - A `202` response is issued only after durable receipt and includes status-resource location. Clients distinguish receipt from publication.
 - Prevent old batches overtaking newer accepted observations using scoped sequencing/version checks; arbitrary client timestamps alone are not ordering authority.
-- Validation/publication is per pool. References needed for publication resolve before exposure; a failed pool retains its last published version.
+- Calendar validation/publication is per pool. References needed for publication resolve before exposure; a failed calendar retains its last published version. Official standing snapshots are validated and published independently so their absence does not block a valid calendar.
 - Source completeness is distinct from successful download. Club/contact failures cannot authorize deactivating unrelated clubs.
 - Missing optional enrichment preserves last valid enrichment. Successful whole-pool validation is not a requirement to wait indefinitely for every optional provider.
 - Source priorities and supported field coverage derive from the baseline; normalizers/providers remain behind adapters.
@@ -59,6 +59,12 @@ Configure foreground/background SQL pools, query/statement timeouts, job concurr
 - Persist business events with the publishing transaction. Completed-match bootstrap is silent. Correction events update dependent views and existing inbox content without another result push.
 
 Jobs require state, attempt count, next attempt, lease owner/expiry, idempotency identity and safe diagnostic code. Reserve with short transactions; perform external work outside locks. A restarted worker recovers expired leases. An event can produce separate idempotent search/inbox/delivery work. Acknowledging one consumer must not discard another consumer's pending effect. Do not claim exactly-once external push delivery.
+
+## Official Standing Snapshots
+
+The sports owner stores official snapshots scoped to source, competition, pool and season. Preserve source positions, row order, ties, points, penalties and statistics. Validate context, complete observation, interpretable rows and resolved team identities; missing optional statistics remain absent. Do not derive standings or their statistics from match scores, calculate tie-breaks, or reorder tied teams by local policy. The gateway and mobile format the supplied values without becoming ranking engines.
+
+An invalid or unavailable source observation leaves the previous usable snapshot for that pool/season in place. If none exists, expose an explicit unavailable state rather than an empty completed ranking. Keep collection time separate from the source's update time when available; do not invent source freshness from download time. New results and manual match corrections never modify this snapshot. Tests cover missing, stale, partial, malformed, wrong-pool/season and tied standings, including valid calendars published while standings are unavailable.
 
 ## Temporal Contract
 
@@ -81,9 +87,9 @@ Establish `00:00` semantics separately for each supported provider/format from c
 - Missing zone defaults explicitly to UTC; invalid zone receives `400` with a stable validation code. Responses identify the effective zone.
 - Query keys and cursors include the zone. On zone change, cancel obsolete work and rebuild affected consultations before continuation.
 - Known-instant groups use device-local day boundaries. Query UTC instants with a half-open range derived from local start-of-day to next local start-of-day, never `start + 24h`.
-- Date-only entries retain their source civil date and explicit unknown-time meaning. They have no portable instant. Within a displayed civil-date group, place unknown-time entries after timed entries with immutable-ID tie-breaking; do not manufacture a sort timestamp.
+- Date-only entries retain their source civil date and explicit unknown-time meaning. Filter them by the announced date rather than UTC bounds. Preserve day then pool grouping; within each day/pool group put unknown-time entries after timed entries, using immutable-ID tie-breaking without a fabricated sort timestamp.
 - Upcoming date-only entries use the source business date to decide calendar eligibility. Completed status is based on validated results, not an invented kickoff instant.
-- Relative labels compare civil dates in the selected display zone. Plain dates must not pass through implicit device-local parsing.
+- Known-instant relative labels compare civil dates in the selected display zone. Date-only relative labels use the competition calendar and identify the announced date as source-local; do not inherit a device-relative label that would misrepresent that date. Plain dates must not pass through implicit device-local parsing.
 - Match eligibility windows and entitlement grace use trusted elapsed time. Daily live quotas retain Europe/Paris business-day boundaries. Unknown kickoff time cannot authorize a time-dependent pre-match write; moderation and post-finish rules remain explicit exceptions.
 - Existing busy scraper windows remain Sunday from 14:00 and Saturday from 17:00 Europe/Paris at five-minute cadence, thirty minutes otherwise.
 - UTC logs and persisted instants do not depend on container default zone. Synchronize host clocks; use injectable clocks for tests and monotonic durations for latency measurements.
@@ -107,7 +113,9 @@ A first-launch reset marker is written only after required cleanup succeeds. Cle
 
 The current app identifies RevenueCat customers using the Auth0 subject. Recreated local IDs must not replace it. Preserve the existing customer binding and use server-verified access evidence. Authenticate and deduplicate webhooks, then reconcile current provider state; do not assume delivery order or that cancellation implies expiration.
 
-Linking requires fresh proof of both accounts and a persisted recoverable operation. Auth0 primary identity changes and RevenueCat customer aliases are separate concerns. Do not assume an Auth0 link merges purchases. Keep the existing paid customer binding where only one independent paid identity exists; block automatic completion if two independent paid subscriptions need assisted resolution. Do not union privileged roles. Resolve exact tenant capability, principal selection, provider API sequencing, and failure recovery in the identity plan before implementation; never store proof tokens in ordinary tables or logs.
+Linking retains the initiating signed-in business profile ID, pseudonym and photo and unions/deduplicates favorites. It requires fresh proof of both accounts and a persisted recoverable operation. The surviving business profile, Auth0 primary identity, and RevenueCat billing identity are separate concerns; do not assume an Auth0 link merges purchases or requires a new billing identity. Preserve the sole existing paid binding even when the initiating business profile was free. Do not union privileged roles.
+
+Two independently active subscriptions block linking before identity/profile mutation. Both accounts remain usable; the app explains the conflict and exposes its existing support contact path without promising refund, cancellation or purchase merge. Verified aliases of one subscription are not two independent subscriptions. After conflict resolution, reverify both identities and current entitlements before merging. The identity plan must define the provider operations, tenant capabilities and interruption recovery implementing these rules; never store proof tokens in ordinary tables or logs.
 
 Grace is measured from a server-positive verification and capped at twenty-four elapsed hours and known expiration. A fresh reset has no historic local proof. Unknown provider state produces retryable indeterminate access, not a false non-subscriber decision or a client-granted entitlement. Pro checks protect the owning operations even if the mobile hides a button.
 
@@ -133,7 +141,9 @@ Nx coordinates the real Maven/uv/Expo dependency graph. Use source-first contrac
 
 Compare old/new semantic outputs with the controlled fixtures and fourteen baseline scenarios. Add temporal parity, negative ownership, subscription continuity, import replay and search-generation tests. Native builds are necessary for reset, identity, purchases, push and timezone lifecycle evidence; unit mocks do not prove provider behavior.
 
-Record representative Sunday request mix, volumes, latency/error reference, database contention, processing lag and available VPS resources before qualification. Run twice the observed peak on comparable isolated resources with simultaneous imports and notifications. Do not load-test production as an incidental verification step. Monitor actual publication freshness rather than process liveness alone.
+Record representative Sunday request mix, volumes, latency/error reference, database contention, processing lag, resource limits and run duration before qualification. Compare old/new at matched workloads and qualify the replacement at twice the observed peak on comparable isolated resources against the recorded reference thresholds, with simultaneous imports and notifications. Do not load-test production as an incidental verification step.
+
+Measure collection cadence separately from receipt-to-publication latency. In fault-free qualification each complete valid observation must publish in less than five minutes after durable receipt. An alert does not turn a latency failure into success. Separately inject source/worker failures and verify incident detection, last-valid-state retention and replay. Monitor actual publication freshness rather than process liveness alone.
 
 Prepare fresh data/indexes and released mobile binaries before the thirty-minute maintenance window. Isolate legacy writers/messages; test the actual old status/update path. If readiness fails, postpone opening. After opening, recover compatible replacement code/data; do not redirect updated clients to the old business backend. Preserve recovery material for the replacement according to the operational release plan, not as a migration requirement for old rows. Production cutover and irreversible retirement require separate human release direction.
 
