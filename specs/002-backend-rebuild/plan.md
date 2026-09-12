@@ -9,7 +9,7 @@ Implement the approved first infrastructure increment of US8, with authenticatio
 ## Technical Context
 
 - Java 25, Spring Boot 4.1.0, PostgreSQL 17, Liquibase 5.0.3, Maven and Nx.
-- Four reactor modules: backend-api, backend-worker, backend-jobs, backend-migrations. No legacy shared-model dependency or speculative business modules.
+- Four reactor modules: core-service, core-worker, jobs, migrations. No legacy shared-model dependency or speculative business modules.
 - Spring JDBC owns explicit queue SQL; Liquibase XML native changes own schema construction.
 - JUnit, AssertJ, Testcontainers PostgreSQL and Failsafe integration/smoke tests.
 - Linux Docker deployment artifacts; isolated local Compose proof only. No production publication/deployment.
@@ -26,10 +26,10 @@ Implement the approved first infrastructure increment of US8, with authenticatio
 
 ## Project Structure
 
-- `apps/backend/backend-api`: secured HTTP assembly and private management endpoints.
-- `apps/backend/backend-worker`: bounded leased execution and process health.
-- `apps/backend/backend-jobs`: job publication, persistence, configuration and schema readiness shared by both runtimes.
-- `apps/backend/backend-migrations`: XML baseline, image and PostgreSQL migration tests.
+- `apps/backend/core-service`: secured HTTP assembly and private management endpoints.
+- `apps/backend/core-worker`: bounded leased execution and process health.
+- `apps/backend/jobs`: job publication, persistence, configuration and schema readiness shared by both runtimes.
+- `apps/backend/migrations`: XML baseline, image and PostgreSQL migration tests.
 - `infra/compose/docker-compose.backend.yml`: isolated database/migration/API/worker topology.
 - `scripts/backend-foundation/`: image build, local lifecycle and smoke commands.
 - Skill references: identical portable Liquibase policy plus Blockout-specific profile and validation-policy link bridge.

@@ -20,6 +20,6 @@ for role in blockout_api blockout_worker; do
     exit 1
   fi
 done
-"${compose[@]}" restart worker
+"${compose[@]}" restart core-worker
 "${compose[@]}" up -d --wait --wait-timeout 180
 curl --fail --silent http://127.0.0.1:19091/actuator/health/readiness

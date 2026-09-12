@@ -7,8 +7,8 @@
         <version>0.0.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <artifactId>backend-migrations</artifactId>
-    <name>backend-migrations</name>
+    <artifactId>migrations</artifactId>
+    <name>migrations</name>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -7,8 +7,8 @@
         <version>0.0.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <artifactId>backend-worker</artifactId>
-    <name>backend-worker</name>
+    <artifactId>core-worker</artifactId>
+    <name>core-worker</name>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -34,7 +34,7 @@
         </dependency>
         <dependency>
             <groupId>com.blockout</groupId>
-            <artifactId>backend-migrations</artifactId>
+            <artifactId>migrations</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
@@ -45,7 +45,7 @@
         </dependency>
         <dependency>
             <groupId>com.blockout</groupId>
-            <artifactId>backend-jobs</artifactId>
+            <artifactId>jobs</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

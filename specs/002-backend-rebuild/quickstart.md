@@ -2,7 +2,7 @@
 
 Prerequisites: Java 25, repository Maven wrapper, Node/npm, Docker with Compose. No production credentials are needed for automated tests.
 
-1. Run `./mvnw -f apps/backend/pom.xml -pl backend-migrations,backend-jobs,backend-api,backend-worker -am verify`.
+1. Run `./mvnw -f apps/backend/pom.xml -pl migrations,jobs,core-service,core-worker -am verify`.
 2. Run `scripts/backend-foundation/build.sh` to build all three images from one Git revision.
 3. Run `scripts/backend-foundation/local.sh up`. PostgreSQL starts, the Liquibase container exits successfully, then API and worker become ready.
 4. Run `scripts/backend-foundation/smoke.sh` for image/migration/readiness/privilege proofs.

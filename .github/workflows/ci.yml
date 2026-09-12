@@ -89,12 +89,12 @@ jobs:
       - name: Select deployable projects with Nx
         id: affected
         run: |
-          if git diff --name-only "$NX_BASE" "$NX_HEAD" | rg '^(apps/backend/(backend-(api|worker|jobs|migrations)/|pom.xml)|scripts/backend-foundation/|infra/compose/(backend/|docker-compose.backend.yml)|.dockerignore|.github/workflows/ci.yml|nx.json|package(-lock)?.json)' > /dev/null; then
+          if git diff --name-only "$NX_BASE" "$NX_HEAD" | rg '^(apps/backend/((core-(service|worker)|jobs|migrations)/|pom.xml)|scripts/backend-foundation/|infra/compose/(backend/|docker-compose.backend.yml)|.dockerignore|.github/workflows/ci.yml|nx.json|package(-lock)?.json)' > /dev/null; then
             echo "foundation-changed=true" >> "$GITHUB_OUTPUT"
           fi
           projects=$(npm exec nx -- show projects --affected --base="$NX_BASE" --head="$NX_HEAD" --withTarget=container --json)
           # Replacement images are verified but have no production deployment wiring.
-          projects=$(jq -c 'map(select(. != "@blockout/backend-api" and . != "@blockout/backend-worker"))' <<< "$projects")
+          projects=$(jq -c 'map(select(. != "@blockout/core-service" and . != "@blockout/core-worker"))' <<< "$projects")
           echo "Nx affected deployable projects: $projects"
           jq -e 'all(.[]; . == "@blockout/club-scraper" or . == "@blockout/clubs-service" or . == "@blockout/competition-scraper" or . == "@blockout/competition-service" or . == "@blockout/config-service" or . == "@blockout/matches-service" or . == "@blockout/mobile-gateway" or . == "@blockout/notification-service" or . == "@blockout/pools-service" or . == "@blockout/reports-service" or . == "@blockout/search-service" or . == "@blockout/search-worker" or . == "@blockout/teams-service" or . == "@blockout/users-service")' <<< "$projects" > /dev/null
           echo "projects=$(jq -c . <<< "$projects")" >> "$GITHUB_OUTPUT"

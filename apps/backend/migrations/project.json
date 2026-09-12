@@ -1,8 +1,8 @@
 {
-  "name": "@blockout/backend-worker",
+  "name": "@blockout/migrations",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "targets": {
-    "container": {
+    "migration-container": {
       "executor": "nx:run-commands",
       "cache": false,
       "inputs": [
@@ -12,7 +12,7 @@
         "{workspaceRoot}/.dockerignore"
       ],
       "options": {
-        "command": "scripts/backend-foundation/build.sh backend-worker",
+        "command": "scripts/backend-foundation/build.sh migrations",
         "cwd": "."
       }
     }

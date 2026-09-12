@@ -3,11 +3,11 @@ global:
 rule_files:
   - alerts.yml
 scrape_configs:
-  - job_name: backend-api
+  - job_name: core-service
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["api:9090"]
-  - job_name: backend-worker
+      - targets: ["core-service:9090"]
+  - job_name: core-worker
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["worker:9090"]
+      - targets: ["core-worker:9090"]

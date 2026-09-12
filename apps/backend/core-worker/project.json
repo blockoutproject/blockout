@@ -1,5 +1,5 @@
 {
-  "name": "@blockout/backend-api",
+  "name": "@blockout/core-worker",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "targets": {
     "container": {
@@ -12,7 +12,7 @@
         "{workspaceRoot}/.dockerignore"
       ],
       "options": {
-        "command": "scripts/backend-foundation/build.sh backend-api",
+        "command": "scripts/backend-foundation/build.sh core-worker",
         "cwd": "."
       }
     }

@@ -1,12 +1,12 @@
 spring:
   application:
-    name: backend-worker
+    name: core-service
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
-      maximum-pool-size: 6
+      maximum-pool-size: 10
       minimum-idle: 1
       connection-timeout: 3000
       connection-init-sql: "SET TIME ZONE 'UTC'; SET statement_timeout = '10s'; SET lock_timeout = '3s'"
@@ -40,18 +40,10 @@ management:
         enabled: true
       group:
         readiness:
-          include: readinessState,db,schema,jobWorker
+          include: readinessState,db,schema
         liveness:
           include: livenessState
 logging:
   structured:
     format:
       console: ecs
-blockout:
-  worker:
-    concurrency: 2
-    poll: 1s
-    lease: 60s
-    renewal: 20s
-    deadline: 2m
-    shutdown-grace: 30s

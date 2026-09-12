@@ -30,7 +30,7 @@ groups:
         annotations:
           summary: Backend worker cannot make progress
       - alert: BackendProcessUnavailable
-        expr: up{job=~"backend-api|backend-worker"} == 0
+        expr: up{job=~"core-service|core-worker"} == 0
         for: 30s
         labels:
           severity: critical

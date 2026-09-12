@@ -17,7 +17,7 @@ services:
     mem_limit: 512m
     cpus: 1
   migrations:
-    image: backend-migrations:local
+    image: migrations:local
     environment:
       LIQUIBASE_COMMAND_URL: jdbc:postgresql://database:5432/blockout
       LIQUIBASE_COMMAND_USERNAME: blockout_migration
@@ -29,8 +29,8 @@ services:
     restart: "no"
     mem_limit: 512m
     cpus: 1
-  api:
-    image: backend-api:local
+  core-service:
+    image: core-service:local
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/blockout
       SPRING_DATASOURCE_USERNAME: blockout_api
@@ -60,8 +60,8 @@ services:
     mem_limit: 768m
     cpus: 1
     stop_grace_period: 40s
-  worker:
-    image: backend-worker:local
+  core-worker:
+    image: core-worker:local
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/blockout
       SPRING_DATASOURCE_USERNAME: blockout_worker
