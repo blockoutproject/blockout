@@ -12,6 +12,11 @@
 
 ### Authority Boundaries
 
+The [fresh backend rebuild specification](../002-backend-rebuild/spec.md) records the subsequently approved reset,
+identity/subscription, temporal, search, and continuation changes. Those explicit requirements amend this document's
+behavior-preservation assumption for the replacement. This specification remains the authority for visual language,
+navigation and accessibility; newly affected states require design evidence rather than implicit Figma approval.
+
 - This specification, once explicitly accepted, is the authority for the future mobile visual language and observable design intent.
 - The production mobile source and tests are evidence of delivered functional behavior, routes, roles, permissions, and states. They do not constrain the target visual language.
 - The archived Blockout Product Design section `730:4469` is visual evidence of the delivered interface. It does not define the target design language.

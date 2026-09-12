@@ -139,6 +139,12 @@ A `Match` is a scheduled contest between exactly two teams in one pool and seaso
 venue, officials, score, set information, and active state. Live-viewing information is attached through a separately
 moderated live link and never changes the sporting result.
 
+A schedule distinguishes a trustworthy precise instant from a civil date whose time is unknown. Its source timezone
+is interpretation context, separate from the viewer's display timezone. A date-only schedule never implies midnight.
+The [rebuild specification](../../specs/002-backend-rebuild/spec.md) owns device-timezone presentation, unknown-time
+states, calendar selection, and time-based authorization behavior; the [target architecture](backend-rebuild-architecture.md)
+derives their storage and transport representation.
+
 ## Audience Model
 
 ### User And Identity

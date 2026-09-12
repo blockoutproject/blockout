@@ -8,6 +8,15 @@ capabilities explicit without duplicating business authority in the application.
 
 ## Decision
 
+### Replacement Backend Direction
+
+The [backend rebuild architecture](backend-rebuild-architecture.md) records the explicitly approved replacement
+direction: in-process mobile composition in a modular Java backend, separate API/worker executables, fresh
+Liquibase-managed state, durable database jobs, retained Auth0/RevenueCat associations, and device-timezone date
+presentation. The [rebuild specification](../../specs/002-backend-rebuild/spec.md) defines its observable behavior.
+The named service topology below describes the existing runtime until replaced; it is not a requirement to retain
+those deployment boundaries or RabbitMQ in the replacement. This amendment does not claim the replacement is deployed.
+
 ### Mobile Application
 
 The deployable application lives under `apps/frontend/mobile` and uses Expo with React Native. Expo Router owns routes,
