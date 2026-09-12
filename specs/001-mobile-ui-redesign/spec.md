@@ -12,6 +12,10 @@
 
 ### Authority Boundaries
 
+The [backend specification](../002-backend-rebuild/spec.md) owns reset, identity/subscription, temporal, official
+standing, search, continuation and cutover behavior. This specification owns visual language, navigation and
+accessibility. The design must cover the applicable behavior and recovery states with approved evidence.
+
 - This specification, once explicitly accepted, is the authority for the future mobile visual language and observable design intent.
 - The production mobile source and tests are evidence of delivered functional behavior, routes, roles, permissions, and states. They do not constrain the target visual language.
 - The archived Blockout Product Design section `730:4469` is visual evidence of the delivered interface. It does not define the target design language.
@@ -153,19 +157,20 @@ As a product designer or mobile engineer, I can identify the authoritative token
 
 ---
 
-### User Story 5 - Migrate Without Functional Regression (Priority: P3)
+### User Story 5 - Deliver Journeys with Compatible Recovery (Priority: P3)
 
-As a product owner, I can approve incremental redesigned journeys while the remaining application continues to work, with clear evidence and a safe reversal path for every migrated slice.
+As a product owner, I can approve redesigned journeys with evidence of the specified behavior and a recovery procedure compatible with the backend used by that release.
 
-**Why this priority**: Migration follows approved designs and planning, but its product boundaries must be fixed before technical choices are made.
+**Why this priority**: Journey delivery must preserve coherent navigation and behavior while respecting the release's data and API boundaries.
 
-**Independent Test**: Evaluate a proposed pilot against the selection criteria and demonstrate that it can coexist with legacy presentation without duplicating business rules.
+**Independent Test**: Evaluate a representative journey against the selection criteria and exercise its release gates and compatible recovery procedure, including the replacement backend cutover.
 
 **Acceptance Scenarios**:
 
-1. **Given** a candidate pilot journey, **When** it is evaluated, **Then** it has representative complexity, strong existing behavioral evidence, bounded risk, and reversible delivery.
-2. **Given** a partially migrated application, **When** a user crosses between migrated and legacy journeys, **Then** routes, capabilities, data, and business outcomes remain consistent.
-3. **Given** a failed rollout gate, **When** the slice is withheld or reversed, **Then** the previous presentation remains usable without data or behavior migration.
+1. **Given** a candidate pilot journey, **When** evaluated, **Then** it has representative complexity, strong behavioral evidence, bounded risk, and a tested compatible recovery procedure.
+2. **Given** presentation components delivered incrementally against the same supported backend, **When** a user crosses between them, **Then** routes, capabilities, data and specified business outcomes remain coherent.
+3. **Given** failed pre-opening replacement checks, **When** release is considered, **Then** opening is postponed rather than exposing an incompatible application.
+4. **Given** a post-opening incident, **When** recovery runs, **Then** it restores compatible replacement code/data; the new application never returns to the legacy business API.
 
 ### Edge Cases
 
@@ -250,8 +255,8 @@ As a product owner, I can approve incremental redesigned journeys while the rema
 
 - **FR-043**: Migration MUST proceed through coherent vertical journeys whose presentation can coexist with legacy journeys at a navigation or screen boundary without duplicating business logic.
 - **FR-044**: A migrated screen or vertical slice MUST use one coherent foundation and component generation; legacy and replacement primitives MUST NOT be mixed within the migrated boundary.
-- **FR-045**: Pilot selection MUST require representative navigation, list or data-display, form or interaction, feedback and failure states, reliable current behavioral tests, bounded authorization and data risk, measurable accessibility evidence, and a reversible presentation boundary.
-- **FR-046**: Every migration slice MUST pass approved-design traceability, functional parity, accessibility, theme and width coverage, platform behavior, visual review, performance comparison, and rollback-readiness gates before release.
+- **FR-045**: Pilot selection MUST require representative navigation, list or data-display, form or interaction, feedback and failure states, reliable current behavioral tests, bounded authorization and data risk, measurable accessibility evidence, and a presentation recovery boundary compatible with the release backend.
+- **FR-046**: Every migration slice MUST pass approved-design traceability, functional parity, accessibility, theme and width coverage, platform behavior, visual review, performance comparison, and compatible-recovery gates before release.
 - **FR-047**: Legacy visual assets and components MUST remain available while they have active consumers and MAY be removed only after every consumer has migrated and the replacement journey has passed its release evidence.
 - **FR-048**: No Figma library, target screen design, technical plan, task set, implementation roadmap, production UI change, dependency change, route change, contract change, or business behavior change is authorized by this specification issue.
 
@@ -288,7 +293,7 @@ As a product owner, I can approve incremental redesigned journeys while the rema
 - **Product Pattern**: An approved reusable composition of published components that solves a product journey need without owning business logic.
 - **Representative Screen State**: Traceable evidence of one route, role, theme, platform, width, content condition, and interaction or failure state.
 - **Design-System Release**: A compatible set of approved library definitions, Product Design evidence, version metadata, validation results, and any released repository projection.
-- **Migration Slice**: A coherent vertical journey with defined boundaries, parity evidence, release gates, consumers, and rollback expectations.
+- **Migration Slice**: A coherent vertical journey with defined boundaries, parity evidence, release gates, consumers, and compatible recovery expectations.
 
 ## Success Criteria _(mandatory)_
 
@@ -302,7 +307,7 @@ As a product owner, I can approve incremental redesigned journeys while the rema
 - **SC-006**: In moderated validation with at least five representative users, at least 90% complete each selected core discovery, match, following, and account task without a design-caused dead end.
 - **SC-007**: A release traceability review can resolve 100% of sampled semantic tokens, reusable components, and product patterns to one approved library definition and compatible evidence, with zero conflicting manually maintained visual values.
 - **SC-008**: Every deprecated design-system item has a named replacement, migration guidance, known consumer count, and at least one retained migration cycle; no removal is approved with active consumers.
-- **SC-009**: Every future migration slice demonstrates functional parity for all affected roles and states, passes all declared release gates, and has a tested reversal path before user release.
+- **SC-009**: Every migration slice demonstrates its specified behavior for all affected roles and states, passes its release gates, and has a tested compatible recovery procedure. Backend cutover is postponed if pre-opening checks fail; after opening, recovery restores compatible replacement code/data and never routes the new application to the legacy business API.
 - **SC-010**: Acceptance review finds zero unresolved material questions, zero unauthorized behavior changes, and zero target design, planning, task, roadmap, dependency, or production-code artifacts in this issue.
 
 ## Assumptions

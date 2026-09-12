@@ -8,6 +8,15 @@ capabilities explicit without duplicating business authority in the application.
 
 ## Decision
 
+### Runtime Boundaries
+
+The [backend architecture](backend-rebuild-architecture.md) defines in-process mobile composition in a modular Java
+backend, separate API/worker executables, fresh Liquibase-managed state, durable database jobs, retained
+Auth0/RevenueCat associations, official standings, and device-timezone presentation of known instants. Date-only
+schedules preserve their announced competition date. The [backend specification](../../specs/002-backend-rebuild/spec.md)
+owns observable behavior. The service topology below describes the existing runtime; replacement deployment
+boundaries and delivery state are defined independently.
+
 ### Mobile Application
 
 The deployable application lives under `apps/frontend/mobile` and uses Expo with React Native. Expo Router owns routes,
