@@ -28,7 +28,7 @@ Goal: migrate a fresh isolated database and start both processes with recoverabl
 
 ## Phase 4: Verification
 
-- [ ] T014 Run focused/full validation, Docker smoke, and review all foundation sources against specs/002-backend-rebuild/quickstart.md; record evidence on the issue/PR.
+- [x] T014 Run focused/full validation, Docker smoke, and review all foundation sources against specs/002-backend-rebuild/quickstart.md; record evidence on the issue/PR.
 
 ## Dependencies and Implementation Strategy
 
