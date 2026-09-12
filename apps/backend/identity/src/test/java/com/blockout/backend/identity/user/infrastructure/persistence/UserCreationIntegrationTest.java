@@ -87,6 +87,26 @@ class UserCreationIntegrationTest {
   }
 
   @Test
+  void creationReturnsTheSameInstantsAsThePersistedProfile() {
+    var actor = actor("apple|precise-clock");
+    var service =
+        new UserProfiles(
+            profiles,
+            ignored -> new IdentityLookup.Found(info(null)),
+            tx,
+            Clock.fixed(Instant.parse("2026-10-25T01:30:00.123456789Z"), ZoneId.of("Europe/Paris")),
+            "project",
+            "production");
+
+    var created = (ProfileResult.Available) service.ensure(actor);
+    var read = (ProfileResult.Available) service.find(actor);
+
+    assertThat(created.profile()).isEqualTo(read.profile());
+    assertThat(read.profile().createdAt()).isEqualTo(Instant.parse("2026-10-25T01:30:00.123457Z"));
+    assertThat(read.profile().updatedAt()).isEqualTo(read.profile().createdAt());
+  }
+
+  @Test
   void acceptsTwoDistinctIdentitiesWithTheSameEmail() {
     var first =
         (ProfileResult.Available) create(actor("google-oauth2|first"), info("same@example.test"));

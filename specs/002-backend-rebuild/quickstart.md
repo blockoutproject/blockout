@@ -2,11 +2,12 @@
 
 Prerequisites: Java 25, repository Maven wrapper, Node/npm, Docker with Compose. No production credentials are needed for automated tests.
 
-1. Run `./mvnw -f apps/backend/pom.xml -pl migrations,jobs,core-service,core-worker -am verify`.
-2. Run `scripts/backend-foundation/build.sh` to build all three images from one Git revision.
-3. Run `scripts/backend-foundation/local.sh up`. PostgreSQL starts, the Liquibase container exits successfully, then API and worker become ready.
-4. Run `scripts/backend-foundation/smoke.sh` for image/migration/readiness/privilege proofs.
-5. `scripts/backend-foundation/local.sh down` retains local data; `scripts/backend-foundation/local.sh reset` explicitly recreates only the isolated development volume.
+1. Run `npm run contracts:generate` before compiling the generated API boundary from a fresh checkout.
+2. Run `./mvnw -f apps/backend/pom.xml -pl migrations,jobs,core-service,core-worker -am verify`.
+3. Run `scripts/backend-foundation/build.sh` to build all three images from one Git revision.
+4. Run `scripts/backend-foundation/local.sh up`. PostgreSQL starts, the Liquibase container exits successfully, then API and worker become ready.
+5. Run `scripts/backend-foundation/smoke.sh` for image/migration/readiness/privilege proofs.
+6. `scripts/backend-foundation/local.sh down` retains local data; `scripts/backend-foundation/local.sh reset` explicitly recreates only the isolated development volume.
 
 Development Auth0 values use a reserved invalid issuer and have no real users. Protected-route JWT tests run with a controlled local JWKS server. For interactive Auth0 verification supply the existing issuer/audience/JWKS URL via documented environment values; never commit tokens or secrets.
 

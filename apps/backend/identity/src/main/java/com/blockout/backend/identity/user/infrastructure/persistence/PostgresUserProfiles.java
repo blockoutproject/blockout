@@ -48,9 +48,10 @@ public final class PostgresUserProfiles implements UserProfileStore {
       String project,
       String environment) {
     requireTransaction();
-    int inserted =
-        sql.update(
-            "INSERT INTO identity.users(id,pseudo,pseudo_key,email,first_name,last_name,phone_number,picture_url,active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,true,?,?) ON CONFLICT(pseudo_key) DO NOTHING",
+    var inserted =
+        sql.query(
+            "INSERT INTO identity.users(id,pseudo,pseudo_key,email,first_name,last_name,phone_number,picture_url,active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,true,?,?) ON CONFLICT(pseudo_key) DO NOTHING RETURNING *",
+            (rs, row) -> read(rs),
             id,
             pseudo,
             pseudo.toLowerCase(Locale.ROOT),
@@ -61,7 +62,7 @@ public final class PostgresUserProfiles implements UserProfileStore {
             attrs.pictureUrl(),
             Timestamp.from(now),
             Timestamp.from(now));
-    if (inserted == 0) return Optional.empty();
+    if (inserted.isEmpty()) return Optional.empty();
     sql.update(
         "INSERT INTO identity.external_identities(issuer,subject,user_id) VALUES (?,?,?)",
         identity.issuer(),
@@ -74,18 +75,7 @@ public final class PostgresUserProfiles implements UserProfileStore {
         environment,
         identity.subject(),
         Timestamp.from(now));
-    return Optional.of(
-        new UserProfile(
-            id,
-            pseudo,
-            attrs.email(),
-            attrs.firstName(),
-            attrs.lastName(),
-            attrs.phoneNumber(),
-            attrs.pictureUrl(),
-            true,
-            now,
-            now));
+    return Optional.of(inserted.getFirst());
   }
 
   private UserProfile read(ResultSet rs) throws SQLException {

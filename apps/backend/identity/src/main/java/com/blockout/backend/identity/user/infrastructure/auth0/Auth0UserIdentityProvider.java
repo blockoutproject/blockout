@@ -28,6 +28,8 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
   private final JsonMapper json = new JsonMapper();
   private String accessToken;
   private Instant refreshAt = Instant.MIN;
+  private String tokenFailure;
+  private Instant retryTokenAt = Instant.MIN;
 
   public Auth0UserIdentityProvider(
       Auth0ProfileProperties properties, Clock clock, MeterRegistry metrics) {
@@ -47,15 +49,16 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
   @Override
   public IdentityLookup find(ExternalIdentity identity) {
     long started = System.nanoTime();
+    String token = null;
     try {
-      String token = token();
+      token = token();
       URI endpoint =
           UriComponentsBuilder.fromUri(properties.baseUrl())
               .pathSegment("api", "v2", "users", identity.subject())
               .build()
               .encode()
               .toUri();
-      JsonNode profile = read(http.get().uri(endpoint).headers(h -> h.setBearerAuth(token)));
+      JsonNode profile = read(http.get().uri(endpoint).header("Authorization", "Bearer " + token));
       String subject = text(profile, "user_id", 255);
       if (!identity.subject().equals(subject)) {
         record("mismatch", started);
@@ -71,6 +74,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
       record("success", started);
       return new IdentityLookup.Found(attributes);
     } catch (ProviderFailure failure) {
+      if (failure.status == 401) invalidateToken(token);
       record(failure.code, started);
       LOG.atWarn()
           .addKeyValue("event.action", "identity.lookup")
@@ -81,9 +85,26 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
     }
   }
 
-  /** Synchronized renewal prevents concurrent first logins from issuing a token-request burst. */
+  /** Coalesces renewal and backs off failed requests so concurrent logins cannot hammer Auth0. */
   private synchronized String token() {
     if (accessToken != null && clock.instant().isBefore(refreshAt)) return accessToken;
+    if (tokenFailure != null && clock.instant().isBefore(retryTokenAt))
+      throw new ProviderFailure(tokenFailure);
+    try {
+      return renewToken();
+    } catch (ProviderFailure failure) {
+      tokenFailure = failure.code;
+      retryTokenAt = clock.instant().plusSeconds(5);
+      throw failure;
+    }
+  }
+
+  private synchronized void invalidateToken(String rejected) {
+    // A late 401 for the old token must not invalidate a newer concurrent renewal.
+    if (rejected != null && rejected.equals(accessToken)) accessToken = null;
+  }
+
+  private String renewToken() {
     var endpoint = properties.baseUrl().resolve("/oauth/token");
     var body =
         Map.of(
@@ -109,6 +130,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
       throw new ProviderFailure("IDENTITY_CONFIGURATION_ERROR");
     long lifetime = Math.min(seconds.asLong(), 86400);
     accessToken = candidate;
+    tokenFailure = null;
     refreshAt = clock.instant().plusSeconds(lifetime - Math.min(30, lifetime / 2));
     return accessToken;
   }
@@ -122,7 +144,8 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
               throw new ProviderFailure(
                   status == 401 || status == 403
                       ? "IDENTITY_CONFIGURATION_ERROR"
-                      : "IDENTITY_PROVIDER_UNAVAILABLE");
+                      : "IDENTITY_PROVIDER_UNAVAILABLE",
+                  status);
             byte[] bytes = res.getBody().readNBytes(MAX_RESPONSE_BYTES + 1);
             if (bytes.length > MAX_RESPONSE_BYTES)
               throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
@@ -152,10 +175,16 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
 
   private static final class ProviderFailure extends RuntimeException {
     private final String code;
+    private final int status;
 
     ProviderFailure(String code) {
+      this(code, 0);
+    }
+
+    ProviderFailure(String code, int status) {
       super(code);
       this.code = code;
+      this.status = status;
     }
   }
 }

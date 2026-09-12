@@ -228,7 +228,10 @@ class CurrentUserIntegrationTest {
   }
 
   @Test
-  void unexpectedFailuresNeverExposeProviderMessages() throws Exception {
+  @org.junit.jupiter.api.extension.ExtendWith(
+      org.springframework.boot.test.system.OutputCaptureExtension.class)
+  void unexpectedFailuresNeverExposeProviderMessages(
+      org.springframework.boot.test.system.CapturedOutput output) throws Exception {
     when(provider.find(any()))
         .thenThrow(new IllegalStateException("private@example.test synthetic-secret"));
     var response = request("POST", user());
@@ -236,6 +239,9 @@ class CurrentUserIntegrationTest {
     assertThat(response.body())
         .contains("INTERNAL_ERROR")
         .doesNotContain("private@", "synthetic-secret", "IllegalStateException");
+    assertThat(output.getAll())
+        .contains("java.lang.IllegalStateException")
+        .doesNotContain("private@example.test", "synthetic-secret");
   }
 
   @Test

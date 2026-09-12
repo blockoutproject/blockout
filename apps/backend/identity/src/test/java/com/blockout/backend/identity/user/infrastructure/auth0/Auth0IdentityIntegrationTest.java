@@ -119,6 +119,39 @@ class Auth0IdentityIntegrationTest {
   }
 
   @Test
+  void coalescesFailedCredentialRequestsUntilTheRetryDelay() throws Exception {
+    tokenStatus = 503;
+    var provider = provider();
+
+    try (var pool = Executors.newFixedThreadPool(6)) {
+      var futures = new java.util.ArrayList<Future<IdentityLookup>>();
+      for (int i = 0; i < 6; i++) futures.add(pool.submit(() -> provider.find(actor())));
+      for (var future : futures)
+        assertThat(future.get(10, TimeUnit.SECONDS)).isInstanceOf(IdentityLookup.Unavailable.class);
+    }
+    assertThat(tokens).hasValue(1);
+    assertThat(profiles).hasValue(0);
+
+    tokenStatus = 200;
+    clock.now = clock.now.plusSeconds(5);
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
+    assertThat(tokens).hasValue(2);
+  }
+
+  @Test
+  void renewsARejectedCachedTokenOnTheNextRequest() {
+    var provider = provider();
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
+    profileStatus = 401;
+
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+    profileStatus = 200;
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
+
+    assertThat(tokens).hasValue(2);
+  }
+
+  @Test
   void acceptsAbsentOptionalAttributes() {
     profileBody = "{\"user_id\":\"google-oauth2|person\"}";
     var result = (IdentityLookup.Found) provider().find(actor());
@@ -139,6 +172,42 @@ class Auth0IdentityIntegrationTest {
     var result = provider().find(actor());
     assertThat(result).isInstanceOf(IdentityLookup.Unavailable.class);
     assertThat(result.toString()).doesNotContain("private@", "synthetic-secret");
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+  void boundsStalledProviderResponses(boolean sendHeaders) throws Exception {
+    var received = new CountDownLatch(1);
+    var release = new CountDownLatch(1);
+    server.removeContext("/api/v2/users/");
+    server.createContext(
+        "/api/v2/users/",
+        exchange -> {
+          try {
+            if (sendHeaders) {
+              exchange.sendResponseHeaders(200, 0);
+              exchange.getResponseBody().write('{');
+              exchange.getResponseBody().flush();
+            }
+            received.countDown();
+            release.await();
+          } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+          } finally {
+            exchange.close();
+          }
+        });
+
+    try (var pool = Executors.newSingleThreadExecutor()) {
+      var result = pool.submit(() -> provider().find(actor()));
+      try {
+        assertThat(received.await(3, TimeUnit.SECONDS)).isTrue();
+        assertThat(result.get(8, TimeUnit.SECONDS))
+            .isEqualTo(new IdentityLookup.Unavailable("IDENTITY_PROVIDER_UNAVAILABLE"));
+      } finally {
+        release.countDown();
+      }
+    }
   }
 
   @Test
