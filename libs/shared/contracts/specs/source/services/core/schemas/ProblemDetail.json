@@ -1,0 +1,24 @@
+{
+  "ProblemDetail": {
+    "type": "object",
+    "required": ["type", "title", "status", "detail", "code"],
+    "properties": {
+      "type": {
+        "type": "string",
+        "format": "uri"
+      },
+      "title": {
+        "type": "string"
+      },
+      "status": {
+        "type": "integer"
+      },
+      "detail": {
+        "type": "string"
+      },
+      "code": {
+        "type": "string"
+      }
+    }
+  }
+}

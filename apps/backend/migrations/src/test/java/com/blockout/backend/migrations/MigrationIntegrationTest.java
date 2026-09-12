@@ -29,7 +29,7 @@ class MigrationIntegrationTest {
     try (var c = connect()) {
       c.createStatement()
           .execute(
-              "DROP SCHEMA IF EXISTS operations CASCADE; DROP TABLE IF EXISTS public.databasechangelog; DROP TABLE IF EXISTS public.databasechangeloglock; CREATE SCHEMA operations; GRANT USAGE ON SCHEMA operations TO blockout_api, blockout_worker");
+              "DROP SCHEMA IF EXISTS operations CASCADE; DROP SCHEMA IF EXISTS identity CASCADE; DROP TABLE IF EXISTS public.databasechangelog; DROP TABLE IF EXISTS public.databasechangeloglock; CREATE SCHEMA operations; CREATE SCHEMA identity; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
     }
   }
 
@@ -61,7 +61,7 @@ class MigrationIntegrationTest {
           c.createStatement()
               .executeQuery("SELECT generation FROM operations.schema_metadata WHERE id=1");
       generation.next();
-      assertThat(generation.getInt(1)).isEqualTo(1);
+      assertThat(generation.getInt(1)).isEqualTo(2);
     }
   }
 
@@ -86,9 +86,37 @@ class MigrationIntegrationTest {
     try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test")) {
       assertThatThrownBy(
               () ->
-                  c.createStatement().execute("UPDATE operations.schema_metadata SET generation=2"))
+                  c.createStatement().execute("UPDATE operations.schema_metadata SET generation=3"))
           .isInstanceOfSatisfying(
               SQLException.class, failure -> assertThat(failure.getSQLState()).isEqualTo("42501"));
+    }
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"blockout_api", "blockout_worker"})
+  void runtimeRoleCannotCreateIdentityTables(String role) throws Exception {
+    migrate();
+    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test")) {
+      assertThatThrownBy(
+              () -> c.createStatement().execute("CREATE TABLE identity.forbidden(id int)"))
+          .isInstanceOfSatisfying(
+              SQLException.class, e -> assertThat(e.getSQLState()).isEqualTo("42501"));
+    }
+  }
+
+  @Test
+  void workerCannotCreateBusinessUsers() throws Exception {
+    migrate();
+    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), "blockout_worker", "test")) {
+      assertThat(c.createStatement().executeQuery("SELECT count(*) FROM identity.users").next())
+          .isTrue();
+      assertThatThrownBy(
+              () ->
+                  c.createStatement()
+                      .execute(
+                          "INSERT INTO identity.users(id,pseudo,pseudo_key,active,created_at,updated_at) VALUES (gen_random_uuid(),'user','user',true,now(),now())"))
+          .isInstanceOfSatisfying(
+              SQLException.class, e -> assertThat(e.getSQLState()).isEqualTo("42501"));
     }
   }
 

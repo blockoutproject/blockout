@@ -11,7 +11,7 @@
         </createTable>
         <insert schemaName="operations" tableName="schema_metadata">
             <column name="id" valueNumeric="1"/>
-            <column name="generation" valueNumeric="1"/>
+            <column name="generation" valueNumeric="2"/>
         </insert>
         <createTable schemaName="operations" tableName="jobs">
             <column name="id" type="uuid">
@@ -74,9 +74,41 @@
             <column name="state"/>
             <column name="finished_at"/>
         </createIndex>
+        <createTable schemaName="identity" tableName="users">
+            <column name="id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_identity_users"/></column>
+            <column name="pseudo" type="varchar(30)"><constraints nullable="false"/></column>
+            <column name="pseudo_key" type="varchar(30)"><constraints nullable="false"/></column>
+            <column name="email" type="varchar(320)"><constraints nullable="true"/></column>
+            <column name="first_name" type="varchar(255)"><constraints nullable="true"/></column>
+            <column name="last_name" type="varchar(255)"><constraints nullable="true"/></column>
+            <column name="phone_number" type="varchar(64)"><constraints nullable="true"/></column>
+            <column name="picture_url" type="varchar(2048)"><constraints nullable="true"/></column>
+            <column name="active" type="boolean"><constraints nullable="false"/></column>
+            <column name="created_at" type="timestamptz"><constraints nullable="false"/></column>
+            <column name="updated_at" type="timestamptz"><constraints nullable="false"/></column>
+        </createTable>
+        <createTable schemaName="identity" tableName="external_identities">
+            <column name="issuer" type="varchar(512)"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_identity_external_identities"/></column>
+            <column name="subject" type="varchar(255)"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_identity_external_identities"/></column>
+            <column name="user_id" type="uuid"><constraints nullable="false"/></column>
+        </createTable>
+        <createTable schemaName="identity" tableName="billing_bindings">
+            <column name="user_id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_identity_billing_bindings"/></column>
+            <column name="project_id" type="varchar(255)"><constraints nullable="false"/></column>
+            <column name="environment" type="varchar(20)"><constraints nullable="false"/></column>
+            <column name="customer_id" type="varchar(100)"><constraints nullable="false"/></column>
+            <column name="created_at" type="timestamptz"><constraints nullable="false"/></column>
+        </createTable>
+        <addUniqueConstraint schemaName="identity" tableName="users" columnNames="pseudo_key" constraintName="uq_identity_pseudo"/>
+        <addUniqueConstraint schemaName="identity" tableName="billing_bindings" columnNames="project_id,environment,customer_id" constraintName="uq_identity_billing_customer"/>
+        <addForeignKeyConstraint baseTableSchemaName="identity" baseTableName="external_identities" baseColumnNames="user_id" referencedTableSchemaName="identity" referencedTableName="users" referencedColumnNames="id" constraintName="fk_identity_external_user" onDelete="RESTRICT"/>
+        <addForeignKeyConstraint baseTableSchemaName="identity" baseTableName="billing_bindings" baseColumnNames="user_id" referencedTableSchemaName="identity" referencedTableName="users" referencedColumnNames="id" constraintName="fk_identity_billing_user" onDelete="RESTRICT"/>
+        <createIndex schemaName="identity" tableName="external_identities" indexName="idx_identity_external_user"><column name="user_id"/></createIndex>
         <!-- Community Liquibase has no native privilege change; grants are the only SQL exception. -->
         <sql>GRANT SELECT ON operations.schema_metadata TO blockout_api, blockout_worker;
 GRANT SELECT, INSERT ON operations.jobs TO blockout_api;
-GRANT SELECT, INSERT, UPDATE, DELETE ON operations.jobs TO blockout_worker;</sql>
+GRANT SELECT, INSERT, UPDATE, DELETE ON operations.jobs TO blockout_worker;
+GRANT SELECT, INSERT ON identity.users, identity.external_identities, identity.billing_bindings TO blockout_api;
+GRANT SELECT ON identity.users, identity.external_identities, identity.billing_bindings TO blockout_worker;</sql>
     </changeSet>
 </databaseChangeLog>

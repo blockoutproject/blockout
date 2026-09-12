@@ -40,7 +40,7 @@ management:
         enabled: true
       group:
         readiness:
-          include: readinessState,db,schema
+          include: readinessState,db,schema,identitySchema
         liveness:
           include: livenessState
 logging:

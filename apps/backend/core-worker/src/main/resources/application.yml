@@ -40,7 +40,7 @@ management:
         enabled: true
       group:
         readiness:
-          include: readinessState,db,schema,jobWorker
+          include: readinessState,db,schema,identitySchema,jobWorker
         liveness:
           include: livenessState
 logging:

@@ -1,0 +1,240 @@
+package com.blockout.backend.identity.user.infrastructure.persistence;
+
+import static org.assertj.core.api.Assertions.*;
+
+import com.blockout.backend.identity.user.application.*;
+import com.blockout.backend.identity.user.domain.ExternalIdentity;
+import java.sql.*;
+import java.time.*;
+import java.util.*;
+import java.util.concurrent.*;
+import liquibase.Liquibase;
+import liquibase.database.jvm.JdbcConnection;
+import liquibase.resource.ClassLoaderResourceAccessor;
+import org.junit.jupiter.api.*;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.support.JdbcTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.*;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+@Testcontainers
+class UserCreationIntegrationTest {
+  @Container static final PostgreSQLContainer DB = new PostgreSQLContainer("postgres:17-alpine");
+  static JdbcTemplate admin;
+  static JdbcTemplate sql;
+  static TransactionTemplate tx;
+  static PostgresUserProfiles profiles;
+  static final Instant NOW = Instant.parse("2026-09-12T12:00:00Z");
+
+  @BeforeAll
+  static void setup() throws Exception {
+    var owner = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
+    admin = new JdbcTemplate(owner);
+    admin.execute(
+        "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
+    try (var c = owner.getConnection();
+        var lb =
+            new Liquibase(
+                "db/changelog/db.changelog-master.xml",
+                new ClassLoaderResourceAccessor(),
+                new JdbcConnection(c))) {
+      lb.update("");
+    }
+    var api = new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_api", "test");
+    sql = new JdbcTemplate(api);
+    tx = new TransactionTemplate(new JdbcTransactionManager(api));
+    tx.setTimeout(5);
+    profiles = new PostgresUserProfiles(sql);
+  }
+
+  @BeforeEach
+  void clean() {
+    admin.execute("TRUNCATE identity.users CASCADE");
+  }
+
+  ExternalIdentity actor(String subject) {
+    return new ExternalIdentity("https://tenant.example/", subject);
+  }
+
+  ExternalProfile info(String email) {
+    return new ExternalProfile(email, "First", "Last", null, null);
+  }
+
+  ProfileResult create(ExternalIdentity actor, ExternalProfile info) {
+    return new UserProfiles(
+            profiles,
+            ignored -> new IdentityLookup.Found(info),
+            tx,
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            "project",
+            "production")
+        .ensure(actor);
+  }
+
+  @Test
+  void createsOneAtomicProfileWithTheOriginalBillingIdentity() {
+    var actor = actor("google-oauth2|first");
+    var created = (ProfileResult.Available) create(actor, info("name@example.test"));
+    assertThat(created.created()).isTrue();
+    assertThat(created.profile().createdAt()).isEqualTo(NOW);
+    assertThat(
+            sql.queryForObject("SELECT customer_id FROM identity.billing_bindings", String.class))
+        .isEqualTo(actor.subject());
+    assertThat(sql.queryForObject("SELECT user_id FROM identity.external_identities", UUID.class))
+        .isEqualTo(created.profile().id());
+  }
+
+  @Test
+  void acceptsTwoDistinctIdentitiesWithTheSameEmail() {
+    var first =
+        (ProfileResult.Available) create(actor("google-oauth2|first"), info("same@example.test"));
+    var second = (ProfileResult.Available) create(actor("apple|second"), info("same@example.test"));
+    assertThat(second.profile().id()).isNotEqualTo(first.profile().id());
+    assertThat(second.profile().pseudo()).isNotEqualTo(first.profile().pseudo());
+  }
+
+  @Test
+  void supportsMissingProviderAttributes() {
+    var created =
+        (ProfileResult.Available)
+            create(actor("apple|private"), new ExternalProfile(null, null, null, null, null));
+    assertThat(created.profile().email()).isNull();
+    assertThat(created.profile().pseudo()).isEqualTo("user");
+  }
+
+  @Test
+  void concurrentFirstRequestsReturnOneProfile() throws Exception {
+    var actor = actor("google-oauth2|concurrent");
+    var start = new CountDownLatch(1);
+    try (var pool = Executors.newFixedThreadPool(8)) {
+      List<Future<ProfileResult.Available>> results = new ArrayList<>();
+      for (int i = 0; i < 8; i++)
+        results.add(
+            pool.submit(
+                () -> {
+                  start.await();
+                  return (ProfileResult.Available) create(actor, info("race@example.test"));
+                }));
+      start.countDown();
+      var values = new ArrayList<ProfileResult.Available>();
+      for (var result : results) values.add(result.get(15, TimeUnit.SECONDS));
+      assertThat(values.stream().map(x -> x.profile().id()).distinct()).hasSize(1);
+      assertThat(values.stream().filter(ProfileResult.Available::created)).hasSize(1);
+    }
+    assertThat(sql.queryForObject("SELECT count(*) FROM identity.billing_bindings", Integer.class))
+        .isEqualTo(1);
+  }
+
+  @Test
+  void concurrentPseudonymCollisionsKeepDistinctProfiles() throws Exception {
+    try (var pool = Executors.newFixedThreadPool(6)) {
+      var results = new ArrayList<Future<ProfileResult>>();
+      for (int i = 0; i < 6; i++) {
+        final int id = i;
+        results.add(pool.submit(() -> create(actor("apple|" + id), info("same@example.test"))));
+      }
+      for (var result : results)
+        assertThat(result.get(15, TimeUnit.SECONDS)).isInstanceOf(ProfileResult.Available.class);
+    }
+    assertThat(
+            sql.queryForObject(
+                "SELECT count(DISTINCT pseudo_key) FROM identity.users", Integer.class))
+        .isEqualTo(6);
+  }
+
+  @Test
+  void existingProfileDoesNotDependOnAuth0() {
+    var actor = actor("apple|existing");
+    create(actor, info("name@example.test"));
+    var service =
+        new UserProfiles(
+            profiles,
+            ignored -> {
+              throw new AssertionError("Unexpected Auth0 call");
+            },
+            tx,
+            Clock.fixed(NOW.plusSeconds(60), ZoneOffset.UTC),
+            "project",
+            "production");
+    var result = (ProfileResult.Available) service.ensure(actor);
+    assertThat(result.created()).isFalse();
+    assertThat(result.profile().updatedAt()).isEqualTo(NOW);
+    assertThat(service.find(actor)).isInstanceOf(ProfileResult.Available.class);
+  }
+
+  @Test
+  void providerFailureCreatesNothing() {
+    var service =
+        new UserProfiles(
+            profiles,
+            ignored -> new IdentityLookup.Unavailable("IDENTITY_PROVIDER_UNAVAILABLE"),
+            tx,
+            Clock.systemUTC(),
+            "project",
+            "production");
+    assertThat(service.ensure(actor("apple|failed"))).isInstanceOf(ProfileResult.Unavailable.class);
+    assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
+  }
+
+  @Test
+  void providerCallRunsOutsideTheCreationTransaction() {
+    var service =
+        new UserProfiles(
+            profiles,
+            ignored -> {
+              assertThat(
+                      org.springframework.transaction.support.TransactionSynchronizationManager
+                          .isActualTransactionActive())
+                  .isFalse();
+              return new IdentityLookup.Found(info(null));
+            },
+            tx,
+            Clock.systemUTC(),
+            "project",
+            "production");
+    assertThat(service.ensure(actor("apple|outside"))).isInstanceOf(ProfileResult.Available.class);
+  }
+
+  @Test
+  void bindingFailureRollsBackProfileAndIdentity() {
+    admin.execute(
+        "ALTER TABLE identity.billing_bindings ADD CONSTRAINT test_failure CHECK (project_id <> 'project')");
+    try {
+      assertThatThrownBy(() -> create(actor("apple|rollback"), info(null)))
+          .isInstanceOf(org.springframework.dao.DataAccessException.class);
+      assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
+      assertThat(
+              sql.queryForObject(
+                  "SELECT count(*) FROM identity.external_identities", Integer.class))
+          .isZero();
+    } finally {
+      admin.execute("ALTER TABLE identity.billing_bindings DROP CONSTRAINT test_failure");
+    }
+  }
+
+  @Test
+  void readDoesNotCreateAProfile() {
+    var service =
+        new UserProfiles(
+            profiles,
+            ignored -> {
+              throw new AssertionError("Unexpected Auth0 call");
+            },
+            tx,
+            Clock.systemUTC(),
+            "project",
+            "production");
+    assertThat(service.find(actor("apple|missing"))).isInstanceOf(ProfileResult.Missing.class);
+    assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
+  }
+
+  @Test
+  void inactiveProfileIsNotReactivated() {
+    var actor = actor("apple|inactive");
+    create(actor, info(null));
+    admin.execute("UPDATE identity.users SET active=false");
+    assertThat(create(actor, info(null))).isInstanceOf(ProfileResult.Inactive.class);
+  }
+}

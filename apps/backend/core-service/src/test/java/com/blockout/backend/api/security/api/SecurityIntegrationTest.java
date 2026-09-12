@@ -26,7 +26,15 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = {"management.server.port=0"})
+    properties = {
+      "management.server.port=0",
+      "blockout.identity.native-client-ids=native-client",
+      "blockout.identity.auth0.base-url=https://issuer.example",
+      "blockout.identity.auth0.client-id=fixture",
+      "blockout.identity.auth0.client-secret=fixture",
+      "blockout.identity.billing.project-id=project",
+      "blockout.identity.billing.environment=production"
+    })
 @Import(SecurityIntegrationTest.Probes.class)
 @Testcontainers
 class SecurityIntegrationTest {

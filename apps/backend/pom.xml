@@ -21,6 +21,7 @@
     <modules>
         <module>migrations</module>
         <module>jobs</module>
+        <module>identity</module>
         <module>core-service</module>
         <module>core-worker</module>
         <module>shared-models</module>
