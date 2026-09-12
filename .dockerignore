@@ -17,3 +17,5 @@ local
 **/target
 **/.venv
 **/__pycache__
+**/.env
+**/.env.*

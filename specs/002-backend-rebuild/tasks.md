@@ -4,27 +4,27 @@ Source: approved plan.md and spec.md. This increment covers infrastructure prere
 
 ## Phase 1: Setup
 
-- [ ] T001 Integrate the identical Liquibase reference and Blockout lifecycle profile in .agents/skills/blockout-best-practices/.
-- [ ] T002 Add four narrow modules, dependency configuration and test discovery in apps/backend/pom.xml and apps/backend/backend-*/pom.xml.
+- [x] T001 Integrate the identical Liquibase reference and Blockout lifecycle profile in .agents/skills/blockout-best-practices/.
+- [x] T002 Add four narrow modules, dependency configuration and test discovery in apps/backend/pom.xml and apps/backend/backend-*/pom.xml.
 
 ## Phase 2: Foundational
 
-- [ ] T003 Write migration/privilege evidence in apps/backend/backend-migrations/src/test/.
-- [ ] T004 Implement XML baseline and Dockerized Liquibase in apps/backend/backend-migrations/.
-- [ ] T005 Write transactional publication, concurrency, expiry and effect tests in apps/backend/backend-jobs/src/test/.
-- [ ] T006 Implement jobs, canonical payloads, leases, retries and schema readiness in apps/backend/backend-jobs/src/main/.
-- [ ] T007 Write authentication and JWKS boundary tests in apps/backend/backend-api/src/test/.
-- [ ] T008 Implement secure API assembly and private management in apps/backend/backend-api/src/main/.
+- [x] T003 Write migration/privilege evidence in apps/backend/backend-migrations/src/test/.
+- [x] T004 Implement XML baseline and Dockerized Liquibase in apps/backend/backend-migrations/.
+- [x] T005 Write transactional publication, concurrency, expiry and effect tests in apps/backend/backend-jobs/src/test/.
+- [x] T006 Implement jobs, canonical payloads, leases, retries and schema readiness in apps/backend/backend-jobs/src/main/.
+- [x] T007 Write authentication and JWKS boundary tests in apps/backend/backend-api/src/test/.
+- [x] T008 Implement secure API assembly and private management in apps/backend/backend-api/src/main/.
 
 ## Phase 3: US8 — Executable Opening Prerequisites
 
 Goal: migrate a fresh isolated database and start both processes with recoverable work. Independent proof: real PostgreSQL integration tests plus Docker smoke. Full US8 production cutover remains outside this increment.
 
-- [ ] T009 [US8] Write bounded execution/recovery tests in apps/backend/backend-worker/src/test/.
-- [ ] T010 [US8] Implement worker lifecycle, leases, deadlines and metrics in apps/backend/backend-worker/src/main/.
-- [ ] T011 [US8] Add isolated Compose/bootstrap, lifecycle/build/smoke commands and monitoring rules in infra/compose/ and scripts/backend-foundation/.
-- [ ] T012 [US8] Add three immutable-revision image builds and Nx targets in apps/backend/backend-*/.
-- [ ] T013 [US8] Separate buildable replacement images from production targets in .github/workflows/ci.yml.
+- [x] T009 [US8] Write bounded execution/recovery tests in apps/backend/backend-worker/src/test/.
+- [x] T010 [US8] Implement worker lifecycle, leases, deadlines and metrics in apps/backend/backend-worker/src/main/.
+- [x] T011 [US8] Add isolated Compose/bootstrap, lifecycle/build/smoke commands and monitoring rules in infra/compose/ and scripts/backend-foundation/.
+- [x] T012 [US8] Add three immutable-revision image builds and Nx targets in apps/backend/backend-*/.
+- [x] T013 [US8] Separate buildable replacement images from production targets in .github/workflows/ci.yml.
 
 ## Phase 4: Verification
 

@@ -21,6 +21,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
   private final Map<String, JobHandler> handlers;
   private final MeterRegistry metrics;
   private final ScheduledExecutorService control = Executors.newSingleThreadScheduledExecutor();
+  private final ScheduledThreadPoolExecutor deadlines = new ScheduledThreadPoolExecutor(1);
   private final ExecutorService execution;
   private final Map<UUID, Execution> active = new ConcurrentHashMap<>();
   private volatile boolean running;
@@ -28,7 +29,11 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
   private long lastCleanup;
 
   private record Execution(
-      Job job, FutureTask<Void> task, long started, AtomicBoolean cancelled, long[] renewed) {}
+      Job job,
+      FutureTask<Void> task,
+      AtomicBoolean cancelled,
+      long[] renewed,
+      java.util.concurrent.atomic.AtomicReference<ScheduledFuture<?>> timeout) {}
 
   public JobWorker(
       JobRepository jobs,
@@ -52,7 +57,14 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
             org.springframework.boot.health.contributor.Status.UP.equals(w.health().getStatus())
                 ? 1
                 : 0);
-    execution = Executors.newFixedThreadPool(config.concurrency());
+    deadlines.setRemoveOnCancelPolicy(true);
+    execution =
+        new ThreadPoolExecutor(
+            config.concurrency(),
+            config.concurrency(),
+            0L,
+            TimeUnit.MILLISECONDS,
+            new SynchronousQueue<>());
     for (String state : List.of("pending", "running", "succeeded", "dead"))
       metrics.gauge(
           "blockout.jobs.count",
@@ -94,11 +106,6 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
           schema.health().getStatus())) return;
       for (Execution work : active.values()) {
         if (work.cancelled().get()) continue;
-        if (now - work.started() >= config.deadline().toNanos()) {
-          cancel(work);
-          metrics.counter("blockout.jobs.timeouts").increment();
-          continue;
-        }
         if (now - work.renewed()[0] >= config.renewal().toNanos()) {
           if (!jobs.renew(work.job(), config.lease())) cancel(work);
           else work.renewed()[0] = now;
@@ -129,10 +136,14 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
     }
     long now = System.nanoTime();
     AtomicBoolean cancelled = new AtomicBoolean();
+    AtomicBoolean entered = new AtomicBoolean();
+    var timeout = new java.util.concurrent.atomic.AtomicReference<ScheduledFuture<?>>();
     FutureTask<Void> task =
         new FutureTask<>(
             () -> {
+              entered.set(true);
               try {
+                if (cancelled.get()) return null;
                 handler.handle(job);
                 if (!cancelled.get() && jobs.completeWithEffect(job, () -> {}))
                   metrics.counter("blockout.jobs.executions", "outcome", "completed").increment();
@@ -147,12 +158,35 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
                 metrics.counter("blockout.jobs.executions", "outcome", "failed").increment();
                 LOG.warn("Job handler failed; retry policy applies");
               } finally {
-                active.remove(job.id());
+                active.remove(job.leaseToken());
+                var scheduled = timeout.get();
+                if (scheduled != null) scheduled.cancel(false);
               }
               return null;
-            });
-    active.put(job.id(), new Execution(job, task, now, cancelled, new long[] {now}));
-    execution.execute(task);
+            }) {
+          @Override
+          protected void done() {
+            if (!entered.get()) active.remove(job.leaseToken());
+          }
+        };
+    var work = new Execution(job, task, cancelled, new long[] {now}, timeout);
+    active.put(job.leaseToken(), work);
+    timeout.set(
+        deadlines.schedule(
+            () -> {
+              if (!task.isDone()) {
+                cancel(work);
+                metrics.counter("blockout.jobs.timeouts").increment();
+              }
+            },
+            config.deadline().toMillis(),
+            TimeUnit.MILLISECONDS));
+    try {
+      execution.execute(task);
+    } catch (RejectedExecutionException stopped) {
+      cancel(work);
+      timeout.get().cancel(false);
+    }
   }
 
   private void cancel(Execution work) {
@@ -173,6 +207,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
       active.values().forEach(this::cancel);
     } finally {
       control.shutdownNow();
+      deadlines.shutdownNow();
       execution.shutdownNow();
     }
   }

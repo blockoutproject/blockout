@@ -13,3 +13,5 @@
 | Runtime proof            | Test-only handlers                                                | Production diagnostic job endpoint  | No artificial public behavior                                       |
 
 Version evidence: existing Spring Boot 4.1.0 BOM manages Liquibase 5.0.3. Existing project uses Java 25/PostgreSQL 17. Official PostgreSQL SELECT documentation describes SKIP LOCKED for queue consumers. Spring recommends a single schema initialization mechanism. The imported Maaatch policy is portable; its repository-specific deployment posture is supplied separately for Blockout.
+
+Execution deadlines use an independent bounded scheduler so a failed database health check cannot disable cancellation. Active work is keyed by lease token, preserving capacity accounting for an uncooperative old attempt while another lease processes the same job. PostgreSQL integration tests cover both failure modes.

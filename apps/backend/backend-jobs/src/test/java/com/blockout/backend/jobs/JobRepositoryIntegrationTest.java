@@ -34,7 +34,7 @@ class JobRepositoryIntegrationTest {
     try (var c = ds.getConnection()) {
       c.createStatement()
           .execute(
-              "CREATE SCHEMA operations; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
+              "CREATE SCHEMA operations; CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'; GRANT USAGE ON SCHEMA operations TO blockout_api, blockout_worker");
       try (var lb =
           new Liquibase(
               "db/changelog/db.changelog-master.xml",
@@ -249,6 +249,22 @@ class JobRepositoryIntegrationTest {
           assertThat(health.health().getStatus().getCode()).isEqualTo("DOWN");
           status.setRollbackOnly();
         });
+  }
+
+  @Test
+  void runtimeRolesPublishAndConsumeWithoutOwnerCredentials() {
+    var apiSql =
+        new JdbcTemplate(new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_api", "test"));
+    var apiTx = new TransactionTemplate(new JdbcTransactionManager(apiSql.getDataSource()));
+    var apiPublisher = new JobPublisher(apiSql, new JsonMapper());
+    UUID id = apiTx.execute(status -> apiPublisher.publish("test", 1, "runtime", Map.of()));
+    var workerSql =
+        new JdbcTemplate(new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_worker", "test"));
+    var workerTx = new TransactionTemplate(new JdbcTransactionManager(workerSql.getDataSource()));
+    var workerJobs = new JobRepository(workerSql, workerTx);
+    var job = workerJobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    assertThat(job.id()).isEqualTo(id);
+    assertThat(workerJobs.completeWithEffect(job, () -> {})).isTrue();
   }
 
   void expire() {

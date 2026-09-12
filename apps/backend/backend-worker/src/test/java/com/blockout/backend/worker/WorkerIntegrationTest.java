@@ -225,6 +225,73 @@ class WorkerIntegrationTest {
     assertThat(repository.count("succeeded")).isZero();
   }
 
+  @Test
+  void enforcesDeadlineWhileSchemaIsUnavailable() throws Exception {
+    var entered = new CountDownLatch(1);
+    var interrupted = new CountDownLatch(1);
+    publish("a");
+    start(
+        handler(
+            j -> {
+              entered.countDown();
+              try {
+                new CountDownLatch(1).await();
+              } catch (InterruptedException e) {
+                interrupted.countDown();
+                throw e;
+              }
+            }));
+    assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
+    sql.update("UPDATE operations.schema_metadata SET generation=2");
+    try {
+      assertThat(interrupted.await(5, TimeUnit.SECONDS)).isTrue();
+    } finally {
+      worker.stop();
+      sql.update("UPDATE operations.schema_metadata SET generation=1");
+    }
+  }
+
+  @Test
+  void countsUncooperativeExpiredAttemptsAgainstConcurrency() throws Exception {
+    var entered = new CountDownLatch(2);
+    var release = new CountDownLatch(1);
+    publish("a");
+    start(
+        handler(
+            j -> {
+              entered.countDown();
+              boolean done = false;
+              while (!done) {
+                try {
+                  release.await();
+                  done = true;
+                } catch (InterruptedException ignored) {
+                  /* Controlled uncooperative dependency. */
+                }
+              }
+            }));
+    try {
+      await()
+          .atMost(Duration.ofSeconds(5))
+          .untilAsserted(() -> assertThat(entered.getCount()).isEqualTo(1));
+      sql.update(
+          "UPDATE operations.jobs SET lease_expires_at=clock_timestamp()-interval '1 second'");
+      assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
+      sql.update(
+          "UPDATE operations.jobs SET lease_expires_at=clock_timestamp()-interval '1 second'");
+      await()
+          .during(Duration.ofMillis(200))
+          .atMost(Duration.ofSeconds(1))
+          .untilAsserted(
+              () ->
+                  assertThat(
+                          sql.queryForObject("SELECT attempts FROM operations.jobs", Integer.class))
+                      .isEqualTo(2));
+    } finally {
+      release.countDown();
+    }
+  }
+
   interface Action {
     void run(Job job) throws Exception;
   }
