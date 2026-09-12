@@ -20,6 +20,8 @@ class Auth0IdentityIntegrationTest {
   AtomicInteger tokens = new AtomicInteger();
   AtomicInteger profiles = new AtomicInteger();
   volatile int tokenStatus = 200, profileStatus = 200;
+  volatile java.util.Map<String, String> tokenHeaders = java.util.Map.of(),
+      profileHeaders = java.util.Map.of();
   volatile String profileBody =
       "{\"user_id\":\"google-oauth2|person\",\"email\":\"person@example.test\"}";
   volatile String tokenBody =
@@ -40,6 +42,7 @@ class Auth0IdentityIntegrationTest {
         ex -> {
           tokens.incrementAndGet();
           tokenRequest.set(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+          tokenHeaders.forEach((key, value) -> ex.getResponseHeaders().add(key, value));
           respond(ex, tokenStatus, tokenBody);
         });
     server.createContext(
@@ -48,6 +51,7 @@ class Auth0IdentityIntegrationTest {
           profiles.incrementAndGet();
           path.set(ex.getRequestURI().getRawPath());
           authorization.set(ex.getRequestHeaders().getFirst("Authorization"));
+          profileHeaders.forEach((key, value) -> ex.getResponseHeaders().add(key, value));
           respond(ex, profileStatus, profileBody);
         });
     server.start();
@@ -139,16 +143,113 @@ class Auth0IdentityIntegrationTest {
   }
 
   @Test
-  void renewsARejectedCachedTokenOnTheNextRequest() {
+  void renewsARejectedCachedTokenAfterThePause() {
     var provider = provider();
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
     profileStatus = 401;
 
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
     profileStatus = 200;
+    clock.now = clock.now.plusSeconds(5);
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
 
     assertThat(tokens).hasValue(2);
+  }
+
+  @Test
+  void repeatedTokenRejectionsIncreaseThePauseUpToFiveMinutes() {
+    profileStatus = 401;
+    var provider = provider();
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+
+    int requests = 1;
+    for (int delay : new int[] {5, 10, 20, 40, 80, 160, 300, 300}) {
+      clock.now = clock.now.plusSeconds(delay - 1);
+      for (int i = 0; i < 6; i++)
+        assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+      assertThat(tokens).hasValue(requests);
+      assertThat(profiles).hasValue(requests);
+
+      clock.now = clock.now.plusSeconds(1);
+      assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+      assertThat(tokens).hasValue(++requests);
+    }
+    assertThat(
+            metrics
+                .get("blockout.identity.auth0.requests")
+                .tag("operation", "token")
+                .counter()
+                .count())
+        .isEqualTo(requests);
+    assertThat(metrics.get("blockout.identity.auth0.suppressed").counter().count()).isEqualTo(48);
+  }
+
+  @Test
+  void successfulProfileReadRestoresTheInitialPause() {
+    profileStatus = 503;
+    var provider = provider();
+    provider.find(actor());
+    clock.now = clock.now.plusSeconds(5);
+    provider.find(actor());
+    clock.now = clock.now.plusSeconds(10);
+    profileStatus = 200;
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
+
+    profileStatus = 503;
+    provider.find(actor());
+    clock.now = clock.now.plusSeconds(5);
+    profileStatus = 200;
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
+    assertThat(tokens).hasValue(1);
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.CsvSource({
+    "token,Retry-After", "profile,Retry-After",
+    "token,X-RateLimit-Reset", "profile,X-RateLimit-Reset"
+  })
+  void honorsProviderRateLimitDelays(String operation, String header) {
+    String value =
+        header.equals("Retry-After")
+            ? "600"
+            : Long.toString(clock.now.plusSeconds(600).getEpochSecond());
+    if (operation.equals("token")) {
+      tokenStatus = 429;
+      tokenHeaders = java.util.Map.of(header, value);
+    } else {
+      profileStatus = 429;
+      profileHeaders = java.util.Map.of(header, value);
+    }
+    var provider = provider();
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+    int calls = profiles.get();
+    clock.now = clock.now.plusSeconds(599);
+
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+    assertThat(tokens).hasValue(1);
+    assertThat(profiles).hasValue(calls);
+    assertThat(
+            metrics
+                .get("blockout.identity.auth0.rate_limited")
+                .tag("operation", operation)
+                .counter()
+                .count())
+        .isEqualTo(1);
+
+    clock.now = clock.now.plusSeconds(1);
+    tokenStatus = profileStatus = 200;
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
+  }
+
+  @Test
+  void missingProviderUserDoesNotPauseOtherLookups() {
+    var provider = provider();
+    profileStatus = 404;
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+
+    profileStatus = 200;
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
+    assertThat(tokens).hasValue(1);
   }
 
   @Test
