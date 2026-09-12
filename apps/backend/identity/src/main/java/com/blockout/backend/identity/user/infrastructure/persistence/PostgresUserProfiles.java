@@ -93,7 +93,8 @@ public final class PostgresUserProfiles implements UserProfileStore {
   }
 
   private void requireTransaction() {
-    if (!TransactionSynchronizationManager.isActualTransactionActive())
+    if (!TransactionSynchronizationManager.isActualTransactionActive()
+        || !TransactionSynchronizationManager.hasResource(sql.getDataSource()))
       throw new IllegalStateException("Profile creation requires an owner transaction");
   }
 }

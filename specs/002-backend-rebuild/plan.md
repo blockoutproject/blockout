@@ -9,7 +9,7 @@ Implement the approved first infrastructure increment of US8, with authenticatio
 ## Technical Context
 
 - Java 25, Spring Boot 4.1.0, PostgreSQL 17, Liquibase 5.0.3, Maven and Nx.
-- Four reactor modules: core-service, core-worker, jobs, migrations. No legacy shared-model dependency or speculative business modules.
+- Six replacement reactor modules: core-service, core-worker, jobs, identity, logging, migrations. No legacy shared-model dependency or speculative business modules.
 - Spring JDBC owns explicit queue SQL; Liquibase XML native changes own schema construction.
 - JUnit, AssertJ, Testcontainers PostgreSQL and Failsafe integration/smoke tests.
 - Linux Docker deployment artifacts; isolated local Compose proof only. No production publication/deployment.
@@ -29,6 +29,7 @@ Implement the approved first infrastructure increment of US8, with authenticatio
 - `apps/backend/core-service`: secured HTTP assembly and private management endpoints.
 - `apps/backend/core-worker`: bounded leased execution and process health.
 - `apps/backend/jobs`: job publication, persistence, configuration and schema readiness shared by both runtimes.
+- `apps/backend/logging`: dependency-free diagnostic privacy shared by both executables.
 - `apps/backend/migrations`: XML baseline, image and PostgreSQL migration tests.
 - `infra/compose/docker-compose.backend.yml`: isolated database/migration/API/worker topology.
 - `scripts/backend-foundation/`: image build, local lifecycle and smoke commands.
@@ -46,7 +47,7 @@ Liquibase runs in a versioned one-shot image, receives migration credentials onl
 
 JWT signature RS256, issuer, audience, mandatory expiry/optional not-before and 60-second skew; cached JWKS with controlled rotation/outage tests. Stateless bearer API, deny unregistered routes, method security available to future owners, safe RFC problem responses, no product probe endpoint. Management is on a distinct private port, exposing health and Prometheus only. Liveness never depends on providers; readiness depends on database/schema and worker scheduler progress.
 
-JVM stdout uses ECS structured logs with UTC instants independent of the host timezone, without payloads/identity claims. Worker failure diagnostics retain bounded throwable types and frames while excluding provider/database exception messages. Outages log one transition until recovery; successful jobs produce metrics without per-record log noise. Metrics use bounded job types/states; no IDs as labels. Resource limits and SQL timeouts are explicit. Unknown job types use a single bounded metric category.
+JVM stdout uses ECS structured logs with UTC instants independent of the host timezone, without payloads/identity claims. Both executables use the shared logging boundary. Failure diagnostics retain bounded throwable types and frames while excluding provider/database exception messages. Outages log one transition until recovery; successful jobs produce metrics without per-record log noise. Metrics use bounded outcomes, states and schema names; no IDs as labels. Resource limits and SQL timeouts are explicit. Unknown job types use a single bounded metric category.
 
 ## Durable Work
 

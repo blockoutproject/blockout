@@ -71,6 +71,7 @@ class SecurityIntegrationTest {
     p.add("spring.datasource.username", DB::getUsername);
     p.add("spring.datasource.password", DB::getPassword);
     p.add("blockout.auth.issuer", () -> "https://issuer.example/");
+    p.add("blockout.auth.allow-insecure-loopback", () -> true);
     p.add("blockout.auth.audience", () -> "blockout-test");
     p.add(
         "blockout.auth.jwk-set-uri",
@@ -100,6 +101,8 @@ class SecurityIntegrationTest {
     assertThat(problem.path("code").asText()).isEqualTo("AUTHENTICATION_REQUIRED");
 
     assertThat(problem.path("type").asText("about:blank")).isEqualTo("about:blank");
+
+    assertThat(problem.path("detail").asText()).isEqualTo("Authentication required.");
 
     assertThat(r.body()).doesNotContain("exception", "test-subject");
   }

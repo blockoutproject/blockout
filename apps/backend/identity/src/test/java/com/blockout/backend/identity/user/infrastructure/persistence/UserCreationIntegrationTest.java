@@ -74,6 +74,27 @@ class UserCreationIntegrationTest {
   }
 
   @Test
+  void unrelatedDatasourceTransactionCannotAuthorizeProfileWrites() {
+    var other = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
+    var otherTx = new TransactionTemplate(new JdbcTransactionManager(other));
+
+    assertThatThrownBy(
+            () ->
+                otherTx.execute(
+                    status ->
+                        profiles.create(
+                            actor("apple|wrong-transaction"),
+                            UUID.randomUUID(),
+                            "person",
+                            info(null),
+                            NOW,
+                            "project",
+                            "production")))
+        .isInstanceOf(IllegalStateException.class);
+    assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
+  }
+
+  @Test
   void createsOneAtomicProfileWithTheOriginalBillingIdentity() {
     var actor = actor("google-oauth2|first");
     var created = (ProfileResult.Available) create(actor, info("name@example.test"));

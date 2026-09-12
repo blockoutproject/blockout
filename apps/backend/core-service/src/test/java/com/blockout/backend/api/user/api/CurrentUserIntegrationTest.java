@@ -74,6 +74,7 @@ class CurrentUserIntegrationTest {
     p.add("spring.datasource.username", DB::getUsername);
     p.add("spring.datasource.password", DB::getPassword);
     p.add("blockout.auth.issuer", () -> "https://tenant.example/");
+    p.add("blockout.auth.allow-insecure-loopback", () -> true);
     p.add("blockout.auth.audience", () -> "core");
     p.add(
         "blockout.auth.jwk-set-uri",
@@ -81,6 +82,7 @@ class CurrentUserIntegrationTest {
   }
 
   @Autowired JdbcTemplate sql;
+  @Autowired io.micrometer.core.instrument.MeterRegistry metrics;
   @MockitoBean UserIdentityProvider provider;
   @LocalServerPort int port;
 
@@ -142,6 +144,22 @@ class CurrentUserIntegrationTest {
             .method(method, HttpRequest.BodyPublishers.noBody());
     if (token != null) b.header("Authorization", "Bearer " + token);
     return HttpClient.newHttpClient().send(b.build(), HttpResponse.BodyHandlers.ofString());
+  }
+
+  @Test
+  void identitySchemaFailureRemainsVisibleWhenTheQueueSchemaIsHealthy() {
+    var identity = metrics.get("blockout.schema.ready").tag("schema", "identity").gauge();
+    var operations = metrics.get("blockout.schema.ready").tag("schema", "operations").gauge();
+    assertThat(identity.value()).isEqualTo(1);
+    sql.execute(
+        "ALTER TABLE identity.billing_bindings RENAME COLUMN customer_id TO missing_customer_id");
+    try {
+      assertThat(identity.value()).isZero();
+      assertThat(operations.value()).isEqualTo(1);
+    } finally {
+      sql.execute(
+          "ALTER TABLE identity.billing_bindings RENAME COLUMN missing_customer_id TO customer_id");
+    }
   }
 
   @Test

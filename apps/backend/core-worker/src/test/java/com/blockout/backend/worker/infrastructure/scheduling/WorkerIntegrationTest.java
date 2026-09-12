@@ -110,6 +110,19 @@ class WorkerIntegrationTest {
   }
 
   @Test
+  void drainsFastJobsWithoutWastingReservedAttempts() {
+    for (int i = 0; i < 100; i++) publish("fast-" + i);
+
+    start(handler(job -> {}));
+
+    await()
+        .atMost(Duration.ofSeconds(10))
+        .untilAsserted(() -> assertThat(repository.count("succeeded")).isEqualTo(100));
+    assertThat(sql.queryForObject("SELECT max(attempts) FROM operations.jobs", Integer.class))
+        .isEqualTo(1);
+  }
+
+  @Test
   void boundsConcurrencyAndRenewsLeases() throws Exception {
     for (int i = 0; i < 5; i++) publish("" + i);
     var entered = new CountDownLatch(2);
@@ -187,7 +200,7 @@ class WorkerIntegrationTest {
 
   @Test
   void incompatibleSchemaPreventsConsumption() {
-    sql.update("UPDATE operations.schema_metadata SET generation=3");
+    sql.update("UPDATE operations.schema_metadata SET generation=4");
     try {
       publish("a");
       start(
@@ -198,7 +211,7 @@ class WorkerIntegrationTest {
       worker.tick();
       assertThat(repository.count("pending")).isEqualTo(1);
     } finally {
-      sql.update("UPDATE operations.schema_metadata SET generation=2");
+      sql.update("UPDATE operations.schema_metadata SET generation=3");
     }
   }
 
@@ -276,12 +289,12 @@ class WorkerIntegrationTest {
             }));
 
     assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
-    sql.update("UPDATE operations.schema_metadata SET generation=3");
+    sql.update("UPDATE operations.schema_metadata SET generation=4");
     try {
       assertThat(interrupted.await(5, TimeUnit.SECONDS)).isTrue();
     } finally {
       worker.stop();
-      sql.update("UPDATE operations.schema_metadata SET generation=2");
+      sql.update("UPDATE operations.schema_metadata SET generation=3");
     }
   }
 

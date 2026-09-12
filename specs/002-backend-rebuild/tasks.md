@@ -12,7 +12,7 @@ Source: approved plan.md and spec.md. This increment covers infrastructure prere
 - [x] T003 Write migration/privilege evidence in apps/backend/migrations/src/test/.
 - [x] T004 Implement XML baseline and Dockerized Liquibase in apps/backend/migrations/.
 - [x] T005 Write transactional publication, concurrency, expiry and effect tests in apps/backend/jobs/src/test/.
-- [x] T006 Implement jobs, canonical payloads, leases, retries and schema readiness in apps/backend/jobs/src/main/.
+- [x] T006 Implement jobs, JSON payload deduplication, leases, retries and schema readiness in apps/backend/jobs/src/main/.
 - [x] T007 Write authentication and JWKS boundary tests in apps/backend/core-service/src/test/.
 - [x] T008 Implement secure API assembly and private management in apps/backend/core-service/src/main/.
 

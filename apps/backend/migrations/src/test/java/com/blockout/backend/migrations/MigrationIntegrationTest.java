@@ -61,7 +61,7 @@ class MigrationIntegrationTest {
           c.createStatement()
               .executeQuery("SELECT generation FROM operations.schema_metadata WHERE id=1");
       generation.next();
-      assertThat(generation.getInt(1)).isEqualTo(2);
+      assertThat(generation.getInt(1)).isEqualTo(3);
     }
   }
 
@@ -86,7 +86,7 @@ class MigrationIntegrationTest {
     try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test")) {
       assertThatThrownBy(
               () ->
-                  c.createStatement().execute("UPDATE operations.schema_metadata SET generation=3"))
+                  c.createStatement().execute("UPDATE operations.schema_metadata SET generation=4"))
           .isInstanceOfSatisfying(
               SQLException.class, failure -> assertThat(failure.getSQLState()).isEqualTo("42501"));
     }

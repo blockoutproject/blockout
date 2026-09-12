@@ -11,7 +11,7 @@
         </createTable>
         <insert schemaName="operations" tableName="schema_metadata">
             <column name="id" valueNumeric="1"/>
-            <column name="generation" valueNumeric="2"/>
+            <column name="generation" valueNumeric="3"/>
         </insert>
         <createTable schemaName="operations" tableName="jobs">
             <column name="id" type="uuid">
@@ -24,9 +24,6 @@
                 <constraints nullable="false"/>
             </column>
             <column name="deduplication_key" type="varchar(200)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="payload_hash" type="varchar(64)">
                 <constraints nullable="false"/>
             </column>
             <column name="payload" type="jsonb">

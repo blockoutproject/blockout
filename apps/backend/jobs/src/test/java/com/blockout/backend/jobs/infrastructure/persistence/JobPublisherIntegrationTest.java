@@ -45,6 +45,61 @@ class JobPublisherIntegrationTest extends PostgresJobsFixture {
   }
 
   @Test
+  void comparesNestedValuesWithoutLosingNumericPrecision() {
+    var first =
+        tx.execute(
+            s ->
+                publisher.publish(
+                    "test",
+                    1,
+                    "nested",
+                    Map.of(
+                        "items",
+                        List.of(
+                            Map.of(
+                                "n",
+                                new java.math.BigDecimal("12345678901234567890.123456789"))))));
+    var repeated =
+        tx.execute(
+            s ->
+                publisher.publish(
+                    "test",
+                    1,
+                    "nested",
+                    Map.of(
+                        "items",
+                        List.of(
+                            Map.of(
+                                "n",
+                                new java.math.BigDecimal("12345678901234567890.1234567890"))))));
+    var changed =
+        tx.execute(
+            s ->
+                publisher.publish(
+                    "test",
+                    1,
+                    "nested",
+                    Map.of(
+                        "items",
+                        List.of(
+                            Map.of(
+                                "n",
+                                new java.math.BigDecimal("12345678901234567890.123456788"))))));
+
+    assertThat(repeated).isEqualTo(first);
+    assertThat(changed).isEqualTo(new PublicationResult.Conflict());
+  }
+
+  @Test
+  void changedVersionConflictsWithTheSamePayload() {
+    tx.executeWithoutResult(s -> publisher.publish("test", 1, "versioned", Map.of()));
+
+    var result = tx.execute(s -> publisher.publish("test", 2, "versioned", Map.of()));
+
+    assertThat(result).isEqualTo(new PublicationResult.Conflict());
+  }
+
+  @Test
   void rejectsOversizedPayload() {
     var result =
         tx.execute(s -> publisher.publish("test", 1, "a", Map.of("text", "x".repeat(65536))));

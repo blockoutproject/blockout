@@ -19,7 +19,9 @@ final class Auth0Backoff {
     return clock.instant().isBefore(retryAt) ? Optional.of(failureCode) : Optional.empty();
   }
 
-  synchronized void failed(String code, Instant providerRetryAt) {
+  /** Returns true only when entering a new outage, for one boundary-owned log event. */
+  synchronized boolean failed(String code, Instant providerRetryAt) {
+    boolean firstFailure = retryAt.equals(Instant.MIN);
     var now = clock.instant();
     // Concurrent failures belong to one pause, rather than multiplying the delay per caller.
     if (!now.isBefore(retryAt)) {
@@ -28,10 +30,15 @@ final class Auth0Backoff {
     }
     if (providerRetryAt.isAfter(retryAt)) retryAt = providerRetryAt;
     failureCode = code;
+    return firstFailure;
   }
 
-  synchronized void succeeded() {
+  /** Returns true when a successful read ends an outage whose pause has elapsed. */
+  synchronized boolean succeeded() {
     // An already-running success must not cancel a pause announced by another request.
-    if (!clock.instant().isBefore(retryAt)) nextDelaySeconds = 5;
+    if (retryAt.equals(Instant.MIN) || clock.instant().isBefore(retryAt)) return false;
+    retryAt = Instant.MIN;
+    nextDelaySeconds = 5;
+    return true;
   }
 }

@@ -39,11 +39,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
   private long lastCleanup;
 
   private record Execution(
-      Job job,
-      FutureTask<Void> task,
-      AtomicBoolean cancelled,
-      AtomicLong renewed,
-      AtomicReference<ScheduledFuture<?>> timeout) {}
+      Job job, FutureTask<Void> task, AtomicBoolean cancelled, AtomicLong renewed) {}
 
   public JobWorker(
       JobRepository jobs,
@@ -64,7 +60,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
             config.concurrency(),
             0L,
             TimeUnit.MILLISECONDS,
-            new SynchronousQueue<>());
+            new ArrayBlockingQueue<>(config.concurrency()));
   }
 
   @Override
@@ -114,43 +110,45 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
   private void dispatch(Job job) {
     long now = System.nanoTime();
     AtomicBoolean cancelled = new AtomicBoolean();
-    AtomicBoolean entered = new AtomicBoolean();
-    var timeout = new java.util.concurrent.atomic.AtomicReference<ScheduledFuture<?>>();
+    var timeout = new AtomicReference<ScheduledFuture<?>>();
     FutureTask<Void> task =
         new FutureTask<>(
             () -> {
-              entered.set(true);
-              try {
-                attempts.execute(job, cancelled);
-              } finally {
-                active.remove(job.leaseToken());
-                var scheduled = timeout.get();
-                if (scheduled != null) scheduled.cancel(false);
-              }
+              attempts.execute(job, cancelled);
               return null;
             }) {
           @Override
-          protected void done() {
-            if (!entered.get()) active.remove(job.leaseToken());
+          public void run() {
+            try {
+              super.run();
+            } finally {
+              // Future.done() also runs on cancellation, before an uncooperative handler exits.
+              active.remove(job.leaseToken());
+              var scheduled = timeout.get();
+              if (scheduled != null) scheduled.cancel(false);
+            }
           }
         };
-    var work = new Execution(job, task, cancelled, new AtomicLong(now), timeout);
+    var work = new Execution(job, task, cancelled, new AtomicLong(now));
     active.put(job.leaseToken(), work);
-    timeout.set(
-        deadlines.schedule(
-            () -> {
-              if (!task.isDone()) {
-                cancel(work);
-                telemetry.timedOut(job);
-              }
-            },
-            config.deadline().toMillis(),
-            TimeUnit.MILLISECONDS));
     try {
+      timeout.set(
+          deadlines.schedule(
+              () -> {
+                if (!task.isDone()) {
+                  cancel(work);
+                  telemetry.timedOut(job);
+                }
+              },
+              config.deadline().toMillis(),
+              TimeUnit.MILLISECONDS));
+      // A bounded handoff absorbs the gap between Runnable completion and an idle pool thread.
       execution.execute(task);
     } catch (RejectedExecutionException stopped) {
       cancel(work);
-      timeout.get().cancel(false);
+      active.remove(job.leaseToken());
+      var scheduled = timeout.get();
+      if (scheduled != null) scheduled.cancel(false);
     }
   }
 

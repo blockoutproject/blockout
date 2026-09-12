@@ -55,7 +55,7 @@ class WorkerTelemetryTest {
     assertThat(event.getKeyValuePairs())
         .anySatisfy(
             pair -> {
-              assertThat(pair.key).isEqualTo("event");
+              assertThat(pair.key).isEqualTo("event.action");
               assertThat(pair.value).isEqualTo("worker.job.failed");
             });
     String diagnostic = ThrowableProxyUtil.asString(event.getThrowableProxy());

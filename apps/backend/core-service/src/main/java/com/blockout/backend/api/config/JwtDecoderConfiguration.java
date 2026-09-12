@@ -1,8 +1,9 @@
 package com.blockout.backend.api.config;
 
+import java.net.http.HttpClient;
 import java.time.Duration;
 import org.springframework.context.annotation.*;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.security.oauth2.core.*;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
@@ -12,8 +13,12 @@ import org.springframework.web.client.RestTemplate;
 public class JwtDecoderConfiguration {
   @Bean
   JwtDecoder decoder(AuthProperties properties) {
-    var factory = new SimpleClientHttpRequestFactory();
-    factory.setConnectTimeout(Duration.ofSeconds(3));
+    var client =
+        HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(3))
+            .followRedirects(HttpClient.Redirect.NEVER)
+            .build();
+    var factory = new JdkClientHttpRequestFactory(client);
     factory.setReadTimeout(Duration.ofSeconds(3));
     var decoder =
         NimbusJwtDecoder.withJwkSetUri(properties.jwkSetUri())

@@ -2,11 +2,10 @@ package com.blockout.backend.worker.application;
 
 import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.JobRepository;
+import com.blockout.backend.logging.SafeDiagnostics;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
-import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.spi.LoggingEventBuilder;
@@ -49,14 +48,14 @@ public final class WorkerTelemetry {
 
   public void started(int concurrency) {
     LOG.atInfo()
-        .addKeyValue("event", "worker.started")
+        .addKeyValue("event.action", "worker.started")
         .addKeyValue("concurrency", concurrency)
         .log("Worker started");
   }
 
   public void stopped(int remaining) {
     LOG.atInfo()
-        .addKeyValue("event", "worker.stopped")
+        .addKeyValue("event.action", "worker.stopped")
         .addKeyValue("active_attempts", remaining)
         .log("Worker stopped accepting work");
   }
@@ -67,16 +66,16 @@ public final class WorkerTelemetry {
     pollDegraded = true;
     var event =
         LOG.atError()
-            .addKeyValue("event", "worker.poll.unavailable")
+            .addKeyValue("event.action", "worker.poll.unavailable")
             .addKeyValue("dependency", "postgresql");
-    if (failure != null) event.setCause(diagnostic(failure, new AtomicInteger(16)));
+    if (failure != null) event.setCause(SafeDiagnostics.snapshot(failure));
     event.log("Job polling unavailable; durable work remains recoverable");
   }
 
   public synchronized void pollRecovered() {
     if (!pollDegraded) return;
     pollDegraded = false;
-    LOG.atInfo().addKeyValue("event", "worker.poll.recovered").log("Job polling recovered");
+    LOG.atInfo().addKeyValue("event.action", "worker.poll.recovered").log("Job polling recovered");
   }
 
   public void completed() {
@@ -100,7 +99,7 @@ public final class WorkerTelemetry {
     attempt(LOG.atError(), "worker.job.failed", job)
         .addKeyValue("failure_recorded", recorded)
         .addKeyValue("retry_exhausted", job.attempts() >= job.maxAttempts())
-        .setCause(diagnostic(failure, new AtomicInteger(16)))
+        .setCause(SafeDiagnostics.snapshot(failure))
         .log("Job execution failed; lease and retry policy apply");
   }
 
@@ -115,27 +114,9 @@ public final class WorkerTelemetry {
 
   private LoggingEventBuilder attempt(LoggingEventBuilder event, String name, Job job) {
     return event
-        .addKeyValue("event", name)
+        .addKeyValue("event.action", name)
         .addKeyValue("job_id", job.id())
         .addKeyValue("attempt", job.attempts())
         .addKeyValue("payload_version", job.version());
-  }
-
-  /**
-   * JDBC/provider exception messages can contain rows, URLs and credentials. Preserve bounded
-   * exception types, frames, causes and suppressed failures as a throwable snapshot, never their
-   * messages. A shared sixteen-node budget bounds the whole graph and terminates cycles.
-   */
-  private static Throwable diagnostic(Throwable failure, AtomicInteger remaining) {
-    if (failure == null || remaining.getAndDecrement() <= 0) return null;
-    var safe =
-        new Throwable(failure.getClass().getName(), diagnostic(failure.getCause(), remaining));
-    safe.setStackTrace(
-        Arrays.copyOf(failure.getStackTrace(), Math.min(100, failure.getStackTrace().length)));
-    for (Throwable suppressed : Arrays.stream(failure.getSuppressed()).limit(4).toList()) {
-      Throwable child = diagnostic(suppressed, remaining);
-      if (child != null) safe.addSuppressed(child);
-    }
-    return safe;
   }
 }

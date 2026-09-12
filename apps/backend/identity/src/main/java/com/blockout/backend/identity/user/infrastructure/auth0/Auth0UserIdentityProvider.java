@@ -73,7 +73,10 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
               text(profile, "family_name", 255),
               text(profile, "phone_number", 64),
               text(profile, "picture", 2048));
-      backoff.succeeded();
+      if (backoff.succeeded())
+        LOG.atInfo()
+            .addKeyValue("event.action", "identity.provider.recovered")
+            .log("Identity provider recovered");
       record("success", started);
       return new IdentityLookup.Found(attributes);
     } catch (ProviderFailure failure) {
@@ -82,14 +85,10 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
         if (failure.status == 401
             || failure.status == 403
             || failure.status == 429
-            || failure.status >= 500) backoff.failed(failure.code, failure.retryAt);
+            || failure.status >= 500) pause(failure);
+        else logUnavailable(failure);
       }
       record(failure.code, started);
-      LOG.atWarn()
-          .addKeyValue("event.action", "identity.lookup")
-          .addKeyValue("event.outcome", "failure")
-          .addKeyValue("error.code", failure.code)
-          .log("Identity lookup unavailable");
       return new IdentityLookup.Unavailable(failure.code);
     }
   }
@@ -107,9 +106,21 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
     try {
       return renewToken();
     } catch (ProviderFailure failure) {
-      backoff.failed(failure.code, failure.retryAt);
+      pause(failure);
       throw failure;
     }
+  }
+
+  private void pause(ProviderFailure failure) {
+    if (backoff.failed(failure.code, failure.retryAt)) logUnavailable(failure);
+  }
+
+  private void logUnavailable(ProviderFailure failure) {
+    LOG.atWarn()
+        .addKeyValue("event.action", "identity.lookup")
+        .addKeyValue("event.outcome", "failure")
+        .addKeyValue("error.code", failure.code)
+        .log("Identity lookup unavailable");
   }
 
   private synchronized void invalidateToken(String rejected) {

@@ -7,14 +7,16 @@
 | Repeatable fresh schema  | XML native Liquibase changes and one-shot image                   | Startup migration                   | Separate credentials/lifecycle; test image then application startup |
 | Pre-production iteration | Mutable creation baseline until first monolith production release | Append every development alteration | Local reset is explicit; never hide checksum mismatch               |
 | SQL least privilege      | Bootstrap namespace/roles, Liquibase table grants                 | Shared owner credentials            | Small GRANT SQL exception; prove runtime DDL rejection              |
-| Builds                   | Existing Maven reactor with four narrow modules                   | Separate reactor                    | Existing parent maintained; no legacy model imports                 |
+| Builds                   | Existing Maven reactor with focused replacement modules           | Separate reactor                    | Existing parent maintained; no legacy model imports                 |
 | API access               | Standard Spring Security JWT decoder                              | Custom token parsing                | Controlled issuer/audience/JWKS tests                               |
 | Schema readiness         | Supported integer generation plus required tables                 | Assume migration ordering           | Missing/incompatible schema is not ready                            |
 | Runtime proof            | Test-only handlers                                                | Production diagnostic job endpoint  | No artificial public behavior                                       |
 
 Version evidence: existing Spring Boot 4.1.0 BOM manages Liquibase 5.0.3. Existing project uses Java 25/PostgreSQL 17. Official PostgreSQL SELECT documentation describes SKIP LOCKED for queue consumers. Spring recommends a single schema initialization mechanism. The imported Maaatch policy is portable; its repository-specific deployment posture is supplied separately for Blockout.
 
-Execution deadlines use an independent bounded scheduler so a failed database health check cannot disable cancellation. Active work is keyed by lease token, preserving capacity accounting for an uncooperative old attempt while another lease processes the same job. PostgreSQL integration tests cover both failure modes.
+Execution deadlines use an independent bounded scheduler so a failed database health check cannot disable cancellation. Active work is keyed by lease token and stays counted until the task's run method exits, preserving capacity accounting for an uncooperative old attempt while another lease processes the same job. A bounded ArrayBlockingQueue covers the handoff between task completion and an idle executor thread; the dispatcher still reserves at most its configured concurrency. A SynchronousQueue can reject work during that handoff, and FutureTask.done runs on cancellation before the handler necessarily exits. These semantics follow the [JDK executor](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html) and [FutureTask](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/FutureTask.html) contracts. PostgreSQL integration tests cover both failure modes.
+
+Content deduplication uses [PostgreSQL JSONB equality](https://www.postgresql.org/docs/17/datatype-json.html) plus the payload version. A Java canonicalizer and stored hash would duplicate the database's existing comparison semantics. The native comparison keeps exact numbers, nested values and array ordering with no additional state; real PostgreSQL tests cover equivalent content, conflicts, version changes and concurrent publication.
 
 ## Package ownership and operational diagnostics
 
@@ -23,10 +25,12 @@ Execution deadlines use an independent bounded scheduler so a failed database he
 - Consequence: future business handlers depend on the job contracts, not JDBC adapters, and the worker alone owns acknowledgement. SQL callbacks commit atomically with success.
 - Verification: real PostgreSQL publication/lease tests, SQL-effect completion metrics, mirrored test packages and the complete backend reactor.
 
-- Decision: ECS JSON timestamps are UTC instants even for native JVM runs. Worker events have bounded structured fields and sanitized throwable snapshots retaining types/frames/causes, with a total diagnostic node budget.
-- Alternative: default-zone Logstash timestamps and raw provider exceptions. Those depend on host configuration or risk exposing payloads/credentials.
+- Decision: one dependency-free logging library owns the privacy rule used by API and worker before SLF4J sees a throwable. This avoids two copies drifting or coupling logging to a business module. ECS JSON timestamps are UTC instants even for native JVM runs. Worker events have bounded structured fields and sanitized throwable snapshots retaining types/frames/causes, with a total diagnostic node budget.
+- Alternative: formatting-time filtering through Spring Boot stack-trace customization. That leaves raw messages available to other appenders. Sanitizing at the logging call boundary retains diagnostic frames without propagating private messages; the standard [Spring Boot ECS formatter](https://docs.spring.io/spring-boot/reference/features/logging.html) still owns JSON serialization. No custom appender or remote sink is introduced.
 - Consequence: operators retain failure locations and state transitions without raw exception messages; investigating payload content requires a separately authorized mechanism. Repeated polling outages log only one transition until recovery.
 - Verification: diagnostic privacy and outage-transition tests, plus runtime JSON/UTC inspection.
+
+The error contract follows [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html#section-3.1.1): an omitted type means about:blank. Spring's standard ProblemDetail serialization is retained; the source OpenAPI declares type optional and the security handler supplies the required safe detail. A custom serializer to force a default type would add a second serialization policy without changing recovery semantics. HTTP and generated-consumer checks verify the boundary.
 
 ## Identity and subscription decisions
 

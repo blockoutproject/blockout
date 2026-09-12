@@ -40,7 +40,7 @@ public final class AuthenticationProblemHandler
 
   private void write(HttpServletResponse response, HttpStatus status, String title, String code)
       throws IOException {
-    var problem = ProblemDetail.forStatus(status);
+    var problem = ProblemDetail.forStatusAndDetail(status, title + ".");
     problem.setTitle(title);
     problem.setProperty("code", code);
     response.setStatus(status.value());

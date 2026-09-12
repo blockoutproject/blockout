@@ -17,6 +17,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Import(IdentitySchemaConfiguration.class)
 public class IdentityProfileConfiguration {
   @Bean
+  Clock identityClock() {
+    return Clock.systemUTC();
+  }
+
+  @Bean
   UserIdentityProvider userIdentityProvider(
       Auth0ProfileProperties properties, Clock clock, MeterRegistry metrics) {
     return new Auth0UserIdentityProvider(properties, clock, metrics);

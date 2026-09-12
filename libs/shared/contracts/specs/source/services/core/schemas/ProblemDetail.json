@@ -1,11 +1,12 @@
 {
   "ProblemDetail": {
     "type": "object",
-    "required": ["type", "title", "status", "detail", "code"],
+    "required": ["title", "status", "detail", "code"],
     "properties": {
       "type": {
         "type": "string",
-        "format": "uri"
+        "format": "uri",
+        "description": "Problem type URI; omission means about:blank under RFC 9457."
       },
       "title": {
         "type": "string"

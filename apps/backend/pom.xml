@@ -20,6 +20,7 @@
 
     <modules>
         <module>migrations</module>
+        <module>logging</module>
         <module>jobs</module>
         <module>identity</module>
         <module>core-service</module>

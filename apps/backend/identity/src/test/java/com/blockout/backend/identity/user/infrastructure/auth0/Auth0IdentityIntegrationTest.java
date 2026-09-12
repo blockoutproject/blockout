@@ -143,6 +143,42 @@ class Auth0IdentityIntegrationTest {
   }
 
   @Test
+  void logsOneProviderOutageUntilRecovery() throws Exception {
+    var logger =
+        (ch.qos.logback.classic.Logger)
+            org.slf4j.LoggerFactory.getLogger(Auth0UserIdentityProvider.class);
+    var logs =
+        new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+    logs.start();
+    logger.addAppender(logs);
+    tokenStatus = 503;
+    var provider = provider();
+    try {
+      try (var pool = Executors.newFixedThreadPool(6)) {
+        var calls = new java.util.ArrayList<Future<IdentityLookup>>();
+        for (int i = 0; i < 6; i++) calls.add(pool.submit(() -> provider.find(actor())));
+        for (var call : calls)
+          assertThat(call.get(10, TimeUnit.SECONDS)).isInstanceOf(IdentityLookup.Unavailable.class);
+      }
+      assertThat(logs.list).hasSize(1);
+      clock.now = clock.now.plusSeconds(5);
+      provider.find(actor());
+      assertThat(logs.list).hasSize(1);
+
+      clock.now = clock.now.plusSeconds(10);
+      tokenStatus = 200;
+      assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
+      assertThat(logs.list)
+          .extracting(ch.qos.logback.classic.spi.ILoggingEvent::getLevel)
+          .containsExactly(ch.qos.logback.classic.Level.WARN, ch.qos.logback.classic.Level.INFO);
+      assertThat(logs.list.toString()).doesNotContain("synthetic-secret", "person@example.test");
+    } finally {
+      logger.detachAppender(logs);
+      logs.stop();
+    }
+  }
+
+  @Test
   void renewsARejectedCachedTokenAfterThePause() {
     var provider = provider();
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);

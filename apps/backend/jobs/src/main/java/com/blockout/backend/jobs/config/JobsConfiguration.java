@@ -6,7 +6,8 @@ import com.blockout.backend.jobs.infrastructure.health.SchemaHealthIndicator;
 import com.blockout.backend.jobs.infrastructure.persistence.PostgresJobPublisher;
 import com.blockout.backend.jobs.infrastructure.persistence.PostgresJobRepository;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.time.Clock;
+import io.micrometer.core.instrument.Tag;
+import java.util.List;
 import org.springframework.boot.health.contributor.Status;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,11 +18,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 @Configuration(proxyBeanMethods = false)
 public class JobsConfiguration {
-  @Bean
-  Clock applicationClock() {
-    return Clock.systemUTC();
-  }
-
   @Bean
   JobPublisher jobPublisher(JdbcTemplate jdbc) {
     return new PostgresJobPublisher(jdbc, new JsonMapper());
@@ -38,7 +34,10 @@ public class JobsConfiguration {
   SchemaHealthIndicator schemaHealthIndicator(JdbcTemplate jdbc, MeterRegistry registry) {
     var indicator = new SchemaHealthIndicator(jdbc);
     registry.gauge(
-        "blockout.schema.ready", indicator, h -> Status.UP.equals(h.health().getStatus()) ? 1 : 0);
+        "blockout.schema.ready",
+        List.of(Tag.of("schema", "operations")),
+        indicator,
+        h -> Status.UP.equals(h.health().getStatus()) ? 1 : 0);
     return indicator;
   }
 }

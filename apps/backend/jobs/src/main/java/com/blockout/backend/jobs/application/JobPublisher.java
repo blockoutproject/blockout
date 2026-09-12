@@ -6,11 +6,11 @@ package com.blockout.backend.jobs.application;
 public interface JobPublisher {
   /**
    * Requires an active transaction on the configured job datasource. The owner must roll back if a
-   * rejected publication makes its write invalid. Identical canonical JSON and version reuse the
-   * existing UUID for a type/key; changed content returns a conflict without replacing that work.
-   * Object keys are sorted, number scale is ignored, and array order is significant. Deduplication
-   * lasts while the job row is retained: after successful-work cleanup, the same key creates a new
-   * job. Owners needing permanent business idempotency must enforce it independently.
+   * rejected publication makes its write invalid. Equivalent JSON and version reuse the existing
+   * UUID for a type/key; changed content returns a conflict without replacing that work. Object key
+   * order and number scale are ignored; array order is significant. Deduplication lasts while the
+   * job row is retained: after successful-work cleanup, the same key creates a new job. Owners
+   * needing permanent business idempotency must enforce it independently.
    *
    * <p>Types match {@code [a-z][a-z0-9.-]{0,99}}, versions start at one, nonblank keys have at most
    * 200 characters, and serialized payloads have at most 64 KiB of UTF-8 bytes. Invalid identity or
