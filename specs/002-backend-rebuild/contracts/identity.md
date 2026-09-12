@@ -6,7 +6,7 @@ POST /api/v2/users/me has no request body. JWT supplies the actor. Return 201 wi
 
 UserProfileResponse: id UUID, pseudo string, email/firstName/lastName/phoneNumber/pictureUrl nullable strings, active boolean, createdAt/updatedAt UTC date-times. Never return external subject, provider identities, credentials, internal billing binding, or a fabricated favorites list.
 
-Errors use ProblemDetail with stable code: 401 bearer validation; 403 USER_IDENTITY_REQUIRED, USER_INACTIVE; 404 USER_NOT_FOUND; 503 IDENTITY_PROVIDER_UNAVAILABLE or IDENTITY_CONFIGURATION_ERROR; 409 IDENTITY_MISMATCH or IDENTITY_NOT_SUPPORTED. Provider messages and profile attributes never appear in details. Response caches are private/no-store. Only the current actor's profile is addressable.
+Errors use ProblemDetail with stable code: 401 bearer validation; 403 USER_IDENTITY_REQUIRED, USER_INACTIVE; 404 USER_NOT_FOUND; 503 PROFILE_STORE_UNAVAILABLE, IDENTITY_PROVIDER_UNAVAILABLE or IDENTITY_CONFIGURATION_ERROR with Retry-After; 409 IDENTITY_MISMATCH or IDENTITY_NOT_SUPPORTED; 500 INTERNAL_ERROR for unexpected failures. Provider messages and profile attributes never appear in details. Response caches are private/no-store. Only the current actor's profile is addressable.
 
 ## Subscription delivery
 

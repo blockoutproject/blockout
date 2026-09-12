@@ -74,7 +74,26 @@
           }
         },
         "503": {
-          "description": "Identity provider temporarily unavailable",
+          "description": "Profile store or identity provider temporarily unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          },
+          "headers": {
+            "Retry-After": {
+              "description": "Suggested delay in seconds before retrying",
+              "schema": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Unexpected internal failure",
           "content": {
             "application/problem+json": {
               "schema": {
@@ -141,7 +160,26 @@
           }
         },
         "503": {
-          "description": "Identity provider temporarily unavailable",
+          "description": "Profile store temporarily unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          },
+          "headers": {
+            "Retry-After": {
+              "description": "Suggested delay in seconds before retrying",
+              "schema": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Unexpected internal failure",
           "content": {
             "application/problem+json": {
               "schema": {

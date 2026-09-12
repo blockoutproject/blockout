@@ -51,7 +51,7 @@ Independent outcome: a valid canonical Auth0 user creates one fresh profile/bill
 - [x] T020 [US1] Implement read-only Auth0 bootstrap, bounded credentials cache and typed configuration in apps/backend/identity/src/main/.
 - [x] T021 [US1] Write user-JWT, machine/client rejection, profile response/error and side-effect-free GET tests in apps/backend/core-service/src/test/.
 - [x] T022 [US1] Implement generated V2 current-user adapters and owner configuration in apps/backend/core-service/src/main/.
-- [ ] T023 Validate profile delivery, generation, complete reactor/workspace, Nx graph and isolated images/smoke in apps/backend/, libs/shared/contracts/ and scripts/backend-foundation/; record results on its PR.
+- [x] T023 Validate profile delivery, generation, complete reactor/workspace, Nx graph and isolated images/smoke in apps/backend/, libs/shared/contracts/ and scripts/backend-foundation/; record results on its PR.
 
 ## Phase 7: US1 — Server-Verified Pro Access
 
