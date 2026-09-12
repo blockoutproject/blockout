@@ -59,3 +59,47 @@ Native Maven modules and inferred Nx targets; explicit uncached image targets. I
 ## Delivery Boundaries
 
 No old database purge, Auth0/RevenueCat mutation, existing API rename, mobile change, search implementation, load qualification or VPS deployment. Next increment prioritizes paid identity continuity, then a full sporting ingestion/read path. This plan and tasks cover only the approved foundation; remaining user stories need their own subsequent design and delivery.
+
+## Identity and Subscription Increment
+
+Implement US1 server prerequisites (FR-004, FR-006–008 and the identity portion of FR-005), preserving the foundation above. The accepted delivery has two ordered issues: profiles/identity first, then RevenueCat evidence/webhooks. Mobile reset, SDK integration, voluntary linking, profile editing/deletion, staff grants, protected sporting routes and production opening remain separate. Neither issue claims complete US1/native continuity.
+
+### Authority and invariants
+
+The human confirms existing affected accounts were linked in Auth0 before RevenueCat adoption. Preserve tenant, canonical subjects, existing links, RevenueCat project and entitlement. Never replace the RevenueCat customer ID with the new business UUID. There is no account migration, email-based merge, linking, account deletion or transfer API in this increment. Future mobile purchases/restores require login; the target is RevenueCat's standard user-triggered restore behavior. Production settings are inspected before any separately authorized change; backend login never restores purchases.
+
+### Structure and persistence
+
+Add `apps/backend/identity`, a Maven library shared by core-service/core-worker with user and subscription feature/application/domain/infrastructure packages only as behavior needs them. Core-service owns generated HTTP adapters; worker owns handler assembly. Use Spring JDBC, owner application transactions, constructor injection, typed configuration and explicit outcomes. Provider calls happen outside SQL transactions. No new executable, network service, legacy model dependency or UI.
+
+Native Liquibase XML extends the mutable creation baseline. Add the identity namespace through the existing schema/role bootstrap and least-privilege grants. Increment schema generation and readiness to reject the old baseline. Use UUID business keys and Instant/timestamptz. Emails are nullable attributes, not unique identity keys. No raw tokens, provider response dumps, receipts or financial records are persisted.
+
+### First delivery: profiles and identities
+
+`POST /api/v2/users/me` accepts no actor/body and creates a profile once, returning 201 with Location or 200 when already present. `GET /api/v2/users/me` is side-effect free and returns 404 when no profile exists. Both require a valid user JWT from an allowlisted native client (`azp`); reject machine identities and client-credentials grants. API-boundary extraction passes `(issuer, subject)` into application operations. No role provisioning is performed.
+
+A lookup hit never calls Auth0. A miss reads only the configured Auth0 Management API exact subject using client credentials with read:users only; validate the response subject equals the requested identity. Read failure creates nothing. Atomically create profile, unique external identity and RevenueCat binding; a concurrent winner is reread. Profile attributes preserve the existing initial pseudonym rules and useful fields, allowing absent email/name/phone/picture. Pseudonym uniqueness uses an explicit normalized key with database arbitration. Local creation/updated dates are fresh; no historical age or favorite/media migration.
+
+First delivery creates the billing binding but does not publish unhandled RevenueCat jobs or expose subscription endpoints. The second delivery adds initial job publication in the same creation transaction. It must also bootstrap reconciliation for profiles created by the first delivery.
+
+Auth0 configuration is validated at startup: HTTPS issuer/management/token URLs, one tenant, native client allowlist, machine credentials held only in secrets. A local HTTP fixture requires an explicit loopback-only insecure transport option; non-loopback HTTP is never allowed. Token cache uses bounded expiry and synchronized renewal, no persisted credentials. Connect/read timeouts are 3/5 seconds; no unbounded retries. Only safe provider error codes and durations reach diagnostics. API and worker hold no DDL privileges; worker only reads user/binding data in the first delivery.
+
+### Second delivery: server Pro evidence
+
+GET `/api/v2/users/me/subscription` reads local evidence; POST `/api/v2/users/me/subscription-refreshes` coalesces refresh requests and returns 202 with Location and retry timing. State is active/grace/inactive/unknown, with verification time, reliable access bound, refresh state and safe failure code. The owner policy grants active/grace, returns 403 for confirmed inactive and retryable 503 for unknown. No fake sporting route is introduced.
+
+Use RevenueCat V2 subscriptions with environment filter, the configured Pro entitlement and gives_access. Follow all necessary subscription/entitlement pages, validate pagination origin/path and distinguish malformed/partial responses from confirmed absence. Include trials/promotions; do not interpret cancellation as immediate expiry or use period end as a universal access deadline. No lifetime-purchase product is introduced. Only worker calls RevenueCat; read-only V2 credentials, 3/5-second timeouts, 120 provider requests/minute including pagination, and Retry-After handling.
+
+Freshness is ten minutes capped by a reliable access expiry. Refresh positive evidence before expiry; other accounts refresh on demand. Provider-outage grace requires an earlier positive server verification and ends at the earlier of 24 hours from that verification and known access expiry. Failure never advances positive verification time. Confirmed negative evidence replaces positive immediately; expired/missing evidence is unknown. A commercial period boundary is not automatically an effective access expiry.
+
+Use existing fenced jobs, coalesced per binding with durable requested/processed revisions so arrivals during work are not lost. External calls occur outside locks; result persistence and acknowledgement share a live-lease SQL effect. Superseded attempts cannot overwrite newer evidence. Exhausted work remains observable and a bounded subsequent request can recover it.
+
+POST `/api/v2/webhooks/revenuecat` validates HMAC over original body bytes and timestamp (constant-time, 300-second tolerance), deduplicates event.id and durably publishes work before 200. Invalid authentication is rejected before business parsing. Replay/out-of-order events trigger current-state reads, never blind state transitions. Reconcile both known sides of TRANSFER and invalidate affected outgoing access/grace; unknown customers never create profiles. Raw payloads/identities are excluded from logs and metric labels. A database failure prevents acknowledgement.
+
+### Validation and delivery boundaries
+
+Real PostgreSQL tests cover migration, exact uniqueness, concurrent creation and no partial writes. Controlled Auth0/JWKS HTTP fixtures cover client credentials, identity match, invalid/malformed/upstream failures and personal-data-free diagnostics. Generated contracts compile for Java and TypeScript without switching the current mobile client. Verify complete Maven/workspace, all new images, isolated smoke, schema readiness and runtime privileges. No production action.
+
+Second-delivery evidence adds provider-state/grace clocks, sandbox isolation, pagination, rate limiting, failure recovery, lease races and webhook authentication/replay/transfer tests. A controlled existing subscriber read against a fresh isolated database is a separate provider-evidence gate, with no credentials committed and no identity/purchase mutation. Native iOS/Android proof belongs to the subsequent mobile increment.
+
+Constitution: accepted behavior remains in spec.md; no material UI change in these two deliveries; complete identity resources have one owner; new V2 contracts are source-first and generated projections remain ignored. Plan/research/model/contracts contain design, while issue/PR carry execution evidence. No constitutional exception.
