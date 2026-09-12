@@ -1,0 +1,67 @@
+package com.blockout.backend.worker.application;
+
+import com.blockout.backend.jobs.application.Job;
+import com.blockout.backend.jobs.application.JobHandler;
+import com.blockout.backend.jobs.application.JobRepository;
+import com.blockout.backend.jobs.application.JobResult;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/** Resolves one attempt's outcome; the scheduler owns capacity, renewal and interruption. */
+public final class JobExecutionService {
+  private final JobRepository jobs;
+  private final Map<String, JobHandler> handlers;
+  private final WorkerTelemetry telemetry;
+
+  public JobExecutionService(
+      JobRepository jobs, List<JobHandler> handlers, WorkerTelemetry telemetry) {
+    this.jobs = jobs;
+    this.telemetry = telemetry;
+    Map<String, JobHandler> registered = new HashMap<>();
+    for (JobHandler handler : handlers)
+      if (registered.put(handler.type(), handler) != null)
+        throw new IllegalArgumentException("Duplicate job handler");
+    this.handlers = Map.copyOf(registered);
+  }
+
+  /** Cancellation leaves the lease recoverable and cannot acknowledge a late handler result. */
+  public void execute(Job job, AtomicBoolean cancelled) {
+    try {
+      if (cancelled.get()) return;
+      JobHandler handler = handlers.get(job.type());
+      if (handler == null || handler.version() != job.version()) {
+        if (jobs.fail(job, "UNSUPPORTED_JOB", Duration.ZERO, true)) telemetry.unsupported(job);
+        return;
+      }
+      JobResult result = handler.handle(job);
+      if (cancelled.get()) return;
+      switch (result) {
+        case JobResult.Rejected rejected -> {
+          if (jobs.fail(job, rejected.code(), Duration.ZERO, true))
+            telemetry.rejected(job, rejected.code());
+        }
+        case JobResult.Completed ignored -> complete(job, () -> {});
+        case JobResult.SqlEffect sql -> complete(job, sql.effect());
+      }
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+    } catch (Exception failure) {
+      boolean recorded = false;
+      try {
+        if (!cancelled.get())
+          recorded = jobs.fail(job, "HANDLER_FAILURE", RetryPolicy.delay(job.attempts()), false);
+      } catch (RuntimeException unavailable) {
+        failure.addSuppressed(unavailable);
+      }
+      telemetry.failed(job, failure, recorded);
+    }
+  }
+
+  private void complete(Job job, Runnable effect) {
+    if (jobs.completeWithEffect(job, effect)) telemetry.completed();
+    else telemetry.leaseLost(job);
+  }
+}

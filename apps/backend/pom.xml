@@ -19,6 +19,10 @@
     <description>Aggregator POM for Blockout backend applications</description>
 
     <modules>
+        <module>migrations</module>
+        <module>jobs</module>
+        <module>core-service</module>
+        <module>core-worker</module>
         <module>shared-models</module>
         <module>clubs-service</module>
         <module>competition-service</module>

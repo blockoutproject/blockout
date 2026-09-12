@@ -1,0 +1,82 @@
+<?xml version="1.0" ?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="001-foundation" author="blockout">
+        <createTable schemaName="operations" tableName="schema_metadata">
+            <column name="id" type="integer">
+                <constraints primaryKey="true" primaryKeyName="pk_schema_metadata" nullable="false"/>
+            </column>
+            <column name="generation" type="integer">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <insert schemaName="operations" tableName="schema_metadata">
+            <column name="id" valueNumeric="1"/>
+            <column name="generation" valueNumeric="1"/>
+        </insert>
+        <createTable schemaName="operations" tableName="jobs">
+            <column name="id" type="uuid">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_jobs"/>
+            </column>
+            <column name="job_type" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload_version" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deduplication_key" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload_hash" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload" type="jsonb">
+                <constraints nullable="false"/>
+            </column>
+            <column name="state" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="available_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="attempts" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="max_attempts" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="lease_token" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+            <column name="lease_expires_at" type="timestamptz">
+                <constraints nullable="true"/>
+            </column>
+            <column name="finished_at" type="timestamptz">
+                <constraints nullable="true"/>
+            </column>
+            <column name="last_error_code" type="varchar(100)">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint schemaName="operations" tableName="jobs" columnNames="job_type,deduplication_key" constraintName="uq_jobs_type_key"/>
+        <createIndex schemaName="operations" tableName="jobs" indexName="idx_jobs_available">
+            <column name="state"/>
+            <column name="available_at"/>
+            <column name="created_at"/>
+        </createIndex>
+        <createIndex schemaName="operations" tableName="jobs" indexName="idx_jobs_lease">
+            <column name="state"/>
+            <column name="lease_expires_at"/>
+        </createIndex>
+        <createIndex schemaName="operations" tableName="jobs" indexName="idx_jobs_finished">
+            <column name="state"/>
+            <column name="finished_at"/>
+        </createIndex>
+        <!-- Community Liquibase has no native privilege change; grants are the only SQL exception. -->
+        <sql>GRANT SELECT ON operations.schema_metadata TO blockout_api, blockout_worker;
+GRANT SELECT, INSERT ON operations.jobs TO blockout_api;
+GRANT SELECT, INSERT, UPDATE, DELETE ON operations.jobs TO blockout_worker;</sql>
+    </changeSet>
+</databaseChangeLog>

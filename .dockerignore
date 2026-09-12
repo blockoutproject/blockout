@@ -13,3 +13,9 @@ __pycache__
 logs
 local
 .DS_Store
+
+**/target
+**/.venv
+**/__pycache__
+**/.env
+**/.env.*
