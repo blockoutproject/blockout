@@ -10,7 +10,7 @@ UUID id; varchar job_type; integer payload_version; varchar deduplication_key; v
 
 Unique (job_type, deduplication_key) is the concurrency authority. Read indexes cover (state, available_at, created_at), (state, lease_expires_at) and (state, finished_at). Native PostgreSQL enums and duplicate JSON/application validation checks are not introduced.
 
-State transitions: pending -> running -> succeeded; running -> pending on retry; running -> dead after exhaustion/permanent failure; expired running -> running with a fresh token or dead on exhaustion. Attempts increment at claim. Successful work is removed after seven days in bounded batches. Dead work is retained. Operator replay adds a new bounded attempt budget and preserves total attempts.
+State transitions: pending -> running -> succeeded; running -> pending on retry; running -> dead after exhaustion/permanent failure; expired running -> running with a fresh token or dead on exhaustion. Attempts increment at claim. Successful work is removed after seven days in bounded batches. Deduplication is scoped to retained rows; reusing a key after cleanup creates a new identity. Dead work is retained. Operator replay adds a new bounded attempt budget and preserves total attempts.
 
 Payload JSON is canonicalized by recursively sorting object keys (array order retained), normalized numbers, and SHA-256 hashed with its version. Maximum UTF-8 payload is 65536 bytes. Same type/key/hash reuses the ID; different content conflicts. Inputs are validated in the application. Hashing is independent of local timezone and object insertion order.
 

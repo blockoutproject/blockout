@@ -14,7 +14,10 @@ public interface JobRepository {
    */
   Optional<Job> claim(Duration lease);
 
-  /** Returns false for an expired, replaced or completed attempt, which cannot be renewed. */
+  /**
+   * Returns false for an expired, replaced or completed attempt, which cannot be renewed. Expiry is
+   * evaluated after acquiring the row lock, including when acquisition had to wait.
+   */
   boolean renew(Job job, Duration lease);
 
   /**

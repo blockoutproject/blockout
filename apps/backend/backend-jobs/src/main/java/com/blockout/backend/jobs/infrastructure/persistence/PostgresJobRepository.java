@@ -5,6 +5,7 @@ import com.blockout.backend.jobs.application.JobRepository;
 import java.time.Duration;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** PostgreSQL lease and acknowledgement operations; never holds a transaction over network I/O. */
@@ -67,41 +68,40 @@ public final class PostgresJobRepository implements JobRepository {
 
   @Override
   public boolean renew(Job job, Duration lease) {
-    return sql.update(
-            "UPDATE operations.jobs SET lease_expires_at=clock_timestamp()+(? * interval '1 millisecond') WHERE id=? AND state='running' AND lease_token=? AND lease_expires_at>clock_timestamp()",
-            lease.toMillis(),
-            job.id(),
-            job.leaseToken())
-        == 1;
+    return withLockedAttempt(
+        job,
+        status ->
+            sql.update(
+                    "UPDATE operations.jobs SET lease_expires_at=clock_timestamp()+(? * interval '1 millisecond') WHERE id=? AND state='running' AND lease_token=? AND lease_expires_at>clock_timestamp()",
+                    lease.toMillis(),
+                    job.id(),
+                    job.leaseToken())
+                == 1);
   }
 
   @Override
   public boolean completeWithEffect(Job job, Runnable effect) {
-    return Boolean.TRUE.equals(
-        tx.execute(
-            status -> {
-              var rows =
-                  sql.queryForList(
-                      "SELECT id FROM operations.jobs WHERE id=? FOR UPDATE", job.id());
-              if (rows.isEmpty()
-                  || !Boolean.TRUE.equals(
-                      sql.queryForObject(
-                          "SELECT state='running' AND lease_token=? AND lease_expires_at>clock_timestamp() FROM operations.jobs WHERE id=?",
-                          Boolean.class,
-                          job.leaseToken(),
-                          job.id()))) return false;
-              effect.run();
-              int updated =
-                  sql.update(
-                      "UPDATE operations.jobs SET state='succeeded',finished_at=clock_timestamp(),lease_token=NULL,lease_expires_at=NULL,last_error_code=NULL WHERE id=? AND lease_token=? AND lease_expires_at>clock_timestamp()",
-                      job.id(),
-                      job.leaseToken());
-              if (updated != 1) {
-                status.setRollbackOnly();
-                return false;
-              }
-              return true;
-            }));
+    return withLockedAttempt(
+        job,
+        status -> {
+          if (!Boolean.TRUE.equals(
+              sql.queryForObject(
+                  "SELECT state='running' AND lease_token=? AND lease_expires_at>clock_timestamp() FROM operations.jobs WHERE id=?",
+                  Boolean.class,
+                  job.leaseToken(),
+                  job.id()))) return false;
+          effect.run();
+          int updated =
+              sql.update(
+                  "UPDATE operations.jobs SET state='succeeded',finished_at=clock_timestamp(),lease_token=NULL,lease_expires_at=NULL,last_error_code=NULL WHERE id=? AND lease_token=? AND lease_expires_at>clock_timestamp()",
+                  job.id(),
+                  job.leaseToken());
+          if (updated != 1) {
+            status.setRollbackOnly();
+            return false;
+          }
+          return true;
+        });
   }
 
   @Override
@@ -109,21 +109,43 @@ public final class PostgresJobRepository implements JobRepository {
     if (!code.matches("[A-Z][A-Z0-9_]{0,99}"))
       throw new IllegalArgumentException("Invalid safe error code");
     boolean dead = permanent || job.attempts() >= job.maxAttempts();
-    return sql.update(
-            """
-            UPDATE operations.jobs
-            SET state=?, available_at=clock_timestamp()+(? * interval '1 millisecond'),
-                finished_at=CASE WHEN ? THEN clock_timestamp() ELSE NULL END,
-                lease_token=NULL, lease_expires_at=NULL, last_error_code=?
-            WHERE id=? AND state='running' AND lease_token=? AND lease_expires_at>clock_timestamp()
-            """,
-            dead ? "dead" : "pending",
-            delay.toMillis(),
-            dead,
-            code,
-            job.id(),
-            job.leaseToken())
-        == 1;
+    return withLockedAttempt(
+        job,
+        status ->
+            sql.update(
+                    """
+                    UPDATE operations.jobs
+                    SET state=?, available_at=clock_timestamp()+(? * interval '1 millisecond'),
+                        finished_at=CASE WHEN ? THEN clock_timestamp() ELSE NULL END,
+                        lease_token=NULL, lease_expires_at=NULL, last_error_code=?
+                    WHERE id=? AND state='running' AND lease_token=? AND lease_expires_at>clock_timestamp()
+                    """,
+                    dead ? "dead" : "pending",
+                    delay.toMillis(),
+                    dead,
+                    code,
+                    job.id(),
+                    job.leaseToken())
+                == 1);
+  }
+
+  /**
+   * PostgreSQL can evaluate a volatile UPDATE predicate before waiting for an unchanged locked row.
+   * Acquire the attempt's lock first, then evaluate expiry in a separate statement in the same
+   * transaction. Otherwise a wait could revive an already expired lease.
+   */
+  private boolean withLockedAttempt(Job job, TransactionCallback<Boolean> mutation) {
+    return Boolean.TRUE.equals(
+        tx.execute(
+            status -> {
+              var rows =
+                  sql.queryForList(
+                      "SELECT id FROM operations.jobs WHERE id=? AND state='running' AND lease_token=? FOR UPDATE",
+                      job.id(),
+                      job.leaseToken());
+              if (rows.isEmpty()) return false;
+              return mutation.doInTransaction(status);
+            }));
   }
 
   @Override

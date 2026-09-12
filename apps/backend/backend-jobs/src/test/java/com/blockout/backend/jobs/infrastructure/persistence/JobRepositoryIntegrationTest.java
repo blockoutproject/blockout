@@ -1,6 +1,7 @@
 package com.blockout.backend.jobs.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.awaitility.Awaitility.await;
 
 import com.blockout.backend.jobs.application.PublicationResult;
 import java.sql.*;
@@ -53,6 +54,7 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
         .isFalse();
 
     assertThat(jobs.renew(first, Duration.ofSeconds(60))).isFalse();
+    assertThat(jobs.fail(first, "STALE_FAILURE", Duration.ZERO, false)).isFalse();
 
     assertThat(jobs.completeWithEffect(next, () -> {})).isTrue();
   }
@@ -174,5 +176,59 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
     assertThat(job.id()).isEqualTo(result.id());
 
     assertThat(workerJobs.completeWithEffect(job, () -> {})).isTrue();
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"renew", "fail", "complete"})
+  void waitingForARowLockCannotAuthorizeAnExpiredLease(String operation) throws Exception {
+    publish("locked");
+    var job = jobs.claim(Duration.ofSeconds(5)).orElseThrow();
+    try (var pool = Executors.newSingleThreadExecutor();
+        var lock = sql.getDataSource().getConnection()) {
+      lock.setAutoCommit(false);
+      try {
+        lock.createStatement().executeQuery("SELECT id FROM operations.jobs FOR UPDATE").close();
+        var mutation =
+            pool.submit(
+                () ->
+                    switch (operation) {
+                      case "renew" -> jobs.renew(job, Duration.ofMinutes(1));
+                      case "fail" -> jobs.fail(job, "TRANSIENT_FAILURE", Duration.ZERO, false);
+                      case "complete" ->
+                          jobs.completeWithEffect(
+                              job,
+                              () -> {
+                                throw new AssertionError(
+                                    "Expired attempt must not execute SQL effects");
+                              });
+                      default -> throw new IllegalArgumentException("Unknown test operation");
+                    });
+        // Observe PostgreSQL actually waiting, then release the unchanged row only after expiry.
+        await()
+            .atMost(Duration.ofSeconds(3))
+            .until(
+                () ->
+                    sql.queryForObject(
+                            "SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock'",
+                            Integer.class)
+                        > 0);
+        await()
+            .atMost(Duration.ofSeconds(6))
+            .until(
+                () ->
+                    sql.queryForObject(
+                        "SELECT lease_expires_at<=clock_timestamp() FROM operations.jobs",
+                        Boolean.class));
+
+        lock.rollback();
+
+        assertThat(mutation.get(5, TimeUnit.SECONDS)).isFalse();
+        assertThat(state()).isEqualTo("running");
+        assertThat(jobs.claim(Duration.ofMinutes(1)).orElseThrow().leaseToken())
+            .isNotEqualTo(job.leaseToken());
+      } finally {
+        lock.rollback();
+      }
+    }
   }
 }

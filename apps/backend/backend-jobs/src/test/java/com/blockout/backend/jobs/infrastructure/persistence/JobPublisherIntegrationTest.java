@@ -125,4 +125,17 @@ class JobPublisherIntegrationTest extends PostgresJobsFixture {
 
     assertThat(count()).isZero();
   }
+
+  @Test
+  void republishingAfterSuccessRetentionCreatesNewIdentity() {
+    UUID original = publish("retained");
+    jobs.completeWithEffect(jobs.claim(java.time.Duration.ofMinutes(1)).orElseThrow(), () -> {});
+    sql.update("UPDATE operations.jobs SET finished_at=clock_timestamp()-interval '8 days'");
+    jobs.cleanup();
+
+    UUID republished = publish("retained");
+
+    assertThat(republished).isNotEqualTo(original);
+    assertThat(count()).isEqualTo(1);
+  }
 }

@@ -32,7 +32,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class SecurityIntegrationTest {
   @Container static final PostgreSQLContainer DB = new PostgreSQLContainer("postgres:17-alpine");
   static HttpServer jwks;
-  static RSAKey key;
+  static volatile RSAKey key;
   static final AtomicBoolean unavailable = new AtomicBoolean();
 
   static {
