@@ -34,6 +34,8 @@ Implement the approved first infrastructure increment of US8, with authenticatio
 - `scripts/backend-foundation/`: image build, local lifecycle and smoke commands.
 - Skill references: identical portable Liquibase policy plus Blockout-specific profile and validation-policy link bridge.
 
+Each foundation module owns a single technical capability and uses populated role packages. Application roots contain only process entry points. The API separates security HTTP translation from configuration; the worker separates application outcome handling and telemetry from its scheduling adapter; jobs expose application ports implemented by PostgreSQL infrastructure. Spring wiring and typed properties live in `config`. Future business owners add feature packages with their own roles when their behavior exists; there is no speculative domain/shared tree.
+
 ## Schema Lifecycle
 
 Use db/changelog/db.changelog-master.xml including 001-init.xml. Until the new monolith first reaches production, edit native XML createTable/constraint/index definitions directly and explicitly recreate disposable local databases. Never erase data on ordinary startup or clear checksums to bypass drift. After the first production release, applied changes become immutable and append-only migrations own compatibility/backfill/recovery.
@@ -42,9 +44,9 @@ Liquibase runs in a versioned one-shot image, receives migration credentials onl
 
 ## Runtime and Security
 
-JWT signature RS256, issuer, audience, expiry/not-before and 60-second skew; cached JWKS with controlled rotation/outage tests. Stateless bearer API, deny unregistered routes, method security available to future owners, safe RFC problem responses, no product probe endpoint. Management is on a distinct private port, exposing health and Prometheus only. Liveness never depends on providers; readiness depends on database/schema and worker scheduler progress.
+JWT signature RS256, issuer, audience, mandatory expiry/optional not-before and 60-second skew; cached JWKS with controlled rotation/outage tests. Stateless bearer API, deny unregistered routes, method security available to future owners, safe RFC problem responses, no product probe endpoint. Management is on a distinct private port, exposing health and Prometheus only. Liveness never depends on providers; readiness depends on database/schema and worker scheduler progress.
 
-JVM stdout uses structured UTC logs without payloads/identity claims. Metrics use bounded job types/states; no IDs as labels. Resource limits and SQL timeouts are explicit. Unknown job types use a single bounded metric category.
+JVM stdout uses ECS structured logs with UTC instants independent of the host timezone, without payloads/identity claims. Worker failure diagnostics retain bounded throwable types and frames while excluding provider/database exception messages. Outages log one transition until recovery; successful jobs produce metrics without per-record log noise. Metrics use bounded job types/states; no IDs as labels. Resource limits and SQL timeouts are explicit. Unknown job types use a single bounded metric category.
 
 ## Durable Work
 

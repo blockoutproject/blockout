@@ -1,4 +1,4 @@
-package com.blockout.backend.worker;
+package com.blockout.backend.worker.application;
 
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;

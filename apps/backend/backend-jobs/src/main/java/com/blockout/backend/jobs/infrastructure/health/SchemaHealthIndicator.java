@@ -1,4 +1,4 @@
-package com.blockout.backend.jobs;
+package com.blockout.backend.jobs.infrastructure.health;
 
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;

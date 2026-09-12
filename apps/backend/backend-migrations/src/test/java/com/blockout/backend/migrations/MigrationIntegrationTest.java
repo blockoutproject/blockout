@@ -48,26 +48,47 @@ class MigrationIntegrationTest {
   }
 
   @Test
-  void initializesOnceWithRuntimePrivileges() throws Exception {
+  void repeatedMigrationKeepsOneAppliedBaseline() throws Exception {
     migrate();
+
     migrate();
+
     try (var c = connect()) {
-      var rs =
-          c.createStatement()
-              .executeQuery("SELECT generation FROM operations.schema_metadata WHERE id=1");
+      var rs = c.createStatement().executeQuery("SELECT count(*) FROM databasechangelog");
       rs.next();
       assertThat(rs.getInt(1)).isEqualTo(1);
+      var generation =
+          c.createStatement()
+              .executeQuery("SELECT generation FROM operations.schema_metadata WHERE id=1");
+      generation.next();
+      assertThat(generation.getInt(1)).isEqualTo(1);
     }
-    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), "blockout_api", "test")) {
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"blockout_api", "blockout_worker"})
+  void runtimeRoleCannotCreateTables(String role) throws Exception {
+    migrate();
+
+    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test")) {
       assertThatThrownBy(
               () -> c.createStatement().execute("CREATE TABLE operations.forbidden(id int)"))
-          .isInstanceOf(SQLException.class);
+          .isInstanceOfSatisfying(
+              SQLException.class, failure -> assertThat(failure.getSQLState()).isEqualTo("42501"));
+    }
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"blockout_api", "blockout_worker"})
+  void runtimeRoleCannotChangeSchemaGeneration(String role) throws Exception {
+    migrate();
+
+    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test")) {
       assertThatThrownBy(
               () ->
                   c.createStatement().execute("UPDATE operations.schema_metadata SET generation=2"))
-          .isInstanceOf(SQLException.class);
-      assertThat(c.createStatement().executeQuery("SELECT count(*) FROM operations.jobs").next())
-          .isTrue();
+          .isInstanceOfSatisfying(
+              SQLException.class, failure -> assertThat(failure.getSQLState()).isEqualTo("42501"));
     }
   }
 

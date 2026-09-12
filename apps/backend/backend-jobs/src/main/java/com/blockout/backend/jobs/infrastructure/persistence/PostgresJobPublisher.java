@@ -1,5 +1,7 @@
-package com.blockout.backend.jobs;
+package com.blockout.backend.jobs.infrastructure.persistence;
 
+import com.blockout.backend.jobs.application.JobPublisher;
+import com.blockout.backend.jobs.application.PublicationResult;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -11,16 +13,17 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Publishes bounded work inside the transaction which owns its durable cause. */
-public final class JobPublisher {
+public final class PostgresJobPublisher implements JobPublisher {
   private final JdbcTemplate sql;
   private final JsonMapper json;
 
-  public JobPublisher(JdbcTemplate sql, JsonMapper json) {
+  public PostgresJobPublisher(JdbcTemplate sql, JsonMapper json) {
     this.sql = sql;
     this.json = json;
   }
 
-  public UUID publish(String type, int version, String key, Object payload) {
+  @Override
+  public PublicationResult publish(String type, int version, String key, Object payload) {
     if (!TransactionSynchronizationManager.isActualTransactionActive()
         || !TransactionSynchronizationManager.hasResource(sql.getDataSource()))
       throw new IllegalStateException("An owner transaction is required");
@@ -29,18 +32,20 @@ public final class JobPublisher {
         || version < 1
         || key == null
         || key.isBlank()
-        || key.length() > 200) throw new IllegalArgumentException("Invalid job identity");
+        || key.length() > 200) return new PublicationResult.Rejected("INVALID_IDENTITY");
     String body = json.writeValueAsString(canonical(json.valueToTree(payload)));
     if (body.getBytes(StandardCharsets.UTF_8).length > 65536)
-      throw new IllegalArgumentException("Job payload exceeds 64 KiB");
+      return new PublicationResult.Rejected("PAYLOAD_TOO_LARGE");
     String hash = hash(version + ":" + body);
     UUID id = UUID.randomUUID();
     sql.update(
         """
-   INSERT INTO operations.jobs(id,job_type,payload_version,deduplication_key,payload_hash,payload,state,created_at,available_at,attempts,max_attempts)
-   VALUES (?,?,?,?,?,?::jsonb,'pending',clock_timestamp(),clock_timestamp(),0,5)
-   ON CONFLICT (job_type,deduplication_key) DO NOTHING
-   """,
+        INSERT INTO operations.jobs (
+          id,job_type,payload_version,deduplication_key,payload_hash,payload,
+          state,created_at,available_at,attempts,max_attempts
+        ) VALUES (?,?,?,?,?,?::jsonb,'pending',clock_timestamp(),clock_timestamp(),0,5)
+        ON CONFLICT (job_type,deduplication_key) DO NOTHING
+        """,
         id,
         type,
         version,
@@ -50,8 +55,8 @@ public final class JobPublisher {
     return sql.queryForObject(
         "SELECT id,payload_hash FROM operations.jobs WHERE job_type=? AND deduplication_key=?",
         (rs, n) -> {
-          if (!hash.equals(rs.getString("payload_hash"))) throw new JobConflictException();
-          return rs.getObject("id", UUID.class);
+          if (!hash.equals(rs.getString("payload_hash"))) return new PublicationResult.Conflict();
+          return new PublicationResult.Accepted(rs.getObject("id", UUID.class));
         },
         type,
         key);

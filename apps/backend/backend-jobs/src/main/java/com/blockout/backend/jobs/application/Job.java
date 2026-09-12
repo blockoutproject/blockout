@@ -1,4 +1,4 @@
-package com.blockout.backend.jobs;
+package com.blockout.backend.jobs.application;
 
 import java.util.UUID;
 

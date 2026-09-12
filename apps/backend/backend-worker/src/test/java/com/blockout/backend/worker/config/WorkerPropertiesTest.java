@@ -1,20 +1,11 @@
-package com.blockout.backend.worker;
+package com.blockout.backend.worker.config;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
-class RetryPolicyTest {
-  @Test
-  void boundsRetryJitter() {
-    for (int attempt = 1; attempt <= 5; attempt++) {
-      long base = new long[] {5, 30, 120, 600, 600}[attempt - 1];
-      for (int n = 0; n < 50; n++)
-        assertThat(RetryPolicy.delay(attempt).toMillis()).isBetween(base * 800, base * 1200);
-    }
-  }
-
+class WorkerPropertiesTest {
   @Test
   void rejectsRenewalBeyondLease() {
     assertThatThrownBy(

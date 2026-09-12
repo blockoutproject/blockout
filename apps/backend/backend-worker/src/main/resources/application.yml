@@ -46,7 +46,7 @@ management:
 logging:
   structured:
     format:
-      console: logstash
+      console: ecs
 blockout:
   worker:
     concurrency: 2

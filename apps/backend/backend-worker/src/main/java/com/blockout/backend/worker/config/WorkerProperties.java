@@ -1,4 +1,4 @@
-package com.blockout.backend.worker;
+package com.blockout.backend.worker.config;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;

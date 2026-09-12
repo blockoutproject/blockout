@@ -1,4 +1,4 @@
-package com.blockout.backend.api;
+package com.blockout.backend.api.config;
 
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;

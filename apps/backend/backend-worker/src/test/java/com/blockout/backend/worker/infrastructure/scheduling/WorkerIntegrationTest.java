@@ -1,9 +1,17 @@
-package com.blockout.backend.worker;
+package com.blockout.backend.worker.infrastructure.scheduling;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
-import com.blockout.backend.jobs.*;
+import com.blockout.backend.jobs.application.Job;
+import com.blockout.backend.jobs.application.JobHandler;
+import com.blockout.backend.jobs.application.JobResult;
+import com.blockout.backend.jobs.infrastructure.health.SchemaHealthIndicator;
+import com.blockout.backend.jobs.infrastructure.persistence.PostgresJobPublisher;
+import com.blockout.backend.jobs.infrastructure.persistence.PostgresJobRepository;
+import com.blockout.backend.worker.application.JobExecutionService;
+import com.blockout.backend.worker.application.WorkerTelemetry;
+import com.blockout.backend.worker.config.WorkerProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.*;
@@ -26,9 +34,10 @@ class WorkerIntegrationTest {
   @Container static final PostgreSQLContainer DB = new PostgreSQLContainer("postgres:17-alpine");
   static JdbcTemplate sql;
   static TransactionTemplate tx;
-  static JobRepository repository;
-  static JobPublisher publisher;
+  static PostgresJobRepository repository;
+  static PostgresJobPublisher publisher;
   JobWorker worker;
+  SimpleMeterRegistry metrics;
 
   @BeforeAll
   static void setup() throws Exception {
@@ -47,8 +56,8 @@ class WorkerIntegrationTest {
         lb.update("");
       }
     }
-    repository = new JobRepository(sql, tx);
-    publisher = new JobPublisher(sql, new JsonMapper());
+    repository = new PostgresJobRepository(sql, tx);
+    publisher = new PostgresJobPublisher(sql, new JsonMapper());
   }
 
   @BeforeEach
@@ -59,9 +68,12 @@ class WorkerIntegrationTest {
   @AfterEach
   void stop() {
     if (worker != null) worker.stop();
+    if (metrics != null) metrics.close();
   }
 
   void start(JobHandler handler) {
+    metrics = new SimpleMeterRegistry();
+    var telemetry = new WorkerTelemetry(repository, metrics);
     worker =
         new JobWorker(
             repository,
@@ -72,8 +84,9 @@ class WorkerIntegrationTest {
                 Duration.ofMillis(100),
                 Duration.ofSeconds(2),
                 Duration.ofMillis(200)),
-            handler == null ? List.of() : List.of(handler),
-            new SimpleMeterRegistry(),
+            new JobExecutionService(
+                repository, handler == null ? List.of() : List.of(handler), telemetry),
+            telemetry,
             new SchemaHealthIndicator(sql));
     worker.start();
   }
@@ -86,10 +99,13 @@ class WorkerIntegrationTest {
   void processesSupportedWork() {
     var executions = new AtomicInteger();
     publish("a");
+
     start(handler(j -> executions.incrementAndGet()));
+
     await()
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(() -> assertThat(repository.count("succeeded")).isEqualTo(1));
+
     assertThat(executions).hasValue(1);
   }
 
@@ -100,6 +116,7 @@ class WorkerIntegrationTest {
     var release = new CountDownLatch(1);
     var active = new AtomicInteger();
     var peak = new AtomicInteger();
+
     start(
         handler(
             j -> {
@@ -109,10 +126,12 @@ class WorkerIntegrationTest {
               release.await();
               active.decrementAndGet();
             }));
+
     assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
     var initial =
         sql.queryForObject(
             "SELECT max(lease_expires_at) FROM operations.jobs", java.sql.Timestamp.class);
+
     await()
         .atMost(Duration.ofSeconds(1))
         .untilAsserted(
@@ -122,18 +141,23 @@ class WorkerIntegrationTest {
                             "SELECT max(lease_expires_at) FROM operations.jobs",
                             java.sql.Timestamp.class))
                     .isAfter(initial));
+
     assertThat(repository.count("running")).isEqualTo(2);
     release.countDown();
+
     await()
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(() -> assertThat(repository.count("succeeded")).isEqualTo(5));
+
     assertThat(peak.get()).isLessThanOrEqualTo(2);
   }
 
   @Test
   void unknownTypesBecomeDead() {
     publish("a");
+
     start(null);
+
     await()
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(() -> assertThat(repository.count("dead")).isEqualTo(1));
@@ -142,11 +166,13 @@ class WorkerIntegrationTest {
   @Test
   void failedHandlerSchedulesRetry() {
     publish("a");
+
     start(
         handler(
             j -> {
               throw new IllegalStateException("test failure");
             }));
+
     await()
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
@@ -155,6 +181,7 @@ class WorkerIntegrationTest {
                         sql.queryForObject(
                             "SELECT last_error_code FROM operations.jobs", String.class))
                     .isEqualTo("HANDLER_FAILURE"));
+
     assertThat(repository.count("pending")).isEqualTo(1);
   }
 
@@ -179,29 +206,31 @@ class WorkerIntegrationTest {
   void shutdownLeavesInterruptedWorkRecoverable() throws Exception {
     var entered = new CountDownLatch(1);
     publish("a");
+
     start(
         handler(
             j -> {
               entered.countDown();
               new CountDownLatch(1).await();
             }));
+
     assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
     worker.stop();
     sql.update("UPDATE operations.jobs SET lease_expires_at=clock_timestamp()-interval '1 second'");
+
     assertThat(repository.claim(Duration.ofSeconds(1))).isPresent();
   }
 
   @Test
   void rejectsInvalidOwnerPayloadPermanently() {
     publish("a");
-    start(
-        handler(
-            j -> {
-              throw new JobRejectedException("INVALID_PAYLOAD");
-            }));
+
+    start(resultHandler(j -> new JobResult.Rejected("INVALID_PAYLOAD")));
+
     await()
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(() -> assertThat(repository.count("dead")).isEqualTo(1));
+
     assertThat(sql.queryForObject("SELECT attempts FROM operations.jobs", Integer.class))
         .isEqualTo(1);
   }
@@ -210,6 +239,7 @@ class WorkerIntegrationTest {
   void interruptsJobsAtTheExecutionDeadline() throws Exception {
     var interrupted = new CountDownLatch(1);
     publish("a");
+
     start(
         handler(
             j -> {
@@ -220,8 +250,10 @@ class WorkerIntegrationTest {
                 throw e;
               }
             }));
+
     assertThat(interrupted.await(5, TimeUnit.SECONDS)).isTrue();
     worker.stop();
+
     assertThat(repository.count("succeeded")).isZero();
   }
 
@@ -230,6 +262,7 @@ class WorkerIntegrationTest {
     var entered = new CountDownLatch(1);
     var interrupted = new CountDownLatch(1);
     publish("a");
+
     start(
         handler(
             j -> {
@@ -241,6 +274,7 @@ class WorkerIntegrationTest {
                 throw e;
               }
             }));
+
     assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
     sql.update("UPDATE operations.schema_metadata SET generation=2");
     try {
@@ -256,6 +290,7 @@ class WorkerIntegrationTest {
     var entered = new CountDownLatch(2);
     var release = new CountDownLatch(1);
     publish("a");
+
     start(
         handler(
             j -> {
@@ -297,6 +332,18 @@ class WorkerIntegrationTest {
   }
 
   JobHandler handler(Action action) {
+    return resultHandler(
+        job -> {
+          action.run(job);
+          return new JobResult.Completed();
+        });
+  }
+
+  interface ResultAction {
+    JobResult run(Job job) throws Exception;
+  }
+
+  JobHandler resultHandler(ResultAction action) {
     return new JobHandler() {
       public String type() {
         return "test";
@@ -306,9 +353,42 @@ class WorkerIntegrationTest {
         return 1;
       }
 
-      public void handle(Job job) throws Exception {
-        action.run(job);
+      public JobResult handle(Job job) throws Exception {
+        return action.run(job);
       }
     };
+  }
+
+  @Test
+  void commitsSqlEffectWithSuccessAndCountsCompletionOnce() {
+    sql.execute("CREATE TABLE IF NOT EXISTS operations.test_effects(job_id uuid PRIMARY KEY)");
+    sql.execute("TRUNCATE operations.test_effects");
+    publish("sql");
+
+    start(
+        resultHandler(
+            job ->
+                new JobResult.SqlEffect(
+                    () ->
+                        sql.update(
+                            "INSERT INTO operations.test_effects(job_id) VALUES (?)", job.id()))));
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () -> {
+              assertThat(repository.count("succeeded")).isEqualTo(1);
+              assertThat(
+                      sql.queryForObject(
+                          "SELECT count(*) FROM operations.test_effects", Integer.class))
+                  .isEqualTo(1);
+              assertThat(
+                      metrics
+                          .get("blockout.jobs.executions")
+                          .tag("outcome", "completed")
+                          .counter()
+                          .count())
+                  .isEqualTo(1);
+            });
   }
 }

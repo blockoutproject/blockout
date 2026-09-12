@@ -1,4 +1,4 @@
-package com.blockout.backend.api;
+package com.blockout.backend.api.security.api;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -79,9 +79,21 @@ class SecurityIntegrationTest {
   @Test
   void rejectsMissingAuthentication() throws Exception {
     var r = get("/api/v2/test", null);
+
     assertThat(r.statusCode()).isEqualTo(401);
+
     assertThat(r.headers().firstValue("www-authenticate")).isPresent();
-    assertThat(r.body()).contains("AUTHENTICATION_REQUIRED").doesNotContain("exception");
+
+    assertThat(r.headers().firstValue("content-type")).contains("application/problem+json");
+    var problem = new tools.jackson.databind.json.JsonMapper().readTree(r.body());
+
+    assertThat(problem.path("status").asInt()).isEqualTo(401);
+
+    assertThat(problem.path("code").asText()).isEqualTo("AUTHENTICATION_REQUIRED");
+
+    assertThat(problem.path("type").asText("about:blank")).isEqualTo("about:blank");
+
+    assertThat(r.body()).doesNotContain("exception", "test-subject");
   }
 
   @Test
@@ -103,66 +115,80 @@ class SecurityIntegrationTest {
     assertThat(get("/api/v2/staff", valid()).statusCode()).isEqualTo(403);
   }
 
-  @Test
-  void rejectsWrongAudienceIssuerExpiryAndSignature() throws Exception {
-    assertThat(
-            get(
-                    "/api/v2/test",
-                    token(key, "https://issuer.example/", "wrong", Instant.now().plusSeconds(300)))
-                .statusCode())
-        .isEqualTo(401);
-    assertThat(
-            get(
-                    "/api/v2/test",
-                    token(
-                        key,
-                        "https://wrong.example/",
-                        "blockout-test",
-                        Instant.now().plusSeconds(300)))
-                .statusCode())
-        .isEqualTo(401);
-    assertThat(
-            get(
-                    "/api/v2/test",
-                    token(
-                        key,
-                        "https://issuer.example/",
-                        "blockout-test",
-                        Instant.now().minusSeconds(120)))
-                .statusCode())
-        .isEqualTo(401);
-    assertThat(
-            get(
-                    "/api/v2/test",
-                    token(
-                        new RSAKeyGenerator(2048).keyID(key.getKeyID()).generate(),
-                        "https://issuer.example/",
-                        "blockout-test",
-                        Instant.now().plusSeconds(300)))
-                .statusCode())
-        .isEqualTo(401);
+  @org.junit.jupiter.params.ParameterizedTest(name = "rejects {0}")
+  @org.junit.jupiter.params.provider.EnumSource(InvalidToken.class)
+  void rejectsInvalidToken(InvalidToken scenario) throws Exception {
+    var signing =
+        scenario == InvalidToken.SIGNATURE
+            ? new RSAKeyGenerator(2048).keyID(key.getKeyID()).generate()
+            : key;
+    String issuer =
+        scenario == InvalidToken.ISSUER ? "https://wrong.example/" : "https://issuer.example/";
+    String audience = scenario == InvalidToken.AUDIENCE ? "wrong" : "blockout-test";
+    var expires =
+        scenario == InvalidToken.EXPIRED
+            ? Instant.now().minusSeconds(120)
+            : Instant.now().plusSeconds(300);
+
+    if (scenario == InvalidToken.MISSING_EXPIRY) expires = null;
+    var notBefore = scenario == InvalidToken.NOT_YET_VALID ? Instant.now().plusSeconds(300) : null;
+
+    var response = get("/api/v2/test", token(signing, issuer, audience, expires, notBefore));
+
+    assertThat(response.statusCode()).isEqualTo(401);
+
+    assertThat(response.body())
+        .contains("AUTHENTICATION_REQUIRED")
+        .doesNotContain("test-subject", "exception");
+  }
+
+  enum InvalidToken {
+    AUDIENCE,
+    ISSUER,
+    EXPIRED,
+    SIGNATURE,
+    MISSING_EXPIRY,
+    NOT_YET_VALID
   }
 
   @Test
-  void refreshesRotatedKeysAndFailsClosedDuringOutage() throws Exception {
+  void refreshesRotatedSigningKeys() throws Exception {
     assertThat(get("/api/v2/test", valid()).statusCode()).isEqualTo(200);
     key = new RSAKeyGenerator(2048).keyID("rotated").generate();
+
+    var response = get("/api/v2/test", valid());
+
+    assertThat(response.statusCode()).isEqualTo(200);
+  }
+
+  @Test
+  void acceptsCachedKeyDuringJwksOutage() throws Exception {
     String cached = valid();
+
     assertThat(get("/api/v2/test", cached).statusCode()).isEqualTo(200);
     unavailable.set(true);
+
     try {
-      assertThat(get("/api/v2/test", cached).statusCode()).isEqualTo(200);
-      var unknown = new RSAKeyGenerator(2048).keyID("unknown").generate();
-      assertThat(
-              get(
-                      "/api/v2/test",
-                      token(
-                          unknown,
-                          "https://issuer.example/",
-                          "blockout-test",
-                          Instant.now().plusSeconds(300)))
-                  .statusCode())
-          .isEqualTo(401);
+      var response = get("/api/v2/test", cached);
+
+      assertThat(response.statusCode()).isEqualTo(200);
+    } finally {
+      unavailable.set(false);
+    }
+  }
+
+  @Test
+  void deniesUnknownKeyDuringJwksOutage() throws Exception {
+    var unknown = new RSAKeyGenerator(2048).keyID("unknown").generate();
+    var token =
+        token(unknown, "https://issuer.example/", "blockout-test", Instant.now().plusSeconds(300));
+    unavailable.set(true);
+
+    try {
+      var response = get("/api/v2/test", token);
+
+      assertThat(response.statusCode()).isEqualTo(401);
+      assertThat(response.body()).doesNotContain("test-subject", "exception", "jwks");
     } finally {
       unavailable.set(false);
     }
@@ -184,6 +210,12 @@ class SecurityIntegrationTest {
 
   static String token(RSAKey signing, String issuer, String audience, Instant expires)
       throws Exception {
+    return token(signing, issuer, audience, expires, null);
+  }
+
+  static String token(
+      RSAKey signing, String issuer, String audience, Instant expires, Instant notBefore)
+      throws Exception {
     var jwt =
         new SignedJWT(
             new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(signing.getKeyID()).build(),
@@ -191,7 +223,8 @@ class SecurityIntegrationTest {
                 .subject("test-subject")
                 .issuer(issuer)
                 .audience(audience)
-                .expirationTime(Date.from(expires))
+                .expirationTime(expires == null ? null : Date.from(expires))
+                .notBeforeTime(notBefore == null ? null : Date.from(notBefore))
                 .issueTime(new Date())
                 .build());
     jwt.sign(new RSASSASigner(signing));

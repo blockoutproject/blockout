@@ -1,5 +1,10 @@
-package com.blockout.backend.jobs;
+package com.blockout.backend.jobs.config;
 
+import com.blockout.backend.jobs.application.JobPublisher;
+import com.blockout.backend.jobs.application.JobRepository;
+import com.blockout.backend.jobs.infrastructure.health.SchemaHealthIndicator;
+import com.blockout.backend.jobs.infrastructure.persistence.PostgresJobPublisher;
+import com.blockout.backend.jobs.infrastructure.persistence.PostgresJobRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import org.springframework.boot.health.contributor.Status;
@@ -19,14 +24,14 @@ public class JobsConfiguration {
 
   @Bean
   JobPublisher jobPublisher(JdbcTemplate jdbc) {
-    return new JobPublisher(jdbc, new JsonMapper());
+    return new PostgresJobPublisher(jdbc, new JsonMapper());
   }
 
   @Bean
   JobRepository jobRepository(JdbcTemplate jdbc, PlatformTransactionManager manager) {
     var tx = new TransactionTemplate(manager);
     tx.setTimeout(10);
-    return new JobRepository(jdbc, tx);
+    return new PostgresJobRepository(jdbc, tx);
   }
 
   @Bean

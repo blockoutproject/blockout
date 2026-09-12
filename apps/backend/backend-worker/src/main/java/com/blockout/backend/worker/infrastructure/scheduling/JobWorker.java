@@ -1,26 +1,36 @@
-package com.blockout.backend.worker;
+package com.blockout.backend.worker.infrastructure.scheduling;
 
-import com.blockout.backend.jobs.*;
-import io.micrometer.core.instrument.MeterRegistry;
+import com.blockout.backend.jobs.application.Job;
+import com.blockout.backend.jobs.application.JobRepository;
+import com.blockout.backend.jobs.infrastructure.health.SchemaHealthIndicator;
+import com.blockout.backend.worker.application.JobExecutionService;
+import com.blockout.backend.worker.application.WorkerTelemetry;
+import com.blockout.backend.worker.config.WorkerProperties;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
+import org.springframework.boot.health.contributor.Status;
 import org.springframework.context.SmartLifecycle;
 
-/** Bounded dispatcher. Cancelling a call never pretends to undo an external side effect. */
+/**
+ * Bounded, single-start dispatcher with independent lease polling and execution deadlines. Attempts
+ * stay counted until the handler actually exits, including when it ignores cancellation; otherwise
+ * an expired job could spawn unlimited overlapping executions. Cancellation cannot undo an external
+ * effect. Shutdown stops claims, waits the configured grace, then interrupts remaining attempts.
+ */
 public final class JobWorker implements SmartLifecycle, HealthIndicator {
-  private static final Logger LOG = LoggerFactory.getLogger(JobWorker.class);
   private final SchemaHealthIndicator schema;
   private final JobRepository jobs;
   private final WorkerProperties config;
-  private final Map<String, JobHandler> handlers;
-  private final MeterRegistry metrics;
+  private final JobExecutionService attempts;
+  private final WorkerTelemetry telemetry;
   private final ScheduledExecutorService control = Executors.newSingleThreadScheduledExecutor();
+  // A blocked database poll must never prevent interruption at the execution deadline.
   private final ScheduledThreadPoolExecutor deadlines = new ScheduledThreadPoolExecutor(1);
   private final ExecutorService execution;
   private final Map<UUID, Execution> active = new ConcurrentHashMap<>();
@@ -32,31 +42,21 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
       Job job,
       FutureTask<Void> task,
       AtomicBoolean cancelled,
-      long[] renewed,
-      java.util.concurrent.atomic.AtomicReference<ScheduledFuture<?>> timeout) {}
+      AtomicLong renewed,
+      AtomicReference<ScheduledFuture<?>> timeout) {}
 
   public JobWorker(
       JobRepository jobs,
       WorkerProperties config,
-      List<JobHandler> handlers,
-      MeterRegistry metrics,
+      JobExecutionService attempts,
+      WorkerTelemetry telemetry,
       SchemaHealthIndicator schema) {
     this.schema = schema;
     this.jobs = jobs;
     this.config = config;
-    this.metrics = metrics;
-    Map<String, JobHandler> registered = new HashMap<>();
-    for (JobHandler handler : handlers)
-      if (registered.put(handler.type(), handler) != null)
-        throw new IllegalArgumentException("Duplicate job handler");
-    this.handlers = Map.copyOf(registered);
-    metrics.gauge(
-        "blockout.worker.ready",
-        this,
-        w ->
-            org.springframework.boot.health.contributor.Status.UP.equals(w.health().getStatus())
-                ? 1
-                : 0);
+    this.attempts = attempts;
+    this.telemetry = telemetry;
+    telemetry.readiness(this, w -> Status.UP.equals(w.health().getStatus()) ? 1 : 0);
     deadlines.setRemoveOnCancelPolicy(true);
     execution =
         new ThreadPoolExecutor(
@@ -65,35 +65,14 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
             0L,
             TimeUnit.MILLISECONDS,
             new SynchronousQueue<>());
-    for (String state : List.of("pending", "running", "succeeded", "dead"))
-      metrics.gauge(
-          "blockout.jobs.count",
-          List.of(io.micrometer.core.instrument.Tag.of("state", state)),
-          jobs,
-          j -> safeCount(j, state));
-    metrics.gauge(
-        "blockout.jobs.oldest.available.seconds",
-        jobs,
-        j -> {
-          try {
-            return j.oldestAvailableSeconds();
-          } catch (RuntimeException e) {
-            return Double.NaN;
-          }
-        });
-  }
-
-  private double safeCount(JobRepository repository, String state) {
-    try {
-      return repository.count(state);
-    } catch (RuntimeException e) {
-      return Double.NaN;
-    }
   }
 
   @Override
-  public void start() {
+  public synchronized void start() {
+    if (running) return;
+    if (control.isShutdown()) throw new IllegalStateException("A stopped worker cannot restart");
     running = true;
+    telemetry.started(config.concurrency());
     lastPoll = System.nanoTime();
     control.scheduleWithFixedDelay(this::tick, 0, config.poll().toMillis(), TimeUnit.MILLISECONDS);
   }
@@ -102,13 +81,17 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
     if (!running) return;
     try {
       long now = System.nanoTime();
-      if (!org.springframework.boot.health.contributor.Status.UP.equals(
-          schema.health().getStatus())) return;
+      if (!Status.UP.equals(schema.health().getStatus())) {
+        telemetry.pollUnavailable(null);
+        return;
+      }
       for (Execution work : active.values()) {
         if (work.cancelled().get()) continue;
-        if (now - work.renewed()[0] >= config.renewal().toNanos()) {
-          if (!jobs.renew(work.job(), config.lease())) cancel(work);
-          else work.renewed()[0] = now;
+        if (now - work.renewed().get() >= config.renewal().toNanos()) {
+          if (!jobs.renew(work.job(), config.lease())) {
+            cancel(work);
+            telemetry.leaseLost(work.job());
+          } else work.renewed().set(now);
         }
       }
       int remaining = config.concurrency() - active.size();
@@ -122,18 +105,13 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
         lastCleanup = now;
       }
       lastPoll = System.nanoTime();
+      telemetry.pollRecovered();
     } catch (RuntimeException error) {
-      LOG.warn("Worker poll failed; work remains durable", error);
+      telemetry.pollUnavailable(error);
     }
   }
 
   private void dispatch(Job job) {
-    JobHandler handler = handlers.get(job.type());
-    if (handler == null || handler.version() != job.version()) {
-      jobs.fail(job, "UNSUPPORTED_JOB", Duration.ZERO, true);
-      metrics.counter("blockout.jobs.failed", "reason", "unsupported").increment();
-      return;
-    }
     long now = System.nanoTime();
     AtomicBoolean cancelled = new AtomicBoolean();
     AtomicBoolean entered = new AtomicBoolean();
@@ -143,20 +121,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
             () -> {
               entered.set(true);
               try {
-                if (cancelled.get()) return null;
-                handler.handle(job);
-                if (!cancelled.get() && jobs.completeWithEffect(job, () -> {}))
-                  metrics.counter("blockout.jobs.executions", "outcome", "completed").increment();
-              } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-              } catch (JobRejectedException rejected) {
-                if (!cancelled.get()) jobs.fail(job, rejected.code(), Duration.ZERO, true);
-                metrics.counter("blockout.jobs.executions", "outcome", "rejected").increment();
-              } catch (Exception failure) {
-                if (!cancelled.get())
-                  jobs.fail(job, "HANDLER_FAILURE", RetryPolicy.delay(job.attempts()), false);
-                metrics.counter("blockout.jobs.executions", "outcome", "failed").increment();
-                LOG.warn("Job handler failed; retry policy applies");
+                attempts.execute(job, cancelled);
               } finally {
                 active.remove(job.leaseToken());
                 var scheduled = timeout.get();
@@ -169,14 +134,14 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
             if (!entered.get()) active.remove(job.leaseToken());
           }
         };
-    var work = new Execution(job, task, cancelled, new long[] {now}, timeout);
+    var work = new Execution(job, task, cancelled, new AtomicLong(now), timeout);
     active.put(job.leaseToken(), work);
     timeout.set(
         deadlines.schedule(
             () -> {
               if (!task.isDone()) {
                 cancel(work);
-                metrics.counter("blockout.jobs.timeouts").increment();
+                telemetry.timedOut(job);
               }
             },
             config.deadline().toMillis(),
@@ -195,7 +160,8 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
   }
 
   @Override
-  public void stop() {
+  public synchronized void stop() {
+    if (!running) return;
     running = false;
     control.shutdown();
     execution.shutdown();
@@ -209,6 +175,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
       control.shutdownNow();
       deadlines.shutdownNow();
       execution.shutdownNow();
+      telemetry.stopped(active.size());
     }
   }
 

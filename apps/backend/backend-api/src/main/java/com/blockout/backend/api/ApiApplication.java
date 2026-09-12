@@ -1,6 +1,7 @@
 package com.blockout.backend.api;
 
-import com.blockout.backend.jobs.JobsConfiguration;
+import com.blockout.backend.api.config.AuthProperties;
+import com.blockout.backend.jobs.config.JobsConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

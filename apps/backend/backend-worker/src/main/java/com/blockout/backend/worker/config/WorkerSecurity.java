@@ -1,4 +1,4 @@
-package com.blockout.backend.worker;
+package com.blockout.backend.worker.config;
 
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.*;
