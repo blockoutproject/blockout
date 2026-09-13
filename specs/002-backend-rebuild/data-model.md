@@ -39,3 +39,17 @@ job status is read through the public jobs boundary, never a cross-owner SQL joi
 `identity.webhook_receipts` uses event_id as its primary key and stores event_type, event_at and received_at.
 Receipts are retained; bodies and customer lists are not stored. Receipt insertion and all known-binding
 refresh requests share one transaction. Binding locks use UUID order for multi-customer events.
+
+## Sports Reference Baseline (Generation 5)
+
+Sports owns clubs (UUID, FFVB string code, nullable name), divisions (UUID, unique name, active),
+teams (UUID, club FK, season, division FK, format, gender, canonical_name, display_name), pools
+(UUID, provider, organizer, season, code, name, active), team_pool_memberships (pool/team composite
+key, active), FFVB configuration (singleton, enabled, nullable unconfigured season, source rows,
+updated_by, updated_at), provider mappings (UUID, organizer, exact label, nullable division/format/
+gender, audit fields). Native foreign keys preserve references; team matching uniqueness uses the
+complete contextual canonical key. Identity owns user_roles (user_id, role composite key).
+
+Import observations/cycles, typed matches/sets/official snapshots, revisions and durable sports events
+are added by the collection delivery; see contracts/ffvb.md for completeness and lifetime semantics.
+Public opaque identity is never the provider matching key or a mutable display label.

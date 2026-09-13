@@ -94,3 +94,35 @@ Worker configuration requires `BLOCKOUT_REVENUECAT_BASE_URL`, `BLOCKOUT_REVENUEC
 `BLOCKOUT_REVENUECAT_WEBHOOK_AUTHORIZATION`. Live API keys need subscription-read permission.
 The worker only reads the existing provider identity; signing configuration is a separately authorized
 RevenueCat dashboard operation. The sixth alert detects positive evidence stale for five minutes.
+
+## FFVB Increment Validation
+
+Run reference/admin PostgreSQL and HTTP tests first, then generate core Java/Python/TypeScript and run
+`./mvnw -f apps/backend/pom.xml verify` and the workspace verification with CI fixture environment.
+Use the isolated Docker lifecycle only; schema generation 5 requires an explicitly recreated disposable
+database if generation 4 was used. Apply the documented ADMIN grant to an existing controlled profile,
+read/replace FFVB configuration, create/update a division and map an observed label; revoke ADMIN and
+verify denial on the next request. Validate machine configuration scope/client isolation separately.
+
+For the collection delivery use complete controlled fixtures, prove restart/replay/stale-lease fencing
+and independent calendar/standing outcomes. For consultation, follow multiple pages in four zones,
+change an affected calendar, then verify refresh conflict while an unrelated continuation stays valid.
+Measure receipt-to-publication under five minutes on the declared controlled workload and verify
+Prometheus/Grafana. These checks do not qualify real Sunday peak capacity or mobile/native cutover.
+
+### Grant or revoke a controlled administrator
+
+Use an operations PostgreSQL connection (never the API credentials):
+
+```bash
+psql "$OPERATIONS_DATABASE_URL" -v issuer='https://your-tenant/' -v subject='auth0|existing-subject' -v grant=true -f scripts/backend-foundation/admin-role.sql
+psql "$OPERATIONS_DATABASE_URL" -v issuer='https://your-tenant/' -v subject='auth0|existing-subject' -v grant=false -f scripts/backend-foundation/admin-role.sql
+```
+
+The exact existing external identity must resolve to one profile. Grant/revoke is idempotent; neither
+creates a profile nor touches Auth0/RevenueCat. The next admin request rereads local role and active
+state. Keep the operations connection secret; use normal operations audit controls for this command.
+Set `BLOCKOUT_FFVB_SCRAPER_CLIENT_IDS` on core-service to the dedicated Auth0 machine client IDs.
+An empty allowlist denies all scraper access. Use the existing core JWT issuer/audience; the machine
+application requires only `read:ffvb-configuration` in this delivery. Import-write scope arrives with
+its separate import contract. No Auth0 machine token is acquired by the core-service for these reads.

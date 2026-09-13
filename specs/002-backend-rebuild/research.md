@@ -139,3 +139,36 @@ strings. No custom enum parser, registry or JSON converter is introduced.
 
 References: [RevenueCat event types](https://www.revenuecat.com/docs/integrations/webhooks/event-types-and-fields),
 [Spring generator enum fallback](https://openapi-generator.tech/docs/generators/spring/).
+
+## FFVB Decisions
+
+- **Decision:** retain the actual scraper alias and normalization key, distinguishing public identity
+  from provider matching. **Need:** deterministic parity without invented fuzzy matching. **Simpler
+  alternative:** raw-name equality loses existing aliases; fuzzy rebinding adds unapproved behavior.
+  **Consequence/verification:** different normalized names can create new teams; parity and contextual
+  uniqueness tests include repeated/multi-pool teams and historical-reference retention.
+- **Decision:** dedicated sports library, native JDBC batches, local ADMIN row and generated contracts.
+  **Need:** coherent ownership and human administration. **Alternative:** another config service or
+  permission framework adds unnecessary deployment/caching concepts. **Verification:** actual role
+  revoke, database privileges, ArchUnit and all generated consumers.
+- **Decision:** explicit source season/zone, unproven midnight date-only, preserve time only on unchanged
+  date/zone. **Need:** avoid invented schedule precision. **Alternative:** machine timezone or transplant
+  old time silently changes user intent. **Verification:** DST and four-zone fixtures.
+- **Decision:** monotonic server cycle ordering and owner observation idempotency plus existing leases.
+  **Need:** late downloads/replays cannot overwrite newer truth. **Alternative:** download completion
+  timestamps misorder observations; queue retention alone loses idempotency. **Verification:** concurrent
+  reverse completion, lost lease and owner receipt retained after queue cleanup.
+- **Decision:** official standings independent from calendar, typed fields including source sentinels.
+  **Alternative:** calculate standings or coerce MAX/absent stats; this fabricates provider truth.
+  **Verification:** reduced authentic formats plus complete controlled snapshots.
+- **Decision:** signed existing-library cursor with targeted revisions. **Alternative:** offset pages
+  drift during imports; global revision invalidates unrelated teams. **Verification:** exact continuation,
+  expiry and affected/unaffected revisions under coherent PostgreSQL reads.
+
+Primary references: [FFVB WEBSport manual](https://www.ffvbbeach.org/ffvbapp/websport/WEBSport_2019_documentation.pdf)
+(exempt xxxxx positions, contextual Berger numbers, F/P markers),
+[Auth0 token reuse](https://auth0.com/docs/secure/tokens/token-best-practices),
+[Spring JDBC](https://docs.spring.io/spring-framework/reference/data-access/jdbc/core.html),
+[Spring resource server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html).
+Fixture evidence is reduced, not a volume qualification. Unknown official F. semantics remain source
+labelled; no invented interpretation is required.

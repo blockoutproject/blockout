@@ -7,7 +7,7 @@ A mapping is not proof of completion. No row is checked by writing this document
 ## Planned Increment Boundaries
 
 The specification contains 53 functional requirements and 12 acceptance criteria for the complete rebuild. The
-[plan](plan.md) and [32 tasks](tasks.md) select server prerequisites. The following mapping identifies a task's
+[plan](plan.md) and [tasks](tasks.md) select server prerequisites. The following mapping identifies a task's
 contribution, not full acceptance of the containing requirement. Future tasks do not count as delivered behavior.
 
 | Requirement | Selected tasks                  | Contribution and remaining acceptance boundary                                                                                                  |
@@ -26,8 +26,7 @@ contribution, not full acceptance of the containing requirement. Future tasks do
 | SC-007      | T007–T008, T021–T022, T029–T030 | JWT/current-user and subscription boundary tests; future protected resources need their own negative authorization tests.                       |
 | SC-012      | T014, T023, T032                | Each selected increment records its verification on the owning issue/PR; epic-wide acceptance requires every later increment.                   |
 
-FR-002–003, FR-009–020, FR-022–049 and FR-051–052 have no executable tasks in this server plan.
-SC-003–006 and SC-008–011 likewise belong to subsequent sporting, search, mobile or qualification increments.
+The FFVB contribution below extends the selected tasks. Unselected portions of FR-002–003, FR-009–010, FR-024–026, FR-030, FR-033–045, FR-047 and FR-051–052 remain later work. SC-005–006 and real SC-008–011 qualification require later search/mobile/release increments.
 Their authority and acceptance owners remain in the epic/scenario tables below; no placeholder implementation tasks
 are implied. A generic queue test is not a sporting preservation test, and a local metrics scrape is not Sunday-load
 qualification.
@@ -121,3 +120,17 @@ Additional source evidence in the architecture decision covers mixed-timezone la
 Follow the proposed order: specification/architecture, technical foundation, identity/Pro, one complete sporting slice, source coverage, search, community/support, full mobile integration, qualification/cutover. Tests accompany each delivery.
 
 Do not create forty-eight placeholder issues. After a bounded feature's specification, design gate where applicable, and technical plan are accepted, use the official task-generation and analysis workflows. Each resulting issue must resolve to its task and actual native blockers. No final technical plan, executable task list, or runtime completion is implied by this coverage map.
+
+## FFVB Planned Contribution
+
+| Requirements                   | Tasks                    | Acceptance boundary                                                                                                      |
+| ------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| FR-017/018/046/049, SC-004/007 | T033–T041                | Sports identities, configuration and human administration; no club enrichment or public reads yet.                       |
+| FR-012/015/016/019–029, SC-004 | T042–T051                | FFVB formats, temporal precision, durable publication and official standings; no LNV/manual correction API or consumers. |
+| FR-011–015/030–032, SC-003     | T052–T057                | Pool/team calendars and public projections; no favorite/global feed or mobile presentation.                              |
+| FR-050, SC-009                 | T050–T051/T057           | Real local metrics and controlled publication timing; not real 2x Sunday qualification.                                  |
+| SC-001/007/012                 | T038/T041/T051/T055/T057 | Independent delivery verification and negative authorization; full epic/native scenarios remain separate.                |
+
+Rename comparisons distinguish stable display edits from changed canonical provider matching keys:
+existing aliases and exact normalization retain identity; a genuinely new provider key creates a new
+team without rewriting historical standings or globally removing other memberships.

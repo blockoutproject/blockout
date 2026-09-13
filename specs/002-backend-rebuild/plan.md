@@ -1,17 +1,17 @@
-# Implementation Plan: Backend Foundation and Identity
+# Implementation Plan: Backend Foundation, Identity and FFVB
 
 **Spec**: [Backend rebuild](spec.md) | **Architecture**: [Replacement decisions](../../docs/architecture/backend-rebuild-architecture.md)
 
 ## Summary
 
-Derive three bounded increments from the complete rebuild specification: executable infrastructure, business-profile recreation, then server-verified subscription evidence. The infrastructure supplies prerequisites for US8 and durable work for US3/US5; the two identity increments cover server prerequisites of US1. None alone completes a whole user story or authorizes production cutover. [Coverage](coverage.md#planned-increment-boundaries) maps requirements to these tasks and identifies the later work.
+Derive bounded increments from the complete rebuild specification: executable infrastructure, business-profile recreation, server-verified subscription evidence, followed by FFVB reference administration, durable collection and public consultation. The infrastructure supplies prerequisites for US8 and durable work for US3/US5; the two identity increments cover server prerequisites of US1. None alone completes a whole user story or authorizes production cutover. [Coverage](coverage.md#planned-increment-boundaries) maps requirements to these tasks and identifies the later work.
 
-Core-service and core-worker are the two Spring Boot executables. Jobs, identity and logging are in-process libraries, not additional services; migrations is the separate Dockerized Liquibase job. Both executables share one release revision and PostgreSQL database.
+Core-service and core-worker are the two Spring Boot executables. Jobs, identity, sports and logging are in-process libraries, not additional services; migrations is the separate Dockerized Liquibase job. Both executables share one release revision and PostgreSQL database.
 
 ## Technical Context
 
 - Java 25, Spring Boot 4.1.0, PostgreSQL 17, Liquibase 5.0.3, Maven and Nx.
-- Six replacement reactor modules: core-service, core-worker, jobs, identity, logging, migrations. The API also consumes shared-models for generated transport enums only; application/domain modules do not depend on it. No speculative business modules.
+- Replacement reactor modules: core-service, core-worker, jobs, identity, sports, logging, migrations. The API also consumes shared-models for generated transport enums only; application/domain modules do not depend on it. No speculative business modules.
 - Spring JDBC owns explicit queue SQL; Liquibase XML native changes own schema construction.
 - JUnit, AssertJ, Testcontainers PostgreSQL and Failsafe integration/smoke tests.
 - Linux Docker deployment artifacts; isolated local Compose proof only. No production publication/deployment.
@@ -20,7 +20,7 @@ Core-service and core-worker are the two Spring Boot executables. Jobs, identity
 
 ## Constitution Check
 
-- I: spec.md remains behavioral authority for all eight stories. The selected server increments cover profile recreation, billing continuity prerequisites and isolated operations; native continuity, sporting behavior and cutover remain later work.
+- I: spec.md remains behavioral authority for all eight stories. The selected server increments cover profile recreation, billing continuity prerequisites and isolated operations; native continuity, the selected FFVB deliveries add sporting behavior; full native continuity and cutover remain later work.
 - II: identity owns profiles, external identities and billing associations; the subscription increment extends that same owner. Jobs and logging are technical libraries. Generated transport types stay in core-service adapters, never in application/domain libraries.
 - III: these increments introduce no screen or session-provider integration. Material UI work still requires approved Figma evidence before its plan is finalized.
 - IV: current-user and subsequent subscription contracts are source-first under libs/shared/contracts/specs/source/services/core/. Generated Java/TypeScript projections remain ignored, and changed consumers must be verified.
@@ -173,3 +173,29 @@ The optional local observability Compose profile runs pinned Prometheus and Graf
 and dashboard. Promtool verifies the five alert rules. The runtime smoke queries both scrapes and schema metrics through
 Grafana's datasource proxy and verifies dashboard/rule loading. This proves local metric collection and display; production
 routing, alert notification destinations and centralized log storage remain deployment work. ECS stdout is the log boundary.
+
+## FFVB Delivery (T033–T057)
+
+The approved [FFVB design](contracts/ffvb.md) defines three ordered deliveries: reference data and
+administration (T033–T041), durable collection/publication (T042–T051), public consultation (T052–T057).
+The first adds the sports Maven/Nx library, local ADMIN verification, reference/configuration storage
+and generated administration contracts. No deployable Java service is added. Import-status/retry
+endpoints belong to the second delivery; public sports endpoints belong to the third.
+
+Sports uses feature/application/domain/infrastructure packages as implemented, Spring JDBC, native
+Liquibase baseline changes, typed configuration, explicit Java types, qualified enum constants,
+MapStruct at HTTP boundaries, Javadoc/docstrings and standard ECS/Micrometer. No ORM, custom validation
+framework, second queue, new crypto or general permission engine. Existing versions remain unchanged.
+
+Schema generation 5 introduces the sports owner and administration/reference model. The baseline
+remains mutable before production. Later deliveries extend the same baseline and advance compatibility
+when they require additional tables; generation 5 is not a claim that their schema is already usable.
+
+Contract sources precede Java, Python and TypeScript generation. Add core Python generation to the
+existing client project. No current screen or legacy scraper writer is switched. The replacement scraper
+retains package scraper with a separate composition root and mutually exclusive execution paths.
+
+Constitution review: FR-017/018/046/049 authorize reference administration; US3/US2 authorize subsequent
+FFVB collection/consultation. Sports owns sporting truth and identity owns local roles; generated DTOs
+stay in adapters. No material UI change, no production operation or native continuity claim. All
+three increments have independent tests, task ranges and PRs. No constitutional exception.

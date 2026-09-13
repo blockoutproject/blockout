@@ -198,3 +198,13 @@ approval before implementation.
 
 Provider, transport, persistence, search, and presentation concerns may project the model but must not leak back into
 its product meaning. New abstractions require a present accepted need and a declared authoritative owner.
+
+## FFVB Public Identity and Provider Matching
+
+Opaque Blockout IDs are independent of display labels. The FFVB provider matching key for a team is
+club + season + division + format + gender + canonical normalized provider name. Apply the current
+gender-specific alias table before lowercase, outer trimming, apostrophe harmonization, hyphen-to-space
+replacement and period removal. Do not remove accents, collapse internal whitespace or fuzzy-match.
+A display-label edit retains the ID; a new resulting provider key creates a new team. Retire only the
+affected membership when complete scoped evidence permits it, preserving other pools and historical
+match/standing references. No automatic rename inference or new alias administration is implied.

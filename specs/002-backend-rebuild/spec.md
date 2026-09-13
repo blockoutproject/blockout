@@ -74,7 +74,7 @@ A follower receives valid new competition information while an operator can iden
 
 1. **Given** a valid complete pool observation, **When** it is published, **Then** its teams, associations, and matches become coherent together; unavailable official standings do not block a valid calendar.
 2. **Given** an invalid pool and another valid pool, **When** processing completes, **Then** the invalid pool retains its last valid state while the valid pool advances.
-3. **Given** duplicate observations or a renamed team, **When** imported, **Then** no duplicate business entity or user notification is created.
+3. **Given** repeated observations or a changed display label, **When** the provider matching key is unchanged, **Then** the public identity is retained without duplicate notifications. A genuinely different provider team name after the existing gender-specific aliases and normalization creates a new team; no fuzzy or automatic rename reconciliation is promised.
 4. **Given** an incomplete or suspiciously empty source, **When** reconciliation runs, **Then** absence is not interpreted as authority for mass deactivation.
 5. **Given** a manual correction, **When** a conflicting observation arrives, **Then** the displayed correction remains until explicitly removed.
 6. **Given** a previously published result disappears, **When** the source is observed again, **Then** the last valid result remains and an operator-visible conflict is recorded.
@@ -208,7 +208,7 @@ An operator prepares the new season, verifies paying-user continuity and peak lo
 - **FR-015**: Source time interpretation MUST be independent of machine configuration, preserve its source timezone context, and reject unresolved ambiguous/nonexistent precise times without overwriting trusted values.
 - **FR-016**: Server-authorized elapsed-time windows MUST use trusted current time. Daily quotas and scraper schedules MUST retain the current Europe/Paris business calendar independently of device timezone.
 - **FR-017**: Club/team/pool/division identity, season relationships, names, logos, contact/location information, participants, score, sets, venue, officials, and relevant ranking information MUST remain available on fresh valid data.
-- **FR-018**: Renames and repeated observations MUST preserve entity identity. Identical provider codes in different source/season contexts MUST NOT collide.
+- **FR-018**: Display-label changes and repeated observations with the same provider matching key MUST preserve public identity. FFVB teams match on club, season, division, format, gender and canonical normalized provider name. Apply existing gender-specific aliases, lowercase, trim outer whitespace, harmonize apostrophes, replace hyphens with spaces and remove periods, without accent removal or fuzzy matching. A different resulting key may create a new team; only the affected pool membership changes. Identical provider codes in different source/season contexts MUST NOT collide.
 - **FR-019**: Match status, corrected results, and match-derived views MUST remain consistent. A removed source score MUST retain the last valid result and expose an operator conflict; explicit manual removal remains possible. Match changes MUST NOT recompute or modify the official standings.
 - **FR-020**: Standings MUST come exclusively from the official competition source, preserving its positions, ties, row order, points, penalties and statistics. No calculated ranking, fallback, or local tie-break is permitted. Apply the Official Standings Rules below for usability, provenance and unavailability.
 
@@ -284,7 +284,7 @@ An operator prepares the new season, verifies paying-user continuity and peak lo
 - **SC-001**: All eight baseline journey families and fourteen reference scenarios pass on fresh replacement data; every intended difference is explained by a requirement here.
 - **SC-002**: Every controlled existing paid-account upgrade/restore scenario on iOS and Android recovers eligible access without repurchase; cross-account access leakage is zero.
 - **SC-003**: The same known match instant remains identical through every transformation, and all timezone/day-boundary scenarios yield the expected local date, time, and group with zero missing/duplicate matches.
-- **SC-004**: Duplicate, renamed, cross-season, incomplete, and failed observation scenarios produce zero accidental identity replacements, mass deactivations, or duplicate logical notifications.
+- **SC-004**: Repeated keys, display-label changes, cross-season, incomplete and failed observations produce zero accidental identity replacements, mass deactivations or duplicate logical notifications. A genuinely new canonical provider name creates exactly one new team and preserves historical references.
 - **SC-005**: Every labeled exact-name/prefix search case finds its intended eligible entity within the first twenty suggestions; all returned results meet selected filters.
 - **SC-006**: Search restart/rebuild tests produce no empty-result window caused by discarding the active generation; all concurrent changes are represented at switchover.
 - **SC-007**: All negative authorization tests deny cross-user, wrong-role, and unentitled protected operations, including direct requests outside the UI.

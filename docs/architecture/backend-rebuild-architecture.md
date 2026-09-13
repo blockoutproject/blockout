@@ -45,7 +45,7 @@ Configure foreground/background SQL pools, query/statement timeouts, job concurr
 
 - Liquibase is the only replacement schema migration mechanism. Keep legacy Flyway resources isolated until retirement; do not run both against the replacement schema.
 - Seed required divisions, provider mappings, legal content and application-status configuration deterministically. Test restart and repeated seed execution.
-- Public IDs must not reuse legacy numerical IDs. Provider identities include source and season where relevant; mutable names do not define identity.
+- Public IDs must not reuse legacy numerical IDs. Provider identities include source and season where relevant; mutable display labels do not define public identity; FFVB provider matching includes the canonical normalized team name as specified below.
 - Enforce unique external identity, favorite relationship, competition association, and active live-link constraints in the database.
 - Source values and manual overrides remain separate for owned match/catalog fields. Official standings are source-owned snapshots and accept neither manual overrides nor calculated replacements. Track observation, publication, business modification and correction times distinctly.
 - A lot's source/scope/season and idempotency identity are immutable. Same key/same payload returns the existing outcome; same key/different payload is a conflict.
@@ -161,3 +161,13 @@ Prepare fresh data/indexes and released mobile binaries before the thirty-minute
 - [RevenueCat identifying customers](https://www.revenuecat.com/docs/customers/identifying-customers) and [Auth0 account linking](https://auth0.com/docs/manage-users/user-accounts/user-account-linking).
 
 External documentation was consulted during planning on 2026-09-12. No live customer records, provider payload exports, or production runtime changes are part of this decision.
+
+## FFVB Public Identity and Provider Matching
+
+Opaque Blockout IDs are independent of display labels. The FFVB provider matching key for a team is
+club + season + division + format + gender + canonical normalized provider name. Apply the current
+gender-specific alias table before lowercase, outer trimming, apostrophe harmonization, hyphen-to-space
+replacement and period removal. Do not remove accents, collapse internal whitespace or fuzzy-match.
+A display-label edit retains the ID; a new resulting provider key creates a new team. Retire only the
+affected membership when complete scoped evidence permits it, preserving other pools and historical
+match/standing references. No automatic rename inference or new alias administration is implied.
