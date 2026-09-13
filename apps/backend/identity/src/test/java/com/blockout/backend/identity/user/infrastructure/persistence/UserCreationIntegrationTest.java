@@ -42,7 +42,7 @@ class UserCreationIntegrationTest {
         new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     admin = new JdbcTemplate(owner);
     admin.execute(
-        "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
+        "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE SCHEMA sports; CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'; GRANT USAGE ON SCHEMA sports, identity, operations TO blockout_api, blockout_worker");
     try (Connection c = owner.getConnection();
         JdbcConnection connection = new JdbcConnection(c);
         Liquibase lb =

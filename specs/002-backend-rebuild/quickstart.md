@@ -126,3 +126,10 @@ Set `BLOCKOUT_FFVB_SCRAPER_CLIENT_IDS` on core-service to the dedicated Auth0 ma
 An empty allowlist denies all scraper access. Use the existing core JWT issuer/audience; the machine
 application requires only `read:ffvb-configuration` in this delivery. Import-write scope arrives with
 its separate import contract. No Auth0 machine token is acquired by the core-service for these reads.
+
+Run `DOCKER_CONFIG=/tmp/blockout-public-docker scripts/backend-foundation/ffvb-reference-smoke.sh`
+after building the three local images. It starts a fresh isolated Compose project, validates the
+migration rerun, role grant/revoke and runtime restrictions, restarts both applications and verifies
+the sports gauge through Grafana. Its own test volumes are removed on exit; existing databases are
+not reset. Foundation HTTP/monitoring ports must be free. The Docker-config override is needed only
+when the local desktop credential helper requires that existing public-image configuration.

@@ -20,7 +20,7 @@ Core-service and core-worker are the two Spring Boot executables. Jobs, identity
 
 ## Constitution Check
 
-- I: spec.md remains behavioral authority for all eight stories. The selected server increments cover profile recreation, billing continuity prerequisites and isolated operations; native continuity, the selected FFVB deliveries add sporting behavior; full native continuity and cutover remain later work.
+- I: spec.md remains behavioral authority for all eight stories. The selected server increments cover profile recreation, subscription evidence, FFVB reference administration, collection and consultation. Native continuity and full cutover remain later work.
 - II: identity owns profiles, external identities and billing associations; the subscription increment extends that same owner. Jobs and logging are technical libraries. Generated transport types stay in core-service adapters, never in application/domain libraries.
 - III: these increments introduce no screen or session-provider integration. Material UI work still requires approved Figma evidence before its plan is finalized.
 - IV: current-user and subsequent subscription contracts are source-first under libs/shared/contracts/specs/source/services/core/. Generated Java/TypeScript projections remain ignored, and changed consumers must be verified.
@@ -144,7 +144,7 @@ requests both known sides. Events request current-state reads rather than replay
 transitions. A database failure prevents acknowledgement. Store receipt identity/type/time only,
 never raw payloads, purchase receipts or financial data.
 
-Native Liquibase baseline adds subscription state and webhook receipts at schema generation 4 with
+Native Liquibase baseline includes subscription state and webhook receipts with
 least-privilege grants. No startup migration/reset. Metrics use Micrometer and bounded result labels;
 provider bodies, secrets and identities never enter logs or metric labels. Verify collection and
 Grafana visibility in the isolated Compose profile, not by asserting configuration alone.

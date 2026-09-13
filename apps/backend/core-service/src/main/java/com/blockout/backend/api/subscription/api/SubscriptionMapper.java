@@ -1,5 +1,6 @@
 package com.blockout.backend.api.subscription.api;
 
+import com.blockout.backend.api.config.ApiMappingConfiguration;
 import com.blockout.backend.api.user.api.models.SubscriptionResponse;
 import com.blockout.backend.identity.subscription.application.SubscriptionView;
 import com.blockout.backend.identity.subscription.domain.SubscriptionFailure;
@@ -7,10 +8,7 @@ import com.blockout.shared.model.ApiProblemCodeEnum;
 import org.mapstruct.*;
 
 /** Structural projection; provider failure vocabulary is translated only at transport. */
-@Mapper(
-    componentModel = MappingConstants.ComponentModel.SPRING,
-    injectionStrategy = InjectionStrategy.CONSTRUCTOR,
-    unmappedTargetPolicy = ReportingPolicy.ERROR)
+@Mapper(config = ApiMappingConfiguration.class)
 public interface SubscriptionMapper {
   /**
    * Projects local evidence without customer identifiers.

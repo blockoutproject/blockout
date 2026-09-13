@@ -59,7 +59,7 @@ class WorkerIntegrationTest {
     try (Connection c = ds.getConnection();
         Statement statement = c.createStatement()) {
       statement.execute(
-          "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
+          "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE SCHEMA sports; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
       try (JdbcConnection connection = new JdbcConnection(c);
           Liquibase lb =
               new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
@@ -220,7 +220,7 @@ class WorkerIntegrationTest {
 
   @Test
   void incompatibleSchemaPreventsConsumption() {
-    sql.update("UPDATE operations.schema_metadata SET generation=5");
+    sql.update("UPDATE operations.schema_metadata SET generation=4");
     try {
       publish("a");
       start(
@@ -231,7 +231,7 @@ class WorkerIntegrationTest {
       worker.tick();
       assertThat(repository.count(JobState.PENDING)).isEqualTo(1);
     } finally {
-      sql.update("UPDATE operations.schema_metadata SET generation=4");
+      sql.update("UPDATE operations.schema_metadata SET generation=5");
     }
   }
 
@@ -309,12 +309,12 @@ class WorkerIntegrationTest {
             }));
 
     assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
-    sql.update("UPDATE operations.schema_metadata SET generation=5");
+    sql.update("UPDATE operations.schema_metadata SET generation=4");
     try {
       assertThat(interrupted.await(5, TimeUnit.SECONDS)).isTrue();
     } finally {
       worker.stop();
-      sql.update("UPDATE operations.schema_metadata SET generation=4");
+      sql.update("UPDATE operations.schema_metadata SET generation=5");
     }
   }
 
@@ -482,7 +482,7 @@ class WorkerIntegrationTest {
                 "PROVIDER_RATE_LIMITED",
                 Duration.ofSeconds(60),
                 false,
-                () -> sql.update("UPDATE operations.schema_metadata SET generation=4"));
+                () -> sql.update("UPDATE operations.schema_metadata SET generation=5"));
           }
         };
     new JobExecutionService(repository, List.of(handler), new WorkerTelemetry(repository, metrics))

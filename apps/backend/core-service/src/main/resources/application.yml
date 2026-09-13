@@ -43,7 +43,7 @@ management:
         enabled: true
       group:
         readiness:
-          include: readinessState,db,schema,identitySchema
+          include: readinessState,db,schema,identitySchema,sportsSchema
         liveness:
           include: livenessState
 

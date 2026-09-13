@@ -13,6 +13,12 @@
     },
     {
       "name": "RevenueCatWebhook"
+    },
+    {
+      "name": "FfvbAdministration"
+    },
+    {
+      "name": "FfvbScraper"
     }
   ],
   "security": [

@@ -2,7 +2,7 @@
 
 ## operations.schema_metadata
 
-One row, id=1, generation=4. Application readiness reads the supported generation and required jobs columns. An incompatible or missing schema fails readiness. Additive compatible migrations retain generation.
+One row, id=1, generation=5. Application readiness reads the supported generation and required jobs columns. An incompatible or missing schema fails readiness. Additive compatible migrations retain generation.
 
 ## operations.jobs
 
@@ -18,7 +18,7 @@ Database time controls lease acquisition/renewal/completion. Job handlers never 
 
 ## Identity increment
 
-The first identity baseline uses generation=4, including the existing jobs tables plus:
+Identity shares the current schema compatibility generation with jobs and sports. Its tables are:
 
 - `identity.users`: UUID id; non-null pseudo and normalized pseudo_key (unique); nullable email, first_name, last_name, phone_number, picture_url; non-null active, created_at and updated_at. Public dates are UTC; updated_at changes only with profile content. Initial pseudo normalization retains existing ASCII rules, length 1–30, with deterministic numeric collision candidates followed by a UUID-derived suffix.
 - `identity.external_identities`: issuer varchar(512) and subject varchar(255) composite primary key, non-null UUID user_id FK with restrictive deletion. Identity values are exact, case-sensitive, never derived from email. One identity is initialized per canonical authenticated account in this increment.

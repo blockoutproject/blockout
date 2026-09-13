@@ -17,12 +17,12 @@ class SchemaHealthIntegrationTest extends PostgresJobsFixture {
   @Test
   void incompatibleSchemaIsNotReady() {
     SchemaHealthIndicator health = new SchemaHealthIndicator(sql);
-    sql.update("UPDATE operations.schema_metadata SET generation=5");
+    sql.update("UPDATE operations.schema_metadata SET generation=4");
 
     try {
       assertThat(health.health().getStatus().getCode()).isEqualTo("DOWN");
     } finally {
-      sql.update("UPDATE operations.schema_metadata SET generation=4");
+      sql.update("UPDATE operations.schema_metadata SET generation=5");
     }
   }
 

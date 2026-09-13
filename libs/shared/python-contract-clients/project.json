@@ -30,7 +30,8 @@
           "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/team-openapi-generator.json",
           "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/pool-openapi-generator.json",
           "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/competition-openapi-generator.json",
-          "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/match-openapi-generator.json"
+          "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/match-openapi-generator.json",
+          "uv run --locked --no-sync openapi-generator-cli batch --fail-fast libs/shared/python-contract-clients/core-openapi-generator.json"
         ]
       }
     },

@@ -1,0 +1,919 @@
+{
+  "/api/v2/admin/ffvb/configuration": {
+    "get": {
+      "operationId": "getFfvbConfiguration",
+      "tags": ["FfvbAdministration"],
+      "description": "Requires an active local administrator. Reads have no side effects. Mutations record author and time.",
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FfvbConfigurationResponse"
+              }
+            }
+          },
+          "headers": {
+            "Cache-Control": {
+              "schema": {
+                "type": "string"
+              },
+              "description": "private, no-store"
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied or inactive profile",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource or profile not found",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting name or unavailable mapping division",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Sports or identity storage unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        }
+      }
+    },
+    "put": {
+      "operationId": "replaceFfvbConfiguration",
+      "tags": ["FfvbAdministration"],
+      "description": "Requires an active local administrator. Reads have no side effects. Mutations record author and time.",
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FfvbConfigurationResponse"
+              }
+            }
+          },
+          "headers": {
+            "Cache-Control": {
+              "schema": {
+                "type": "string"
+              },
+              "description": "private, no-store"
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied or inactive profile",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource or profile not found",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting name or unavailable mapping division",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Sports or identity storage unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/FfvbConfigurationRequest"
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v2/admin/divisions": {
+    "get": {
+      "operationId": "listSportsDivisions",
+      "tags": ["FfvbAdministration"],
+      "description": "Requires an active local administrator. Reads have no side effects. Mutations record author and time.",
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DivisionPage"
+              }
+            }
+          },
+          "headers": {
+            "Cache-Control": {
+              "schema": {
+                "type": "string"
+              },
+              "description": "private, no-store"
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied or inactive profile",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource or profile not found",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting name or unavailable mapping division",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Sports or identity storage unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "page",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          }
+        },
+        {
+          "name": "pageSize",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 40
+          }
+        }
+      ]
+    },
+    "post": {
+      "operationId": "createSportsDivision",
+      "tags": ["FfvbAdministration"],
+      "description": "Requires an active local administrator. Reads have no side effects. Mutations record author and time.",
+      "responses": {
+        "201": {
+          "description": "Created",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DivisionResponse"
+              }
+            }
+          },
+          "headers": {
+            "Cache-Control": {
+              "schema": {
+                "type": "string"
+              },
+              "description": "private, no-store"
+            },
+            "Location": {
+              "schema": {
+                "type": "string"
+              },
+              "description": "Created division URI"
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied or inactive profile",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource or profile not found",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting name or unavailable mapping division",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Sports or identity storage unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DivisionRequest"
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v2/admin/divisions/{divisionId}": {
+    "put": {
+      "operationId": "replaceSportsDivision",
+      "tags": ["FfvbAdministration"],
+      "description": "Requires an active local administrator. Reads have no side effects. Mutations record author and time.",
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DivisionResponse"
+              }
+            }
+          },
+          "headers": {
+            "Cache-Control": {
+              "schema": {
+                "type": "string"
+              },
+              "description": "private, no-store"
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied or inactive profile",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource or profile not found",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting name or unavailable mapping division",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Sports or identity storage unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DivisionRequest"
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "divisionId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    }
+  },
+  "/api/v2/admin/ffvb/mappings": {
+    "get": {
+      "operationId": "listFfvbMappings",
+      "tags": ["FfvbAdministration"],
+      "description": "Requires an active local administrator. Reads have no side effects. Mutations record author and time.",
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FfvbMappingPage"
+              }
+            }
+          },
+          "headers": {
+            "Cache-Control": {
+              "schema": {
+                "type": "string"
+              },
+              "description": "private, no-store"
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied or inactive profile",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource or profile not found",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting name or unavailable mapping division",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Sports or identity storage unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "page",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          }
+        },
+        {
+          "name": "pageSize",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 40
+          }
+        },
+        {
+          "name": "mapped",
+          "in": "query",
+          "schema": {
+            "type": "boolean"
+          }
+        }
+      ]
+    }
+  },
+  "/api/v2/admin/ffvb/mappings/{mappingId}": {
+    "put": {
+      "operationId": "replaceFfvbMapping",
+      "tags": ["FfvbAdministration"],
+      "description": "Requires an active local administrator. Reads have no side effects. Mutations record author and time.",
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FfvbMappingResponse"
+              }
+            }
+          },
+          "headers": {
+            "Cache-Control": {
+              "schema": {
+                "type": "string"
+              },
+              "description": "private, no-store"
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied or inactive profile",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource or profile not found",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting name or unavailable mapping division",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Sports or identity storage unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/FfvbMappingRequest"
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "mappingId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ]
+    }
+  },
+  "/api/v2/imports/ffvb/configuration": {
+    "get": {
+      "operationId": "getScraperFfvbConfiguration",
+      "tags": ["FfvbScraper"],
+      "description": "Dedicated FFVB M2M client with read:ffvb-configuration scope only. Local read without provider calls or jobs. Mappings include only resolved active divisions, ordered by organizer, label and ID; page changes during configuration edits require the next cycle to reread.",
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FfvbConfigurationResponse"
+              }
+            }
+          },
+          "headers": {
+            "Cache-Control": {
+              "schema": {
+                "type": "string"
+              },
+              "description": "private, no-store"
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied or inactive profile",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource or profile not found",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting name or unavailable mapping division",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Sports or identity storage unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v2/imports/ffvb/mappings": {
+    "get": {
+      "operationId": "getScraperFfvbMappings",
+      "tags": ["FfvbScraper"],
+      "description": "Dedicated FFVB M2M client with read:ffvb-configuration scope only. Local read without provider calls or jobs. Mappings include only resolved active divisions, ordered by organizer, label and ID; page changes during configuration edits require the next cycle to reread.",
+      "responses": {
+        "200": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FfvbMappingPage"
+              }
+            }
+          },
+          "headers": {
+            "Cache-Control": {
+              "schema": {
+                "type": "string"
+              },
+              "description": "private, no-store"
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied or inactive profile",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource or profile not found",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting name or unavailable mapping division",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Sports or identity storage unavailable",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "name": "page",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          }
+        },
+        {
+          "name": "pageSize",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 40
+          }
+        }
+      ]
+    }
+  }
+}

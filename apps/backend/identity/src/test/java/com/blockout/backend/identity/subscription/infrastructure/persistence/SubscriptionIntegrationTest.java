@@ -49,7 +49,7 @@ class SubscriptionIntegrationTest {
         new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     admin = new JdbcTemplate(owner);
     admin.execute(
-        "CREATE SCHEMA identity;CREATE SCHEMA operations;CREATE ROLE blockout_api LOGIN PASSWORD 'test';CREATE ROLE blockout_worker LOGIN PASSWORD 'test';GRANT USAGE ON SCHEMA identity,operations TO blockout_api,blockout_worker");
+        "CREATE SCHEMA identity; CREATE SCHEMA sports;CREATE SCHEMA operations;CREATE ROLE blockout_api LOGIN PASSWORD 'test';CREATE ROLE blockout_worker LOGIN PASSWORD 'test';GRANT USAGE ON SCHEMA sports,identity,operations TO blockout_api,blockout_worker");
     try (JdbcConnection connection = new JdbcConnection(owner.getConnection());
         Liquibase lb =
             new Liquibase("db/changelog/db.changelog-master.xml", RESOURCES, connection)) {

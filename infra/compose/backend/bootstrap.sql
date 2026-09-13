@@ -8,3 +8,5 @@ CREATE SCHEMA migrations AUTHORIZATION blockout_migration;
 GRANT USAGE ON SCHEMA operations TO blockout_api, blockout_worker;
 CREATE SCHEMA identity AUTHORIZATION blockout_migration;
 GRANT USAGE ON SCHEMA identity TO blockout_api, blockout_worker;
+CREATE SCHEMA sports AUTHORIZATION blockout_migration;
+GRANT USAGE ON SCHEMA sports TO blockout_api, blockout_worker;

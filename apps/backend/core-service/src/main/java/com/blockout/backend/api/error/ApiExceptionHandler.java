@@ -88,9 +88,7 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
     ApiProblemCodeEnum code =
         failure instanceof DataAccessException
-            ? (subscriptionRequest(request)
-                ? ApiProblemCodeEnum.SUBSCRIPTION_STORE_UNAVAILABLE
-                : ApiProblemCodeEnum.PROFILE_STORE_UNAVAILABLE)
+            ? storageFailure(request)
             : switch (status.value()) {
               case 401 -> ApiProblemCodeEnum.AUTHENTICATION_REQUIRED;
               case 403 -> ApiProblemCodeEnum.ACCESS_DENIED;
@@ -113,6 +111,30 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
     return super.handleExceptionInternal(
         failure, ApiProblems.create(status, code), responseHeaders, status, request);
+  }
+
+  /**
+   * Selects the owning store failure code using only the HTTP resource boundary.
+   *
+   * @param request current HTTP context
+   * @return stable public storage classification without database diagnostics
+   */
+  private static ApiProblemCodeEnum storageFailure(WebRequest request) {
+    if (sportsRequest(request)) return ApiProblemCodeEnum.SPORTS_STORE_UNAVAILABLE;
+    if (subscriptionRequest(request)) return ApiProblemCodeEnum.SUBSCRIPTION_STORE_UNAVAILABLE;
+    return ApiProblemCodeEnum.PROFILE_STORE_UNAVAILABLE;
+  }
+
+  /**
+   * Determines whether sporting administration owns the failed request.
+   *
+   * @param request current HTTP context
+   * @return whether the request is a sports-owned administration or import read
+   */
+  private static boolean sportsRequest(WebRequest request) {
+    String resource = request.getDescription(false);
+    return resource.startsWith("uri=/api/v2/admin/")
+        || resource.startsWith("uri=/api/v2/imports/ffvb/");
   }
 
   /**

@@ -36,7 +36,9 @@ public final class ApiProblems {
               "The identity cannot be used to create this profile.";
           case IDENTITY_PROVIDER_UNAVAILABLE, IDENTITY_CONFIGURATION_ERROR ->
               "Identity verification is temporarily unavailable.";
-          case PROFILE_STORE_UNAVAILABLE, SERVICE_UNAVAILABLE ->
+          case SPORTS_REFERENCE_CONFLICT ->
+              "The selected sporting reference conflicts with the current configuration.";
+          case SPORTS_STORE_UNAVAILABLE, PROFILE_STORE_UNAVAILABLE, SERVICE_UNAVAILABLE ->
               "The service is temporarily unavailable.";
           case INTERNAL_ERROR -> "The request could not be completed.";
           case INVALID_REQUEST -> "The request is invalid.";

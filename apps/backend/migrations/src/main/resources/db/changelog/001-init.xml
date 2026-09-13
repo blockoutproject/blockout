@@ -11,7 +11,7 @@
         </createTable>
         <insert schemaName="operations" tableName="schema_metadata">
             <column name="id" valueNumeric="1"/>
-            <column name="generation" valueNumeric="4"/>
+            <column name="generation" valueNumeric="5"/>
         </insert>
         <createTable schemaName="operations" tableName="jobs">
             <column name="id" type="uuid">
@@ -162,6 +162,81 @@
         </createTable>
         <addForeignKeyConstraint baseTableSchemaName="identity" baseTableName="subscription_states" baseColumnNames="user_id" referencedTableSchemaName="identity" referencedTableName="billing_bindings" referencedColumnNames="user_id" constraintName="fk_subscription_binding" onDelete="RESTRICT"/>
         <createIndex schemaName="identity" tableName="subscription_states" indexName="idx_subscription_due"><column name="positive"/><column name="next_refresh_at"/><column name="user_id"/></createIndex>
+        <createTable schemaName="identity" tableName="user_roles">
+            <column name="user_id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_identity_user_roles"/></column>
+            <column name="role" type="varchar(30)"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_identity_user_roles"/></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableSchemaName="identity" baseTableName="user_roles" baseColumnNames="user_id" referencedTableSchemaName="identity" referencedTableName="users" referencedColumnNames="id" constraintName="fk_user_roles_user_id" onDelete="RESTRICT"/>
+        <createTable schemaName="sports" tableName="clubs">
+            <column name="id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_sports_clubs"/></column>
+            <column name="ffvb_code" type="varchar(32)"><constraints nullable="false"/></column>
+            <column name="name" type="varchar(255)"><constraints nullable="true"/></column>
+        </createTable>
+        <addUniqueConstraint schemaName="sports" tableName="clubs" columnNames="ffvb_code" constraintName="uq_sports_clubs"/>
+        <createTable schemaName="sports" tableName="divisions">
+            <column name="id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_sports_divisions"/></column>
+            <column name="name" type="varchar(255)"><constraints nullable="false"/></column>
+            <column name="active" type="boolean"><constraints nullable="false"/></column>
+            <column name="updated_by" type="uuid"><constraints nullable="true"/></column>
+            <column name="updated_at" type="timestamptz"><constraints nullable="true"/></column>
+        </createTable>
+        <addUniqueConstraint schemaName="sports" tableName="divisions" columnNames="name" constraintName="uq_sports_divisions"/>
+        <createTable schemaName="sports" tableName="teams">
+            <column name="id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_sports_teams"/></column>
+            <column name="club_id" type="uuid"><constraints nullable="false"/></column>
+            <column name="season" type="varchar(9)"><constraints nullable="false"/></column>
+            <column name="division_id" type="uuid"><constraints nullable="false"/></column>
+            <column name="format" type="varchar(20)"><constraints nullable="false"/></column>
+            <column name="gender" type="varchar(10)"><constraints nullable="false"/></column>
+            <column name="canonical_name" type="varchar(255)"><constraints nullable="false"/></column>
+            <column name="display_name" type="varchar(255)"><constraints nullable="false"/></column>
+        </createTable>
+        <addUniqueConstraint schemaName="sports" tableName="teams" columnNames="club_id,season,division_id,format,gender,canonical_name" constraintName="uq_sports_teams"/>
+        <addForeignKeyConstraint baseTableSchemaName="sports" baseTableName="teams" baseColumnNames="club_id" referencedTableSchemaName="sports" referencedTableName="clubs" referencedColumnNames="id" constraintName="fk_teams_club_id" onDelete="RESTRICT"/>
+        <addForeignKeyConstraint baseTableSchemaName="sports" baseTableName="teams" baseColumnNames="division_id" referencedTableSchemaName="sports" referencedTableName="divisions" referencedColumnNames="id" constraintName="fk_teams_division_id" onDelete="RESTRICT"/>
+        <createTable schemaName="sports" tableName="pools">
+            <column name="id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_sports_pools"/></column>
+            <column name="provider" type="varchar(20)"><constraints nullable="false"/></column>
+            <column name="organizer" type="varchar(16)"><constraints nullable="false"/></column>
+            <column name="season" type="varchar(9)"><constraints nullable="false"/></column>
+            <column name="code" type="varchar(64)"><constraints nullable="false"/></column>
+            <column name="name" type="varchar(255)"><constraints nullable="false"/></column>
+            <column name="active" type="boolean"><constraints nullable="false"/></column>
+        </createTable>
+        <addUniqueConstraint schemaName="sports" tableName="pools" columnNames="provider,organizer,season,code" constraintName="uq_sports_pools"/>
+        <createTable schemaName="sports" tableName="team_pool_memberships">
+            <column name="pool_id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_sports_team_pool_memberships"/></column>
+            <column name="team_id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_sports_team_pool_memberships"/></column>
+            <column name="active" type="boolean"><constraints nullable="false"/></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableSchemaName="sports" baseTableName="team_pool_memberships" baseColumnNames="pool_id" referencedTableSchemaName="sports" referencedTableName="pools" referencedColumnNames="id" constraintName="fk_team_pool_memberships_pool_id" onDelete="RESTRICT"/>
+        <addForeignKeyConstraint baseTableSchemaName="sports" baseTableName="team_pool_memberships" baseColumnNames="team_id" referencedTableSchemaName="sports" referencedTableName="teams" referencedColumnNames="id" constraintName="fk_team_pool_memberships_team_id" onDelete="RESTRICT"/>
+        <createTable schemaName="sports" tableName="ffvb_configuration">
+            <column name="id" type="integer"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_sports_ffvb_configuration"/></column>
+            <column name="enabled" type="boolean"><constraints nullable="false"/></column>
+            <column name="season" type="varchar(9)"><constraints nullable="true"/></column>
+            <column name="updated_by" type="uuid"><constraints nullable="true"/></column>
+            <column name="updated_at" type="timestamptz"><constraints nullable="true"/></column>
+        </createTable>
+        <insert schemaName="sports" tableName="ffvb_configuration"><column name="id" valueNumeric="1"/><column name="enabled" valueBoolean="false"/></insert>
+        <createTable schemaName="sports" tableName="ffvb_sources">
+            <column name="code" type="varchar(16)"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_sports_ffvb_sources"/></column>
+        </createTable>
+        <createTable schemaName="sports" tableName="ffvb_mappings">
+            <column name="id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_sports_ffvb_mappings"/></column>
+            <column name="organizer" type="varchar(16)"><constraints nullable="false"/></column>
+            <column name="label" type="varchar(255)"><constraints nullable="false"/></column>
+            <column name="division_id" type="uuid"><constraints nullable="true"/></column>
+            <column name="format" type="varchar(20)"><constraints nullable="true"/></column>
+            <column name="gender" type="varchar(10)"><constraints nullable="true"/></column>
+            <column name="updated_by" type="uuid"><constraints nullable="true"/></column>
+            <column name="updated_at" type="timestamptz"><constraints nullable="true"/></column>
+        </createTable>
+        <addUniqueConstraint schemaName="sports" tableName="ffvb_mappings" columnNames="organizer,label" constraintName="uq_sports_ffvb_mappings"/>
+        <addForeignKeyConstraint baseTableSchemaName="sports" baseTableName="ffvb_mappings" baseColumnNames="division_id" referencedTableSchemaName="sports" referencedTableName="divisions" referencedColumnNames="id" constraintName="fk_ffvb_mappings_division_id" onDelete="RESTRICT"/>
+        <addForeignKeyConstraint baseTableSchemaName="sports" baseTableName="divisions" baseColumnNames="updated_by" referencedTableSchemaName="identity" referencedTableName="users" referencedColumnNames="id" constraintName="fk_divisions_updated_by" onDelete="RESTRICT"/>
+        <addForeignKeyConstraint baseTableSchemaName="sports" baseTableName="ffvb_configuration" baseColumnNames="updated_by" referencedTableSchemaName="identity" referencedTableName="users" referencedColumnNames="id" constraintName="fk_ffvb_configuration_updated_by" onDelete="RESTRICT"/>
+        <addForeignKeyConstraint baseTableSchemaName="sports" baseTableName="ffvb_mappings" baseColumnNames="updated_by" referencedTableSchemaName="identity" referencedTableName="users" referencedColumnNames="id" constraintName="fk_ffvb_mappings_updated_by" onDelete="RESTRICT"/>
         <!-- Community Liquibase has no native privilege change; grants are the only SQL exception. -->
         <sql>GRANT SELECT ON operations.schema_metadata TO blockout_api, blockout_worker;
 GRANT SELECT, INSERT ON operations.jobs TO blockout_api;
@@ -170,6 +245,10 @@ GRANT SELECT, INSERT ON identity.users, identity.external_identities, identity.b
 GRANT SELECT ON identity.users, identity.external_identities, identity.billing_bindings TO blockout_worker;
 GRANT SELECT, INSERT, UPDATE ON identity.subscription_states TO blockout_api, blockout_worker;
 GRANT SELECT, INSERT ON identity.webhook_receipts TO blockout_api;
-GRANT SELECT ON identity.webhook_receipts TO blockout_worker;</sql>
+GRANT SELECT ON identity.webhook_receipts TO blockout_worker;
+GRANT SELECT ON identity.user_roles TO blockout_api, blockout_worker;
+GRANT SELECT ON ALL TABLES IN SCHEMA sports TO blockout_api, blockout_worker;
+GRANT INSERT, UPDATE ON sports.divisions, sports.ffvb_configuration, sports.ffvb_mappings TO blockout_api;
+GRANT INSERT, DELETE ON sports.ffvb_sources TO blockout_api;</sql>
     </changeSet>
 </databaseChangeLog>

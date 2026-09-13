@@ -1,6 +1,6 @@
 # FFVB Reference, Collection and Consultation Design
 
-Authority: spec.md US2/US3/US7/US8, FR-011–032, FR-046/049/050, SC-003/004/007/009.
+Authority: spec.md US2/US3/US4/US6/US8, FR-011–032, FR-046/049/050, SC-003/004/007/009.
 
 ## Delivery 1: Reference and Administration
 

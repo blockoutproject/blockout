@@ -52,6 +52,15 @@ class ArchitectureTest {
           .resideInAnyPackage("com.blockout.backend.identity..");
 
   @ArchTest
+  static final ArchRule SPORTS_INTERNALS_STAY_INSIDE_SPORTS =
+      classes()
+          .that()
+          .resideInAPackage("com.blockout.backend.sports..infrastructure..")
+          .should()
+          .onlyHaveDependentClassesThat()
+          .resideInAnyPackage("com.blockout.backend.sports..");
+
+  @ArchTest
   static final ArchRule JOB_INTERNALS_STAY_INSIDE_JOBS =
       classes()
           .that()

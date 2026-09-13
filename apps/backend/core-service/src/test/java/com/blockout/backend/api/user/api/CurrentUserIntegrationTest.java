@@ -116,7 +116,7 @@ class CurrentUserIntegrationTest {
                 DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
         Statement statement = c.createStatement()) {
       statement.execute(
-          "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
+          "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE SCHEMA sports; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
       try (JdbcConnection connection = new JdbcConnection(c);
           Liquibase lb =
               new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {

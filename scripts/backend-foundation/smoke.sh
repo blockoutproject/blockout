@@ -13,7 +13,7 @@ curl --fail --silent http://127.0.0.1:19091/actuator/prometheus | grep -F 'block
 for role in blockout_api blockout_worker; do
   "${compose[@]}" exec -T database psql -U "$role" -d blockout -v ON_ERROR_STOP=1 \
     -c 'SELECT generation FROM operations.schema_metadata WHERE id=1'
-  for schema in operations identity; do
+  for schema in operations identity sports; do
     if output=$("${compose[@]}" exec -T database psql -U "$role" -d blockout \
         -v ON_ERROR_STOP=1 -v VERBOSITY=verbose -c "CREATE TABLE ${schema}.forbidden(id integer)" 2>&1); then
       echo "Runtime role $role unexpectedly has DDL rights" >&2

@@ -1,6 +1,6 @@
 # Tasks: Backend Foundation, Identity and FFVB
 
-Source: [plan.md](plan.md), [spec.md](spec.md) and the [requirement mapping](coverage.md#planned-increment-boundaries). T001–T014 cover executable infrastructure, T015–T023 business-profile recreation, and T024–T032 server-verified subscription evidence. These are independently verifiable server increments, not completion of US1 or US8. Native continuity and the remaining stories require subsequent plans/tasks. GitHub owns reviews, merge state and acceptance evidence.
+Source: [plan.md](plan.md), [spec.md](spec.md) and the [requirement mapping](coverage.md#planned-increment-boundaries). T001–T014 cover executable infrastructure, T015–T023 business-profile recreation, and T024–T032 server-verified subscription evidence. These are independently verifiable server increments, not completion of US1 or US8. T033–T057 add the three FFVB deliveries. Native continuity and unselected story portions require subsequent plans/tasks. GitHub owns reviews, merge state and acceptance evidence.
 
 Behavior-preserving policy work is directly sourced by [maintenance #239](https://github.com/blockoutproject/blockout/issues/239), under constitution V: dependency checks, standard validation, shared problem codes, inactive core transport, logging/monitoring and code documentation across the replacement. It supports these increments without authorizing new subscription or sporting behavior. Its scope and evidence live on the issue/PR; it does not reuse product task IDs.
 
@@ -73,20 +73,20 @@ Depends on the delivered profile increment. Independent outcome: local Pro decis
 
 Profiles: T015–T016 precede T017–T018; T019–T020 can proceed independently of persistence after T016; T021–T022 consume both boundaries; T023 closes the first independently reviewed issue. Subscriptions T024–T032 depend on that first delivery. Do not publish an unhandled subscription job in the profile-only issue. Tasks are grouped into two issues as explicitly requested, rather than one issue per checkbox. T001–T014 remain the foundation tasks above; IDs are never reused.
 
-## Phase 8: US3/US7 — FFVB Reference and Administration
+## Phase 8: US3/US6 — FFVB Reference and Administration
 
 Independent outcome: administrators configure FFVB and explicit division mappings; contextual sports
 identities persist correctly in PostgreSQL. Imports and public consultation remain later deliveries.
 
-- [ ] T033 [US3] Align accepted matching semantics and all FFVB artifacts in specs/002-backend-rebuild/ and docs/architecture/.
-- [ ] T034 [US7] Define source-first FFVB administration/configuration contracts and shared enums in libs/shared/contracts/specs/source/.
-- [ ] T035 [US3] Add sports Maven/Nx module and write reference identity/uniqueness tests in apps/backend/sports/ and apps/backend/pom.xml.
-- [ ] T036 [US3] Implement generation-5 native reference/configuration schema, grants and persistence in apps/backend/{sports,migrations}/ and infra/compose/backend/.
-- [ ] T037 [US7] Write and implement active local ADMIN verification plus grant/revoke operation in apps/backend/identity/ and scripts/backend-foundation/.
-- [ ] T038 [US7] Write administration HTTP/authorization/validation tests in apps/backend/core-service/src/test/.
-- [ ] T039 [US7] Implement configuration/division/mapping application operations, generated controllers and MapStruct adapters in apps/backend/{sports,core-service}/.
-- [ ] T040 [US7] Add core Python generation and verify Java/Python/TypeScript consumers, ArchUnit and Nx in libs/shared/python-contract-clients/ and apps/backend/.
-- [ ] T041 Validate reference/admin schema privileges, full backend/workspace and Docker runtime with scripts/backend-foundation/; review all changed files and record evidence on the PR.
+- [x] T033 [US3] Align accepted matching semantics and all FFVB artifacts in specs/002-backend-rebuild/ and docs/architecture/.
+- [x] T034 [US6] Define source-first FFVB administration/configuration contracts and shared enums in libs/shared/contracts/specs/source/.
+- [x] T035 [US3] Add sports Maven/Nx module and write reference identity/uniqueness tests in apps/backend/sports/ and apps/backend/pom.xml.
+- [x] T036 [US3] Implement generation-5 native reference/configuration schema, grants and persistence in apps/backend/{sports,migrations}/ and infra/compose/backend/.
+- [x] T037 [US6] Write and implement active local ADMIN verification plus grant/revoke operation in apps/backend/identity/ and scripts/backend-foundation/.
+- [x] T038 [US6] Write administration HTTP/authorization/validation tests in apps/backend/core-service/src/test/.
+- [x] T039 [US6] Implement configuration/division/mapping application operations, generated controllers and MapStruct adapters in apps/backend/{sports,core-service}/.
+- [x] T040 [US6] Add core Python generation and verify Java/Python/TypeScript consumers, ArchUnit and Nx in libs/shared/python-contract-clients/ and apps/backend/.
+- [x] T041 Validate reference/admin schema privileges, full backend/workspace and Docker runtime with scripts/backend-foundation/; review all changed files and record evidence on the PR.
 
 ## Phase 9: US3 — Durable FFVB Collection and Publication
 
@@ -104,7 +104,7 @@ publish recoverably without partial calendars or fabricated standings.
 - [ ] T050 [US3] Add bounded publication/freshness/mapping/conflict metrics and Prometheus/Grafana panels in apps/backend/sports/ and infra/compose/backend/.
 - [ ] T051 Validate generated consumers, full reactor/scraper/workspace and controlled Docker collection/restart/replay with scripts/backend-foundation/; record under-five-minute controlled publication separately from peak qualification.
 
-## Phase 10: US2/US3 — Public Sports Consultation
+## Phase 10: US2/US4 — Public Sports Consultation
 
 Depends on T051 and its reviewed delivery. Independent outcome: public catalog and calendars expose
 current published truth with explicit unknown times, official standings and reliable continuation.
@@ -112,7 +112,7 @@ current published truth with explicit unknown times, official standings and reli
 - [ ] T052 [US2] Define pool/team/match/standing and discriminated schedule/page contracts in libs/shared/contracts/specs/source/services/core/.
 - [ ] T053 [US2] Write four-zone temporal, DST, ordering, pagination, expired/incompatible cursor and targeted revision tests in apps/backend/sports/src/test/.
 - [ ] T054 [US2] Implement coherent-read projections and existing-library signed cursors with targeted calendar revisions in apps/backend/sports/.
-- [ ] T055 [US3] Implement generated public pool/team/match/standing HTTP adapters and negative/read-only tests in apps/backend/core-service/.
+- [ ] T055 [US4] Implement generated public pool/team/match/standing HTTP adapters and negative/read-only tests in apps/backend/core-service/.
 - [ ] T056 [US2] Regenerate and verify all consumer boundaries without mobile cutover in libs/shared/{contracts,python-contract-clients}/ and apps/frontend/mobile/.
 - [ ] T057 Validate full Maven/scraper/workspace, end-to-end controlled Docker smoke and actual Grafana collection with scripts/backend-foundation/; perform final requirement/diff review on the PR.
 

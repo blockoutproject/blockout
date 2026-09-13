@@ -37,7 +37,7 @@ class MigrationIntegrationTest {
     try (Connection c = connect();
         Statement statement = c.createStatement()) {
       statement.execute(
-          "DROP SCHEMA IF EXISTS operations CASCADE; DROP SCHEMA IF EXISTS identity CASCADE; DROP TABLE IF EXISTS public.databasechangelog; DROP TABLE IF EXISTS public.databasechangeloglock; CREATE SCHEMA operations; CREATE SCHEMA identity; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
+          "DROP SCHEMA IF EXISTS operations CASCADE; DROP SCHEMA IF EXISTS identity CASCADE; DROP SCHEMA IF EXISTS sports CASCADE; DROP TABLE IF EXISTS public.databasechangelog; DROP TABLE IF EXISTS public.databasechangeloglock; CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE SCHEMA sports; GRANT USAGE ON SCHEMA sports, identity, operations TO blockout_api, blockout_worker");
     }
   }
 
@@ -74,7 +74,7 @@ class MigrationIntegrationTest {
       try (ResultSet generation =
           statement.executeQuery("SELECT generation FROM operations.schema_metadata WHERE id=1")) {
         generation.next();
-        assertThat(generation.getInt(1)).isEqualTo(4);
+        assertThat(generation.getInt(1)).isEqualTo(5);
       }
     }
   }

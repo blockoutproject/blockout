@@ -30,6 +30,7 @@ public final class IdentitySchemaHealthIndicator implements HealthIndicator {
           "SELECT user_id,positive,verified_at,access_expires_at,requested_revision,processed_revision,job_id,requested_at,next_refresh_at,failure_code,failed_at FROM identity.subscription_states LIMIT 0");
       sql.queryForList(
           "SELECT event_id,event_type,event_at,received_at FROM identity.webhook_receipts LIMIT 0");
+      sql.queryForList("SELECT user_id,role FROM identity.user_roles LIMIT 0");
       return Health.up().build();
     } catch (DataAccessException _) {
       return Health.down().build();

@@ -37,7 +37,7 @@ proxy = "http://127.0.0.1:13000/api/datasources/proxy/uid/backend-prometheus/api
 proxied = get(proxy + query)["data"]["result"]
 assert len(proxied) == 2 and all(row["value"][1] == "1" for row in proxied)
 schemas = get(proxy + urlencode({"query": "blockout_schema_ready"}))["data"]["result"]
-assert len(schemas) == 4 and all(row["value"][1] == "1" for row in schemas)
+assert len(schemas) == 5 and all(row["value"][1] == "1" for row in schemas)
 subscriptions = get(proxy + urlencode({"query": "blockout_subscription_stale_positive"}))["data"]["result"]
 assert len(subscriptions) == 1
 provider = get(proxy + urlencode({"query": "blockout_subscription_provider_requests_total"}))["data"]["result"]
