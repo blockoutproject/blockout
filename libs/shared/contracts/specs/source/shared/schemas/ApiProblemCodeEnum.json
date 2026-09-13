@@ -1,0 +1,25 @@
+{
+  "ApiProblemCodeEnum": {
+    "type": "string",
+    "description": "Stable machine-readable codes for replacement backend ProblemDetail responses. Clients must handle unknown future codes as generic failures rather than rejecting the response.",
+    "enum": [
+      "AUTHENTICATION_REQUIRED",
+      "ACCESS_DENIED",
+      "USER_IDENTITY_REQUIRED",
+      "USER_NOT_FOUND",
+      "USER_INACTIVE",
+      "IDENTITY_NOT_SUPPORTED",
+      "IDENTITY_MISMATCH",
+      "IDENTITY_PROVIDER_UNAVAILABLE",
+      "IDENTITY_CONFIGURATION_ERROR",
+      "PROFILE_STORE_UNAVAILABLE",
+      "INTERNAL_ERROR",
+      "INVALID_REQUEST",
+      "RESOURCE_NOT_FOUND",
+      "METHOD_NOT_ALLOWED",
+      "RESPONSE_NOT_ACCEPTABLE",
+      "MEDIA_TYPE_NOT_SUPPORTED",
+      "SERVICE_UNAVAILABLE"
+    ]
+  }
+}

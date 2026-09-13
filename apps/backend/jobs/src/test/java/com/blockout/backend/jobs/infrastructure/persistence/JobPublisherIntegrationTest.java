@@ -3,15 +3,14 @@ package com.blockout.backend.jobs.infrastructure.persistence;
 import static org.assertj.core.api.Assertions.*;
 
 import com.blockout.backend.jobs.application.PublicationResult;
-import java.sql.*;
 import java.util.*;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.*;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.support.JdbcTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.*;
 
+/** Verifies owner-transaction publication and PostgreSQL JSONB deduplication semantics. */
 class JobPublisherIntegrationTest extends PostgresJobsFixture {
   @Test
   void requiresAnOwnerTransaction() {
@@ -32,12 +31,12 @@ class JobPublisherIntegrationTest extends PostgresJobsFixture {
 
   @Test
   void deduplicatesCanonicalContent() {
-    var a = tx.execute(s -> publisher.publish("test", 1, "a", Map.of("a", 1, "b", 2)));
+    var a = tx.execute(_ -> publisher.publish("test", 1, "a", Map.of("a", 1, "b", 2)));
     var reversed = new LinkedHashMap<String, Integer>();
     reversed.put("b", 2);
     reversed.put("a", 1);
 
-    var b = tx.execute(s -> publisher.publish("test", 1, "a", reversed));
+    var b = tx.execute(_ -> publisher.publish("test", 1, "a", reversed));
 
     assertThat(b).isEqualTo(a);
 
@@ -45,9 +44,64 @@ class JobPublisherIntegrationTest extends PostgresJobsFixture {
   }
 
   @Test
+  void comparesNestedValuesWithoutLosingNumericPrecision() {
+    var first =
+        tx.execute(
+            _ ->
+                publisher.publish(
+                    "test",
+                    1,
+                    "nested",
+                    Map.of(
+                        "items",
+                        List.of(
+                            Map.of(
+                                "n",
+                                new java.math.BigDecimal("12345678901234567890.123456789"))))));
+    var repeated =
+        tx.execute(
+            _ ->
+                publisher.publish(
+                    "test",
+                    1,
+                    "nested",
+                    Map.of(
+                        "items",
+                        List.of(
+                            Map.of(
+                                "n",
+                                new java.math.BigDecimal("12345678901234567890.1234567890"))))));
+    var changed =
+        tx.execute(
+            _ ->
+                publisher.publish(
+                    "test",
+                    1,
+                    "nested",
+                    Map.of(
+                        "items",
+                        List.of(
+                            Map.of(
+                                "n",
+                                new java.math.BigDecimal("12345678901234567890.123456788"))))));
+
+    assertThat(repeated).isEqualTo(first);
+    assertThat(changed).isEqualTo(new PublicationResult.Conflict());
+  }
+
+  @Test
+  void changedVersionConflictsWithTheSamePayload() {
+    tx.executeWithoutResult(_ -> publisher.publish("test", 1, "versioned", Map.of()));
+
+    var result = tx.execute(_ -> publisher.publish("test", 2, "versioned", Map.of()));
+
+    assertThat(result).isEqualTo(new PublicationResult.Conflict());
+  }
+
+  @Test
   void rejectsOversizedPayload() {
     var result =
-        tx.execute(s -> publisher.publish("test", 1, "a", Map.of("text", "x".repeat(65536))));
+        tx.execute(_ -> publisher.publish("test", 1, "a", Map.of("text", "x".repeat(65536))));
 
     assertThat(result).isEqualTo(new PublicationResult.Rejected("PAYLOAD_TOO_LARGE"));
 
@@ -55,7 +109,8 @@ class JobPublisherIntegrationTest extends PostgresJobsFixture {
   }
 
   @Test
-  void concurrentPublishersReuseOneIdentity() throws Exception {
+  void concurrentPublishersReuseOneIdentity()
+      throws InterruptedException, ExecutionException, TimeoutException {
     var barrier = new CyclicBarrier(2);
     try (var pool = Executors.newFixedThreadPool(2)) {
       Callable<UUID> publish =
@@ -72,12 +127,12 @@ class JobPublisherIntegrationTest extends PostgresJobsFixture {
 
   @Test
   void changedContentConflictsWithoutReplacingWork() {
-    var original = tx.execute(s -> publisher.publish("test", 1, "a", Map.of("value", 1)));
+    var original = tx.execute(_ -> publisher.publish("test", 1, "a", Map.of("value", 1)));
 
-    var conflict = tx.execute(s -> publisher.publish("test", 1, "a", Map.of("value", 2)));
+    var conflict = tx.execute(_ -> publisher.publish("test", 1, "a", Map.of("value", 2)));
 
     assertThat(conflict).isEqualTo(new PublicationResult.Conflict());
-    var unchanged = tx.execute(s -> publisher.publish("test", 1, "a", Map.of("value", 1)));
+    var unchanged = tx.execute(_ -> publisher.publish("test", 1, "a", Map.of("value", 1)));
 
     assertThat(unchanged).isEqualTo(original);
 
@@ -86,20 +141,20 @@ class JobPublisherIntegrationTest extends PostgresJobsFixture {
 
   @Test
   void equivalentNumberScaleReusesIdentity() {
-    var first = tx.execute(s -> publisher.publish("test", 1, "a", Map.of("n", 1)));
+    var first = tx.execute(_ -> publisher.publish("test", 1, "a", Map.of("n", 1)));
 
     var repeated =
         tx.execute(
-            s -> publisher.publish("test", 1, "a", Map.of("n", new java.math.BigDecimal("1.00"))));
+            _ -> publisher.publish("test", 1, "a", Map.of("n", new java.math.BigDecimal("1.00"))));
 
     assertThat(repeated).isEqualTo(first);
   }
 
   @Test
   void arrayOrderRemainsSignificant() {
-    tx.executeWithoutResult(s -> publisher.publish("test", 1, "a", List.of(1, 2)));
+    tx.executeWithoutResult(_ -> publisher.publish("test", 1, "a", List.of(1, 2)));
 
-    var result = tx.execute(s -> publisher.publish("test", 1, "a", List.of(2, 1)));
+    var result = tx.execute(_ -> publisher.publish("test", 1, "a", List.of(2, 1)));
 
     assertThat(result).isEqualTo(new PublicationResult.Conflict());
   }
@@ -107,7 +162,7 @@ class JobPublisherIntegrationTest extends PostgresJobsFixture {
   @Test
   void rejectsMultibytePayloadByUtf8Size() {
     var result =
-        tx.execute(s -> publisher.publish("test", 1, "a", Map.of("text", "é".repeat(32768))));
+        tx.execute(_ -> publisher.publish("test", 1, "a", Map.of("text", "é".repeat(32768))));
 
     assertThat(result).isEqualTo(new PublicationResult.Rejected("PAYLOAD_TOO_LARGE"));
 
@@ -120,7 +175,7 @@ class JobPublisherIntegrationTest extends PostgresJobsFixture {
         new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     var otherTx = new TransactionTemplate(new JdbcTransactionManager(otherDatasource));
 
-    assertThatThrownBy(() -> otherTx.execute(s -> publisher.publish("test", 1, "a", Map.of())))
+    assertThatThrownBy(() -> otherTx.execute(_ -> publisher.publish("test", 1, "a", Map.of())))
         .isInstanceOf(IllegalStateException.class);
 
     assertThat(count()).isZero();

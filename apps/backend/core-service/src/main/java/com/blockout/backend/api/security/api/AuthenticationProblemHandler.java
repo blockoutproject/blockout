@@ -1,11 +1,14 @@
 package com.blockout.backend.api.security.api;
 
+import static com.blockout.shared.model.ApiProblemCodeEnum.*;
+
+import com.blockout.backend.api.error.ApiProblems;
+import com.blockout.shared.model.ApiProblemCodeEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -19,30 +22,44 @@ public final class AuthenticationProblemHandler
     implements AuthenticationEntryPoint, AccessDeniedHandler {
   private final JsonMapper json;
 
+  /**
+   * Uses the Boot mapper to serialize Spring ProblemDetail at the security filter boundary.
+   *
+   * @param json application mapper configured for native problem serialization
+   */
   public AuthenticationProblemHandler(JsonMapper json) {
     this.json = json;
   }
 
+  /** {@inheritDoc} */
   @Override
   public void commence(
       HttpServletRequest request, HttpServletResponse response, AuthenticationException failure)
       throws IOException {
     response.setHeader("WWW-Authenticate", "Bearer");
-    write(response, HttpStatus.UNAUTHORIZED, "Authentication required", "AUTHENTICATION_REQUIRED");
+    write(response, HttpStatus.UNAUTHORIZED, AUTHENTICATION_REQUIRED);
   }
 
+  /** {@inheritDoc} */
   @Override
   public void handle(
       HttpServletRequest request, HttpServletResponse response, AccessDeniedException failure)
       throws IOException {
-    write(response, HttpStatus.FORBIDDEN, "Access denied", "ACCESS_DENIED");
+    write(response, HttpStatus.FORBIDDEN, ACCESS_DENIED);
   }
 
-  private void write(HttpServletResponse response, HttpStatus status, String title, String code)
+  /**
+   * Writes an uncacheable problem to the servlet-owned response stream.
+   *
+   * @param response response owned by the servlet container
+   * @param status authentication or authorization status
+   * @param code safe generated problem code
+   * @throws IOException the response stream cannot be written
+   */
+  private void write(HttpServletResponse response, HttpStatus status, ApiProblemCodeEnum code)
       throws IOException {
-    var problem = ProblemDetail.forStatus(status);
-    problem.setTitle(title);
-    problem.setProperty("code", code);
+    var problem = ApiProblems.create(status, code);
+    response.setHeader("Cache-Control", "no-store");
     response.setStatus(status.value());
     response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
     json.writeValue(response.getOutputStream(), problem);

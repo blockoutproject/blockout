@@ -1,0 +1,5 @@
+{
+  "name": "@blockout/logging",
+  "projectType": "library",
+  "tags": ["type:library", "scope:backend", "language:java"]
+}

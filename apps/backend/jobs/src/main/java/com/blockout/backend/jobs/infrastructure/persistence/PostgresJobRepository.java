@@ -13,15 +13,22 @@ public final class PostgresJobRepository implements JobRepository {
   private final JdbcTemplate sql;
   private final TransactionTemplate tx;
 
+  /**
+   * Binds the adapter to its application-owned collaborators.
+   *
+   * @param sql queue datasource access
+   * @param tx short transactions using that same datasource
+   */
   public PostgresJobRepository(JdbcTemplate sql, TransactionTemplate tx) {
     this.sql = sql;
     this.tx = tx;
   }
 
+  /** {@inheritDoc} */
   @Override
   public Optional<Job> claim(Duration lease) {
     return tx.execute(
-        status -> {
+        _ -> {
           sql.update(
               """
               UPDATE operations.jobs
@@ -50,7 +57,7 @@ public final class PostgresJobRepository implements JobRepository {
                       lease_expires_at=clock_timestamp()+(? * interval '1 millisecond')
                   FROM candidate c WHERE j.id=c.id RETURNING j.*
                   """,
-                  (rs, n) ->
+                  (rs, _) ->
                       new Job(
                           rs.getObject("id", UUID.class),
                           rs.getString("job_type"),
@@ -66,11 +73,12 @@ public final class PostgresJobRepository implements JobRepository {
         });
   }
 
+  /** {@inheritDoc} */
   @Override
   public boolean renew(Job job, Duration lease) {
     return withLockedAttempt(
         job,
-        status ->
+        _ ->
             sql.update(
                     "UPDATE operations.jobs SET lease_expires_at=clock_timestamp()+(? * interval '1 millisecond') WHERE id=? AND state='running' AND lease_token=? AND lease_expires_at>clock_timestamp()",
                     lease.toMillis(),
@@ -79,6 +87,7 @@ public final class PostgresJobRepository implements JobRepository {
                 == 1);
   }
 
+  /** {@inheritDoc} */
   @Override
   public boolean completeWithEffect(Job job, Runnable effect) {
     return withLockedAttempt(
@@ -104,6 +113,7 @@ public final class PostgresJobRepository implements JobRepository {
         });
   }
 
+  /** {@inheritDoc} */
   @Override
   public boolean fail(Job job, String code, Duration delay, boolean permanent) {
     if (!code.matches("[A-Z][A-Z0-9_]{0,99}"))
@@ -111,7 +121,7 @@ public final class PostgresJobRepository implements JobRepository {
     boolean dead = permanent || job.attempts() >= job.maxAttempts();
     return withLockedAttempt(
         job,
-        status ->
+        _ ->
             sql.update(
                     """
                     UPDATE operations.jobs
@@ -133,6 +143,10 @@ public final class PostgresJobRepository implements JobRepository {
    * PostgreSQL can evaluate a volatile UPDATE predicate before waiting for an unchanged locked row.
    * Acquire the attempt's lock first, then evaluate expiry in a separate statement in the same
    * transaction. Otherwise a wait could revive an already expired lease.
+   *
+   * @param job attempt whose row must still have the same token
+   * @param mutation expiry-aware mutation executed after the row lock is acquired
+   * @return false when ownership is absent; otherwise the mutation result
    */
   private boolean withLockedAttempt(Job job, TransactionCallback<Boolean> mutation) {
     return Boolean.TRUE.equals(
@@ -148,12 +162,14 @@ public final class PostgresJobRepository implements JobRepository {
             }));
   }
 
+  /** {@inheritDoc} */
   @Override
   public int cleanup() {
     return sql.update(
         "DELETE FROM operations.jobs WHERE id IN (SELECT id FROM operations.jobs WHERE state='succeeded' AND finished_at<clock_timestamp()-interval '7 days' LIMIT 1000 FOR UPDATE SKIP LOCKED)");
   }
 
+  /** {@inheritDoc} */
   @Override
   public double count(String state) {
     return sql.queryForObject(
@@ -161,6 +177,7 @@ public final class PostgresJobRepository implements JobRepository {
         .doubleValue();
   }
 
+  /** {@inheritDoc} */
   @Override
   public double oldestAvailableSeconds() {
     return sql.queryForObject(

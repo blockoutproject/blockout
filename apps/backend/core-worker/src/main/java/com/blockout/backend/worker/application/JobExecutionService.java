@@ -16,6 +16,14 @@ public final class JobExecutionService {
   private final Map<String, JobHandler> handlers;
   private final WorkerTelemetry telemetry;
 
+  /**
+   * Registers one handler per durable job type and rejects ambiguous ownership.
+   *
+   * @param jobs fenced queue persistence
+   * @param handlers owner adapters for supported type/version pairs
+   * @param telemetry worker-owned transition diagnostics
+   * @throws IllegalArgumentException multiple handlers claim the same job type
+   */
   public JobExecutionService(
       JobRepository jobs, List<JobHandler> handlers, WorkerTelemetry telemetry) {
     this.jobs = jobs;
@@ -27,7 +35,14 @@ public final class JobExecutionService {
     this.handlers = Map.copyOf(registered);
   }
 
-  /** Cancellation leaves the lease recoverable and cannot acknowledge a late handler result. */
+  /**
+   * Executes one handler and acknowledges only the still-owned, non-cancelled attempt. Unsupported
+   * versions and owner rejections become permanent failures; unexpected failures use bounded
+   * retries. Interruption leaves work recoverable and preserves the thread interrupt flag.
+   *
+   * @param job claimed payload and attempt identity
+   * @param cancelled scheduler-owned cancellation flag checked before execution and acknowledgement
+   */
   public void execute(Job job, AtomicBoolean cancelled) {
     try {
       if (cancelled.get()) return;
@@ -43,12 +58,12 @@ public final class JobExecutionService {
           if (jobs.fail(job, rejected.code(), Duration.ZERO, true))
             telemetry.rejected(job, rejected.code());
         }
-        case JobResult.Completed ignored -> complete(job, () -> {});
+        case JobResult.Completed _ -> complete(job, () -> {});
         case JobResult.SqlEffect sql -> complete(job, sql.effect());
       }
-    } catch (InterruptedException interrupted) {
+    } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
-    } catch (Exception failure) {
+    } catch (RuntimeException failure) {
       boolean recorded = false;
       try {
         if (!cancelled.get())
@@ -60,6 +75,12 @@ public final class JobExecutionService {
     }
   }
 
+  /**
+   * Commits SQL effects with the fenced acknowledgement and reports the committed outcome.
+   *
+   * @param job attempt to acknowledge
+   * @param effect SQL-only callback; empty for previously completed external effects
+   */
   private void complete(Job job, Runnable effect) {
     if (jobs.completeWithEffect(job, effect)) telemetry.completed();
     else telemetry.leaseLost(job);

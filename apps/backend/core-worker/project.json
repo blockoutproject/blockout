@@ -9,7 +9,8 @@
         "default",
         "^default",
         "{workspaceRoot}/scripts/backend-foundation/**/*",
-        "{workspaceRoot}/.dockerignore"
+        "{workspaceRoot}/.dockerignore",
+        "{workspaceRoot}/libs/shared/contracts/specs/**/*"
       ],
       "options": {
         "command": "scripts/backend-foundation/build.sh core-worker",

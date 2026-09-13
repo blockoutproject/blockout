@@ -2,7 +2,6 @@ package com.blockout.backend.worker.infrastructure.scheduling;
 
 import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.JobRepository;
-import com.blockout.backend.jobs.infrastructure.health.SchemaHealthIndicator;
 import com.blockout.backend.worker.application.JobExecutionService;
 import com.blockout.backend.worker.application.WorkerTelemetry;
 import com.blockout.backend.worker.config.WorkerProperties;
@@ -24,7 +23,7 @@ import org.springframework.context.SmartLifecycle;
  * effect. Shutdown stops claims, waits the configured grace, then interrupts remaining attempts.
  */
 public final class JobWorker implements SmartLifecycle, HealthIndicator {
-  private final SchemaHealthIndicator schema;
+  private final HealthIndicator schema;
   private final JobRepository jobs;
   private final WorkerProperties config;
   private final JobExecutionService attempts;
@@ -38,19 +37,32 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
   private volatile long lastPoll;
   private long lastCleanup;
 
+  /**
+   * Tracks one leased handler until its task exits, even after cancellation.
+   *
+   * @param job claimed durable attempt
+   * @param task execution task interrupted by lease loss or deadline
+   * @param cancelled flag preventing late acknowledgement
+   * @param renewed monotonic time of the last successful lease renewal
+   */
   private record Execution(
-      Job job,
-      FutureTask<Void> task,
-      AtomicBoolean cancelled,
-      AtomicLong renewed,
-      AtomicReference<ScheduledFuture<?>> timeout) {}
+      Job job, FutureTask<Void> task, AtomicBoolean cancelled, AtomicLong renewed) {}
 
+  /**
+   * Creates bounded executors and registers readiness; Spring starts and stops this instance.
+   *
+   * @param jobs public queue claim and renewal boundary
+   * @param config validated capacity and timing
+   * @param attempts handler execution and outcome owner
+   * @param telemetry worker metric and log owner
+   * @param schema read-only queue-schema readiness gate
+   */
   public JobWorker(
       JobRepository jobs,
       WorkerProperties config,
       JobExecutionService attempts,
       WorkerTelemetry telemetry,
-      SchemaHealthIndicator schema) {
+      HealthIndicator schema) {
     this.schema = schema;
     this.jobs = jobs;
     this.config = config;
@@ -64,9 +76,10 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
             config.concurrency(),
             0L,
             TimeUnit.MILLISECONDS,
-            new SynchronousQueue<>());
+            new ArrayBlockingQueue<>(config.concurrency()));
   }
 
+  /** {@inheritDoc} */
   @Override
   public synchronized void start() {
     if (running) return;
@@ -77,6 +90,10 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
     control.scheduleWithFixedDelay(this::tick, 0, config.poll().toMillis(), TimeUnit.MILLISECONDS);
   }
 
+  /**
+   * Runs one serialized control cycle: readiness, renewals, available claims and bounded cleanup. A
+   * failed cycle retains durable work and leaves the last-successful-poll clock unchanged.
+   */
   void tick() {
     if (!running) return;
     try {
@@ -111,54 +128,72 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
     }
   }
 
+  /**
+   * Tracks and submits one claimed attempt with an independently scheduled deadline. A rejected
+   * submission is cancelled; its durable lease remains available for later recovery.
+   *
+   * @param job newly claimed fenced attempt
+   */
   private void dispatch(Job job) {
     long now = System.nanoTime();
     AtomicBoolean cancelled = new AtomicBoolean();
-    AtomicBoolean entered = new AtomicBoolean();
-    var timeout = new java.util.concurrent.atomic.AtomicReference<ScheduledFuture<?>>();
+    var timeout = new AtomicReference<ScheduledFuture<?>>();
     FutureTask<Void> task =
         new FutureTask<>(
             () -> {
-              entered.set(true);
-              try {
-                attempts.execute(job, cancelled);
-              } finally {
-                active.remove(job.leaseToken());
-                var scheduled = timeout.get();
-                if (scheduled != null) scheduled.cancel(false);
-              }
+              attempts.execute(job, cancelled);
               return null;
             }) {
+          /**
+           * {@inheritDoc} Releases capacity only after execution exits, not merely when
+           * cancellation is requested.
+           */
           @Override
-          protected void done() {
-            if (!entered.get()) active.remove(job.leaseToken());
+          public void run() {
+            try {
+              super.run();
+            } finally {
+              // Future.done() also runs on cancellation, before an uncooperative handler exits.
+              active.remove(job.leaseToken());
+              var scheduled = timeout.get();
+              if (scheduled != null) scheduled.cancel(false);
+            }
           }
         };
-    var work = new Execution(job, task, cancelled, new AtomicLong(now), timeout);
+    var work = new Execution(job, task, cancelled, new AtomicLong(now));
     active.put(job.leaseToken(), work);
-    timeout.set(
-        deadlines.schedule(
-            () -> {
-              if (!task.isDone()) {
-                cancel(work);
-                telemetry.timedOut(job);
-              }
-            },
-            config.deadline().toMillis(),
-            TimeUnit.MILLISECONDS));
     try {
+      timeout.set(
+          deadlines.schedule(
+              () -> {
+                if (!task.isDone()) {
+                  cancel(work);
+                  telemetry.timedOut(job);
+                }
+              },
+              config.deadline().toMillis(),
+              TimeUnit.MILLISECONDS));
+      // A bounded handoff absorbs the gap between Runnable completion and an idle pool thread.
       execution.execute(task);
-    } catch (RejectedExecutionException stopped) {
+    } catch (RejectedExecutionException _) {
       cancel(work);
-      timeout.get().cancel(false);
+      active.remove(job.leaseToken());
+      var scheduled = timeout.get();
+      if (scheduled != null) scheduled.cancel(false);
     }
   }
 
+  /**
+   * Prevents later acknowledgement and interrupts the handler without releasing its capacity early.
+   *
+   * @param work active attempt retained until the execution task exits
+   */
   private void cancel(Execution work) {
     work.cancelled().set(true);
     work.task().cancel(true);
   }
 
+  /** {@inheritDoc} */
   @Override
   public synchronized void stop() {
     if (!running) return;
@@ -168,7 +203,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
     try {
       if (!execution.awaitTermination(config.shutdownGrace().toMillis(), TimeUnit.MILLISECONDS))
         active.values().forEach(this::cancel);
-    } catch (InterruptedException e) {
+    } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
       active.values().forEach(this::cancel);
     } finally {
@@ -179,11 +214,13 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
     }
   }
 
+  /** {@inheritDoc} */
   @Override
   public boolean isRunning() {
     return running;
   }
 
+  /** {@inheritDoc} */
   @Override
   public Health health() {
     return running

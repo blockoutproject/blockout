@@ -10,6 +10,11 @@ import org.springframework.security.config.annotation.web.configurers.AuthorizeH
  */
 @FunctionalInterface
 public interface ApiRoutePolicy {
+  /**
+   * Registers the owning feature matchers without terminating the assembly-wide rule chain.
+   *
+   * @param requests Spring authorization registry; leave anyRequest to the API assembly
+   */
   void configure(
       AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry
           requests);

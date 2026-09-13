@@ -13,12 +13,14 @@ import com.blockout.backend.worker.application.JobExecutionService;
 import com.blockout.backend.worker.application.WorkerTelemetry;
 import com.blockout.backend.worker.config.WorkerProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
+import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.*;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,8 +31,12 @@ import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Exercises scheduling, deadlines and fenced outcomes with real PostgreSQL and controlled handlers.
+ */
 @Testcontainers
 class WorkerIntegrationTest {
+  @AutoClose static final ClassLoaderResourceAccessor resources = new ClassLoaderResourceAccessor();
   @Container static final PostgreSQLContainer DB = new PostgreSQLContainer("postgres:17-alpine");
   static JdbcTemplate sql;
   static TransactionTemplate tx;
@@ -39,20 +45,18 @@ class WorkerIntegrationTest {
   JobWorker worker;
   SimpleMeterRegistry metrics;
 
+  /** Applies the production baseline and wires queue adapters on one shared test datasource. */
   @BeforeAll
-  static void setup() throws Exception {
+  static void setup() throws SQLException, LiquibaseException {
     var ds = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     sql = new JdbcTemplate(ds);
     tx = new TransactionTemplate(new JdbcTransactionManager(ds));
-    try (var c = ds.getConnection()) {
-      c.createStatement()
-          .execute(
-              "CREATE SCHEMA operations; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
-      try (var lb =
-          new Liquibase(
-              "db/changelog/db.changelog-master.xml",
-              new ClassLoaderResourceAccessor(),
-              new JdbcConnection(c))) {
+    try (var c = ds.getConnection();
+        var statement = c.createStatement()) {
+      statement.execute(
+          "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
+      try (var connection = new JdbcConnection(c);
+          var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
         lb.update("");
       }
     }
@@ -71,6 +75,11 @@ class WorkerIntegrationTest {
     if (metrics != null) metrics.close();
   }
 
+  /**
+   * Starts bounded scheduling with short fixture timings and test-owned metrics.
+   *
+   * @param handler single supported handler, or null to exercise unsupported work
+   */
   void start(JobHandler handler) {
     metrics = new SimpleMeterRegistry();
     var telemetry = new WorkerTelemetry(repository, metrics);
@@ -91,8 +100,13 @@ class WorkerIntegrationTest {
     worker.start();
   }
 
+  /**
+   * Publishes a version-one test job through a real owner transaction.
+   *
+   * @param key scenario-specific deduplication key
+   */
   void publish(String key) {
-    tx.executeWithoutResult(s -> publisher.publish("test", 1, key, Map.of()));
+    tx.executeWithoutResult(_ -> publisher.publish("test", 1, key, Map.of()));
   }
 
   @Test
@@ -100,7 +114,7 @@ class WorkerIntegrationTest {
     var executions = new AtomicInteger();
     publish("a");
 
-    start(handler(j -> executions.incrementAndGet()));
+    start(handler(_ -> executions.incrementAndGet()));
 
     await()
         .atMost(Duration.ofSeconds(5))
@@ -110,7 +124,20 @@ class WorkerIntegrationTest {
   }
 
   @Test
-  void boundsConcurrencyAndRenewsLeases() throws Exception {
+  void drainsFastJobsWithoutWastingReservedAttempts() {
+    for (int i = 0; i < 100; i++) publish("fast-" + i);
+
+    start(handler(_ -> {}));
+
+    await()
+        .atMost(Duration.ofSeconds(10))
+        .untilAsserted(() -> assertThat(repository.count("succeeded")).isEqualTo(100));
+    assertThat(sql.queryForObject("SELECT max(attempts) FROM operations.jobs", Integer.class))
+        .isEqualTo(1);
+  }
+
+  @Test
+  void boundsConcurrencyAndRenewsLeases() throws InterruptedException {
     for (int i = 0; i < 5; i++) publish("" + i);
     var entered = new CountDownLatch(2);
     var release = new CountDownLatch(1);
@@ -119,7 +146,7 @@ class WorkerIntegrationTest {
 
     start(
         handler(
-            j -> {
+            _ -> {
               int n = active.incrementAndGet();
               peak.accumulateAndGet(n, Math::max);
               entered.countDown();
@@ -169,7 +196,7 @@ class WorkerIntegrationTest {
 
     start(
         handler(
-            j -> {
+            _ -> {
               throw new IllegalStateException("test failure");
             }));
 
@@ -187,29 +214,29 @@ class WorkerIntegrationTest {
 
   @Test
   void incompatibleSchemaPreventsConsumption() {
-    sql.update("UPDATE operations.schema_metadata SET generation=2");
+    sql.update("UPDATE operations.schema_metadata SET generation=4");
     try {
       publish("a");
       start(
           handler(
-              j -> {
+              _ -> {
                 throw new AssertionError("must not execute");
               }));
       worker.tick();
       assertThat(repository.count("pending")).isEqualTo(1);
     } finally {
-      sql.update("UPDATE operations.schema_metadata SET generation=1");
+      sql.update("UPDATE operations.schema_metadata SET generation=3");
     }
   }
 
   @Test
-  void shutdownLeavesInterruptedWorkRecoverable() throws Exception {
+  void shutdownLeavesInterruptedWorkRecoverable() throws InterruptedException {
     var entered = new CountDownLatch(1);
     publish("a");
 
     start(
         handler(
-            j -> {
+            _ -> {
               entered.countDown();
               new CountDownLatch(1).await();
             }));
@@ -225,7 +252,7 @@ class WorkerIntegrationTest {
   void rejectsInvalidOwnerPayloadPermanently() {
     publish("a");
 
-    start(resultHandler(j -> new JobResult.Rejected("INVALID_PAYLOAD")));
+    start(resultHandler(_ -> new JobResult.Rejected("INVALID_PAYLOAD")));
 
     await()
         .atMost(Duration.ofSeconds(5))
@@ -236,13 +263,13 @@ class WorkerIntegrationTest {
   }
 
   @Test
-  void interruptsJobsAtTheExecutionDeadline() throws Exception {
+  void interruptsJobsAtTheExecutionDeadline() throws InterruptedException {
     var interrupted = new CountDownLatch(1);
     publish("a");
 
     start(
         handler(
-            j -> {
+            _ -> {
               try {
                 new CountDownLatch(1).await();
               } catch (InterruptedException e) {
@@ -258,14 +285,14 @@ class WorkerIntegrationTest {
   }
 
   @Test
-  void enforcesDeadlineWhileSchemaIsUnavailable() throws Exception {
+  void enforcesDeadlineWhileSchemaIsUnavailable() throws InterruptedException {
     var entered = new CountDownLatch(1);
     var interrupted = new CountDownLatch(1);
     publish("a");
 
     start(
         handler(
-            j -> {
+            _ -> {
               entered.countDown();
               try {
                 new CountDownLatch(1).await();
@@ -276,31 +303,31 @@ class WorkerIntegrationTest {
             }));
 
     assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
-    sql.update("UPDATE operations.schema_metadata SET generation=2");
+    sql.update("UPDATE operations.schema_metadata SET generation=4");
     try {
       assertThat(interrupted.await(5, TimeUnit.SECONDS)).isTrue();
     } finally {
       worker.stop();
-      sql.update("UPDATE operations.schema_metadata SET generation=1");
+      sql.update("UPDATE operations.schema_metadata SET generation=3");
     }
   }
 
   @Test
-  void countsUncooperativeExpiredAttemptsAgainstConcurrency() throws Exception {
+  void countsUncooperativeExpiredAttemptsAgainstConcurrency() throws InterruptedException {
     var entered = new CountDownLatch(2);
     var release = new CountDownLatch(1);
     publish("a");
 
     start(
         handler(
-            j -> {
+            _ -> {
               entered.countDown();
               boolean done = false;
               while (!done) {
                 try {
                   release.await();
                   done = true;
-                } catch (InterruptedException ignored) {
+                } catch (InterruptedException _) {
                   /* Controlled uncooperative dependency. */
                 }
               }
@@ -327,10 +354,22 @@ class WorkerIntegrationTest {
     }
   }
 
+  /** Allows blocking test effects to participate in cooperative worker interruption. */
   interface Action {
-    void run(Job job) throws Exception;
+    /**
+     * Runs a controlled fixture effect with the claimed attempt.
+     *
+     * @param job attempt supplied by the worker
+     */
+    void run(Job job) throws InterruptedException;
   }
 
+  /**
+   * Adapts a controlled external effect into a successful handler result.
+   *
+   * @param action fixture effect which may block or fail
+   * @return a version-one test handler
+   */
   JobHandler handler(Action action) {
     return resultHandler(
         job -> {
@@ -339,21 +378,40 @@ class WorkerIntegrationTest {
         });
   }
 
+  /** Allows scenarios to select completed, SQL-effect or rejected handler outcomes. */
   interface ResultAction {
-    JobResult run(Job job) throws Exception;
+    /**
+     * Produces the scenario-selected result for a claimed attempt.
+     *
+     * @param job attempt supplied by the worker
+     * @return the controlled handler outcome
+     */
+    JobResult run(Job job) throws InterruptedException;
   }
 
+  /**
+   * Wraps a result-producing fixture as the single test type/version handler.
+   *
+   * @param action scenario-owned outcome producer
+   * @return a handler registered only by this test
+   */
   JobHandler resultHandler(ResultAction action) {
     return new JobHandler() {
+      /** {@inheritDoc} */
+      @Override
       public String type() {
         return "test";
       }
 
+      /** {@inheritDoc} */
+      @Override
       public int version() {
         return 1;
       }
 
-      public JobResult handle(Job job) throws Exception {
+      /** {@inheritDoc} */
+      @Override
+      public JobResult handle(Job job) throws InterruptedException {
         return action.run(job);
       }
     };

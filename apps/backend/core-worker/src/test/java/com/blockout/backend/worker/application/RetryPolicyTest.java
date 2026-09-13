@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
+/** Checks the supported jitter interval without asserting a random sequence. */
 class RetryPolicyTest {
   @Test
   void boundsRetryJitter() {

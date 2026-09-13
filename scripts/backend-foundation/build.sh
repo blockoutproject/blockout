@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Builds selected replacement images locally; accepts all|core-service|core-worker|migrations.
+# Tags each image with the source revision (and dirty suffix when needed); never publishes images.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 revision=$(git rev-parse HEAD)
