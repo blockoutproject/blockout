@@ -19,6 +19,14 @@ public final class ApiProblems {
   public static ProblemDetail create(HttpStatusCode status, ApiProblemCodeEnum code) {
     var detail =
         switch (code) {
+          case SUBSCRIPTION_REQUIRED -> "An active Pro subscription is required.";
+          case SUBSCRIPTION_UNVERIFIED ->
+              "Subscription verification is required. Try again shortly.";
+          case SUBSCRIPTION_STORE_UNAVAILABLE,
+              SUBSCRIPTION_PROVIDER_UNAVAILABLE,
+              SUBSCRIPTION_CONFIGURATION_ERROR ->
+              "Subscription verification is temporarily unavailable.";
+          case WEBHOOK_AUTHENTICATION_FAILED -> "Webhook authentication failed.";
           case AUTHENTICATION_REQUIRED -> "Authentication required.";
           case ACCESS_DENIED -> "Access denied.";
           case USER_IDENTITY_REQUIRED -> "A supported native user session is required.";

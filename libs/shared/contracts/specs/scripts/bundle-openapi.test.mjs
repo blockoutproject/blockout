@@ -78,6 +78,8 @@ test("workspace fragments produce the shared OpenAPI bundle", async () => {
     "NotificationTypeEnum",
     "ReportTypeEnum",
     "ScraperNameEnum",
+    "SubscriptionRefreshStateEnum",
+    "SubscriptionStateEnum",
   ]);
 });
 

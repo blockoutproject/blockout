@@ -82,3 +82,19 @@ Official references: [Spring configuration validation](https://docs.spring.io/sp
   and [promtool rule tests](https://prometheus.io/docs/prometheus/latest/configuration/unit_testing_rules/).
 - Verification: captured ECS asserts the original exception type without private messages; an isolated smoke validates
   scrapes through Grafana and loaded dashboards/alerts. No production account or notification destination is changed.
+
+## Subscription refinement decisions
+
+| Need                                   | Decision                                                                 | Simpler alternative and consequence                                         | Verification                             |
+| -------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------- | ---------------------------------------- |
+| Complete environment-specific evidence | V2 subscriptions, exact entitlement and gives_access                     | active_entitlements alone cannot isolate environment                        | Provider pagination/environment fixtures |
+| Honest expiry                          | No expiry inferred from billing dates; period ends schedule refresh only | Cutting access at ends_at breaks provider grace                             | Clock and grace fixtures                 |
+| Missing customer ambiguity             | 404 remains unknown                                                      | Treating every resource_missing as free hides invalid project configuration | 404 fixture                              |
+| Fenced failure recovery                | Extend existing job SQL effects to delayed/permanent failures            | Separate owner writes allow stale attempts to change proof                  | PostgreSQL lease/rollback tests          |
+| Raw signed body with generated API     | Scoped RequestBodyAdvice and JDK Mac                                     | Parsing then serializing changes signed bytes                               | MVC raw-byte signature tests             |
+| Bounded calls                          | Resilience4j rate limiter only; durable jobs own retries                 | Handwritten limiter duplicates library behavior                             | Controlled rate/retry tests              |
+
+References: [RevenueCat subscription model](https://www.revenuecat.com/docs/api-v2/subscription-data-model),
+[V2 API](https://www.revenuecat.com/docs/api-v2), [webhooks](https://www.revenuecat.com/docs/integrations/webhooks),
+[Spring RequestBodyAdvice](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servlet/mvc/method/annotation/RequestBodyAdvice.html),
+[Resilience4j RateLimiter](https://resilience4j.readme.io/docs/ratelimiter).

@@ -1,0 +1,57 @@
+{
+  "RevenueCatWebhookRequest": {
+    "type": "object",
+    "required": ["event"],
+    "properties": {
+      "event": {
+        "$ref": "#/components/schemas/RevenueCatWebhookEvent"
+      }
+    }
+  },
+  "RevenueCatWebhookEvent": {
+    "type": "object",
+    "required": ["id", "type", "event_timestamp_ms"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255
+      },
+      "type": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "event_timestamp_ms": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "environment": {
+        "type": "string",
+        "nullable": true
+      },
+      "app_user_id": {
+        "type": "string",
+        "nullable": true
+      },
+      "aliases": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "transferred_from": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "transferred_to": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -2,7 +2,7 @@
 
 ## operations.schema_metadata
 
-One row, id=1, generation=3. Application readiness reads the supported generation and required jobs columns. An incompatible or missing schema fails readiness. Additive compatible migrations retain generation.
+One row, id=1, generation=4. Application readiness reads the supported generation and required jobs columns. An incompatible or missing schema fails readiness. Additive compatible migrations retain generation.
 
 ## operations.jobs
 
@@ -18,7 +18,7 @@ Database time controls lease acquisition/renewal/completion. Job handlers never 
 
 ## Identity increment
 
-The first identity baseline uses generation=3, including the existing jobs tables plus:
+The first identity baseline uses generation=4, including the existing jobs tables plus:
 
 - `identity.users`: UUID id; non-null pseudo and normalized pseudo_key (unique); nullable email, first_name, last_name, phone_number, picture_url; non-null active, created_at and updated_at. Public dates are UTC; updated_at changes only with profile content. Initial pseudo normalization retains existing ASCII rules, length 1–30, with deterministic numeric collision candidates followed by a UUID-derived suffix.
 - `identity.external_identities`: issuer varchar(512) and subject varchar(255) composite primary key, non-null UUID user_id FK with restrictive deletion. Identity values are exact, case-sensitive, never derived from email. One identity is initialized per canonical authenticated account in this increment.
@@ -27,3 +27,15 @@ The first identity baseline uses generation=3, including the existing jobs table
 Profile insertion, identity insertion and binding insertion commit together. An advisory transaction lock keyed by issuer/subject serializes competing first-create transactions without holding it during provider HTTP. Hash collisions only serialize unrelated creates. PostgreSQL constraints remain authoritative. Pseudonym conflict arbitration uses ON CONFLICT(pseudo_key) DO NOTHING and retries inside the short creation transaction; unrelated errors roll back everything.
 
 The second delivery adds evidence, coalesced reconciliation revisions and durable webhook receipts as described in plan.md. It must not enqueue work for an absent handler in the first delivery. Subscription snapshots contain only verified decision, environment, timestamps and reliable access bounds; never provider financial data or raw receipts.
+
+## Subscription increment
+
+`identity.subscription_states` has one user_id primary/FK to billing_bindings, nullable positive/verified_at/
+access_expires_at evidence, requested_revision and processed_revision, nullable job_id, requested_at,
+next_refresh_at, failure_code and failed_at. A revision is captured before provider I/O; stale revisions
+cannot overwrite evidence. A transfer clears usable proof while preserving revision ordering. Current
+job status is read through the public jobs boundary, never a cross-owner SQL join.
+
+`identity.webhook_receipts` uses event_id as its primary key and stores event_type, event_at and received_at.
+Receipts are retained; bodies and customer lists are not stored. Receipt insertion and all known-binding
+refresh requests share one transaction. Binding locks use UUID order for multi-customer events.

@@ -7,6 +7,12 @@
   "tags": [
     {
       "name": "CurrentUser"
+    },
+    {
+      "name": "Subscription"
+    },
+    {
+      "name": "RevenueCatWebhook"
     }
   ],
   "security": [
@@ -20,6 +26,11 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
+      },
+      "revenueCatSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-RevenueCat-Webhook-Signature"
       }
     }
   }

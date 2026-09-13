@@ -21,7 +21,7 @@ This quickstart proves infrastructure only. It does not qualify real subscribers
 
 Run focused `identity,core-service,core-worker` Maven verification with `-am`, then canonical `npm run backend:verify`. Native Liquibase initializes the PostgreSQL integration fixtures. Auth0 HTTP/JWKS fixtures use loopback only and synthetic identities; application startup has explicit fixture-safe configuration in isolated Compose, with no live credentials.
 
-After an explicit reset of the disposable local database for generation 3, build the revision-tagged images and run the existing Docker smoke. Check identity table readiness and exact runtime DDL rejection. Verify contracts generation and the mobile TypeScript projection without changing current mobile API routing.
+After an explicit reset of the disposable local database for generation 4, build the revision-tagged images and run the existing Docker smoke. Check identity table readiness and exact runtime DDL rejection. Verify contracts generation and the mobile TypeScript projection without changing current mobile API routing.
 
 Controlled external evidence is separate: configure the retained tenant and RevenueCat project using secret environment injection, acquire a token through the established native/public-client flow, POST the current profile twice against the isolated replacement and verify one UUID, then verify paid evidence after the subscription worker is delivered. Never print tokens, raw provider responses, customer IDs or personal profile data. No restore, transfer, linking or deletion call is part of this server rehearsal. Record provider/native evidence still unavailable on the PR, not as completed tasks.
 
@@ -61,7 +61,7 @@ loopback-only anonymous viewer of the provisioned **Backend foundation** dashboa
 readiness, queue states/age/executions, Auth0 traffic/rate limits, heap usage and firing alerts. No provider requests are
 triggered by the dashboard; unused integration counters can legitimately have no data before their first event.
 
-Run `scripts/backend-foundation/observability-smoke.sh` to validate Prometheus configuration, five alert rules with
+Run `scripts/backend-foundation/observability-smoke.sh` to validate Prometheus configuration, six alert rules with
 promtool, real API/worker scrapes, four schema series, the Grafana datasource proxy and provisioned dashboard. CI runs
 this after the foundation smoke. `local.sh down` stops the isolated stack and retains the application database.
 
@@ -69,3 +69,27 @@ This profile proves local metrics and alert evaluation. It does not install or m
 to people, or collect stdout into a central log store. Production addresses, credentials, notification destinations and
 log retention belong to deployment configuration. Applications continue to emit native ECS JSON to stdout, with UTC
 timestamps, original exception types and message-free stack traces formatted by Spring Boot.
+
+## Subscription validation
+
+Run identity provider/policy tests, PostgreSQL coalescing/receipt tests and core HTTP/HMAC tests before
+complete backend verification. Build all three images at one revision and explicitly reset the disposable
+local database after a baseline change. Run foundation and observability smoke against the isolated stack.
+Use synthetic provider fixtures to verify positive evidence, transient outage/grace, negative evidence,
+webhook deduplication, refresh publication and worker recovery. No production credentials are necessary.
+
+RevenueCat API credentials belong only to the worker; the webhook signing secret belongs only to the API.
+Use the retained project, environment and entitlement. HMAC must be enabled on the separately configured
+RevenueCat integration before live webhook use. A 404 remains unknown; this backend never creates provider
+customers. Record controlled-account reads and unavailable native purchase/restore evidence separately
+on the PR. Neither mocks nor local smoke establish production subscription continuity.
+
+Run `scripts/backend-foundation/subscription-smoke.sh` for the fixed disposable receipt/job/provider proof.
+The `subscription-smoke` Compose profile adds a synthetic HTTP fixture, not an application service.
+`observability-smoke.sh` includes that proof before checking RevenueCat metrics through Grafana.
+Its fixture overrides exist only in the smoke process and never modify retained provider settings.
+Worker configuration requires `BLOCKOUT_REVENUECAT_BASE_URL`, `BLOCKOUT_REVENUECAT_SECRET_KEY` and
+`BLOCKOUT_REVENUECAT_ENTITLEMENT_ID`; API configuration requires
+`BLOCKOUT_REVENUECAT_WEBHOOK_SIGNING_SECRET`. Live API keys need subscription-read permission.
+The worker only reads the existing provider identity; signing configuration is a separately authorized
+RevenueCat dashboard operation. The sixth alert detects positive evidence stale for five minutes.
