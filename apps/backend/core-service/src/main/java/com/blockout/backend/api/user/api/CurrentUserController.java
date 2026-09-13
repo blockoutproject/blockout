@@ -7,29 +7,22 @@ import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import com.blockout.shared.model.ApiProblemCodeEnum;
 import java.net.URI;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
 
 /** HTTP boundary for actor-bound provisioning and side-effect-free reads. */
 @RestController
+@RequiredArgsConstructor
 public class CurrentUserController implements CurrentUserApi {
+  /** Profile recreation and local-read use cases. */
   private final UserProfiles profiles;
-  private final CurrentUserActor actors;
-  private final UserProfileMapper mapper;
 
-  /**
-   * Connects actor-bound HTTP operations to the profile owner and generated transport mapping.
-   *
-   * @param profiles profile recreation and local-read use cases
-   * @param actors trusted native-user extraction
-   * @param mapper mapping to the public generated profile model
-   */
-  public CurrentUserController(
-      UserProfiles profiles, CurrentUserActor actors, UserProfileMapper mapper) {
-    this.profiles = profiles;
-    this.actors = actors;
-    this.mapper = mapper;
-  }
+  /** Trusted native-user extraction. */
+  private final CurrentUserActor actors;
+
+  /** Mapping to the public generated profile model. */
+  private final UserProfileMapper mapper;
 
   /** {@inheritDoc} */
   @Override

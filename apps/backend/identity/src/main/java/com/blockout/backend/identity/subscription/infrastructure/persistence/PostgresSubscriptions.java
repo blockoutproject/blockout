@@ -7,23 +7,18 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /** Subscription SQL owned by identity; no query reaches into queue internals. */
+@RequiredArgsConstructor
 public final class PostgresSubscriptions implements SubscriptionStore {
+  /** Transaction-aware JDBC operations. */
   private final JdbcTemplate sql;
+
   private static final String PROJECTION =
       "SELECT s.*,b.project_id,b.environment,b.customer_id FROM identity.subscription_states s JOIN identity.billing_bindings b USING(user_id) WHERE s.user_id=?";
-
-  /**
-   * Binds owner persistence to the shared transaction datasource.
-   *
-   * @param sql transaction-aware JDBC operations
-   */
-  public PostgresSubscriptions(JdbcTemplate sql) {
-    this.sql = sql;
-  }
 
   /** {@inheritDoc} */
   @Override

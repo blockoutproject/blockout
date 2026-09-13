@@ -2,25 +2,20 @@ package com.blockout.backend.sports.administration.application;
 
 import java.time.Clock;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Owns short reference/configuration transactions and explicit source selection rules. */
+@RequiredArgsConstructor
 public class FfvbAdministration {
   private static final Set<String> EXCLUDED = Set.of("LIGU", "LIGY", "LIMART", "LIMY", "LIRE");
-  private final FfvbAdministrationStore store;
-  private final Clock clock;
 
-  /**
-   * Binds reference operations to their persistence boundary and audit clock.
-   *
-   * @param store transactional sports persistence
-   * @param clock audit time source
-   */
-  public FfvbAdministration(FfvbAdministrationStore store, Clock clock) {
-    this.store = store;
-    this.clock = clock;
-  }
+  /** Transactional sports persistence. */
+  private final FfvbAdministrationStore store;
+
+  /** Audit time source. */
+  private final Clock clock;
 
   /**
    * Reads the singleton and source set from one coherent database snapshot.

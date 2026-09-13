@@ -4,38 +4,28 @@ import com.blockout.backend.identity.subscription.domain.*;
 import com.blockout.backend.jobs.application.*;
 import java.time.*;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Owns subscription requests, local decisions and revision-checked SQL effects. */
+@RequiredArgsConstructor
 public final class Subscriptions {
   public static final String JOB_TYPE = "identity.subscription.refresh";
-  private final SubscriptionStore store;
-  private final JobPublisher publisher;
-  private final JobRepository jobs;
-  private final TransactionTemplate tx;
-  private final Clock clock;
 
-  /**
-   * Connects the owner to transaction-aware persistence and the existing durable queue.
-   *
-   * @param store identity-owned subscription persistence
-   * @param publisher publication joining owner transactions
-   * @param jobs queue lifecycle reads through its public boundary
-   * @param tx short SQL transaction boundary
-   * @param clock elapsed-time policy clock
-   */
-  public Subscriptions(
-      SubscriptionStore store,
-      JobPublisher publisher,
-      JobRepository jobs,
-      TransactionTemplate tx,
-      Clock clock) {
-    this.store = store;
-    this.publisher = publisher;
-    this.jobs = jobs;
-    this.tx = tx;
-    this.clock = clock;
-  }
+  /** Identity-owned subscription persistence. */
+  private final SubscriptionStore store;
+
+  /** Publication joining owner transactions. */
+  private final JobPublisher publisher;
+
+  /** Queue lifecycle reads through its public boundary. */
+  private final JobRepository jobs;
+
+  /** Short SQL transaction boundary. */
+  private final TransactionTemplate tx;
+
+  /** Elapsed-time policy clock. */
+  private final Clock clock;
 
   /**
    * Consults local evidence without provider calls or writes.

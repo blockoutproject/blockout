@@ -2,6 +2,7 @@ package com.blockout.backend.api.user.api;
 
 import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -9,17 +10,10 @@ import org.springframework.stereotype.Component;
 
 /** Extracts a validated native-user identity; token claims never grant business permissions. */
 @Component
+@RequiredArgsConstructor
 public final class CurrentUserActor {
+  /** Validated native client identifiers. */
   private final NativeUserProperties properties;
-
-  /**
-   * Binds native-user extraction to the configured public client allowlist.
-   *
-   * @param properties validated native client identifiers
-   */
-  public CurrentUserActor(NativeUserProperties properties) {
-    this.properties = properties;
-  }
 
   /**
    * Reads the verified JWT from the current security context without contacting a provider. Machine

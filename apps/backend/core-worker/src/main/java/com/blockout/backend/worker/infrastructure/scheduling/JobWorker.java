@@ -11,6 +11,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import lombok.Getter;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.contributor.Status;
@@ -33,7 +34,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
   private final ScheduledThreadPoolExecutor deadlines = new ScheduledThreadPoolExecutor(1);
   private final ExecutorService execution;
   private final Map<UUID, Execution> active = new ConcurrentHashMap<>();
-  private volatile boolean running;
+  @Getter private volatile boolean running;
   private volatile long lastPoll;
   private long lastCleanup;
 
@@ -207,12 +208,6 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
       execution.shutdownNow();
       telemetry.stopped(active.size());
     }
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean isRunning() {
-    return running;
   }
 
   /** {@inheritDoc} */

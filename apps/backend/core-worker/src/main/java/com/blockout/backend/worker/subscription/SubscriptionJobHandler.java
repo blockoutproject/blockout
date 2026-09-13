@@ -5,30 +5,23 @@ import com.blockout.backend.jobs.application.*;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Runs provider I/O outside SQL and returns effects for live-lease acknowledgement. */
+@RequiredArgsConstructor
 public final class SubscriptionJobHandler implements JobHandler {
+  /** Revision/evidence owner. */
   private final Subscriptions subscriptions;
-  private final SubscriptionProvider provider;
-  private final Clock clock;
-  private final JsonMapper json;
 
-  /**
-   * Connects durable payloads to the subscription owner.
-   *
-   * @param subscriptions revision/evidence owner
-   * @param provider bounded external read boundary
-   * @param clock conservative observation timestamp source
-   * @param json payload decoder
-   */
-  public SubscriptionJobHandler(
-      Subscriptions subscriptions, SubscriptionProvider provider, Clock clock, JsonMapper json) {
-    this.subscriptions = subscriptions;
-    this.provider = provider;
-    this.clock = clock;
-    this.json = json;
-  }
+  /** Bounded external read boundary. */
+  private final SubscriptionProvider provider;
+
+  /** Conservative observation timestamp source. */
+  private final Clock clock;
+
+  /** Payload decoder. */
+  private final JsonMapper json;
 
   /** {@inheritDoc} */
   @Override

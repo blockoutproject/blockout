@@ -6,6 +6,7 @@ import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import java.sql.*;
 import java.time.Instant;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -13,17 +14,10 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * PostgreSQL constraints arbitrate identities and pseudonyms; all three inserts share the owner
  * transaction.
  */
+@RequiredArgsConstructor
 public final class PostgresUserProfiles implements UserProfileStore {
+  /** Shared profile datasource access. */
   private final JdbcTemplate sql;
-
-  /**
-   * Binds profile persistence to the datasource used by the application transaction.
-   *
-   * @param sql shared profile datasource access
-   */
-  public PostgresUserProfiles(JdbcTemplate sql) {
-    this.sql = sql;
-  }
 
   /** {@inheritDoc} */
   @Override

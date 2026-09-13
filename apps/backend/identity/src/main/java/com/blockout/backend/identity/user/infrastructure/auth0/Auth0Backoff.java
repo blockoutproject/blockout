@@ -4,22 +4,18 @@ import com.blockout.backend.identity.user.application.IdentityFailureReason;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
 /** Per-process pause shared by token and profile calls; no background retry or persisted secret. */
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 final class Auth0Backoff {
+  /** Deadline source, injectable for recovery tests. */
   private final Clock clock;
+
   private Instant retryAt = Instant.MIN;
   private long nextDelaySeconds = 5;
   private IdentityFailureReason failureReason = IdentityFailureReason.IDENTITY_PROVIDER_UNAVAILABLE;
-
-  /**
-   * Creates a process-local pause shared by token and profile operations.
-   *
-   * @param clock deadline source, injectable for recovery tests
-   */
-  Auth0Backoff(Clock clock) {
-    this.clock = clock;
-  }
 
   /**
    * Reads the current pause without extending it or contacting Auth0.

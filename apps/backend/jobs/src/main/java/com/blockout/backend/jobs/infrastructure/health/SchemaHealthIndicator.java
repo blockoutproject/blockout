@@ -1,22 +1,16 @@
 package com.blockout.backend.jobs.infrastructure.health;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /** Refuses readiness on missing/incompatible schema without changing it. */
+@RequiredArgsConstructor
 public final class SchemaHealthIndicator implements HealthIndicator {
+  /** Read-only access to generation and required queue columns. */
   private final JdbcTemplate sql;
-
-  /**
-   * Binds the adapter to its application-owned collaborators.
-   *
-   * @param sql read-only access to generation and required queue columns
-   */
-  public SchemaHealthIndicator(JdbcTemplate sql) {
-    this.sql = sql;
-  }
 
   /** {@inheritDoc} */
   @Override

@@ -1,12 +1,12 @@
 package com.blockout.backend.sports.reference.domain;
 
 import java.util.Locale;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /** Exact FFVB matching normalization, applied after the scraper's gender-specific aliases. */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TeamName {
-  /** Prevents construction of the stateless provider-name rule. */
-  private TeamName() {}
-
   /**
    * Prepares the canonical alias name without accent removal or internal whitespace collapsing.
    *

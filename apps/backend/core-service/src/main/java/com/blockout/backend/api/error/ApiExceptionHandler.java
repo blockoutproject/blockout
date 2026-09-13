@@ -1,9 +1,8 @@
 package com.blockout.backend.api.error;
 
 import com.blockout.shared.model.ApiProblemCodeEnum;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.*;
 import org.springframework.security.access.AccessDeniedException;
@@ -15,8 +14,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 /** Uses Spring MVC's exception handling and headers with the same safe contract as security. */
 @RestControllerAdvice
+@Slf4j
 public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
-  private static final Logger LOG = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
   /**
    * Translates profile-store failures to a retryable 503 without database diagnostics.
@@ -81,7 +80,7 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
       HttpStatusCode status,
       WebRequest request) {
     if (status.is5xxServerError()) {
-      LOG.atError()
+      log.atError()
           .addKeyValue("event.action", "api.request.failed")
           .setCause(failure)
           .log("API request failed");

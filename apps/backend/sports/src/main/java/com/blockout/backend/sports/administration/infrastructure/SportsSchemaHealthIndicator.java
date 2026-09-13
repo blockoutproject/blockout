@@ -1,21 +1,15 @@
 package com.blockout.backend.sports.administration.infrastructure;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.health.contributor.*;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /** Refuses sports administration readiness when its required schema is absent or incompatible. */
+@RequiredArgsConstructor
 public final class SportsSchemaHealthIndicator implements HealthIndicator {
+  /** Read-only access to the runtime sports schema. */
   private final JdbcTemplate sql;
-
-  /**
-   * Binds schema readiness to the application datasource.
-   *
-   * @param sql read-only access to the runtime sports schema
-   */
-  public SportsSchemaHealthIndicator(JdbcTemplate sql) {
-    this.sql = sql;
-  }
 
   /** {@inheritDoc} */
   @Override

@@ -2,14 +2,14 @@ package com.blockout.backend.identity.subscription.domain;
 
 import java.time.Duration;
 import java.time.Instant;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /** Pure elapsed-time policy shared by consultation and future Pro authorization. */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SubscriptionPolicy {
   public static final Duration FRESHNESS = Duration.ofMinutes(10);
   public static final Duration GRACE = Duration.ofHours(24);
-
-  /** Prevents instances of the pure policy. */
-  private SubscriptionPolicy() {}
 
   /**
    * Evaluates proof without writes or provider calls.

@@ -12,16 +12,17 @@ import java.time.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import tools.jackson.databind.JsonNode;
 
 /** Read-only V2 adapter; complete environment-specific evidence is the only source of decisions. */
+@Slf4j
 public final class RevenueCatSubscriptions implements SubscriptionProvider, AutoCloseable {
-  private static final Logger LOG = LoggerFactory.getLogger(RevenueCatSubscriptions.class);
   private final AtomicBoolean degraded = new AtomicBoolean();
   private final RevenueCatProperties properties;
   private final Clock clock;
@@ -119,7 +120,7 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
               positive ? "positive" : "negative")
           .increment();
       if (degraded.compareAndSet(true, false))
-        LOG.atInfo()
+        log.atInfo()
             .addKeyValue("event.action", "subscription.provider.recovered")
             .log("Subscription verification recovered");
       return new SubscriptionObservation.Verified(positive, periodEnd);
@@ -295,7 +296,7 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
         .increment();
     if ((reason == SubscriptionFailure.UNAVAILABLE || reason == SubscriptionFailure.CONFIGURATION)
         && degraded.compareAndSet(false, true))
-      LOG.atWarn()
+      log.atWarn()
           .addKeyValue("event.action", "subscription.provider.unavailable")
           .addKeyValue("outcome", reason.name())
           .log("Subscription verification unavailable");
@@ -314,17 +315,11 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
   }
 
   /** Carries the shared provider retry deadline to the durable queue. */
+  @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
   private static final class ProviderPaused extends RuntimeException {
     private static final long serialVersionUID = 1L;
-    private final Duration delay;
 
-    /**
-     * Stores only a safe duration.
-     *
-     * @param delay remaining shared pause
-     */
-    private ProviderPaused(Duration delay) {
-      this.delay = delay;
-    }
+    /** Remaining shared provider pause. */
+    private final Duration delay;
   }
 }

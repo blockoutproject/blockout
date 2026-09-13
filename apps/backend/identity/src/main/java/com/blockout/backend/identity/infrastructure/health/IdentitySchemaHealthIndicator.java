@@ -1,21 +1,15 @@
 package com.blockout.backend.identity.infrastructure.health;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.health.contributor.*;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /** Checks every profile/binding column without mutating data or contacting identity providers. */
+@RequiredArgsConstructor
 public final class IdentitySchemaHealthIndicator implements HealthIndicator {
+  /** Read-only schema access. */
   private final JdbcTemplate sql;
-
-  /**
-   * Binds readiness to required identity tables and columns.
-   *
-   * @param sql read-only schema access
-   */
-  public IdentitySchemaHealthIndicator(JdbcTemplate sql) {
-    this.sql = sql;
-  }
 
   /** {@inheritDoc} */
   @Override

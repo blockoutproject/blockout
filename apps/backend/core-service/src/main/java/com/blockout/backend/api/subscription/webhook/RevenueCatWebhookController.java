@@ -9,26 +9,19 @@ import com.blockout.backend.identity.config.BillingBindingProperties;
 import com.blockout.backend.identity.subscription.application.Subscriptions;
 import java.time.Instant;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Accepts authenticated provider notifications as requests to reread current evidence. */
 @RestController
+@RequiredArgsConstructor
 public class RevenueCatWebhookController implements RevenueCatWebhookApi {
+  /** Receipt and request owner. */
   private final Subscriptions subscriptions;
-  private final BillingBindingProperties billing;
 
-  /**
-   * Connects authenticated events to the exact configured billing namespace.
-   *
-   * @param subscriptions receipt and request owner
-   * @param billing retained project/environment
-   */
-  public RevenueCatWebhookController(
-      Subscriptions subscriptions, BillingBindingProperties billing) {
-    this.subscriptions = subscriptions;
-    this.billing = billing;
-  }
+  /** Retained project/environment. */
+  private final BillingBindingProperties billing;
 
   /** {@inheritDoc} */
   @Override

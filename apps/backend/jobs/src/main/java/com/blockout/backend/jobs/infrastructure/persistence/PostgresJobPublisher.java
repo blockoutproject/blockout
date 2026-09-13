@@ -4,25 +4,19 @@ import com.blockout.backend.jobs.application.JobPublisher;
 import com.blockout.backend.jobs.application.PublicationResult;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Publishes bounded work inside the transaction which owns its durable cause. */
+@RequiredArgsConstructor
 public final class PostgresJobPublisher implements JobPublisher {
+  /** Datasource shared with owner transactions. */
   private final JdbcTemplate sql;
-  private final JsonMapper json;
 
-  /**
-   * Binds the adapter to its application-owned collaborators.
-   *
-   * @param sql datasource shared with owner transactions
-   * @param json serializer for bounded publication payloads
-   */
-  public PostgresJobPublisher(JdbcTemplate sql, JsonMapper json) {
-    this.sql = sql;
-    this.json = json;
-  }
+  /** Serializer for bounded publication payloads. */
+  private final JsonMapper json;
 
   /** {@inheritDoc} */
   @Override

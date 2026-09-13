@@ -5,6 +5,7 @@ import com.blockout.shared.model.ApiProblemCodeEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -17,18 +18,11 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Stable HTTP failures: provider exceptions and token claims never enter client-facing responses.
  */
+@RequiredArgsConstructor
 public final class AuthenticationProblemHandler
     implements AuthenticationEntryPoint, AccessDeniedHandler {
+  /** Application mapper configured for native problem serialization. */
   private final JsonMapper json;
-
-  /**
-   * Uses the Boot mapper to serialize Spring ProblemDetail at the security filter boundary.
-   *
-   * @param json application mapper configured for native problem serialization
-   */
-  public AuthenticationProblemHandler(JsonMapper json) {
-    this.json = json;
-  }
 
   /** {@inheritDoc} */
   @Override

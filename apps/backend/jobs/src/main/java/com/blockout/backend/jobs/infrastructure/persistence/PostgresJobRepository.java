@@ -6,25 +6,19 @@ import com.blockout.backend.jobs.application.JobState;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** PostgreSQL lease and acknowledgement operations; never holds a transaction over network I/O. */
+@RequiredArgsConstructor
 public final class PostgresJobRepository implements JobRepository {
+  /** Queue datasource access. */
   private final JdbcTemplate sql;
-  private final TransactionTemplate tx;
 
-  /**
-   * Binds the adapter to its application-owned collaborators.
-   *
-   * @param sql queue datasource access
-   * @param tx short transactions using that same datasource
-   */
-  public PostgresJobRepository(JdbcTemplate sql, TransactionTemplate tx) {
-    this.sql = sql;
-    this.tx = tx;
-  }
+  /** Short transactions using that same datasource. */
+  private final TransactionTemplate tx;
 
   /** {@inheritDoc} */
   @Override

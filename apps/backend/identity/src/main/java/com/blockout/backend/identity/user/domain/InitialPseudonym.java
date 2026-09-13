@@ -2,12 +2,12 @@ package com.blockout.backend.identity.user.domain;
 
 import java.util.Locale;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /** Preserves initial email-prefix naming without treating that attribute as identity. */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class InitialPseudonym {
-  /** Prevents instances of the initial-name policy. */
-  private InitialPseudonym() {}
-
   /**
    * Builds a normalized pseudonym of at most thirty characters. Candidates use the email prefix,
    * numbered collision suffixes, then a UUID-derived suffix.

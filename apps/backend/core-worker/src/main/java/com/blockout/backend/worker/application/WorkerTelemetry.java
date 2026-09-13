@@ -6,13 +6,12 @@ import com.blockout.backend.jobs.application.JobState;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.spi.LoggingEventBuilder;
 
 /** Scheduler-owned diagnostics. Payloads, deduplication keys and lease tokens are never emitted. */
+@Slf4j
 public final class WorkerTelemetry {
-  private static final Logger LOG = LoggerFactory.getLogger(WorkerTelemetry.class);
   private final MeterRegistry metrics;
   private boolean pollDegraded;
 
@@ -51,7 +50,7 @@ public final class WorkerTelemetry {
    * @param concurrency maximum simultaneous handler executions
    */
   public void started(int concurrency) {
-    LOG.atInfo()
+    log.atInfo()
         .addKeyValue("event.action", "worker.started")
         .addKeyValue("concurrency", concurrency)
         .log("Worker started");
@@ -63,7 +62,7 @@ public final class WorkerTelemetry {
    * @param remaining active attempts after the shutdown grace and interruption
    */
   public void stopped(int remaining) {
-    LOG.atInfo()
+    log.atInfo()
         .addKeyValue("event.action", "worker.stopped")
         .addKeyValue("active_attempts", remaining)
         .log("Worker stopped accepting work");
@@ -78,7 +77,7 @@ public final class WorkerTelemetry {
     if (pollDegraded) return;
     pollDegraded = true;
     LoggingEventBuilder event =
-        LOG.atError()
+        log.atError()
             .addKeyValue("event.action", "worker.poll.unavailable")
             .addKeyValue("dependency", "postgresql");
     if (failure != null) event.setCause(failure);
@@ -89,7 +88,7 @@ public final class WorkerTelemetry {
   public synchronized void pollRecovered() {
     if (!pollDegraded) return;
     pollDegraded = false;
-    LOG.atInfo().addKeyValue("event.action", "worker.poll.recovered").log("Job polling recovered");
+    log.atInfo().addKeyValue("event.action", "worker.poll.recovered").log("Job polling recovered");
   }
 
   /** Counts a successful fenced acknowledgement without emitting a per-record success log. */
@@ -109,7 +108,7 @@ public final class WorkerTelemetry {
     metrics
         .counter("blockout.jobs.executions", "outcome", ExecutionOutcome.REJECTED.value())
         .increment();
-    attempt(LOG.atWarn(), "worker.job.rejected", job)
+    attempt(log.atWarn(), "worker.job.rejected", job)
         .addKeyValue("reason", code)
         .log("Job permanently rejected");
   }
@@ -121,7 +120,7 @@ public final class WorkerTelemetry {
    */
   public void unsupported(Job job) {
     metrics.counter("blockout.jobs.failed", "reason", "unsupported").increment();
-    attempt(LOG.atWarn(), "worker.job.unsupported", job).log("No compatible job handler");
+    attempt(log.atWarn(), "worker.job.unsupported", job).log("No compatible job handler");
   }
 
   /**
@@ -136,7 +135,7 @@ public final class WorkerTelemetry {
     metrics
         .counter("blockout.jobs.executions", "outcome", ExecutionOutcome.FAILED.value())
         .increment();
-    attempt(LOG.atError(), "worker.job.failed", job)
+    attempt(log.atError(), "worker.job.failed", job)
         .addKeyValue("failure_recorded", recorded)
         .addKeyValue("retry_exhausted", job.attempts() >= job.maxAttempts())
         .setCause(failure)
@@ -149,7 +148,7 @@ public final class WorkerTelemetry {
    * @param job attempt whose lease is no longer live
    */
   public void leaseLost(Job job) {
-    attempt(LOG.atWarn(), "worker.job.lease_lost", job).log("Attempt no longer owns its lease");
+    attempt(log.atWarn(), "worker.job.lease_lost", job).log("Attempt no longer owns its lease");
   }
 
   /**
@@ -159,7 +158,7 @@ public final class WorkerTelemetry {
    */
   public void timedOut(Job job) {
     metrics.counter("blockout.jobs.timeouts").increment();
-    attempt(LOG.atWarn(), "worker.job.deadline", job).log("Execution deadline reached");
+    attempt(log.atWarn(), "worker.job.deadline", job).log("Execution deadline reached");
   }
 
   /**

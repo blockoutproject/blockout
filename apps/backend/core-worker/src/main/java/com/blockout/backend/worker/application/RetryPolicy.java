@@ -2,12 +2,12 @@ package com.blockout.backend.worker.application;
 
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /** Schedules bounded handler retries with twenty-percent jitter to spread competing attempts. */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class RetryPolicy {
-  /** Prevents instances of the worker retry policy. */
-  private RetryPolicy() {}
-
   /**
    * Applies jitter around the five, thirty, one-hundred-twenty or six-hundred-second retry stage.
    *

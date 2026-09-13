@@ -6,47 +6,34 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Owns atomic profile creation. External reads finish before any SQL transaction or lock begins.
  */
+@RequiredArgsConstructor
 public final class UserProfiles {
+  /** Store sharing the transaction datasource. */
   private final UserProfileStore profiles;
-  private final UserIdentityProvider provider;
-  private final TransactionTemplate transactions;
-  private final Clock clock;
-  private final String project;
-  private final BillingEnvironment environment;
-  private final java.util.function.Consumer<UUID> initializeSubscription;
 
-  /**
-   * Binds the profile owner to persistence, external verification and short SQL transactions.
-   *
-   * @param profiles store sharing the transaction datasource
-   * @param provider read-only external identity verification
-   * @param transactions creation transaction boundary
-   * @param clock creation timestamp source
-   * @param project retained RevenueCat project identifier
-   * @param environment production or sandbox billing namespace
-   * @param initializeSubscription initial verification publication in the profile transaction
-   */
-  public UserProfiles(
-      UserProfileStore profiles,
-      UserIdentityProvider provider,
-      TransactionTemplate transactions,
-      Clock clock,
-      String project,
-      BillingEnvironment environment,
-      java.util.function.Consumer<UUID> initializeSubscription) {
-    this.profiles = profiles;
-    this.provider = provider;
-    this.transactions = transactions;
-    this.clock = clock;
-    this.project = project;
-    this.environment = environment;
-    this.initializeSubscription = initializeSubscription;
-  }
+  /** Read-only external identity verification. */
+  private final UserIdentityProvider provider;
+
+  /** Creation transaction boundary. */
+  private final TransactionTemplate transactions;
+
+  /** Creation timestamp source. */
+  private final Clock clock;
+
+  /** Retained RevenueCat project identifier. */
+  private final String project;
+
+  /** Production or sandbox billing namespace. */
+  private final BillingEnvironment environment;
+
+  /** Initial verification publication in the profile transaction. */
+  private final java.util.function.Consumer<UUID> initializeSubscription;
 
   /**
    * Reads locally without provider calls or writes, preserving inactive and unsupported outcomes.

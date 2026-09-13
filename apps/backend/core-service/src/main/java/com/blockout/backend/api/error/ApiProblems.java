@@ -1,14 +1,14 @@
 package com.blockout.backend.api.error;
 
 import com.blockout.shared.model.ApiProblemCodeEnum;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 
 /** Shared HTTP error vocabulary; dependency diagnostics never become client-facing details. */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ApiProblems {
-  /** Prevents instances of the shared HTTP problem factory. */
-  private ApiProblems() {}
-
   /**
    * Builds a native problem using only the generated code and fixed safe detail text.
    *

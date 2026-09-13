@@ -10,35 +10,25 @@ import com.blockout.shared.model.ApiProblemCodeEnum;
 import java.net.URI;
 import java.util.*;
 import java.util.function.Function;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Thin HTTP adapter; every operation checks the current active local administrator. */
 @RestController
+@RequiredArgsConstructor
 public class FfvbAdministrationController implements FfvbAdministrationApi {
+  /** Verified native-user extraction. */
   private final CurrentUserActor actors;
-  private final AdministratorAccess administrators;
-  private final FfvbAdministration sports;
-  private final FfvbMapper mapper;
 
-  /**
-   * Connects trusted actor extraction, current permission, use cases and DTO mapping.
-   *
-   * @param actors verified native-user extraction
-   * @param administrators uncached identity-owned local permission check
-   * @param sports reference use cases
-   * @param mapper generated-contract projection
-   */
-  public FfvbAdministrationController(
-      CurrentUserActor actors,
-      AdministratorAccess administrators,
-      FfvbAdministration sports,
-      FfvbMapper mapper) {
-    this.actors = actors;
-    this.administrators = administrators;
-    this.sports = sports;
-    this.mapper = mapper;
-  }
+  /** Uncached identity-owned local permission check. */
+  private final AdministratorAccess administrators;
+
+  /** Reference use cases. */
+  private final FfvbAdministration sports;
+
+  /** Generated-contract projection. */
+  private final FfvbMapper mapper;
 
   /** {@inheritDoc} */
   @Override

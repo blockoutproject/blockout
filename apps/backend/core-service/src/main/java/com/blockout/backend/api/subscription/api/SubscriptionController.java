@@ -9,35 +9,25 @@ import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import com.blockout.shared.model.ApiProblemCodeEnum;
 import java.net.URI;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Current-user subscription transport; provider reads never execute in the HTTP request. */
 @RestController
+@RequiredArgsConstructor
 public class SubscriptionController implements SubscriptionApi {
+  /** Native-user JWT extraction. */
   private final CurrentUserActor actors;
-  private final UserProfiles profiles;
-  private final Subscriptions subscriptions;
-  private final SubscriptionMapper mapper;
 
-  /**
-   * Binds trusted actor extraction to owner reads and generated mapping.
-   *
-   * @param actors native-user JWT extraction
-   * @param profiles existing active-profile lookup
-   * @param subscriptions subscription operations
-   * @param mapper generated transport projection
-   */
-  public SubscriptionController(
-      CurrentUserActor actors,
-      UserProfiles profiles,
-      Subscriptions subscriptions,
-      SubscriptionMapper mapper) {
-    this.actors = actors;
-    this.profiles = profiles;
-    this.subscriptions = subscriptions;
-    this.mapper = mapper;
-  }
+  /** Existing active-profile lookup. */
+  private final UserProfiles profiles;
+
+  /** Subscription operations. */
+  private final Subscriptions subscriptions;
+
+  /** Generated transport projection. */
+  private final SubscriptionMapper mapper;
 
   /** {@inheritDoc} */
   @Override

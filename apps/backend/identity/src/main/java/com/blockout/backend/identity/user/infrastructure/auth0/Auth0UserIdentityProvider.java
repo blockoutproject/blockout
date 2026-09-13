@@ -10,8 +10,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.*;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -26,8 +25,8 @@ import org.springframework.web.client.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /** Read-only Auth0 adapter with bounded HTTP, private credentials and safe expected failures. */
+@Slf4j
 public final class Auth0UserIdentityProvider implements UserIdentityProvider, AutoCloseable {
-  private static final Logger LOG = LoggerFactory.getLogger(Auth0UserIdentityProvider.class);
   private final OAuth2ClientCredentialsGrantRequest grant;
   private final RestClientClientCredentialsTokenResponseClient tokens;
   private final Clock clock;
@@ -121,7 +120,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
               profile.phoneNumber(),
               profile.pictureUrl());
       if (backoff.succeeded())
-        LOG.atInfo()
+        log.atInfo()
             .addKeyValue("event.action", "identity.provider.recovered")
             .log("Identity provider recovered");
       record(LookupOutcome.SUCCESS, started);
@@ -176,7 +175,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
    * @param failure adapter failure whose safe reason is operationally useful
    */
   private void logUnavailable(ProviderFailure failure) {
-    LOG.atWarn()
+    log.atWarn()
         .addKeyValue("event.action", "identity.lookup")
         .addKeyValue("event.outcome", "failure")
         .addKeyValue("error.code", failure.reason.name())
