@@ -1,7 +1,5 @@
 package com.blockout.backend.api.security.api;
 
-import static com.blockout.shared.model.ApiProblemCodeEnum.*;
-
 import com.blockout.backend.api.error.ApiProblems;
 import com.blockout.shared.model.ApiProblemCodeEnum;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,7 +36,7 @@ public final class AuthenticationProblemHandler
       HttpServletRequest request, HttpServletResponse response, AuthenticationException failure)
       throws IOException {
     response.setHeader("WWW-Authenticate", "Bearer");
-    write(response, HttpStatus.UNAUTHORIZED, AUTHENTICATION_REQUIRED);
+    write(response, HttpStatus.UNAUTHORIZED, ApiProblemCodeEnum.AUTHENTICATION_REQUIRED);
   }
 
   /**
@@ -52,7 +50,7 @@ public final class AuthenticationProblemHandler
   public void webhookAuthenticationRequired(
       HttpServletRequest request, HttpServletResponse response, AuthenticationException failure)
       throws IOException {
-    write(response, HttpStatus.UNAUTHORIZED, WEBHOOK_AUTHENTICATION_FAILED);
+    write(response, HttpStatus.UNAUTHORIZED, ApiProblemCodeEnum.WEBHOOK_AUTHENTICATION_FAILED);
   }
 
   /** {@inheritDoc} */
@@ -60,7 +58,7 @@ public final class AuthenticationProblemHandler
   public void handle(
       HttpServletRequest request, HttpServletResponse response, AccessDeniedException failure)
       throws IOException {
-    write(response, HttpStatus.FORBIDDEN, ACCESS_DENIED);
+    write(response, HttpStatus.FORBIDDEN, ApiProblemCodeEnum.ACCESS_DENIED);
   }
 
   /**

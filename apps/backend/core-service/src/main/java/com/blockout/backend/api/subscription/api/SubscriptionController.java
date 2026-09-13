@@ -1,7 +1,5 @@
 package com.blockout.backend.api.subscription.api;
 
-import static com.blockout.shared.model.ApiProblemCodeEnum.*;
-
 import com.blockout.backend.api.error.ApiProblems;
 import com.blockout.backend.api.user.api.CurrentUserActor;
 import com.blockout.backend.api.user.api.generated.SubscriptionApi;
@@ -61,7 +59,8 @@ public class SubscriptionController implements SubscriptionApi {
    */
   private ResponseEntity<?> current(boolean refresh) {
     Optional<ExternalIdentity> actor = actors.current();
-    if (actor.isEmpty()) return problem(HttpStatus.FORBIDDEN, USER_IDENTITY_REQUIRED);
+    if (actor.isEmpty())
+      return problem(HttpStatus.FORBIDDEN, ApiProblemCodeEnum.USER_IDENTITY_REQUIRED);
     return switch (profiles.find(actor.get())) {
       case ProfileResult.Available available -> {
         if (refresh) {
@@ -76,12 +75,15 @@ public class SubscriptionController implements SubscriptionApi {
             .cacheControl(CacheControl.noStore().cachePrivate())
             .body(mapper.toResponse(subscriptions.find(available.profile().id())));
       }
-      case ProfileResult.Missing _ -> problem(HttpStatus.NOT_FOUND, USER_NOT_FOUND);
-      case ProfileResult.Inactive _ -> problem(HttpStatus.FORBIDDEN, USER_INACTIVE);
+      case ProfileResult.Missing _ ->
+          problem(HttpStatus.NOT_FOUND, ApiProblemCodeEnum.USER_NOT_FOUND);
+      case ProfileResult.Inactive _ ->
+          problem(HttpStatus.FORBIDDEN, ApiProblemCodeEnum.USER_INACTIVE);
       case ProfileResult.Unsupported _, ProfileResult.Mismatch _ ->
-          problem(HttpStatus.CONFLICT, IDENTITY_NOT_SUPPORTED);
+          problem(HttpStatus.CONFLICT, ApiProblemCodeEnum.IDENTITY_NOT_SUPPORTED);
       case ProfileResult.Unavailable _ ->
-          problem(HttpStatus.SERVICE_UNAVAILABLE, SUBSCRIPTION_STORE_UNAVAILABLE);
+          problem(
+              HttpStatus.SERVICE_UNAVAILABLE, ApiProblemCodeEnum.SUBSCRIPTION_STORE_UNAVAILABLE);
     };
   }
 

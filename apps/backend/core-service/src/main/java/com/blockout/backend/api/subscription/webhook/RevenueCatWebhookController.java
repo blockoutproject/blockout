@@ -1,7 +1,5 @@
 package com.blockout.backend.api.subscription.webhook;
 
-import static com.blockout.backend.api.user.api.models.RevenueCatEventTypeEnum.*;
-
 import com.blockout.backend.api.user.api.generated.RevenueCatWebhookApi;
 import com.blockout.backend.api.user.api.models.RevenueCatEnvironmentEnum;
 import com.blockout.backend.api.user.api.models.RevenueCatEventTypeEnum;
@@ -43,10 +41,10 @@ public class RevenueCatWebhookController implements RevenueCatWebhookApi {
     Set<String> outgoing = new HashSet<>();
     boolean relevant =
         requiresRefresh(eventType)
-            && (event.getEnvironment() == null && eventType == TRANSFER
+            && (event.getEnvironment() == null && eventType == RevenueCatEventTypeEnum.TRANSFER
                 || expectedEnvironment == event.getEnvironment());
     if (relevant) {
-      if (eventType == TRANSFER) {
+      if (eventType == RevenueCatEventTypeEnum.TRANSFER) {
         outgoing.addAll(values(event.getTransferredFrom()));
         customers.addAll(outgoing);
         customers.addAll(values(event.getTransferredTo()));

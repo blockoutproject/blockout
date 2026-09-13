@@ -1,7 +1,5 @@
 package com.blockout.backend.api.user.api;
 
-import static com.blockout.shared.model.ApiProblemCodeEnum.*;
-
 import com.blockout.backend.api.error.ApiProblems;
 import com.blockout.backend.api.user.api.generated.CurrentUserApi;
 import com.blockout.backend.identity.user.application.*;
@@ -37,7 +35,7 @@ public class CurrentUserController implements CurrentUserApi {
   @Override
   public ResponseEntity<?> ensureCurrentUser() {
     Optional<ExternalIdentity> actor = actors.current();
-    if (actor.isEmpty()) return problem(403, USER_IDENTITY_REQUIRED);
+    if (actor.isEmpty()) return problem(403, ApiProblemCodeEnum.USER_IDENTITY_REQUIRED);
     return response(profiles.ensure(actor.get()));
   }
 
@@ -45,7 +43,7 @@ public class CurrentUserController implements CurrentUserApi {
   @Override
   public ResponseEntity<?> getCurrentUser() {
     Optional<ExternalIdentity> actor = actors.current();
-    if (actor.isEmpty()) return problem(403, USER_IDENTITY_REQUIRED);
+    if (actor.isEmpty()) return problem(403, ApiProblemCodeEnum.USER_IDENTITY_REQUIRED);
     return response(profiles.find(actor.get()));
   }
 
@@ -65,16 +63,18 @@ public class CurrentUserController implements CurrentUserApi {
         if (available.created()) builder.location(URI.create("/api/v2/users/me"));
         yield builder.body(mapper.toResponse(available.profile()));
       }
-      case ProfileResult.Missing _ -> problem(404, USER_NOT_FOUND);
-      case ProfileResult.Inactive _ -> problem(403, USER_INACTIVE);
-      case ProfileResult.Unsupported _ -> problem(409, IDENTITY_NOT_SUPPORTED);
-      case ProfileResult.Mismatch _ -> problem(409, IDENTITY_MISMATCH);
+      case ProfileResult.Missing _ -> problem(404, ApiProblemCodeEnum.USER_NOT_FOUND);
+      case ProfileResult.Inactive _ -> problem(403, ApiProblemCodeEnum.USER_INACTIVE);
+      case ProfileResult.Unsupported _ -> problem(409, ApiProblemCodeEnum.IDENTITY_NOT_SUPPORTED);
+      case ProfileResult.Mismatch _ -> problem(409, ApiProblemCodeEnum.IDENTITY_MISMATCH);
       case ProfileResult.Unavailable failure ->
           problem(
               503,
               switch (failure.reason()) {
-                case IDENTITY_PROVIDER_UNAVAILABLE -> IDENTITY_PROVIDER_UNAVAILABLE;
-                case IDENTITY_CONFIGURATION_ERROR -> IDENTITY_CONFIGURATION_ERROR;
+                case IDENTITY_PROVIDER_UNAVAILABLE ->
+                    ApiProblemCodeEnum.IDENTITY_PROVIDER_UNAVAILABLE;
+                case IDENTITY_CONFIGURATION_ERROR ->
+                    ApiProblemCodeEnum.IDENTITY_CONFIGURATION_ERROR;
               });
     };
   }
