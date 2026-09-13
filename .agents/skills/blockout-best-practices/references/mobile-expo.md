@@ -1,79 +1,217 @@
-# Expo Mobile Architecture
+# Expo Mobile Policy
 
-Apply this policy to the Expo application, React Native, Expo Router, TypeScript, Formik, Yup, and mobile API adaptation. Treat `docs/architecture/mobile-and-identity-architecture-v1.md` as the canonical mobile and identity boundary, and follow `figma.md` for accepted visual evidence. Use the focused technical skills routed by the task in addition to this repository policy.
+Read this before changing the Expo application, React Native screens, mobile API clients, Formik forms, Yup schemas, or
+mobile transport models.
 
-## Ownership And Structure
+## Product And Design Authority
 
-- `src/app` owns routing, layouts, redirects, deep-link entry, and route-level composition.
-- A product module owns its use-case UI, schemas, forms, hooks, view models, and API adaptation.
-- `src/shared` contains stable domain-neutral UI and technical boundaries used by several active modules.
-- Generated Orval clients remain at the transport boundary.
+- The repository instructions owns supported platforms and whether Web is an active target. Do not add another target,
+  compatibility adapter or verification path without an explicit task.
+- The running application and current source own behavior, navigation, authorization, data, accessibility, and native
+  provider integration. The canonical file selected by the repository design authority owns visual composition within
+  those boundaries.
+- Preserve the product identity and current behavior declared by the repository instructions unless the accepted task
+  explicitly changes them. Do not add another layout family, theme, brand layer, or generic UI framework.
+- Use the certified Figma foundations and components. Follow `figma.md`; do not infer a new token, component family, or interaction from a one-off screen value.
 
-Organize by feature before technical category. Keep a small screen local until another active consumer or a meaningful invariant justifies extraction. Do not create generic `utils`, `helpers`, `services`, manager hooks, component registries, or broad barrels that hide ownership.
+## Structure And Boundaries
 
-## Routing, Native Boundaries, And Data
+- Keep Expo Router files in the route location declared by the repository instructions and limit them to route registration,
+  navigation, layouts, redirects, and top-level composition. Product screens live in configured feature-owned UI
+  locations.
+- Keep feature-owned UI, hooks, validation, and view models inside their feature. Move UI to the configured shared UI
+  location only when at least two active features use the same responsibility and behavior, or when it enforces an
+  application-wide technical invariant.
+- Similar appearance alone does not create shared ownership. Keep one-off screen layout and business composition local.
+- Use the API, configuration, provider, theme, and shared UI locations declared by the repository instructions for those
+  technical responsibilities.
+- Keep generated Orval clients and transport models at the API boundary. Do not hand-edit, rename, re-export, or wrap
+  generated files merely to hide their generated names.
+- Repository-owned request, response, and query fields use the naming convention declared by the repository instructions.
+  Do not add recursive case converters or transport aliases.
+- Complete resource mirrors must match the owning backend service. UI-specific view state may be smaller and must not
+  masquerade as the complete transport resource.
+- Keep provider and native-framework values at their adapters. Never place provider payloads or platform constants in
+  shared business models.
 
-- Use Expo Router as the single navigation authority. Keep route files thin and render feature-owned screens.
-- Use platform APIs or native modules only behind an owned adapter. Platform-specific files require a real iOS or Android behavior difference.
-- Consume the generated Orval client instead of handwritten endpoint types or request wrappers.
-- Use TanStack Query for remote state, request lifecycle, retries, cache ownership, and invalidation. Keep deterministic query keys with the owning feature.
-- Do not copy remote data into provider or component state merely to mirror it.
-- Keep generated models, provider payloads, and platform constants out of shared business or view models.
-- Preserve timeout, cancellation, retry, offline, and error behavior unless the issue explicitly changes it.
+### Feature Roles
 
-## Components And State
+Use only the role folders an active feature needs:
 
-- Keep state with the narrowest owner. Derive values instead of synchronizing duplicate state.
-- An effect synchronizes with an external system; do not use effects to derive render state, copy props, or sequence ordinary application logic.
-- Extract a hook only when it owns coherent reusable stateful behavior. Keep a pure transformation as a function.
-- Prefer composition over boolean-prop variants that encode unrelated modes.
-- Use memoization only for measured cost, required referential stability, or a library contract that needs it.
-- Avoid speculative providers, context layers, wrappers around every React Native primitive, generic render engines, and configuration-driven screens.
-- Use virtualized lists for unbounded collections and keep expensive work outside rows. Use stable domain keys.
+```text
+<feature-root>
+├── api
+├── forms
+├── hooks
+├── schemas
+├── ui
+└── view-models
+```
+
+- `api` owns feature queries, mutations, and transport-to-feature mapping.
+- `schemas` owns Yup validation reusable across a feature boundary.
+- `forms` owns Formik composition and submitted values.
+- `hooks` owns stateful feature behavior and orchestration.
+- `view-models` adapts remote or application data to deliberate UI-ready values.
+- `ui` owns screens, sections, and feature components.
+- Keep pure feature-local transforms beside their owning role with explicit names; do not create a generic utility bag.
+
+Do not create empty role folders or a feature framework. A small feature may keep a few files directly under its module.
+
+## TypeScript Simplicity
+
+- Let inference carry local implementation types. Add explicit types at public props, hooks, API mappings, form values,
+  stable shared contracts, and boundaries where inference becomes unclear.
+- Prefer discriminated unions and focused object types over boolean mode combinations, inheritance, or generic
+  configuration schemas.
+- Do not wrap a generated type merely to rename it. Create a view model only when UI semantics actually differ.
+- Avoid `any`, unsafe casts, non-null assertions, and duplicated transport interfaces. Narrow unknown input at its
+  boundary.
+- Prefer direct expressions and small named functions. Do not create generic serializers, registries, factories,
+  dependency-injection containers, base hooks, or type-level frameworks for hypothetical reuse.
+- Keep constants near their owner. Promote one to shared configuration only when several active features require the
+  same invariant.
+
+## Remote Data And Generated Clients
+
+- The configured generator creates the public application client and transport models from its owning OpenAPI source.
+  Mobile does not generate or call every internal service client.
+- Never hand-edit generated output. Add behavior in a handwritten feature adapter, query, mutation, or mapper.
+- Use TanStack Query for remote state, cache ownership, retries, invalidation, and request lifecycle.
+- Keep query keys deterministic and feature-owned. Invalidate the narrowest owner-controlled data after mutations.
+- Do not copy remote data into local or provider state merely to mirror it. Derive UI values during mapping or
+  rendering.
+- Preserve current timeout, cancellation, retry, offline, and error behavior unless a task explicitly changes it.
+- Do not add a global provider until an active consumer needs the lifecycle; remove providers whose final consumer is
+  removed.
 
 ## Forms And Validation
 
-Use Formik for established form state and Yup for immediate user-facing validation. Keep submitted form values distinct from generated requests when input, parsing, defaults, or composition differ. Map once at the feature API boundary.
+- Formik owns form state, touched state, submission lifecycle, and field presentation.
+- Yup owns client-side shape and immediate usability validation.
+- Keep submitted form values distinct from generated request models when UI inputs need parsing, defaults, or
+  composition.
+- Map form values to generated requests at the feature API boundary.
+- Reuse a schema only when several active forms enforce the same user-facing rule.
+- Do not duplicate server-only authorization or persistence constraints in the client.
+- Preserve server errors after submission and map stable field errors only when the contract provides them.
+- Do not introduce React Hook Form, Zod, or a second form and validation stack without an explicit migration task.
 
-Server-side validation remains authoritative. Preserve stable field and form errors when the contract exposes them. Do not duplicate authorization or persistence constraints in the client. Do not add a second form or schema stack without an explicit migration issue.
+## Hooks And View Models
 
-## Models, Errors, And Feedback
+- A hook owns stateful React behavior; a pure transformation remains a function.
+- Keep hooks close to their feature. Promote one to shared only after real multi-feature use proves identical semantics.
+- Effects synchronize with an external system. Do not use effects to derive render state, copy props, or sequence
+  ordinary application logic.
+- Keep view models immutable and UI-oriented. They may format, group, or label owner data but must not masquerade as a
+  complete backend resource.
+- Do not hide navigation, mutation, analytics, and formatting behind one manager hook.
 
-- Add a feature view or form model only when display, editing, normalization, or composition differs semantically from the generated transport model.
-- Keep mapping as focused pure functions and follow `mapping.md`.
-- Branch on stable `ProblemDetail` codes and HTTP categories, not backend detail text.
-- Keep field, screen, retryable, offline, authentication, authorization, conflict, and unexpected failures distinct where recovery differs.
-- Never display stack traces, SQL, provider payloads, raw tokens, internal hosts, or unstable exception messages.
+## Tokens And Styling
 
-## UI, Styling, And Accessibility
+- Keep one exported code-owned token vocabulary in the configured theme location, aligned with the semantic variables
+  certified by Figma. Features import this shared authority instead of defining token copies. They consume semantic
+  roles such as surface, content, border, action, status, spacing, radius, and typography rather than primitive palette
+  values.
+- Expose the supported theme and token surface through one narrow public entry point selected by the repository
+  instructions. Keep primitives and implementation details private when consumers do not need them; do not spread theme
+  exports across feature barrels.
+- Safe-area insets, keyboard dimensions, and device measurements are runtime inputs, not design tokens.
+- Normalize incidental spacing, radius, type, and effect drift to the nearest approved token. Add a token only when a
+  certified composition or repeated active use proves a distinct semantic role.
+- Use `StyleSheet.create` for stable named styles and token-backed component styles. Keep a small dynamic value inline
+  when extracting it would obscure the component. Do not introduce Tailwind, NativeWind, CSS, a styling runtime, style
+  factories, or generated style code.
+- Prefer flex layout, `gap`, and container padding. Use `useWindowDimensions` only when layout truly depends on the
+  available native viewport; do not read fixed device dimensions at module load time.
+- Preserve native safe areas through navigation containers and `react-native-safe-area-context`. Use a virtualized list
+  such as the existing FlashList for unbounded collections; use a ScrollView for bounded static or form content.
+- Prefer modern supported React Native styles when touching an affected component, including continuous rounded
+  corners and `boxShadow`, but do not mass-rewrite unrelated screens.
 
-- Use the established theme tokens and shared components before creating a replacement.
-- Use `StyleSheet.create` for stable named styles and keep small genuinely dynamic values inline. Do not add another styling runtime without an explicit migration issue.
-- Prefer flex layout, `gap`, container padding, safe-area ownership, and `useWindowDimensions` when layout truly depends on the viewport.
-- Prefer `Pressable` for custom controls and `expo-image` for application images when they fit the boundary.
-- Preserve native stack, modal, sheet, menu, keyboard, back-navigation, focus, and cancellation behavior.
-- Every interactive element exposes an accurate role, accessible name, state, and useful hint when needed. Keep at least a 44-point touch target, support text scaling, and avoid fixed heights that clip content.
-- Cover relevant loading, empty, error, disabled, selected, destructive, and offline states defined by product behavior and the design source.
+## Components And Composition
 
-## Authentication, Providers, And Configuration
+- Give every component one clear responsibility and explicit inputs. Prefer children and small named subcomponents over
+  render-prop APIs or generic configuration objects.
+- Share a screen shell only when multiple active screens use the same layout responsibility and behavior, such as native
+  safe-area ownership, an entity header, or the same loading/empty/error composition. Keep business data, commands,
+  navigation decisions, and feature sections in the owning screen.
+- Use a finite `variant` value when one component has a small, coherent family of appearances. Create separate
+  feature-owned compositions when variants change responsibility, state ownership, or interaction.
+- Ordinary state booleans such as `disabled`, `loading`, `selected`, or `expanded` are valid. Do not accumulate unrelated
+  booleans whose combinations create hidden component modes.
+- Use compound components or context only when several public parts genuinely coordinate shared state. A button, chip,
+  field, row, or card does not need that machinery.
+- Do not create wrappers for every React Native primitive, prop-forwarding abstractions without behavior, registries,
+  factories, generic type systems, configuration-driven generic screens, or speculative component skeletons.
+- Prefer `Pressable` for touched custom controls and `expo-image` for application images. Preserve existing native
+  provider components when they own the interaction.
+- Keep expensive work outside virtualized rows, use stable domain keys, and avoid subscribing a whole screen to state
+  needed by one small component.
 
-- Follow `authentication.md` for Auth0 and tokens.
-- Keep RevenueCat, ads, maps, notifications, and other native providers behind their owned adapters and lifecycle boundaries.
-- Use typed configuration and fail clearly when required public values are absent. Never put secrets in `EXPO_PUBLIC_*` variables.
-- Do not add provider mocks, bypasses, or production branches solely for tests.
+## Accessibility And Native Behavior
 
-## Nx And Generated Code
+- Every interactive element exposes an accurate role, accessible name, state, and useful hint when the action is not
+  obvious. Keep a minimum 44-point touch target.
+- Support system text scaling and avoid fixed heights that clip translated or enlarged text. Mark important copyable
+  data as selectable where appropriate.
+- Preserve loading, empty, error, disabled, destructive, keyboard, focus, back-navigation, and cancellation behavior.
+- Prefer native stack, modal, sheet, menu, and control behavior when it matches the existing product. Platform-specific
+  code is justified only by a real iOS or Android capability or presentation difference.
+- Keep Formik and Yup validation aligned with the submitted request without duplicating unrelated backend rules.
+- Keep remote state in TanStack Query and application-wide state in the established providers. Do not mirror derived
+  state or add effects only to coordinate rendering.
 
-- Run generation, lint, type checking, tests, and export through Nx targets.
-- Keep project boundaries explicit and dependencies directed from the application toward owned libraries.
-- Do not hand-edit or commit generated Orval output, Expo caches, native build output, exports, or local configuration.
-- Add a library only when it has a stable owner and multiple real consumers or an independently enforced boundary.
+## API Errors And User Feedback
 
-## Logging, Documentation, Testing, And Verification
+- Branch on stable `ProblemDetail` machine codes and HTTP categories, not backend detail text.
+- Translate technical failures into concise, actionable mobile copy. Never display stack traces, SQL, provider
+  payloads, raw tokens, internal hosts, or unstable exception messages.
+- Preserve field, screen, retryable, offline, authentication, authorization, conflict, and unexpected error
+  distinctions where recovery differs.
+- Keep error translation in the feature API or view-model boundary, or in one established shared technical adapter. Do
+  not scatter code-to-copy switches across components.
+- A retry control repeats a safe owned operation and preserves loading, disabled, and cancellation behavior.
 
-- User-visible failures belong in UI state. Follow `logging.md` for operational diagnostics.
-- Follow `code-documentation.md` for exported contracts and non-obvious native or provider decisions.
-- Follow `mobile-testing.md` when mobile behavior or tests change.
-- Run generation, formatting, lint, type checking, tests, and export.
-- Run Expo Doctor or the relevant unsigned native build and launch when dependencies, configuration, native modules, routing, or platform-specific behavior change.
-- Review generated-type containment, accessibility, supported platform states, safe areas, provider lifecycles, and ignored outputs.
+## Logging And Documentation
+
+- Follow `logging.md`. Log lifecycle and recovery evidence at technical boundaries, never secrets, tokens,
+  personal data, full provider bodies, or duplicate UI notifications.
+- Do not commit `console.log` debugging.
+- Follow `code-documentation.md` for handwritten contracts, including exported components, hooks and functions.
+  Explain native/provider invariants without narrating JSX, styles or obvious state updates.
+
+## Naming And Exports
+
+- Name handwritten files in kebab-case. Export React components and types in PascalCase; export hooks, functions, props,
+  and variables in camelCase.
+- Preserve framework-owned Expo Router names such as `_layout.tsx`, dynamic route segments, route groups, and required
+  default route exports. Preserve platform suffixes such as `.ios.tsx` and `.android.tsx` when a real native difference
+  exists.
+- Generated names and files remain generator-owned and are exempt from handwritten naming rules.
+- Prefer direct named exports and explicit imports from the owning file. A narrow entry point may expose the supported
+  theme surface or one cohesive shared UI family; do not add a global component registry, broad application barrel, or
+  deep barrel hierarchy.
+- Apply naming changes as files are migrated by the owning task. Do not create a standalone mass rename that
+  mixes unrelated behavior.
+
+## Configuration And Verification
+
+- Use typed configuration. Never place secrets in `EXPO_PUBLIC_*` values; validate required public values at startup.
+- Keep native providers behind owned adapters and preserve initialization, disposal and cancellation lifecycles.
+- Keep native and provider credentials outside Git. Never commit Expo caches, native build output, `.env.local`, tokens,
+  exported sessions, personal test data, or device-specific files.
+- Use the visual source and comparison surface declared by the repository design authority for Figma synchronization.
+  Other supported runtimes retain their technical validation but are not visual authorities unless the design authority says
+  otherwise. Unit tests prove behavior; configured runtime captures and Figma comparison prove appearance.
+- Run the formatting, lint, typecheck, focused test, complete mobile test, and diff commands declared by the repository
+  router before publishing a mobile slice. Add Expo Doctor or an unsigned native build/launch when dependencies,
+  configuration, or a native boundary changes.
+- Run generated-client parity or regeneration evidence when an OpenAPI/mobile API boundary changes.
+- Verify Formik/Yup behavior, stable API error handling, and TanStack Query ownership when those boundaries change.
+
+These rules follow the React Native guidance for
+[`StyleSheet`](https://reactnative.dev/docs/stylesheet),
+[`useWindowDimensions`](https://reactnative.dev/docs/usewindowdimensions), and
+[accessibility](https://reactnative.dev/docs/accessibility), together with Expo's
+[`react-native-safe-area-context`](https://docs.expo.dev/versions/latest/sdk/safe-area-context/) guidance.

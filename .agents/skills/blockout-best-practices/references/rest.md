@@ -1,60 +1,68 @@
-# REST Endpoints
+# Repository REST Endpoint Policy
 
-Apply this policy when changing an OpenAPI operation, controller, request, response, query parameter, error, collection,
-or service-to-service HTTP boundary.
+Read this before changing a controller, request, response, query parameter, API mapper, error response, collection, or
+service-to-service HTTP boundary.
 
-## Resource And HTTP Semantics
+## Resource Model
 
-- Design paths around stable business resources and relationships, using plural collection nouns and stable member IDs.
-- Nest a path only when the parent relationship is part of identity or authorization.
-- Keep mobile-gateway routes client-oriented and internal service routes owner-oriented.
-- `GET` is side-effect free; `POST` creates or submits a non-idempotent command; `PUT` replaces; `PATCH` applies a
-  defined partial change; `DELETE` removes or deactivates only when the product contract says so.
-- Return status codes that describe the observable result. Use `201 Created` and `Location` when applicable; never
-  return success with an error body.
-- Define idempotency deliberately for externally retried commands. Do not introduce a generic framework pre-emptively.
+- Design paths around stable business resources and relationships, not controller methods or UI actions.
+- Use plural nouns for collections and stable identifiers for members.
+- Preserve existing active paths and methods unless the active task explicitly changes the contract.
+- Use nested paths only when the parent relationship is part of the resource identity or authorization boundary.
+- Model a state-changing operation as a resource or explicit command only when ordinary resource mutation is unclear.
+- Keep public-gateway routes client-oriented and internal service routes owner-oriented; do not leak provider topology
+  into the public contract.
 
-OpenAPI is authoritative. Edit source fragments first and regenerate every configured producer and consumer. Do not
-add field aliases, naming hacks, or handwritten mirrors to compensate for a contract mismatch.
+## HTTP Semantics
 
-## Controllers
+- `GET` reads without side effects, `POST` creates or submits a non-idempotent command, `PUT` replaces an identified
+  resource when that is truly supported, `PATCH` applies a defined partial mutation, and `DELETE` removes or deactivates
+  only when the product contract says so.
+- Return status codes that describe the observable outcome. Do not return success with an error payload.
+- Use `201 Created` and `Location` when a resource was created and its location is known.
+- Preserve idempotency semantics across retries. Give externally retried commands an explicit idempotency design when
+  the task requires it; do not invent a generic framework.
+- Keep request validation at the transport edge and business validation in the application boundary.
 
-A controller has four responsibilities: extract trusted transport context, validate the transport boundary, delegate
-to one application operation, and map the result.
+## Contract Shape
 
-Controllers do not own repository orchestration, provider parsing, transactions, or business decisions. Transport
-validation belongs at the edge; business validation belongs to the application or domain. Follow `mapping.md`, and
-never expose entities, provider payloads, or persistence projections.
+- OpenAPI is authoritative for repository-owned HTTP contracts. Follow `contracts.md`.
+- Repository-owned JSON bodies, responses, and query parameters use the convention declared by the repository instructions.
+- Do not add naming strategies, field aliases, or recursive case converters for repository-owned fields.
+- Isolate provider-owned fields in provider-specific adapters and models.
+- While a boundary remains handwritten, use explicit names such as `CreateResourceInternalRequest` and
+  `ResourceInternalResponse`.
+- Keep application commands, views, and domain values independent from HTTP and persistence types.
+
+## Controllers And Mapping
+
+- A controller authenticates, extracts transport input, delegates to one application boundary, and maps the result.
+- Keep controllers thin and deterministic; no repository orchestration, provider parsing, or business decisions.
+- Map transport to application models at the API boundary and follow `mapping.md`.
+- Never expose an entity, provider payload, message model, or generated persistence projection as an HTTP response.
+- Keep complete resource mirrors aligned with the owning service. Purpose-specific summaries and search projections may
+  be smaller only when their name and consumer make that role explicit.
 
 ## Errors
 
-Translate expected application failures to RFC 9457-compatible `ProblemDetail` responses with a stable code, suitable
-status, safe title, and useful non-sensitive detail. Keep validation, authentication, authorization, not-found,
-conflict, dependency, rate, and unexpected failures distinguishable when clients recover differently.
+- Translate expected application failures to RFC 9457-compatible `ProblemDetail` responses.
+- Provide a stable machine-readable code, suitable HTTP status, safe title, and useful non-sensitive detail.
+- Keep authentication, authorization, not-found, validation, conflict, dependency, rate, and unexpected failures
+  distinguishable where clients need different recovery.
+- Never leak stack traces, SQL, provider bodies, secrets, tokens, internal hosts, or personal data.
+- Client-facing copy must not depend on an unstable backend detail string; clients branch on stable codes.
 
-Clients branch on stable codes, not backend prose. Never leak stack traces, SQL, internal hosts, provider bodies,
-tokens, secrets, or personal data.
+## Collections
 
-## Collections And Pagination
-
-Return a complete collection only when it is intentionally bounded. Otherwise use an explicit paginated contract.
-
-For offset pagination:
-
-- use zero-based `page` and bounded `pageSize` parameters;
-- return `items` and `pageInfo`, including `page`, `pageSize`, and `hasNext`;
-- guarantee `totalItems` only when a consumer needs an exact count and the application can compute it correctly;
-- document one deterministic ordering with an immutable unique tie-breaker;
-- keep filters explicit and product-owned; do not add a generic sort or query language.
-
-Prefer a slice-style query when only `hasNext` is required. Do not expose framework page types. Cursor pagination needs
-an accepted requirement for a highly mutable stream or navigation that offsets cannot support, plus explicit cursor
-stability, opacity, filter binding, direction, expiry, and error rules.
+- Preserve the established collection contract and ordering when compatibility matters.
+- Never expose a JPA page, repository projection, or provider collection directly.
+- Any new collection shape or large-result navigation behavior requires an explicit contract-first task with all
+  consumers in scope. This policy deliberately defines no repository-wide pagination standard.
 
 ## Verification
 
-- Test controller-owned validation, status, headers, security, and error translation at the narrowest useful level.
-- Verify mapping and every changed producer and consumer.
-- Prove deterministic collection ordering and pagination bounds where applicable.
-- Regenerate, compile, and compare generated boundaries after contract changes.
-- Run the owning module tests and repository diff-hygiene checks.
+- Test controller-owned validation, security, status, headers, and error translation.
+- Verify mappers and all changed producers and consumers.
+- Confirm repository-owned serialization and unchanged provider naming.
+- Regenerate and compare generated boundaries when OpenAPI changes.
+- Run the owning module tests, affected client tests, and the repository diff-hygiene check.

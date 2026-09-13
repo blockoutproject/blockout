@@ -1,6 +1,6 @@
 # Python Scraper Architecture
 
-Apply this policy when changing a Python scraper, provider parser, ingestion flow, dependency, task target, or Blockout API adaptation. Current source and characterization tests are the behavioral reference unless the issue explicitly authorizes a correction.
+Apply this policy when changing a Python scraper, provider parser, ingestion flow, dependency, task target, or internal API adaptation. Current source and characterization tests are the behavioral reference unless the issue explicitly authorizes a correction.
 
 ## Ownership And Structure
 
@@ -8,7 +8,7 @@ Each scraper is an independently deployable application with one importable `scr
 
 - `application` owns scrape use cases, orchestration, ports, commands, and run results;
 - `domain` owns framework-free typed values, local policies, reconciliation rules, and invariants;
-- `infrastructure` owns provider HTTP and parsing, generated Blockout clients, scheduling, and other technical adapters;
+- `infrastructure` owns provider HTTP and parsing, generated internal clients, scheduling, and other technical adapters;
 - `config` owns immutable typed settings assembled at startup;
 - `observability` owns logging and metrics setup without business decisions;
 - the root entry point composes dependencies, lifecycle handling, and application startup.
@@ -19,10 +19,10 @@ Use protocols only at real outbound seams that tests or multiple adapters replac
 
 ## Provider And Contract Boundaries
 
-- Separate download, decoding, parsing, normalization, matching, and Blockout writes.
+- Separate download, decoding, parsing, normalization, matching, and internal API writes.
 - A parser accepts controlled text, bytes, or a parsed document and returns typed provider records without network I/O.
-- Keep FFVB and LNV vocabulary, payload names, markup objects, and quirks inside their provider adapters.
-- Generated Python contract models and API classes remain inside the Blockout infrastructure adapter. Map them immediately to domain or application values.
+- Keep Provider vocabulary, payload names, markup objects, and quirks inside their provider adapters.
+- Generated Python contract models and API classes remain inside the internal API infrastructure adapter. Map them immediately to domain or application values.
 - Application ports and use cases never mention generated packages, HTTPX clients, transport enums, BeautifulSoup nodes, XML elements, CSV rows, or provider dictionaries.
 - Do not maintain a handwritten mirror when a generated contract exists. A temporary mirror requires exact owner-parity tests and must be removed when generation covers the boundary.
 - Follow `contracts.md` and `mapping.md` when an internal API shape changes.

@@ -4,7 +4,7 @@ Read this reference before creating or changing a Liquibase changelog.
 
 ## Repository Inputs
 
-The repository profile supplies:
+The repository instructions, accepted plan and runtime configuration supply:
 
 - deployment and data-retention posture;
 - owning application and supported database;
@@ -14,14 +14,24 @@ The repository profile supplies:
 
 Do not copy those values into this portable policy.
 
+## Execution Ownership
+
+- For a new schema, use XML changelogs and the dedicated migration container/job selected by the accepted runtime plan.
+  Application startup must not create, update or reset the schema. Do not migrate an existing deployed toolchain merely
+  because this reference is loaded.
+- Keep migration credentials and application permissions separate when the runtime defines distinct database roles.
+- A baseline edit does not authorize resetting a database or deleting a volume. Reset only an explicitly authorized
+  disposable environment; preserve retained data and applied history elsewhere.
+
 ## Pre-Deployment Baseline
 
-When the repository profile declares that no real environment depends on persisted schema history:
+When the accepted deployment posture establishes that no real environment depends on persisted schema history:
 
 - keep the configured baseline creation changelog as the single schema source for its owner;
 - edit that baseline directly instead of appending speculative release migrations;
 - include it from the configured master changelog using the repository's established pattern;
-- use standard Liquibase changes when they can express the schema clearly;
+- use native XML changes such as `createTable`, `addColumn`, `addForeignKeyConstraint`, `addUniqueConstraint` and
+  `createIndex` when they express the schema; do not write SQL equivalents of those changes;
 - reserve database-specific SQL for an accepted object that Liquibase cannot express safely;
 - preserve the repository's existing changelog style and object-naming conventions;
 - keep relationship, uniqueness, and index ownership explicit; and
@@ -53,9 +63,10 @@ Once an environment contains retained data or relies on applied change history:
 ## Verification
 
 - Run the complete configured migration chain against the supported database.
-- Prove that the owning application starts with Liquibase enabled.
+- Execute the configured migration container/job successfully, then prove the application starts against the migrated
+  schema. For an existing application-owned migration setup, validate that actual startup path instead.
 - Run persistence integration evidence for the changed relationship, constraint, query, or mapping.
 - Inspect the persistence model and contract only where they share the changed invariant.
 - Do not use a unit test that parses changelog text as the schema oracle.
-- Apply the repository [risk-based validation policy](risk-based-validation-policy.md) and report unavailable
+- Apply the repository [testing and validation policy](testing-and-validation.md) and report unavailable
   infrastructure or skipped checks explicitly.

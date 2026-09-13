@@ -1,6 +1,6 @@
 # Python Scraper Testing
 
-Apply this policy when adding or changing scraper behavior, tests, fixtures, provider parsing, scheduling, or Blockout API adaptation.
+Apply this policy when adding or changing scraper behavior, tests, fixtures, provider parsing, scheduling, or internal API adaptation.
 
 ## Goal And Timing
 
@@ -26,7 +26,7 @@ Cover observed malformed or missing provider data without inventing equivalent p
 
 ### Application Scenarios
 
-Use small fake provider sources and fake Blockout ports. Assert semantic decisions, ordered writes, batching, partial failure, idempotence, and forbidden writes. Do not assert incidental private call order.
+Use small fake provider sources and fake internal API ports. Assert semantic decisions, ordered writes, batching, partial failure, idempotence, and forbidden writes. Do not assert incidental private call order.
 
 ### HTTP, Contracts, And Lifecycle
 

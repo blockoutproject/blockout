@@ -13,9 +13,17 @@ service-root
 ├── ServiceApplication.java
 ├── feature
 │   ├── api
+│   │   ├── mappers
+│   │   └── models
 │   ├── application
+│   │   ├── commands
+│   │   └── views
 │   ├── domain
 │   └── infrastructure
+│       ├── messaging
+│       └── persistence
+│           ├── entities
+│           └── repositories
 ├── config
 └── shared
 ```
@@ -71,6 +79,26 @@ Entities and provider payloads never cross an HTTP boundary.
 Follow `mapping.md`. Put each mapper at the boundary it translates. Prefer MapStruct for mechanical Java mapping and
 handwritten code for decisions, aggregation, polymorphic dispatch, enrichment, or failure semantics.
 
+## Lombok And Standard Library Mechanisms
+
+- Use Lombok `@RequiredArgsConstructor` for Spring components whose constructor only assigns final dependencies.
+  Do not handwrite assignment-only constructors; retain explicit constructors that initialize state or enforce a rule.
+  Preserve injection qualifiers and parameter annotations when using generated constructors.
+- Prefer records for immutable commands, views and values. Use focused Lombok `@Getter` and `@Setter` on ordinary
+  classes when those accessors belong to the contract. Do not use `@Data` or generate mutability/equality indiscriminately.
+- Add `@Builder` only when actual construction sites benefit from named optional values; do not use it for every record
+  or hide required invariants behind defaults. Entity-specific construction rules are defined below.
+- Prefer Bean Validation annotations such as `@NotNull`, `@NotBlank`, `@Size`, `@Positive` and nested `@Valid` at input
+  boundaries. Use `@Validated` with `@ConfigurationProperties` and standard field constraints for startup configuration.
+- Do not repeat a correctly enforced generated/annotated constraint with manual null or range checks. Keep explicit
+  code for domain rules, cross-field invariants and provider semantics that the standard constraints do not express.
+- Use framework extension points only for an actual unmet requirement. Prefer supported configuration, annotations and
+  focused library APIs over custom interceptors, reflection, generic wrappers or replacement framework implementations.
+  Document a non-obvious extension's concrete need and why ordinary configuration is insufficient.
+- Keep only required checked exceptions, use precise exception types and method references when they improve clarity.
+  Do not silence static analysis with blanket suppressions or add exception wrappers just to remove a warning.
+- Reuse framework and library enums for closed concepts. Keep Java types and enum references explicit as specified above.
+
 ## Spring And Configuration
 
 - Use constructor injection. Never use field injection or application-context lookup.
@@ -84,7 +112,7 @@ handwritten code for decisions, aggregation, polymorphic dispatch, enrichment, o
 
 ## Persistence With Spring Data JPA
 
-Spring Data JPA with Hibernate is the Blockout default for relational application persistence. Implement repositories
+Spring Data JPA with Hibernate is the default for relational application persistence. Implement repositories
 as Spring Data interfaces, normally extending `JpaRepository<Entity, Id>`. Do not replace ordinary CRUD, lookups,
 filtering, or pagination with handwritten SQL repositories, `JdbcTemplate`, `JdbcClient`, or raw `EntityManager`
 plumbing. Use Spring Boot's JPA auto-configuration and managed dependency versions.
@@ -184,21 +212,32 @@ Official references: [Spring Data JPA query methods](https://docs.spring.io/spri
 - A service owns its complete business resources. Cross-service reads use owner-controlled contracts, never shared
   tables or imported entities.
 - An outbound adapter translates dependency failures once and contributes the technical context it owns.
-- When messaging changes, make routing, retry, dead-letter, ordering, acknowledgement, and
-  idempotency semantics explicit. Never assume exactly-once delivery.
+- Preserve configured timeouts, retry policy, circuit behavior and failure translation unless the accepted task changes
+  them with evidence. Keep each downstream client in infrastructure.
+- Treat messages as transport contracts, separate from application and persistence models. A consumer maps and validates
+  a message, then delegates to one application operation.
+- When messaging changes, make queue, exchange, routing key, retry, dead-letter, ordering, acknowledgement and idempotency
+  semantics explicit. Acknowledge only after the owned operation reaches its accepted durable outcome; never assume
+  exactly-once delivery.
 
 ## Complexity Review
 
 Size is a review signal, not a mechanical limit:
 
-- review a class above roughly 250 lines or a method above roughly 40 lines;
+- review a class above roughly 250 lines or a method above roughly 40 lines; a class above 400 lines should normally
+  separate responsibilities before gaining more behavior;
 - review an application service with more than five injected collaborators;
 - split by responsibility or change axis, never only by line count;
 - extract shared behavior only when multiple active callers share the same invariant.
 
 ## Verification
 
-- Run the focused tests while iterating and `./mvnw -f apps/backend/pom.xml verify` before delivery.
+- Run focused tests while iterating, then the owning module suite through the configured backend reactor. Run the
+  full reactor when shared contracts, persistence, build or runtime boundaries change, following `java-testing.md`.
 - Inspect dependency direction, transport leakage, transaction ownership, configuration, and generated outputs.
 - Apply `java-testing.md`, `logging.md`, and `code-documentation.md` when those concerns change.
+- Confirm package moves did not change routes, ports, migrations, queue names or runtime behavior outside the task.
 - Run formatting and repository diff-hygiene checks.
+
+Official references: [Lombok constructors](https://projectlombok.org/features/constructor) and
+[accessors](https://projectlombok.org/features/GetterSetter).

@@ -1,70 +1,118 @@
-# Mapping Boundaries
+# Repository Mapping Policy
 
-Apply this policy when translating generated OpenAPI models, application contracts, domain values, persistence models,
-provider records, scraper records, or mobile view state.
+Read this reference before changing mappings between generated OpenAPI DTOs, application contracts, domain values,
+provider records, frontend view models, and persistence entities.
 
-## Model Roles
+## Boundaries
 
-- A generated OpenAPI model is an HTTP transport shape, not a domain or persistence model.
-- An application command represents use-case input; an application view represents use-case output.
-- A domain value owns business meaning and invariants without framework dependencies.
-- An entity or persistence projection owns storage semantics and remains in infrastructure.
-- A provider record owns an external dependency's shape and remains in its adapter.
-- A mobile view or form model exists only when presentation, editing, or composition differs from the API shape.
+- OpenAPI DTO: HTTP transport shape.
+- Application contract: command, query input, decision, plan, view, or use-case result.
+- Domain: pure business concepts, invariants, value objects, and policies.
+- Provider record: an external service, identity, storage, mapping, messaging, or content-provider shape.
+- JPA entity or search document: persistence or index shape.
+- Mobile view/form model: feature presentation and editable state.
 
-Generated enums may cross an internal boundary only when the contract owns the exact shared concept. Provider-owned or
-application-only concepts remain local.
+Generated object DTOs are boundary models, never the Java domain, Python scraper domain, JPA model, or mobile feature
+state. Do not expose entities or provider records. Generated enums may cross boundaries only when the OpenAPI contract
+owns the exact shared concept; application-only and provider-owned enums remain local to their owner.
 
-## Placement And Naming
+## Naming
 
-Put a mapper at the boundary it translates:
+- Persistence: `Entity` suffix.
+- Application mutation input: `Command` or a more precise role suffix.
+- Application read projection: `View`.
+- Immutable historical state: `Snapshot`.
+- Provider input: explicit owner and role, such as `ProviderResourceRecord`.
+- Neutral polymorphic carrier: `Payload`.
+- Value object: business name without a layer suffix.
+- Mobile presentation shape: feature-owned role name; do not append `Dto` to local view state.
 
-- transport mapping beside the API adapter;
-- generated-client mapping beside the outbound HTTP adapter;
-- persistence mapping beside persistence infrastructure;
-- message mapping beside the consumer or publisher;
-- provider mapping beside the scraper adapter;
-- mobile API mapping inside the owning feature boundary.
+Do not add the generic `Domain` suffix and do not locally rename generated OpenAPI types. For a mapper with one coherent
+source and target family, use `toCommand`, `toDomain`, `toEntity`, `toView`, `toDto`, or `toRecord`. When several roles
+coexist, make the role explicit.
 
-Use explicit role names such as `Command`, `View`, `Entity`, `Snapshot`, `Payload`, or a provider-specific record name.
-Do not create a generic mapper bag, universal converter, reflection mapper, or recursive case-conversion utility.
+## Ownership And Placement
 
-Use focused method names such as `toCommand`, `toEntity`, `toView`, `toDto`, or `toRecord`. Make the role more explicit
-when several source or target families coexist.
+- Put a mapper at the boundary it translates, never in a generic feature-level mapping bag.
+- Java OpenAPI mappings live in the owning feature's API mapping location selected by the repository instructions.
+- Java generated clients map inside their owning infrastructure adapter package.
+- Entity-to-view mapping and persistence-only conversion live beside persistence infrastructure. Application views
+  stay independent of JPA. Repository-backed assembly belongs to a named infrastructure projection adapter; pure
+  application composition may combine its returned views without importing entities.
+- Python generated/internal transport mapping remains under the internal adapter location declared by the repository
+  instructions; provider parsing and normalization remain under the provider adapter. Application and domain packages never
+  import generated clients.
+- Mobile gateway DTO mapping remains in the owning feature API/client boundary. Feature view and form models remain in
+  the feature; move a mapping to `shared` only when multiple active features genuinely share the same boundary.
+- Avoid a generic application-level mapping bag unless one mapper truly spans several application contract families
+  and no tighter role package is clearer.
+- Use one mapper per coherent family. Do not create static utility bags, universal converters, reflection mappers, or
+  recursive case-conversion helpers.
 
 ## Java And MapStruct
 
-Prefer MapStruct for structural mapping. Same-name fields remain implicit; add explicit mappings only for renamed,
-nested, flattened, ignored, defaulted, qualified, constant, or whole-source values.
+Prefer MapStruct for structural Java mappings. Same-name fields stay implicit. Use explicit `@Mapping` only for renamed,
+flattened, nested, ignored, defaulted, constant, qualified, or whole-source fields.
 
-When several mappers exist in one service, share a service-local mapper configuration with Spring component mode,
-constructor injection, null checks, and unmapped targets treated as errors. A single mapper may declare those settings
-directly.
+An owning module with several MapStruct mappers owns one module-local `*MapperConfig` with:
 
-Use handwritten mapping when the operation contains a business decision, aggregation, external lookup, conditional
-enrichment, polymorphic dispatch, or explicit failure behavior. A handwritten mapper must not become a second
-application service.
+```java
+@MapperConfig(
+        componentModel = "spring",
+        injectionStrategy = InjectionStrategy.CONSTRUCTOR,
+        nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS,
+        unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface ServiceMapperConfig {
+}
+```
 
-## TypeScript And Python
+A small module with one mapper may declare those settings directly instead of introducing an otherwise unused config.
+Configure MapStruct and Lombok annotation processors in the owning Maven compiler setup; use
+`lombok-mapstruct-binding` when Lombok-generated members are part of the mapped model. Let Maven generate mapper
+implementations; do not write them manually.
 
-Keep generated clients at the API boundary. Add a feature-owned pure mapping function only when the consumer needs a
-different semantic shape. Do not duplicate a generated type under a new name when shape and meaning are identical.
-Avoid mapper classes, registries, and transformation frameworks.
+Reuse nested mapping through `uses = ...` or injected Spring collaborators. Prefer `@Named` plus `qualifiedByName`, or a
+dedicated mapper, for a reusable conversion.
 
-Provider parsers return typed provider records before application logic. Map generated Python client models immediately
-inside the Blockout API adapter; do not leak provider dictionaries or generated models into scraper use cases.
+Keep manual mapping when it owns orchestration, aggregation, polymorphic dispatch, conditional enrichment, a generated
+model constructor that requires explicit required fields, or a non-mechanical business decision. A manual mapper stays
+small and explicit; it must not become a second application service.
 
-## Nullability And Collections
+## Python
 
-- Preserve contract nullability at the transport edge and normalize it once when an application or domain invariant
-  requires a stronger shape.
-- Prefer immutable application collections when mutation is not part of the role.
-- Never introduce a global default or null mapping rule without a demonstrated service-wide requirement.
+Use explicit typed functions at the adapter edge. Map generated responses immediately to domain values and domain
+values to generated requests. Keep provider parsing separate from repository transport mapping. Do not add a mapping
+framework, generic serializer wrapper, or dictionary-based intermediate shape when direct typed construction is clear.
+
+## TypeScript And React Native
+
+Keep generated gateway DTOs in the API boundary. Map to a feature view or form model only when presentation, editing,
+normalization, or composition semantics differ. Do not duplicate a generated model under a new name when the shape and
+meaning are identical. Prefer a focused pure function over a mapper class, registry, or generic transform framework.
+
+## Collections And Nullability
+
+- Preserve the contract's nullability at transport edges and normalize it once when application or domain invariants
+  require a stronger shape.
+- Prefer immutable application collections (`List.copyOf`, tuples, frozen dataclasses, or readonly values) when
+  mutation is not part of the role.
+- Do not add a global null/default mapping rule without a service-wide need.
+
+## Documentation And Tests
+
+Follow `code-documentation.md` for every handwritten mapper contract. Explain relevant boundary decisions: union dispatch, ignored client field, provider
+quirk, stable error contract, or ambiguous DTO/application/entity distinction. Do not paraphrase a same-name mapping.
+
+Mapper tests verify concrete target values, nested reuse, ignored owner-managed fields, conditional branches, or
+polymorphic/error behavior. Do not add tests that only scan source text or prove a method exists.
 
 ## Verification
 
-- Test concrete target values, ignored owner-managed fields, nested reuse, branches, enum conversion, polymorphism,
-  and errors when those behaviors exist.
-- Do not test mapper source text, generated method names, or framework implementation details.
-- Inspect for entity exposure, generated-model leakage, duplicated shapes, and generic mapping utilities.
-- Compile and test every affected producer and consumer.
+- Compile and test each impacted Java module through the backend reactor selected by the skill entry point and repository build configuration.
+- Run the owning scraper suite and architecture guards for Python mapping changes.
+- Run mobile tests and typecheck for mobile mapping changes.
+- Inspect for transport leakage, entity exposure, generic mapper bags, and generated files tracked by Git.
+- Run the repository diff-hygiene check.
+
+Official references: [MapStruct reference guide](https://mapstruct.org/documentation/stable/reference/html/index.html)
+and [Lombok integration](https://mapstruct.org/faq/).
