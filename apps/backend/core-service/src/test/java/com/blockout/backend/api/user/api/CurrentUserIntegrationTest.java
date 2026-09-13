@@ -42,6 +42,7 @@ import tools.jackson.databind.json.JsonMapper;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
       "management.server.port=0",
+      "blockout.revenuecat.webhook.signing-secret=fixture-signing-secret",
       "blockout.identity.native-client-ids=native-client",
       "blockout.identity.auth0.base-url=https://tenant.example",
       "blockout.identity.auth0.client-id=fixture",
@@ -120,7 +121,7 @@ class CurrentUserIntegrationTest {
 
   @BeforeEach
   void reset() {
-    sql.execute("TRUNCATE identity.users CASCADE");
+    sql.execute("TRUNCATE identity.users,identity.webhook_receipts,operations.jobs CASCADE");
     when(provider.find(any()))
         .thenReturn(
             new IdentityLookup.Found(
@@ -372,5 +373,165 @@ class CurrentUserIntegrationTest {
     sql.execute("UPDATE identity.users SET active=false");
     assertThat(request("POST", user()).statusCode()).isEqualTo(403);
     verify(provider, times(1)).find(any());
+  }
+
+  @Test
+  void subscriptionConsultationIsLocalAndRefreshesCoalesce() throws Exception {
+    request("POST", user());
+    var first = subscriptionRequest("GET", "/api/v2/users/me/subscription", user(), null, null);
+    assertThat(first.statusCode()).isEqualTo(200);
+    assertThat(first.body()).contains("\"state\":\"unknown\"", "\"refreshState\":\"pending\"");
+    assertThat(first.headers().firstValue("Cache-Control").orElseThrow())
+        .contains("no-store", "private");
+    var refresh =
+        subscriptionRequest("POST", "/api/v2/users/me/subscription-refreshes", user(), null, null);
+    subscriptionRequest("POST", "/api/v2/users/me/subscription-refreshes", user(), null, null);
+    assertThat(refresh.statusCode()).isEqualTo(202);
+    assertThat(refresh.headers().firstValue("Location")).contains("/api/v2/users/me/subscription");
+    assertThat(refresh.headers().firstValue("Retry-After")).contains("30");
+    assertThat(sql.queryForObject("SELECT count(*) FROM operations.jobs", Integer.class)).isOne();
+    verify(provider, times(1)).find(any());
+  }
+
+  @Test
+  void subscriptionRequiresAnExistingNativeOwner() throws Exception {
+    assertThat(
+            subscriptionRequest("GET", "/api/v2/users/me/subscription", null, null, null)
+                .statusCode())
+        .isEqualTo(401);
+    assertThat(
+            subscriptionRequest("GET", "/api/v2/users/me/subscription", user(), null, null)
+                .statusCode())
+        .isEqualTo(404);
+    assertThat(
+            subscriptionRequest(
+                    "GET",
+                    "/api/v2/users/me/subscription",
+                    token("machine@clients", "native-client", null),
+                    null,
+                    null)
+                .statusCode())
+        .isEqualTo(403);
+    verifyNoInteractions(provider);
+  }
+
+  @Test
+  void signedWebhookCommitsOneReceiptAndNoUnknownProfile() throws Exception {
+    String body =
+        "{ \"event\": {\"id\":\"event-1\",\"type\":\"INITIAL_PURCHASE\",\"event_timestamp_ms\":1,\"environment\":\"PRODUCTION\",\"app_user_id\":\"unknown\"}}";
+    String signature = signature(body, Instant.now().getEpochSecond());
+    var first = subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", null, body, signature);
+    var second = subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", null, body, signature);
+    assertThat(first.statusCode()).isEqualTo(200);
+    assertThat(second.statusCode()).isEqualTo(200);
+    assertThat(sql.queryForObject("SELECT count(*) FROM identity.webhook_receipts", Integer.class))
+        .isOne();
+    assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
+  }
+
+  @Test
+  void webhookRejectsModifiedBytesAndExpiredSignaturesBeforeParsing() throws Exception {
+    String body = "{}";
+    assertThat(
+            subscriptionRequest(
+                    "POST",
+                    "/api/v2/webhooks/revenuecat",
+                    null,
+                    "invalid-json",
+                    signature(body, Instant.now().getEpochSecond()))
+                .statusCode())
+        .isEqualTo(401);
+    assertThat(
+            subscriptionRequest(
+                    "POST",
+                    "/api/v2/webhooks/revenuecat",
+                    null,
+                    body,
+                    signature(body, Instant.now().minusSeconds(600).getEpochSecond()))
+                .statusCode())
+        .isEqualTo(401);
+    assertThat(sql.queryForObject("SELECT count(*) FROM identity.webhook_receipts", Integer.class))
+        .isZero();
+  }
+
+  @Test
+  void validSignatureStillRequiresTheGeneratedWebhookContract() throws Exception {
+    String body = "{\"event\":{\"type\":\"TEST\"}}";
+    assertThat(
+            subscriptionRequest(
+                    "POST",
+                    "/api/v2/webhooks/revenuecat",
+                    null,
+                    body,
+                    signature(body, Instant.now().getEpochSecond()))
+                .statusCode())
+        .isEqualTo(400);
+  }
+
+  /**
+   * Sends a real request through bearer or HMAC authentication.
+   *
+   * @param method HTTP operation
+   * @param path tested resource
+   * @param token optional bearer credential
+   * @param body optional original JSON bytes
+   * @param signature optional HMAC header
+   * @return received response
+   */
+  HttpResponse<String> subscriptionRequest(
+      String method, String path, String token, String body, String signature)
+      throws IOException, InterruptedException {
+    var builder =
+        HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
+            .method(
+                method,
+                body == null
+                    ? HttpRequest.BodyPublishers.noBody()
+                    : HttpRequest.BodyPublishers.ofString(body));
+    if (token != null) builder.header("Authorization", "Bearer " + token);
+    if (body != null) builder.header("Content-Type", "application/json");
+    if (signature != null) builder.header("X-RevenueCat-Webhook-Signature", signature);
+    try (var client = HttpClient.newHttpClient()) {
+      return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+    }
+  }
+
+  /**
+   * Signs exact fixture bytes using the documented provider algorithm.
+   *
+   * @param body original JSON text
+   * @param timestamp delivery Unix timestamp
+   * @return provider-format signature
+   */
+  String signature(String body, long timestamp) throws java.security.GeneralSecurityException {
+    var mac = javax.crypto.Mac.getInstance("HmacSHA256");
+    mac.init(
+        new javax.crypto.spec.SecretKeySpec(
+            "fixture-signing-secret".getBytes(java.nio.charset.StandardCharsets.UTF_8),
+            "HmacSHA256"));
+    return "t="
+        + timestamp
+        + ",v1="
+        + HexFormat.of()
+            .formatHex(
+                mac.doFinal(
+                    (timestamp + "." + body).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+  }
+
+  @Test
+  void webhookUsesHmacInsteadOfAnOptionalProviderBearerHeader() throws Exception {
+    String body = "{\"event\":{\"id\":\"hmac-only\",\"type\":\"TEST\",\"event_timestamp_ms\":1}}";
+    var response =
+        subscriptionRequest(
+            "POST",
+            "/api/v2/webhooks/revenuecat",
+            "not-an-auth0-token",
+            body,
+            signature(body, Instant.now().getEpochSecond()));
+    assertThat(response.statusCode()).isEqualTo(200);
+    var rejected = subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", user(), body, null);
+    assertThat(rejected.statusCode()).isEqualTo(401);
+    assertThat(rejected.body()).contains("WEBHOOK_AUTHENTICATION_FAILED");
+    assertThat(rejected.headers().firstValue("WWW-Authenticate")).isEmpty();
   }
 }

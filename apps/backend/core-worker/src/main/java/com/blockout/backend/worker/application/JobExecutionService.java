@@ -58,6 +58,12 @@ public final class JobExecutionService {
           if (jobs.fail(job, rejected.code(), Duration.ZERO, true))
             telemetry.rejected(job, rejected.code());
         }
+        case JobResult.Failed failed -> {
+          var delay = RetryPolicy.delay(job.attempts());
+          if (failed.retryAfter().compareTo(delay) > 0) delay = failed.retryAfter();
+          if (!jobs.failWithEffect(job, failed.code(), delay, failed.permanent(), failed.effect()))
+            telemetry.leaseLost(job);
+        }
         case JobResult.Completed _ -> complete(job, () -> {});
         case JobResult.SqlEffect sql -> complete(job, sql.effect());
       }

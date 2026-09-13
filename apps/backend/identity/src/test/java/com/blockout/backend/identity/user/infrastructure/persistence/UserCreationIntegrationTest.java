@@ -91,7 +91,8 @@ class UserCreationIntegrationTest {
             tx,
             Clock.fixed(NOW, ZoneOffset.UTC),
             "project",
-            "production")
+            "production",
+            _ -> {})
         .ensure(actor);
   }
 
@@ -139,7 +140,8 @@ class UserCreationIntegrationTest {
             tx,
             Clock.fixed(Instant.parse("2026-10-25T01:30:00.123456789Z"), ZoneId.of("Europe/Paris")),
             "project",
-            "production");
+            "production",
+            _ -> {});
 
     var created = (ProfileResult.Available) service.ensure(actor);
     var read = (ProfileResult.Available) service.find(actor);
@@ -222,7 +224,8 @@ class UserCreationIntegrationTest {
             tx,
             Clock.fixed(NOW.plusSeconds(60), ZoneOffset.UTC),
             "project",
-            "production");
+            "production",
+            _ -> {});
     var result = (ProfileResult.Available) service.ensure(actor);
     assertThat(result.created()).isFalse();
     assertThat(result.profile().updatedAt()).isEqualTo(NOW);
@@ -239,7 +242,8 @@ class UserCreationIntegrationTest {
             tx,
             Clock.systemUTC(),
             "project",
-            "production");
+            "production",
+            _ -> {});
     assertThat(service.ensure(actor("apple|failed"))).isInstanceOf(ProfileResult.Unavailable.class);
     assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
   }
@@ -259,7 +263,8 @@ class UserCreationIntegrationTest {
             tx,
             Clock.systemUTC(),
             "project",
-            "production");
+            "production",
+            _ -> {});
     assertThat(service.ensure(actor("apple|outside"))).isInstanceOf(ProfileResult.Available.class);
   }
 
@@ -291,7 +296,8 @@ class UserCreationIntegrationTest {
             tx,
             Clock.systemUTC(),
             "project",
-            "production");
+            "production",
+            _ -> {});
     assertThat(service.find(actor("apple|missing"))).isInstanceOf(ProfileResult.Missing.class);
     assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
   }

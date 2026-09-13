@@ -45,7 +45,8 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   @Nullable ResponseEntity<Object> authenticationRequired(
       AuthenticationException failure, WebRequest request) {
     var headers = new HttpHeaders();
-    headers.set(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+    if (!request.getDescription(false).equals("uri=/api/v2/webhooks/revenuecat"))
+      headers.set(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
     return handleExceptionInternal(failure, null, headers, HttpStatus.UNAUTHORIZED, request);
   }
 
@@ -90,9 +91,14 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
     ApiProblemCodeEnum code =
         failure instanceof DataAccessException
-            ? PROFILE_STORE_UNAVAILABLE
+            ? (subscriptionRequest(request)
+                ? SUBSCRIPTION_STORE_UNAVAILABLE
+                : PROFILE_STORE_UNAVAILABLE)
             : switch (status.value()) {
-              case 401 -> AUTHENTICATION_REQUIRED;
+              case 401 ->
+                  request.getDescription(false).equals("uri=/api/v2/webhooks/revenuecat")
+                      ? WEBHOOK_AUTHENTICATION_FAILED
+                      : AUTHENTICATION_REQUIRED;
               case 403 -> ACCESS_DENIED;
               case 404 -> RESOURCE_NOT_FOUND;
               case 405 -> METHOD_NOT_ALLOWED;
@@ -110,5 +116,17 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
     return super.handleExceptionInternal(
         failure, ApiProblems.create(status, code), responseHeaders, status, request);
+  }
+
+  /**
+   * Selects the owning persistence failure code without exposing request content.
+   *
+   * @param request current HTTP context
+   * @return whether the subscription/webhook resource owns the failing operation
+   */
+  private static boolean subscriptionRequest(WebRequest request) {
+    String resource = request.getDescription(false);
+    return resource.startsWith("uri=/api/v2/users/me/subscription")
+        || resource.equals("uri=/api/v2/webhooks/revenuecat");
   }
 }

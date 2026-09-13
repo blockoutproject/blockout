@@ -11,7 +11,7 @@
         </createTable>
         <insert schemaName="operations" tableName="schema_metadata">
             <column name="id" valueNumeric="1"/>
-            <column name="generation" valueNumeric="3"/>
+            <column name="generation" valueNumeric="4"/>
         </insert>
         <createTable schemaName="operations" tableName="jobs">
             <column name="id" type="uuid">
@@ -141,11 +141,35 @@
         <createIndex schemaName="identity" tableName="external_identities" indexName="idx_identity_external_user">
             <column name="user_id"/>
         </createIndex>
+        <createTable schemaName="identity" tableName="subscription_states">
+            <column name="user_id" type="uuid"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_identity_subscription_states"/></column>
+            <column name="positive" type="boolean"><constraints nullable="true"/></column>
+            <column name="verified_at" type="timestamptz"><constraints nullable="true"/></column>
+            <column name="access_expires_at" type="timestamptz"><constraints nullable="true"/></column>
+            <column name="requested_revision" type="bigint"><constraints nullable="false"/></column>
+            <column name="processed_revision" type="bigint"><constraints nullable="false"/></column>
+            <column name="job_id" type="uuid"><constraints nullable="true"/></column>
+            <column name="requested_at" type="timestamptz"><constraints nullable="true"/></column>
+            <column name="next_refresh_at" type="timestamptz"><constraints nullable="true"/></column>
+            <column name="failure_code" type="varchar(50)"><constraints nullable="true"/></column>
+            <column name="failed_at" type="timestamptz"><constraints nullable="true"/></column>
+        </createTable>
+        <createTable schemaName="identity" tableName="webhook_receipts">
+            <column name="event_id" type="varchar(255)"><constraints nullable="false" primaryKey="true" primaryKeyName="pk_identity_webhook_receipts"/></column>
+            <column name="event_type" type="varchar(100)"><constraints nullable="false"/></column>
+            <column name="event_at" type="timestamptz"><constraints nullable="false"/></column>
+            <column name="received_at" type="timestamptz"><constraints nullable="false"/></column>
+        </createTable>
+        <addForeignKeyConstraint baseTableSchemaName="identity" baseTableName="subscription_states" baseColumnNames="user_id" referencedTableSchemaName="identity" referencedTableName="billing_bindings" referencedColumnNames="user_id" constraintName="fk_subscription_binding" onDelete="RESTRICT"/>
+        <createIndex schemaName="identity" tableName="subscription_states" indexName="idx_subscription_due"><column name="positive"/><column name="next_refresh_at"/><column name="user_id"/></createIndex>
         <!-- Community Liquibase has no native privilege change; grants are the only SQL exception. -->
         <sql>GRANT SELECT ON operations.schema_metadata TO blockout_api, blockout_worker;
 GRANT SELECT, INSERT ON operations.jobs TO blockout_api;
 GRANT SELECT, INSERT, UPDATE, DELETE ON operations.jobs TO blockout_worker;
 GRANT SELECT, INSERT ON identity.users, identity.external_identities, identity.billing_bindings TO blockout_api;
-GRANT SELECT ON identity.users, identity.external_identities, identity.billing_bindings TO blockout_worker;</sql>
+GRANT SELECT ON identity.users, identity.external_identities, identity.billing_bindings TO blockout_worker;
+GRANT SELECT, INSERT, UPDATE ON identity.subscription_states TO blockout_api, blockout_worker;
+GRANT SELECT, INSERT ON identity.webhook_receipts TO blockout_api;
+GRANT SELECT ON identity.webhook_receipts TO blockout_worker;</sql>
     </changeSet>
 </databaseChangeLog>

@@ -35,6 +35,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/blockout
       SPRING_DATASOURCE_USERNAME: blockout_api
       SPRING_DATASOURCE_PASSWORD: local-api
+      BLOCKOUT_REVENUECAT_WEBHOOK_SIGNING_SECRET: ${BLOCKOUT_REVENUECAT_WEBHOOK_SIGNING_SECRET:-local-unconfigured}
       BLOCKOUT_IDENTITY_NATIVE_CLIENT_IDS: ${BLOCKOUT_IDENTITY_NATIVE_CLIENT_IDS:-local-native-client}
       BLOCKOUT_IDENTITY_AUTH0_BASE_URL: ${BLOCKOUT_IDENTITY_AUTH0_BASE_URL:-https://blockout.invalid}
       BLOCKOUT_IDENTITY_AUTH0_CLIENT_ID: ${BLOCKOUT_IDENTITY_AUTH0_CLIENT_ID:-local-unconfigured}
@@ -72,6 +73,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/blockout
       SPRING_DATASOURCE_USERNAME: blockout_worker
       SPRING_DATASOURCE_PASSWORD: local-worker
+      BLOCKOUT_REVENUECAT_BASE_URL: ${BLOCKOUT_REVENUECAT_BASE_URL:-https://api.revenuecat.com}
+      BLOCKOUT_REVENUECAT_SECRET_KEY: ${BLOCKOUT_REVENUECAT_SECRET_KEY:-local-unconfigured}
+      BLOCKOUT_REVENUECAT_ENTITLEMENT_ID: ${BLOCKOUT_REVENUECAT_ENTITLEMENT_ID:-local-unconfigured}
     ports:
       - "127.0.0.1:19091:9090"
     depends_on:
@@ -93,6 +97,16 @@ services:
     mem_limit: 768m
     cpus: 1
     stop_grace_period: 40s
+  subscription-fixture:
+    image: python:3.13-alpine
+    profiles: [subscription-smoke]
+    command: [python, /fixture.py]
+    volumes:
+      - ../../scripts/backend-foundation/revenuecat-fixture.py:/fixture.py:ro
+    ports:
+      - "127.0.0.1:13081:8080"
+    mem_limit: 64m
+    cpus: 0.25
   prometheus:
     image: prom/prometheus:v3.13.3
     profiles: [observability]

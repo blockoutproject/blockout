@@ -1,7 +1,9 @@
 package com.blockout.backend.jobs.application;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Durable queue boundary. Leases use the database clock; every mutation fences the current attempt.
@@ -76,4 +78,32 @@ public interface JobRepository {
    * @return age in seconds, or zero when no pending job is available
    */
   double oldestAvailableSeconds();
+
+  /**
+   * Reads queue state through its owner boundary without locking.
+   *
+   * @param id retained queue identity
+   * @return current state, or empty after successful retention cleanup
+   */
+  Optional<JobState> state(UUID id);
+
+  /**
+   * Commits owner failure diagnostics and retry/dead transition under one live lease.
+   *
+   * @param job owned attempt
+   * @param code safe diagnostic code
+   * @param delay nonnegative retry delay
+   * @param permanent whether retries stop
+   * @param effect SQL-only callback on the same datasource
+   * @return whether both writes committed; stale ownership executes no effect
+   */
+  boolean failWithEffect(Job job, String code, Duration delay, boolean permanent, Runnable effect);
+
+  /**
+   * Reads the terminal timestamp for an owner's bounded recovery policy.
+   *
+   * @param id queue identity
+   * @return terminal time, absent while unfinished or after retention cleanup
+   */
+  Optional<Instant> finishedAt(UUID id);
 }

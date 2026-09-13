@@ -214,7 +214,7 @@ class WorkerIntegrationTest {
 
   @Test
   void incompatibleSchemaPreventsConsumption() {
-    sql.update("UPDATE operations.schema_metadata SET generation=4");
+    sql.update("UPDATE operations.schema_metadata SET generation=5");
     try {
       publish("a");
       start(
@@ -225,7 +225,7 @@ class WorkerIntegrationTest {
       worker.tick();
       assertThat(repository.count("pending")).isEqualTo(1);
     } finally {
-      sql.update("UPDATE operations.schema_metadata SET generation=3");
+      sql.update("UPDATE operations.schema_metadata SET generation=4");
     }
   }
 
@@ -303,12 +303,12 @@ class WorkerIntegrationTest {
             }));
 
     assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
-    sql.update("UPDATE operations.schema_metadata SET generation=4");
+    sql.update("UPDATE operations.schema_metadata SET generation=5");
     try {
       assertThat(interrupted.await(5, TimeUnit.SECONDS)).isTrue();
     } finally {
       worker.stop();
-      sql.update("UPDATE operations.schema_metadata SET generation=3");
+      sql.update("UPDATE operations.schema_metadata SET generation=4");
     }
   }
 
@@ -448,5 +448,46 @@ class WorkerIntegrationTest {
                           .count())
                   .isEqualTo(1);
             });
+  }
+
+  @Test
+  void expectedFailureCommitsItsEffectWithProviderRetryDelay() {
+    publish("provider-delay");
+    var job = repository.claim(Duration.ofSeconds(60)).orElseThrow();
+    metrics = new SimpleMeterRegistry();
+    var handler =
+        new JobHandler() {
+          /** {@inheritDoc} */
+          @Override
+          public String type() {
+            return "test";
+          }
+
+          /** {@inheritDoc} */
+          @Override
+          public int version() {
+            return 1;
+          }
+
+          /** {@inheritDoc} */
+          @Override
+          public JobResult handle(Job attempt) {
+            return new JobResult.Failed(
+                "PROVIDER_RATE_LIMITED",
+                Duration.ofSeconds(60),
+                false,
+                () -> sql.update("UPDATE operations.schema_metadata SET generation=4"));
+          }
+        };
+    new JobExecutionService(repository, List.of(handler), new WorkerTelemetry(repository, metrics))
+        .execute(job, new AtomicBoolean());
+    assertThat(repository.count("pending")).isEqualTo(1);
+    assertThat(
+            sql.queryForObject(
+                "SELECT available_at > clock_timestamp()+interval '55 seconds' FROM operations.jobs",
+                Boolean.class))
+        .isTrue();
+    assertThat(sql.queryForObject("SELECT last_error_code FROM operations.jobs", String.class))
+        .isEqualTo("PROVIDER_RATE_LIMITED");
   }
 }

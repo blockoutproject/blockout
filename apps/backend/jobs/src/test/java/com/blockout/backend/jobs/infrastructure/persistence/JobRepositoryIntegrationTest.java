@@ -69,14 +69,14 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
                 jobs.completeWithEffect(
                     job,
                     () -> {
-                      sql.update("UPDATE operations.schema_metadata SET generation=4");
+                      sql.update("UPDATE operations.schema_metadata SET generation=5");
                       throw new IllegalStateException("failure");
                     }))
         .isInstanceOf(IllegalStateException.class);
 
     assertThat(
             sql.queryForObject("SELECT generation FROM operations.schema_metadata", Integer.class))
-        .isEqualTo(3);
+        .isEqualTo(4);
 
     assertThat(state()).isEqualTo("running");
   }

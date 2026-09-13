@@ -66,3 +66,15 @@ tests:
       - { eval_time: 2m, alertname: BackendSchemaUnavailable, exp_alerts: [] }
       - { eval_time: 2m, alertname: BackendDeadWork, exp_alerts: [] }
       - { eval_time: 2m, alertname: BackendWorkStalled, exp_alerts: [] }
+  - name: Stale subscription evidence becomes actionable
+    interval: 1m
+    input_series:
+      - series: 'blockout_subscription_stale_positive{job="core-worker"}'
+        values: "1+0x10"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: BackendSubscriptionEvidenceStale
+        exp_alerts:
+          - exp_labels: { job: core-worker, severity: warning }
+            exp_annotations:
+              summary: Positive subscription evidence is outside its freshness window

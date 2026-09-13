@@ -15,6 +15,7 @@ public final class UserProfiles {
   private final Clock clock;
   private final String project;
   private final String environment;
+  private final java.util.function.Consumer<UUID> initializeSubscription;
 
   /**
    * Binds the profile owner to persistence, external verification and short SQL transactions.
@@ -25,6 +26,7 @@ public final class UserProfiles {
    * @param clock creation timestamp source
    * @param project retained RevenueCat project identifier
    * @param environment production or sandbox billing namespace
+   * @param initializeSubscription initial verification publication in the profile transaction
    */
   public UserProfiles(
       UserProfileStore profiles,
@@ -32,13 +34,15 @@ public final class UserProfiles {
       TransactionTemplate transactions,
       Clock clock,
       String project,
-      String environment) {
+      String environment,
+      java.util.function.Consumer<UUID> initializeSubscription) {
     this.profiles = profiles;
     this.provider = provider;
     this.transactions = transactions;
     this.clock = clock;
     this.project = project;
     this.environment = environment;
+    this.initializeSubscription = initializeSubscription;
   }
 
   /**
@@ -91,7 +95,10 @@ public final class UserProfiles {
                     now,
                     project,
                     environment);
-            if (result.isPresent()) return available(result.get(), true);
+            if (result.isPresent()) {
+              initializeSubscription.accept(id);
+              return available(result.get(), true);
+            }
           }
           throw new IllegalStateException("Pseudonym allocation exhausted");
         });

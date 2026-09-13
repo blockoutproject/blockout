@@ -15,18 +15,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** API-side profile owner; worker assembly does not need Auth0 machine credentials. */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({Auth0ProfileProperties.class, BillingBindingProperties.class})
-@Import(IdentitySchemaConfiguration.class)
+@Import(SubscriptionConfiguration.class)
 public class IdentityProfileConfiguration {
-  /**
-   * Supplies UTC time for profile timestamps and provider-cache deadlines.
-   *
-   * @return the injectable identity clock
-   */
-  @Bean
-  Clock identityClock() {
-    return Clock.systemUTC();
-  }
-
   /**
    * Creates the API-owned Auth0 adapter; Spring closes its HTTP client on bean destruction.
    *
@@ -61,6 +51,7 @@ public class IdentityProfileConfiguration {
    * @param manager transaction manager for the profile datasource
    * @param clock creation timestamp source
    * @param billing retained RevenueCat project and environment
+   * @param subscriptions atomic initial verification publication
    * @return the identity owner; provider calls finish before transactions
    */
   @Bean
@@ -69,9 +60,17 @@ public class IdentityProfileConfiguration {
       UserIdentityProvider provider,
       PlatformTransactionManager manager,
       Clock clock,
-      BillingBindingProperties billing) {
+      BillingBindingProperties billing,
+      com.blockout.backend.identity.subscription.application.Subscriptions subscriptions) {
     var tx = new TransactionTemplate(manager);
     tx.setTimeout(5);
-    return new UserProfiles(store, provider, tx, clock, billing.projectId(), billing.environment());
+    return new UserProfiles(
+        store,
+        provider,
+        tx,
+        clock,
+        billing.projectId(),
+        billing.environment(),
+        subscriptions::initialize);
   }
 }
