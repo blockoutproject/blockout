@@ -25,16 +25,13 @@ public class JwtDecoderConfiguration {
             .jwsAlgorithm(SignatureAlgorithm.RS256)
             .restOperations(new RestTemplate(factory))
             .build();
-    OAuth2TokenValidator<Jwt> audience =
-        jwt ->
-            jwt.getAudience().contains(properties.audience())
-                ? OAuth2TokenValidatorResult.success()
-                : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token"));
     var timestamps = new JwtTimestampValidator(Duration.ofSeconds(60));
     timestamps.setAllowEmptyExpiryClaim(false);
     decoder.setJwtValidator(
         new DelegatingOAuth2TokenValidator<>(
-            timestamps, new JwtIssuerValidator(properties.issuer()), audience));
+            timestamps,
+            new JwtIssuerValidator(properties.issuer()),
+            new JwtAudienceValidator(properties.audience())));
     return token -> {
       try {
         return decoder.decode(token);

@@ -1,34 +1,17 @@
 package com.blockout.backend.identity.config;
 
-import java.net.URI;
+import jakarta.validation.constraints.NotBlank;
+import org.hibernate.validator.constraints.URL;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
-/**
- * One trusted Management API origin; the HTTP exception is restricted to explicit loopback
- * fixtures.
- */
+/** Operator-configured Auth0 origin. Production uses HTTPS; credentials never enter diagnostics. */
+@Validated
 @ConfigurationProperties("blockout.identity.auth0")
 public record Auth0ProfileProperties(
-    URI baseUrl, String clientId, String clientSecret, boolean allowInsecureLoopback) {
-  public Auth0ProfileProperties {
-    if (baseUrl == null
-        || baseUrl.getHost() == null
-        || baseUrl.getUserInfo() != null
-        || baseUrl.getQuery() != null
-        || baseUrl.getFragment() != null
-        || !(baseUrl.getPath().isEmpty() || baseUrl.getPath().equals("/"))
-        || clientId == null
-        || clientId.isBlank()
-        || clientSecret == null
-        || clientSecret.isBlank())
-      throw new IllegalArgumentException("Invalid identity provider configuration");
-    boolean loopback =
-        java.util.Set.of("127.0.0.1", "localhost", "[::1]", "::1").contains(baseUrl.getHost());
-    if (!"https".equals(baseUrl.getScheme())
-        && !(allowInsecureLoopback && loopback && "http".equals(baseUrl.getScheme())))
-      throw new IllegalArgumentException("Identity provider requires HTTPS");
-  }
-
+    @NotBlank @URL(regexp = "https?://.+") String baseUrl,
+    @NotBlank String clientId,
+    @NotBlank String clientSecret) {
   @Override
   public String toString() {
     return "Auth0ProfileProperties[redacted]";

@@ -4,6 +4,7 @@ import com.blockout.backend.identity.user.application.*;
 import com.blockout.backend.identity.user.infrastructure.auth0.Auth0UserIdentityProvider;
 import com.blockout.backend.identity.user.infrastructure.persistence.PostgresUserProfiles;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.validation.Validator;
 import java.time.Clock;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
@@ -23,8 +24,8 @@ public class IdentityProfileConfiguration {
 
   @Bean
   UserIdentityProvider userIdentityProvider(
-      Auth0ProfileProperties properties, Clock clock, MeterRegistry metrics) {
-    return new Auth0UserIdentityProvider(properties, clock, metrics);
+      Auth0ProfileProperties properties, Clock clock, MeterRegistry metrics, Validator validator) {
+    return new Auth0UserIdentityProvider(properties, clock, metrics, validator);
   }
 
   @Bean

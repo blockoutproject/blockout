@@ -1,19 +1,14 @@
 package com.blockout.backend.identity.config;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
-/**
- * Binding metadata only: creating a business profile never provisions or mutates a billing
- * customer.
- */
+/** Binding metadata; creating a profile never provisions or mutates a billing customer. */
+@Validated
 @ConfigurationProperties("blockout.identity.billing")
-public record BillingBindingProperties(String projectId, String environment) {
-  public BillingBindingProperties {
-    if (projectId == null
-        || projectId.isBlank()
-        || projectId.length() > 255
-        || !java.util.Set.of("production", "sandbox")
-            .contains(environment == null ? "" : environment))
-      throw new IllegalArgumentException("Invalid billing binding configuration");
-  }
-}
+public record BillingBindingProperties(
+    @NotBlank @Size(max = 255) String projectId,
+    @NotBlank @Pattern(regexp = "production|sandbox") String environment) {}

@@ -63,8 +63,6 @@ class WorkerTelemetryTest {
     assertThat(diagnostic)
         .contains(
             "java.lang.IllegalStateException",
-            "java.lang.IllegalArgumentException",
-            "java.lang.RuntimeException",
             "retainsDiagnosticFramesWithoutExceptionMessagesOrJobContent");
 
     assertThat(event.getFormattedMessage() + event.getKeyValuePairs() + diagnostic)

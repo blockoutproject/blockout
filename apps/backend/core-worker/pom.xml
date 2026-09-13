@@ -11,6 +11,10 @@
     <name>core-worker</name>
     <dependencies>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.blockout</groupId>
             <artifactId>logging</artifactId>
             <version>${project.version}</version>

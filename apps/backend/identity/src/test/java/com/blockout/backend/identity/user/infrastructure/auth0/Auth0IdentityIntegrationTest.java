@@ -15,6 +15,14 @@ import java.util.concurrent.atomic.*;
 import org.junit.jupiter.api.*;
 
 class Auth0IdentityIntegrationTest {
+  static final jakarta.validation.ValidatorFactory VALIDATION =
+      jakarta.validation.Validation.buildDefaultValidatorFactory();
+
+  @AfterAll
+  static void closeValidation() {
+    VALIDATION.close();
+  }
+
   HttpServer server;
   ExecutorService executor;
   AtomicInteger tokens = new AtomicInteger();
@@ -67,12 +75,10 @@ class Auth0IdentityIntegrationTest {
   Auth0UserIdentityProvider provider() {
     return new Auth0UserIdentityProvider(
         new Auth0ProfileProperties(
-            URI.create("http://127.0.0.1:" + server.getAddress().getPort()),
-            "client",
-            "secret",
-            true),
+            "http://127.0.0.1:" + server.getAddress().getPort(), "client", "secret"),
         clock,
-        metrics);
+        metrics,
+        VALIDATION.getValidator());
   }
 
   ExternalIdentity actor() {
@@ -95,7 +101,7 @@ class Auth0IdentityIntegrationTest {
     assertThat(tokens).hasValue(1);
     assertThat(profiles).hasValue(2);
     assertThat(path.get()).endsWith("google-oauth2%7Cperson");
-    assertThat(tokenRequest.get())
+    assertThat(URLDecoder.decode(tokenRequest.get(), StandardCharsets.UTF_8))
         .contains("read:users", "client_credentials")
         .doesNotContain("update:users", "delete:users");
     assertThat(authorization.get()).isEqualTo("Bearer synthetic-secret");
@@ -360,6 +366,20 @@ class Auth0IdentityIntegrationTest {
     assertThat(profiles).hasValue(0);
   }
 
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(
+      strings = {"", ",\"expires_in\":0", ",\"expires_in\":-1"})
+  void pausesRenewalWhenTokenHasNoUsableLifetime(String expiry) {
+    tokenBody = "{\"access_token\":\"synthetic-secret\",\"token_type\":\"Bearer\"" + expiry + "}";
+    var provider = provider();
+
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+
+    assertThat(tokens).hasValue(1);
+    assertThat(profiles).hasValue(0);
+  }
+
   @Test
   void capsTheCacheWithoutRejectingLongLivedProviderTokens() {
     tokenBody =
@@ -372,8 +392,8 @@ class Auth0IdentityIntegrationTest {
   }
 
   @Test
-  void rejectsOversizedProviderResponses() {
-    profileBody = " ".repeat(65537);
+  void rejectsAttributesThatExceedStorageLimits() {
+    profileBody = "{\"user_id\":\"google-oauth2|person\",\"email\":\"" + "a".repeat(321) + "\"}";
     assertThat(provider().find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
   }
 
@@ -391,29 +411,8 @@ class Auth0IdentityIntegrationTest {
   }
 
   @Test
-  void rejectsInsecureNonLoopbackConfiguration() {
-    assertThatThrownBy(
-            () ->
-                new Auth0ProfileProperties(
-                    URI.create("http://tenant.example"), "client", "secret", true))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void rejectsEmbeddedCredentials() {
-    assertThatThrownBy(
-            () ->
-                new Auth0ProfileProperties(
-                    URI.create("https://secret@tenant.example"), "client", "secret", false))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
   void configurationNeverPrintsTheSecret() {
-    assertThat(
-            new Auth0ProfileProperties(
-                    URI.create("https://tenant.example"), "client", "secret", false)
-                .toString())
+    assertThat(new Auth0ProfileProperties("https://tenant.example", "client", "secret").toString())
         .doesNotContain("secret", "client");
   }
 

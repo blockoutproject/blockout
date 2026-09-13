@@ -74,7 +74,6 @@ class CurrentUserIntegrationTest {
     p.add("spring.datasource.username", DB::getUsername);
     p.add("spring.datasource.password", DB::getPassword);
     p.add("blockout.auth.issuer", () -> "https://tenant.example/");
-    p.add("blockout.auth.allow-insecure-loopback", () -> true);
     p.add("blockout.auth.audience", () -> "core");
     p.add(
         "blockout.auth.jwk-set-uri",

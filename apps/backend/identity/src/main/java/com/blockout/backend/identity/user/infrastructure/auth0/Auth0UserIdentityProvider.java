@@ -4,36 +4,43 @@ import com.blockout.backend.identity.config.Auth0ProfileProperties;
 import com.blockout.backend.identity.user.application.*;
 import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.validation.Validator;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.*;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.security.oauth2.client.endpoint.*;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.core.*;
+import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.*;
 import org.springframework.web.util.UriComponentsBuilder;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /** Read-only Auth0 adapter with bounded HTTP, private credentials and safe expected failures. */
 public final class Auth0UserIdentityProvider implements UserIdentityProvider {
   private static final Logger LOG = LoggerFactory.getLogger(Auth0UserIdentityProvider.class);
-  private static final int MAX_RESPONSE_BYTES = 65536;
-  private final Auth0ProfileProperties properties;
+  private final OAuth2ClientCredentialsGrantRequest grant;
+  private final RestClientClientCredentialsTokenResponseClient tokens;
   private final Clock clock;
   private final MeterRegistry metrics;
   private final RestClient http;
-  private final JsonMapper json = new JsonMapper();
+  private final Validator validator;
+  private final URI origin;
   private String accessToken;
   private Instant refreshAt = Instant.MIN;
   private final Auth0Backoff backoff;
 
   public Auth0UserIdentityProvider(
-      Auth0ProfileProperties properties, Clock clock, MeterRegistry metrics) {
-    this.properties = properties;
+      Auth0ProfileProperties properties, Clock clock, MeterRegistry metrics, Validator validator) {
+    this.validator = validator;
+    this.origin = URI.create(properties.baseUrl()).resolve("/");
     this.clock = clock;
     this.metrics = metrics;
     this.backoff = new Auth0Backoff(clock);
@@ -45,6 +52,35 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
     var factory = new JdkClientHttpRequestFactory(client);
     factory.setReadTimeout(Duration.ofSeconds(5));
     http = RestClient.builder().requestFactory(factory).build();
+    var registration =
+        ClientRegistration.withRegistrationId("auth0-management")
+            .clientId(properties.clientId())
+            .clientSecret(properties.clientSecret())
+            .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+            .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+            .tokenUri(origin.resolve("/oauth/token").toString())
+            .scope("read:users")
+            .build();
+    grant = new OAuth2ClientCredentialsGrantRequest(registration);
+    tokens = new RestClientClientCredentialsTokenResponseClient();
+    tokens.addParametersConverter(
+        request -> {
+          var parameters = new LinkedMultiValueMap<String, String>();
+          parameters.set("audience", origin.resolve("/api/v2/").toString());
+          return parameters;
+        });
+    tokens.setRestClient(
+        http.mutate()
+            .configureMessageConverters(
+                converters ->
+                    converters
+                        .disableDefaults()
+                        .addCustomConverter(new FormHttpMessageConverter())
+                        .addCustomConverter(new OAuth2AccessTokenResponseHttpMessageConverter()))
+            .defaultStatusHandler(
+                status -> !status.is2xxSuccessful(),
+                (request, response) -> rejectResponse("token", response))
+            .build());
   }
 
   @Override
@@ -53,26 +89,18 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
     String token = null;
     try {
       token = token();
-      URI endpoint =
-          UriComponentsBuilder.fromUri(properties.baseUrl())
-              .pathSegment("api", "v2", "users", identity.subject())
-              .build()
-              .encode()
-              .toUri();
-      JsonNode profile =
-          read("profile", http.get().uri(endpoint).header("Authorization", "Bearer " + token));
-      String subject = text(profile, "user_id", 255);
-      if (!identity.subject().equals(subject)) {
+      Auth0Profile profile = readProfile(identity.subject(), token);
+      if (!identity.subject().equals(profile.subject())) {
         record("mismatch", started);
         return new IdentityLookup.Mismatch();
       }
       var attributes =
           new ExternalProfile(
-              text(profile, "email", 320),
-              text(profile, "given_name", 255),
-              text(profile, "family_name", 255),
-              text(profile, "phone_number", 64),
-              text(profile, "picture", 2048));
+              profile.email(),
+              profile.firstName(),
+              profile.lastName(),
+              profile.phoneNumber(),
+              profile.pictureUrl());
       if (backoff.succeeded())
         LOG.atInfo()
             .addKeyValue("event.action", "identity.provider.recovered")
@@ -125,70 +153,65 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
 
   private synchronized void invalidateToken(String rejected) {
     // A late 401 for the old token must not invalidate a newer concurrent renewal.
-    if (rejected != null && rejected.equals(accessToken)) accessToken = null;
+    if (rejected.equals(accessToken)) accessToken = null;
   }
 
   private String renewToken() {
-    var endpoint = properties.baseUrl().resolve("/oauth/token");
-    var body =
-        Map.of(
-            "grant_type",
-            "client_credentials",
-            "client_id",
-            properties.clientId(),
-            "client_secret",
-            properties.clientSecret(),
-            "audience",
-            properties.baseUrl().resolve("/api/v2/").toString(),
-            "scope",
-            "read:users");
-    JsonNode response =
-        read("token", http.post().uri(endpoint).contentType(MediaType.APPLICATION_JSON).body(body));
-    String candidate = text(response, "access_token", 16384);
-    JsonNode seconds = response.path("expires_in");
-    if (candidate == null
-        || candidate.isBlank()
-        || !seconds.isIntegralNumber()
-        || seconds.asLong() <= 0
-        || !"Bearer".equalsIgnoreCase(text(response, "token_type", 20)))
-      throw new ProviderFailure("IDENTITY_CONFIGURATION_ERROR");
-    long lifetime = Math.min(seconds.asLong(), 86400);
-    accessToken = candidate;
-    metrics.counter("blockout.identity.auth0.tokens_issued").increment();
-    refreshAt = clock.instant().plusSeconds(lifetime - Math.min(30, lifetime / 2));
-    return accessToken;
-  }
-
-  private JsonNode read(String operation, RestClient.RequestHeadersSpec<?> request) {
-    metrics.counter("blockout.identity.auth0.requests", "operation", operation).increment();
+    metrics.counter("blockout.identity.auth0.requests", "operation", "token").increment();
     try {
-      return request.exchange(
-          (req, res) -> {
-            int status = res.getStatusCode().value();
-            if (status == 429)
-              metrics
-                  .counter("blockout.identity.auth0.rate_limited", "operation", operation)
-                  .increment();
-            if (status < 200 || status >= 300)
-              throw new ProviderFailure(
-                  status == 401 || status == 403
-                      ? "IDENTITY_CONFIGURATION_ERROR"
-                      : "IDENTITY_PROVIDER_UNAVAILABLE",
-                  status,
-                  retryAt(res.getHeaders()));
-            byte[] bytes = res.getBody().readNBytes(MAX_RESPONSE_BYTES + 1);
-            if (bytes.length > MAX_RESPONSE_BYTES)
-              throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
-            JsonNode node = json.readTree(bytes);
-            if (node == null || !node.isObject())
-              throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
-            return node;
-          });
-    } catch (RestClientException failure) {
-      throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE", 503, Instant.MIN);
-    } catch (tools.jackson.core.JacksonException failure) {
+      var token = tokens.getTokenResponse(grant).getAccessToken();
+      long lifetime = Duration.between(token.getIssuedAt(), token.getExpiresAt()).toSeconds();
+      // Spring substitutes one second when expires_in is absent; do not turn that into a renewal
+      // loop.
+      if (lifetime <= 1) throw new ProviderFailure("IDENTITY_CONFIGURATION_ERROR");
+      lifetime = Math.min(lifetime, 86400);
+      accessToken = token.getTokenValue();
+      metrics.counter("blockout.identity.auth0.tokens_issued").increment();
+      refreshAt = clock.instant().plusSeconds(lifetime - Math.min(30, lifetime / 2));
+      return accessToken;
+    } catch (OAuth2AuthorizationException | RestClientException failure) {
       throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
     }
+  }
+
+  private Auth0Profile readProfile(String subject, String token) {
+    var endpoint =
+        UriComponentsBuilder.fromUri(origin)
+            .pathSegment("api", "v2", "users", subject)
+            .build()
+            .encode()
+            .toUri();
+    metrics.counter("blockout.identity.auth0.requests", "operation", "profile").increment();
+    try {
+      var profile =
+          http.get()
+              .uri(endpoint)
+              .headers(headers -> headers.setBearerAuth(token))
+              .retrieve()
+              .onStatus(
+                  status -> !status.is2xxSuccessful(), (req, res) -> rejectResponse("profile", res))
+              .body(Auth0Profile.class);
+      if (profile == null || !validator.validate(profile).isEmpty())
+        throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
+      return profile;
+    } catch (RestClientException failure) {
+      throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE", 503, Instant.MIN);
+    }
+  }
+
+  /**
+   * Translate status and retry headers without reading potentially private provider error bodies.
+   */
+  private void rejectResponse(String operation, ClientHttpResponse response) throws IOException {
+    int status = response.getStatusCode().value();
+    if (status == 429)
+      metrics.counter("blockout.identity.auth0.rate_limited", "operation", operation).increment();
+    throw new ProviderFailure(
+        status == 401 || status == 403
+            ? "IDENTITY_CONFIGURATION_ERROR"
+            : "IDENTITY_PROVIDER_UNAVAILABLE",
+        status,
+        retryAt(response.getHeaders()));
   }
 
   private Instant retryAt(HttpHeaders headers) {
@@ -206,14 +229,6 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
     } catch (NumberFormatException | DateTimeException | ArithmeticException invalid) {
       return Instant.MIN;
     }
-  }
-
-  private String text(JsonNode node, String field, int limit) {
-    JsonNode value = node.get(field);
-    if (value == null || value.isNull()) return null;
-    if (!value.isString() || value.asString().length() > limit)
-      throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
-    return value.asString();
   }
 
   private void record(String outcome, long started) {
