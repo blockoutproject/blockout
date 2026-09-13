@@ -12,6 +12,10 @@ import org.slf4j.spi.LoggingEventBuilder;
 
 /** Scheduler-owned diagnostics. Payloads, deduplication keys and lease tokens are never emitted. */
 public final class WorkerTelemetry {
+  private static final String EVENT_ACTION = "event.action";
+  private static final String JOB_EXECUTIONS = "blockout.jobs.executions";
+  private static final String OUTCOME = "outcome";
+
   private static final Logger LOG = LoggerFactory.getLogger(WorkerTelemetry.class);
   private final MeterRegistry metrics;
   private boolean pollDegraded;
@@ -48,14 +52,14 @@ public final class WorkerTelemetry {
 
   public void started(int concurrency) {
     LOG.atInfo()
-        .addKeyValue("event.action", "worker.started")
+        .addKeyValue(EVENT_ACTION, "worker.started")
         .addKeyValue("concurrency", concurrency)
         .log("Worker started");
   }
 
   public void stopped(int remaining) {
     LOG.atInfo()
-        .addKeyValue("event.action", "worker.stopped")
+        .addKeyValue(EVENT_ACTION, "worker.stopped")
         .addKeyValue("active_attempts", remaining)
         .log("Worker stopped accepting work");
   }
@@ -66,7 +70,7 @@ public final class WorkerTelemetry {
     pollDegraded = true;
     var event =
         LOG.atError()
-            .addKeyValue("event.action", "worker.poll.unavailable")
+            .addKeyValue(EVENT_ACTION, "worker.poll.unavailable")
             .addKeyValue("dependency", "postgresql");
     if (failure != null) event.setCause(SafeDiagnostics.snapshot(failure));
     event.log("Job polling unavailable; durable work remains recoverable");
@@ -75,15 +79,15 @@ public final class WorkerTelemetry {
   public synchronized void pollRecovered() {
     if (!pollDegraded) return;
     pollDegraded = false;
-    LOG.atInfo().addKeyValue("event.action", "worker.poll.recovered").log("Job polling recovered");
+    LOG.atInfo().addKeyValue(EVENT_ACTION, "worker.poll.recovered").log("Job polling recovered");
   }
 
   public void completed() {
-    metrics.counter("blockout.jobs.executions", "outcome", "completed").increment();
+    metrics.counter(JOB_EXECUTIONS, OUTCOME, "completed").increment();
   }
 
   public void rejected(Job job, String code) {
-    metrics.counter("blockout.jobs.executions", "outcome", "rejected").increment();
+    metrics.counter(JOB_EXECUTIONS, OUTCOME, "rejected").increment();
     attempt(LOG.atWarn(), "worker.job.rejected", job)
         .addKeyValue("reason", code)
         .log("Job permanently rejected");
@@ -95,7 +99,7 @@ public final class WorkerTelemetry {
   }
 
   public void failed(Job job, Exception failure, boolean recorded) {
-    metrics.counter("blockout.jobs.executions", "outcome", "failed").increment();
+    metrics.counter(JOB_EXECUTIONS, OUTCOME, "failed").increment();
     attempt(LOG.atError(), "worker.job.failed", job)
         .addKeyValue("failure_recorded", recorded)
         .addKeyValue("retry_exhausted", job.attempts() >= job.maxAttempts())
@@ -114,7 +118,7 @@ public final class WorkerTelemetry {
 
   private LoggingEventBuilder attempt(LoggingEventBuilder event, String name, Job job) {
     return event
-        .addKeyValue("event.action", name)
+        .addKeyValue(EVENT_ACTION, name)
         .addKeyValue("job_id", job.id())
         .addKeyValue("attempt", job.attempts())
         .addKeyValue("payload_version", job.version());

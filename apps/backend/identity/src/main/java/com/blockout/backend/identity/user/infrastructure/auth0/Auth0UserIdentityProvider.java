@@ -25,6 +25,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 /** Read-only Auth0 adapter with bounded HTTP, private credentials and safe expected failures. */
 public final class Auth0UserIdentityProvider implements UserIdentityProvider, AutoCloseable {
+  private static final String OPERATION = "operation";
+  private static final String IDENTITY_PROVIDER_UNAVAILABLE = "IDENTITY_PROVIDER_UNAVAILABLE";
+
   private static final Logger LOG = LoggerFactory.getLogger(Auth0UserIdentityProvider.class);
   private final OAuth2ClientCredentialsGrantRequest grant;
   private final RestClientClientCredentialsTokenResponseClient tokens;
@@ -164,7 +167,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
   }
 
   private String renewToken() {
-    metrics.counter("blockout.identity.auth0.requests", "operation", "token").increment();
+    metrics.counter("blockout.identity.auth0.requests", OPERATION, "token").increment();
     try {
       var token = tokens.getTokenResponse(grant).getAccessToken();
       long lifetime = Duration.between(token.getIssuedAt(), token.getExpiresAt()).toSeconds();
@@ -177,7 +180,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
       refreshAt = clock.instant().plusSeconds(lifetime - Math.min(30, lifetime / 2));
       return accessToken;
     } catch (OAuth2AuthorizationException | RestClientException _) {
-      throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
+      throw new ProviderFailure(IDENTITY_PROVIDER_UNAVAILABLE);
     }
   }
 
@@ -188,7 +191,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
             .build()
             .encode()
             .toUri();
-    metrics.counter("blockout.identity.auth0.requests", "operation", "profile").increment();
+    metrics.counter("blockout.identity.auth0.requests", OPERATION, "profile").increment();
     try {
       var profile =
           http.get()
@@ -199,10 +202,10 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
                   status -> !status.is2xxSuccessful(), (_, res) -> rejectResponse("profile", res))
               .body(Auth0Profile.class);
       if (profile == null || !validator.validate(profile).isEmpty())
-        throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
+        throw new ProviderFailure(IDENTITY_PROVIDER_UNAVAILABLE);
       return profile;
     } catch (RestClientException _) {
-      throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE", 503, Instant.MIN);
+      throw new ProviderFailure(IDENTITY_PROVIDER_UNAVAILABLE, 503, Instant.MIN);
     }
   }
 
@@ -212,11 +215,11 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
   private void rejectResponse(String operation, ClientHttpResponse response) throws IOException {
     int status = response.getStatusCode().value();
     if (status == 429)
-      metrics.counter("blockout.identity.auth0.rate_limited", "operation", operation).increment();
+      metrics.counter("blockout.identity.auth0.rate_limited", OPERATION, operation).increment();
     throw new ProviderFailure(
         status == 401 || status == 403
             ? "IDENTITY_CONFIGURATION_ERROR"
-            : "IDENTITY_PROVIDER_UNAVAILABLE",
+            : IDENTITY_PROVIDER_UNAVAILABLE,
         status,
         retryAt(response.getHeaders()));
   }
