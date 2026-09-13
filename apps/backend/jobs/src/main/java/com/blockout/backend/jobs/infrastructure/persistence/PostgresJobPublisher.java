@@ -48,7 +48,7 @@ public final class PostgresJobPublisher implements JobPublisher {
         body);
     return sql.queryForObject(
         "SELECT id, payload_version=? AND payload=?::jsonb AS identical FROM operations.jobs WHERE job_type=? AND deduplication_key=?",
-        (rs, n) -> {
+        (rs, _) -> {
           if (!rs.getBoolean("identical")) return new PublicationResult.Conflict();
           return new PublicationResult.Accepted(rs.getObject("id", UUID.class));
         },

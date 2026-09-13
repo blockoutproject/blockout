@@ -21,7 +21,7 @@ public final class PostgresJobRepository implements JobRepository {
   @Override
   public Optional<Job> claim(Duration lease) {
     return tx.execute(
-        status -> {
+        _ -> {
           sql.update(
               """
               UPDATE operations.jobs
@@ -50,7 +50,7 @@ public final class PostgresJobRepository implements JobRepository {
                       lease_expires_at=clock_timestamp()+(? * interval '1 millisecond')
                   FROM candidate c WHERE j.id=c.id RETURNING j.*
                   """,
-                  (rs, n) ->
+                  (rs, _) ->
                       new Job(
                           rs.getObject("id", UUID.class),
                           rs.getString("job_type"),
@@ -70,7 +70,7 @@ public final class PostgresJobRepository implements JobRepository {
   public boolean renew(Job job, Duration lease) {
     return withLockedAttempt(
         job,
-        status ->
+        _ ->
             sql.update(
                     "UPDATE operations.jobs SET lease_expires_at=clock_timestamp()+(? * interval '1 millisecond') WHERE id=? AND state='running' AND lease_token=? AND lease_expires_at>clock_timestamp()",
                     lease.toMillis(),
@@ -111,7 +111,7 @@ public final class PostgresJobRepository implements JobRepository {
     boolean dead = permanent || job.attempts() >= job.maxAttempts();
     return withLockedAttempt(
         job,
-        status ->
+        _ ->
             sql.update(
                     """
                     UPDATE operations.jobs

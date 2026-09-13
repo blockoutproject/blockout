@@ -19,9 +19,9 @@ public final class CurrentUserActor {
     var authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt))
       return Optional.empty();
-    Object subjectClaim = jwt.getClaims().get("sub"),
-        client = jwt.getClaims().get("azp"),
-        grant = jwt.getClaims().get("gty");
+    Object subjectClaim = jwt.getClaims().get("sub");
+    Object client = jwt.getClaims().get("azp");
+    Object grant = jwt.getClaims().get("gty");
     if (!(subjectClaim instanceof String subject)
         || subject.isBlank()
         || subject.endsWith("@clients")

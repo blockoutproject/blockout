@@ -10,14 +10,14 @@ import org.springframework.security.web.SecurityFilterChain;
 public class WorkerSecurity {
   @Bean
   @Order(1)
-  SecurityFilterChain management(HttpSecurity http) throws Exception {
+  SecurityFilterChain management(HttpSecurity http) {
     return http.securityMatcher(EndpointRequest.toAnyEndpoint())
         .authorizeHttpRequests(a -> a.anyRequest().permitAll())
         .build();
   }
 
   @Bean
-  SecurityFilterChain deny(HttpSecurity http) throws Exception {
+  SecurityFilterChain deny(HttpSecurity http) {
     return http.authorizeHttpRequests(a -> a.anyRequest().denyAll()).build();
   }
 }

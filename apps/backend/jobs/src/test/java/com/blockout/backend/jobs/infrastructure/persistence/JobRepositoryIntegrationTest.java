@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
 import com.blockout.backend.jobs.application.PublicationResult;
-import java.sql.*;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -13,12 +12,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.support.JdbcTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.*;
 import tools.jackson.databind.json.JsonMapper;
 
 class JobRepositoryIntegrationTest extends PostgresJobsFixture {
   @Test
-  void concurrentConsumersClaimDifferentJobs() throws Exception {
+  void concurrentConsumersClaimDifferentJobs()
+      throws InterruptedException, ExecutionException, TimeoutException {
     publish("a");
     publish("b");
     var barrier = new CyclicBarrier(2);
@@ -145,7 +144,7 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
     for (String zone : List.of("Pacific/Auckland", "America/Los_Angeles", "UTC")) {
       sql.execute("TRUNCATE operations.jobs");
       tx.executeWithoutResult(
-          status -> {
+          _ -> {
             sql.execute("SET LOCAL TIME ZONE '" + zone + "'");
             publisher.publish("test", 1, zone, Map.of());
             jobs.claim(Duration.ofSeconds(60)).orElseThrow();
@@ -166,7 +165,7 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
     var apiPublisher = new PostgresJobPublisher(apiSql, new JsonMapper());
     var result =
         (PublicationResult.Accepted)
-            apiTx.execute(status -> apiPublisher.publish("test", 1, "runtime", Map.of()));
+            apiTx.execute(_ -> apiPublisher.publish("test", 1, "runtime", Map.of()));
     var workerSql =
         new JdbcTemplate(new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_worker", "test"));
     var workerTx = new TransactionTemplate(new JdbcTransactionManager(workerSql.getDataSource()));
@@ -180,14 +179,16 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
 
   @org.junit.jupiter.params.ParameterizedTest
   @org.junit.jupiter.params.provider.ValueSource(strings = {"renew", "fail", "complete"})
-  void waitingForARowLockCannotAuthorizeAnExpiredLease(String operation) throws Exception {
+  void waitingForARowLockCannotAuthorizeAnExpiredLease(String operation)
+      throws java.sql.SQLException, InterruptedException, ExecutionException, TimeoutException {
     publish("locked");
     var job = jobs.claim(Duration.ofSeconds(5)).orElseThrow();
     try (var pool = Executors.newSingleThreadExecutor();
-        var lock = sql.getDataSource().getConnection()) {
+        var lock = sql.getDataSource().getConnection();
+        var statement = lock.createStatement()) {
       lock.setAutoCommit(false);
       try {
-        lock.createStatement().executeQuery("SELECT id FROM operations.jobs FOR UPDATE").close();
+        statement.executeQuery("SELECT id FROM operations.jobs FOR UPDATE").close();
         var mutation =
             pool.submit(
                 () ->

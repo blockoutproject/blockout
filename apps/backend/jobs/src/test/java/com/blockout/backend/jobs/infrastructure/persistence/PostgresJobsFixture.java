@@ -1,9 +1,11 @@
 package com.blockout.backend.jobs.infrastructure.persistence;
 
 import com.blockout.backend.jobs.application.PublicationResult;
+import java.sql.SQLException;
 import java.util.*;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
+import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.*;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,6 +21,8 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @Testcontainers
 public abstract class PostgresJobsFixture {
+  @AutoClose static ClassLoaderResourceAccessor resources;
+
   @Container
   protected static final PostgreSQLContainer DB = new PostgreSQLContainer("postgres:17-alpine");
 
@@ -28,19 +32,17 @@ public abstract class PostgresJobsFixture {
   protected static PostgresJobPublisher publisher;
 
   @BeforeAll
-  protected static void setup() throws Exception {
+  protected static void setup() throws SQLException, LiquibaseException {
+    resources = new ClassLoaderResourceAccessor();
     var ds = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     sql = new JdbcTemplate(ds);
     tx = new TransactionTemplate(new JdbcTransactionManager(ds));
-    try (var c = ds.getConnection()) {
-      c.createStatement()
-          .execute(
-              "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
-      try (var lb =
-          new Liquibase(
-              "db/changelog/db.changelog-master.xml",
-              new ClassLoaderResourceAccessor(),
-              new JdbcConnection(c))) {
+    try (var c = ds.getConnection();
+        var statement = c.createStatement()) {
+      statement.execute(
+          "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
+      try (var connection = new JdbcConnection(c);
+          var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
         lb.update("");
       }
     }
@@ -55,7 +57,7 @@ public abstract class PostgresJobsFixture {
 
   UUID publish(String key) {
     return ((PublicationResult.Accepted)
-            tx.execute(s -> publisher.publish("test", 1, key, Map.of("value", 1))))
+            tx.execute(_ -> publisher.publish("test", 1, key, Map.of("value", 1))))
         .id();
   }
 

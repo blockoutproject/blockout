@@ -11,12 +11,15 @@ import com.nimbusds.jose.jwk.*;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jwt.*;
 import com.sun.net.httpserver.HttpServer;
+import java.io.IOException;
 import java.net.*;
 import java.net.http.*;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
+import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +45,7 @@ import tools.jackson.databind.json.JsonMapper;
     })
 @Testcontainers
 class CurrentUserIntegrationTest {
+  @AutoClose static final ClassLoaderResourceAccessor resources = new ClassLoaderResourceAccessor();
   @Container static final PostgreSQLContainer DB = new PostgreSQLContainer("postgres:17-alpine");
   static final RSAKey KEY;
   static final HttpServer JWKS;
@@ -59,11 +63,13 @@ class CurrentUserIntegrationTest {
                     .getBytes(java.nio.charset.StandardCharsets.UTF_8);
             ex.getResponseHeaders().add("Content-Type", "application/json");
             ex.sendResponseHeaders(200, body.length);
-            ex.getResponseBody().write(body);
-            ex.close();
+            try (ex;
+                var responseBody = ex.getResponseBody()) {
+              responseBody.write(body);
+            }
           });
       JWKS.start();
-    } catch (Exception e) {
+    } catch (IOException | JOSEException e) {
       throw new ExceptionInInitializerError(e);
     }
   }
@@ -86,17 +92,15 @@ class CurrentUserIntegrationTest {
   @LocalServerPort int port;
 
   @BeforeAll
-  static void migrate() throws Exception {
+  static void migrate() throws SQLException, LiquibaseException {
     try (var c =
-        java.sql.DriverManager.getConnection(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword())) {
-      c.createStatement()
-          .execute(
-              "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
-      try (var lb =
-          new Liquibase(
-              "db/changelog/db.changelog-master.xml",
-              new ClassLoaderResourceAccessor(),
-              new JdbcConnection(c))) {
+            java.sql.DriverManager.getConnection(
+                DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
+        var statement = c.createStatement()) {
+      statement.execute(
+          "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
+      try (var connection = new JdbcConnection(c);
+          var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
         lb.update("");
       }
     }
@@ -116,7 +120,7 @@ class CurrentUserIntegrationTest {
     JWKS.stop(0);
   }
 
-  String token(String subject, String client, String grant) throws Exception {
+  String token(String subject, String client, String grant) throws JOSEException {
     var claims =
         new JWTClaimsSet.Builder()
             .issuer("https://tenant.example/")
@@ -133,16 +137,19 @@ class CurrentUserIntegrationTest {
     return jwt.serialize();
   }
 
-  String user() throws Exception {
+  String user() throws JOSEException {
     return token("google-oauth2|person", "native-client", null);
   }
 
-  HttpResponse<String> request(String method, String token) throws Exception {
+  HttpResponse<String> request(String method, String token)
+      throws IOException, InterruptedException {
     var b =
         HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/v2/users/me"))
             .method(method, HttpRequest.BodyPublishers.noBody());
     if (token != null) b.header("Authorization", "Bearer " + token);
-    return HttpClient.newHttpClient().send(b.build(), HttpResponse.BodyHandlers.ofString());
+    try (var client = HttpClient.newHttpClient()) {
+      return client.send(b.build(), HttpResponse.BodyHandlers.ofString());
+    }
   }
 
   @Test
@@ -162,7 +169,8 @@ class CurrentUserIntegrationTest {
   }
 
   @Test
-  void createsThenReadsTheSameProfileWithoutProviderRefresh() throws Exception {
+  void createsThenReadsTheSameProfileWithoutProviderRefresh()
+      throws IOException, InterruptedException, JOSEException {
     var created = request("POST", user());
     assertThat(created.statusCode()).isEqualTo(201);
     assertThat(created.headers().firstValue("location")).contains("/api/v2/users/me");
@@ -183,7 +191,7 @@ class CurrentUserIntegrationTest {
   }
 
   @Test
-  void missingGetIsSideEffectFree() throws Exception {
+  void missingGetIsSideEffectFree() throws IOException, InterruptedException, JOSEException {
     var response = request("GET", user());
     assertThat(response.statusCode()).isEqualTo(404);
     assertThat(response.body()).contains("USER_NOT_FOUND");
@@ -191,20 +199,38 @@ class CurrentUserIntegrationTest {
   }
 
   @Test
-  void rejectsMissingAuthentication() throws Exception {
+  void rejectsMissingAuthentication() throws IOException, InterruptedException {
     assertThat(request("POST", null).statusCode()).isEqualTo(401);
     verifyNoInteractions(provider);
   }
 
   @Test
-  void rejectsMachineIdentity() throws Exception {
+  void cookiesCannotAuthenticateProfileCreation()
+      throws IOException, InterruptedException, JOSEException {
+    var request =
+        HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/v2/users/me"))
+            .timeout(java.time.Duration.ofSeconds(10))
+            .header("Cookie", "JSESSIONID=fixture; access_token=" + user())
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build();
+
+    try (var client = HttpClient.newHttpClient()) {
+      var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+      assertThat(response.statusCode()).isEqualTo(401);
+      verifyNoInteractions(provider);
+    }
+  }
+
+  @Test
+  void rejectsMachineIdentity() throws IOException, InterruptedException, JOSEException {
     assertThat(request("POST", token("machine@clients", "native-client", null)).statusCode())
         .isEqualTo(403);
     verifyNoInteractions(provider);
   }
 
   @Test
-  void rejectsClientCredentialsGrant() throws Exception {
+  void rejectsClientCredentialsGrant() throws IOException, InterruptedException, JOSEException {
     assertThat(
             request("POST", token("google-oauth2|person", "native-client", "client-credentials"))
                 .statusCode())
@@ -213,21 +239,21 @@ class CurrentUserIntegrationTest {
   }
 
   @Test
-  void rejectsForeignNativeClient() throws Exception {
+  void rejectsForeignNativeClient() throws IOException, InterruptedException, JOSEException {
     assertThat(request("POST", token("google-oauth2|person", "other", null)).statusCode())
         .isEqualTo(403);
     verifyNoInteractions(provider);
   }
 
   @Test
-  void rejectsMissingClient() throws Exception {
+  void rejectsMissingClient() throws IOException, InterruptedException, JOSEException {
     assertThat(request("POST", token("google-oauth2|person", null, null)).statusCode())
         .isEqualTo(403);
     verifyNoInteractions(provider);
   }
 
   @Test
-  void returnsSafeProviderFailure() throws Exception {
+  void returnsSafeProviderFailure() throws IOException, InterruptedException, JOSEException {
     when(provider.find(any()))
         .thenReturn(new IdentityLookup.Unavailable("IDENTITY_PROVIDER_UNAVAILABLE"));
     var response = request("POST", user());
@@ -239,7 +265,7 @@ class CurrentUserIntegrationTest {
   }
 
   @Test
-  void rejectsMismatchedProviderIdentity() throws Exception {
+  void rejectsMismatchedProviderIdentity() throws IOException, InterruptedException, JOSEException {
     when(provider.find(any())).thenReturn(new IdentityLookup.Mismatch());
     assertThat(request("POST", user()).statusCode()).isEqualTo(409);
   }
@@ -248,7 +274,8 @@ class CurrentUserIntegrationTest {
   @org.junit.jupiter.api.extension.ExtendWith(
       org.springframework.boot.test.system.OutputCaptureExtension.class)
   void unexpectedFailuresNeverExposeProviderMessages(
-      org.springframework.boot.test.system.CapturedOutput output) throws Exception {
+      org.springframework.boot.test.system.CapturedOutput output)
+      throws IOException, InterruptedException, JOSEException {
     when(provider.find(any()))
         .thenThrow(new IllegalStateException("private@example.test synthetic-secret"));
     var response = request("POST", user());
@@ -262,14 +289,16 @@ class CurrentUserIntegrationTest {
   }
 
   @Test
-  void anotherUserCannotReadTheCreatedProfile() throws Exception {
+  void anotherUserCannotReadTheCreatedProfile()
+      throws IOException, InterruptedException, JOSEException {
     request("POST", user());
     assertThat(request("GET", token("apple|other", "native-client", null)).statusCode())
         .isEqualTo(404);
   }
 
   @Test
-  void refusesToReactivateAnInactiveProfile() throws Exception {
+  void refusesToReactivateAnInactiveProfile()
+      throws IOException, InterruptedException, JOSEException {
     request("POST", user());
     sql.execute("UPDATE identity.users SET active=false");
     assertThat(request("POST", user()).statusCode()).isEqualTo(403);

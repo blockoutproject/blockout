@@ -24,6 +24,7 @@ class Auth0IdentityIntegrationTest {
   }
 
   HttpServer server;
+  Auth0UserIdentityProvider provider;
   ExecutorService executor;
   AtomicInteger tokens = new AtomicInteger();
   AtomicInteger profiles = new AtomicInteger();
@@ -41,7 +42,7 @@ class Auth0IdentityIntegrationTest {
   SimpleMeterRegistry metrics = new SimpleMeterRegistry();
 
   @BeforeEach
-  void start() throws Exception {
+  void start() throws java.io.IOException {
     executor = Executors.newCachedThreadPool();
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     server.setExecutor(executor);
@@ -49,7 +50,9 @@ class Auth0IdentityIntegrationTest {
         "/oauth/token",
         ex -> {
           tokens.incrementAndGet();
-          tokenRequest.set(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+          try (var requestBody = ex.getRequestBody()) {
+            tokenRequest.set(new String(requestBody.readAllBytes(), StandardCharsets.UTF_8));
+          }
           tokenHeaders.forEach((key, value) -> ex.getResponseHeaders().add(key, value));
           respond(ex, tokenStatus, tokenBody);
         });
@@ -63,22 +66,21 @@ class Auth0IdentityIntegrationTest {
           respond(ex, profileStatus, profileBody);
         });
     server.start();
+    provider =
+        new Auth0UserIdentityProvider(
+            new Auth0ProfileProperties(
+                "http://127.0.0.1:" + server.getAddress().getPort(), "client", "secret"),
+            clock,
+            metrics,
+            VALIDATION.getValidator());
   }
 
   @AfterEach
   void stop() {
+    provider.close();
     server.stop(0);
     executor.shutdownNow();
     metrics.close();
-  }
-
-  Auth0UserIdentityProvider provider() {
-    return new Auth0UserIdentityProvider(
-        new Auth0ProfileProperties(
-            "http://127.0.0.1:" + server.getAddress().getPort(), "client", "secret"),
-        clock,
-        metrics,
-        VALIDATION.getValidator());
   }
 
   ExternalIdentity actor() {
@@ -89,13 +91,14 @@ class Auth0IdentityIntegrationTest {
     byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
     ex.getResponseHeaders().add("Content-Type", "application/json");
     ex.sendResponseHeaders(code, bytes.length);
-    ex.getResponseBody().write(bytes);
-    ex.close();
+    try (ex;
+        var responseBody = ex.getResponseBody()) {
+      responseBody.write(bytes);
+    }
   }
 
   @Test
   void readsOnlyTheExactIdentityWithCachedReadOnlyCredentials() {
-    var provider = provider();
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
     assertThat(tokens).hasValue(1);
@@ -109,7 +112,6 @@ class Auth0IdentityIntegrationTest {
 
   @Test
   void refreshesExpiredCredentials() {
-    var provider = provider();
     provider.find(actor());
     clock.now = clock.now.plusSeconds(3600);
     provider.find(actor());
@@ -117,8 +119,8 @@ class Auth0IdentityIntegrationTest {
   }
 
   @Test
-  void coalescesConcurrentCredentialRequests() throws Exception {
-    var provider = provider();
+  void coalescesConcurrentCredentialRequests()
+      throws InterruptedException, ExecutionException, TimeoutException {
     try (var pool = Executors.newFixedThreadPool(6)) {
       var futures = new java.util.ArrayList<Future<IdentityLookup>>();
       for (int i = 0; i < 6; i++) futures.add(pool.submit(() -> provider.find(actor())));
@@ -129,9 +131,9 @@ class Auth0IdentityIntegrationTest {
   }
 
   @Test
-  void coalescesFailedCredentialRequestsUntilTheRetryDelay() throws Exception {
+  void coalescesFailedCredentialRequestsUntilTheRetryDelay()
+      throws InterruptedException, ExecutionException, TimeoutException {
     tokenStatus = 503;
-    var provider = provider();
 
     try (var pool = Executors.newFixedThreadPool(6)) {
       var futures = new java.util.ArrayList<Future<IdentityLookup>>();
@@ -149,7 +151,8 @@ class Auth0IdentityIntegrationTest {
   }
 
   @Test
-  void logsOneProviderOutageUntilRecovery() throws Exception {
+  void logsOneProviderOutageUntilRecovery()
+      throws InterruptedException, ExecutionException, TimeoutException {
     var logger =
         (ch.qos.logback.classic.Logger)
             org.slf4j.LoggerFactory.getLogger(Auth0UserIdentityProvider.class);
@@ -158,7 +161,6 @@ class Auth0IdentityIntegrationTest {
     logs.start();
     logger.addAppender(logs);
     tokenStatus = 503;
-    var provider = provider();
     try {
       try (var pool = Executors.newFixedThreadPool(6)) {
         var calls = new java.util.ArrayList<Future<IdentityLookup>>();
@@ -186,7 +188,6 @@ class Auth0IdentityIntegrationTest {
 
   @Test
   void renewsARejectedCachedTokenAfterThePause() {
-    var provider = provider();
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
     profileStatus = 401;
 
@@ -201,7 +202,6 @@ class Auth0IdentityIntegrationTest {
   @Test
   void repeatedTokenRejectionsIncreaseThePauseUpToFiveMinutes() {
     profileStatus = 401;
-    var provider = provider();
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
 
     int requests = 1;
@@ -229,7 +229,6 @@ class Auth0IdentityIntegrationTest {
   @Test
   void successfulProfileReadRestoresTheInitialPause() {
     profileStatus = 503;
-    var provider = provider();
     provider.find(actor());
     clock.now = clock.now.plusSeconds(5);
     provider.find(actor());
@@ -262,7 +261,6 @@ class Auth0IdentityIntegrationTest {
       profileStatus = 429;
       profileHeaders = java.util.Map.of(header, value);
     }
-    var provider = provider();
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
     int calls = profiles.get();
     clock.now = clock.now.plusSeconds(599);
@@ -285,7 +283,6 @@ class Auth0IdentityIntegrationTest {
 
   @Test
   void missingProviderUserDoesNotPauseOtherLookups() {
-    var provider = provider();
     profileStatus = 404;
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
 
@@ -297,14 +294,14 @@ class Auth0IdentityIntegrationTest {
   @Test
   void acceptsAbsentOptionalAttributes() {
     profileBody = "{\"user_id\":\"google-oauth2|person\"}";
-    var result = (IdentityLookup.Found) provider().find(actor());
+    var result = (IdentityLookup.Found) provider.find(actor());
     assertThat(result.profile().email()).isNull();
   }
 
   @Test
   void rejectsAProviderSubjectMismatch() {
     profileBody = "{\"user_id\":\"apple|other\"}";
-    assertThat(provider().find(actor())).isInstanceOf(IdentityLookup.Mismatch.class);
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Mismatch.class);
   }
 
   @org.junit.jupiter.params.ParameterizedTest
@@ -312,37 +309,37 @@ class Auth0IdentityIntegrationTest {
   void returnsSafeDependencyFailures(int status) {
     profileStatus = status;
     profileBody = "{\"message\":\"private@example.test synthetic-secret\"}";
-    var result = provider().find(actor());
+    var result = provider.find(actor());
     assertThat(result).isInstanceOf(IdentityLookup.Unavailable.class);
     assertThat(result.toString()).doesNotContain("private@", "synthetic-secret");
   }
 
   @org.junit.jupiter.params.ParameterizedTest
   @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
-  void boundsStalledProviderResponses(boolean sendHeaders) throws Exception {
+  void boundsStalledProviderResponses(boolean sendHeaders)
+      throws InterruptedException, ExecutionException, TimeoutException {
     var received = new CountDownLatch(1);
     var release = new CountDownLatch(1);
     server.removeContext("/api/v2/users/");
     server.createContext(
         "/api/v2/users/",
         exchange -> {
-          try {
+          try (exchange;
+              var responseBody = exchange.getResponseBody()) {
             if (sendHeaders) {
               exchange.sendResponseHeaders(200, 0);
-              exchange.getResponseBody().write('{');
-              exchange.getResponseBody().flush();
+              responseBody.write('{');
+              responseBody.flush();
             }
             received.countDown();
             release.await();
-          } catch (InterruptedException interrupted) {
+          } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
-          } finally {
-            exchange.close();
           }
         });
 
     try (var pool = Executors.newSingleThreadExecutor()) {
-      var result = pool.submit(() -> provider().find(actor()));
+      var result = pool.submit(() -> provider.find(actor()));
       try {
         assertThat(received.await(3, TimeUnit.SECONDS)).isTrue();
         assertThat(result.get(8, TimeUnit.SECONDS))
@@ -356,13 +353,13 @@ class Auth0IdentityIntegrationTest {
   @Test
   void rejectsMalformedProviderAttributes() {
     profileBody = "{\"user_id\":\"google-oauth2|person\",\"email\":[]}";
-    assertThat(provider().find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
   }
 
   @Test
   void rejectsMalformedTokenResponse() {
     tokenBody = "{}";
-    assertThat(provider().find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
     assertThat(profiles).hasValue(0);
   }
 
@@ -371,7 +368,6 @@ class Auth0IdentityIntegrationTest {
       strings = {"", ",\"expires_in\":0", ",\"expires_in\":-1"})
   void pausesRenewalWhenTokenHasNoUsableLifetime(String expiry) {
     tokenBody = "{\"access_token\":\"synthetic-secret\",\"token_type\":\"Bearer\"" + expiry + "}";
-    var provider = provider();
 
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
@@ -384,7 +380,6 @@ class Auth0IdentityIntegrationTest {
   void capsTheCacheWithoutRejectingLongLivedProviderTokens() {
     tokenBody =
         "{\"access_token\":\"synthetic-secret\",\"token_type\":\"Bearer\",\"expires_in\":172800}";
-    var provider = provider();
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
     clock.now = clock.now.plusSeconds(86400);
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
@@ -394,19 +389,19 @@ class Auth0IdentityIntegrationTest {
   @Test
   void rejectsAttributesThatExceedStorageLimits() {
     profileBody = "{\"user_id\":\"google-oauth2|person\",\"email\":\"" + "a".repeat(321) + "\"}";
-    assertThat(provider().find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
   }
 
   @Test
   void rejectsMalformedJson() {
     profileBody = "{not-json";
-    assertThat(provider().find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
   }
 
   @Test
   void tokenFailureDoesNotReadAProfile() {
     tokenStatus = 503;
-    assertThat(provider().find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Unavailable.class);
     assertThat(profiles).hasValue(0);
   }
 
@@ -419,14 +414,17 @@ class Auth0IdentityIntegrationTest {
   static final class MutableClock extends Clock {
     volatile Instant now = Instant.parse("2026-09-12T12:00:00Z");
 
+    @Override
     public ZoneId getZone() {
       return ZoneOffset.UTC;
     }
 
+    @Override
     public Clock withZone(ZoneId zone) {
       return this;
     }
 
+    @Override
     public Instant instant() {
       return now;
     }

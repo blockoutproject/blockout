@@ -43,12 +43,12 @@ public final class JobExecutionService {
           if (jobs.fail(job, rejected.code(), Duration.ZERO, true))
             telemetry.rejected(job, rejected.code());
         }
-        case JobResult.Completed ignored -> complete(job, () -> {});
+        case JobResult.Completed _ -> complete(job, () -> {});
         case JobResult.SqlEffect sql -> complete(job, sql.effect());
       }
-    } catch (InterruptedException interrupted) {
+    } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
-    } catch (Exception failure) {
+    } catch (RuntimeException failure) {
       boolean recorded = false;
       try {
         if (!cancelled.get())

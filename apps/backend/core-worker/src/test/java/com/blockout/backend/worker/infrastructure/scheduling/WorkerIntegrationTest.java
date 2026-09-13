@@ -13,12 +13,14 @@ import com.blockout.backend.worker.application.JobExecutionService;
 import com.blockout.backend.worker.application.WorkerTelemetry;
 import com.blockout.backend.worker.config.WorkerProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
+import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.*;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -31,6 +33,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 @Testcontainers
 class WorkerIntegrationTest {
+  @AutoClose static final ClassLoaderResourceAccessor resources = new ClassLoaderResourceAccessor();
   @Container static final PostgreSQLContainer DB = new PostgreSQLContainer("postgres:17-alpine");
   static JdbcTemplate sql;
   static TransactionTemplate tx;
@@ -40,19 +43,16 @@ class WorkerIntegrationTest {
   SimpleMeterRegistry metrics;
 
   @BeforeAll
-  static void setup() throws Exception {
+  static void setup() throws SQLException, LiquibaseException {
     var ds = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     sql = new JdbcTemplate(ds);
     tx = new TransactionTemplate(new JdbcTransactionManager(ds));
-    try (var c = ds.getConnection()) {
-      c.createStatement()
-          .execute(
-              "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
-      try (var lb =
-          new Liquibase(
-              "db/changelog/db.changelog-master.xml",
-              new ClassLoaderResourceAccessor(),
-              new JdbcConnection(c))) {
+    try (var c = ds.getConnection();
+        var statement = c.createStatement()) {
+      statement.execute(
+          "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
+      try (var connection = new JdbcConnection(c);
+          var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
         lb.update("");
       }
     }
@@ -92,7 +92,7 @@ class WorkerIntegrationTest {
   }
 
   void publish(String key) {
-    tx.executeWithoutResult(s -> publisher.publish("test", 1, key, Map.of()));
+    tx.executeWithoutResult(_ -> publisher.publish("test", 1, key, Map.of()));
   }
 
   @Test
@@ -100,7 +100,7 @@ class WorkerIntegrationTest {
     var executions = new AtomicInteger();
     publish("a");
 
-    start(handler(j -> executions.incrementAndGet()));
+    start(handler(_ -> executions.incrementAndGet()));
 
     await()
         .atMost(Duration.ofSeconds(5))
@@ -113,7 +113,7 @@ class WorkerIntegrationTest {
   void drainsFastJobsWithoutWastingReservedAttempts() {
     for (int i = 0; i < 100; i++) publish("fast-" + i);
 
-    start(handler(job -> {}));
+    start(handler(_ -> {}));
 
     await()
         .atMost(Duration.ofSeconds(10))
@@ -123,7 +123,7 @@ class WorkerIntegrationTest {
   }
 
   @Test
-  void boundsConcurrencyAndRenewsLeases() throws Exception {
+  void boundsConcurrencyAndRenewsLeases() throws InterruptedException {
     for (int i = 0; i < 5; i++) publish("" + i);
     var entered = new CountDownLatch(2);
     var release = new CountDownLatch(1);
@@ -132,7 +132,7 @@ class WorkerIntegrationTest {
 
     start(
         handler(
-            j -> {
+            _ -> {
               int n = active.incrementAndGet();
               peak.accumulateAndGet(n, Math::max);
               entered.countDown();
@@ -182,7 +182,7 @@ class WorkerIntegrationTest {
 
     start(
         handler(
-            j -> {
+            _ -> {
               throw new IllegalStateException("test failure");
             }));
 
@@ -205,7 +205,7 @@ class WorkerIntegrationTest {
       publish("a");
       start(
           handler(
-              j -> {
+              _ -> {
                 throw new AssertionError("must not execute");
               }));
       worker.tick();
@@ -216,13 +216,13 @@ class WorkerIntegrationTest {
   }
 
   @Test
-  void shutdownLeavesInterruptedWorkRecoverable() throws Exception {
+  void shutdownLeavesInterruptedWorkRecoverable() throws InterruptedException {
     var entered = new CountDownLatch(1);
     publish("a");
 
     start(
         handler(
-            j -> {
+            _ -> {
               entered.countDown();
               new CountDownLatch(1).await();
             }));
@@ -238,7 +238,7 @@ class WorkerIntegrationTest {
   void rejectsInvalidOwnerPayloadPermanently() {
     publish("a");
 
-    start(resultHandler(j -> new JobResult.Rejected("INVALID_PAYLOAD")));
+    start(resultHandler(_ -> new JobResult.Rejected("INVALID_PAYLOAD")));
 
     await()
         .atMost(Duration.ofSeconds(5))
@@ -249,13 +249,13 @@ class WorkerIntegrationTest {
   }
 
   @Test
-  void interruptsJobsAtTheExecutionDeadline() throws Exception {
+  void interruptsJobsAtTheExecutionDeadline() throws InterruptedException {
     var interrupted = new CountDownLatch(1);
     publish("a");
 
     start(
         handler(
-            j -> {
+            _ -> {
               try {
                 new CountDownLatch(1).await();
               } catch (InterruptedException e) {
@@ -271,14 +271,14 @@ class WorkerIntegrationTest {
   }
 
   @Test
-  void enforcesDeadlineWhileSchemaIsUnavailable() throws Exception {
+  void enforcesDeadlineWhileSchemaIsUnavailable() throws InterruptedException {
     var entered = new CountDownLatch(1);
     var interrupted = new CountDownLatch(1);
     publish("a");
 
     start(
         handler(
-            j -> {
+            _ -> {
               entered.countDown();
               try {
                 new CountDownLatch(1).await();
@@ -299,21 +299,21 @@ class WorkerIntegrationTest {
   }
 
   @Test
-  void countsUncooperativeExpiredAttemptsAgainstConcurrency() throws Exception {
+  void countsUncooperativeExpiredAttemptsAgainstConcurrency() throws InterruptedException {
     var entered = new CountDownLatch(2);
     var release = new CountDownLatch(1);
     publish("a");
 
     start(
         handler(
-            j -> {
+            _ -> {
               entered.countDown();
               boolean done = false;
               while (!done) {
                 try {
                   release.await();
                   done = true;
-                } catch (InterruptedException ignored) {
+                } catch (InterruptedException _) {
                   /* Controlled uncooperative dependency. */
                 }
               }
@@ -341,7 +341,7 @@ class WorkerIntegrationTest {
   }
 
   interface Action {
-    void run(Job job) throws Exception;
+    void run(Job job) throws InterruptedException;
   }
 
   JobHandler handler(Action action) {
@@ -353,20 +353,23 @@ class WorkerIntegrationTest {
   }
 
   interface ResultAction {
-    JobResult run(Job job) throws Exception;
+    JobResult run(Job job) throws InterruptedException;
   }
 
   JobHandler resultHandler(ResultAction action) {
     return new JobHandler() {
+      @Override
       public String type() {
         return "test";
       }
 
+      @Override
       public int version() {
         return 1;
       }
 
-      public JobResult handle(Job job) throws Exception {
+      @Override
+      public JobResult handle(Job job) throws InterruptedException {
         return action.run(job);
       }
     };

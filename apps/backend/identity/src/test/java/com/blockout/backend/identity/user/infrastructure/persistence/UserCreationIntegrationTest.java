@@ -4,12 +4,13 @@ import static org.assertj.core.api.Assertions.*;
 
 import com.blockout.backend.identity.user.application.*;
 import com.blockout.backend.identity.user.domain.ExternalIdentity;
-import java.sql.*;
+import java.sql.SQLException;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
+import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.*;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,6 +22,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Testcontainers
 class UserCreationIntegrationTest {
+  @AutoClose static final ClassLoaderResourceAccessor resources = new ClassLoaderResourceAccessor();
   @Container static final PostgreSQLContainer DB = new PostgreSQLContainer("postgres:17-alpine");
   static JdbcTemplate admin;
   static JdbcTemplate sql;
@@ -29,17 +31,14 @@ class UserCreationIntegrationTest {
   static final Instant NOW = Instant.parse("2026-09-12T12:00:00Z");
 
   @BeforeAll
-  static void setup() throws Exception {
+  static void setup() throws SQLException, LiquibaseException {
     var owner = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     admin = new JdbcTemplate(owner);
     admin.execute(
         "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
     try (var c = owner.getConnection();
-        var lb =
-            new Liquibase(
-                "db/changelog/db.changelog-master.xml",
-                new ClassLoaderResourceAccessor(),
-                new JdbcConnection(c))) {
+        var connection = new JdbcConnection(c);
+        var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
       lb.update("");
     }
     var api = new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_api", "test");
@@ -65,7 +64,7 @@ class UserCreationIntegrationTest {
   ProfileResult create(ExternalIdentity actor, ExternalProfile info) {
     return new UserProfiles(
             profiles,
-            ignored -> new IdentityLookup.Found(info),
+            _ -> new IdentityLookup.Found(info),
             tx,
             Clock.fixed(NOW, ZoneOffset.UTC),
             "project",
@@ -81,7 +80,7 @@ class UserCreationIntegrationTest {
     assertThatThrownBy(
             () ->
                 otherTx.execute(
-                    status ->
+                    _ ->
                         profiles.create(
                             actor("apple|wrong-transaction"),
                             UUID.randomUUID(),
@@ -113,7 +112,7 @@ class UserCreationIntegrationTest {
     var service =
         new UserProfiles(
             profiles,
-            ignored -> new IdentityLookup.Found(info(null)),
+            _ -> new IdentityLookup.Found(info(null)),
             tx,
             Clock.fixed(Instant.parse("2026-10-25T01:30:00.123456789Z"), ZoneId.of("Europe/Paris")),
             "project",
@@ -146,7 +145,8 @@ class UserCreationIntegrationTest {
   }
 
   @Test
-  void concurrentFirstRequestsReturnOneProfile() throws Exception {
+  void concurrentFirstRequestsReturnOneProfile()
+      throws InterruptedException, ExecutionException, TimeoutException {
     var actor = actor("google-oauth2|concurrent");
     var start = new CountDownLatch(1);
     try (var pool = Executors.newFixedThreadPool(8)) {
@@ -169,7 +169,8 @@ class UserCreationIntegrationTest {
   }
 
   @Test
-  void concurrentPseudonymCollisionsKeepDistinctProfiles() throws Exception {
+  void concurrentPseudonymCollisionsKeepDistinctProfiles()
+      throws InterruptedException, ExecutionException, TimeoutException {
     try (var pool = Executors.newFixedThreadPool(6)) {
       var results = new ArrayList<Future<ProfileResult>>();
       for (int i = 0; i < 6; i++) {
@@ -192,7 +193,7 @@ class UserCreationIntegrationTest {
     var service =
         new UserProfiles(
             profiles,
-            ignored -> {
+            _ -> {
               throw new AssertionError("Unexpected Auth0 call");
             },
             tx,
@@ -210,7 +211,7 @@ class UserCreationIntegrationTest {
     var service =
         new UserProfiles(
             profiles,
-            ignored -> new IdentityLookup.Unavailable("IDENTITY_PROVIDER_UNAVAILABLE"),
+            _ -> new IdentityLookup.Unavailable("IDENTITY_PROVIDER_UNAVAILABLE"),
             tx,
             Clock.systemUTC(),
             "project",
@@ -224,7 +225,7 @@ class UserCreationIntegrationTest {
     var service =
         new UserProfiles(
             profiles,
-            ignored -> {
+            _ -> {
               assertThat(
                       org.springframework.transaction.support.TransactionSynchronizationManager
                           .isActualTransactionActive())
@@ -260,7 +261,7 @@ class UserCreationIntegrationTest {
     var service =
         new UserProfiles(
             profiles,
-            ignored -> {
+            _ -> {
               throw new AssertionError("Unexpected Auth0 call");
             },
             tx,

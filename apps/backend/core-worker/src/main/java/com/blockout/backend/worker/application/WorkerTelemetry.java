@@ -26,7 +26,7 @@ public final class WorkerTelemetry {
           j -> {
             try {
               return j.count(state);
-            } catch (RuntimeException unavailable) {
+            } catch (RuntimeException _) {
               return Double.NaN;
             }
           });
@@ -36,7 +36,7 @@ public final class WorkerTelemetry {
         j -> {
           try {
             return j.oldestAvailableSeconds();
-          } catch (RuntimeException unavailable) {
+          } catch (RuntimeException _) {
             return Double.NaN;
           }
         });

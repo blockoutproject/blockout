@@ -3,11 +3,7 @@ package com.blockout.backend.jobs.infrastructure.health;
 import static org.assertj.core.api.Assertions.*;
 
 import com.blockout.backend.jobs.infrastructure.persistence.PostgresJobsFixture;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
 import org.junit.jupiter.api.*;
-import org.testcontainers.junit.jupiter.*;
 
 class SchemaHealthIntegrationTest extends PostgresJobsFixture {
   @Test

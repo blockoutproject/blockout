@@ -50,7 +50,7 @@ public final class UserProfiles {
     if (lookup instanceof IdentityLookup.Mismatch) return new ProfileResult.Mismatch();
     var attributes = ((IdentityLookup.Found) lookup).profile();
     return transactions.execute(
-        status -> {
+        _ -> {
           profiles.lockCreation(identity);
           var winner = profiles.find(identity);
           if (winner.isPresent()) return available(winner.get(), false);

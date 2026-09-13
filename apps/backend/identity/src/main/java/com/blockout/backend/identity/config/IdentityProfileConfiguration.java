@@ -23,7 +23,7 @@ public class IdentityProfileConfiguration {
   }
 
   @Bean
-  UserIdentityProvider userIdentityProvider(
+  Auth0UserIdentityProvider userIdentityProvider(
       Auth0ProfileProperties properties, Clock clock, MeterRegistry metrics, Validator validator) {
     return new Auth0UserIdentityProvider(properties, clock, metrics, validator);
   }

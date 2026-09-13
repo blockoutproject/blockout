@@ -43,10 +43,10 @@ public class CurrentUserController implements CurrentUserApi {
         if (available.created()) builder.location(URI.create("/api/v2/users/me"));
         yield builder.body(mapper.toResponse(available.profile()));
       }
-      case ProfileResult.Missing ignored -> problem(404, "USER_NOT_FOUND");
-      case ProfileResult.Inactive ignored -> problem(403, "USER_INACTIVE");
-      case ProfileResult.Unsupported ignored -> problem(409, "IDENTITY_NOT_SUPPORTED");
-      case ProfileResult.Mismatch ignored -> problem(409, "IDENTITY_MISMATCH");
+      case ProfileResult.Missing _ -> problem(404, "USER_NOT_FOUND");
+      case ProfileResult.Inactive _ -> problem(403, "USER_INACTIVE");
+      case ProfileResult.Unsupported _ -> problem(409, "IDENTITY_NOT_SUPPORTED");
+      case ProfileResult.Mismatch _ -> problem(409, "IDENTITY_MISMATCH");
       case ProfileResult.Unavailable failure -> problem(503, failure.code());
     };
   }

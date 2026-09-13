@@ -3,8 +3,10 @@ package com.blockout.backend.migrations;
 import static org.assertj.core.api.Assertions.*;
 
 import java.sql.*;
+import java.sql.SQLException;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
+import liquibase.exception.LiquibaseException;
 import liquibase.lockservice.LockServiceFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.*;
@@ -13,23 +15,24 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Testcontainers
 class MigrationIntegrationTest {
+  @AutoClose final ClassLoaderResourceAccessor resources = new ClassLoaderResourceAccessor();
   @Container static final PostgreSQLContainer DB = new PostgreSQLContainer("postgres:17-alpine");
 
   @BeforeAll
-  static void roles() throws Exception {
-    try (var c = connect()) {
-      c.createStatement()
-          .execute(
-              "CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'");
+  static void roles() throws SQLException {
+    try (var c = connect();
+        var statement = c.createStatement()) {
+      statement.execute(
+          "CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'");
     }
   }
 
   @BeforeEach
-  void schema() throws Exception {
-    try (var c = connect()) {
-      c.createStatement()
-          .execute(
-              "DROP SCHEMA IF EXISTS operations CASCADE; DROP SCHEMA IF EXISTS identity CASCADE; DROP TABLE IF EXISTS public.databasechangelog; DROP TABLE IF EXISTS public.databasechangeloglock; CREATE SCHEMA operations; CREATE SCHEMA identity; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
+  void schema() throws SQLException {
+    try (var c = connect();
+        var statement = c.createStatement()) {
+      statement.execute(
+          "DROP SCHEMA IF EXISTS operations CASCADE; DROP SCHEMA IF EXISTS identity CASCADE; DROP TABLE IF EXISTS public.databasechangelog; DROP TABLE IF EXISTS public.databasechangeloglock; CREATE SCHEMA operations; CREATE SCHEMA identity; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
     }
   }
 
@@ -37,42 +40,41 @@ class MigrationIntegrationTest {
     return DriverManager.getConnection(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
   }
 
-  Liquibase liquibase(String file) throws Exception {
-    return new Liquibase(file, new ClassLoaderResourceAccessor(), new JdbcConnection(connect()));
-  }
-
-  void migrate() throws Exception {
-    try (var lb = liquibase("db/changelog/db.changelog-master.xml")) {
+  void migrate() throws SQLException, LiquibaseException {
+    try (var connection = new JdbcConnection(connect());
+        var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
       lb.update("");
     }
   }
 
   @Test
-  void repeatedMigrationKeepsOneAppliedBaseline() throws Exception {
+  void repeatedMigrationKeepsOneAppliedBaseline() throws SQLException, LiquibaseException {
     migrate();
 
     migrate();
 
-    try (var c = connect()) {
-      var rs = c.createStatement().executeQuery("SELECT count(*) FROM databasechangelog");
-      rs.next();
-      assertThat(rs.getInt(1)).isEqualTo(1);
-      var generation =
-          c.createStatement()
-              .executeQuery("SELECT generation FROM operations.schema_metadata WHERE id=1");
-      generation.next();
-      assertThat(generation.getInt(1)).isEqualTo(3);
+    try (var c = connect();
+        var statement = c.createStatement()) {
+      try (var rs = statement.executeQuery("SELECT count(*) FROM databasechangelog")) {
+        rs.next();
+        assertThat(rs.getInt(1)).isEqualTo(1);
+      }
+      try (var generation =
+          statement.executeQuery("SELECT generation FROM operations.schema_metadata WHERE id=1")) {
+        generation.next();
+        assertThat(generation.getInt(1)).isEqualTo(3);
+      }
     }
   }
 
   @org.junit.jupiter.params.ParameterizedTest
   @org.junit.jupiter.params.provider.ValueSource(strings = {"blockout_api", "blockout_worker"})
-  void runtimeRoleCannotCreateTables(String role) throws Exception {
+  void runtimeRoleCannotCreateTables(String role) throws SQLException, LiquibaseException {
     migrate();
 
-    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test")) {
-      assertThatThrownBy(
-              () -> c.createStatement().execute("CREATE TABLE operations.forbidden(id int)"))
+    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test");
+        var statement = c.createStatement()) {
+      assertThatThrownBy(() -> statement.execute("CREATE TABLE operations.forbidden(id int)"))
           .isInstanceOfSatisfying(
               SQLException.class, failure -> assertThat(failure.getSQLState()).isEqualTo("42501"));
     }
@@ -80,13 +82,14 @@ class MigrationIntegrationTest {
 
   @org.junit.jupiter.params.ParameterizedTest
   @org.junit.jupiter.params.provider.ValueSource(strings = {"blockout_api", "blockout_worker"})
-  void runtimeRoleCannotChangeSchemaGeneration(String role) throws Exception {
+  void runtimeRoleCannotChangeSchemaGeneration(String role)
+      throws SQLException, LiquibaseException {
     migrate();
 
-    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test")) {
+    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test");
+        var statement = c.createStatement()) {
       assertThatThrownBy(
-              () ->
-                  c.createStatement().execute("UPDATE operations.schema_metadata SET generation=4"))
+              () -> statement.execute("UPDATE operations.schema_metadata SET generation=4"))
           .isInstanceOfSatisfying(
               SQLException.class, failure -> assertThat(failure.getSQLState()).isEqualTo("42501"));
     }
@@ -94,54 +97,57 @@ class MigrationIntegrationTest {
 
   @org.junit.jupiter.params.ParameterizedTest
   @org.junit.jupiter.params.provider.ValueSource(strings = {"blockout_api", "blockout_worker"})
-  void runtimeRoleCannotCreateIdentityTables(String role) throws Exception {
+  void runtimeRoleCannotCreateIdentityTables(String role) throws SQLException, LiquibaseException {
     migrate();
-    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test")) {
-      assertThatThrownBy(
-              () -> c.createStatement().execute("CREATE TABLE identity.forbidden(id int)"))
+    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), role, "test");
+        var statement = c.createStatement()) {
+      assertThatThrownBy(() -> statement.execute("CREATE TABLE identity.forbidden(id int)"))
           .isInstanceOfSatisfying(
               SQLException.class, e -> assertThat(e.getSQLState()).isEqualTo("42501"));
     }
   }
 
   @Test
-  void workerCannotCreateBusinessUsers() throws Exception {
+  void workerCannotCreateBusinessUsers() throws SQLException, LiquibaseException {
     migrate();
-    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), "blockout_worker", "test")) {
-      assertThat(c.createStatement().executeQuery("SELECT count(*) FROM identity.users").next())
-          .isTrue();
+    try (var c = DriverManager.getConnection(DB.getJdbcUrl(), "blockout_worker", "test");
+        var statement = c.createStatement()) {
+      try (var result = statement.executeQuery("SELECT count(*) FROM identity.users")) {
+        assertThat(result.next()).isTrue();
+      }
       assertThatThrownBy(
               () ->
-                  c.createStatement()
-                      .execute(
-                          "INSERT INTO identity.users(id,pseudo,pseudo_key,active,created_at,updated_at) VALUES (gen_random_uuid(),'user','user',true,now(),now())"))
+                  statement.execute(
+                      "INSERT INTO identity.users(id,pseudo,pseudo_key,active,created_at,updated_at) VALUES (gen_random_uuid(),'user','user',true,now(),now())"))
           .isInstanceOfSatisfying(
               SQLException.class, e -> assertThat(e.getSQLState()).isEqualTo("42501"));
     }
   }
 
   @Test
-  void rejectsChangedAppliedHistory() throws Exception {
+  void rejectsChangedAppliedHistory() throws SQLException, LiquibaseException {
     migrate();
-    try (var c = connect()) {
-      c.createStatement()
-          .execute("UPDATE databasechangelog SET md5sum='9:00000000000000000000000000000000'");
+    try (var c = connect();
+        var statement = c.createStatement()) {
+      statement.execute("UPDATE databasechangelog SET md5sum='9:00000000000000000000000000000000'");
     }
-    try (var lb = liquibase("db/changelog/db.changelog-master.xml")) {
+    try (var connection = new JdbcConnection(connect());
+        var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
       assertThatThrownBy(() -> lb.update(""))
           .isInstanceOf(liquibase.exception.LiquibaseException.class);
     }
   }
 
   @Test
-  void refusesAnAlreadyHeldMigrationLock() throws Exception {
+  void refusesAnAlreadyHeldMigrationLock() throws SQLException, LiquibaseException {
     migrate();
-    try (var c = connect()) {
-      c.createStatement()
-          .execute(
-              "UPDATE databasechangeloglock SET locked=true,lockgranted=clock_timestamp(),lockedby='controlled-test'");
+    try (var c = connect();
+        var statement = c.createStatement()) {
+      statement.execute(
+          "UPDATE databasechangeloglock SET locked=true,lockgranted=clock_timestamp(),lockedby='controlled-test'");
     }
-    try (var lb = liquibase("db/changelog/test-evolution.xml")) {
+    try (var connection = new JdbcConnection(connect());
+        var lb = new Liquibase("db/changelog/test-evolution.xml", resources, connection)) {
       LockServiceFactory.getInstance().getLockService(lb.getDatabase()).setChangeLogLockWaitTime(0);
       assertThatThrownBy(() -> lb.update(""))
           .isInstanceOf(liquibase.exception.LiquibaseException.class);
@@ -149,33 +155,35 @@ class MigrationIntegrationTest {
   }
 
   @Test
-  void appliesAnAdditiveTestOnlyEvolution() throws Exception {
+  void appliesAnAdditiveTestOnlyEvolution() throws SQLException, LiquibaseException {
     migrate();
-    try (var lb = liquibase("db/changelog/test-evolution.xml")) {
+    try (var connection = new JdbcConnection(connect());
+        var lb = new Liquibase("db/changelog/test-evolution.xml", resources, connection)) {
       lb.update("");
       lb.update("");
     }
-    try (var c = connect()) {
-      assertThat(
-              c.createStatement()
-                  .executeQuery("SELECT note FROM operations.evolution_probe")
-                  .getMetaData()
-                  .getColumnCount())
-          .isEqualTo(1);
+    try (var c = connect();
+        var statement = c.createStatement()) {
+      try (var result = statement.executeQuery("SELECT note FROM operations.evolution_probe")) {
+        assertThat(result.getMetaData().getColumnCount()).isEqualTo(1);
+      }
     }
   }
 
   @Test
-  void rollsBackAnInvalidChangeset() throws Exception {
+  void rollsBackAnInvalidChangeset() throws SQLException, LiquibaseException {
     migrate();
-    try (var lb = liquibase("db/changelog/test-invalid.xml")) {
+    try (var connection = new JdbcConnection(connect());
+        var lb = new Liquibase("db/changelog/test-invalid.xml", resources, connection)) {
       assertThatThrownBy(() -> lb.update(""))
           .isInstanceOf(liquibase.exception.LiquibaseException.class);
     }
-    try (var c = connect()) {
-      var rs = c.createStatement().executeQuery("SELECT to_regclass('operations.invalid_probe')");
-      rs.next();
-      assertThat(rs.getString(1)).isNull();
+    try (var c = connect();
+        var statement = c.createStatement()) {
+      try (var rs = statement.executeQuery("SELECT to_regclass('operations.invalid_probe')")) {
+        rs.next();
+        assertThat(rs.getString(1)).isNull();
+      }
     }
   }
 }

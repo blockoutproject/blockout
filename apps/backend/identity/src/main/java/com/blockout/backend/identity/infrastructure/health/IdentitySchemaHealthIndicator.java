@@ -1,6 +1,7 @@
 package com.blockout.backend.identity.infrastructure.health;
 
 import org.springframework.boot.health.contributor.*;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /** Checks every profile/binding column without mutating data or contacting identity providers. */
@@ -20,7 +21,7 @@ public final class IdentitySchemaHealthIndicator implements HealthIndicator {
       sql.queryForList(
           "SELECT user_id,project_id,environment,customer_id,created_at FROM identity.billing_bindings LIMIT 0");
       return Health.up().build();
-    } catch (RuntimeException failure) {
+    } catch (DataAccessException _) {
       return Health.down().build();
     }
   }

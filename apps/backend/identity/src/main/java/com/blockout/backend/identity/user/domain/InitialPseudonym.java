@@ -18,12 +18,10 @@ public final class InitialPseudonym {
             .replaceAll("-{2,}", "-")
             .replaceAll("(^-+)|(-+$)", "");
     if (base.isBlank()) base = "user";
-    String suffix =
-        attempt == 0
-            ? ""
-            : attempt < 200
-                ? "-" + (attempt + 1)
-                : "-" + id.toString().replace("-", "").substring(0, 20);
+    String suffix;
+    if (attempt == 0) suffix = "";
+    else if (attempt < 200) suffix = "-" + (attempt + 1);
+    else suffix = "-" + id.toString().replace("-", "").substring(0, 20);
     int max = 30 - suffix.length();
     if (base.length() > max) base = base.substring(0, max).replaceAll("-+$", "");
     if (base.isBlank()) base = "user";

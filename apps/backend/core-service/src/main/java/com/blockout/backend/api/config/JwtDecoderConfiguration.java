@@ -12,13 +12,16 @@ import org.springframework.web.client.RestTemplate;
 @Configuration(proxyBeanMethods = false)
 public class JwtDecoderConfiguration {
   @Bean
-  JwtDecoder decoder(AuthProperties properties) {
-    var client =
-        HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(3))
-            .followRedirects(HttpClient.Redirect.NEVER)
-            .build();
-    var factory = new JdkClientHttpRequestFactory(client);
+  HttpClient jwksHttpClient() {
+    return HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(3))
+        .followRedirects(HttpClient.Redirect.NEVER)
+        .build();
+  }
+
+  @Bean
+  JwtDecoder decoder(AuthProperties properties, HttpClient jwksHttpClient) {
+    var factory = new JdkClientHttpRequestFactory(jwksHttpClient);
     factory.setReadTimeout(Duration.ofSeconds(3));
     var decoder =
         NimbusJwtDecoder.withJwkSetUri(properties.jwkSetUri())
@@ -35,7 +38,7 @@ public class JwtDecoderConfiguration {
     return token -> {
       try {
         return decoder.decode(token);
-      } catch (JwtException failure) {
+      } catch (JwtException _) {
         // Provider failures may contain response bodies; the bearer boundary exposes only a safe
         // code.
         throw new BadJwtException("Token verification failed");

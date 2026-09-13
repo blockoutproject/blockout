@@ -19,26 +19,29 @@ public final class PostgresUserProfiles implements UserProfileStore {
     this.sql = sql;
   }
 
+  @Override
   public Optional<UserProfile> find(ExternalIdentity identity) {
     return sql
         .query(
             "SELECT u.* FROM identity.users u JOIN identity.external_identities e ON e.user_id=u.id WHERE e.issuer=? AND e.subject=?",
-            (rs, n) -> read(rs),
+            (rs, _) -> read(rs),
             identity.issuer(),
             identity.subject())
         .stream()
         .findFirst();
   }
 
+  @Override
   public void lockCreation(ExternalIdentity identity) {
     requireTransaction();
     // Hash collisions only serialize unrelated creations; exact SQL keys remain authoritative.
     sql.query(
         "SELECT pg_advisory_xact_lock(hashtextextended(?,0))",
-        rs -> {},
+        _ -> {},
         identity.issuer() + "\n" + identity.subject());
   }
 
+  @Override
   public Optional<UserProfile> create(
       ExternalIdentity identity,
       UUID id,
@@ -51,7 +54,7 @@ public final class PostgresUserProfiles implements UserProfileStore {
     var inserted =
         sql.query(
             "INSERT INTO identity.users(id,pseudo,pseudo_key,email,first_name,last_name,phone_number,picture_url,active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,true,?,?) ON CONFLICT(pseudo_key) DO NOTHING RETURNING *",
-            (rs, row) -> read(rs),
+            (rs, _) -> read(rs),
             id,
             pseudo,
             pseudo.toLowerCase(Locale.ROOT),

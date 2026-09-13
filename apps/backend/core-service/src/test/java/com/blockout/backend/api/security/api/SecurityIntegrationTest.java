@@ -8,6 +8,7 @@ import com.nimbusds.jose.jwk.*;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jwt.*;
 import com.sun.net.httpserver.HttpServer;
+import java.io.IOException;
 import java.net.*;
 import java.net.http.*;
 import java.time.Instant;
@@ -56,11 +57,13 @@ class SecurityIntegrationTest {
                     .getBytes(java.nio.charset.StandardCharsets.UTF_8);
             ex.getResponseHeaders().add("Content-Type", "application/json");
             ex.sendResponseHeaders(unavailable.get() ? 503 : 200, body.length);
-            ex.getResponseBody().write(body);
-            ex.close();
+            try (ex;
+                var responseBody = ex.getResponseBody()) {
+              responseBody.write(body);
+            }
           });
       jwks.start();
-    } catch (Exception e) {
+    } catch (IOException | JOSEException e) {
       throw new ExceptionInInitializerError(e);
     }
   }
@@ -85,7 +88,7 @@ class SecurityIntegrationTest {
   }
 
   @Test
-  void rejectsMissingAuthentication() throws Exception {
+  void rejectsMissingAuthentication() throws IOException, InterruptedException {
     var r = get("/api/v2/test", null);
 
     assertThat(r.statusCode()).isEqualTo(401);
@@ -97,17 +100,17 @@ class SecurityIntegrationTest {
 
     assertThat(problem.path("status").asInt()).isEqualTo(401);
 
-    assertThat(problem.path("code").asText()).isEqualTo("AUTHENTICATION_REQUIRED");
+    assertThat(problem.path("code").asString()).isEqualTo("AUTHENTICATION_REQUIRED");
 
-    assertThat(problem.path("type").asText("about:blank")).isEqualTo("about:blank");
+    assertThat(problem.path("type").asString("about:blank")).isEqualTo("about:blank");
 
-    assertThat(problem.path("detail").asText()).isEqualTo("Authentication required.");
+    assertThat(problem.path("detail").asString()).isEqualTo("Authentication required.");
 
     assertThat(r.body()).doesNotContain("exception", "test-subject");
   }
 
   @Test
-  void acceptsValidToken() throws Exception {
+  void acceptsValidToken() throws IOException, InterruptedException, JOSEException {
     assertThat(
             get(
                     "/api/v2/test",
@@ -121,13 +124,15 @@ class SecurityIntegrationTest {
   }
 
   @Test
-  void deniesAuthenticatedAccessWithoutAuthority() throws Exception {
+  void deniesAuthenticatedAccessWithoutAuthority()
+      throws IOException, InterruptedException, JOSEException {
     assertThat(get("/api/v2/staff", valid()).statusCode()).isEqualTo(403);
   }
 
   @org.junit.jupiter.params.ParameterizedTest(name = "rejects {0}")
   @org.junit.jupiter.params.provider.EnumSource(InvalidToken.class)
-  void rejectsInvalidToken(InvalidToken scenario) throws Exception {
+  void rejectsInvalidToken(InvalidToken scenario)
+      throws IOException, InterruptedException, JOSEException {
     var signing =
         scenario == InvalidToken.SIGNATURE
             ? new RSAKeyGenerator(2048).keyID(key.getKeyID()).generate()
@@ -162,7 +167,7 @@ class SecurityIntegrationTest {
   }
 
   @Test
-  void refreshesRotatedSigningKeys() throws Exception {
+  void refreshesRotatedSigningKeys() throws IOException, InterruptedException, JOSEException {
     assertThat(get("/api/v2/test", valid()).statusCode()).isEqualTo(200);
     key = new RSAKeyGenerator(2048).keyID("rotated").generate();
 
@@ -172,7 +177,7 @@ class SecurityIntegrationTest {
   }
 
   @Test
-  void acceptsCachedKeyDuringJwksOutage() throws Exception {
+  void acceptsCachedKeyDuringJwksOutage() throws IOException, InterruptedException, JOSEException {
     String cached = valid();
 
     assertThat(get("/api/v2/test", cached).statusCode()).isEqualTo(200);
@@ -188,7 +193,7 @@ class SecurityIntegrationTest {
   }
 
   @Test
-  void deniesUnknownKeyDuringJwksOutage() throws Exception {
+  void deniesUnknownKeyDuringJwksOutage() throws IOException, InterruptedException, JOSEException {
     var unknown = new RSAKeyGenerator(2048).keyID("unknown").generate();
     var token =
         token(unknown, "https://issuer.example/", "blockout-test", Instant.now().plusSeconds(300));
@@ -205,27 +210,27 @@ class SecurityIntegrationTest {
   }
 
   @Test
-  void neverExposesManagementOnTheProductPort() throws Exception {
+  void neverExposesManagementOnTheProductPort() throws IOException, InterruptedException {
     assertThat(get("/actuator/prometheus", null).statusCode()).isEqualTo(401);
   }
 
   @Test
-  void deniesAnUnregisteredProductRoute() throws Exception {
+  void deniesAnUnregisteredProductRoute() throws IOException, InterruptedException, JOSEException {
     assertThat(get("/api/v2/unknown", valid()).statusCode()).isEqualTo(403);
   }
 
-  String valid() throws Exception {
+  String valid() throws JOSEException {
     return token(key, "https://issuer.example/", "blockout-test", Instant.now().plusSeconds(300));
   }
 
   static String token(RSAKey signing, String issuer, String audience, Instant expires)
-      throws Exception {
+      throws JOSEException {
     return token(signing, issuer, audience, expires, null);
   }
 
   static String token(
       RSAKey signing, String issuer, String audience, Instant expires, Instant notBefore)
-      throws Exception {
+      throws JOSEException {
     var jwt =
         new SignedJWT(
             new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(signing.getKeyID()).build(),
@@ -241,12 +246,14 @@ class SecurityIntegrationTest {
     return jwt.serialize();
   }
 
-  HttpResponse<String> get(String path, String token) throws Exception {
+  HttpResponse<String> get(String path, String token) throws IOException, InterruptedException {
     var b =
         HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
             .timeout(java.time.Duration.ofSeconds(10));
     if (token != null) b.header("Authorization", "Bearer " + token);
-    return HttpClient.newHttpClient().send(b.build(), HttpResponse.BodyHandlers.ofString());
+    try (var client = HttpClient.newHttpClient()) {
+      return client.send(b.build(), HttpResponse.BodyHandlers.ofString());
+    }
   }
 
   @TestConfiguration

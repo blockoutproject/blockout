@@ -24,13 +24,14 @@ import org.springframework.web.client.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /** Read-only Auth0 adapter with bounded HTTP, private credentials and safe expected failures. */
-public final class Auth0UserIdentityProvider implements UserIdentityProvider {
+public final class Auth0UserIdentityProvider implements UserIdentityProvider, AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(Auth0UserIdentityProvider.class);
   private final OAuth2ClientCredentialsGrantRequest grant;
   private final RestClientClientCredentialsTokenResponseClient tokens;
   private final Clock clock;
   private final MeterRegistry metrics;
   private final RestClient http;
+  private final HttpClient client;
   private final Validator validator;
   private final URI origin;
   private String accessToken;
@@ -44,7 +45,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
     this.clock = clock;
     this.metrics = metrics;
     this.backoff = new Auth0Backoff(clock);
-    var client =
+    client =
         HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(3))
             .followRedirects(HttpClient.Redirect.NEVER)
@@ -64,7 +65,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
     grant = new OAuth2ClientCredentialsGrantRequest(registration);
     tokens = new RestClientClientCredentialsTokenResponseClient();
     tokens.addParametersConverter(
-        request -> {
+        _ -> {
           var parameters = new LinkedMultiValueMap<String, String>();
           parameters.set("audience", origin.resolve("/api/v2/").toString());
           return parameters;
@@ -79,8 +80,14 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
                         .addCustomConverter(new OAuth2AccessTokenResponseHttpMessageConverter()))
             .defaultStatusHandler(
                 status -> !status.is2xxSuccessful(),
-                (request, response) -> rejectResponse("token", response))
+                (_, response) -> rejectResponse("token", response))
             .build());
+  }
+
+  /** Releases the HTTP client when Spring destroys this provider bean. */
+  @Override
+  public void close() {
+    client.close();
   }
 
   @Override
@@ -169,7 +176,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
       metrics.counter("blockout.identity.auth0.tokens_issued").increment();
       refreshAt = clock.instant().plusSeconds(lifetime - Math.min(30, lifetime / 2));
       return accessToken;
-    } catch (OAuth2AuthorizationException | RestClientException failure) {
+    } catch (OAuth2AuthorizationException | RestClientException _) {
       throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
     }
   }
@@ -189,12 +196,12 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
               .headers(headers -> headers.setBearerAuth(token))
               .retrieve()
               .onStatus(
-                  status -> !status.is2xxSuccessful(), (req, res) -> rejectResponse("profile", res))
+                  status -> !status.is2xxSuccessful(), (_, res) -> rejectResponse("profile", res))
               .body(Auth0Profile.class);
       if (profile == null || !validator.validate(profile).isEmpty())
         throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
       return profile;
-    } catch (RestClientException failure) {
+    } catch (RestClientException _) {
       throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE", 503, Instant.MIN);
     }
   }
@@ -226,7 +233,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
     try {
       long seconds = Long.parseLong(value.trim());
       return seconds >= 0 ? base.plusSeconds(seconds) : Instant.MIN;
-    } catch (NumberFormatException | DateTimeException | ArithmeticException invalid) {
+    } catch (NumberFormatException | DateTimeException | ArithmeticException _) {
       return Instant.MIN;
     }
   }
@@ -238,6 +245,8 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider {
   }
 
   private static final class ProviderFailure extends RuntimeException {
+    @java.io.Serial private static final long serialVersionUID = 1L;
+
     private final String code;
     private final int status;
     private final Instant retryAt;

@@ -144,7 +144,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
               TimeUnit.MILLISECONDS));
       // A bounded handoff absorbs the gap between Runnable completion and an idle pool thread.
       execution.execute(task);
-    } catch (RejectedExecutionException stopped) {
+    } catch (RejectedExecutionException _) {
       cancel(work);
       active.remove(job.leaseToken());
       var scheduled = timeout.get();
@@ -166,7 +166,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
     try {
       if (!execution.awaitTermination(config.shutdownGrace().toMillis(), TimeUnit.MILLISECONDS))
         active.values().forEach(this::cancel);
-    } catch (InterruptedException e) {
+    } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
       active.values().forEach(this::cancel);
     } finally {

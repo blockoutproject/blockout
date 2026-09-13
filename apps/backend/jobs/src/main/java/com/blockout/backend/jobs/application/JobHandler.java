@@ -18,5 +18,5 @@ public interface JobHandler {
    * InterruptedException preserves interrupt status and leaves the lease recoverable. Payloads and
    * identities must never be logged by the handler.
    */
-  JobResult handle(Job job) throws Exception;
+  JobResult handle(Job job) throws InterruptedException;
 }
