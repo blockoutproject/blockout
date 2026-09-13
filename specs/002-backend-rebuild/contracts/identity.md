@@ -29,3 +29,9 @@ Webhook ingress uses its own stateless Spring Security chain. Missing or incorre
 MVC converts and validates the body normally after authorization; no signature timestamp is required.
 Replayed event IDs remain harmless through durable receipt deduplication. Production TLS protects the
 credential and request body in transit; the shared secret must remain private and be rotated if exposed.
+
+Webhook event types and environments are generated from their documented RevenueCat vocabularies. Future types
+are accepted as the generator's unknown case and acknowledged without reconciliation. Unknown environments are
+ignored even for transfers; an absent environment remains supported for TRANSFER. Subscription extension and
+purchase redemption events request current-state verification. Receipt types preserve known wire values and use
+the technical `unknown_default_open_api` classification for future event types.

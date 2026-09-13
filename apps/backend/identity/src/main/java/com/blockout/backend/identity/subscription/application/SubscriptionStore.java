@@ -1,5 +1,6 @@
 package com.blockout.backend.identity.subscription.application;
 
+import com.blockout.backend.identity.subscription.domain.BillingEnvironment;
 import com.blockout.backend.identity.subscription.domain.SubscriptionFailure;
 import java.time.Instant;
 import java.util.*;
@@ -80,7 +81,7 @@ public interface SubscriptionStore {
    * @param customers exact provider customer identifiers
    * @return known owners ordered by UUID
    */
-  List<UUID> owners(String project, String environment, Set<String> customers);
+  List<UUID> owners(String project, BillingEnvironment environment, Set<String> customers);
 
   /**
    * Deduplicates a receipt in the same transaction as all derived requests.

@@ -9,14 +9,14 @@ import org.junit.jupiter.api.*;
 class SchemaHealthIntegrationTest extends PostgresJobsFixture {
   @Test
   void compatibleSchemaIsReady() {
-    var health = new SchemaHealthIndicator(sql);
+    SchemaHealthIndicator health = new SchemaHealthIndicator(sql);
 
     assertThat(health.health().getStatus().getCode()).isEqualTo("UP");
   }
 
   @Test
   void incompatibleSchemaIsNotReady() {
-    var health = new SchemaHealthIndicator(sql);
+    SchemaHealthIndicator health = new SchemaHealthIndicator(sql);
     sql.update("UPDATE operations.schema_metadata SET generation=5");
 
     try {
@@ -28,7 +28,7 @@ class SchemaHealthIntegrationTest extends PostgresJobsFixture {
 
   @Test
   void missingQueueIsNotReady() {
-    var health = new SchemaHealthIndicator(sql);
+    SchemaHealthIndicator health = new SchemaHealthIndicator(sql);
 
     tx.executeWithoutResult(
         status -> {

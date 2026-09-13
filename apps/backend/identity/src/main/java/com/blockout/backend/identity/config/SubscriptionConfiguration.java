@@ -51,7 +51,7 @@ public class SubscriptionConfiguration {
       JobRepository jobs,
       PlatformTransactionManager manager,
       Clock clock) {
-    var tx = new TransactionTemplate(manager);
+    TransactionTemplate tx = new TransactionTemplate(manager);
     tx.setTimeout(5);
     return new Subscriptions(store, publisher, jobs, tx, clock);
   }

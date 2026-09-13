@@ -70,7 +70,7 @@ public interface JobRepository {
    * @param state persisted queue state selected by the caller
    * @return number of matching rows, including zero
    */
-  double count(String state);
+  double count(JobState state);
 
   /**
    * Measures the oldest currently executable pending job using the database clock.

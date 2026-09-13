@@ -137,14 +137,14 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
   private void dispatch(Job job) {
     long now = System.nanoTime();
     AtomicBoolean cancelled = new AtomicBoolean();
-    var timeout = new AtomicReference<ScheduledFuture<?>>();
+    AtomicReference<ScheduledFuture<?>> timeout = new AtomicReference<>();
     FutureTask<Void> task =
         new FutureTask<>(
             () -> {
               attempts.execute(job, cancelled);
               return null;
             });
-    var work = new Execution(job, task, cancelled, new AtomicLong(now));
+    JobWorker.Execution work = new Execution(job, task, cancelled, new AtomicLong(now));
     active.put(job.leaseToken(), work);
     try {
       timeout.set(
@@ -166,14 +166,14 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
               // Release capacity when the runnable exits, even if the cancelled handler ignored
               // interruption.
               active.remove(job.leaseToken());
-              var scheduled = timeout.get();
+              ScheduledFuture<?> scheduled = timeout.get();
               if (scheduled != null) scheduled.cancel(false);
             }
           });
     } catch (RejectedExecutionException _) {
       cancel(work);
       active.remove(job.leaseToken());
-      var scheduled = timeout.get();
+      ScheduledFuture<?> scheduled = timeout.get();
       if (scheduled != null) scheduled.cancel(false);
     }
   }

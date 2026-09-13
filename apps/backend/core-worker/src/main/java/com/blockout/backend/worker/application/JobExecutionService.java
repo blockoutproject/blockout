@@ -48,7 +48,8 @@ public final class JobExecutionService {
       if (cancelled.get()) return;
       JobHandler handler = handlers.get(job.type());
       if (handler == null || handler.version() != job.version()) {
-        if (jobs.fail(job, "UNSUPPORTED_JOB", Duration.ZERO, true)) telemetry.unsupported(job);
+        if (jobs.fail(job, FailureCode.UNSUPPORTED_JOB.name(), Duration.ZERO, true))
+          telemetry.unsupported(job);
         return;
       }
       JobResult result = handler.handle(job);
@@ -59,7 +60,7 @@ public final class JobExecutionService {
             telemetry.rejected(job, rejected.code());
         }
         case JobResult.Failed failed -> {
-          var delay = RetryPolicy.delay(job.attempts());
+          Duration delay = RetryPolicy.delay(job.attempts());
           if (failed.retryAfter().compareTo(delay) > 0) delay = failed.retryAfter();
           if (!jobs.failWithEffect(job, failed.code(), delay, failed.permanent(), failed.effect()))
             telemetry.leaseLost(job);
@@ -73,7 +74,12 @@ public final class JobExecutionService {
       boolean recorded = false;
       try {
         if (!cancelled.get())
-          recorded = jobs.fail(job, "HANDLER_FAILURE", RetryPolicy.delay(job.attempts()), false);
+          recorded =
+              jobs.fail(
+                  job,
+                  FailureCode.HANDLER_FAILURE.name(),
+                  RetryPolicy.delay(job.attempts()),
+                  false);
       } catch (RuntimeException unavailable) {
         failure.addSuppressed(unavailable);
       }
@@ -90,5 +96,11 @@ public final class JobExecutionService {
   private void complete(Job job, Runnable effect) {
     if (jobs.completeWithEffect(job, effect)) telemetry.completed();
     else telemetry.leaseLost(job);
+  }
+
+  /** Worker-owned failures serialized at the extensible durable-job boundary. */
+  private enum FailureCode {
+    UNSUPPORTED_JOB,
+    HANDLER_FAILURE
   }
 }

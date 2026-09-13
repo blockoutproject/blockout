@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.JobHandler;
 import com.blockout.backend.jobs.application.JobResult;
+import com.blockout.backend.jobs.application.JobState;
 import com.blockout.backend.jobs.infrastructure.health.SchemaHealthIndicator;
 import com.blockout.backend.jobs.infrastructure.persistence.PostgresJobPublisher;
 import com.blockout.backend.jobs.infrastructure.persistence.PostgresJobRepository;
@@ -13,7 +14,10 @@ import com.blockout.backend.worker.application.JobExecutionService;
 import com.blockout.backend.worker.application.WorkerTelemetry;
 import com.blockout.backend.worker.config.WorkerProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -48,15 +52,17 @@ class WorkerIntegrationTest {
   /** Applies the production baseline and wires queue adapters on one shared test datasource. */
   @BeforeAll
   static void setup() throws SQLException, LiquibaseException {
-    var ds = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
+    DriverManagerDataSource ds =
+        new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     sql = new JdbcTemplate(ds);
     tx = new TransactionTemplate(new JdbcTransactionManager(ds));
-    try (var c = ds.getConnection();
-        var statement = c.createStatement()) {
+    try (Connection c = ds.getConnection();
+        Statement statement = c.createStatement()) {
       statement.execute(
           "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
-      try (var connection = new JdbcConnection(c);
-          var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
+      try (JdbcConnection connection = new JdbcConnection(c);
+          Liquibase lb =
+              new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
         lb.update("");
       }
     }
@@ -82,7 +88,7 @@ class WorkerIntegrationTest {
    */
   void start(JobHandler handler) {
     metrics = new SimpleMeterRegistry();
-    var telemetry = new WorkerTelemetry(repository, metrics);
+    WorkerTelemetry telemetry = new WorkerTelemetry(repository, metrics);
     worker =
         new JobWorker(
             repository,
@@ -111,14 +117,14 @@ class WorkerIntegrationTest {
 
   @Test
   void processesSupportedWork() {
-    var executions = new AtomicInteger();
+    AtomicInteger executions = new AtomicInteger();
     publish("a");
 
     start(handler(_ -> executions.incrementAndGet()));
 
     await()
         .atMost(Duration.ofSeconds(5))
-        .untilAsserted(() -> assertThat(repository.count("succeeded")).isEqualTo(1));
+        .untilAsserted(() -> assertThat(repository.count(JobState.SUCCEEDED)).isEqualTo(1));
 
     assertThat(executions).hasValue(1);
   }
@@ -131,7 +137,7 @@ class WorkerIntegrationTest {
 
     await()
         .atMost(Duration.ofSeconds(10))
-        .untilAsserted(() -> assertThat(repository.count("succeeded")).isEqualTo(100));
+        .untilAsserted(() -> assertThat(repository.count(JobState.SUCCEEDED)).isEqualTo(100));
     assertThat(sql.queryForObject("SELECT max(attempts) FROM operations.jobs", Integer.class))
         .isEqualTo(1);
   }
@@ -139,10 +145,10 @@ class WorkerIntegrationTest {
   @Test
   void boundsConcurrencyAndRenewsLeases() throws InterruptedException {
     for (int i = 0; i < 5; i++) publish("" + i);
-    var entered = new CountDownLatch(2);
-    var release = new CountDownLatch(1);
-    var active = new AtomicInteger();
-    var peak = new AtomicInteger();
+    CountDownLatch entered = new CountDownLatch(2);
+    CountDownLatch release = new CountDownLatch(1);
+    AtomicInteger active = new AtomicInteger();
+    AtomicInteger peak = new AtomicInteger();
 
     start(
         handler(
@@ -155,7 +161,7 @@ class WorkerIntegrationTest {
             }));
 
     assertThat(entered.await(5, TimeUnit.SECONDS)).isTrue();
-    var initial =
+    Timestamp initial =
         sql.queryForObject(
             "SELECT max(lease_expires_at) FROM operations.jobs", java.sql.Timestamp.class);
 
@@ -169,12 +175,12 @@ class WorkerIntegrationTest {
                             java.sql.Timestamp.class))
                     .isAfter(initial));
 
-    assertThat(repository.count("running")).isEqualTo(2);
+    assertThat(repository.count(JobState.RUNNING)).isEqualTo(2);
     release.countDown();
 
     await()
         .atMost(Duration.ofSeconds(5))
-        .untilAsserted(() -> assertThat(repository.count("succeeded")).isEqualTo(5));
+        .untilAsserted(() -> assertThat(repository.count(JobState.SUCCEEDED)).isEqualTo(5));
 
     assertThat(peak.get()).isLessThanOrEqualTo(2);
   }
@@ -187,7 +193,7 @@ class WorkerIntegrationTest {
 
     await()
         .atMost(Duration.ofSeconds(5))
-        .untilAsserted(() -> assertThat(repository.count("dead")).isEqualTo(1));
+        .untilAsserted(() -> assertThat(repository.count(JobState.DEAD)).isEqualTo(1));
   }
 
   @Test
@@ -209,7 +215,7 @@ class WorkerIntegrationTest {
                             "SELECT last_error_code FROM operations.jobs", String.class))
                     .isEqualTo("HANDLER_FAILURE"));
 
-    assertThat(repository.count("pending")).isEqualTo(1);
+    assertThat(repository.count(JobState.PENDING)).isEqualTo(1);
   }
 
   @Test
@@ -223,7 +229,7 @@ class WorkerIntegrationTest {
                 throw new AssertionError("must not execute");
               }));
       worker.tick();
-      assertThat(repository.count("pending")).isEqualTo(1);
+      assertThat(repository.count(JobState.PENDING)).isEqualTo(1);
     } finally {
       sql.update("UPDATE operations.schema_metadata SET generation=4");
     }
@@ -231,7 +237,7 @@ class WorkerIntegrationTest {
 
   @Test
   void shutdownLeavesInterruptedWorkRecoverable() throws InterruptedException {
-    var entered = new CountDownLatch(1);
+    CountDownLatch entered = new CountDownLatch(1);
     publish("a");
 
     start(
@@ -256,7 +262,7 @@ class WorkerIntegrationTest {
 
     await()
         .atMost(Duration.ofSeconds(5))
-        .untilAsserted(() -> assertThat(repository.count("dead")).isEqualTo(1));
+        .untilAsserted(() -> assertThat(repository.count(JobState.DEAD)).isEqualTo(1));
 
     assertThat(sql.queryForObject("SELECT attempts FROM operations.jobs", Integer.class))
         .isEqualTo(1);
@@ -264,7 +270,7 @@ class WorkerIntegrationTest {
 
   @Test
   void interruptsJobsAtTheExecutionDeadline() throws InterruptedException {
-    var interrupted = new CountDownLatch(1);
+    CountDownLatch interrupted = new CountDownLatch(1);
     publish("a");
 
     start(
@@ -281,13 +287,13 @@ class WorkerIntegrationTest {
     assertThat(interrupted.await(5, TimeUnit.SECONDS)).isTrue();
     worker.stop();
 
-    assertThat(repository.count("succeeded")).isZero();
+    assertThat(repository.count(JobState.SUCCEEDED)).isZero();
   }
 
   @Test
   void enforcesDeadlineWhileSchemaIsUnavailable() throws InterruptedException {
-    var entered = new CountDownLatch(1);
-    var interrupted = new CountDownLatch(1);
+    CountDownLatch entered = new CountDownLatch(1);
+    CountDownLatch interrupted = new CountDownLatch(1);
     publish("a");
 
     start(
@@ -314,8 +320,8 @@ class WorkerIntegrationTest {
 
   @Test
   void countsUncooperativeExpiredAttemptsAgainstConcurrency() throws InterruptedException {
-    var entered = new CountDownLatch(2);
-    var release = new CountDownLatch(1);
+    CountDownLatch entered = new CountDownLatch(2);
+    CountDownLatch release = new CountDownLatch(1);
     publish("a");
 
     start(
@@ -435,7 +441,7 @@ class WorkerIntegrationTest {
         .atMost(Duration.ofSeconds(5))
         .untilAsserted(
             () -> {
-              assertThat(repository.count("succeeded")).isEqualTo(1);
+              assertThat(repository.count(JobState.SUCCEEDED)).isEqualTo(1);
               assertThat(
                       sql.queryForObject(
                           "SELECT count(*) FROM operations.test_effects", Integer.class))
@@ -453,9 +459,9 @@ class WorkerIntegrationTest {
   @Test
   void expectedFailureCommitsItsEffectWithProviderRetryDelay() {
     publish("provider-delay");
-    var job = repository.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job job = repository.claim(Duration.ofSeconds(60)).orElseThrow();
     metrics = new SimpleMeterRegistry();
-    var handler =
+    JobHandler handler =
         new JobHandler() {
           /** {@inheritDoc} */
           @Override
@@ -481,7 +487,7 @@ class WorkerIntegrationTest {
         };
     new JobExecutionService(repository, List.of(handler), new WorkerTelemetry(repository, metrics))
         .execute(job, new AtomicBoolean());
-    assertThat(repository.count("pending")).isEqualTo(1);
+    assertThat(repository.count(JobState.PENDING)).isEqualTo(1);
     assertThat(
             sql.queryForObject(
                 "SELECT available_at > clock_timestamp()+interval '55 seconds' FROM operations.jobs",

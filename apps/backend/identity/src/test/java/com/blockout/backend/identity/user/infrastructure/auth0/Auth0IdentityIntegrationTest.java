@@ -2,14 +2,20 @@ package com.blockout.backend.identity.user.infrastructure.auth0;
 
 import static org.assertj.core.api.Assertions.*;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.blockout.backend.identity.config.Auth0ProfileProperties;
 import com.blockout.backend.identity.user.application.*;
 import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import com.sun.net.httpserver.*;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.time.*;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import org.junit.jupiter.api.*;
@@ -54,7 +60,7 @@ class Auth0IdentityIntegrationTest {
         "/oauth/token",
         ex -> {
           tokens.incrementAndGet();
-          try (var requestBody = ex.getRequestBody()) {
+          try (InputStream requestBody = ex.getRequestBody()) {
             tokenRequest.set(new String(requestBody.readAllBytes(), StandardCharsets.UTF_8));
           }
           tokenHeaders.forEach((key, value) -> ex.getResponseHeaders().add(key, value));
@@ -108,7 +114,7 @@ class Auth0IdentityIntegrationTest {
     ex.getResponseHeaders().add("Content-Type", "application/json");
     ex.sendResponseHeaders(code, bytes.length);
     try (ex;
-        var responseBody = ex.getResponseBody()) {
+        OutputStream responseBody = ex.getResponseBody()) {
       responseBody.write(bytes);
     }
   }
@@ -137,10 +143,10 @@ class Auth0IdentityIntegrationTest {
   @Test
   void coalescesConcurrentCredentialRequests()
       throws InterruptedException, ExecutionException, TimeoutException {
-    try (var pool = Executors.newFixedThreadPool(6)) {
-      var futures = new java.util.ArrayList<Future<IdentityLookup>>();
+    try (ExecutorService pool = Executors.newFixedThreadPool(6)) {
+      List<Future<IdentityLookup>> futures = new java.util.ArrayList<Future<IdentityLookup>>();
       for (int i = 0; i < 6; i++) futures.add(pool.submit(() -> provider.find(actor())));
-      for (var f : futures)
+      for (Future<IdentityLookup> f : futures)
         assertThat(f.get(10, TimeUnit.SECONDS)).isInstanceOf(IdentityLookup.Found.class);
     }
     assertThat(tokens).hasValue(1);
@@ -151,10 +157,10 @@ class Auth0IdentityIntegrationTest {
       throws InterruptedException, ExecutionException, TimeoutException {
     tokenStatus = 503;
 
-    try (var pool = Executors.newFixedThreadPool(6)) {
-      var futures = new java.util.ArrayList<Future<IdentityLookup>>();
+    try (ExecutorService pool = Executors.newFixedThreadPool(6)) {
+      List<Future<IdentityLookup>> futures = new java.util.ArrayList<Future<IdentityLookup>>();
       for (int i = 0; i < 6; i++) futures.add(pool.submit(() -> provider.find(actor())));
-      for (var future : futures)
+      for (Future<IdentityLookup> future : futures)
         assertThat(future.get(10, TimeUnit.SECONDS)).isInstanceOf(IdentityLookup.Unavailable.class);
     }
     assertThat(tokens).hasValue(1);
@@ -169,19 +175,19 @@ class Auth0IdentityIntegrationTest {
   @Test
   void logsOneProviderOutageUntilRecovery()
       throws InterruptedException, ExecutionException, TimeoutException {
-    var logger =
+    Logger logger =
         (ch.qos.logback.classic.Logger)
             org.slf4j.LoggerFactory.getLogger(Auth0UserIdentityProvider.class);
-    var logs =
+    ListAppender<ILoggingEvent> logs =
         new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
     logs.start();
     logger.addAppender(logs);
     tokenStatus = 503;
     try {
-      try (var pool = Executors.newFixedThreadPool(6)) {
-        var calls = new java.util.ArrayList<Future<IdentityLookup>>();
+      try (ExecutorService pool = Executors.newFixedThreadPool(6)) {
+        List<Future<IdentityLookup>> calls = new java.util.ArrayList<Future<IdentityLookup>>();
         for (int i = 0; i < 6; i++) calls.add(pool.submit(() -> provider.find(actor())));
-        for (var call : calls)
+        for (Future<IdentityLookup> call : calls)
           assertThat(call.get(10, TimeUnit.SECONDS)).isInstanceOf(IdentityLookup.Unavailable.class);
       }
       assertThat(logs.list).hasSize(1);
@@ -310,7 +316,7 @@ class Auth0IdentityIntegrationTest {
   @Test
   void acceptsAbsentOptionalAttributes() {
     profileBody = "{\"user_id\":\"google-oauth2|person\"}";
-    var result = (IdentityLookup.Found) provider.find(actor());
+    IdentityLookup.Found result = (IdentityLookup.Found) provider.find(actor());
     assertThat(result.profile().email()).isNull();
   }
 
@@ -325,7 +331,7 @@ class Auth0IdentityIntegrationTest {
   void returnsSafeDependencyFailures(int status) {
     profileStatus = status;
     profileBody = "{\"message\":\"private@example.test synthetic-secret\"}";
-    var result = provider.find(actor());
+    IdentityLookup result = provider.find(actor());
     assertThat(result).isInstanceOf(IdentityLookup.Unavailable.class);
     assertThat(result.toString()).doesNotContain("private@", "synthetic-secret");
   }
@@ -334,14 +340,14 @@ class Auth0IdentityIntegrationTest {
   @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
   void boundsStalledProviderResponses(boolean sendHeaders)
       throws InterruptedException, ExecutionException, TimeoutException {
-    var received = new CountDownLatch(1);
-    var release = new CountDownLatch(1);
+    CountDownLatch received = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
     server.removeContext("/api/v2/users/");
     server.createContext(
         "/api/v2/users/",
         exchange -> {
           try (exchange;
-              var responseBody = exchange.getResponseBody()) {
+              OutputStream responseBody = exchange.getResponseBody()) {
             if (sendHeaders) {
               exchange.sendResponseHeaders(200, 0);
               responseBody.write('{');
@@ -354,8 +360,8 @@ class Auth0IdentityIntegrationTest {
           }
         });
 
-    try (var pool = Executors.newSingleThreadExecutor()) {
-      var result = pool.submit(() -> provider.find(actor()));
+    try (ExecutorService pool = Executors.newSingleThreadExecutor()) {
+      Future<IdentityLookup> result = pool.submit(() -> provider.find(actor()));
       try {
         assertThat(received.await(3, TimeUnit.SECONDS)).isTrue();
         assertThat(result.get(8, TimeUnit.SECONDS))

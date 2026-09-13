@@ -1,7 +1,10 @@
 package com.blockout.backend.identity.user.application;
 
+import com.blockout.backend.identity.subscription.domain.BillingEnvironment;
 import com.blockout.backend.identity.user.domain.*;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -14,7 +17,7 @@ public final class UserProfiles {
   private final TransactionTemplate transactions;
   private final Clock clock;
   private final String project;
-  private final String environment;
+  private final BillingEnvironment environment;
   private final java.util.function.Consumer<UUID> initializeSubscription;
 
   /**
@@ -34,7 +37,7 @@ public final class UserProfiles {
       TransactionTemplate transactions,
       Clock clock,
       String project,
-      String environment,
+      BillingEnvironment environment,
       java.util.function.Consumer<UUID> initializeSubscription) {
     this.profiles = profiles;
     this.provider = provider;
@@ -71,22 +74,22 @@ public final class UserProfiles {
    * @throws org.springframework.dao.DataAccessException if persistence fails; creation rolls back
    */
   public ProfileResult ensure(ExternalIdentity identity) {
-    var existing = find(identity);
+    ProfileResult existing = find(identity);
     if (!(existing instanceof ProfileResult.Missing)) return existing;
-    var lookup = provider.find(identity);
+    IdentityLookup lookup = provider.find(identity);
     if (lookup instanceof IdentityLookup.Unavailable failure)
       return new ProfileResult.Unavailable(failure.reason());
     if (lookup instanceof IdentityLookup.Mismatch) return new ProfileResult.Mismatch();
-    var attributes = ((IdentityLookup.Found) lookup).profile();
+    ExternalProfile attributes = ((IdentityLookup.Found) lookup).profile();
     return transactions.execute(
         _ -> {
           profiles.lockCreation(identity);
-          var winner = profiles.find(identity);
+          Optional<UserProfile> winner = profiles.find(identity);
           if (winner.isPresent()) return available(winner.get(), false);
-          var id = UUID.randomUUID();
-          var now = clock.instant();
+          UUID id = UUID.randomUUID();
+          Instant now = clock.instant();
           for (int attempt = 0; attempt <= 200; attempt++) {
-            var result =
+            Optional<UserProfile> result =
                 profiles.create(
                     identity,
                     id,

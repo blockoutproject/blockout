@@ -44,7 +44,7 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(AuthenticationException.class)
   @Nullable ResponseEntity<Object> authenticationRequired(
       AuthenticationException failure, WebRequest request) {
-    var headers = new HttpHeaders();
+    HttpHeaders headers = new HttpHeaders();
     headers.set(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
     return handleExceptionInternal(failure, null, headers, HttpStatus.UNAUTHORIZED, request);
   }
@@ -103,7 +103,7 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
               case 503 -> SERVICE_UNAVAILABLE;
               default -> status.is4xxClientError() ? INVALID_REQUEST : INTERNAL_ERROR;
             };
-    var responseHeaders = new HttpHeaders();
+    HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.putAll(headers);
     responseHeaders.setContentType(MediaType.APPLICATION_PROBLEM_JSON);
     responseHeaders.setCacheControl(CacheControl.noStore());

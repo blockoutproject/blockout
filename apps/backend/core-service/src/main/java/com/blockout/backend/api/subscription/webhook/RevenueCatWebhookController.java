@@ -1,6 +1,11 @@
 package com.blockout.backend.api.subscription.webhook;
 
+import static com.blockout.backend.api.user.api.models.RevenueCatEventTypeEnum.*;
+
 import com.blockout.backend.api.user.api.generated.RevenueCatWebhookApi;
+import com.blockout.backend.api.user.api.models.RevenueCatEnvironmentEnum;
+import com.blockout.backend.api.user.api.models.RevenueCatEventTypeEnum;
+import com.blockout.backend.api.user.api.models.RevenueCatWebhookEvent;
 import com.blockout.backend.api.user.api.models.RevenueCatWebhookRequest;
 import com.blockout.backend.identity.config.BillingBindingProperties;
 import com.blockout.backend.identity.subscription.application.Subscriptions;
@@ -14,20 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class RevenueCatWebhookController implements RevenueCatWebhookApi {
   private final Subscriptions subscriptions;
   private final BillingBindingProperties billing;
-  private static final Set<String> RELEVANT =
-      Set.of(
-          "INITIAL_PURCHASE",
-          "RENEWAL",
-          "CANCELLATION",
-          "UNCANCELLATION",
-          "NON_RENEWING_PURCHASE",
-          "EXPIRATION",
-          "BILLING_ISSUE",
-          "PRODUCT_CHANGE",
-          "TRANSFER",
-          "SUBSCRIPTION_PAUSED",
-          "TEMPORARY_ENTITLEMENT_GRANT",
-          "REFUND_REVERSED");
 
   /**
    * Connects authenticated events to the exact configured billing namespace.
@@ -44,15 +35,18 @@ public class RevenueCatWebhookController implements RevenueCatWebhookApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<?> receiveRevenueCatWebhook(RevenueCatWebhookRequest request) {
-    var event = request.getEvent();
-    var customers = new HashSet<String>();
-    var outgoing = new HashSet<String>();
+    RevenueCatWebhookEvent event = request.getEvent();
+    RevenueCatEventTypeEnum eventType = event.getType();
+    RevenueCatEnvironmentEnum expectedEnvironment =
+        RevenueCatEnvironmentEnum.valueOf(billing.environment().name());
+    Set<String> customers = new HashSet<>();
+    Set<String> outgoing = new HashSet<>();
     boolean relevant =
-        RELEVANT.contains(event.getType())
-            && (event.getEnvironment() == null && "TRANSFER".equals(event.getType())
-                || billing.environment().equalsIgnoreCase(event.getEnvironment()));
+        requiresRefresh(eventType)
+            && (event.getEnvironment() == null && eventType == TRANSFER
+                || expectedEnvironment == event.getEnvironment());
     if (relevant) {
-      if ("TRANSFER".equals(event.getType())) {
+      if (eventType == TRANSFER) {
         outgoing.addAll(values(event.getTransferredFrom()));
         customers.addAll(outgoing);
         customers.addAll(values(event.getTransferredTo()));
@@ -63,13 +57,46 @@ public class RevenueCatWebhookController implements RevenueCatWebhookApi {
     }
     subscriptions.webhook(
         event.getId(),
-        event.getType(),
+        eventType.getValue(),
         Instant.ofEpochMilli(event.getEventTimestampMs()),
         billing.projectId(),
         billing.environment(),
         customers,
         outgoing);
     return ResponseEntity.ok().build();
+  }
+
+  /**
+   * Selects provider events that can change current subscription access. Unknown and unrelated
+   * events are acknowledged without scheduling provider reads.
+   *
+   * @param eventType generated provider event classification
+   * @return whether the event requests fresh subscription evidence
+   */
+  private static boolean requiresRefresh(RevenueCatEventTypeEnum eventType) {
+    return switch (eventType) {
+      case INITIAL_PURCHASE,
+          RENEWAL,
+          CANCELLATION,
+          UNCANCELLATION,
+          NON_RENEWING_PURCHASE,
+          EXPIRATION,
+          BILLING_ISSUE,
+          PRODUCT_CHANGE,
+          TRANSFER,
+          SUBSCRIPTION_PAUSED,
+          SUBSCRIPTION_EXTENDED,
+          TEMPORARY_ENTITLEMENT_GRANT,
+          REFUND_REVERSED,
+          PURCHASE_REDEEMED ->
+          true;
+      case TEST,
+          INVOICE_ISSUANCE,
+          VIRTUAL_CURRENCY_TRANSACTION,
+          EXPERIMENT_ENROLLMENT,
+          UNKNOWN_DEFAULT_OPEN_API ->
+          false;
+    };
   }
 
   /**

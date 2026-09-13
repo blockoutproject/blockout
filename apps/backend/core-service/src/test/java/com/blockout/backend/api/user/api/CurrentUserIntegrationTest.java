@@ -11,10 +11,14 @@ import com.nimbusds.jose.jwk.*;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jwt.*;
 import com.sun.net.httpserver.HttpServer;
+import io.micrometer.core.instrument.Gauge;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.*;
 import java.net.http.*;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Instant;
 import java.util.*;
 import liquibase.Liquibase;
@@ -32,6 +36,7 @@ import org.springframework.test.context.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -71,7 +76,7 @@ class CurrentUserIntegrationTest {
             ex.getResponseHeaders().add("Content-Type", "application/json");
             ex.sendResponseHeaders(200, body.length);
             try (ex;
-                var responseBody = ex.getResponseBody()) {
+                OutputStream responseBody = ex.getResponseBody()) {
               responseBody.write(body);
             }
           });
@@ -106,14 +111,15 @@ class CurrentUserIntegrationTest {
   /** Applies the production schema before profile HTTP scenarios execute. */
   @BeforeAll
   static void migrate() throws SQLException, LiquibaseException {
-    try (var c =
+    try (Connection c =
             java.sql.DriverManager.getConnection(
                 DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
-        var statement = c.createStatement()) {
+        Statement statement = c.createStatement()) {
       statement.execute(
           "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api; CREATE ROLE blockout_worker");
-      try (var connection = new JdbcConnection(c);
-          var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
+      try (JdbcConnection connection = new JdbcConnection(c);
+          Liquibase lb =
+              new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
         lb.update("");
       }
     }
@@ -142,7 +148,7 @@ class CurrentUserIntegrationTest {
    * @return the serialized test token
    */
   String token(String subject, String client, String grant) throws JOSEException {
-    var claims =
+    JWTClaimsSet.Builder claims =
         new JWTClaimsSet.Builder()
             .issuer("https://tenant.example/")
             .audience("core")
@@ -150,7 +156,7 @@ class CurrentUserIntegrationTest {
             .expirationTime(Date.from(Instant.now().plusSeconds(300)));
     if (client != null) claims.claim("azp", client);
     if (grant != null) claims.claim("gty", grant);
-    var jwt =
+    SignedJWT jwt =
         new SignedJWT(
             new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(KEY.getKeyID()).build(),
             claims.build());
@@ -176,19 +182,19 @@ class CurrentUserIntegrationTest {
    */
   HttpResponse<String> request(String method, String token)
       throws IOException, InterruptedException {
-    var b =
+    HttpRequest.Builder b =
         HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/v2/users/me"))
             .method(method, HttpRequest.BodyPublishers.noBody());
     if (token != null) b.header("Authorization", "Bearer " + token);
-    try (var client = HttpClient.newHttpClient()) {
+    try (HttpClient client = HttpClient.newHttpClient()) {
       return client.send(b.build(), HttpResponse.BodyHandlers.ofString());
     }
   }
 
   @Test
   void identitySchemaFailureRemainsVisibleWhenTheQueueSchemaIsHealthy() {
-    var identity = metrics.get("blockout.schema.ready").tag("schema", "identity").gauge();
-    var operations = metrics.get("blockout.schema.ready").tag("schema", "operations").gauge();
+    Gauge identity = metrics.get("blockout.schema.ready").tag("schema", "identity").gauge();
+    Gauge operations = metrics.get("blockout.schema.ready").tag("schema", "operations").gauge();
     assertThat(identity.value()).isEqualTo(1);
     sql.execute(
         "ALTER TABLE identity.billing_bindings RENAME COLUMN customer_id TO missing_customer_id");
@@ -204,17 +210,17 @@ class CurrentUserIntegrationTest {
   @Test
   void createsThenReadsTheSameProfileWithoutProviderRefresh()
       throws IOException, InterruptedException, JOSEException {
-    var created = request("POST", user());
+    HttpResponse<String> created = request("POST", user());
     assertThat(created.statusCode()).isEqualTo(201);
     assertThat(created.headers().firstValue("location")).contains("/api/v2/users/me");
-    var existing = request("POST", user());
+    HttpResponse<String> existing = request("POST", user());
     assertThat(existing.statusCode()).isEqualTo(200);
     assertThat(existing.body()).isEqualTo(created.body());
-    var read = request("GET", user());
+    HttpResponse<String> read = request("GET", user());
     assertThat(read.statusCode()).isEqualTo(200);
     assertThat(read.body()).isEqualTo(created.body());
     assertThat(read.headers().firstValue("cache-control").orElse("")).contains("no-store");
-    var json = new JsonMapper().readTree(read.body());
+    JsonNode json = new JsonMapper().readTree(read.body());
     assertThat(UUID.fromString(json.path("id").asString())).isNotNull();
     assertThat(json.path("createdAt").asString()).endsWith("Z");
     assertThat(json.path("lastName").isNull()).isTrue();
@@ -225,7 +231,7 @@ class CurrentUserIntegrationTest {
 
   @Test
   void missingGetIsSideEffectFree() throws IOException, InterruptedException, JOSEException {
-    var response = request("GET", user());
+    HttpResponse<String> response = request("GET", user());
     assertThat(response.statusCode()).isEqualTo(404);
     assertThat(response.body()).contains("USER_NOT_FOUND");
     verifyNoInteractions(provider);
@@ -234,7 +240,7 @@ class CurrentUserIntegrationTest {
   @Test
   void unsupportedMethodsReturnTheHttpContract()
       throws IOException, InterruptedException, JOSEException {
-    var response = request("PUT", user());
+    HttpResponse<String> response = request("PUT", user());
 
     assertThat(response.statusCode()).isEqualTo(405);
     assertThat(new JsonMapper().readTree(response.body()).path("code").asString())
@@ -245,7 +251,7 @@ class CurrentUserIntegrationTest {
 
   @Test
   void rejectsMissingAuthentication() throws IOException, InterruptedException {
-    var response = request("POST", null);
+    HttpResponse<String> response = request("POST", null);
     assertThat(response.statusCode()).isEqualTo(401);
     assertThat(new JsonMapper().readTree(response.body()).path("code").asString())
         .isEqualTo("AUTHENTICATION_REQUIRED");
@@ -255,15 +261,15 @@ class CurrentUserIntegrationTest {
   @Test
   void cookiesCannotAuthenticateProfileCreation()
       throws IOException, InterruptedException, JOSEException {
-    var request =
+    HttpRequest request =
         HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/v2/users/me"))
             .timeout(java.time.Duration.ofSeconds(10))
             .header("Cookie", "JSESSIONID=fixture; access_token=" + user())
             .POST(HttpRequest.BodyPublishers.noBody())
             .build();
 
-    try (var client = HttpClient.newHttpClient()) {
-      var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    try (HttpClient client = HttpClient.newHttpClient()) {
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
       assertThat(response.statusCode()).isEqualTo(401);
       verifyNoInteractions(provider);
@@ -308,7 +314,7 @@ class CurrentUserIntegrationTest {
   void returnsSafeProviderFailure(IdentityFailureReason reason, String expectedCode)
       throws IOException, InterruptedException, JOSEException {
     when(provider.find(any())).thenReturn(new IdentityLookup.Unavailable(reason));
-    var response = request("POST", user());
+    HttpResponse<String> response = request("POST", user());
     assertThat(response.statusCode()).isEqualTo(503);
     assertThat(new JsonMapper().readTree(response.body()).path("code").asString())
         .isEqualTo(expectedCode);
@@ -334,7 +340,7 @@ class CurrentUserIntegrationTest {
             new IllegalStateException(
                 "private@example.test synthetic-secret",
                 new IllegalArgumentException("nested-secret")));
-    var response = request("POST", user());
+    HttpResponse<String> response = request("POST", user());
     assertThat(response.statusCode()).isEqualTo(500);
     assertThat(response.body())
         .contains("INTERNAL_ERROR")
@@ -342,8 +348,8 @@ class CurrentUserIntegrationTest {
     assertThat(output.getAll())
         .contains("java.lang.IllegalStateException")
         .doesNotContain("private@example.test", "synthetic-secret", "nested-secret");
-    var json = new JsonMapper();
-    var event =
+    JsonMapper json = new JsonMapper();
+    JsonNode event =
         output
             .getOut()
             .lines()
@@ -378,12 +384,13 @@ class CurrentUserIntegrationTest {
   @Test
   void subscriptionConsultationIsLocalAndRefreshesCoalesce() throws Exception {
     request("POST", user());
-    var first = subscriptionRequest("GET", "/api/v2/users/me/subscription", user(), null, null);
+    HttpResponse<String> first =
+        subscriptionRequest("GET", "/api/v2/users/me/subscription", user(), null, null);
     assertThat(first.statusCode()).isEqualTo(200);
     assertThat(first.body()).contains("\"state\":\"unknown\"", "\"refreshState\":\"pending\"");
     assertThat(first.headers().firstValue("Cache-Control").orElseThrow())
         .contains("no-store", "private");
-    var refresh =
+    HttpResponse<String> refresh =
         subscriptionRequest("POST", "/api/v2/users/me/subscription-refreshes", user(), null, null);
     subscriptionRequest("POST", "/api/v2/users/me/subscription-refreshes", user(), null, null);
     assertThat(refresh.statusCode()).isEqualTo(202);
@@ -420,9 +427,9 @@ class CurrentUserIntegrationTest {
     String body =
         "{ \"event\": {\"id\":\"event-1\",\"type\":\"INITIAL_PURCHASE\",\"event_timestamp_ms\":1,\"environment\":\"PRODUCTION\",\"app_user_id\":\"unknown\"}}";
     String authorization = "Bearer fixture-webhook-secret";
-    var first =
+    HttpResponse<String> first =
         subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", null, body, authorization);
-    var second =
+    HttpResponse<String> second =
         subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", null, body, authorization);
     assertThat(first.statusCode()).isEqualTo(200);
     assertThat(second.statusCode()).isEqualTo(200);
@@ -432,11 +439,59 @@ class CurrentUserIntegrationTest {
   }
 
   @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.CsvSource({
+    "SUBSCRIPTION_EXTENDED,PRODUCTION,true",
+    "PURCHASE_REDEEMED,PRODUCTION,true",
+    "TRANSFER,PRODUCTION,true",
+    "TRANSFER,,true",
+    "INITIAL_PURCHASE,SANDBOX,false",
+    "INITIAL_PURCHASE,FUTURE_ENVIRONMENT,false",
+    "TRANSFER,FUTURE_ENVIRONMENT,false",
+    "FUTURE_EVENT,PRODUCTION,false",
+    "TEST,PRODUCTION,false",
+    "INVOICE_ISSUANCE,PRODUCTION,false",
+    "VIRTUAL_CURRENCY_TRANSACTION,PRODUCTION,false",
+    "EXPERIMENT_ENROLLMENT,PRODUCTION,false"
+  })
+  void webhookEnumsPreserveRefreshSelection(String eventType, String environment, boolean refresh)
+      throws Exception {
+    request("POST", user());
+    String customer =
+        sql.queryForObject("SELECT customer_id FROM identity.billing_bindings", String.class);
+    Long before =
+        sql.queryForObject(
+            "SELECT requested_revision FROM identity.subscription_states", Long.class);
+    String body =
+        """
+        {"event":{"id":"typed-event","type":"%s","event_timestamp_ms":1,
+          "environment":%s,"app_user_id":"%s","transferred_from":["%s"],"transferred_to":[]}}
+        """
+            .formatted(
+                eventType,
+                environment == null ? "null" : "\"" + environment + "\"",
+                customer,
+                customer);
+
+    HttpResponse<String> response =
+        subscriptionRequest(
+            "POST", "/api/v2/webhooks/revenuecat", null, body, "Bearer fixture-webhook-secret");
+
+    assertThat(response.statusCode()).isEqualTo(200);
+    assertThat(
+            sql.queryForObject(
+                "SELECT requested_revision FROM identity.subscription_states", Long.class))
+        .isEqualTo(before + (refresh ? 1 : 0));
+    assertThat(sql.queryForObject("SELECT count(*) FROM identity.webhook_receipts", Integer.class))
+        .isOne();
+    assertThat(sql.queryForObject("SELECT count(*) FROM operations.jobs", Integer.class)).isOne();
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
   @org.junit.jupiter.params.provider.NullAndEmptySource
   @org.junit.jupiter.params.provider.ValueSource(
       strings = {"Bearer wrong-secret", "fixture-webhook-secret"})
   void webhookRejectsInvalidCredentialsBeforeParsing(String authorization) throws Exception {
-    var response =
+    HttpResponse<String> response =
         subscriptionRequest(
             "POST", "/api/v2/webhooks/revenuecat", null, "invalid-json", authorization);
     assertThat(response.statusCode()).isEqualTo(401);
@@ -475,7 +530,7 @@ class CurrentUserIntegrationTest {
   HttpResponse<String> subscriptionRequest(
       String method, String path, String token, String body, String authorization)
       throws IOException, InterruptedException {
-    var builder =
+    HttpRequest.Builder builder =
         HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
             .method(
                 method,
@@ -485,7 +540,7 @@ class CurrentUserIntegrationTest {
     if (token != null) builder.header("Authorization", "Bearer " + token);
     if (body != null) builder.header("Content-Type", "application/json");
     if (authorization != null) builder.setHeader("Authorization", authorization);
-    try (var client = HttpClient.newHttpClient()) {
+    try (HttpClient client = HttpClient.newHttpClient()) {
       return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
   }
@@ -493,11 +548,12 @@ class CurrentUserIntegrationTest {
   @Test
   void webhookCredentialIsIndependentOfNativeUserTokens() throws Exception {
     String body = "{\"event\":{\"id\":\"header-only\",\"type\":\"TEST\",\"event_timestamp_ms\":1}}";
-    var response =
+    HttpResponse<String> response =
         subscriptionRequest(
             "POST", "/api/v2/webhooks/revenuecat", null, body, "Bearer fixture-webhook-secret");
     assertThat(response.statusCode()).isEqualTo(200);
-    var rejected = subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", user(), body, null);
+    HttpResponse<String> rejected =
+        subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", user(), body, null);
     assertThat(rejected.statusCode()).isEqualTo(401);
     assertThat(rejected.body()).contains("WEBHOOK_AUTHENTICATION_FAILED");
     assertThat(

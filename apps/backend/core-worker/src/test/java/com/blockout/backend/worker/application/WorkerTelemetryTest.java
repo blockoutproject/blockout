@@ -10,6 +10,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.JobRepository;
+import com.blockout.backend.jobs.application.JobState;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -40,9 +41,9 @@ class WorkerTelemetryTest {
 
   @Test
   void attachesTheOriginalFailureWithoutJobContent() {
-    var job =
+    Job job =
         new Job(UUID.randomUUID(), "private-owner", 1, "private-payload", UUID.randomUUID(), 1, 5);
-    var failure =
+    IllegalStateException failure =
         new IllegalStateException(
             "private-response", new IllegalArgumentException("private-token"));
     failure.addSuppressed(new RuntimeException("private-database-row"));
@@ -50,7 +51,7 @@ class WorkerTelemetryTest {
     telemetry.failed(job, failure, false);
 
     assertThat(logs.list).hasSize(1);
-    var event = logs.list.getFirst();
+    ILoggingEvent event = logs.list.getFirst();
 
     assertThat(event.getLevel()).isEqualTo(Level.ERROR);
 
@@ -93,7 +94,7 @@ class WorkerTelemetryTest {
 
   @Test
   void unavailableQueueMetricsRemainUnknownInsteadOfZero() {
-    when(jobs.count("pending")).thenThrow(new IllegalStateException("Database unavailable"));
+    when(jobs.count(JobState.PENDING)).thenThrow(new IllegalStateException("Database unavailable"));
     when(jobs.oldestAvailableSeconds())
         .thenThrow(new IllegalStateException("Database unavailable"));
 

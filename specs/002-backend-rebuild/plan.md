@@ -134,7 +134,10 @@ recovery; negative/unknown accounts refresh on request/webhook. Capacity default
 POST `/api/v2/webhooks/revenuecat` checks the exact shared `Authorization` value configured in
 RevenueCat, over HTTPS. A dedicated Spring Security authorization rule compares the secret before
 MVC conversion, independently of Auth0 JWT authentication. No custom servlet filter or raw-body
-interception is needed. Generated transport models describe the required provider fields.
+interception is needed. Generated transport models describe the required provider fields. Event types and webhook
+environments are generated enums with the standard unknown-case fallback. Unknown events are acknowledged without
+work; unknown environments never match the configured billing namespace. Extensions and redeemed purchases request
+fresh evidence; invoice issuance, test, currency and experiment events do not.
 Receipt deduplication and known-binding refresh requests commit before 200. Unknown/test/irrelevant
 customers/events are acknowledged without provisioning. TRANSFER invalidates outgoing proof and
 requests both known sides. Events request current-state reads rather than replaying subscription

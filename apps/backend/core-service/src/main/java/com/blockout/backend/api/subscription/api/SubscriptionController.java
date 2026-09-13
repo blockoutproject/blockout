@@ -7,8 +7,10 @@ import com.blockout.backend.api.user.api.CurrentUserActor;
 import com.blockout.backend.api.user.api.generated.SubscriptionApi;
 import com.blockout.backend.identity.subscription.application.Subscriptions;
 import com.blockout.backend.identity.user.application.*;
+import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import com.blockout.shared.model.ApiProblemCodeEnum;
 import java.net.URI;
+import java.util.Optional;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -58,7 +60,7 @@ public class SubscriptionController implements SubscriptionApi {
    * @return private evidence, accepted work or a safe profile failure
    */
   private ResponseEntity<?> current(boolean refresh) {
-    var actor = actors.current();
+    Optional<ExternalIdentity> actor = actors.current();
     if (actor.isEmpty()) return problem(HttpStatus.FORBIDDEN, USER_IDENTITY_REQUIRED);
     return switch (profiles.find(actor.get())) {
       case ProfileResult.Available available -> {

@@ -3,7 +3,10 @@ package com.blockout.backend.jobs.infrastructure.persistence;
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
+import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.PublicationResult;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -21,15 +24,15 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
       throws InterruptedException, ExecutionException, TimeoutException {
     publish("a");
     publish("b");
-    var barrier = new CyclicBarrier(2);
-    try (var pool = Executors.newFixedThreadPool(2)) {
+    CyclicBarrier barrier = new CyclicBarrier(2);
+    try (ExecutorService pool = Executors.newFixedThreadPool(2)) {
       Callable<UUID> claim =
           () -> {
             barrier.await();
             return jobs.claim(Duration.ofSeconds(60)).orElseThrow().id();
           };
-      var a = pool.submit(claim);
-      var b = pool.submit(claim);
+      Future<UUID> a = pool.submit(claim);
+      Future<UUID> b = pool.submit(claim);
       assertThat(a.get(10, TimeUnit.SECONDS)).isNotEqualTo(b.get(10, TimeUnit.SECONDS));
     }
   }
@@ -37,9 +40,9 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
   @Test
   void expiredReservationFencesTheFormerOwner() {
     publish("a");
-    var first = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job first = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
     expire();
-    var next = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job next = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
 
     assertThat(first.id()).isEqualTo(next.id());
 
@@ -62,7 +65,7 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
   @Test
   void effectFailureRollsBackAcknowledgement() {
     publish("a");
-    var job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
 
     assertThatThrownBy(
             () ->
@@ -96,7 +99,7 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
   @Test
   void retryWaitsUntilItsAvailability() {
     publish("a");
-    var job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
     jobs.fail(job, "TRANSIENT_FAILURE", Duration.ofSeconds(60), false);
 
     assertThat(jobs.claim(Duration.ofSeconds(60))).isEmpty();
@@ -116,11 +119,11 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
   @Test
   void externalEffectMayBeRepeatedAfterCrash() {
     publish("a");
-    var first = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job first = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
     Set<UUID> remoteEffects = new HashSet<>();
     remoteEffects.add(first.id());
     expire();
-    var retry = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job retry = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
     remoteEffects.add(retry.id());
     jobs.completeWithEffect(retry, () -> {});
 
@@ -160,18 +163,20 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
 
   @Test
   void runtimeRolesPublishAndConsumeWithoutOwnerCredentials() {
-    var apiSql =
+    JdbcTemplate apiSql =
         new JdbcTemplate(new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_api", "test"));
-    var apiTx = new TransactionTemplate(new JdbcTransactionManager(apiSql.getDataSource()));
-    var apiPublisher = new PostgresJobPublisher(apiSql, new JsonMapper());
-    var result =
+    TransactionTemplate apiTx =
+        new TransactionTemplate(new JdbcTransactionManager(apiSql.getDataSource()));
+    PostgresJobPublisher apiPublisher = new PostgresJobPublisher(apiSql, new JsonMapper());
+    PublicationResult.Accepted result =
         (PublicationResult.Accepted)
             apiTx.execute(_ -> apiPublisher.publish("test", 1, "runtime", Map.of()));
-    var workerSql =
+    JdbcTemplate workerSql =
         new JdbcTemplate(new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_worker", "test"));
-    var workerTx = new TransactionTemplate(new JdbcTransactionManager(workerSql.getDataSource()));
-    var workerJobs = new PostgresJobRepository(workerSql, workerTx);
-    var job = workerJobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    TransactionTemplate workerTx =
+        new TransactionTemplate(new JdbcTransactionManager(workerSql.getDataSource()));
+    PostgresJobRepository workerJobs = new PostgresJobRepository(workerSql, workerTx);
+    Job job = workerJobs.claim(Duration.ofSeconds(60)).orElseThrow();
 
     assertThat(job.id()).isEqualTo(result.id());
 
@@ -183,14 +188,14 @@ class JobRepositoryIntegrationTest extends PostgresJobsFixture {
   void waitingForARowLockCannotAuthorizeAnExpiredLease(String operation)
       throws java.sql.SQLException, InterruptedException, ExecutionException, TimeoutException {
     publish("locked");
-    var job = jobs.claim(Duration.ofSeconds(5)).orElseThrow();
-    try (var pool = Executors.newSingleThreadExecutor();
-        var lock = sql.getDataSource().getConnection();
-        var statement = lock.createStatement()) {
+    Job job = jobs.claim(Duration.ofSeconds(5)).orElseThrow();
+    try (ExecutorService pool = Executors.newSingleThreadExecutor();
+        Connection lock = sql.getDataSource().getConnection();
+        Statement statement = lock.createStatement()) {
       lock.setAutoCommit(false);
       try {
         statement.executeQuery("SELECT id FROM operations.jobs FOR UPDATE").close();
-        var mutation =
+        Future<Boolean> mutation =
             pool.submit(
                 () ->
                     switch (operation) {

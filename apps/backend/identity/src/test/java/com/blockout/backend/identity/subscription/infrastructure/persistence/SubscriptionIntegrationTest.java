@@ -45,20 +45,24 @@ class SubscriptionIntegrationTest {
   /** Runs real migrations and constructs separate API/worker roles on the shared engine. */
   @BeforeAll
   static void setup() throws SQLException, LiquibaseException {
-    var owner = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
+    DriverManagerDataSource owner =
+        new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     admin = new JdbcTemplate(owner);
     admin.execute(
         "CREATE SCHEMA identity;CREATE SCHEMA operations;CREATE ROLE blockout_api LOGIN PASSWORD 'test';CREATE ROLE blockout_worker LOGIN PASSWORD 'test';GRANT USAGE ON SCHEMA identity,operations TO blockout_api,blockout_worker");
-    try (var connection = new JdbcConnection(owner.getConnection());
-        var lb = new Liquibase("db/changelog/db.changelog-master.xml", RESOURCES, connection)) {
+    try (JdbcConnection connection = new JdbcConnection(owner.getConnection());
+        Liquibase lb =
+            new Liquibase("db/changelog/db.changelog-master.xml", RESOURCES, connection)) {
       lb.update("");
     }
-    var apiData = new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_api", "test");
-    var workerData = new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_worker", "test");
-    var apiSql = new JdbcTemplate(apiData);
-    var workerSql = new JdbcTemplate(workerData);
+    DriverManagerDataSource apiData =
+        new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_api", "test");
+    DriverManagerDataSource workerData =
+        new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_worker", "test");
+    JdbcTemplate apiSql = new JdbcTemplate(apiData);
+    JdbcTemplate workerSql = new JdbcTemplate(workerData);
     apiTx = new TransactionTemplate(new JdbcTransactionManager(apiData));
-    var workerTx = new TransactionTemplate(new JdbcTransactionManager(workerData));
+    TransactionTemplate workerTx = new TransactionTemplate(new JdbcTransactionManager(workerData));
     jobs = new PostgresJobRepository(workerSql, workerTx);
     store = new PostgresSubscriptions(workerSql);
     api =
@@ -86,14 +90,14 @@ class SubscriptionIntegrationTest {
    * @return new business owner UUID
    */
   UUID create(String subject) {
-    var result =
+    ProfileResult result =
         new UserProfiles(
                 profiles,
                 _ -> new IdentityLookup.Found(new ExternalProfile(null, null, null, null, null)),
                 apiTx,
                 CLOCK,
                 "project",
-                "production",
+                BillingEnvironment.PRODUCTION,
                 api::initialize)
             .ensure(new ExternalIdentity("https://tenant.example/", subject));
     return ((ProfileResult.Available) result).profile().id();
@@ -110,14 +114,14 @@ class SubscriptionIntegrationTest {
 
   @Test
   void publicationFailureRollsBackProfileCreation() {
-    var service =
+    UserProfiles service =
         new UserProfiles(
             profiles,
             _ -> new IdentityLookup.Found(new ExternalProfile(null, null, null, null, null)),
             apiTx,
             CLOCK,
             "project",
-            "production",
+            BillingEnvironment.PRODUCTION,
             _ -> {
               throw new IllegalStateException("publication failed");
             });
@@ -133,9 +137,9 @@ class SubscriptionIntegrationTest {
   @Test
   void concurrentUserRequestsCoalesce() throws Exception {
     UUID id = create("auth0|parallel");
-    try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-      var first = executor.submit(() -> api.refresh(id));
-      var second = executor.submit(() -> api.refresh(id));
+    try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+      Future<?> first = executor.submit(() -> api.refresh(id));
+      Future<?> second = executor.submit(() -> api.refresh(id));
       first.get();
       second.get();
     }
@@ -146,8 +150,8 @@ class SubscriptionIntegrationTest {
   @Test
   void newerRequestDuringReadGetsASuccessorWithoutStaleEvidence() {
     UUID id = create("auth0|newer");
-    var job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
-    var captured = store.find(id).orElseThrow();
+    Job job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    SubscriptionSnapshot captured = store.find(id).orElseThrow();
     api.refresh(id);
     assertThat(
             jobs.completeWithEffect(
@@ -164,8 +168,8 @@ class SubscriptionIntegrationTest {
   @Test
   void expiredAttemptCannotCommitPositiveEvidence() {
     UUID id = create("auth0|lease");
-    var job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
-    var captured = store.find(id).orElseThrow();
+    Job job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    SubscriptionSnapshot captured = store.find(id).orElseThrow();
     admin.update(
         "UPDATE operations.jobs SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE id=?",
         job.id());
@@ -182,7 +186,7 @@ class SubscriptionIntegrationTest {
   @Test
   void failureEffectRollsBackWithQueueTransition() {
     UUID id = create("auth0|failure");
-    var job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
     assertThatThrownBy(
             () ->
                 jobs.failWithEffect(
@@ -202,17 +206,17 @@ class SubscriptionIntegrationTest {
   @Test
   void providerFailureNeverAdvancesVerifiedTime() {
     UUID id = create("auth0|positive");
-    var job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
-    var captured = store.find(id).orElseThrow();
+    Job job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    SubscriptionSnapshot captured = store.find(id).orElseThrow();
     jobs.completeWithEffect(
         job,
         () ->
             worker.verified(
                 captured, new SubscriptionObservation.Verified(true, null), NOW.minusSeconds(700)));
     api.refresh(id);
-    var retry = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
-    var current = store.find(id).orElseThrow();
-    var failure =
+    Job retry = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    SubscriptionSnapshot current = store.find(id).orElseThrow();
+    SubscriptionObservation.Failed failure =
         new SubscriptionObservation.Failed(
             SubscriptionFailure.UNAVAILABLE, Duration.ofSeconds(60), false);
     jobs.failWithEffect(
@@ -234,7 +238,7 @@ class SubscriptionIntegrationTest {
         "TRANSFER",
         NOW,
         "project",
-        "production",
+        BillingEnvironment.PRODUCTION,
         Set.of("auth0|from", "auth0|to", "unknown"),
         Set.of("auth0|from"));
     long revision = store.find(outgoing).orElseThrow().requestedRevision();
@@ -243,7 +247,7 @@ class SubscriptionIntegrationTest {
         "TRANSFER",
         NOW,
         "project",
-        "production",
+        BillingEnvironment.PRODUCTION,
         Set.of("auth0|from", "auth0|to"),
         Set.of("auth0|from"));
     assertThat(store.find(outgoing).orElseThrow().requestedRevision()).isEqualTo(revision);
@@ -258,7 +262,7 @@ class SubscriptionIntegrationTest {
   @Test
   void failedWorkCanStartANewBudget() {
     UUID id = create("auth0|dead");
-    var job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
     jobs.fail(job, "CONFIGURATION", Duration.ZERO, true);
     assertThat(api.find(id).refreshState()).isEqualTo(SubscriptionView.RefreshState.FAILED);
     api.refresh(id);
@@ -269,20 +273,20 @@ class SubscriptionIntegrationTest {
   @Test
   void transferCannotBeUndoneByAnInFlightPositiveRead() {
     UUID id = create("auth0|transfer-race");
-    var initial = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
-    var first = store.find(id).orElseThrow();
+    Job initial = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    SubscriptionSnapshot first = store.find(id).orElseThrow();
     jobs.completeWithEffect(
         initial,
         () -> worker.verified(first, new SubscriptionObservation.Verified(true, null), NOW));
     api.refresh(id);
-    var running = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
-    var captured = store.find(id).orElseThrow();
+    Job running = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    SubscriptionSnapshot captured = store.find(id).orElseThrow();
     api.webhook(
         "transfer-race",
         "TRANSFER",
         NOW,
         "project",
-        "production",
+        BillingEnvironment.PRODUCTION,
         Set.of("auth0|transfer-race"),
         Set.of("auth0|transfer-race"));
     jobs.completeWithEffect(
@@ -296,15 +300,15 @@ class SubscriptionIntegrationTest {
   @Test
   void completeNegativeEvidenceRevokesProImmediately() {
     UUID id = create("auth0|negative");
-    var initial = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
-    var first = store.find(id).orElseThrow();
+    Job initial = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    SubscriptionSnapshot first = store.find(id).orElseThrow();
     jobs.completeWithEffect(
         initial,
         () -> worker.verified(first, new SubscriptionObservation.Verified(true, null), NOW));
     assertThat(api.proAccess(id)).isEqualTo(Subscriptions.ProAccess.ALLOWED);
     api.refresh(id);
-    var second = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
-    var captured = store.find(id).orElseThrow();
+    Job second = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    SubscriptionSnapshot captured = store.find(id).orElseThrow();
     jobs.completeWithEffect(
         second,
         () -> worker.verified(captured, new SubscriptionObservation.Verified(false, null), NOW));
@@ -323,7 +327,7 @@ class SubscriptionIntegrationTest {
   @Test
   void expiredFailureCannotWriteDiagnostics() {
     UUID id = create("auth0|stale-failure");
-    var job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
     admin.update(
         "UPDATE operations.jobs SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE id=?",
         job.id());
@@ -341,10 +345,10 @@ class SubscriptionIntegrationTest {
   @Test
   void terminalFailurePreservesARequestArrivingDuringItsRead() {
     UUID id = create("auth0|terminal-newer");
-    var job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
-    var captured = store.find(id).orElseThrow();
+    Job job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    SubscriptionSnapshot captured = store.find(id).orElseThrow();
     api.refresh(id);
-    var failure =
+    SubscriptionObservation.Failed failure =
         new SubscriptionObservation.Failed(SubscriptionFailure.CONFIGURATION, Duration.ZERO, true);
     jobs.failWithEffect(
         job,
@@ -360,15 +364,15 @@ class SubscriptionIntegrationTest {
   @Test
   void periodicRecoveryWaitsAfterCrashExhaustion() {
     UUID id = create("auth0|periodic-dead");
-    var job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
-    var captured = store.find(id).orElseThrow();
+    Job job = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    SubscriptionSnapshot captured = store.find(id).orElseThrow();
     jobs.completeWithEffect(
         job,
         () ->
             worker.verified(
                 captured, new SubscriptionObservation.Verified(true, null), NOW.minusSeconds(700)));
     api.refresh(id);
-    var failing = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
+    Job failing = jobs.claim(Duration.ofSeconds(60)).orElseThrow();
     jobs.fail(failing, "EXHAUSTED", Duration.ZERO, true);
     admin.update(
         "UPDATE operations.jobs SET finished_at=? WHERE id=?",

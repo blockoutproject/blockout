@@ -18,16 +18,18 @@
         "maxLength": 255
       },
       "type": {
-        "type": "string",
-        "minLength": 1,
-        "maxLength": 100
+        "$ref": "#/components/schemas/RevenueCatEventTypeEnum"
       },
       "event_timestamp_ms": {
         "type": "integer",
         "format": "int64"
       },
       "environment": {
-        "type": "string",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RevenueCatEnvironmentEnum"
+          }
+        ],
         "nullable": true
       },
       "app_user_id": {
@@ -53,5 +55,34 @@
         }
       }
     }
+  },
+  "RevenueCatEventTypeEnum": {
+    "type": "string",
+    "enum": [
+      "TEST",
+      "INITIAL_PURCHASE",
+      "RENEWAL",
+      "CANCELLATION",
+      "UNCANCELLATION",
+      "NON_RENEWING_PURCHASE",
+      "SUBSCRIPTION_PAUSED",
+      "EXPIRATION",
+      "BILLING_ISSUE",
+      "PRODUCT_CHANGE",
+      "SUBSCRIPTION_EXTENDED",
+      "REFUND_REVERSED",
+      "INVOICE_ISSUANCE",
+      "TRANSFER",
+      "TEMPORARY_ENTITLEMENT_GRANT",
+      "VIRTUAL_CURRENCY_TRANSACTION",
+      "EXPERIMENT_ENROLLMENT",
+      "PURCHASE_REDEEMED"
+    ],
+    "description": "RevenueCat webhook event type. Known values follow the provider documentation; future event types are acknowledged without changing subscription evidence."
+  },
+  "RevenueCatEnvironmentEnum": {
+    "type": "string",
+    "enum": ["PRODUCTION", "SANDBOX"],
+    "description": "RevenueCat webhook store environment. Unrecognized environments never match a retained billing namespace."
   }
 }

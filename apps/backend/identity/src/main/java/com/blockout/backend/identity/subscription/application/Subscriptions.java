@@ -44,12 +44,12 @@ public final class Subscriptions {
    * @return current evidence and refresh state
    */
   public SubscriptionView find(UUID userId) {
-    var snapshot = store.find(userId);
-    var proof = snapshot.map(SubscriptionSnapshot::evidence).orElse(null);
-    var decision = SubscriptionPolicy.evaluate(proof, clock.instant());
-    var refresh = SubscriptionView.RefreshState.IDLE;
+    Optional<SubscriptionSnapshot> snapshot = store.find(userId);
+    SubscriptionEvidence proof = snapshot.map(SubscriptionSnapshot::evidence).orElse(null);
+    SubscriptionDecision decision = SubscriptionPolicy.evaluate(proof, clock.instant());
+    SubscriptionView.RefreshState refresh = SubscriptionView.RefreshState.IDLE;
     if (snapshot.isPresent() && snapshot.get().jobId() != null) {
-      var state = jobs.state(snapshot.get().jobId());
+      Optional<JobState> state = jobs.state(snapshot.get().jobId());
       refresh =
           state.filter(s -> s == JobState.PENDING || s == JobState.RUNNING).isPresent()
               ? SubscriptionView.RefreshState.PENDING
@@ -108,8 +108,8 @@ public final class Subscriptions {
    * @return number of candidates inspected
    */
   public int reconcileDue() {
-    var due = store.due(clock.instant());
-    for (var id : due) tx.executeWithoutResult(_ -> request(id, RefreshTrigger.PERIODIC));
+    List<UUID> due = store.due(clock.instant());
+    for (UUID id : due) tx.executeWithoutResult(_ -> request(id, RefreshTrigger.PERIODIC));
     return due.size();
   }
 
@@ -135,7 +135,7 @@ public final class Subscriptions {
       SubscriptionSnapshot captured,
       SubscriptionObservation.Verified observation,
       Instant verifiedAt) {
-    var current = store.lock(captured.binding().userId());
+    SubscriptionSnapshot current = store.lock(captured.binding().userId());
     if (current.requestedRevision() != captured.requestedRevision()) {
       successor(current);
       return;
@@ -160,7 +160,7 @@ public final class Subscriptions {
    */
   public void failed(
       SubscriptionSnapshot captured, SubscriptionObservation.Failed failure, boolean terminal) {
-    var current = store.lock(captured.binding().userId());
+    SubscriptionSnapshot current = store.lock(captured.binding().userId());
     if (current.requestedRevision() != captured.requestedRevision()) {
       if (terminal) successor(current);
       return;
@@ -184,14 +184,14 @@ public final class Subscriptions {
       String type,
       Instant eventAt,
       String project,
-      String environment,
+      BillingEnvironment environment,
       Set<String> customers,
       Set<String> outgoing) {
     tx.executeWithoutResult(
         _ -> {
           if (!store.receipt(id, type, eventAt, clock.instant())) return;
-          var invalidated = new HashSet<>(store.owners(project, environment, outgoing));
-          for (var owner : store.owners(project, environment, customers)) {
+          Set<UUID> invalidated = new HashSet<>(store.owners(project, environment, outgoing));
+          for (UUID owner : store.owners(project, environment, customers)) {
             store.lock(owner);
             if (invalidated.contains(owner)) store.invalidate(owner);
             request(owner, RefreshTrigger.AUTOMATIC);
@@ -206,8 +206,8 @@ public final class Subscriptions {
    * @param trigger selects user cooldown, periodic due checks or immediate event-driven work
    */
   private void request(UUID userId, RefreshTrigger trigger) {
-    var current = store.lock(userId);
-    var now = clock.instant();
+    SubscriptionSnapshot current = store.lock(userId);
+    Instant now = clock.instant();
     if (trigger == RefreshTrigger.USER
         && current.requestedAt() != null
         && now.isBefore(current.requestedAt().plusSeconds(30))) return;
@@ -217,7 +217,8 @@ public final class Subscriptions {
                 .filter(s -> s == JobState.PENDING || s == JobState.RUNNING)
                 .isPresent();
     if (trigger == RefreshTrigger.PERIODIC && !pending && current.jobId() != null) {
-      var recoverAt = jobs.finishedAt(current.jobId()).map(instant -> instant.plusSeconds(900));
+      Optional<Instant> recoverAt =
+          jobs.finishedAt(current.jobId()).map(instant -> instant.plusSeconds(900));
       if (recoverAt.isPresent() && now.isBefore(recoverAt.get())) {
         store.deferScan(userId, recoverAt.get());
         return;
@@ -264,7 +265,7 @@ public final class Subscriptions {
    * @throws IllegalStateException if the trusted publication contract is rejected
    */
   private UUID publish(UUID userId) {
-    var result =
+    PublicationResult result =
         publisher.publish(JOB_TYPE, 1, UUID.randomUUID().toString(), new RefreshPayload(userId));
     if (result instanceof PublicationResult.Accepted accepted) return accepted.id();
     throw new IllegalStateException("Subscription publication rejected");

@@ -39,7 +39,7 @@ final class Auth0Backoff {
    */
   synchronized boolean failed(IdentityFailureReason reason, Instant providerRetryAt) {
     boolean firstFailure = retryAt.equals(Instant.MIN);
-    var now = clock.instant();
+    Instant now = clock.instant();
     // Concurrent failures belong to one pause, rather than multiplying the delay per caller.
     if (!now.isBefore(retryAt)) {
       retryAt = now.plusSeconds(nextDelaySeconds);

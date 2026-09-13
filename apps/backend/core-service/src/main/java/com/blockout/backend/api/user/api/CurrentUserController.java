@@ -5,8 +5,10 @@ import static com.blockout.shared.model.ApiProblemCodeEnum.*;
 import com.blockout.backend.api.error.ApiProblems;
 import com.blockout.backend.api.user.api.generated.CurrentUserApi;
 import com.blockout.backend.identity.user.application.*;
+import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import com.blockout.shared.model.ApiProblemCodeEnum;
 import java.net.URI;
+import java.util.Optional;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,7 +36,7 @@ public class CurrentUserController implements CurrentUserApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<?> ensureCurrentUser() {
-    var actor = actors.current();
+    Optional<ExternalIdentity> actor = actors.current();
     if (actor.isEmpty()) return problem(403, USER_IDENTITY_REQUIRED);
     return response(profiles.ensure(actor.get()));
   }
@@ -42,7 +44,7 @@ public class CurrentUserController implements CurrentUserApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<?> getCurrentUser() {
-    var actor = actors.current();
+    Optional<ExternalIdentity> actor = actors.current();
     if (actor.isEmpty()) return problem(403, USER_IDENTITY_REQUIRED);
     return response(profiles.find(actor.get()));
   }
@@ -57,7 +59,7 @@ public class CurrentUserController implements CurrentUserApi {
   private ResponseEntity<?> response(ProfileResult result) {
     return switch (result) {
       case ProfileResult.Available available -> {
-        var builder =
+        ResponseEntity.BodyBuilder builder =
             ResponseEntity.status(available.created() ? 201 : 200)
                 .cacheControl(CacheControl.noStore());
         if (available.created()) builder.location(URI.create("/api/v2/users/me"));
@@ -86,8 +88,8 @@ public class CurrentUserController implements CurrentUserApi {
    * @return the native problem and recovery headers
    */
   static ResponseEntity<ProblemDetail> problem(int status, ApiProblemCodeEnum code) {
-    var problem = ApiProblems.create(HttpStatus.valueOf(status), code);
-    var response =
+    ProblemDetail problem = ApiProblems.create(HttpStatus.valueOf(status), code);
+    ResponseEntity.BodyBuilder response =
         ResponseEntity.status(status)
             .cacheControl(CacheControl.noStore())
             .contentType(MediaType.APPLICATION_PROBLEM_JSON);

@@ -9,6 +9,7 @@ import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jwt.*;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.*;
 import java.net.http.*;
 import java.time.Instant;
@@ -24,6 +25,7 @@ import org.springframework.test.context.*;
 import org.springframework.web.bind.annotation.*;
 import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Exercises real HTTP security and MVC errors with controlled signing keys and test-only routes.
@@ -62,7 +64,7 @@ class SecurityIntegrationTest {
             ex.getResponseHeaders().add("Content-Type", "application/json");
             ex.sendResponseHeaders(unavailable.get() ? 503 : 200, body.length);
             try (ex;
-                var responseBody = ex.getResponseBody()) {
+                OutputStream responseBody = ex.getResponseBody()) {
               responseBody.write(body);
             }
           });
@@ -98,14 +100,14 @@ class SecurityIntegrationTest {
 
   @Test
   void rejectsMissingAuthentication() throws IOException, InterruptedException {
-    var r = get("/api/v2/test", null);
+    HttpResponse<String> r = get("/api/v2/test", null);
 
     assertThat(r.statusCode()).isEqualTo(401);
 
     assertThat(r.headers().firstValue("www-authenticate")).isPresent();
 
     assertThat(r.headers().firstValue("content-type")).contains("application/problem+json");
-    var problem = new tools.jackson.databind.json.JsonMapper().readTree(r.body());
+    JsonNode problem = new tools.jackson.databind.json.JsonMapper().readTree(r.body());
 
     assertThat(problem.path("status").asInt()).isEqualTo(401);
 
@@ -142,22 +144,24 @@ class SecurityIntegrationTest {
   @org.junit.jupiter.params.provider.EnumSource(InvalidToken.class)
   void rejectsInvalidToken(InvalidToken scenario)
       throws IOException, InterruptedException, JOSEException {
-    var signing =
+    RSAKey signing =
         scenario == InvalidToken.SIGNATURE
             ? new RSAKeyGenerator(2048).keyID(key.getKeyID()).generate()
             : key;
     String issuer =
         scenario == InvalidToken.ISSUER ? "https://wrong.example/" : "https://issuer.example/";
     String audience = scenario == InvalidToken.AUDIENCE ? "wrong" : "blockout-test";
-    var expires =
+    Instant expires =
         scenario == InvalidToken.EXPIRED
             ? Instant.now().minusSeconds(120)
             : Instant.now().plusSeconds(300);
 
     if (scenario == InvalidToken.MISSING_EXPIRY) expires = null;
-    var notBefore = scenario == InvalidToken.NOT_YET_VALID ? Instant.now().plusSeconds(300) : null;
+    Instant notBefore =
+        scenario == InvalidToken.NOT_YET_VALID ? Instant.now().plusSeconds(300) : null;
 
-    var response = get("/api/v2/test", token(signing, issuer, audience, expires, notBefore));
+    HttpResponse<String> response =
+        get("/api/v2/test", token(signing, issuer, audience, expires, notBefore));
 
     assertThat(response.statusCode()).isEqualTo(401);
 
@@ -181,7 +185,7 @@ class SecurityIntegrationTest {
     assertThat(get("/api/v2/test", valid()).statusCode()).isEqualTo(200);
     key = new RSAKeyGenerator(2048).keyID("rotated").generate();
 
-    var response = get("/api/v2/test", valid());
+    HttpResponse<String> response = get("/api/v2/test", valid());
 
     assertThat(response.statusCode()).isEqualTo(200);
   }
@@ -194,7 +198,7 @@ class SecurityIntegrationTest {
     unavailable.set(true);
 
     try {
-      var response = get("/api/v2/test", cached);
+      HttpResponse<String> response = get("/api/v2/test", cached);
 
       assertThat(response.statusCode()).isEqualTo(200);
     } finally {
@@ -204,13 +208,13 @@ class SecurityIntegrationTest {
 
   @Test
   void deniesUnknownKeyDuringJwksOutage() throws IOException, InterruptedException, JOSEException {
-    var unknown = new RSAKeyGenerator(2048).keyID("unknown").generate();
-    var token =
+    RSAKey unknown = new RSAKeyGenerator(2048).keyID("unknown").generate();
+    String token =
         token(unknown, "https://issuer.example/", "blockout-test", Instant.now().plusSeconds(300));
     unavailable.set(true);
 
     try {
-      var response = get("/api/v2/test", token);
+      HttpResponse<String> response = get("/api/v2/test", token);
 
       assertThat(response.statusCode()).isEqualTo(401);
       assertThat(response.body()).doesNotContain("test-subject", "exception", "jwks");
@@ -265,7 +269,7 @@ class SecurityIntegrationTest {
   static String token(
       RSAKey signing, String issuer, String audience, Instant expires, Instant notBefore)
       throws JOSEException {
-    var jwt =
+    SignedJWT jwt =
         new SignedJWT(
             new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(signing.getKeyID()).build(),
             new JWTClaimsSet.Builder()
@@ -288,11 +292,11 @@ class SecurityIntegrationTest {
    * @return the unmodified HTTP response
    */
   HttpResponse<String> get(String path, String token) throws IOException, InterruptedException {
-    var b =
+    HttpRequest.Builder b =
         HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
             .timeout(java.time.Duration.ofSeconds(10));
     if (token != null) b.header("Authorization", "Bearer " + token);
-    try (var client = HttpClient.newHttpClient()) {
+    try (HttpClient client = HttpClient.newHttpClient()) {
       return client.send(b.build(), HttpResponse.BodyHandlers.ofString());
     }
   }
@@ -320,7 +324,7 @@ class SecurityIntegrationTest {
       int status,
       String code)
       throws IOException, InterruptedException, JOSEException {
-    var request =
+    HttpRequest request =
         HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
             .header("Authorization", "Bearer " + valid())
             .header("Content-Type", contentType)
@@ -328,14 +332,14 @@ class SecurityIntegrationTest {
             .method(method, HttpRequest.BodyPublishers.ofString(body))
             .build();
 
-    try (var client = HttpClient.newHttpClient()) {
-      var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    try (HttpClient client = HttpClient.newHttpClient()) {
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
       assertThat(response.statusCode()).isEqualTo(status);
       assertThat(response.headers().firstValue("content-type"))
           .contains("application/problem+json");
       assertThat(response.headers().firstValue("cache-control").orElse("")).contains("no-store");
-      var problem = new tools.jackson.databind.json.JsonMapper().readTree(response.body());
+      JsonNode problem = new tools.jackson.databind.json.JsonMapper().readTree(response.body());
       assertThat(problem.path("code").asString()).isEqualTo(code);
       assertThat(problem.path("status").asInt()).isEqualTo(status);
       assertThat(problem.path("detail").asString()).isNotBlank();

@@ -39,7 +39,7 @@ public class JobsConfiguration {
    */
   @Bean
   JobRepository jobRepository(JdbcTemplate jdbc, PlatformTransactionManager manager) {
-    var tx = new TransactionTemplate(manager);
+    TransactionTemplate tx = new TransactionTemplate(manager);
     tx.setTimeout(10);
     return new PostgresJobRepository(jdbc, tx);
   }
@@ -53,7 +53,7 @@ public class JobsConfiguration {
    */
   @Bean
   SchemaHealthIndicator schemaHealthIndicator(JdbcTemplate jdbc, MeterRegistry registry) {
-    var indicator = new SchemaHealthIndicator(jdbc);
+    SchemaHealthIndicator indicator = new SchemaHealthIndicator(jdbc);
     registry.gauge(
         "blockout.schema.ready",
         List.of(Tag.of("schema", "operations")),

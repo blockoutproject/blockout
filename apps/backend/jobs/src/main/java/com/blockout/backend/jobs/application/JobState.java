@@ -1,9 +1,16 @@
 package com.blockout.backend.jobs.application;
 
-/** Persisted queue lifecycle exposed to owners without leaking queue SQL. */
+import java.util.Locale;
+
+/** Persisted queue lifecycle shared by repositories and worker metrics. */
 public enum JobState {
   PENDING,
   RUNNING,
   SUCCEEDED,
-  DEAD
+  DEAD;
+
+  /** Returns the stable lowercase value used by SQL and metric labels. */
+  public String value() {
+    return name().toLowerCase(Locale.ROOT);
+  }
 }

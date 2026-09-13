@@ -11,7 +11,7 @@ class SubscriptionPolicyTest {
 
   @Test
   void positiveEvidenceExpiresAtTenMinutesWithoutAnOutage() {
-    var proof = new SubscriptionEvidence(true, VERIFIED, null, null);
+    SubscriptionEvidence proof = new SubscriptionEvidence(true, VERIFIED, null, null);
     assertThat(SubscriptionPolicy.evaluate(proof, VERIFIED.plusSeconds(599)).state())
         .isEqualTo(SubscriptionState.ACTIVE);
     assertThat(SubscriptionPolicy.evaluate(proof, VERIFIED.plusSeconds(600)).state())
@@ -20,7 +20,8 @@ class SubscriptionPolicyTest {
 
   @Test
   void outageGraceNeverAdvancesVerificationTime() {
-    var proof = new SubscriptionEvidence(true, VERIFIED, null, SubscriptionFailure.UNAVAILABLE);
+    SubscriptionEvidence proof =
+        new SubscriptionEvidence(true, VERIFIED, null, SubscriptionFailure.UNAVAILABLE);
     assertThat(SubscriptionPolicy.evaluate(proof, VERIFIED.plusSeconds(600)).state())
         .isEqualTo(SubscriptionState.GRACE);
     assertThat(SubscriptionPolicy.evaluate(proof, VERIFIED.plusSeconds(86400)).state())
@@ -29,7 +30,7 @@ class SubscriptionPolicyTest {
 
   @Test
   void reliableAccessExpiryShortensGrace() {
-    var proof =
+    SubscriptionEvidence proof =
         new SubscriptionEvidence(
             true, VERIFIED, VERIFIED.plusSeconds(900), SubscriptionFailure.UNAVAILABLE);
     assertThat(SubscriptionPolicy.evaluate(proof, VERIFIED.plusSeconds(899)).usableUntil())
@@ -40,7 +41,8 @@ class SubscriptionPolicyTest {
 
   @Test
   void negativeEvidenceBecomesUnknownWhenStale() {
-    var proof = new SubscriptionEvidence(false, VERIFIED, null, SubscriptionFailure.UNAVAILABLE);
+    SubscriptionEvidence proof =
+        new SubscriptionEvidence(false, VERIFIED, null, SubscriptionFailure.UNAVAILABLE);
     assertThat(SubscriptionPolicy.evaluate(proof, VERIFIED).state())
         .isEqualTo(SubscriptionState.INACTIVE);
     assertThat(SubscriptionPolicy.evaluate(proof, VERIFIED.plusSeconds(600)).state())
@@ -49,7 +51,8 @@ class SubscriptionPolicyTest {
 
   @Test
   void configurationFailuresNeverCreateOutageGrace() {
-    var proof = new SubscriptionEvidence(true, VERIFIED, null, SubscriptionFailure.CONFIGURATION);
+    SubscriptionEvidence proof =
+        new SubscriptionEvidence(true, VERIFIED, null, SubscriptionFailure.CONFIGURATION);
     assertThat(SubscriptionPolicy.evaluate(proof, VERIFIED.plusSeconds(600)).state())
         .isEqualTo(SubscriptionState.UNKNOWN);
     assertThat(SubscriptionPolicy.evaluate(null, VERIFIED).state())

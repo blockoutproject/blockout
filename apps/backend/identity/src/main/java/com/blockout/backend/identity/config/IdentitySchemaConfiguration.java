@@ -21,7 +21,7 @@ public class IdentitySchemaConfiguration {
   @Bean
   IdentitySchemaHealthIndicator identitySchemaHealthIndicator(
       JdbcTemplate sql, MeterRegistry metrics) {
-    var indicator = new IdentitySchemaHealthIndicator(sql);
+    IdentitySchemaHealthIndicator indicator = new IdentitySchemaHealthIndicator(sql);
     metrics.gauge(
         "blockout.schema.ready",
         List.of(Tag.of("schema", "identity")),

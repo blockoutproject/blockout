@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 
 import com.blockout.backend.identity.config.RevenueCatProperties;
 import com.blockout.backend.identity.subscription.application.*;
+import com.blockout.backend.identity.subscription.domain.BillingEnvironment;
 import com.blockout.backend.identity.subscription.domain.SubscriptionFailure;
 import com.sun.net.httpserver.HttpServer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -26,7 +27,8 @@ class RevenueCatIntegrationTest {
   int status = 200;
   boolean delayed;
   final BillingBinding binding =
-      new BillingBinding(UUID.randomUUID(), "project", "production", "auth0|retained");
+      new BillingBinding(
+          UUID.randomUUID(), "project", BillingEnvironment.PRODUCTION, "auth0|retained");
 
   @BeforeEach
   void setup() throws IOException {
@@ -91,7 +93,8 @@ class RevenueCatIntegrationTest {
   @Test
   void canceledPromotionalSubscriptionCanRetainAccess() throws InterruptedException {
     pages.put("default", subscription("active", "production", true, "[{\"id\":\"pro\"}]", null));
-    var result = (SubscriptionObservation.Verified) provider.read(binding);
+    SubscriptionObservation.Verified result =
+        (SubscriptionObservation.Verified) provider.read(binding);
     assertThat(result.positive()).isTrue();
     assertThat(result.periodEnd()).isNull();
   }
@@ -150,7 +153,7 @@ class RevenueCatIntegrationTest {
   @Test
   void rateLimitPausesSubsequentCalls() throws InterruptedException {
     status = 429;
-    var first = (SubscriptionObservation.Failed) provider.read(binding);
+    SubscriptionObservation.Failed first = (SubscriptionObservation.Failed) provider.read(binding);
     provider.read(binding);
     assertThat(first.retryAfter()).isEqualTo(Duration.ofSeconds(60));
     assertThat(requests).hasValue(1);

@@ -15,5 +15,11 @@ public sealed interface PublicationResult {
   record Conflict() implements PublicationResult {}
 
   /** A bounded safe code, never the rejected key or payload. */
-  record Rejected(String code) implements PublicationResult {}
+  record Rejected(RejectionCode code) implements PublicationResult {}
+
+  /** Closed publication validation failures, independent of owner-specific execution failures. */
+  enum RejectionCode {
+    INVALID_IDENTITY,
+    PAYLOAD_TOO_LARGE
+  }
 }

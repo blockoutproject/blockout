@@ -118,3 +118,24 @@ References: [RevenueCat subscription model](https://www.revenuecat.com/docs/api-
   JSON parsing, JWT validation, OAuth exchange and ECS serialization. PostgreSQL transactions/lease fencing,
   complete provider pagination and rate limits protect current behavior; replacing them with optimistic
   shortcuts would change the accepted delivery guarantees.
+
+## Explicit Java types and provider vocabularies
+
+Handwritten replacement Java uses explicit local types in production and tests, including resources and loops.
+Generated code remains owned by its generator. Known finite vocabularies use their existing or feature-owned enums:
+queue states, publication rejection reasons, billing namespaces and bounded integration classifications.
+Persisted namespace/state values and metric labels retain their existing spelling.
+
+RevenueCat event types and webhook environments are defined in the core OpenAPI source and generated only at the
+HTTP boundary. The Spring generator's `enumUnknownDefaultCase` option acknowledges future event types without
+starting reconciliation; unknown environments never match a configured namespace. Database receipts record the
+technical fallback classification for unrecognized types. The domain retains its own two-value billing environment.
+Subscription extensions and redeemed purchases request current-state reads alongside the existing relevant events.
+Test, invoice issuance, currency and experiment notifications are acknowledged without subscription work.
+
+Job types and owner-defined execution failure codes remain extensible serialized keys at the queue boundary; they
+are not a closed cross-feature enum. Provider field names, paths, SQL text and independent raw HTTP fixtures remain
+strings. No custom enum parser, registry or JSON converter is introduced.
+
+References: [RevenueCat event types](https://www.revenuecat.com/docs/integrations/webhooks/event-types-and-fields),
+[Spring generator enum fallback](https://openapi-generator.tech/docs/generators/spring/).

@@ -1,7 +1,9 @@
 package com.blockout.backend.jobs.infrastructure.persistence;
 
 import com.blockout.backend.jobs.application.PublicationResult;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
@@ -37,15 +39,17 @@ public abstract class PostgresJobsFixture {
   @BeforeAll
   protected static void setup() throws SQLException, LiquibaseException {
     resources = new ClassLoaderResourceAccessor();
-    var ds = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
+    DriverManagerDataSource ds =
+        new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     sql = new JdbcTemplate(ds);
     tx = new TransactionTemplate(new JdbcTransactionManager(ds));
-    try (var c = ds.getConnection();
-        var statement = c.createStatement()) {
+    try (Connection c = ds.getConnection();
+        Statement statement = c.createStatement()) {
       statement.execute(
           "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
-      try (var connection = new JdbcConnection(c);
-          var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
+      try (JdbcConnection connection = new JdbcConnection(c);
+          Liquibase lb =
+              new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
         lb.update("");
       }
     }

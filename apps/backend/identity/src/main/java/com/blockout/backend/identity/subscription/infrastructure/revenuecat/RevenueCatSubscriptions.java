@@ -2,6 +2,7 @@ package com.blockout.backend.identity.subscription.infrastructure.revenuecat;
 
 import com.blockout.backend.identity.config.RevenueCatProperties;
 import com.blockout.backend.identity.subscription.application.*;
+import com.blockout.backend.identity.subscription.domain.BillingEnvironment;
 import com.blockout.backend.identity.subscription.domain.SubscriptionFailure;
 import io.github.resilience4j.ratelimiter.*;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -47,7 +48,7 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
             .connectTimeout(Duration.ofSeconds(3))
             .followRedirects(HttpClient.Redirect.NEVER)
             .build();
-    var factory = new JdkClientHttpRequestFactory(http);
+    JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(http);
     factory.setReadTimeout(Duration.ofSeconds(5));
     client =
         RestClient.builder()
@@ -75,35 +76,35 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
               + "/customers/"
               + segment(binding.customerId())
               + "/subscriptions";
-      var subscriptions =
+      List<JsonNode> subscriptions =
           pages(
               URI.create(properties.baseUrl())
-                  .resolve(path + "?environment=" + binding.environment() + "&limit=100"),
+                  .resolve(path + "?environment=" + binding.environment().value() + "&limit=100"),
               path,
               binding.environment());
       boolean positive = false;
       Instant periodEnd = null;
-      for (var subscription : subscriptions) {
-        if (!subscription.path("environment").asText().equals(binding.environment()))
+      for (JsonNode subscription : subscriptions) {
+        if (!subscription.path("environment").asText().equals(binding.environment().value()))
           throw new InvalidEvidence();
         if (!subscription.path("gives_access").isBoolean()) throw new InvalidEvidence();
         String id = requiredText(subscription, "id");
-        var entitlements = subscription.path("entitlements");
-        var all = items(entitlements);
+        JsonNode entitlements = subscription.path("entitlements");
+        List<JsonNode> all = items(entitlements);
         String entitlementPath =
             "/v2/projects/"
                 + segment(binding.projectId())
                 + "/subscriptions/"
                 + segment(id)
                 + "/entitlements";
-        var next = next(entitlements, entitlementPath);
+        URI next = next(entitlements, entitlementPath);
         if (next != null) all.addAll(pages(next, entitlementPath, null));
         all.forEach(e -> requiredText(e, "id"));
         boolean pro =
             all.stream().anyMatch(e -> properties.entitlementId().equals(requiredText(e, "id")));
         if (subscription.path("gives_access").asBoolean() && pro) {
           positive = true;
-          var end = subscription.path("ends_at");
+          JsonNode end = subscription.path("ends_at");
           if (end.isIntegralNumber()) {
             Instant candidate = Instant.ofEpochMilli(end.asLong());
             if (candidate.isAfter(clock.instant())
@@ -129,7 +130,7 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
     } catch (RestClientResponseException response) {
       int status = response.getStatusCode().value();
       if (status == 429) {
-        var value =
+        String value =
             response.getResponseHeaders() == null
                 ? null
                 : response.getResponseHeaders().getFirst("Retry-After");
@@ -172,10 +173,10 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
    * @return complete item collection
    * @throws InterruptedException on worker cancellation
    */
-  private List<JsonNode> pages(URI first, String path, String environment)
+  private List<JsonNode> pages(URI first, String path, BillingEnvironment environment)
       throws InterruptedException {
-    var values = new ArrayList<JsonNode>();
-    var visited = new HashSet<URI>();
+    List<JsonNode> values = new ArrayList<>();
+    Set<URI> visited = new HashSet<>();
     URI page = first;
     while (page != null) {
       if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
@@ -184,16 +185,16 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
         if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
         throw new InvalidEvidence();
       }
-      var remaining = Duration.between(clock.instant(), pausedUntil.get());
+      Duration remaining = Duration.between(clock.instant(), pausedUntil.get());
       if (!remaining.isNegative() && !remaining.isZero()) throw new ProviderPaused(remaining);
       if (environment != null)
         page =
             UriComponentsBuilder.fromUri(page)
-                .replaceQueryParam("environment", environment)
+                .replaceQueryParam("environment", environment.value())
                 .build(true)
                 .toUri();
       metrics.counter("blockout.subscription.provider.requests").increment();
-      var body = client.get().uri(page).retrieve().body(JsonNode.class);
+      JsonNode body = client.get().uri(page).retrieve().body(JsonNode.class);
       values.addAll(items(body));
       page = next(body, path);
     }
@@ -208,7 +209,7 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
    */
   private static List<JsonNode> items(JsonNode page) {
     if (page == null || !page.path("items").isArray()) throw new InvalidEvidence();
-    var values = new ArrayList<JsonNode>();
+    List<JsonNode> values = new ArrayList<>();
     page.path("items").forEach(values::add);
     return values;
   }
@@ -221,11 +222,11 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
    * @return next URI or null at the end
    */
   private URI next(JsonNode page, String path) {
-    var field = page.path("next_page");
+    JsonNode field = page.path("next_page");
     if (field.isMissingNode() || field.isNull()) return null;
     if (!field.isTextual() || field.asText().isBlank()) throw new InvalidEvidence();
-    var base = URI.create(properties.baseUrl());
-    var uri = base.resolve(field.asText());
+    URI base = URI.create(properties.baseUrl());
+    URI uri = base.resolve(field.asText());
     if (!Objects.equals(base.getScheme(), uri.getScheme())
         || !Objects.equals(base.getRawAuthority(), uri.getRawAuthority())
         || !path.equals(uri.getRawPath())
@@ -242,7 +243,7 @@ public final class RevenueCatSubscriptions implements SubscriptionProvider, Auto
    * @return nonblank provider identifier
    */
   private static String requiredText(JsonNode value, String name) {
-    var field = value.path(name);
+    JsonNode field = value.path(name);
     if (!field.isTextual() || field.asText().isBlank()) throw new InvalidEvidence();
     return field.asText();
   }

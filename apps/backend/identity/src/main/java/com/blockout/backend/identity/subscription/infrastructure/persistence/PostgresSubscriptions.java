@@ -109,11 +109,11 @@ public final class PostgresSubscriptions implements SubscriptionStore {
 
   /** {@inheritDoc} */
   @Override
-  public List<UUID> owners(String project, String environment, Set<String> customers) {
+  public List<UUID> owners(String project, BillingEnvironment environment, Set<String> customers) {
     if (customers.isEmpty()) return List.of();
     List<Object> parameters = new ArrayList<>();
     parameters.add(project);
-    parameters.add(environment);
+    parameters.add(environment.value());
     parameters.addAll(customers);
     return sql.query(
         "SELECT user_id FROM identity.billing_bindings WHERE project_id=? AND environment=? AND customer_id IN ("
@@ -144,12 +144,12 @@ public final class PostgresSubscriptions implements SubscriptionStore {
    * @throws SQLException if the database cannot decode the row
    */
   private SubscriptionSnapshot snapshot(ResultSet row, int index) throws SQLException {
-    var failure = row.getString("failure_code");
+    String failure = row.getString("failure_code");
     return new SubscriptionSnapshot(
         new BillingBinding(
             row.getObject("user_id", UUID.class),
             row.getString("project_id"),
-            row.getString("environment"),
+            BillingEnvironment.valueOf(row.getString("environment").toUpperCase(Locale.ROOT)),
             row.getString("customer_id")),
         new SubscriptionEvidence(
             row.getObject("positive", Boolean.class),
@@ -172,7 +172,7 @@ public final class PostgresSubscriptions implements SubscriptionStore {
    * @throws SQLException if the column cannot be read
    */
   private static Instant instant(ResultSet row, String column) throws SQLException {
-    var value = row.getTimestamp(column);
+    Timestamp value = row.getTimestamp(column);
     return value == null ? null : value.toInstant();
   }
 

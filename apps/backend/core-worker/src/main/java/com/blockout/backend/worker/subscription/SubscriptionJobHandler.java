@@ -3,6 +3,8 @@ package com.blockout.backend.worker.subscription;
 import com.blockout.backend.identity.subscription.application.*;
 import com.blockout.backend.jobs.application.*;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.Optional;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Runs provider I/O outside SQL and returns effects for live-lease acknowledgement. */
@@ -43,12 +45,13 @@ public final class SubscriptionJobHandler implements JobHandler {
   /** {@inheritDoc} */
   @Override
   public JobResult handle(Job job) throws InterruptedException {
-    var payload = json.readValue(job.payload(), Subscriptions.RefreshPayload.class);
+    Subscriptions.RefreshPayload payload =
+        json.readValue(job.payload(), Subscriptions.RefreshPayload.class);
     if (payload.userId() == null) return new JobResult.Rejected("INVALID_SUBSCRIPTION_JOB");
-    var found = subscriptions.snapshot(payload.userId());
+    Optional<SubscriptionSnapshot> found = subscriptions.snapshot(payload.userId());
     if (found.isEmpty() || !job.id().equals(found.get().jobId())) return new JobResult.Completed();
-    var captured = found.get();
-    var started = clock.instant();
+    SubscriptionSnapshot captured = found.get();
+    Instant started = clock.instant();
     return switch (provider.read(captured.binding())) {
       case SubscriptionObservation.Verified verified ->
           new JobResult.SqlEffect(() -> subscriptions.verified(captured, verified, started));

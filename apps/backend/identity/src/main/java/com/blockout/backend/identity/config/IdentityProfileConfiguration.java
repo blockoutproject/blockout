@@ -62,7 +62,7 @@ public class IdentityProfileConfiguration {
       Clock clock,
       BillingBindingProperties billing,
       com.blockout.backend.identity.subscription.application.Subscriptions subscriptions) {
-    var tx = new TransactionTemplate(manager);
+    TransactionTemplate tx = new TransactionTemplate(manager);
     tx.setTimeout(5);
     return new UserProfiles(
         store,

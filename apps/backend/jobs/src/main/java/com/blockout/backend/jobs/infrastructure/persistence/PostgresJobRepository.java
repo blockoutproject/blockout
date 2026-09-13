@@ -158,7 +158,7 @@ public final class PostgresJobRepository implements JobRepository {
           lease_token=NULL, lease_expires_at=NULL, last_error_code=?
           WHERE id=? AND state='running' AND lease_token=? AND lease_expires_at>clock_timestamp()
           """,
-                  dead ? "dead" : "pending",
+                  (dead ? JobState.DEAD : JobState.PENDING).value(),
                   delay.toMillis(),
                   dead,
                   code,
@@ -182,7 +182,7 @@ public final class PostgresJobRepository implements JobRepository {
     return Boolean.TRUE.equals(
         tx.execute(
             status -> {
-              var rows =
+              List<Map<String, Object>> rows =
                   sql.queryForList(
                       "SELECT id FROM operations.jobs WHERE id=? AND state='running' AND lease_token=? FOR UPDATE",
                       job.id(),
@@ -201,9 +201,9 @@ public final class PostgresJobRepository implements JobRepository {
 
   /** {@inheritDoc} */
   @Override
-  public double count(String state) {
+  public double count(JobState state) {
     return sql.queryForObject(
-            "SELECT count(*) FROM operations.jobs WHERE state=?", Long.class, state)
+            "SELECT count(*) FROM operations.jobs WHERE state=?", Long.class, state.value())
         .doubleValue();
   }
 

@@ -1,5 +1,6 @@
 package com.blockout.backend.identity.subscription.application;
 
+import com.blockout.backend.identity.subscription.domain.BillingEnvironment;
 import java.util.UUID;
 
 /**
@@ -11,4 +12,4 @@ import java.util.UUID;
  * @param customerId retained canonical Auth0 subject
  */
 public record BillingBinding(
-    UUID userId, String projectId, String environment, String customerId) {}
+    UUID userId, String projectId, BillingEnvironment environment, String customerId) {}
