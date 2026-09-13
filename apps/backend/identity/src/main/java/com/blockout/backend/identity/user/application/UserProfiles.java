@@ -16,6 +16,16 @@ public final class UserProfiles {
   private final String project;
   private final String environment;
 
+  /**
+   * Binds the profile owner to persistence, external verification and short SQL transactions.
+   *
+   * @param profiles store sharing the transaction datasource
+   * @param provider read-only external identity verification
+   * @param transactions creation transaction boundary
+   * @param clock creation timestamp source
+   * @param project retained RevenueCat project identifier
+   * @param environment production or sandbox billing namespace
+   */
   public UserProfiles(
       UserProfileStore profiles,
       UserIdentityProvider provider,
@@ -31,7 +41,12 @@ public final class UserProfiles {
     this.environment = environment;
   }
 
-  /** Pure owner read; missing profiles are not provisioned here. */
+  /**
+   * Reads locally without provider calls or writes, preserving inactive and unsupported outcomes.
+   *
+   * @param identity exact authenticated issuer/subject pair
+   * @return the existing profile outcome or Missing; no provisioning is performed
+   */
   public ProfileResult find(ExternalIdentity identity) {
     if (!identity.supported()) return new ProfileResult.Unsupported();
     return profiles
@@ -40,7 +55,17 @@ public final class UserProfiles {
         .orElseGet(ProfileResult.Missing::new);
   }
 
-  /** Idempotent by exact external identity, including concurrent first requests. */
+  /**
+   * Reuses an existing profile or creates its profile, external identity and billing binding
+   * atomically. Provider verification precedes SQL. After locking, a concurrent winner is returned
+   * unchanged. Provider failure or mismatch writes nothing; billing uses the unchanged canonical
+   * subject.
+   *
+   * @param identity exact authenticated issuer/subject pair
+   * @return the persisted profile and creation flag, or a safe rejection/unavailable outcome
+   * @throws IllegalStateException if every bounded pseudonym candidate collides
+   * @throws org.springframework.dao.DataAccessException if persistence fails; creation rolls back
+   */
   public ProfileResult ensure(ExternalIdentity identity) {
     var existing = find(identity);
     if (!(existing instanceof ProfileResult.Missing)) return existing;
@@ -72,6 +97,13 @@ public final class UserProfiles {
         });
   }
 
+  /**
+   * Prevents inactive profiles from being returned as available resources.
+   *
+   * @param profile persisted owner view
+   * @param created whether this request inserted the profile
+   * @return an available profile with creation provenance, or an inactive outcome
+   */
   private ProfileResult available(UserProfile profile, boolean created) {
     return profile.active()
         ? new ProfileResult.Available(profile, created)

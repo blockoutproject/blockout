@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 
+/** Checks Auth0 and billing configuration binding without contacting external services. */
 class IdentityPropertiesTest {
   private final ApplicationContextRunner context =
       new ApplicationContextRunner()
@@ -42,6 +43,9 @@ class IdentityPropertiesTest {
         });
   }
 
+  /**
+   * Loads only the property records under test, isolating validation from application dependencies.
+   */
   @Configuration(proxyBeanMethods = false)
   @EnableConfigurationProperties({Auth0ProfileProperties.class, BillingBindingProperties.class})
   static class PropertiesConfiguration {}

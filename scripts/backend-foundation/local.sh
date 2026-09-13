@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Controls only the isolated local foundation stack. up/observe start it; down retains SQL data.
+# reset explicitly deletes its database volume before rebuilding the disposable schema.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 # The fixed project/file prevent inherited Compose configuration from targeting another stack.

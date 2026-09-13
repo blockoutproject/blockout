@@ -13,6 +13,9 @@ import org.junit.jupiter.api.*;
 import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+/**
+ * Exercises the production XML baseline, privilege separation and controlled test-only evolutions.
+ */
 @Testcontainers
 class MigrationIntegrationTest {
   @AutoClose final ClassLoaderResourceAccessor resources = new ClassLoaderResourceAccessor();
@@ -27,6 +30,9 @@ class MigrationIntegrationTest {
     }
   }
 
+  /**
+   * Recreates only the disposable test schemas and Liquibase history for an independent scenario.
+   */
   @BeforeEach
   void schema() throws SQLException {
     try (var c = connect();
@@ -36,10 +42,16 @@ class MigrationIntegrationTest {
     }
   }
 
+  /**
+   * Opens an administrator connection to the test container; the caller must close it.
+   *
+   * @return the owned test JDBC connection
+   */
   static Connection connect() throws SQLException {
     return DriverManager.getConnection(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
   }
 
+  /** Applies the actual production XML baseline and closes its JDBC/Liquibase resources. */
   void migrate() throws SQLException, LiquibaseException {
     try (var connection = new JdbcConnection(connect());
         var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {

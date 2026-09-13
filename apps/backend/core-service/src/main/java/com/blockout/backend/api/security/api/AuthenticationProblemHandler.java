@@ -22,10 +22,16 @@ public final class AuthenticationProblemHandler
     implements AuthenticationEntryPoint, AccessDeniedHandler {
   private final JsonMapper json;
 
+  /**
+   * Uses the Boot mapper to serialize Spring ProblemDetail at the security filter boundary.
+   *
+   * @param json application mapper configured for native problem serialization
+   */
   public AuthenticationProblemHandler(JsonMapper json) {
     this.json = json;
   }
 
+  /** {@inheritDoc} */
   @Override
   public void commence(
       HttpServletRequest request, HttpServletResponse response, AuthenticationException failure)
@@ -34,6 +40,7 @@ public final class AuthenticationProblemHandler
     write(response, HttpStatus.UNAUTHORIZED, AUTHENTICATION_REQUIRED);
   }
 
+  /** {@inheritDoc} */
   @Override
   public void handle(
       HttpServletRequest request, HttpServletResponse response, AccessDeniedException failure)
@@ -41,6 +48,14 @@ public final class AuthenticationProblemHandler
     write(response, HttpStatus.FORBIDDEN, ACCESS_DENIED);
   }
 
+  /**
+   * Writes an uncacheable problem to the servlet-owned response stream.
+   *
+   * @param response response owned by the servlet container
+   * @param status authentication or authorization status
+   * @param code safe generated problem code
+   * @throws IOException the response stream cannot be written
+   */
   private void write(HttpServletResponse response, HttpStatus status, ApiProblemCodeEnum code)
       throws IOException {
     var problem = ApiProblems.create(status, code);

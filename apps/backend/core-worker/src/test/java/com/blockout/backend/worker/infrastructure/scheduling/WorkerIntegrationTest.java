@@ -31,6 +31,9 @@ import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Exercises scheduling, deadlines and fenced outcomes with real PostgreSQL and controlled handlers.
+ */
 @Testcontainers
 class WorkerIntegrationTest {
   @AutoClose static final ClassLoaderResourceAccessor resources = new ClassLoaderResourceAccessor();
@@ -42,6 +45,7 @@ class WorkerIntegrationTest {
   JobWorker worker;
   SimpleMeterRegistry metrics;
 
+  /** Applies the production baseline and wires queue adapters on one shared test datasource. */
   @BeforeAll
   static void setup() throws SQLException, LiquibaseException {
     var ds = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
@@ -71,6 +75,11 @@ class WorkerIntegrationTest {
     if (metrics != null) metrics.close();
   }
 
+  /**
+   * Starts bounded scheduling with short fixture timings and test-owned metrics.
+   *
+   * @param handler single supported handler, or null to exercise unsupported work
+   */
   void start(JobHandler handler) {
     metrics = new SimpleMeterRegistry();
     var telemetry = new WorkerTelemetry(repository, metrics);
@@ -91,6 +100,11 @@ class WorkerIntegrationTest {
     worker.start();
   }
 
+  /**
+   * Publishes a version-one test job through a real owner transaction.
+   *
+   * @param key scenario-specific deduplication key
+   */
   void publish(String key) {
     tx.executeWithoutResult(_ -> publisher.publish("test", 1, key, Map.of()));
   }
@@ -340,10 +354,22 @@ class WorkerIntegrationTest {
     }
   }
 
+  /** Allows blocking test effects to participate in cooperative worker interruption. */
   interface Action {
+    /**
+     * Runs a controlled fixture effect with the claimed attempt.
+     *
+     * @param job attempt supplied by the worker
+     */
     void run(Job job) throws InterruptedException;
   }
 
+  /**
+   * Adapts a controlled external effect into a successful handler result.
+   *
+   * @param action fixture effect which may block or fail
+   * @return a version-one test handler
+   */
   JobHandler handler(Action action) {
     return resultHandler(
         job -> {
@@ -352,22 +378,38 @@ class WorkerIntegrationTest {
         });
   }
 
+  /** Allows scenarios to select completed, SQL-effect or rejected handler outcomes. */
   interface ResultAction {
+    /**
+     * Produces the scenario-selected result for a claimed attempt.
+     *
+     * @param job attempt supplied by the worker
+     * @return the controlled handler outcome
+     */
     JobResult run(Job job) throws InterruptedException;
   }
 
+  /**
+   * Wraps a result-producing fixture as the single test type/version handler.
+   *
+   * @param action scenario-owned outcome producer
+   * @return a handler registered only by this test
+   */
   JobHandler resultHandler(ResultAction action) {
     return new JobHandler() {
+      /** {@inheritDoc} */
       @Override
       public String type() {
         return "test";
       }
 
+      /** {@inheritDoc} */
       @Override
       public int version() {
         return 1;
       }
 
+      /** {@inheritDoc} */
       @Override
       public JobResult handle(Job job) throws InterruptedException {
         return action.run(job);

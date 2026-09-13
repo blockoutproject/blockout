@@ -10,5 +10,12 @@ import org.mapstruct.*;
     injectionStrategy = InjectionStrategy.CONSTRUCTOR,
     unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface UserProfileMapper {
+  /**
+   * Projects the owner view into the public profile contract; identity and billing fields stay
+   * private.
+   *
+   * @param profile persisted owner view
+   * @return the generated response, or null for a null source as defined by MapStruct
+   */
   UserProfileResponse toResponse(UserProfile profile);
 }

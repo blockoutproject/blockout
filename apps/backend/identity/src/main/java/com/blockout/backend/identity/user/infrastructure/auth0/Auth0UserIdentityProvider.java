@@ -38,6 +38,15 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
   private Instant refreshAt = Instant.MIN;
   private final Auth0Backoff backoff;
 
+  /**
+   * Creates bounded read-only Auth0 transport and the standard OAuth token client. The adapter owns
+   * its JDK client and must be closed when the application stops.
+   *
+   * @param properties validated Auth0 origin and private Management API credentials
+   * @param clock token-cache and provider-pause deadline source
+   * @param metrics registry for bounded operational counters and durations
+   * @param validator validator for decoded provider attributes
+   */
   public Auth0UserIdentityProvider(
       Auth0ProfileProperties properties, Clock clock, MeterRegistry metrics, Validator validator) {
     this.validator = validator;
@@ -90,6 +99,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
     client.close();
   }
 
+  /** {@inheritDoc} */
   @Override
   public IdentityLookup find(ExternalIdentity identity) {
     long started = System.nanoTime();
@@ -130,6 +140,9 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
 
   /**
    * Serializes credential renewal; the shared pause also applies when the cached token is valid.
+   *
+   * @return the reusable or newly issued credential
+   * @throws ProviderFailure calls are paused or renewal fails
    */
   private synchronized String token() {
     var blocked = backoff.blockedReason();
@@ -146,10 +159,20 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
     }
   }
 
+  /**
+   * Updates the shared outage pause and logs only its first transition.
+   *
+   * @param failure safe reason, response status and provider retry deadline
+   */
   private void pause(ProviderFailure failure) {
     if (backoff.failed(failure.reason, failure.retryAt)) logUnavailable(failure);
   }
 
+  /**
+   * Logs the stable failure reason without credentials, subject or provider body.
+   *
+   * @param failure adapter failure whose safe reason is operationally useful
+   */
   private void logUnavailable(ProviderFailure failure) {
     LOG.atWarn()
         .addKeyValue("event.action", "identity.lookup")
@@ -158,11 +181,23 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
         .log("Identity lookup unavailable");
   }
 
+  /**
+   * Discards a rejected cached token only if no newer token has replaced it.
+   *
+   * @param rejected token used by the request receiving a 401
+   */
   private synchronized void invalidateToken(String rejected) {
     // A late 401 for the old token must not invalidate a newer concurrent renewal.
     if (rejected.equals(accessToken)) accessToken = null;
   }
 
+  /**
+   * Requests and caches one token with an early refresh margin and a one-day cache ceiling.
+   * Unusable token lifetimes fail rather than causing repeated immediate renewal.
+   *
+   * @return the cached Management API access token
+   * @throws ProviderFailure OAuth exchange fails or supplies no usable cache lifetime
+   */
   private String renewToken() {
     metrics.counter("blockout.identity.auth0.requests", "operation", "token").increment();
     try {
@@ -182,6 +217,14 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
     }
   }
 
+  /**
+   * Fetches one exact subject and validates nullable attribute bounds before any SQL write.
+   *
+   * @param subject canonical subject encoded as a single URL path segment
+   * @param token cached Management API bearer credential
+   * @return a complete validated provider profile
+   * @throws ProviderFailure HTTP, decoding or attribute validation prevents a complete profile
+   */
   private Auth0Profile readProfile(String subject, String token) {
     var endpoint =
         UriComponentsBuilder.fromUri(origin)
@@ -210,6 +253,11 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
 
   /**
    * Translate status and retry headers without reading potentially private provider error bodies.
+   *
+   * @param operation token or profile metric category
+   * @param response provider status and retry headers only
+   * @throws IOException response status cannot be read
+   * @throws ProviderFailure the non-success response has been classified
    */
   private void rejectResponse(String operation, ClientHttpResponse response) throws IOException {
     int status = response.getStatusCode().value();
@@ -223,13 +271,25 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
         retryAt(response.getHeaders()));
   }
 
+  /**
+   * Uses the later usable provider retry header to avoid retrying before its deadline.
+   *
+   * @param headers response metadata; no provider body is read
+   * @return the later deadline, or Instant.MIN when neither numeric header is usable
+   */
   private Instant retryAt(HttpHeaders headers) {
     var after = retryTime(headers.getFirst("Retry-After"), clock.instant());
     var reset = retryTime(headers.getFirst("X-RateLimit-Reset"), Instant.EPOCH);
     return after.isAfter(reset) ? after : reset;
   }
 
-  /** Auth0 sends Retry-After as seconds and X-RateLimit-Reset as Unix seconds. */
+  /**
+   * Interprets numeric Auth0 retry metadata without accepting malformed or overflowing deadlines.
+   *
+   * @param value nullable nonnegative seconds header
+   * @param base current time for Retry-After, Unix epoch for X-RateLimit-Reset
+   * @return the deadline, or Instant.MIN when unavailable or invalid
+   */
   private Instant retryTime(String value, Instant base) {
     if (value == null) return Instant.MIN;
     try {
@@ -240,12 +300,19 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
     }
   }
 
+  /**
+   * Records elapsed lookup time with a bounded outcome label.
+   *
+   * @param outcome fixed adapter outcome, never provider prose
+   * @param started monotonic start time from System.nanoTime
+   */
   private void record(String outcome, long started) {
     metrics
         .timer("blockout.identity.lookup", "outcome", outcome)
         .record(System.nanoTime() - started, java.util.concurrent.TimeUnit.NANOSECONDS);
   }
 
+  /** Carries only safe adapter failure metadata for translation at the provider boundary. */
   private static final class ProviderFailure extends RuntimeException {
     @java.io.Serial private static final long serialVersionUID = 1L;
 
@@ -253,10 +320,22 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
     private final int status;
     private final Instant retryAt;
 
+    /**
+     * Represents a failure without a provider status or retry deadline.
+     *
+     * @param reason bounded application failure reason
+     */
     ProviderFailure(IdentityFailureReason reason) {
       this(reason, 0, Instant.MIN);
     }
 
+    /**
+     * Captures safe response metadata without retaining a response body or credentials.
+     *
+     * @param reason bounded application failure reason
+     * @param status provider HTTP status, or zero when absent
+     * @param retryAt provider retry deadline, or Instant.MIN when absent
+     */
     ProviderFailure(IdentityFailureReason reason, int status, Instant retryAt) {
       super(reason.name());
       this.reason = reason;

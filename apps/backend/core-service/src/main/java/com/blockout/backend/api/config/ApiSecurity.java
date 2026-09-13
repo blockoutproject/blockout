@@ -14,14 +14,27 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import tools.jackson.databind.json.JsonMapper;
 
+/** Assembles bearer-only product security and the separately exposed management chain. */
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
 public class ApiSecurity {
+  /**
+   * Shares native Problem Detail handling across authentication and access-denied boundaries.
+   *
+   * @param json Boot-configured mapper with native ProblemDetail support
+   * @return the safe security response writer
+   */
   @Bean
   AuthenticationProblemHandler authenticationProblems(JsonMapper json) {
     return new AuthenticationProblemHandler(json);
   }
 
+  /**
+   * Allows configured Actuator endpoints on the private management surface.
+   *
+   * @param http Spring builder for the management filter chain
+   * @return the chain evaluated before product authorization
+   */
   @Bean
   @Order(1)
   SecurityFilterChain management(HttpSecurity http) {
@@ -30,6 +43,15 @@ public class ApiSecurity {
         .build();
   }
 
+  /**
+   * Applies feature-owned route rules and rejects every unregistered product request.
+   * Authentication comes only from bearer headers; cookies and server sessions do not authenticate.
+   *
+   * @param http Spring builder for product security
+   * @param routes feature-owned matcher registrations
+   * @param problems safe authentication and authorization responses
+   * @return the stateless resource-server chain
+   */
   @Bean
   SecurityFilterChain api(
       HttpSecurity http, List<ApiRoutePolicy> routes, AuthenticationProblemHandler problems) {

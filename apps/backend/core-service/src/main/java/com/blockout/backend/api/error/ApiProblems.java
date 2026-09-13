@@ -6,8 +6,16 @@ import org.springframework.http.ProblemDetail;
 
 /** Shared HTTP error vocabulary; dependency diagnostics never become client-facing details. */
 public final class ApiProblems {
+  /** Prevents instances of the shared HTTP problem factory. */
   private ApiProblems() {}
 
+  /**
+   * Builds a native problem using only the generated code and fixed safe detail text.
+   *
+   * @param status HTTP status selected by the owning adapter
+   * @param code generated wire code representing the failure
+   * @return a fresh ProblemDetail with no provider or request content
+   */
   public static ProblemDetail create(HttpStatusCode status, ApiProblemCodeEnum code) {
     var detail =
         switch (code) {

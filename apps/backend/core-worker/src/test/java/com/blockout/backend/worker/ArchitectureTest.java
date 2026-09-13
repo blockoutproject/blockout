@@ -7,6 +7,7 @@ import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
+/** Enforces worker dependencies independently of the API assembly. */
 @AnalyzeClasses(
     packages = "com.blockout.backend.worker",
     importOptions = ImportOption.DoNotIncludeTests.class)

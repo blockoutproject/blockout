@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
+/** Checks transition ownership and safe event fields before native ECS serialization. */
 class WorkerTelemetryTest {
   final Logger logger = (Logger) LoggerFactory.getLogger(WorkerTelemetry.class);
   final ListAppender<ILoggingEvent> logs = new ListAppender<>();

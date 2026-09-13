@@ -11,10 +11,21 @@ import org.springframework.stereotype.Component;
 public final class CurrentUserActor {
   private final NativeUserProperties properties;
 
+  /**
+   * Binds native-user extraction to the configured public client allowlist.
+   *
+   * @param properties validated native client identifiers
+   */
   public CurrentUserActor(NativeUserProperties properties) {
     this.properties = properties;
   }
 
+  /**
+   * Reads the verified JWT from the current security context without contacting a provider. Machine
+   * grants, client subjects and unapproved native clients cannot become business actors.
+   *
+   * @return the exact issuer/subject pair, or empty when no supported native actor is present
+   */
   public Optional<ExternalIdentity> current() {
     var authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt))

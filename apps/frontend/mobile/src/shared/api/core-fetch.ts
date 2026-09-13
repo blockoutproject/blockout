@@ -3,23 +3,41 @@ import { fetch } from "expo/fetch";
 import { ApiError } from "@/src/shared/api/api-error";
 import { ApiProblemCodeEnum } from "@/src/shared/generated/core/models/apiProblemCodeEnum";
 
+/** Session-owned credentials and origin for the explicitly enabled replacement API client. */
 export interface CoreClientConfig {
+  /** Absolute API base URL; generated operations must resolve to this same origin. */
   baseUrl: string;
   /** Supply credentials from the native Auth0 SDK for the core API audience. */
   getAccessToken: () => Promise<string | null>;
+  /** Optional session cleanup for 401; 403 leaves the current session intact. */
   onUnauthorized?: (error: ApiError) => void | Promise<void>;
 }
 
 let context: (CoreClientConfig & { origin: string }) | undefined;
 
-/** Configure the replacement client explicitly; current screens keep their gateway client. */
+/**
+ * Installs the replacement client context; current screens keep their gateway client.
+ *
+ * @param config - Session-owned origin and SDK callbacks; omit to clear the context on teardown.
+ * @throws If the base URL is invalid.
+ */
 export function configureCoreClient(config?: CoreClientConfig) {
   context = config
     ? { ...config, origin: new URL(config.baseUrl).origin }
     : undefined;
 }
 
-/** Orval transport: one request, native token ownership, cancellation and safe API errors. */
+/**
+ * Executes one generated operation with native credentials and safe typed failures, without retries.
+ * Cookies and redirects are disabled. Caller cancellation and a twenty-second abort timer share the
+ * fetch signal; credential acquisition itself remains owned by the SDK callback.
+ *
+ * @param path - Generated operation path, resolved against the configured API origin.
+ * @param options - Generated request options; authorization and the fetch signal are owned here.
+ * @returns Parsed JSON, or undefined for HTTP 204, using the generated response type.
+ * @throws ApiError for HTTP/authentication, transport, decoding or cancellation failures; raw provider
+ * prose is excluded. Missing configuration or a foreign origin fails before acquiring credentials.
+ */
 export async function coreFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -104,7 +122,12 @@ export async function coreFetch<T>(
   }
 }
 
-/** Keep unknown wire codes readable by an older client without trusting server prose. */
+/**
+ * Preserves future wire codes and supplies a safe fallback for absent or malformed problem bodies.
+ * @param body - Untrusted decoded response; only a string code is retained.
+ * @param status - HTTP status used to distinguish authentication and access-denied fallbacks.
+ * @returns The received code or a generated generic code; no server prose becomes UI text.
+ */
 function problemCode(body: unknown, status: number): string {
   if (
     typeof body === "object" &&

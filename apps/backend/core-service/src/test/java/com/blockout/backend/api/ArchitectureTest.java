@@ -8,6 +8,9 @@ import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
+/**
+ * Enforces replacement module boundaries from the API assembly classpath, excluding test probes.
+ */
 @AnalyzeClasses(
     packages = "com.blockout.backend",
     importOptions = ImportOption.DoNotIncludeTests.class)

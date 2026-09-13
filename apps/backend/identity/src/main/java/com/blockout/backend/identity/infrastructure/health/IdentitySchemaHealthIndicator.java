@@ -8,10 +8,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public final class IdentitySchemaHealthIndicator implements HealthIndicator {
   private final JdbcTemplate sql;
 
+  /**
+   * Binds readiness to required identity tables and columns.
+   *
+   * @param sql read-only schema access
+   */
   public IdentitySchemaHealthIndicator(JdbcTemplate sql) {
     this.sql = sql;
   }
 
+  /** {@inheritDoc} */
   @Override
   public Health health() {
     try {

@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 
+/** Checks declarative security-property validation without booting the HTTP application. */
 class AuthPropertiesTest {
   private final ApplicationContextRunner context =
       new ApplicationContextRunner()
@@ -43,6 +44,9 @@ class AuthPropertiesTest {
             });
   }
 
+  /**
+   * Loads only the property records under test, isolating validation from application dependencies.
+   */
   @Configuration(proxyBeanMethods = false)
   @EnableConfigurationProperties({AuthProperties.class, NativeUserProperties.class})
   static class PropertiesConfiguration {}

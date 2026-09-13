@@ -4,7 +4,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 
 /**
- * Nullable provider attributes are bounded once before entering the profile creation transaction.
+ * Provider transport record validated before entering the profile creation transaction.
+ *
+ * @param subject provider user_id that must exactly match the authenticated subject
+ * @param email nullable bounded contact email
+ * @param firstName nullable bounded given name
+ * @param lastName nullable bounded family name
+ * @param phoneNumber nullable bounded contact number
+ * @param pictureUrl nullable bounded picture location
  */
 record Auth0Profile(
     @JsonProperty("user_id") @NotBlank @Size(max = 255) String subject,

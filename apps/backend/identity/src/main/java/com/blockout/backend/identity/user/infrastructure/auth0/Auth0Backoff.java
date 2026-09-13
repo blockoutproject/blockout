@@ -12,15 +12,31 @@ final class Auth0Backoff {
   private long nextDelaySeconds = 5;
   private IdentityFailureReason failureReason = IdentityFailureReason.IDENTITY_PROVIDER_UNAVAILABLE;
 
+  /**
+   * Creates a process-local pause shared by token and profile operations.
+   *
+   * @param clock deadline source, injectable for recovery tests
+   */
   Auth0Backoff(Clock clock) {
     this.clock = clock;
   }
 
+  /**
+   * Reads the current pause without extending it or contacting Auth0.
+   *
+   * @return the safe failure reason while paused, otherwise empty
+   */
   synchronized Optional<IdentityFailureReason> blockedReason() {
     return clock.instant().isBefore(retryAt) ? Optional.of(failureReason) : Optional.empty();
   }
 
-  /** Returns true only when entering a new outage, for one boundary-owned log event. */
+  /**
+   * Applies progressive delay once per elapsed pause, honoring later provider deadlines.
+   *
+   * @param reason safe reason returned to callers while paused
+   * @param providerRetryAt provider deadline, or Instant.MIN when absent
+   * @return true only on entering a new outage, so its owner logs once
+   */
   synchronized boolean failed(IdentityFailureReason reason, Instant providerRetryAt) {
     boolean firstFailure = retryAt.equals(Instant.MIN);
     var now = clock.instant();

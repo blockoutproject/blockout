@@ -9,10 +9,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public final class SchemaHealthIndicator implements HealthIndicator {
   private final JdbcTemplate sql;
 
+  /**
+   * Binds the adapter to its application-owned collaborators.
+   *
+   * @param sql read-only access to generation and required queue columns
+   */
   public SchemaHealthIndicator(JdbcTemplate sql) {
     this.sql = sql;
   }
 
+  /** {@inheritDoc} */
   @Override
   public Health health() {
     try {

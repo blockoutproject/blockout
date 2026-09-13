@@ -17,22 +17,52 @@ import org.springframework.transaction.support.TransactionTemplate;
 @EnableConfigurationProperties({Auth0ProfileProperties.class, BillingBindingProperties.class})
 @Import(IdentitySchemaConfiguration.class)
 public class IdentityProfileConfiguration {
+  /**
+   * Supplies UTC time for profile timestamps and provider-cache deadlines.
+   *
+   * @return the injectable identity clock
+   */
   @Bean
   Clock identityClock() {
     return Clock.systemUTC();
   }
 
+  /**
+   * Creates the API-owned Auth0 adapter; Spring closes its HTTP client on bean destruction.
+   *
+   * @param properties validated origin and Management API credentials
+   * @param clock cache and outage-pause clock
+   * @param metrics bounded provider metrics
+   * @param validator validator for decoded provider attributes
+   * @return the read-only provider adapter
+   */
   @Bean
   Auth0UserIdentityProvider userIdentityProvider(
       Auth0ProfileProperties properties, Clock clock, MeterRegistry metrics, Validator validator) {
     return new Auth0UserIdentityProvider(properties, clock, metrics, validator);
   }
 
+  /**
+   * Connects the profile persistence port to the shared database.
+   *
+   * @param sql application datasource access
+   * @return the store participating in owner transactions
+   */
   @Bean
   UserProfileStore userProfileStore(JdbcTemplate sql) {
     return new PostgresUserProfiles(sql);
   }
 
+  /**
+   * Creates profile use cases with five-second SQL transactions and retained billing metadata.
+   *
+   * @param store atomic profile persistence
+   * @param provider read-only external identity verification
+   * @param manager transaction manager for the profile datasource
+   * @param clock creation timestamp source
+   * @param billing retained RevenueCat project and environment
+   * @return the identity owner; provider calls finish before transactions
+   */
   @Bean
   UserProfiles userProfiles(
       UserProfileStore store,

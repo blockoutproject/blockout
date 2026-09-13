@@ -7,6 +7,7 @@ jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
 
+/** Creates a decoded problem-response fixture without native network or SDK dependencies. */
 function response(status: number, body?: unknown) {
   return {
     status,

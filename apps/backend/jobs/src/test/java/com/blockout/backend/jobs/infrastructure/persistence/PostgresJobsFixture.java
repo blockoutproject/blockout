@@ -31,6 +31,9 @@ public abstract class PostgresJobsFixture {
   protected static PostgresJobRepository jobs;
   protected static PostgresJobPublisher publisher;
 
+  /**
+   * Creates isolated test roles and applies the production Liquibase baseline once per test family.
+   */
   @BeforeAll
   protected static void setup() throws SQLException, LiquibaseException {
     resources = new ClassLoaderResourceAccessor();
@@ -55,20 +58,37 @@ public abstract class PostgresJobsFixture {
     sql.execute("TRUNCATE operations.jobs");
   }
 
+  /**
+   * Publishes a fixed test payload inside its owner transaction.
+   *
+   * @param key scenario-specific deduplication key
+   * @return the accepted durable job identity
+   */
   UUID publish(String key) {
     return ((PublicationResult.Accepted)
             tx.execute(_ -> publisher.publish("test", 1, key, Map.of("value", 1))))
         .id();
   }
 
+  /** Moves current leases into the past using SQL so recovery does not depend on sleeping. */
   void expire() {
     sql.update("UPDATE operations.jobs SET lease_expires_at=clock_timestamp()-interval '1 second'");
   }
 
+  /**
+   * Reads the queue state in scenarios deliberately retaining exactly one row.
+   *
+   * @return the single persisted job state
+   */
   String state() {
     return sql.queryForObject("SELECT state FROM operations.jobs", String.class);
   }
 
+  /**
+   * Counts durable publications to detect duplicate writes and unexpected side effects.
+   *
+   * @return the number of retained jobs
+   */
   int count() {
     return sql.queryForObject("SELECT count(*) FROM operations.jobs", Integer.class);
   }

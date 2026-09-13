@@ -10,6 +10,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.support.JdbcTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+/** Verifies owner-transaction publication and PostgreSQL JSONB deduplication semantics. */
 class JobPublisherIntegrationTest extends PostgresJobsFixture {
   @Test
   void requiresAnOwnerTransaction() {

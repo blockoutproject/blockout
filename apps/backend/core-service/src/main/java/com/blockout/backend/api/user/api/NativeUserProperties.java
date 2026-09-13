@@ -6,7 +6,11 @@ import java.util.Set;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
-/** Only configured native public clients can bootstrap personal profiles. */
+/**
+ * Restricts business-profile bootstrap to configured native public clients.
+ *
+ * @param nativeClientIds accepted authorized-party identifiers from verified user JWTs
+ */
 @Validated
 @ConfigurationProperties("blockout.identity")
 public record NativeUserProperties(@NotEmpty Set<@NotBlank String> nativeClientIds) {}

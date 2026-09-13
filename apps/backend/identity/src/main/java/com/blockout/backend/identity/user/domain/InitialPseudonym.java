@@ -5,8 +5,18 @@ import java.util.UUID;
 
 /** Preserves initial email-prefix naming without treating that attribute as identity. */
 public final class InitialPseudonym {
+  /** Prevents instances of the initial-name policy. */
   private InitialPseudonym() {}
 
+  /**
+   * Builds a normalized pseudonym of at most thirty characters. Candidates use the email prefix,
+   * numbered collision suffixes, then a UUID-derived suffix.
+   *
+   * @param email nullable provider email; an absent prefix falls back to user
+   * @param attempt owner collision attempt: zero initially, up to two hundred
+   * @param id new profile identity used for the final fallback
+   * @return a deterministic candidate whose uniqueness must be checked by persistence
+   */
   public static String candidate(String email, int attempt, UUID id) {
     String raw =
         email != null && email.contains("@") ? email.substring(0, email.indexOf('@')) : "user";

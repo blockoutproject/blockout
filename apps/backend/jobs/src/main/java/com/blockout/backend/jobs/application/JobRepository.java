@@ -11,12 +11,19 @@ public interface JobRepository {
    * Reserves one available job or recovers an expired lease in a short transaction. Competing
    * consumers skip locked rows. Each reservation creates a new token and consumes one attempt;
    * exhausted expired jobs become dead in bounded batches. The lease must be positive.
+   *
+   * @param lease positive duration of the new database-clock lease
+   * @return one claimed attempt, or empty when no eligible work is available
    */
   Optional<Job> claim(Duration lease);
 
   /**
    * Returns false for an expired, replaced or completed attempt, which cannot be renewed. Expiry is
    * evaluated after acquiring the row lock, including when acquisition had to wait.
+   *
+   * @param job attempt whose token must still own the row
+   * @param lease positive replacement lease duration from the database clock
+   * @return whether the live lease was extended
    */
   boolean renew(Job job, Duration lease);
 
@@ -26,6 +33,10 @@ public interface JobRepository {
    * within the transaction timeout. Callback failure propagates and rolls back both effects and
    * acknowledgement. Expiry before commit also rolls back both; false means no effect was
    * committed.
+   *
+   * @param job claimed attempt to acknowledge
+   * @param effect SQL-only callback using the job datasource
+   * @return whether both the effect and acknowledgement committed
    */
   boolean completeWithEffect(Job job, Runnable effect);
 
@@ -33,18 +44,36 @@ public interface JobRepository {
    * Records a safe uppercase error code, releasing the lease for delayed retry or permanent dead
    * work. Exhausted attempts become dead regardless of the permanent flag. Returns false when this
    * attempt no longer owns a live lease. Delay must be nonnegative; errors never include payloads.
+   *
+   * @param job attempt being released
+   * @param code safe uppercase diagnostic code, never provider prose
+   * @param delay nonnegative wait before another attempt
+   * @param permanent whether retry is forbidden regardless of remaining attempts
+   * @return whether the owned live attempt transitioned
+   * @throws IllegalArgumentException the error code does not match the safe-code format
    */
   boolean fail(Job job, String code, Duration delay, boolean permanent);
 
   /**
    * Deletes at most 1,000 successes older than seven days, preserving pending, running and dead
    * work.
+   *
+   * @return the number of old successful rows deleted
    */
   int cleanup();
 
-  /** Counts a persisted state for bounded operational metrics. Database failures propagate. */
+  /**
+   * Counts a persisted state for bounded operational metrics. Database failures propagate.
+   *
+   * @param state persisted queue state selected by the caller
+   * @return number of matching rows, including zero
+   */
   double count(String state);
 
-  /** Age of the oldest currently available pending job, or zero when none exist. */
+  /**
+   * Measures the oldest currently executable pending job using the database clock.
+   *
+   * @return age in seconds, or zero when no pending job is available
+   */
   double oldestAvailableSeconds();
 }

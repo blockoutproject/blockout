@@ -6,7 +6,12 @@ import jakarta.validation.constraints.Size;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
-/** Binding metadata; creating a profile never provisions or mutates a billing customer. */
+/**
+ * Retains billing metadata locally; profile creation never mutates an external billing customer.
+ *
+ * @param projectId existing RevenueCat project containing the retained customer
+ * @param environment production or sandbox namespace for the binding
+ */
 @Validated
 @ConfigurationProperties("blockout.identity.billing")
 public record BillingBindingProperties(

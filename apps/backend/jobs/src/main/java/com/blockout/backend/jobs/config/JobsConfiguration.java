@@ -16,13 +16,27 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
+/** Wires the shared queue ports, short transaction boundary and operations-schema readiness. */
 @Configuration(proxyBeanMethods = false)
 public class JobsConfiguration {
+  /**
+   * Creates the publisher that joins the calling owner transaction.
+   *
+   * @param jdbc shared job datasource access
+   * @return the transactional publication port
+   */
   @Bean
   JobPublisher jobPublisher(JdbcTemplate jdbc) {
     return new PostgresJobPublisher(jdbc, new JsonMapper());
   }
 
+  /**
+   * Creates lease operations with a ten-second transaction timeout.
+   *
+   * @param jdbc queue datasource access
+   * @param manager transaction manager for the same datasource
+   * @return the fenced queue persistence port
+   */
   @Bean
   JobRepository jobRepository(JdbcTemplate jdbc, PlatformTransactionManager manager) {
     var tx = new TransactionTemplate(manager);
@@ -30,6 +44,13 @@ public class JobsConfiguration {
     return new PostgresJobRepository(jdbc, tx);
   }
 
+  /**
+   * Registers read-only schema readiness and its bounded operations metric.
+   *
+   * @param jdbc operations schema access
+   * @param registry application-owned metrics registry
+   * @return the indicator used by Actuator and worker scheduling
+   */
   @Bean
   SchemaHealthIndicator schemaHealthIndicator(JdbcTemplate jdbc, MeterRegistry registry) {
     var indicator = new SchemaHealthIndicator(jdbc);

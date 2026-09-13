@@ -25,6 +25,9 @@ import org.springframework.web.bind.annotation.*;
 import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+/**
+ * Exercises real HTTP security and MVC errors with controlled signing keys and test-only routes.
+ */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
@@ -68,6 +71,11 @@ class SecurityIntegrationTest {
     }
   }
 
+  /**
+   * Routes the application to isolated SQL and JWKS fixtures before context startup.
+   *
+   * @param p Spring dynamic configuration registry
+   */
   @DynamicPropertySource
   static void properties(DynamicPropertyRegistry p) {
     p.add("spring.datasource.url", DB::getJdbcUrl);
@@ -157,6 +165,7 @@ class SecurityIntegrationTest {
         .doesNotContain("test-subject", "exception");
   }
 
+  /** Enumerates one invalid trust constraint per parameterized JWT scenario. */
   enum InvalidToken {
     AUDIENCE,
     ISSUER,
@@ -219,15 +228,39 @@ class SecurityIntegrationTest {
     assertThat(get("/api/v2/unknown", valid()).statusCode()).isEqualTo(403);
   }
 
+  /**
+   * Signs a short-lived token with the currently published fixture key.
+   *
+   * @return a token accepted by the configured test trust boundary
+   */
   String valid() throws JOSEException {
     return token(key, "https://issuer.example/", "blockout-test", Instant.now().plusSeconds(300));
   }
 
+  /**
+   * Signs a test token without a not-before claim.
+   *
+   * @param signing fixture private key
+   * @param issuer issuer claim under test
+   * @param audience audience claim under test
+   * @param expires expiry instant, or null to omit the claim
+   * @return the serialized JWT
+   */
   static String token(RSAKey signing, String issuer, String audience, Instant expires)
       throws JOSEException {
     return token(signing, issuer, audience, expires, null);
   }
 
+  /**
+   * Signs explicit test claims, including intentionally invalid or omitted time constraints.
+   *
+   * @param signing fixture private key
+   * @param issuer issuer claim under test
+   * @param audience audience claim under test
+   * @param expires nullable expiry claim
+   * @param notBefore nullable activation claim
+   * @return the serialized JWT
+   */
   static String token(
       RSAKey signing, String issuer, String audience, Instant expires, Instant notBefore)
       throws JOSEException {
@@ -246,6 +279,13 @@ class SecurityIntegrationTest {
     return jwt.serialize();
   }
 
+  /**
+   * Calls the real test HTTP server and closes the per-request client.
+   *
+   * @param path test route on the random local port
+   * @param token optional bearer credential
+   * @return the unmodified HTTP response
+   */
   HttpResponse<String> get(String path, String token) throws IOException, InterruptedException {
     var b =
         HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
@@ -305,13 +345,24 @@ class SecurityIntegrationTest {
     }
   }
 
+  /** Registers probes only in the integration-test application, never in production. */
   @TestConfiguration
   static class Probes {
+    /**
+     * Creates HTTP probes used to exercise framework security and validation paths.
+     *
+     * @return the test-only controller
+     */
     @Bean
     ProbeController controller() {
       return new ProbeController();
     }
 
+    /**
+     * Allows test routes through URL authentication so MVC and method security can be exercised.
+     *
+     * @return the test-only route policy
+     */
     @Bean
     ApiRoutePolicy testRoutes() {
       return requests ->
@@ -321,16 +372,30 @@ class SecurityIntegrationTest {
     }
   }
 
+  /** Supplies minimal routes for framework-level errors without adding product endpoints. */
   @RestController
   static class ProbeController {
+    /**
+     * Exercises query conversion and native MVC parameter constraints.
+     *
+     * @param limit positive fixture limit validated by Spring
+     * @return a fixed success body
+     */
     @GetMapping("/api/v2/test")
     String test(
         @jakarta.validation.constraints.Min(1) @RequestParam(defaultValue = "1") int limit) {
       return "ok";
     }
 
+    /** Supplies a minimal body constraint for real MVC JSON validation. */
     record TestBody(@jakarta.validation.constraints.NotBlank String name) {}
 
+    /**
+     * Exercises request-body validation and response negotiation.
+     *
+     * @param body validated fixture body
+     * @return the same body for a successful request
+     */
     @PostMapping(
         value = "/api/v2/test",
         consumes = "application/json",
@@ -339,6 +404,11 @@ class SecurityIntegrationTest {
       return body;
     }
 
+    /**
+     * Exercises method authorization after successful JWT authentication.
+     *
+     * @return a fixed body only when the caller has staff authority
+     */
     @PreAuthorize("hasAuthority('staff')")
     @GetMapping("/api/v2/staff")
     String staff() {

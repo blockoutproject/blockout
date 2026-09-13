@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Starts the local foundation and verifies readiness, migration reruns, DDL denial and worker restart.
+# Requires locally built images; leaves the stack running for inspection. Use local.sh down afterward.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 compose=(docker compose --project-name blockout-foundation --file infra/compose/docker-compose.backend.yml)

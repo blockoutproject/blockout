@@ -13,11 +13,18 @@ public final class PostgresJobPublisher implements JobPublisher {
   private final JdbcTemplate sql;
   private final JsonMapper json;
 
+  /**
+   * Binds the adapter to its application-owned collaborators.
+   *
+   * @param sql datasource shared with owner transactions
+   * @param json serializer for bounded publication payloads
+   */
   public PostgresJobPublisher(JdbcTemplate sql, JsonMapper json) {
     this.sql = sql;
     this.json = json;
   }
 
+  /** {@inheritDoc} */
   @Override
   public PublicationResult publish(String type, int version, String key, Object payload) {
     if (!TransactionSynchronizationManager.isActualTransactionActive()

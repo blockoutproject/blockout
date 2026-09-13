@@ -15,10 +15,16 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public final class PostgresUserProfiles implements UserProfileStore {
   private final JdbcTemplate sql;
 
+  /**
+   * Binds profile persistence to the datasource used by the application transaction.
+   *
+   * @param sql shared profile datasource access
+   */
   public PostgresUserProfiles(JdbcTemplate sql) {
     this.sql = sql;
   }
 
+  /** {@inheritDoc} */
   @Override
   public Optional<UserProfile> find(ExternalIdentity identity) {
     return sql
@@ -31,6 +37,7 @@ public final class PostgresUserProfiles implements UserProfileStore {
         .findFirst();
   }
 
+  /** {@inheritDoc} */
   @Override
   public void lockCreation(ExternalIdentity identity) {
     requireTransaction();
@@ -41,6 +48,7 @@ public final class PostgresUserProfiles implements UserProfileStore {
         identity.issuer() + "\n" + identity.subject());
   }
 
+  /** {@inheritDoc} */
   @Override
   public Optional<UserProfile> create(
       ExternalIdentity identity,
@@ -81,6 +89,13 @@ public final class PostgresUserProfiles implements UserProfileStore {
     return Optional.of(inserted.getFirst());
   }
 
+  /**
+   * Maps persisted values, including database-rounded timestamps, into the owner view.
+   *
+   * @param rs current JDBC row; its lifecycle belongs to JdbcTemplate
+   * @return the stored profile representation
+   * @throws SQLException the JDBC row cannot supply the required profile values
+   */
   private UserProfile read(ResultSet rs) throws SQLException {
     return new UserProfile(
         rs.getObject("id", UUID.class),
@@ -95,6 +110,11 @@ public final class PostgresUserProfiles implements UserProfileStore {
         rs.getTimestamp("updated_at").toInstant());
   }
 
+  /**
+   * Rejects creation writes outside an owner transaction on this datasource.
+   *
+   * @throws IllegalStateException no transaction is active on the profile datasource
+   */
   private void requireTransaction() {
     if (!TransactionSynchronizationManager.isActualTransactionActive()
         || !TransactionSynchronizationManager.hasResource(sql.getDataSource()))

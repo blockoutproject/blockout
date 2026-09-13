@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 
+/** Checks declarative worker capacity and lease-timing startup constraints. */
 class WorkerPropertiesTest {
   private final ApplicationContextRunner context =
       new ApplicationContextRunner()
@@ -32,6 +33,9 @@ class WorkerPropertiesTest {
     context.run(c -> assertThat(c).hasNotFailed());
   }
 
+  /**
+   * Loads only the property records under test, isolating validation from application dependencies.
+   */
   @Configuration(proxyBeanMethods = false)
   @EnableConfigurationProperties(WorkerProperties.class)
   static class PropertiesConfiguration {}

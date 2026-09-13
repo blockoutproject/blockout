@@ -20,6 +20,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+/**
+ * Verifies atomic profile recreation with runtime SQL privileges and controlled provider evidence.
+ */
 @Testcontainers
 class UserCreationIntegrationTest {
   @AutoClose static final ClassLoaderResourceAccessor resources = new ClassLoaderResourceAccessor();
@@ -30,6 +33,7 @@ class UserCreationIntegrationTest {
   static PostgresUserProfiles profiles;
   static final Instant NOW = Instant.parse("2026-09-12T12:00:00Z");
 
+  /** Migrates as owner, then wires profile writes through the restricted API database role. */
   @BeforeAll
   static void setup() throws SQLException, LiquibaseException {
     var owner = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
@@ -53,14 +57,33 @@ class UserCreationIntegrationTest {
     admin.execute("TRUNCATE identity.users CASCADE");
   }
 
+  /**
+   * Builds a test identity on the same canonical issuer.
+   *
+   * @param subject scenario-specific external subject
+   * @return the exact identity key
+   */
   ExternalIdentity actor(String subject) {
     return new ExternalIdentity("https://tenant.example/", subject);
   }
 
+  /**
+   * Builds nullable provider attributes without treating email as identity.
+   *
+   * @param email nullable email attribute
+   * @return the synthetic external profile
+   */
   ExternalProfile info(String email) {
     return new ExternalProfile(email, "First", "Last", null, null);
   }
 
+  /**
+   * Executes the real creation use case with controlled provider evidence and a fixed clock.
+   *
+   * @param actor canonical identity under test
+   * @param info synthetic verified provider attributes
+   * @return the owner result after its real PostgreSQL transaction
+   */
   ProfileResult create(ExternalIdentity actor, ExternalProfile info) {
     return new UserProfiles(
             profiles,

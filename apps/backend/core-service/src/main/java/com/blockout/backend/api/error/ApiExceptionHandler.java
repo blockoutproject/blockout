@@ -20,6 +20,13 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   private static final Logger LOG = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
+  /**
+   * Translates profile-store failures to a retryable 503 without database diagnostics.
+   *
+   * @param failure exception classified by Spring MVC
+   * @param request current request used for native response handling
+   * @return the problem response, or null if Spring cannot write a committed response
+   */
   @ExceptionHandler(DataAccessException.class)
   @Nullable ResponseEntity<Object> persistenceUnavailable(
       DataAccessException failure, WebRequest request) {
@@ -27,6 +34,13 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         failure, null, HttpHeaders.EMPTY, HttpStatus.SERVICE_UNAVAILABLE, request);
   }
 
+  /**
+   * Returns a safe 401 with the standard Bearer challenge.
+   *
+   * @param failure exception classified by Spring MVC
+   * @param request current request used for native response handling
+   * @return the problem response, or null if Spring cannot write a committed response
+   */
   @ExceptionHandler(AuthenticationException.class)
   @Nullable ResponseEntity<Object> authenticationRequired(
       AuthenticationException failure, WebRequest request) {
@@ -35,17 +49,32 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     return handleExceptionInternal(failure, null, headers, HttpStatus.UNAUTHORIZED, request);
   }
 
+  /**
+   * Returns 403 for an authenticated caller lacking permission.
+   *
+   * @param failure exception classified by Spring MVC
+   * @param request current request used for native response handling
+   * @return the problem response, or null if Spring cannot write a committed response
+   */
   @ExceptionHandler(AccessDeniedException.class)
   @Nullable ResponseEntity<Object> accessDenied(AccessDeniedException failure, WebRequest request) {
     return handleExceptionInternal(failure, null, HttpHeaders.EMPTY, HttpStatus.FORBIDDEN, request);
   }
 
+  /**
+   * Handles unclassified MVC failures as safe 500 responses and logs once at this boundary.
+   *
+   * @param failure exception classified by Spring MVC
+   * @param request current request used for native response handling
+   * @return the problem response, or null if Spring cannot write a committed response
+   */
   @ExceptionHandler(Exception.class)
   @Nullable ResponseEntity<Object> unexpected(Exception failure, WebRequest request) {
     return handleExceptionInternal(
         failure, null, HttpHeaders.EMPTY, HttpStatus.INTERNAL_SERVER_ERROR, request);
   }
 
+  /** {@inheritDoc} */
   @Override
   protected @Nullable ResponseEntity<Object> handleExceptionInternal(
       Exception failure,

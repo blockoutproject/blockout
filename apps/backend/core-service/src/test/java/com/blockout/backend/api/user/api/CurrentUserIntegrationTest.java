@@ -34,6 +34,10 @@ import org.testcontainers.junit.jupiter.*;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Verifies profile HTTP semantics against PostgreSQL with an isolated JWT issuer and stubbed
+ * provider.
+ */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
@@ -76,6 +80,11 @@ class CurrentUserIntegrationTest {
     }
   }
 
+  /**
+   * Routes the real API to isolated PostgreSQL and JWKS fixtures.
+   *
+   * @param p Spring dynamic configuration registry
+   */
   @DynamicPropertySource
   static void properties(DynamicPropertyRegistry p) {
     p.add("spring.datasource.url", DB::getJdbcUrl);
@@ -93,6 +102,7 @@ class CurrentUserIntegrationTest {
   @MockitoBean UserIdentityProvider provider;
   @LocalServerPort int port;
 
+  /** Applies the production schema before profile HTTP scenarios execute. */
   @BeforeAll
   static void migrate() throws SQLException, LiquibaseException {
     try (var c =
@@ -122,6 +132,14 @@ class CurrentUserIntegrationTest {
     JWKS.stop(0);
   }
 
+  /**
+   * Signs controlled actor claims, allowing missing-client and machine-grant rejection scenarios.
+   *
+   * @param subject subject claim under test
+   * @param client nullable authorized-party claim
+   * @param grant nullable grant-type claim
+   * @return the serialized test token
+   */
   String token(String subject, String client, String grant) throws JOSEException {
     var claims =
         new JWTClaimsSet.Builder()
@@ -139,10 +157,22 @@ class CurrentUserIntegrationTest {
     return jwt.serialize();
   }
 
+  /**
+   * Creates a token for the supported canonical native-user fixture.
+   *
+   * @return a valid short-lived user credential
+   */
   String user() throws JOSEException {
     return token("google-oauth2|person", "native-client", null);
   }
 
+  /**
+   * Calls the current-user resource through its real security chain.
+   *
+   * @param method HTTP method under test
+   * @param token optional bearer credential
+   * @return the unmodified HTTP response
+   */
   HttpResponse<String> request(String method, String token)
       throws IOException, InterruptedException {
     var b =

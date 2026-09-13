@@ -14,6 +14,9 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import org.junit.jupiter.api.*;
 
+/**
+ * Exercises the real Auth0 adapter against controlled HTTP responses and a manually advanced clock.
+ */
 class Auth0IdentityIntegrationTest {
   static final jakarta.validation.ValidatorFactory VALIDATION =
       jakarta.validation.Validation.buildDefaultValidatorFactory();
@@ -41,6 +44,7 @@ class Auth0IdentityIntegrationTest {
   MutableClock clock = new MutableClock();
   SimpleMeterRegistry metrics = new SimpleMeterRegistry();
 
+  /** Starts an isolated HTTP provider with synthetic credentials, counters and a test clock. */
   @BeforeEach
   void start() throws java.io.IOException {
     executor = Executors.newCachedThreadPool();
@@ -83,10 +87,22 @@ class Auth0IdentityIntegrationTest {
     metrics.close();
   }
 
+  /**
+   * Selects the exact synthetic subject served by the default fixture response.
+   *
+   * @return the canonical fixture identity
+   */
   ExternalIdentity actor() {
     return new ExternalIdentity("https://tenant.example/", "google-oauth2|person");
   }
 
+  /**
+   * Writes a controlled provider response and closes the exchange and response stream.
+   *
+   * @param ex test-server exchange
+   * @param code HTTP status under test
+   * @param body synthetic JSON response
+   */
   void respond(HttpExchange ex, int code, String body) throws java.io.IOException {
     byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
     ex.getResponseHeaders().add("Content-Type", "application/json");
@@ -413,19 +429,23 @@ class Auth0IdentityIntegrationTest {
         .doesNotContain("secret", "client");
   }
 
+  /** Provides manually advanced UTC time for cache and pause tests; zone conversion is unused. */
   static final class MutableClock extends Clock {
     volatile Instant now = Instant.parse("2026-09-12T12:00:00Z");
 
+    /** {@inheritDoc} */
     @Override
     public ZoneId getZone() {
       return ZoneOffset.UTC;
     }
 
+    /** {@inheritDoc} */
     @Override
     public Clock withZone(ZoneId zone) {
       return this;
     }
 
+    /** {@inheritDoc} */
     @Override
     public Instant instant() {
       return now;

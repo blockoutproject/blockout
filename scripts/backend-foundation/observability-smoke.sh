@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Starts optional local monitoring and verifies real collection, provisioning and alert-rule scenarios.
+# Requires built foundation images and Python 3; leaves the stack running and sends no notifications.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 scripts/backend-foundation/local.sh observe
@@ -14,6 +17,7 @@ from urllib.request import urlopen
 
 
 def get(url):
+    """Read local monitoring JSON with a bounded timeout; propagate HTTP and decoding failures."""
     with urlopen(url, timeout=5) as response:
         return json.load(response)
 

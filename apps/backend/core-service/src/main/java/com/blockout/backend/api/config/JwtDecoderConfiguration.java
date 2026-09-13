@@ -9,8 +9,14 @@ import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.web.client.RestTemplate;
 
+/** Wires bounded JWKS retrieval and standard validation for the configured JWT trust boundary. */
 @Configuration(proxyBeanMethods = false)
 public class JwtDecoderConfiguration {
+  /**
+   * Creates bounded JWKS transport without redirects; Spring closes the client on shutdown.
+   *
+   * @return the application-owned JDK HTTP client
+   */
   @Bean
   HttpClient jwksHttpClient() {
     return HttpClient.newBuilder()
@@ -19,6 +25,14 @@ public class JwtDecoderConfiguration {
         .build();
   }
 
+  /**
+   * Creates an RS256 decoder with required expiry, issuer, audience and sixty-second clock skew.
+   * JWKS failures become a safe BadJwtException without provider response content.
+   *
+   * @param properties validated issuer, audience and key-set configuration
+   * @param jwksHttpClient bounded application-owned key retrieval transport
+   * @return the decoder used by Spring bearer authentication
+   */
   @Bean
   JwtDecoder decoder(AuthProperties properties, HttpClient jwksHttpClient) {
     var factory = new JdkClientHttpRequestFactory(jwksHttpClient);

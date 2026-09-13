@@ -14,6 +14,7 @@ import org.springframework.jdbc.support.JdbcTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
+/** Exercises real row locks, lease fencing, recovery and atomic effects. */
 class JobRepositoryIntegrationTest extends PostgresJobsFixture {
   @Test
   void concurrentConsumersClaimDifferentJobs()

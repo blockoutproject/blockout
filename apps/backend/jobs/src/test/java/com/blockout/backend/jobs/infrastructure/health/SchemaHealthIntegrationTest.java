@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.*;
 import com.blockout.backend.jobs.infrastructure.persistence.PostgresJobsFixture;
 import org.junit.jupiter.api.*;
 
+/** Checks readiness against real schema absence and generation incompatibility. */
 class SchemaHealthIntegrationTest extends PostgresJobsFixture {
   @Test
   void compatibleSchemaIsReady() {

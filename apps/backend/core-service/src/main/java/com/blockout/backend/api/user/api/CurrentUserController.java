@@ -17,6 +17,13 @@ public class CurrentUserController implements CurrentUserApi {
   private final CurrentUserActor actors;
   private final UserProfileMapper mapper;
 
+  /**
+   * Connects actor-bound HTTP operations to the profile owner and generated transport mapping.
+   *
+   * @param profiles profile recreation and local-read use cases
+   * @param actors trusted native-user extraction
+   * @param mapper mapping to the public generated profile model
+   */
   public CurrentUserController(
       UserProfiles profiles, CurrentUserActor actors, UserProfileMapper mapper) {
     this.profiles = profiles;
@@ -24,6 +31,7 @@ public class CurrentUserController implements CurrentUserApi {
     this.mapper = mapper;
   }
 
+  /** {@inheritDoc} */
   @Override
   public ResponseEntity<?> ensureCurrentUser() {
     var actor = actors.current();
@@ -31,6 +39,7 @@ public class CurrentUserController implements CurrentUserApi {
     return response(profiles.ensure(actor.get()));
   }
 
+  /** {@inheritDoc} */
   @Override
   public ResponseEntity<?> getCurrentUser() {
     var actor = actors.current();
@@ -38,6 +47,13 @@ public class CurrentUserController implements CurrentUserApi {
     return response(profiles.find(actor.get()));
   }
 
+  /**
+   * Maps owner outcomes to HTTP without exposing identity or billing records. Only a newly created
+   * profile returns 201 and Location; repeated reads return 200.
+   *
+   * @param result profile owner result
+   * @return an uncacheable profile response or safe problem
+   */
   private ResponseEntity<?> response(ProfileResult result) {
     return switch (result) {
       case ProfileResult.Available available -> {
@@ -61,6 +77,14 @@ public class CurrentUserController implements CurrentUserApi {
     };
   }
 
+  /**
+   * Builds an uncacheable profile failure with a five-second retry hint for temporary
+   * unavailability.
+   *
+   * @param status HTTP failure status
+   * @param code generated code selected by the profile adapter
+   * @return the native problem and recovery headers
+   */
   static ResponseEntity<ProblemDetail> problem(int status, ApiProblemCodeEnum code) {
     var problem = ApiProblems.create(HttpStatus.valueOf(status), code);
     var response =

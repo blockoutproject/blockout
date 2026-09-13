@@ -5,6 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.logging.StandardStackTracePrinter;
 
+/**
+ * Verifies diagnostic call sites survive while exception messages and suppressed failures stay
+ * private.
+ */
 class PrivateStackTracePrinterTest {
   @Test
   void retainsCallSitesWithoutPrivateMessages() {
