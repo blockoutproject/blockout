@@ -2,6 +2,7 @@ package com.blockout.backend.api.user.api;
 
 import static com.blockout.shared.model.ApiProblemCodeEnum.*;
 
+import com.blockout.backend.api.error.ApiProblems;
 import com.blockout.backend.api.user.api.generated.CurrentUserApi;
 import com.blockout.backend.identity.user.application.*;
 import com.blockout.shared.model.ApiProblemCodeEnum;
@@ -61,18 +62,7 @@ public class CurrentUserController implements CurrentUserApi {
   }
 
   static ResponseEntity<ProblemDetail> problem(int status, ApiProblemCodeEnum code) {
-    var problem =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.valueOf(status),
-            switch (code) {
-              case USER_NOT_FOUND -> "The current profile does not exist.";
-              case USER_INACTIVE -> "The current profile is inactive.";
-              case USER_IDENTITY_REQUIRED -> "A supported native user session is required.";
-              case IDENTITY_NOT_SUPPORTED, IDENTITY_MISMATCH ->
-                  "The identity cannot be used to create this profile.";
-              default -> "Identity verification is temporarily unavailable.";
-            });
-    problem.setProperty("code", code.getValue());
+    var problem = ApiProblems.create(HttpStatus.valueOf(status), code);
     var response =
         ResponseEntity.status(status)
             .cacheControl(CacheControl.noStore())

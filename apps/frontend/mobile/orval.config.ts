@@ -12,6 +12,13 @@ export default defineConfig({
       client: "fetch",
       mode: "tags",
       clean: true,
+      override: {
+        fetch: { includeHttpResponseReturnType: false },
+        mutator: {
+          path: "./src/shared/api/core-fetch.ts",
+          name: "coreFetch",
+        },
+      },
     },
   },
   mobileGateway: {

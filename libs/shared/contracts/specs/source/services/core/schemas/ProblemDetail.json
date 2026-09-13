@@ -19,6 +19,10 @@
       },
       "code": {
         "$ref": "#/components/schemas/ApiProblemCodeEnum"
+      },
+      "instance": {
+        "type": "string",
+        "description": "Optional URI reference identifying this occurrence, as defined by RFC 9457."
       }
     }
   }

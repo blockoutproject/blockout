@@ -201,6 +201,18 @@ class CurrentUserIntegrationTest {
   }
 
   @Test
+  void unsupportedMethodsReturnTheHttpContract()
+      throws IOException, InterruptedException, JOSEException {
+    var response = request("PUT", user());
+
+    assertThat(response.statusCode()).isEqualTo(405);
+    assertThat(new JsonMapper().readTree(response.body()).path("code").asString())
+        .isEqualTo("METHOD_NOT_ALLOWED");
+    assertThat(response.headers().firstValue("allow").orElse("")).contains("GET", "POST");
+    verifyNoInteractions(provider);
+  }
+
+  @Test
   void rejectsMissingAuthentication() throws IOException, InterruptedException {
     var response = request("POST", null);
     assertThat(response.statusCode()).isEqualTo(401);
@@ -287,7 +299,10 @@ class CurrentUserIntegrationTest {
       org.springframework.boot.test.system.CapturedOutput output)
       throws IOException, InterruptedException, JOSEException {
     when(provider.find(any()))
-        .thenThrow(new IllegalStateException("private@example.test synthetic-secret"));
+        .thenThrow(
+            new IllegalStateException(
+                "private@example.test synthetic-secret",
+                new IllegalArgumentException("nested-secret")));
     var response = request("POST", user());
     assertThat(response.statusCode()).isEqualTo(500);
     assertThat(response.body())
@@ -295,7 +310,21 @@ class CurrentUserIntegrationTest {
         .doesNotContain("private@", "synthetic-secret", "IllegalStateException");
     assertThat(output.getAll())
         .contains("java.lang.IllegalStateException")
-        .doesNotContain("private@example.test", "synthetic-secret");
+        .doesNotContain("private@example.test", "synthetic-secret", "nested-secret");
+    var json = new JsonMapper();
+    var event =
+        output
+            .getOut()
+            .lines()
+            .filter(line -> line.startsWith("{"))
+            .map(json::readTree)
+            .filter(
+                node -> "api.request.failed".equals(node.path("event").path("action").asString()))
+            .findFirst()
+            .orElseThrow();
+    assertThat(event.path("error").path("type").asString())
+        .isEqualTo("java.lang.IllegalStateException");
+    assertThat(event.path("error").has("message")).isFalse();
   }
 
   @Test

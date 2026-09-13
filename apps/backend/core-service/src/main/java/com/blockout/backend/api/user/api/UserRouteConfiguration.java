@@ -4,7 +4,6 @@ import com.blockout.backend.api.security.api.ApiRoutePolicy;
 import com.blockout.backend.identity.config.IdentityProfileConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
-import org.springframework.http.HttpMethod;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(NativeUserProperties.class)
@@ -12,11 +11,7 @@ import org.springframework.http.HttpMethod;
 public class UserRouteConfiguration {
   @Bean
   ApiRoutePolicy userRoutePolicy() {
-    return requests ->
-        requests
-            .requestMatchers(HttpMethod.GET, "/api/v2/users/me")
-            .authenticated()
-            .requestMatchers(HttpMethod.POST, "/api/v2/users/me")
-            .authenticated();
+    // MVC owns supported methods; authenticated unsupported requests receive HTTP 405.
+    return requests -> requests.requestMatchers("/api/v2/users/me").authenticated();
   }
 }

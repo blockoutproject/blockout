@@ -2,7 +2,6 @@ package com.blockout.backend.worker.infrastructure.scheduling;
 
 import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.JobRepository;
-import com.blockout.backend.jobs.infrastructure.health.SchemaHealthIndicator;
 import com.blockout.backend.worker.application.JobExecutionService;
 import com.blockout.backend.worker.application.WorkerTelemetry;
 import com.blockout.backend.worker.config.WorkerProperties;
@@ -24,7 +23,7 @@ import org.springframework.context.SmartLifecycle;
  * effect. Shutdown stops claims, waits the configured grace, then interrupts remaining attempts.
  */
 public final class JobWorker implements SmartLifecycle, HealthIndicator {
-  private final SchemaHealthIndicator schema;
+  private final HealthIndicator schema;
   private final JobRepository jobs;
   private final WorkerProperties config;
   private final JobExecutionService attempts;
@@ -46,7 +45,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
       WorkerProperties config,
       JobExecutionService attempts,
       WorkerTelemetry telemetry,
-      SchemaHealthIndicator schema) {
+      HealthIndicator schema) {
     this.schema = schema;
     this.jobs = jobs;
     this.config = config;

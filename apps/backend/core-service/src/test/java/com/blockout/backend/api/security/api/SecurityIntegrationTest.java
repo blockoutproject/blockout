@@ -256,6 +256,55 @@ class SecurityIntegrationTest {
     }
   }
 
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
+      GET | /api/v2/test?limit=private-value | {} | application/json | application/json | 400 | INVALID_REQUEST
+      GET | /api/v2/test?limit=0 | {} | application/json | application/json | 400 | INVALID_REQUEST
+      POST | /api/v2/test | { | application/json | application/json | 400 | INVALID_REQUEST
+      POST | /api/v2/test | {"name":""} | application/json | application/json | 400 | INVALID_REQUEST
+      POST | /api/v2/test | {"name":"valid"} | text/plain | application/json | 415 | MEDIA_TYPE_NOT_SUPPORTED
+      PUT | /api/v2/test | {} | application/json | application/json | 405 | METHOD_NOT_ALLOWED
+      POST | /api/v2/test | {"name":"valid"} | application/json | text/plain | 406 | RESPONSE_NOT_ACCEPTABLE
+      GET | /api/v2/test/missing | {} | application/json | application/json | 404 | RESOURCE_NOT_FOUND
+      """)
+  void mvcErrorsUseTheSharedProblemContract(
+      String method,
+      String path,
+      String body,
+      String contentType,
+      String accept,
+      int status,
+      String code)
+      throws IOException, InterruptedException, JOSEException {
+    var request =
+        HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
+            .header("Authorization", "Bearer " + valid())
+            .header("Content-Type", contentType)
+            .header("Accept", accept)
+            .method(method, HttpRequest.BodyPublishers.ofString(body))
+            .build();
+
+    try (var client = HttpClient.newHttpClient()) {
+      var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+      assertThat(response.statusCode()).isEqualTo(status);
+      assertThat(response.headers().firstValue("content-type"))
+          .contains("application/problem+json");
+      assertThat(response.headers().firstValue("cache-control").orElse("")).contains("no-store");
+      var problem = new tools.jackson.databind.json.JsonMapper().readTree(response.body());
+      assertThat(problem.path("code").asString()).isEqualTo(code);
+      assertThat(problem.path("status").asInt()).isEqualTo(status);
+      assertThat(problem.path("detail").asString()).isNotBlank();
+      assertThat(response.body())
+          .doesNotContain("private-value", "java.lang", "Exception", "stackTrace");
+      if (status == 405)
+        assertThat(response.headers().firstValue("allow").orElse("")).contains("GET", "POST");
+    }
+  }
+
   @TestConfiguration
   static class Probes {
     @Bean
@@ -265,15 +314,29 @@ class SecurityIntegrationTest {
 
     @Bean
     ApiRoutePolicy testRoutes() {
-      return requests -> requests.requestMatchers("/api/v2/test", "/api/v2/staff").authenticated();
+      return requests ->
+          requests
+              .requestMatchers("/api/v2/test", "/api/v2/test/**", "/api/v2/staff")
+              .authenticated();
     }
   }
 
   @RestController
   static class ProbeController {
     @GetMapping("/api/v2/test")
-    String test() {
+    String test(
+        @jakarta.validation.constraints.Min(1) @RequestParam(defaultValue = "1") int limit) {
       return "ok";
+    }
+
+    record TestBody(@jakarta.validation.constraints.NotBlank String name) {}
+
+    @PostMapping(
+        value = "/api/v2/test",
+        consumes = "application/json",
+        produces = "application/json")
+    TestBody create(@jakarta.validation.Valid @RequestBody TestBody body) {
+      return body;
     }
 
     @PreAuthorize("hasAuthority('staff')")

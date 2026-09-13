@@ -7,7 +7,7 @@
 | Repeatable fresh schema  | XML native Liquibase changes and one-shot image                   | Startup migration                   | Separate credentials/lifecycle; test image then application startup |
 | Pre-production iteration | Mutable creation baseline until first monolith production release | Append every development alteration | Local reset is explicit; never hide checksum mismatch               |
 | SQL least privilege      | Bootstrap namespace/roles, Liquibase table grants                 | Shared owner credentials            | Small GRANT SQL exception; prove runtime DDL rejection              |
-| Builds                   | Existing Maven reactor with focused replacement modules           | Separate reactor                    | Existing parent maintained; no legacy model imports                 |
+| Builds                   | Existing Maven reactor with focused replacement modules           | Separate reactor                    | Generated transport enums only at HTTP boundaries                   |
 | API access               | Standard Spring Security JWT decoder                              | Custom token parsing                | Controlled issuer/audience/JWKS tests                               |
 | Schema readiness         | Supported integer generation plus required tables                 | Assume migration ordering           | Missing/incompatible schema is not ready                            |
 | Runtime proof            | Test-only handlers                                                | Production diagnostic job endpoint  | No artificial public behavior                                       |
@@ -25,9 +25,9 @@ Content deduplication uses [PostgreSQL JSONB equality](https://www.postgresql.or
 - Consequence: future business handlers depend on the job contracts, not JDBC adapters, and the worker alone owns acknowledgement. SQL callbacks commit atomically with success.
 - Verification: real PostgreSQL publication/lease tests, SQL-effect completion metrics, mirrored test packages and the complete backend reactor.
 
-- Decision: one dependency-free logging library owns the privacy rule used by API and worker before SLF4J sees a throwable. This avoids two copies drifting or coupling logging to a business module. ECS JSON timestamps are UTC instants even for native JVM runs. Worker events have bounded structured fields and a single throwable snapshot retaining the top-level type and stack frames. Causes and suppressed failures are omitted; there is no recursive diagnostic graph traversal or configurable node budget.
-- Alternative: formatting-time filtering through Spring Boot stack-trace customization. That leaves raw messages available to other appenders. Sanitizing at the logging call boundary retains diagnostic frames without propagating private messages; the standard [Spring Boot ECS formatter](https://docs.spring.io/spring-boot/reference/features/logging.html) still owns JSON serialization. No custom appender or remote sink is introduced.
-- Consequence: operators retain the top-level failure location and state transitions, with no raw exception messages or nested cause diagnostics; investigating payload content requires a separately authorized mechanism. Repeated polling outages log only one transition until recovery.
+- Decision: one logging library supplies the standard Spring Boot StackTracePrinter extension used by API and worker. This avoids two copies drifting or coupling logging to a business module. ECS JSON timestamps are UTC instants even for native JVM runs. Worker events have bounded structured fields and keep the original throwable. Native ECS excludes error.message; StandardStackTracePrinter applies a type-only formatter to the exception and its causes, omitting suppressed failures. Spring owns traversal and formatting; there is no custom diagnostic graph or copied throwable.
+- Alternative: sanitizing each throwable before logging creates a second representation and loses its native error type. The standard [Spring Boot ECS formatter](https://docs.spring.io/spring-boot/reference/features/logging.html) owns serialization and privacy for the configured stdout sink. Any future appender must apply the same privacy policy; no additional appender or remote sink is introduced here.
+- Consequence: operators retain exception types, causal call sites and state transitions without raw exception messages; investigating payload content requires a separately authorized mechanism. Repeated polling outages log only one transition until recovery.
 - Verification: diagnostic privacy and outage-transition tests, plus runtime JSON/UTC inspection.
 
 The error contract follows [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html#section-3.1.1): an omitted type means about:blank. Spring's standard ProblemDetail serialization is retained; the source OpenAPI declares type optional and the security handler supplies the required safe detail. A custom serializer to force a default type would add a second serialization policy without changing recovery semantics. HTTP and generated-consumer checks verify the boundary.
@@ -56,3 +56,29 @@ Provider references: [Auth0 linking](https://auth0.com/docs/manage-users/user-ac
 - Verification: Spring context startup tests for invalid properties, controlled Auth0 request/expiry/concurrency tests, API/JWKS tests, PostgreSQL profile and queue tests, generated-consumer compilation and isolated runtime smoke.
 
 Official references: [Spring configuration validation](https://docs.spring.io/spring-boot/reference/features/external-config.html#features.external-config.typesafe-configuration-properties.validation), [Hibernate Validator constraints](https://docs.hibernate.org/validator/9.1/reference/en-US/html_single/), [Spring OAuth client credentials](https://docs.spring.io/spring-security/reference/servlet/oauth2/client/authorization-grants.html#oauth2Client-client-creds-grant), [Spring JWT validation](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html#oauth2resourceserver-jwt-validation).
+
+## Module, HTTP And Monitoring Boundaries
+
+- Need: enforce the current Maven/package boundaries without introducing another runtime architecture.
+- Decision: test-only [ArchUnit rules](https://www.archunit.org/userguide/html/000_Index.html) cover cycles, generated
+  transport leakage, inward dependency direction and private infrastructure. [Spring Modulith](https://docs.spring.io/spring-modulith/reference/fundamentals.html)
+  offers module detection/named interfaces and broader modular testing; those conventions would require additional
+  metadata for this layout. ArchUnit directly expresses the required rules with no production dependency.
+- Verification: architecture tests run in both executable assemblies; the worker consumes Spring's HealthIndicator
+  instead of the queue adapter's concrete type.
+
+- Need: consistent, safe errors from both security filters and MVC, with credentials and recovery owned at the client edge.
+- Decision: native [ProblemDetail and ResponseEntityExceptionHandler](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-ann-rest-exceptions.html),
+  generated ApiProblemCodeEnum and one safe detail factory. The [Spring generator options](https://openapi-generator.tech/docs/generators/spring/) select Boot 4, Jackson 3, JSpecify and native MVC validation; constraints stay generated while class-level @Validated proxies are unnecessary. The [Orval mutator](https://orval.dev/docs/guides/custom-client/)
+  uses expo/fetch and an injected native credential supplier. It preserves unknown error codes, keeps 401/403 distinct,
+  supports timeout/cancellation and never retries or exposes provider prose. Current screens remain on their existing API.
+- Verification: real HTTP tests for validation, malformed bodies, negotiation, missing routes and authorization; mobile
+  generated-boundary tests for credentials, safe errors, unknown codes and cancellation.
+
+- Need: real metric collection/display and safe diagnostics rather than configuration files alone.
+- Decision: native ECS plus Spring Boot's [StackTracePrinter extension](https://docs.spring.io/spring-boot/reference/features/logging.html#features.logging.structured.stack-traces).
+  The standard printer uses withFormatter to omit exception messages; a fabricated Throwable would lose the native error.type.
+  Pinned Prometheus/Grafana containers use [file provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/)
+  and [promtool rule tests](https://prometheus.io/docs/prometheus/latest/configuration/unit_testing_rules/).
+- Verification: captured ECS asserts the original exception type without private messages; an isolated smoke validates
+  scrapes through Grafana and loaded dashboards/alerts. No production account or notification destination is changed.

@@ -2,7 +2,6 @@ package com.blockout.backend.worker.application;
 
 import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.JobRepository;
-import com.blockout.backend.logging.SafeDiagnostics;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import java.util.List;
@@ -68,7 +67,7 @@ public final class WorkerTelemetry {
         LOG.atError()
             .addKeyValue("event.action", "worker.poll.unavailable")
             .addKeyValue("dependency", "postgresql");
-    if (failure != null) event.setCause(SafeDiagnostics.snapshot(failure));
+    if (failure != null) event.setCause(failure);
     event.log("Job polling unavailable; durable work remains recoverable");
   }
 
@@ -99,7 +98,7 @@ public final class WorkerTelemetry {
     attempt(LOG.atError(), "worker.job.failed", job)
         .addKeyValue("failure_recorded", recorded)
         .addKeyValue("retry_exhausted", job.attempts() >= job.maxAttempts())
-        .setCause(SafeDiagnostics.snapshot(failure))
+        .setCause(failure)
         .log("Job execution failed; lease and retry policy apply");
   }
 

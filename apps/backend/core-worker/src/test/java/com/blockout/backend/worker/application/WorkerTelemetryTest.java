@@ -6,7 +6,6 @@ import static org.mockito.Mockito.mock;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import ch.qos.logback.core.read.ListAppender;
 import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.JobRepository;
@@ -37,7 +36,7 @@ class WorkerTelemetryTest {
   }
 
   @Test
-  void retainsDiagnosticFramesWithoutExceptionMessagesOrJobContent() {
+  void attachesTheOriginalFailureWithoutJobContent() {
     var job =
         new Job(UUID.randomUUID(), "private-owner", 1, "private-payload", UUID.randomUUID(), 1, 5);
     var failure =
@@ -58,14 +57,9 @@ class WorkerTelemetryTest {
               assertThat(pair.key).isEqualTo("event.action");
               assertThat(pair.value).isEqualTo("worker.job.failed");
             });
-    String diagnostic = ThrowableProxyUtil.asString(event.getThrowableProxy());
-
-    assertThat(diagnostic)
-        .contains(
-            "java.lang.IllegalStateException",
-            "retainsDiagnosticFramesWithoutExceptionMessagesOrJobContent");
-
-    assertThat(event.getFormattedMessage() + event.getKeyValuePairs() + diagnostic)
+    assertThat(event.getThrowableProxy().getClassName())
+        .isEqualTo(IllegalStateException.class.getName());
+    assertThat(event.getFormattedMessage() + event.getKeyValuePairs())
         .doesNotContain("private-", job.leaseToken().toString());
   }
 

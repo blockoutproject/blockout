@@ -20,7 +20,7 @@ client. Spring's native `ProblemDetail` carries the generated enum's wire value 
 
 Application failure reasons remain independent of transport models and are translated at the API boundary. Existing
 wire values remain stable; mobile consumers must retain a generic failure path for unknown codes introduced by a
-newer backend. The generated core fetch client preserves response values without runtime enum validation.
+newer backend. The core Orval adapter preserves unknown error codes without runtime enum validation and supplies generic safe messages. It is explicitly configured before use and does not switch current screens.
 
 ## Commands
 

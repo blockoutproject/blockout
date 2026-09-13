@@ -47,6 +47,10 @@ logging:
   structured:
     format:
       console: ecs
+    json:
+      exclude: error.message
+      stacktrace:
+        printer: com.blockout.backend.logging.PrivateStackTracePrinter
 blockout:
   worker:
     concurrency: 2

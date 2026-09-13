@@ -9,7 +9,7 @@ Implement the approved first infrastructure increment of US8, with authenticatio
 ## Technical Context
 
 - Java 25, Spring Boot 4.1.0, PostgreSQL 17, Liquibase 5.0.3, Maven and Nx.
-- Six replacement reactor modules: core-service, core-worker, jobs, identity, logging, migrations. No legacy shared-model dependency or speculative business modules.
+- Six replacement reactor modules: core-service, core-worker, jobs, identity, logging, migrations. The API also consumes shared-models for generated transport enums only; application/domain modules do not depend on it. No speculative business modules.
 - Spring JDBC owns explicit queue SQL; Liquibase XML native changes own schema construction.
 - JUnit, AssertJ, Testcontainers PostgreSQL and Failsafe integration/smoke tests.
 - Linux Docker deployment artifacts; isolated local Compose proof only. No production publication/deployment.
@@ -29,7 +29,7 @@ Implement the approved first infrastructure increment of US8, with authenticatio
 - `apps/backend/core-service`: secured HTTP assembly and private management endpoints.
 - `apps/backend/core-worker`: bounded leased execution and process health.
 - `apps/backend/jobs`: job publication, persistence, configuration and schema readiness shared by both runtimes.
-- `apps/backend/logging`: dependency-free diagnostic privacy shared by both executables.
+- `apps/backend/logging`: Spring Boot stack-trace formatting and diagnostic privacy shared by both executables.
 - `apps/backend/migrations`: XML baseline, image and PostgreSQL migration tests.
 - `infra/compose/docker-compose.backend.yml`: isolated database/migration/API/worker topology.
 - `scripts/backend-foundation/`: image build, local lifecycle and smoke commands.
@@ -47,7 +47,7 @@ Liquibase runs in a versioned one-shot image, receives migration credentials onl
 
 JWT signature RS256, issuer, audience, mandatory expiry/optional not-before and 60-second skew; cached JWKS with controlled rotation/outage tests. Stateless bearer API, deny unregistered routes, method security available to future owners, safe RFC problem responses, no product probe endpoint. Management is on a distinct private port, exposing health and Prometheus only. Liveness never depends on providers; readiness depends on database/schema and worker scheduler progress.
 
-JVM stdout uses ECS structured logs with UTC instants independent of the host timezone, without payloads/identity claims. Both executables use the shared logging boundary. Failure diagnostics retain the top-level exception type and stack frames while excluding exception messages, causes and suppressed failures. Outages log one transition until recovery; successful jobs produce metrics without per-record log noise. Metrics use bounded outcomes, states and schema names; no IDs as labels. Resource limits and SQL timeouts are explicit. Unknown job types use a single bounded metric category.
+JVM stdout uses ECS structured logs with UTC instants independent of the host timezone, without payloads/identity claims. Both executables use Spring Boot ECS formatting and the shared StackTracePrinter extension. Native error.type identifies the original exception; error.message is excluded. StandardStackTracePrinter prints types and frames, including causal frames, with a type-only formatter and no suppressed failures. There is no fabricated throwable or handwritten traversal. Outages log one transition until recovery; successful jobs produce metrics without per-record log noise. Metrics use bounded outcomes, states and schema names; no IDs as labels. Resource limits and SQL timeouts are explicit. Unknown job types use a single bounded metric category.
 
 ## Durable Work
 
@@ -104,3 +104,20 @@ Real PostgreSQL tests cover migration, exact uniqueness, concurrent creation and
 Second-delivery evidence adds provider-state/grace clocks, sandbox isolation, pagination, rate limiting, failure recovery, lease races and webhook authentication/replay/transfer tests. A controlled existing subscriber read against a fresh isolated database is a separate provider-evidence gate, with no credentials committed and no identity/purchase mutation. Native iOS/Android proof belongs to the subsequent mobile increment.
 
 Constitution: accepted behavior remains in spec.md; no material UI change in these two deliveries; complete identity resources have one owner; new V2 contracts are source-first and generated projections remain ignored. Plan/research/model/contracts contain design, while issue/PR carry execution evidence. No constitutional exception.
+
+## Foundation Boundary Verification
+
+ArchUnit 1.5 runs only in tests. The API assembly verifies the shared application/domain libraries, transport containment,
+module cycles and private adapter dependencies; the worker verifies its own module boundaries. Spring HealthIndicator
+is the scheduling boundary for queue readiness. Spring Modulith was evaluated; its package/module metadata and broader
+runtime features are unnecessary for these existing Maven assemblies and the requested dependency checks.
+
+One ApiProblems factory supplies safe native ProblemDetail responses to Spring Security, profile adapters and a
+ResponseEntityExceptionHandler advice. Core generation targets Spring Boot 4/Jackson 3 and MVC built-in validation, retaining Bean Validation annotations without a class-level validation proxy. Spring retains exception classification and protocol headers; generated enums
+own the wire codes. Unknown future codes remain readable by the mobile adapter. The core Orval mutator is explicitly
+configured with its origin and an Auth0 SDK token supplier, with no current-screen cutover or machine credentials.
+
+The optional local observability Compose profile runs pinned Prometheus and Grafana images with a provisioned datasource
+and dashboard. Promtool verifies the five alert rules. The runtime smoke queries both scrapes and schema metrics through
+Grafana's datasource proxy and verifies dashboard/rule loading. This proves local metric collection and display; production
+routing, alert notification destinations and centralized log storage remain deployment work. ECS stdout is the log boundary.

@@ -101,6 +101,16 @@
               }
             }
           }
+        },
+        "default": {
+          "description": "Request rejected by the HTTP boundary",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
         }
       }
     },
@@ -180,6 +190,16 @@
         },
         "500": {
           "description": "Unexpected internal failure",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "default": {
+          "description": "Request rejected by the HTTP boundary",
           "content": {
             "application/problem+json": {
               "schema": {

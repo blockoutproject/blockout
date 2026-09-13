@@ -1,6 +1,6 @@
 # Foundation Quickstart
 
-Prerequisites: Java 25, repository Maven wrapper, Node/npm, Docker with Compose. No production credentials are needed for automated tests.
+Prerequisites: Java 25, repository Maven wrapper, Node/npm, Python 3, Docker with Compose. No production credentials are needed for automated tests.
 
 1. Run `npm run contracts:generate` before compiling the generated API boundary from a fresh checkout.
 2. Run `./mvnw -f apps/backend/pom.xml -pl migrations,jobs,core-service,core-worker -am verify`.
@@ -38,3 +38,32 @@ The API reuses its Management API token and calls Auth0 only when a business pro
 Prometheus counters expose `blockout_identity_auth0_requests_total`, `blockout_identity_auth0_tokens_issued_total`, `blockout_identity_auth0_rate_limited_total` and `blockout_identity_auth0_suppressed_total`. The operation label takes either `token` or `profile`; labels never contain subjects, client IDs or payloads. Inspect increases over a selected window to distinguish actual provider traffic from local suppression.
 
 These are operational safeguards for one API process, not a persistent monthly token budget. Restarting the process resets the in-memory cache and pause. Auth0 documents that [Management API tokens do not consume the monthly M2M quota](https://auth0.com/docs/secure/tokens/access-tokens/management-api-access-tokens); tokens for Blockout API audiences must be budgeted separately when machine callers migrate. Inventory existing clients, audiences and grants before changing the retained tenant; retire old grants only after their callers are stopped. No Auth0 configuration change is performed by these commands.
+
+## Core Mobile Transport
+
+Orval uses `src/shared/api/core-fetch.ts` for core operations. Call `configureCoreClient` only when integrating a consumer,
+with the core origin, a `getAccessToken` callback backed by the existing native Auth0 SDK for that API audience, and the
+session's optional unauthorized cleanup callback. Do not reuse a gateway token for a different audience. Calling it with
+no configuration clears the context. No screen or session provider configures this client in the current delivery.
+
+The transport sends no cookies, forwards tokens only to the configured origin and rejects redirects. It performs one
+request with a 20-second timeout and caller cancellation. 401 triggers the configured session cleanup; 403 does not.
+Clients branch on generated problem codes and retain a generic failure path for unknown future values. Server detail
+text and proxy bodies are never displayed as the error message.
+
+## Local Observability
+
+After building the foundation images, run `scripts/backend-foundation/local.sh observe`. This enables the optional
+observability profile, with Prometheus at http://127.0.0.1:13090 and Grafana at http://127.0.0.1:13000. Grafana is a
+loopback-only anonymous viewer of the provisioned **Backend foundation** dashboard. It includes process/schema/worker
+readiness, queue states/age/executions, Auth0 traffic/rate limits, heap usage and firing alerts. No provider requests are
+triggered by the dashboard; unused integration counters can legitimately have no data before their first event.
+
+Run `scripts/backend-foundation/observability-smoke.sh` to validate Prometheus configuration, five alert rules with
+promtool, real API/worker scrapes, four schema series, the Grafana datasource proxy and provisioned dashboard. CI runs
+this after the foundation smoke. `local.sh down` stops the isolated stack and retains the application database.
+
+This profile proves local metrics and alert evaluation. It does not install or modify production Grafana, route alerts
+to people, or collect stdout into a central log store. Production addresses, credentials, notification destinations and
+log retention belong to deployment configuration. Applications continue to emit native ECS JSON to stdout, with UTC
+timestamps, original exception types and message-free stack traces formatted by Spring Boot.
