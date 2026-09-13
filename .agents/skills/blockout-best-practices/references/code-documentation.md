@@ -1,47 +1,81 @@
 # Code Documentation
 
-Apply this policy to Javadoc, TSDoc, exported APIs, comments, and non-obvious test support. Documentation explains a
-contract or decision that names and types cannot express; it does not narrate syntax.
+Read this reference before writing or reviewing handwritten code, including Javadoc, Python docstrings, TSDoc,
+service interfaces, use cases, private helpers, and module boundaries.
 
-## What To Document
+## Rule
 
-Document handwritten code when a reader needs to know one of the following:
+Document every handwritten production class and every handwritten method or function introduced or changed by the
+task, including private methods that form an extracted local step. During a documentation pass, inspect every
+handwritten source and test file in the declared scope, including unchanged files. Apply the language guidance and
+explicit exceptions below. Generated files and generated methods are excluded.
 
-- ownership, intent, or a non-obvious invariant;
-- supported inputs, outputs, side effects, lifecycle, concurrency, or failure semantics;
-- a business rule, external-provider constraint, security boundary, or compatibility decision;
-- why a simpler-looking implementation would be incorrect.
+Prefer a short, useful explanation over leaving a reader to reconstruct the contract from the implementation. Clear
+names do not replace documentation of purpose, inputs, outcomes, side effects, or failure behavior. A class comment
+does not replace method documentation.
 
-Public and cross-module contracts deserve the strongest documentation. Locally shared services, policies, mappers,
-validators, hooks, and test fixtures need documentation when their contract is not evident from naming and types.
-Private helpers need comments only for a non-obvious rule or algorithm.
+State the local contract, boundary, invariant, provider constraint, or reason for extraction. Explain relevant
+transaction, concurrency, idempotency, cancellation, and resource ownership guarantees where they apply. Describe
+actual behavior; do not invent guarantees or narrate syntax.
 
-## What Not To Document
+## Java
 
-- Do not document generated code, obvious accessors, Spring annotations, straightforward mapping, or visible control
-  flow.
-- Do not repeat a method name, parameter type, or JSX structure in prose.
-- Do not add ceremonial Javadoc or TSDoc merely to satisfy a count.
-- Prefer a clearer name or smaller function over a long explanation of confusing code.
-- Delete or update stale comments in the changed boundary.
+- Add class-level Javadoc to every handwritten class, interface, enum, record, annotation, and exception introduced
+  or touched by the task. Explain its responsibility and place in the feature or module.
+- Add Javadoc to handwritten methods, including public, protected, package-private, and extracted private methods.
+  Start with a short sentence describing the operation or local step. Include supported inputs, results, side
+  effects, and failures when applicable; readers should not need to inspect the body to discover the contract.
+- Document constructors with a short sentence and `@param` tags explaining injected dependencies or immutable values.
+- Use `@param` for each parameter to explain its role and relevant constraints, `@return` when the result semantics
+  are not already obvious, and `@throws` for supported business, API, authorization, or operational failures. Do not
+  enumerate hypothetical exceptions from every library call.
+- Put exposed contracts on interface methods. Use `/** {@inheritDoc} */` on touched implementations instead of
+  duplicating the contract; add implementation-specific guarantees only when needed.
+- Handwritten Spring controllers implementing generated OpenAPI interfaces use `/** {@inheritDoc} */` on override
+  methods. Improve the OpenAPI source when the endpoint contract is incomplete, then regenerate.
+- Document Spring bean factories, service, mapper, validator, policy, and use-case methods: their collaborators and
+  lifecycle are part of the contract even when they are not public.
+- Give private methods a concise Javadoc explaining the invariant, parsing rule, domain step, failure behavior, or
+  readability boundary that justified their extraction.
+- Do not add documentation to obvious getters, setters, implicit record accessors, Lombok-generated methods, or
+  framework-generated methods. An accessor with validation or side effects is not an obvious accessor.
 
-## Language Guidance
+## Python
 
-For Java, put the contract on the interface when one exists and use `{@inheritDoc}` only when it helps navigation. Add
-`@param`, `@return`, or `@throws` when the tag conveys behavior beyond the signature.
+- Follow PEP 257. Add a concise module docstring to touched handwritten modules and docstrings to public classes,
+  functions, methods, protocols, and boundary adapters.
+- Document extracted private functions that own provider rules, normalization, retries, or algorithmic steps.
+  Trivial private forwarding helpers do not need ceremonial docstrings.
+- Describe provider constraints, side effects, and failure outcomes without copying fixture content or exposing
+  private provider data. Keep type information in annotations; explain its meaning in the docstring.
 
-For TypeScript and React, document exported functions, hooks, components, and types when observable behavior or
-constraints are not fully expressed by their types. Put component behavior in the props contract; avoid comments that
-enumerate markup.
+## TypeScript And React Native
 
-Tests should explain only non-obvious regressions, fixtures, infrastructure constraints, or deliberately unusual
-setup. Test names and structure should carry the scenario whenever possible.
+- Add TSDoc to touched exported functions, hooks, components, types, and provider boundaries. Explain purpose,
+  supported behavior, effects, lifecycle, and failures as relevant.
+- Document extracted private functions and local algorithms. Inline JSX callbacks, straightforward style objects,
+  and trivial one-line forwarding adapters do not need separate comments.
+- Put component behavior in its public props contract; document the component's role without repeating JSX or
+  enumerating visual markup.
+- Use `@param`, `@returns`, and `@throws` when they clarify observable behavior or supported failures.
 
-Keep documentation beside the contract it describes and write it in English. Do not create detached documentation for
-a local implementation detail.
+## Placement And Maintenance
+
+- Simplify or rename confusing code before compensating with a long comment. Documentation complements KISS.
+- Keep documentation beside the contract it explains, in English. Do not create detached documentation for a helper.
+- Keep inherited contracts in one place and update stale comments when behavior changes.
+- Tests document non-obvious invariants, regressions, fixture ownership, and provider constraints. Descriptive test
+  names or `@DisplayName` can carry straightforward scenarios; do not repeat every assertion or setup method in prose.
+- A module-wide pass may use an existing static-analysis check. Do not introduce a custom parser or source-scanning
+  framework solely to count comments.
 
 ## Verification
 
-- Review handwritten code changed by the task and exclude generated sources.
-- Check that documentation describes current behavior and adds information rather than restating code.
-- Run formatting, compilation, or type checking when source documentation changes.
+- Inspect all handwritten files in the declared scope, including tests, and exclude generated sources.
+- Review types and methods individually; a class-level overview alone does not satisfy the method rule.
+- Confirm comments describe current behavior, explain relevant contracts, and contain no unsupported guarantees.
+- Run the impacted formatter, typecheck, compilation, or tests proportionately when source changes.
+- For policy-only changes, inspect the routing and reference consistency, validate the skill, check formatting where
+  applicable, and run the repository diff-hygiene check.
+- Distinguish updating this policy from applying it to existing code. Report the actual documentation coverage of a
+  code pass; changing the rule does not establish compliance of previously written code.

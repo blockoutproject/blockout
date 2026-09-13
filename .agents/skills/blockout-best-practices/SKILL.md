@@ -1,11 +1,15 @@
 ---
 name: blockout-best-practices
-description: Route Blockout work to the smallest repository policy for Spec Kit SDD, GitHub issues and GitFlow, Figma gates, contracts, Java, Expo mobile, Python scrapers, tests, and validation.
+description: Route Blockout work to the smallest repository policy for Spec Kit SDD, GitHub issues and GitFlow, Figma gates, contracts, Java, Expo mobile, Python scrapers, code documentation, tests, and validation.
 ---
 
 # Blockout Best Practices
 
 Read `AGENTS.md`, then select only the rows needed for the current request or confirmed issue. Apply `karpathy-guidelines` whenever writing, reviewing, or refactoring code.
+
+For any handwritten code creation, modification, or review, also read `references/code-documentation.md` alongside
+the owning language policy. Apply its documentation requirements as part of the code change, not as an optional
+follow-up. A documentation audit uses the full scope requested by the human.
 
 | Signal                                                      | Read                                                                              |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------- |
