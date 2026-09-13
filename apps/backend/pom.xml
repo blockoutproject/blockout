@@ -19,12 +19,6 @@
     <description>Aggregator POM for Blockout backend applications</description>
 
     <modules>
-        <module>migrations</module>
-        <module>logging</module>
-        <module>jobs</module>
-        <module>identity</module>
-        <module>core-service</module>
-        <module>core-worker</module>
         <module>shared-models</module>
         <module>clubs-service</module>
         <module>competition-service</module>
@@ -42,7 +36,6 @@
 
     <properties>
         <java.version>25</java.version>
-        <archunit.version>1.5.0</archunit.version>
         <springdoc-openapi.version>3.0.3</springdoc-openapi.version>
         <lombok.version>1.18.42</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
@@ -221,7 +214,6 @@
                         <generateModelTests>false</generateModelTests>
                         <!-- BEGIN generated schemaMappings -->
                         <schemaMappings>
-                            <schemaMapping>ApiProblemCodeEnum=com.blockout.shared.model.ApiProblemCodeEnum</schemaMapping>
                             <schemaMapping>DevicePlatformEnum=com.blockout.shared.model.DevicePlatformEnum</schemaMapping>
                             <schemaMapping>EntityTypeEnum=com.blockout.shared.model.EntityTypeEnum</schemaMapping>
                             <schemaMapping>FormatEnum=com.blockout.shared.model.FormatEnum</schemaMapping>
@@ -233,8 +225,6 @@
                             <schemaMapping>NotificationTypeEnum=com.blockout.shared.model.NotificationTypeEnum</schemaMapping>
                             <schemaMapping>ReportTypeEnum=com.blockout.shared.model.ReportTypeEnum</schemaMapping>
                             <schemaMapping>ScraperNameEnum=com.blockout.shared.model.ScraperNameEnum</schemaMapping>
-                            <schemaMapping>SubscriptionRefreshStateEnum=com.blockout.shared.model.SubscriptionRefreshStateEnum</schemaMapping>
-                            <schemaMapping>SubscriptionStateEnum=com.blockout.shared.model.SubscriptionStateEnum</schemaMapping>
                         </schemaMappings>
                         <!-- END generated schemaMappings -->
                     </configuration>

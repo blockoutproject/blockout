@@ -50,7 +50,7 @@ Prefer explicit role names such as `CreateResourceCommand`, `ResourceView`, `Res
 
 ## Explicit Types And Finite Values
 
-- In the replacement monolith, write explicit Java types for every handwritten local variable, including loops,
+- In handwritten backend code, write explicit Java types for every handwritten local variable, including loops,
   resources and tests. Do not use `var`, even when the initializer makes the type obvious. Generated output is excluded.
 - Represent known finite states, environments and classifications with enums owned by their feature or contract.
   Reuse existing library enums. Define transport enums in OpenAPI before generation; keep domain enums independent.

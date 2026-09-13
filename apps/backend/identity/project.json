@@ -1,5 +1,0 @@
-{
-  "name": "@blockout/identity",
-  "tags": ["type:library", "scope:backend", "language:java"],
-  "projectType": "library"
-}

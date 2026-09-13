@@ -60,11 +60,10 @@ competition context.
 Stable identities, owned relationships, lifecycle state, user preferences, and explicit product decisions are
 durable state.
 
-### Official Competition State
+### Calculated State
 
-Standings preserve the official source positions, row order, tied ranks, points, penalties and supplied statistics
-for one pool and season. Blockout does not calculate ranking positions, ranking statistics or alternative tie-breaks
-from match results. Display formatting does not create new sporting facts.
+Competition statistics and ordering calculated from authoritative inputs remain reproducible and do not replace
+their inputs.
 
 ### Provider Evidence
 
@@ -130,23 +129,15 @@ matches, and a ranking projection. Pool identity is independent from its display
 
 ### Competition Association And Ranking
 
-A `CompetitionAssociation` associates one team and its club with one pool and owns that membership. A `Ranking`
-is the display projection of an official standing snapshot for that pool and season, with rows referring to identified
-teams. It preserves source positions, row order, ties and supplied statistics; it does not own teams or pools or derive
-standings from match results. An unavailable ranking does not invalidate a usable calendar. Snapshot collection time
-and the source's own update time are distinct provenance.
+A `CompetitionAssociation` associates one team and its club with one pool. It owns the active association and the
+competition statistics used to produce that pool's ranking. Ranking is a projection of the associations in one pool,
+not a second owner of teams or pools.
 
 ### Match
 
 A `Match` is a scheduled contest between exactly two teams in one pool and season. It owns its schedule, status,
 venue, officials, score, set information, and active state. Live-viewing information is attached through a separately
 moderated live link and never changes the sporting result.
-
-A schedule distinguishes a trustworthy precise instant from a civil date whose time is unknown. Its source timezone
-is interpretation context, separate from the viewer's display timezone. A date-only schedule never implies midnight.
-The [rebuild specification](../../specs/002-backend-rebuild/spec.md) owns device-timezone presentation, unknown-time
-states, calendar selection, and time-based authorization behavior; the [target architecture](backend-rebuild-architecture.md)
-derives their storage and transport representation.
 
 ## Audience Model
 

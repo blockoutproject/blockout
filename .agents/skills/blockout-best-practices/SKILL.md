@@ -17,7 +17,7 @@ follow-up. A documentation audit uses the full scope requested by the human.
 | Issue, branch, commit, pull request, or release             | `references/git-and-issues.md`                                                    |
 | OpenAPI, DTO, generated server/client, or shared enum       | `references/contracts.md`                                                         |
 | Spring Boot, Maven, Java structure, or backend design       | `references/backend-java.md`                                                      |
-| Liquibase changelog or replacement schema evolution         | `references/liquibase.md` and `references/liquibase-profile.md`                   |
+| Liquibase changelog or replacement schema evolution         | `references/liquibase.md`                                                         |
 | Mapping between transport, application, and domain          | `references/mapping.md`                                                           |
 | REST route, controller, HTTP semantics, or pagination       | `references/rest.md` and `references/contracts.md`                                |
 | Application logging or operational diagnostics              | `references/logging.md`                                                           |
