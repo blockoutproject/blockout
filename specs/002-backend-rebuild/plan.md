@@ -88,19 +88,66 @@ A lookup hit never calls Auth0. A miss reads only the configured Auth0 Managemen
 
 First delivery creates the billing binding but does not publish unhandled RevenueCat jobs or expose subscription endpoints. The second delivery adds initial job publication in the same creation transaction. It must also bootstrap reconciliation for profiles created by the first delivery.
 
-Configuration is validated once at Spring startup using Bean Validation annotations: required values, HTTP(S) URL syntax, native clients and billing environment. Production deployment supplies HTTPS issuer, JWKS and Management API endpoints for one tenant, with machine credentials held only in secrets; local tests supply HTTP URLs without an additional application flag. Spring Security owns JWT audience validation and the client-credentials token exchange, including standard form encoding and token-response conversion. The adapter adds the Auth0 Management API audience and read:users scope. Provider profiles use a typed Jackson record with nullable, size-constrained attributes validated before persistence. Token cache uses bounded expiry and synchronized renewal. A token with no usable lifetime is rejected and paused rather than repeatedly renewed; Spring's one-second fallback is not a usable Auth0 cache lifetime. Token failures and shared provider failures (401/403, 429, network and server failures) pause new Auth0 calls per API process, starting at five seconds and doubling up to five minutes. A later Retry-After or X-RateLimit-Reset deadline takes precedence. Only a successful profile read resets the progression; successful token issuance alone does not. A provider-rejected cached token is discarded for renewal after the pause; a late rejection cannot discard a newer token. Missing individual users do not pause other lookups. Credentials and pause state are never persisted, and no background retry is scheduled. Bounded counters distinguish actual token/profile requests, issued tokens, rate limits and suppressed calls. Connect/read timeouts are 3/5 seconds; no unbounded retries. Only safe provider error codes and durations reach diagnostics. API and worker hold no DDL privileges; worker only reads user/binding data in the first delivery.
+Configuration is validated once at Spring startup using Bean Validation annotations: required values, HTTP(S) URL syntax, native clients and billing environment. Production deployment supplies HTTPS issuer, JWKS and Management API endpoints for one tenant, with machine credentials held only in secrets; local tests supply HTTP URLs without an additional application flag. Spring Security owns JWT audience validation and the client-credentials token exchange, including standard form encoding and token-response conversion. The adapter adds the Auth0 Management API audience and read:users scope. Provider profiles use a typed Jackson record with nullable, size-constrained attributes validated before persistence. Token cache follows the provider expiry with a short renewal margin and synchronized renewal; it imposes no extra one-day ceiling. A token with no usable lifetime is rejected and paused rather than repeatedly renewed; Spring's one-second fallback is not a usable Auth0 cache lifetime. Token failures and shared provider failures (401/403, 429, network and server failures) pause new Auth0 calls per API process, starting at five seconds and doubling up to five minutes. A later Retry-After or X-RateLimit-Reset deadline takes precedence. Only a successful profile read resets the progression; successful token issuance alone does not. A provider-rejected cached token is discarded for renewal after the pause; a late rejection cannot discard a newer token. Missing individual users do not pause other lookups. Credentials and pause state are never persisted, and no background retry is scheduled. Bounded counters distinguish actual token/profile requests, issued tokens, rate limits and suppressed calls. Connect/read timeouts are 3/5 seconds; no unbounded retries. Only safe provider error codes and durations reach diagnostics. API and worker hold no DDL privileges; worker only reads user/binding data in the first delivery.
 
-### Second delivery: server Pro evidence
+### Second delivery: subscription evidence (T024–T032)
 
-GET `/api/v2/users/me/subscription` reads local evidence; POST `/api/v2/users/me/subscription-refreshes` coalesces refresh requests and returns 202 with Location and retry timing. State is active/grace/inactive/unknown, with verification time, reliable access bound, refresh state and safe failure code. The owner policy grants active/grace, returns 403 for confirmed inactive and retryable 503 for unknown. No fake sporting route is introduced.
+GET `/api/v2/users/me/subscription` is local and side-effect free. POST
+`/api/v2/users/me/subscription-refreshes` returns 202, Location to that resource and Retry-After.
+User requests coalesce with a 30-second minimum between effective requests. State enums are active,
+grace, inactive and unknown; refresh enums are idle, pending and failed. verifiedAt is the last complete
+successful observation. usableUntil is the current local access deadline, not a store billing date.
+Unknown is a successful consultation response, never a confirmed free account. The owner Pro policy
+allows active/grace, rejects inactive and returns retryable unavailable for unknown.
 
-Use RevenueCat V2 subscriptions with environment filter, the configured Pro entitlement and gives_access. Follow all necessary subscription/entitlement pages, validate pagination origin/path and distinguish malformed/partial responses from confirmed absence. Include trials/promotions; do not interpret cancellation as immediate expiry or use period end as a universal access deadline. No lifetime-purchase product is introduced. Only worker calls RevenueCat; read-only V2 credentials, 3/5-second timeouts, 120 provider requests/minute including pagination, and Retry-After handling.
+Fresh evidence lasts ten minutes. Only a transient provider failure permits positive outage grace,
+ending at the earlier of verifiedAt + 24 elapsed hours and a reliable known access expiry. Failures
+never advance verifiedAt; a complete negative observation replaces positive evidence immediately.
+Negative stale evidence is unknown. Provider billing grace with gives_access=true remains active.
 
-Freshness is ten minutes capped by a reliable access expiry. Refresh positive evidence before expiry; other accounts refresh on demand. Provider-outage grace requires an earlier positive server verification and ends at the earlier of 24 hours from that verification and known access expiry. Failure never advances positive verification time. Confirmed negative evidence replaces positive immediately; expired/missing evidence is unknown. A commercial period boundary is not automatically an effective access expiry.
+Only the worker reads RevenueCat V2 subscriptions, using the unchanged billing binding, explicit
+environment and exact configured entitlement. Follow every required subscription/entitlement page;
+partial, malformed and ambiguous 404 responses are unavailable, not negative evidence. Promotional
+subscriptions may have no product. gives_access owns current entitlement decisions; ends_at is a
+billing-period hint for earlier refresh, never a universal access expiry. This adapter returns no
+invented expiry. During an outage the accepted local grace can therefore outlast a provider expiry,
+bounded by 24 hours from verification. No active_entitlements correlation, customer creation, lifetime
+purchase, linking or purchase mutation is introduced.
 
-Use existing fenced jobs, coalesced per binding with durable requested/processed revisions so arrivals during work are not lost. External calls occur outside locks; result persistence and acknowledgement share a live-lease SQL effect. Superseded attempts cannot overwrite newer evidence. Exhausted work remains observable and a bounded subsequent request can recover it.
+RestClient uses 3-second connect and 5-second read timeouts, no redirects or hidden retries. The narrow
+Resilience4j rate limiter shares 120 requests/minute across the single worker, including pagination.
+Provider Retry-After pauses subsequent calls and determines durable retry timing. Existing job deadlines
+and five-attempt budgets remain authoritative. RevenueCat uses a read-only secret key, no Auth0 M2M flow.
 
-POST `/api/v2/webhooks/revenuecat` validates HMAC over original body bytes and timestamp (constant-time, 300-second tolerance), deduplicates event.id and durably publishes work before 200. Invalid authentication is rejected before business parsing. Replay/out-of-order events trigger current-state reads, never blind state transitions. Reconcile both known sides of TRANSFER and invalidate affected outgoing access/grace; unknown customers never create profiles. Raw payloads/identities are excluded from logs and metric labels. A database failure prevents acknowledgement.
+One identity-owned subscription row contains evidence, requested/processed revisions, current job and
+scheduling/error timestamps. Requests and publication commit together. The handler captures a revision,
+reads externally without SQL locks, then commits only under its live job lease. A superseded revision
+cannot overwrite evidence; completion publishes a successor atomically when needed. Extend the job
+boundary with fenced SQL failure effects and explicit retry delay. Dead work is visible and later
+requests can create a fresh bounded budget; no second queue or retry framework is added.
+
+Publish initial work in the profile creation transaction. Scan every 30 seconds in batches of 100 for
+missing subscription rows and due positive evidence (five minutes or an earlier future period boundary).
+Do not enqueue periodic duplicates. Exhausted positive work waits at least 15 minutes before periodic
+recovery; negative/unknown accounts refresh on request/webhook. Capacity defaults are not load guarantees.
+
+POST `/api/v2/webhooks/revenuecat` checks the exact shared `Authorization` value configured in
+RevenueCat, over HTTPS. A dedicated Spring Security authorization rule compares the secret before
+MVC conversion, independently of Auth0 JWT authentication. No custom servlet filter or raw-body
+interception is needed. Generated transport models describe the required provider fields. Event types and webhook
+environments are generated enums with the standard unknown-case fallback. Unknown events are acknowledged without
+work; unknown environments never match the configured billing namespace. Extensions and redeemed purchases request
+fresh evidence; invoice issuance, test, currency and experiment events do not.
+Receipt deduplication and known-binding refresh requests commit before 200. Unknown/test/irrelevant
+customers/events are acknowledged without provisioning. TRANSFER invalidates outgoing proof and
+requests both known sides. Events request current-state reads rather than replaying subscription
+transitions. A database failure prevents acknowledgement. Store receipt identity/type/time only,
+never raw payloads, purchase receipts or financial data.
+
+Native Liquibase baseline adds subscription state and webhook receipts at schema generation 4 with
+least-privilege grants. No startup migration/reset. Metrics use Micrometer and bounded result labels;
+provider bodies, secrets and identities never enter logs or metric labels. Verify collection and
+Grafana visibility in the isolated Compose profile, not by asserting configuration alone.
 
 ### Validation and delivery boundaries
 

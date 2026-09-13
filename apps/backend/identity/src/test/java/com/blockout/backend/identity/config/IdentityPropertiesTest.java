@@ -2,6 +2,7 @@ package com.blockout.backend.identity.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.blockout.backend.identity.subscription.domain.BillingEnvironment;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -28,7 +29,8 @@ class IdentityPropertiesTest {
         "blockout.identity.auth0.client-id=",
         "blockout.identity.auth0.client-secret=",
         "blockout.identity.billing.project-id=",
-        "blockout.identity.billing.environment=other"
+        "blockout.identity.billing.environment=other",
+        "blockout.identity.billing.environment="
       })
   void rejectsInvalidConfigurationAtStartup(String property) {
     context.withPropertyValues(property).run(c -> assertThat(c).hasFailed());
@@ -39,7 +41,8 @@ class IdentityPropertiesTest {
     context.run(
         c -> {
           assertThat(c).hasNotFailed();
-          assertThat(c.getBean(BillingBindingProperties.class).environment()).isEqualTo("sandbox");
+          assertThat(c.getBean(BillingBindingProperties.class).environment())
+              .isEqualTo(BillingEnvironment.SANDBOX);
         });
   }
 

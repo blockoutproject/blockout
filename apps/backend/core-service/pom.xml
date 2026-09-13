@@ -121,6 +121,7 @@
                             <configOptions>
                                 <useSpringBoot4>true</useSpringBoot4>
                                 <useJackson3>true</useJackson3>
+                                <enumUnknownDefaultCase>true</enumUnknownDefaultCase>
                                 <useJspecify>true</useJspecify>
                                 <useSpringBuiltInValidation>true</useSpringBuiltInValidation>
                                 <interfaceOnly>true</interfaceOnly>

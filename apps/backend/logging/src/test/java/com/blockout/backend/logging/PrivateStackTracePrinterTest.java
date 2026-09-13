@@ -12,11 +12,12 @@ import org.springframework.boot.logging.StandardStackTracePrinter;
 class PrivateStackTracePrinterTest {
   @Test
   void retainsCallSitesWithoutPrivateMessages() {
-    var failure =
+    IllegalStateException failure =
         new IllegalStateException(
             "private-response", new IllegalArgumentException("private-token"));
     failure.addSuppressed(new RuntimeException("private-database-row"));
-    var printer = new PrivateStackTracePrinter(StandardStackTracePrinter.rootLast());
+    PrivateStackTracePrinter printer =
+        new PrivateStackTracePrinter(StandardStackTracePrinter.rootLast());
 
     String trace = printer.printStackTraceToString(failure);
 

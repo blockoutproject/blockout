@@ -1,5 +1,6 @@
 package com.blockout.backend.identity.user.application;
 
+import com.blockout.backend.identity.subscription.domain.BillingEnvironment;
 import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import java.time.Instant;
 import java.util.Optional;
@@ -44,5 +45,5 @@ public interface UserProfileStore {
       ExternalProfile attributes,
       Instant now,
       String project,
-      String environment);
+      BillingEnvironment environment);
 }

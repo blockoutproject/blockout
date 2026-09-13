@@ -78,6 +78,8 @@ test("workspace fragments produce the shared OpenAPI bundle", async () => {
     "NotificationTypeEnum",
     "ReportTypeEnum",
     "ScraperNameEnum",
+    "SubscriptionRefreshStateEnum",
+    "SubscriptionStateEnum",
   ]);
 });
 
@@ -92,19 +94,18 @@ test("shared schemas contain only reusable named transport enums", async () => {
   }
 });
 
-test("service schemas contain no handwritten inline transport enum", async () => {
+test("service provider enums are named schemas rather than inline properties", async () => {
   const servicesDir = path.join(contractsRoot, "specs/source/services");
-  const inlineEnums = [];
   for (const file of await jsonFiles(servicesDir)) {
     if (!file.includes(`${path.sep}schemas${path.sep}`)) {
       continue;
     }
     const document = JSON.parse(await readFile(file, "utf8"));
-    inlineEnums.push(
-      ...enumLocations(document).map((pointer) => `${file}${pointer}`),
-    );
+    for (const pointer of enumLocations(document)) {
+      assert.match(pointer, /^\/[^/]+Enum$/, `${file}${pointer}`);
+      assert.ok(document[pointer.slice(1)].description, `${file}${pointer}`);
+    }
   }
-  assert.deepEqual(inlineEnums, []);
 });
 
 test("schema roots include active multipart JSON models without fake endpoints", async () => {

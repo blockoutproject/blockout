@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.*;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -20,6 +21,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.core.*;
 import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -59,10 +61,10 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
             .connectTimeout(Duration.ofSeconds(3))
             .followRedirects(HttpClient.Redirect.NEVER)
             .build();
-    var factory = new JdkClientHttpRequestFactory(client);
+    JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(client);
     factory.setReadTimeout(Duration.ofSeconds(5));
     http = RestClient.builder().requestFactory(factory).build();
-    var registration =
+    ClientRegistration registration =
         ClientRegistration.withRegistrationId("auth0-management")
             .clientId(properties.clientId())
             .clientSecret(properties.clientSecret())
@@ -75,7 +77,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
     tokens = new RestClientClientCredentialsTokenResponseClient();
     tokens.addParametersConverter(
         _ -> {
-          var parameters = new LinkedMultiValueMap<String, String>();
+          MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
           parameters.set("audience", origin.resolve("/api/v2/").toString());
           return parameters;
         });
@@ -89,7 +91,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
                         .addCustomConverter(new OAuth2AccessTokenResponseHttpMessageConverter()))
             .defaultStatusHandler(
                 status -> !status.is2xxSuccessful(),
-                (_, response) -> rejectResponse("token", response))
+                (_, response) -> rejectResponse(Operation.TOKEN, response))
             .build());
   }
 
@@ -108,10 +110,10 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
       token = token();
       Auth0Profile profile = readProfile(identity.subject(), token);
       if (!identity.subject().equals(profile.subject())) {
-        record("mismatch", started);
+        record(LookupOutcome.MISMATCH, started);
         return new IdentityLookup.Mismatch();
       }
-      var attributes =
+      ExternalProfile attributes =
           new ExternalProfile(
               profile.email(),
               profile.firstName(),
@@ -122,7 +124,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
         LOG.atInfo()
             .addKeyValue("event.action", "identity.provider.recovered")
             .log("Identity provider recovered");
-      record("success", started);
+      record(LookupOutcome.SUCCESS, started);
       return new IdentityLookup.Found(attributes);
     } catch (ProviderFailure failure) {
       if (token != null) {
@@ -133,7 +135,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
             || failure.status >= 500) pause(failure);
         else logUnavailable(failure);
       }
-      record(failure.reason.name(), started);
+      record(LookupOutcome.valueOf(failure.reason.name()), started);
       return new IdentityLookup.Unavailable(failure.reason);
     }
   }
@@ -145,7 +147,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
    * @throws ProviderFailure calls are paused or renewal fails
    */
   private synchronized String token() {
-    var blocked = backoff.blockedReason();
+    Optional<IdentityFailureReason> blocked = backoff.blockedReason();
     if (blocked.isPresent()) {
       metrics.counter("blockout.identity.auth0.suppressed").increment();
       throw new ProviderFailure(blocked.get());
@@ -192,22 +194,23 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
   }
 
   /**
-   * Requests and caches one token with an early refresh margin and a one-day cache ceiling.
+   * Requests and caches one token for its provider lifetime, with a short early refresh margin.
    * Unusable token lifetimes fail rather than causing repeated immediate renewal.
    *
    * @return the cached Management API access token
    * @throws ProviderFailure OAuth exchange fails or supplies no usable cache lifetime
    */
   private String renewToken() {
-    metrics.counter("blockout.identity.auth0.requests", "operation", "token").increment();
+    metrics
+        .counter("blockout.identity.auth0.requests", "operation", Operation.TOKEN.value())
+        .increment();
     try {
-      var token = tokens.getTokenResponse(grant).getAccessToken();
+      OAuth2AccessToken token = tokens.getTokenResponse(grant).getAccessToken();
       long lifetime = Duration.between(token.getIssuedAt(), token.getExpiresAt()).toSeconds();
       // Spring substitutes one second when expires_in is absent; do not turn that into a renewal
       // loop.
       if (lifetime <= 1)
         throw new ProviderFailure(IdentityFailureReason.IDENTITY_CONFIGURATION_ERROR);
-      lifetime = Math.min(lifetime, 86400);
       accessToken = token.getTokenValue();
       metrics.counter("blockout.identity.auth0.tokens_issued").increment();
       refreshAt = clock.instant().plusSeconds(lifetime - Math.min(30, lifetime / 2));
@@ -226,21 +229,24 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
    * @throws ProviderFailure HTTP, decoding or attribute validation prevents a complete profile
    */
   private Auth0Profile readProfile(String subject, String token) {
-    var endpoint =
+    URI endpoint =
         UriComponentsBuilder.fromUri(origin)
             .pathSegment("api", "v2", "users", subject)
             .build()
             .encode()
             .toUri();
-    metrics.counter("blockout.identity.auth0.requests", "operation", "profile").increment();
+    metrics
+        .counter("blockout.identity.auth0.requests", "operation", Operation.PROFILE.value())
+        .increment();
     try {
-      var profile =
+      Auth0Profile profile =
           http.get()
               .uri(endpoint)
               .headers(headers -> headers.setBearerAuth(token))
               .retrieve()
               .onStatus(
-                  status -> !status.is2xxSuccessful(), (_, res) -> rejectResponse("profile", res))
+                  status -> !status.is2xxSuccessful(),
+                  (_, res) -> rejectResponse(Operation.PROFILE, res))
               .body(Auth0Profile.class);
       if (profile == null || !validator.validate(profile).isEmpty())
         throw new ProviderFailure(IdentityFailureReason.IDENTITY_PROVIDER_UNAVAILABLE);
@@ -259,10 +265,12 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
    * @throws IOException response status cannot be read
    * @throws ProviderFailure the non-success response has been classified
    */
-  private void rejectResponse(String operation, ClientHttpResponse response) throws IOException {
+  private void rejectResponse(Operation operation, ClientHttpResponse response) throws IOException {
     int status = response.getStatusCode().value();
     if (status == 429)
-      metrics.counter("blockout.identity.auth0.rate_limited", "operation", operation).increment();
+      metrics
+          .counter("blockout.identity.auth0.rate_limited", "operation", operation.value())
+          .increment();
     throw new ProviderFailure(
         status == 401 || status == 403
             ? IdentityFailureReason.IDENTITY_CONFIGURATION_ERROR
@@ -278,8 +286,8 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
    * @return the later deadline, or Instant.MIN when neither numeric header is usable
    */
   private Instant retryAt(HttpHeaders headers) {
-    var after = retryTime(headers.getFirst("Retry-After"), clock.instant());
-    var reset = retryTime(headers.getFirst("X-RateLimit-Reset"), Instant.EPOCH);
+    Instant after = retryTime(headers.getFirst("Retry-After"), clock.instant());
+    Instant reset = retryTime(headers.getFirst("X-RateLimit-Reset"), Instant.EPOCH);
     return after.isAfter(reset) ? after : reset;
   }
 
@@ -306,10 +314,37 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
    * @param outcome fixed adapter outcome, never provider prose
    * @param started monotonic start time from System.nanoTime
    */
-  private void record(String outcome, long started) {
+  private void record(LookupOutcome outcome, long started) {
     metrics
-        .timer("blockout.identity.lookup", "outcome", outcome)
+        .timer("blockout.identity.lookup", "outcome", outcome.value())
         .record(System.nanoTime() - started, java.util.concurrent.TimeUnit.NANOSECONDS);
+  }
+
+  /** Fixed HTTP operation labels for Auth0 request and rate-limit metrics. */
+  private enum Operation {
+    TOKEN,
+    PROFILE;
+
+    /** Returns the existing lowercase metric label. */
+    String value() {
+      return name().toLowerCase(java.util.Locale.ROOT);
+    }
+  }
+
+  /** Complete local lookup classifications; provider error messages are never metric labels. */
+  private enum LookupOutcome {
+    SUCCESS,
+    MISMATCH,
+    IDENTITY_PROVIDER_UNAVAILABLE,
+    IDENTITY_CONFIGURATION_ERROR;
+
+    /** Preserves the existing success labels and public failure names in monitoring. */
+    String value() {
+      return switch (this) {
+        case SUCCESS, MISMATCH -> name().toLowerCase(java.util.Locale.ROOT);
+        case IDENTITY_PROVIDER_UNAVAILABLE, IDENTITY_CONFIGURATION_ERROR -> name();
+      };
+    }
   }
 
   /** Carries only safe adapter failure metadata for translation at the provider boundary. */

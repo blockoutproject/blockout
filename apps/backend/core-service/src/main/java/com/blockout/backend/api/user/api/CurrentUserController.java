@@ -1,12 +1,12 @@
 package com.blockout.backend.api.user.api;
 
-import static com.blockout.shared.model.ApiProblemCodeEnum.*;
-
 import com.blockout.backend.api.error.ApiProblems;
 import com.blockout.backend.api.user.api.generated.CurrentUserApi;
 import com.blockout.backend.identity.user.application.*;
+import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import com.blockout.shared.model.ApiProblemCodeEnum;
 import java.net.URI;
+import java.util.Optional;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,16 +34,16 @@ public class CurrentUserController implements CurrentUserApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<?> ensureCurrentUser() {
-    var actor = actors.current();
-    if (actor.isEmpty()) return problem(403, USER_IDENTITY_REQUIRED);
+    Optional<ExternalIdentity> actor = actors.current();
+    if (actor.isEmpty()) return problem(403, ApiProblemCodeEnum.USER_IDENTITY_REQUIRED);
     return response(profiles.ensure(actor.get()));
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<?> getCurrentUser() {
-    var actor = actors.current();
-    if (actor.isEmpty()) return problem(403, USER_IDENTITY_REQUIRED);
+    Optional<ExternalIdentity> actor = actors.current();
+    if (actor.isEmpty()) return problem(403, ApiProblemCodeEnum.USER_IDENTITY_REQUIRED);
     return response(profiles.find(actor.get()));
   }
 
@@ -57,22 +57,24 @@ public class CurrentUserController implements CurrentUserApi {
   private ResponseEntity<?> response(ProfileResult result) {
     return switch (result) {
       case ProfileResult.Available available -> {
-        var builder =
+        ResponseEntity.BodyBuilder builder =
             ResponseEntity.status(available.created() ? 201 : 200)
                 .cacheControl(CacheControl.noStore());
         if (available.created()) builder.location(URI.create("/api/v2/users/me"));
         yield builder.body(mapper.toResponse(available.profile()));
       }
-      case ProfileResult.Missing _ -> problem(404, USER_NOT_FOUND);
-      case ProfileResult.Inactive _ -> problem(403, USER_INACTIVE);
-      case ProfileResult.Unsupported _ -> problem(409, IDENTITY_NOT_SUPPORTED);
-      case ProfileResult.Mismatch _ -> problem(409, IDENTITY_MISMATCH);
+      case ProfileResult.Missing _ -> problem(404, ApiProblemCodeEnum.USER_NOT_FOUND);
+      case ProfileResult.Inactive _ -> problem(403, ApiProblemCodeEnum.USER_INACTIVE);
+      case ProfileResult.Unsupported _ -> problem(409, ApiProblemCodeEnum.IDENTITY_NOT_SUPPORTED);
+      case ProfileResult.Mismatch _ -> problem(409, ApiProblemCodeEnum.IDENTITY_MISMATCH);
       case ProfileResult.Unavailable failure ->
           problem(
               503,
               switch (failure.reason()) {
-                case IDENTITY_PROVIDER_UNAVAILABLE -> IDENTITY_PROVIDER_UNAVAILABLE;
-                case IDENTITY_CONFIGURATION_ERROR -> IDENTITY_CONFIGURATION_ERROR;
+                case IDENTITY_PROVIDER_UNAVAILABLE ->
+                    ApiProblemCodeEnum.IDENTITY_PROVIDER_UNAVAILABLE;
+                case IDENTITY_CONFIGURATION_ERROR ->
+                    ApiProblemCodeEnum.IDENTITY_CONFIGURATION_ERROR;
               });
     };
   }
@@ -86,8 +88,8 @@ public class CurrentUserController implements CurrentUserApi {
    * @return the native problem and recovery headers
    */
   static ResponseEntity<ProblemDetail> problem(int status, ApiProblemCodeEnum code) {
-    var problem = ApiProblems.create(HttpStatus.valueOf(status), code);
-    var response =
+    ProblemDetail problem = ApiProblems.create(HttpStatus.valueOf(status), code);
+    ResponseEntity.BodyBuilder response =
         ResponseEntity.status(status)
             .cacheControl(CacheControl.noStore())
             .contentType(MediaType.APPLICATION_PROBLEM_JSON);

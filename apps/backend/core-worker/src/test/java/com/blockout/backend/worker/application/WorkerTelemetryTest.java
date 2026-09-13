@@ -2,6 +2,7 @@ package com.blockout.backend.worker.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -9,6 +10,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.JobRepository;
+import com.blockout.backend.jobs.application.JobState;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -21,7 +23,8 @@ class WorkerTelemetryTest {
   final Logger logger = (Logger) LoggerFactory.getLogger(WorkerTelemetry.class);
   final ListAppender<ILoggingEvent> logs = new ListAppender<>();
   final SimpleMeterRegistry metrics = new SimpleMeterRegistry();
-  final WorkerTelemetry telemetry = new WorkerTelemetry(mock(JobRepository.class), metrics);
+  final JobRepository jobs = mock(JobRepository.class);
+  final WorkerTelemetry telemetry = new WorkerTelemetry(jobs, metrics);
 
   @BeforeEach
   void capture() {
@@ -38,9 +41,9 @@ class WorkerTelemetryTest {
 
   @Test
   void attachesTheOriginalFailureWithoutJobContent() {
-    var job =
+    Job job =
         new Job(UUID.randomUUID(), "private-owner", 1, "private-payload", UUID.randomUUID(), 1, 5);
-    var failure =
+    IllegalStateException failure =
         new IllegalStateException(
             "private-response", new IllegalArgumentException("private-token"));
     failure.addSuppressed(new RuntimeException("private-database-row"));
@@ -48,7 +51,7 @@ class WorkerTelemetryTest {
     telemetry.failed(job, failure, false);
 
     assertThat(logs.list).hasSize(1);
-    var event = logs.list.getFirst();
+    ILoggingEvent event = logs.list.getFirst();
 
     assertThat(event.getLevel()).isEqualTo(Level.ERROR);
 
@@ -87,5 +90,15 @@ class WorkerTelemetryTest {
     assertThat(
             metrics.get("blockout.jobs.executions").tag("outcome", "completed").counter().count())
         .isEqualTo(1);
+  }
+
+  @Test
+  void unavailableQueueMetricsRemainUnknownInsteadOfZero() {
+    when(jobs.count(JobState.PENDING)).thenThrow(new IllegalStateException("Database unavailable"));
+    when(jobs.oldestAvailableSeconds())
+        .thenThrow(new IllegalStateException("Database unavailable"));
+
+    assertThat(metrics.get("blockout.jobs.count").tag("state", "pending").gauge().value()).isNaN();
+    assertThat(metrics.get("blockout.jobs.oldest.available.seconds").gauge().value()).isNaN();
   }
 }

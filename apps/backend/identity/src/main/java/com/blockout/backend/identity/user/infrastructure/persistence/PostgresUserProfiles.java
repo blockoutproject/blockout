@@ -1,5 +1,6 @@
 package com.blockout.backend.identity.user.infrastructure.persistence;
 
+import com.blockout.backend.identity.subscription.domain.BillingEnvironment;
 import com.blockout.backend.identity.user.application.*;
 import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import java.sql.*;
@@ -57,9 +58,9 @@ public final class PostgresUserProfiles implements UserProfileStore {
       ExternalProfile attrs,
       Instant now,
       String project,
-      String environment) {
+      BillingEnvironment environment) {
     requireTransaction();
-    var inserted =
+    List<UserProfile> inserted =
         sql.query(
             "INSERT INTO identity.users(id,pseudo,pseudo_key,email,first_name,last_name,phone_number,picture_url,active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,true,?,?) ON CONFLICT(pseudo_key) DO NOTHING RETURNING *",
             (rs, _) -> read(rs),
@@ -83,7 +84,7 @@ public final class PostgresUserProfiles implements UserProfileStore {
         "INSERT INTO identity.billing_bindings(user_id,project_id,environment,customer_id,created_at) VALUES (?,?,?,?,?)",
         id,
         project,
-        environment,
+        environment.value(),
         identity.subject(),
         Timestamp.from(now));
     return Optional.of(inserted.getFirst());

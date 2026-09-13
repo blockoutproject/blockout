@@ -2,6 +2,7 @@ package com.blockout.backend.worker.application;
 
 import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.JobRepository;
+import com.blockout.backend.jobs.application.JobState;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import java.util.List;
@@ -16,35 +17,21 @@ public final class WorkerTelemetry {
   private boolean pollDegraded;
 
   /**
-   * Registers bounded queue gauges; unavailable SQL reads produce NaN rather than a false zero.
+   * Registers bounded queue gauges; Micrometer reports failed SQL reads as NaN, never a false zero.
    *
    * @param jobs queue metric reads
    * @param metrics application-owned meter registry
    */
   public WorkerTelemetry(JobRepository jobs, MeterRegistry metrics) {
     this.metrics = metrics;
-    for (String state : List.of("pending", "running", "succeeded", "dead"))
+    for (JobState state : JobState.values())
       metrics.gauge(
           "blockout.jobs.count",
-          List.of(Tag.of("state", state)),
+          List.of(Tag.of("state", state.value())),
           jobs,
-          j -> {
-            try {
-              return j.count(state);
-            } catch (RuntimeException _) {
-              return Double.NaN;
-            }
-          });
+          j -> j.count(state));
     metrics.gauge(
-        "blockout.jobs.oldest.available.seconds",
-        jobs,
-        j -> {
-          try {
-            return j.oldestAvailableSeconds();
-          } catch (RuntimeException _) {
-            return Double.NaN;
-          }
-        });
+        "blockout.jobs.oldest.available.seconds", jobs, JobRepository::oldestAvailableSeconds);
   }
 
   /**
@@ -90,7 +77,7 @@ public final class WorkerTelemetry {
   public synchronized void pollUnavailable(Throwable failure) {
     if (pollDegraded) return;
     pollDegraded = true;
-    var event =
+    LoggingEventBuilder event =
         LOG.atError()
             .addKeyValue("event.action", "worker.poll.unavailable")
             .addKeyValue("dependency", "postgresql");
@@ -107,7 +94,9 @@ public final class WorkerTelemetry {
 
   /** Counts a successful fenced acknowledgement without emitting a per-record success log. */
   public void completed() {
-    metrics.counter("blockout.jobs.executions", "outcome", "completed").increment();
+    metrics
+        .counter("blockout.jobs.executions", "outcome", ExecutionOutcome.COMPLETED.value())
+        .increment();
   }
 
   /**
@@ -117,7 +106,9 @@ public final class WorkerTelemetry {
    * @param code bounded owner rejection code, never payload content
    */
   public void rejected(Job job, String code) {
-    metrics.counter("blockout.jobs.executions", "outcome", "rejected").increment();
+    metrics
+        .counter("blockout.jobs.executions", "outcome", ExecutionOutcome.REJECTED.value())
+        .increment();
     attempt(LOG.atWarn(), "worker.job.rejected", job)
         .addKeyValue("reason", code)
         .log("Job permanently rejected");
@@ -142,7 +133,9 @@ public final class WorkerTelemetry {
    * @param recorded whether persistence accepted the failure transition
    */
   public void failed(Job job, Exception failure, boolean recorded) {
-    metrics.counter("blockout.jobs.executions", "outcome", "failed").increment();
+    metrics
+        .counter("blockout.jobs.executions", "outcome", ExecutionOutcome.FAILED.value())
+        .increment();
     attempt(LOG.atError(), "worker.job.failed", job)
         .addKeyValue("failure_recorded", recorded)
         .addKeyValue("retry_exhausted", job.attempts() >= job.maxAttempts())
@@ -183,5 +176,17 @@ public final class WorkerTelemetry {
         .addKeyValue("job_id", job.id())
         .addKeyValue("attempt", job.attempts())
         .addKeyValue("payload_version", job.version());
+  }
+
+  /** Stable classifications of completed worker attempts, independent of owner failure codes. */
+  private enum ExecutionOutcome {
+    COMPLETED,
+    REJECTED,
+    FAILED;
+
+    /** Returns the existing Prometheus label. */
+    String value() {
+      return name().toLowerCase(java.util.Locale.ROOT);
+    }
   }
 }

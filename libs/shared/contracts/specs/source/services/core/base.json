@@ -7,6 +7,12 @@
   "tags": [
     {
       "name": "CurrentUser"
+    },
+    {
+      "name": "Subscription"
+    },
+    {
+      "name": "RevenueCatWebhook"
     }
   ],
   "security": [
@@ -20,6 +26,12 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
+      },
+      "revenueCatAuthorization": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Exact shared secret header configured in RevenueCat. HTTPS is required outside isolated fixtures."
       }
     }
   }

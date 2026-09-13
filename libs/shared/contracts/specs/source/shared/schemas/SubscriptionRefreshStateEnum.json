@@ -1,0 +1,6 @@
+{
+  "SubscriptionRefreshStateEnum": {
+    "type": "string",
+    "enum": ["idle", "pending", "failed"]
+  }
+}

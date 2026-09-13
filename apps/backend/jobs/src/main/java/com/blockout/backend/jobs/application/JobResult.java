@@ -14,4 +14,15 @@ public sealed interface JobResult {
 
   /** Owner validation permanently rejects work using a stable code, without logging its payload. */
   record Rejected(String code) implements JobResult {}
+
+  /**
+   * Expected failure whose SQL diagnostics commit with its fenced queue transition.
+   *
+   * @param code stable owner code
+   * @param retryAfter minimum delay before another attempt
+   * @param permanent whether this work requires a new request
+   * @param effect SQL-only owner diagnostics
+   */
+  record Failed(String code, java.time.Duration retryAfter, boolean permanent, Runnable effect)
+      implements JobResult {}
 }

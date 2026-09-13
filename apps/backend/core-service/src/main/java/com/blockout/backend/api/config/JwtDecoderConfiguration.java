@@ -35,14 +35,14 @@ public class JwtDecoderConfiguration {
    */
   @Bean
   JwtDecoder decoder(AuthProperties properties, HttpClient jwksHttpClient) {
-    var factory = new JdkClientHttpRequestFactory(jwksHttpClient);
+    JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(jwksHttpClient);
     factory.setReadTimeout(Duration.ofSeconds(3));
-    var decoder =
+    NimbusJwtDecoder decoder =
         NimbusJwtDecoder.withJwkSetUri(properties.jwkSetUri())
             .jwsAlgorithm(SignatureAlgorithm.RS256)
             .restOperations(new RestTemplate(factory))
             .build();
-    var timestamps = new JwtTimestampValidator(Duration.ofSeconds(60));
+    JwtTimestampValidator timestamps = new JwtTimestampValidator(Duration.ofSeconds(60));
     timestamps.setAllowEmptyExpiryClaim(false);
     decoder.setJwtValidator(
         new DelegatingOAuth2TokenValidator<>(

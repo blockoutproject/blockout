@@ -36,3 +36,10 @@ groups:
           severity: critical
         annotations:
           summary: Backend management endpoint is unavailable
+      - alert: BackendSubscriptionEvidenceStale
+        expr: blockout_subscription_stale_positive > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Positive subscription evidence is outside its freshness window

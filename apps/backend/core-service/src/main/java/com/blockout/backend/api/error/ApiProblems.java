@@ -17,8 +17,16 @@ public final class ApiProblems {
    * @return a fresh ProblemDetail with no provider or request content
    */
   public static ProblemDetail create(HttpStatusCode status, ApiProblemCodeEnum code) {
-    var detail =
+    String detail =
         switch (code) {
+          case SUBSCRIPTION_REQUIRED -> "An active Pro subscription is required.";
+          case SUBSCRIPTION_UNVERIFIED ->
+              "Subscription verification is required. Try again shortly.";
+          case SUBSCRIPTION_STORE_UNAVAILABLE,
+              SUBSCRIPTION_PROVIDER_UNAVAILABLE,
+              SUBSCRIPTION_CONFIGURATION_ERROR ->
+              "Subscription verification is temporarily unavailable.";
+          case WEBHOOK_AUTHENTICATION_FAILED -> "Webhook authentication failed.";
           case AUTHENTICATION_REQUIRED -> "Authentication required.";
           case ACCESS_DENIED -> "Access denied.";
           case USER_IDENTITY_REQUIRED -> "A supported native user session is required.";
@@ -37,7 +45,7 @@ public final class ApiProblems {
           case RESPONSE_NOT_ACCEPTABLE -> "The requested response format is not supported.";
           case MEDIA_TYPE_NOT_SUPPORTED -> "The request content type is not supported.";
         };
-    var problem = ProblemDetail.forStatusAndDetail(status, detail);
+    ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
     problem.setProperty("code", code.getValue());
     return problem;
   }

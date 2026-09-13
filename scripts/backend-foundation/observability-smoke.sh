@@ -4,6 +4,7 @@
 # Requires built foundation images and Python 3; leaves the stack running and sends no notifications.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
+source scripts/backend-foundation/subscription-smoke.sh
 scripts/backend-foundation/local.sh observe
 compose=(docker compose --project-name blockout-foundation --file infra/compose/docker-compose.backend.yml --profile observability)
 "${compose[@]}" exec -T prometheus promtool check config /etc/prometheus/prometheus.yml
@@ -37,10 +38,14 @@ proxied = get(proxy + query)["data"]["result"]
 assert len(proxied) == 2 and all(row["value"][1] == "1" for row in proxied)
 schemas = get(proxy + urlencode({"query": "blockout_schema_ready"}))["data"]["result"]
 assert len(schemas) == 4 and all(row["value"][1] == "1" for row in schemas)
+subscriptions = get(proxy + urlencode({"query": "blockout_subscription_stale_positive"}))["data"]["result"]
+assert len(subscriptions) == 1
+provider = get(proxy + urlencode({"query": "blockout_subscription_provider_requests_total"}))["data"]["result"]
+assert provider and float(provider[0]["value"][1]) >= 2
 dashboard = get("http://127.0.0.1:13000/api/dashboards/uid/backend-foundation")["dashboard"]
 assert dashboard["panels"] and all(panel["datasource"]["uid"] == "backend-prometheus" for panel in dashboard["panels"])
 rules = get("http://127.0.0.1:13090/api/v1/rules")["data"]["groups"]
-assert len(rules) == 1 and len(rules[0]["rules"]) == 5
+assert len(rules) == 1 and len(rules[0]["rules"]) == 6
 assert all(rule["health"] == "ok" for rule in rules[0]["rules"])
-print("Prometheus scrapes, Grafana datasource/dashboard and five alert rules verified")
+print("Prometheus scrapes, Grafana datasource/dashboard and six alert rules verified")
 PY

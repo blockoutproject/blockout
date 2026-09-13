@@ -1,0 +1,38 @@
+{
+  "SubscriptionResponse": {
+    "type": "object",
+    "required": [
+      "verifiedAt",
+      "usableUntil",
+      "state",
+      "refreshState",
+      "errorCode"
+    ],
+    "properties": {
+      "verifiedAt": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      },
+      "usableUntil": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+      },
+      "state": {
+        "$ref": "#/components/schemas/SubscriptionStateEnum"
+      },
+      "refreshState": {
+        "$ref": "#/components/schemas/SubscriptionRefreshStateEnum"
+      },
+      "errorCode": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiProblemCodeEnum"
+          }
+        ],
+        "nullable": true
+      }
+    }
+  }
+}

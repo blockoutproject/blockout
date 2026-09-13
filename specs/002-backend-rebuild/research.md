@@ -42,7 +42,7 @@ The error contract follows [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.htm
 | Concurrent pseudonyms                   | Normalized unique key with conflict arbitration                 | Pre-check only                                                 | Competing inserts cannot create duplicate identity or pseudonym             |
 | Typed local Pro decision                | Persist minimal server evidence, four states                    | Trust client isPro or call provider on each match read         | Clock/negative authorization tests; no network on reads                     |
 | Environment-isolated entitlement        | RevenueCat V2 subscription gives_access plus exact entitlement  | V1 get-or-create or environment-less active_entitlements alone | Complete pagination, sandbox exclusion, trials/promotion/grace cases        |
-| Recoverable event processing            | HMAC webhook receipt plus existing jobs                         | Apply event types directly                                     | Duplicates, ordering, transfers and crash recovery tested                   |
+| Recoverable event processing            | Authenticated webhook receipt plus existing jobs                | Apply event types directly                                     | Duplicates, ordering, transfers and crash recovery tested                   |
 
 Provider references: [Auth0 linking](https://auth0.com/docs/manage-users/user-accounts/user-account-linking), [RevenueCat identity](https://www.revenuecat.com/docs/customers/identifying-customers), [restore behavior](https://www.revenuecat.com/docs/projects/restore-behavior), [V2 subscriptions](https://www.revenuecat.com/docs/api-v2/customer/resources), [webhooks](https://www.revenuecat.com/docs/integrations/webhooks). Production configurations are verification inputs, not presumed inspected evidence. Existing affected users were already linked before billing adoption, as confirmed by the owner.
 
@@ -82,3 +82,60 @@ Official references: [Spring configuration validation](https://docs.spring.io/sp
   and [promtool rule tests](https://prometheus.io/docs/prometheus/latest/configuration/unit_testing_rules/).
 - Verification: captured ECS asserts the original exception type without private messages; an isolated smoke validates
   scrapes through Grafana and loaded dashboards/alerts. No production account or notification destination is changed.
+
+## Subscription refinement decisions
+
+| Need                                   | Decision                                                                          | Simpler alternative and consequence                                         | Verification                                                          |
+| -------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Complete environment-specific evidence | V2 subscriptions, exact entitlement and gives_access                              | active_entitlements alone cannot isolate environment                        | Provider pagination/environment fixtures                              |
+| Honest expiry                          | No expiry inferred from billing dates; period ends schedule refresh only          | Cutting access at ends_at breaks provider grace                             | Clock and grace fixtures                                              |
+| Missing customer ambiguity             | 404 remains unknown                                                               | Treating every resource_missing as free hides invalid project configuration | 404 fixture                                                           |
+| Fenced failure recovery                | Extend existing job SQL effects to delayed/permanent failures                     | Separate owner writes allow stale attempts to change proof                  | PostgreSQL lease/rollback tests                                       |
+| Authenticate provider ingress          | RevenueCat shared Authorization header over HTTPS and Spring Security access rule | Optional HMAC needs raw-body handling without a required benefit here       | Missing/wrong secret, native-token isolation and receipt replay tests |
+| Bounded calls                          | Resilience4j rate limiter only; durable jobs own retries                          | Handwritten limiter duplicates library behavior                             | Controlled rate/retry tests                                           |
+
+References: [RevenueCat subscription model](https://www.revenuecat.com/docs/api-v2/subscription-data-model),
+[V2 API](https://www.revenuecat.com/docs/api-v2), [webhooks](https://www.revenuecat.com/docs/integrations/webhooks),
+[Spring request authorization](https://docs.spring.io/spring-security/reference/servlet/authorization/authorize-http-requests.html),
+[Resilience4j RateLimiter](https://resilience4j.readme.io/docs/ratelimiter).
+
+## Runtime simplicity decisions
+
+- **Provider tokens:** reuse the Auth0 token until its advertised expiry minus the renewal margin. An extra
+  one-day ceiling forces needless token issuance. Keep serialized renewal, rejected-token invalidation and
+  outage backoff because they protect the limited quota under ordinary concurrent logins.
+  [Auth0 token best practices](https://auth0.com/docs/secure/tokens/token-best-practices).
+- **Metrics:** pass queue readings directly to Micrometer. Its gauge already catches failures and returns NaN;
+  application wrappers would duplicate that behavior. Verify that unavailable SQL never appears as a zero backlog.
+  [Micrometer DefaultGauge](https://github.com/micrometer-metrics/micrometer/blob/main/micrometer-core/src/main/java/io/micrometer/core/instrument/internal/DefaultGauge.java).
+- **Worker cancellation:** compose a standard FutureTask with an executor Runnable instead of overriding
+  FutureTask.run. Keep the separate deadline scheduler and release capacity only when the Runnable exits:
+  interrupted network calls can take time to exit, and early release can exceed the configured concurrency.
+- **Subscription requests:** use a named request trigger for user, periodic and automatic requests. This keeps
+  their existing cooldown and coalescing rules explicit without pairs of positional booleans.
+- **Retained extensions:** Problem Detail translation and the small Boot stack-trace formatter serve the
+  shared error contract and prevent provider messages from entering logs. Native libraries continue to own
+  JSON parsing, JWT validation, OAuth exchange and ECS serialization. PostgreSQL transactions/lease fencing,
+  complete provider pagination and rate limits protect current behavior; replacing them with optimistic
+  shortcuts would change the accepted delivery guarantees.
+
+## Explicit Java types and provider vocabularies
+
+Handwritten replacement Java uses explicit local types in production and tests, including resources and loops.
+Generated code remains owned by its generator. Known finite vocabularies use their existing or feature-owned enums:
+queue states, publication rejection reasons, billing namespaces and bounded integration classifications.
+Persisted namespace/state values and metric labels retain their existing spelling.
+
+RevenueCat event types and webhook environments are defined in the core OpenAPI source and generated only at the
+HTTP boundary. The Spring generator's `enumUnknownDefaultCase` option acknowledges future event types without
+starting reconciliation; unknown environments never match a configured namespace. Database receipts record the
+technical fallback classification for unrecognized types. The domain retains its own two-value billing environment.
+Subscription extensions and redeemed purchases request current-state reads alongside the existing relevant events.
+Test, invoice issuance, currency and experiment notifications are acknowledged without subscription work.
+
+Job types and owner-defined execution failure codes remain extensible serialized keys at the queue boundary; they
+are not a closed cross-feature enum. Provider field names, paths, SQL text and independent raw HTTP fixtures remain
+strings. No custom enum parser, registry or JSON converter is introduced.
+
+References: [RevenueCat event types](https://www.revenuecat.com/docs/integrations/webhooks/event-types-and-fields),
+[Spring generator enum fallback](https://openapi-generator.tech/docs/generators/spring/).

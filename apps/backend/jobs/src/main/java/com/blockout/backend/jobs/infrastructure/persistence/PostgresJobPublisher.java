@@ -35,10 +35,11 @@ public final class PostgresJobPublisher implements JobPublisher {
         || version < 1
         || key == null
         || key.isBlank()
-        || key.length() > 200) return new PublicationResult.Rejected("INVALID_IDENTITY");
+        || key.length() > 200)
+      return new PublicationResult.Rejected(PublicationResult.RejectionCode.INVALID_IDENTITY);
     String body = json.writeValueAsString(payload);
     if (body.getBytes(StandardCharsets.UTF_8).length > 65536)
-      return new PublicationResult.Rejected("PAYLOAD_TOO_LARGE");
+      return new PublicationResult.Rejected(PublicationResult.RejectionCode.PAYLOAD_TOO_LARGE);
     UUID id = UUID.randomUUID();
     sql.update(
         """

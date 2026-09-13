@@ -233,6 +233,8 @@
                             <schemaMapping>NotificationTypeEnum=com.blockout.shared.model.NotificationTypeEnum</schemaMapping>
                             <schemaMapping>ReportTypeEnum=com.blockout.shared.model.ReportTypeEnum</schemaMapping>
                             <schemaMapping>ScraperNameEnum=com.blockout.shared.model.ScraperNameEnum</schemaMapping>
+                            <schemaMapping>SubscriptionRefreshStateEnum=com.blockout.shared.model.SubscriptionRefreshStateEnum</schemaMapping>
+                            <schemaMapping>SubscriptionStateEnum=com.blockout.shared.model.SubscriptionStateEnum</schemaMapping>
                         </schemaMappings>
                         <!-- END generated schemaMappings -->
                     </configuration>

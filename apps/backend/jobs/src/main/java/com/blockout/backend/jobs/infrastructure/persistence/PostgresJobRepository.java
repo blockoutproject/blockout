@@ -2,7 +2,9 @@ package com.blockout.backend.jobs.infrastructure.persistence;
 
 import com.blockout.backend.jobs.application.Job;
 import com.blockout.backend.jobs.application.JobRepository;
+import com.blockout.backend.jobs.application.JobState;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionCallback;
@@ -116,27 +118,55 @@ public final class PostgresJobRepository implements JobRepository {
   /** {@inheritDoc} */
   @Override
   public boolean fail(Job job, String code, Duration delay, boolean permanent) {
+    return failWithEffect(job, code, delay, permanent, () -> {});
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<JobState> state(UUID id) {
+    return sql
+        .query(
+            "SELECT state FROM operations.jobs WHERE id=?",
+            (row, index) -> JobState.valueOf(row.getString(1).toUpperCase(Locale.ROOT)),
+            id)
+        .stream()
+        .findFirst();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean failWithEffect(
+      Job job, String code, Duration delay, boolean permanent, Runnable effect) {
     if (!code.matches("[A-Z][A-Z0-9_]{0,99}"))
       throw new IllegalArgumentException("Invalid safe error code");
+    if (delay.isNegative()) throw new IllegalArgumentException("Negative retry delay");
     boolean dead = permanent || job.attempts() >= job.maxAttempts();
     return withLockedAttempt(
         job,
-        _ ->
-            sql.update(
-                    """
-                    UPDATE operations.jobs
-                    SET state=?, available_at=clock_timestamp()+(? * interval '1 millisecond'),
-                        finished_at=CASE WHEN ? THEN clock_timestamp() ELSE NULL END,
-                        lease_token=NULL, lease_expires_at=NULL, last_error_code=?
-                    WHERE id=? AND state='running' AND lease_token=? AND lease_expires_at>clock_timestamp()
-                    """,
-                    dead ? "dead" : "pending",
-                    delay.toMillis(),
-                    dead,
-                    code,
-                    job.id(),
-                    job.leaseToken())
-                == 1);
+        status -> {
+          if (!Boolean.TRUE.equals(
+              sql.queryForObject(
+                  "SELECT lease_expires_at>clock_timestamp() FROM operations.jobs WHERE id=?",
+                  Boolean.class,
+                  job.id()))) return false;
+          effect.run();
+          int updated =
+              sql.update(
+                  """
+          UPDATE operations.jobs SET state=?, available_at=clock_timestamp()+(? * interval '1 millisecond'),
+          finished_at=CASE WHEN ? THEN clock_timestamp() ELSE NULL END,
+          lease_token=NULL, lease_expires_at=NULL, last_error_code=?
+          WHERE id=? AND state='running' AND lease_token=? AND lease_expires_at>clock_timestamp()
+          """,
+                  (dead ? JobState.DEAD : JobState.PENDING).value(),
+                  delay.toMillis(),
+                  dead,
+                  code,
+                  job.id(),
+                  job.leaseToken());
+          if (updated != 1) status.setRollbackOnly();
+          return updated == 1;
+        });
   }
 
   /**
@@ -152,7 +182,7 @@ public final class PostgresJobRepository implements JobRepository {
     return Boolean.TRUE.equals(
         tx.execute(
             status -> {
-              var rows =
+              List<Map<String, Object>> rows =
                   sql.queryForList(
                       "SELECT id FROM operations.jobs WHERE id=? AND state='running' AND lease_token=? FOR UPDATE",
                       job.id(),
@@ -171,9 +201,9 @@ public final class PostgresJobRepository implements JobRepository {
 
   /** {@inheritDoc} */
   @Override
-  public double count(String state) {
+  public double count(JobState state) {
     return sql.queryForObject(
-            "SELECT count(*) FROM operations.jobs WHERE state=?", Long.class, state)
+            "SELECT count(*) FROM operations.jobs WHERE state=?", Long.class, state.value())
         .doubleValue();
   }
 
@@ -183,5 +213,17 @@ public final class PostgresJobRepository implements JobRepository {
     return sql.queryForObject(
         "SELECT coalesce(extract(epoch FROM clock_timestamp()-min(available_at)),0) FROM operations.jobs WHERE state='pending' AND available_at<=clock_timestamp()",
         Double.class);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<Instant> finishedAt(UUID id) {
+    return sql
+        .query(
+            "SELECT finished_at FROM operations.jobs WHERE id=? AND finished_at IS NOT NULL",
+            (row, index) -> row.getTimestamp(1).toInstant(),
+            id)
+        .stream()
+        .findFirst();
   }
 }

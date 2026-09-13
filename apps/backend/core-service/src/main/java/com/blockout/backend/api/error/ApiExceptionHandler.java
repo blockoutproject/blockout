@@ -1,7 +1,5 @@
 package com.blockout.backend.api.error;
 
-import static com.blockout.shared.model.ApiProblemCodeEnum.*;
-
 import com.blockout.shared.model.ApiProblemCodeEnum;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -44,7 +42,7 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(AuthenticationException.class)
   @Nullable ResponseEntity<Object> authenticationRequired(
       AuthenticationException failure, WebRequest request) {
-    var headers = new HttpHeaders();
+    HttpHeaders headers = new HttpHeaders();
     headers.set(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
     return handleExceptionInternal(failure, null, headers, HttpStatus.UNAUTHORIZED, request);
   }
@@ -90,18 +88,23 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
     ApiProblemCodeEnum code =
         failure instanceof DataAccessException
-            ? PROFILE_STORE_UNAVAILABLE
+            ? (subscriptionRequest(request)
+                ? ApiProblemCodeEnum.SUBSCRIPTION_STORE_UNAVAILABLE
+                : ApiProblemCodeEnum.PROFILE_STORE_UNAVAILABLE)
             : switch (status.value()) {
-              case 401 -> AUTHENTICATION_REQUIRED;
-              case 403 -> ACCESS_DENIED;
-              case 404 -> RESOURCE_NOT_FOUND;
-              case 405 -> METHOD_NOT_ALLOWED;
-              case 406 -> RESPONSE_NOT_ACCEPTABLE;
-              case 415 -> MEDIA_TYPE_NOT_SUPPORTED;
-              case 503 -> SERVICE_UNAVAILABLE;
-              default -> status.is4xxClientError() ? INVALID_REQUEST : INTERNAL_ERROR;
+              case 401 -> ApiProblemCodeEnum.AUTHENTICATION_REQUIRED;
+              case 403 -> ApiProblemCodeEnum.ACCESS_DENIED;
+              case 404 -> ApiProblemCodeEnum.RESOURCE_NOT_FOUND;
+              case 405 -> ApiProblemCodeEnum.METHOD_NOT_ALLOWED;
+              case 406 -> ApiProblemCodeEnum.RESPONSE_NOT_ACCEPTABLE;
+              case 415 -> ApiProblemCodeEnum.MEDIA_TYPE_NOT_SUPPORTED;
+              case 503 -> ApiProblemCodeEnum.SERVICE_UNAVAILABLE;
+              default ->
+                  status.is4xxClientError()
+                      ? ApiProblemCodeEnum.INVALID_REQUEST
+                      : ApiProblemCodeEnum.INTERNAL_ERROR;
             };
-    var responseHeaders = new HttpHeaders();
+    HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.putAll(headers);
     responseHeaders.setContentType(MediaType.APPLICATION_PROBLEM_JSON);
     responseHeaders.setCacheControl(CacheControl.noStore());
@@ -110,5 +113,17 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     }
     return super.handleExceptionInternal(
         failure, ApiProblems.create(status, code), responseHeaders, status, request);
+  }
+
+  /**
+   * Selects the owning persistence failure code without exposing request content.
+   *
+   * @param request current HTTP context
+   * @return whether the subscription/webhook resource owns the failing operation
+   */
+  private static boolean subscriptionRequest(WebRequest request) {
+    String resource = request.getDescription(false);
+    return resource.startsWith("uri=/api/v2/users/me/subscription")
+        || resource.equals("uri=/api/v2/webhooks/revenuecat");
   }
 }

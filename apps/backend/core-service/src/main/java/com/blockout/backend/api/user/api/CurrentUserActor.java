@@ -2,6 +2,7 @@ package com.blockout.backend.api.user.api;
 
 import com.blockout.backend.identity.user.domain.ExternalIdentity;
 import java.util.Optional;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
@@ -27,7 +28,7 @@ public final class CurrentUserActor {
    * @return the exact issuer/subject pair, or empty when no supported native actor is present
    */
   public Optional<ExternalIdentity> current() {
-    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt))
       return Optional.empty();
     Object subjectClaim = jwt.getClaims().get("sub");

@@ -48,6 +48,19 @@ Prefer explicit role names such as `CreateResourceCommand`, `ResourceView`, `Res
 `ResourceApplicationService`, `ResourceStorage`, and `ResourceEventPublisher`. Avoid `*Impl` and weak prefixes such as
 `Default`, `Jpa`, or `Transactional` when they do not explain the responsibility.
 
+## Explicit Types And Finite Values
+
+- In the replacement monolith, write explicit Java types for every handwritten local variable, including loops,
+  resources and tests. Do not use `var`, even when the initializer makes the type obvious. Generated output is excluded.
+- Represent known finite states, environments and classifications with enums owned by their feature or contract.
+  Reuse existing library enums. Define transport enums in OpenAPI before generation; keep domain enums independent.
+- Qualify enum constants with their declaring enum type in handwritten code, including comparisons, arguments and
+  expression results. Do not statically import enum constants. Keep enum `case` labels unqualified in switches.
+- Keep serialized values stable. For extensible provider vocabularies, use the generator's supported unknown-value
+  handling and verify that unknown values do not grant access or trigger unintended work.
+- Identifiers, JSON field names, paths, SQL text and extensible owner-defined job keys are not enum vocabularies.
+  Do not add generic enum registries or replace independent wire-format test fixtures with production constants.
+
 ## Transport And Mapping
 
 Generated server interfaces and DTOs are API adapter contracts. Implement the interfaces in `api`, map their values

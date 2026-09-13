@@ -1,0 +1,6 @@
+{
+  "SubscriptionStateEnum": {
+    "type": "string",
+    "enum": ["active", "grace", "inactive", "unknown"]
+  }
+}

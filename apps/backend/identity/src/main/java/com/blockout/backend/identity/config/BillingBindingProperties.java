@@ -1,7 +1,8 @@
 package com.blockout.backend.identity.config;
 
+import com.blockout.backend.identity.subscription.domain.BillingEnvironment;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -15,5 +16,4 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties("blockout.identity.billing")
 public record BillingBindingProperties(
-    @NotBlank @Size(max = 255) String projectId,
-    @NotBlank @Pattern(regexp = "production|sandbox") String environment) {}
+    @NotBlank @Size(max = 255) String projectId, @NotNull BillingEnvironment environment) {}

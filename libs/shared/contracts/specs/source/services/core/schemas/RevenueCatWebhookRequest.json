@@ -1,0 +1,88 @@
+{
+  "RevenueCatWebhookRequest": {
+    "type": "object",
+    "required": ["event"],
+    "properties": {
+      "event": {
+        "$ref": "#/components/schemas/RevenueCatWebhookEvent"
+      }
+    }
+  },
+  "RevenueCatWebhookEvent": {
+    "type": "object",
+    "required": ["id", "type", "event_timestamp_ms"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255
+      },
+      "type": {
+        "$ref": "#/components/schemas/RevenueCatEventTypeEnum"
+      },
+      "event_timestamp_ms": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "environment": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RevenueCatEnvironmentEnum"
+          }
+        ],
+        "nullable": true
+      },
+      "app_user_id": {
+        "type": "string",
+        "nullable": true
+      },
+      "aliases": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "transferred_from": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "transferred_to": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "RevenueCatEventTypeEnum": {
+    "type": "string",
+    "enum": [
+      "TEST",
+      "INITIAL_PURCHASE",
+      "RENEWAL",
+      "CANCELLATION",
+      "UNCANCELLATION",
+      "NON_RENEWING_PURCHASE",
+      "SUBSCRIPTION_PAUSED",
+      "EXPIRATION",
+      "BILLING_ISSUE",
+      "PRODUCT_CHANGE",
+      "SUBSCRIPTION_EXTENDED",
+      "REFUND_REVERSED",
+      "INVOICE_ISSUANCE",
+      "TRANSFER",
+      "TEMPORARY_ENTITLEMENT_GRANT",
+      "VIRTUAL_CURRENCY_TRANSACTION",
+      "EXPERIMENT_ENROLLMENT",
+      "PURCHASE_REDEEMED"
+    ],
+    "description": "RevenueCat webhook event type. Known values follow the provider documentation; future event types are acknowledged without changing subscription evidence."
+  },
+  "RevenueCatEnvironmentEnum": {
+    "type": "string",
+    "enum": ["PRODUCTION", "SANDBOX"],
+    "description": "RevenueCat webhook store environment. Unrecognized environments never match a retained billing namespace."
+  }
+}

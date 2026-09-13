@@ -1,0 +1,69 @@
+{
+  "/api/v2/webhooks/revenuecat": {
+    "post": {
+      "operationId": "receiveRevenueCatWebhook",
+      "tags": ["RevenueCatWebhook"],
+      "security": [
+        {
+          "revenueCatAuthorization": []
+        }
+      ],
+      "description": "Authenticate the configured shared Authorization header over HTTPS before request conversion. Commit receipt and reconciliation requests before 200. Duplicate receipts are acknowledged.",
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RevenueCatWebhookRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Durably accepted or already accepted"
+        },
+        "400": {
+          "description": "Safe request failure",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Safe request failure",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "503": {
+          "description": "Safe request failure",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        },
+        "default": {
+          "description": "Safe request failure",
+          "content": {
+            "application/problem+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProblemDetail"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

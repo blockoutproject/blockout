@@ -14,4 +14,24 @@ Errors use ProblemDetail with stable code: 401 bearer validation; 403 USER_IDENT
 
 GET /api/v2/users/me/subscription returns local active/grace/inactive/unknown evidence with verifiedAt, usableUntil, refreshState and safe errorCode. No GET starts work. POST /api/v2/users/me/subscription-refreshes returns 202, Location pointing at subscription and Retry-After; requests for pending work coalesce without losing arrivals. POST profile creation publishes the initial refresh atomically only once the matching worker handler is delivered.
 
-POST /api/v2/webhooks/revenuecat authenticates X-RevenueCat-Webhook-Signature (`t=<seconds>,v1=<hex>`) over t+'.'+raw JSON bytes before parsing. It persists a deduplicated receipt and publishes work before 200. Auth0 bearer authentication is not the webhook credential. No provider-specific payload is exposed in the mobile contract.
+POST /api/v2/webhooks/revenuecat authenticates the exact shared Authorization value configured in RevenueCat, over HTTPS. It persists a deduplicated receipt and publishes work before 200. The secret is independent of native Auth0 JWTs. No provider-specific payload is exposed in the mobile contract.
+
+SubscriptionResponse fields are state (active/grace/inactive/unknown), verifiedAt (nullable UTC date-time),
+usableUntil (nullable local access deadline), refreshState (idle/pending/failed), and errorCode (nullable
+shared ApiProblemCodeEnum). Pending includes running work. GET returns 200 unknown when no usable proof
+exists, but a storage failure returns 503. POST has no body and returns 202 with Location, Retry-After: 30
+and no response body. Both require the existing current-user authentication and active business profile.
+Responses are private, no-store. A future Pro operation returns 403 SUBSCRIPTION_REQUIRED for inactive,
+or 503 SUBSCRIPTION_UNVERIFIED for unknown; this increment exposes the read-only policy without a fake route.
+
+Webhook ingress uses its own stateless Spring Security chain. Missing or incorrect Authorization returns
+401 WEBHOOK_AUTHENTICATION_FAILED without an Auth0 Bearer challenge, before JSON conversion. Spring
+MVC converts and validates the body normally after authorization; no signature timestamp is required.
+Replayed event IDs remain harmless through durable receipt deduplication. Production TLS protects the
+credential and request body in transit; the shared secret must remain private and be rotated if exposed.
+
+Webhook event types and environments are generated from their documented RevenueCat vocabularies. Future types
+are accepted as the generator's unknown case and acknowledged without reconciliation. Unknown environments are
+ignored even for transfers; an absent environment remains supported for TRANSFER. Subscription extension and
+purchase redemption events request current-state verification. Receipt types preserve known wire values and use
+the technical `unknown_default_open_api` classification for future event types.

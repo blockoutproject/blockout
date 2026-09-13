@@ -2,8 +2,10 @@ package com.blockout.backend.identity.user.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.*;
 
+import com.blockout.backend.identity.subscription.domain.BillingEnvironment;
 import com.blockout.backend.identity.user.application.*;
 import com.blockout.backend.identity.user.domain.ExternalIdentity;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.*;
 import java.util.*;
@@ -36,16 +38,19 @@ class UserCreationIntegrationTest {
   /** Migrates as owner, then wires profile writes through the restricted API database role. */
   @BeforeAll
   static void setup() throws SQLException, LiquibaseException {
-    var owner = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
+    DriverManagerDataSource owner =
+        new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
     admin = new JdbcTemplate(owner);
     admin.execute(
         "CREATE SCHEMA operations; CREATE SCHEMA identity; CREATE ROLE blockout_api LOGIN PASSWORD 'test'; CREATE ROLE blockout_worker LOGIN PASSWORD 'test'; GRANT USAGE ON SCHEMA identity, operations TO blockout_api, blockout_worker");
-    try (var c = owner.getConnection();
-        var connection = new JdbcConnection(c);
-        var lb = new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
+    try (Connection c = owner.getConnection();
+        JdbcConnection connection = new JdbcConnection(c);
+        Liquibase lb =
+            new Liquibase("db/changelog/db.changelog-master.xml", resources, connection)) {
       lb.update("");
     }
-    var api = new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_api", "test");
+    DriverManagerDataSource api =
+        new DriverManagerDataSource(DB.getJdbcUrl(), "blockout_api", "test");
     sql = new JdbcTemplate(api);
     tx = new TransactionTemplate(new JdbcTransactionManager(api));
     tx.setTimeout(5);
@@ -91,14 +96,16 @@ class UserCreationIntegrationTest {
             tx,
             Clock.fixed(NOW, ZoneOffset.UTC),
             "project",
-            "production")
+            BillingEnvironment.PRODUCTION,
+            _ -> {})
         .ensure(actor);
   }
 
   @Test
   void unrelatedDatasourceTransactionCannotAuthorizeProfileWrites() {
-    var other = new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
-    var otherTx = new TransactionTemplate(new JdbcTransactionManager(other));
+    DriverManagerDataSource other =
+        new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword());
+    TransactionTemplate otherTx = new TransactionTemplate(new JdbcTransactionManager(other));
 
     assertThatThrownBy(
             () ->
@@ -111,15 +118,16 @@ class UserCreationIntegrationTest {
                             info(null),
                             NOW,
                             "project",
-                            "production")))
+                            BillingEnvironment.PRODUCTION)))
         .isInstanceOf(IllegalStateException.class);
     assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
   }
 
   @Test
   void createsOneAtomicProfileWithTheOriginalBillingIdentity() {
-    var actor = actor("google-oauth2|first");
-    var created = (ProfileResult.Available) create(actor, info("name@example.test"));
+    ExternalIdentity actor = actor("google-oauth2|first");
+    ProfileResult.Available created =
+        (ProfileResult.Available) create(actor, info("name@example.test"));
     assertThat(created.created()).isTrue();
     assertThat(created.profile().createdAt()).isEqualTo(NOW);
     assertThat(
@@ -131,18 +139,19 @@ class UserCreationIntegrationTest {
 
   @Test
   void creationReturnsTheSameInstantsAsThePersistedProfile() {
-    var actor = actor("apple|precise-clock");
-    var service =
+    ExternalIdentity actor = actor("apple|precise-clock");
+    UserProfiles service =
         new UserProfiles(
             profiles,
             _ -> new IdentityLookup.Found(info(null)),
             tx,
             Clock.fixed(Instant.parse("2026-10-25T01:30:00.123456789Z"), ZoneId.of("Europe/Paris")),
             "project",
-            "production");
+            BillingEnvironment.PRODUCTION,
+            _ -> {});
 
-    var created = (ProfileResult.Available) service.ensure(actor);
-    var read = (ProfileResult.Available) service.find(actor);
+    ProfileResult.Available created = (ProfileResult.Available) service.ensure(actor);
+    ProfileResult.Available read = (ProfileResult.Available) service.find(actor);
 
     assertThat(created.profile()).isEqualTo(read.profile());
     assertThat(read.profile().createdAt()).isEqualTo(Instant.parse("2026-10-25T01:30:00.123457Z"));
@@ -151,16 +160,17 @@ class UserCreationIntegrationTest {
 
   @Test
   void acceptsTwoDistinctIdentitiesWithTheSameEmail() {
-    var first =
+    ProfileResult.Available first =
         (ProfileResult.Available) create(actor("google-oauth2|first"), info("same@example.test"));
-    var second = (ProfileResult.Available) create(actor("apple|second"), info("same@example.test"));
+    ProfileResult.Available second =
+        (ProfileResult.Available) create(actor("apple|second"), info("same@example.test"));
     assertThat(second.profile().id()).isNotEqualTo(first.profile().id());
     assertThat(second.profile().pseudo()).isNotEqualTo(first.profile().pseudo());
   }
 
   @Test
   void supportsMissingProviderAttributes() {
-    var created =
+    ProfileResult.Available created =
         (ProfileResult.Available)
             create(actor("apple|private"), new ExternalProfile(null, null, null, null, null));
     assertThat(created.profile().email()).isNull();
@@ -170,9 +180,9 @@ class UserCreationIntegrationTest {
   @Test
   void concurrentFirstRequestsReturnOneProfile()
       throws InterruptedException, ExecutionException, TimeoutException {
-    var actor = actor("google-oauth2|concurrent");
-    var start = new CountDownLatch(1);
-    try (var pool = Executors.newFixedThreadPool(8)) {
+    ExternalIdentity actor = actor("google-oauth2|concurrent");
+    CountDownLatch start = new CountDownLatch(1);
+    try (ExecutorService pool = Executors.newFixedThreadPool(8)) {
       List<Future<ProfileResult.Available>> results = new ArrayList<>();
       for (int i = 0; i < 8; i++)
         results.add(
@@ -182,8 +192,9 @@ class UserCreationIntegrationTest {
                   return (ProfileResult.Available) create(actor, info("race@example.test"));
                 }));
       start.countDown();
-      var values = new ArrayList<ProfileResult.Available>();
-      for (var result : results) values.add(result.get(15, TimeUnit.SECONDS));
+      List<ProfileResult.Available> values = new ArrayList<>();
+      for (Future<ProfileResult.Available> result : results)
+        values.add(result.get(15, TimeUnit.SECONDS));
       assertThat(values.stream().map(x -> x.profile().id()).distinct()).hasSize(1);
       assertThat(values.stream().filter(ProfileResult.Available::created)).hasSize(1);
     }
@@ -194,13 +205,13 @@ class UserCreationIntegrationTest {
   @Test
   void concurrentPseudonymCollisionsKeepDistinctProfiles()
       throws InterruptedException, ExecutionException, TimeoutException {
-    try (var pool = Executors.newFixedThreadPool(6)) {
-      var results = new ArrayList<Future<ProfileResult>>();
+    try (ExecutorService pool = Executors.newFixedThreadPool(6)) {
+      List<Future<ProfileResult>> results = new ArrayList<>();
       for (int i = 0; i < 6; i++) {
         final int id = i;
         results.add(pool.submit(() -> create(actor("apple|" + id), info("same@example.test"))));
       }
-      for (var result : results)
+      for (Future<ProfileResult> result : results)
         assertThat(result.get(15, TimeUnit.SECONDS)).isInstanceOf(ProfileResult.Available.class);
     }
     assertThat(
@@ -211,9 +222,9 @@ class UserCreationIntegrationTest {
 
   @Test
   void existingProfileDoesNotDependOnAuth0() {
-    var actor = actor("apple|existing");
+    ExternalIdentity actor = actor("apple|existing");
     create(actor, info("name@example.test"));
-    var service =
+    UserProfiles service =
         new UserProfiles(
             profiles,
             _ -> {
@@ -222,8 +233,9 @@ class UserCreationIntegrationTest {
             tx,
             Clock.fixed(NOW.plusSeconds(60), ZoneOffset.UTC),
             "project",
-            "production");
-    var result = (ProfileResult.Available) service.ensure(actor);
+            BillingEnvironment.PRODUCTION,
+            _ -> {});
+    ProfileResult.Available result = (ProfileResult.Available) service.ensure(actor);
     assertThat(result.created()).isFalse();
     assertThat(result.profile().updatedAt()).isEqualTo(NOW);
     assertThat(service.find(actor)).isInstanceOf(ProfileResult.Available.class);
@@ -231,7 +243,7 @@ class UserCreationIntegrationTest {
 
   @Test
   void providerFailureCreatesNothing() {
-    var service =
+    UserProfiles service =
         new UserProfiles(
             profiles,
             _ ->
@@ -239,14 +251,15 @@ class UserCreationIntegrationTest {
             tx,
             Clock.systemUTC(),
             "project",
-            "production");
+            BillingEnvironment.PRODUCTION,
+            _ -> {});
     assertThat(service.ensure(actor("apple|failed"))).isInstanceOf(ProfileResult.Unavailable.class);
     assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
   }
 
   @Test
   void providerCallRunsOutsideTheCreationTransaction() {
-    var service =
+    UserProfiles service =
         new UserProfiles(
             profiles,
             _ -> {
@@ -259,7 +272,8 @@ class UserCreationIntegrationTest {
             tx,
             Clock.systemUTC(),
             "project",
-            "production");
+            BillingEnvironment.PRODUCTION,
+            _ -> {});
     assertThat(service.ensure(actor("apple|outside"))).isInstanceOf(ProfileResult.Available.class);
   }
 
@@ -282,7 +296,7 @@ class UserCreationIntegrationTest {
 
   @Test
   void readDoesNotCreateAProfile() {
-    var service =
+    UserProfiles service =
         new UserProfiles(
             profiles,
             _ -> {
@@ -291,14 +305,15 @@ class UserCreationIntegrationTest {
             tx,
             Clock.systemUTC(),
             "project",
-            "production");
+            BillingEnvironment.PRODUCTION,
+            _ -> {});
     assertThat(service.find(actor("apple|missing"))).isInstanceOf(ProfileResult.Missing.class);
     assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
   }
 
   @Test
   void inactiveProfileIsNotReactivated() {
-    var actor = actor("apple|inactive");
+    ExternalIdentity actor = actor("apple|inactive");
     create(actor, info(null));
     admin.execute("UPDATE identity.users SET active=false");
     assertThat(create(actor, info(null))).isInstanceOf(ProfileResult.Inactive.class);
