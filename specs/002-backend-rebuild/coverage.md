@@ -4,6 +4,40 @@ This is a static traceability map, not an execution tracker. [Epic #230](https:/
 
 A mapping is not proof of completion. No row is checked by writing this document. Feature plans/tasks must refine the owning requirements before executable child issues are created.
 
+## Planned Increment Boundaries
+
+The specification contains 53 functional requirements and 12 acceptance criteria for the complete rebuild. The
+[plan](plan.md) and [32 tasks](tasks.md) select server prerequisites. The following mapping identifies a task's
+contribution, not full acceptance of the containing requirement. Future tasks do not count as delivered behavior.
+
+| Requirement | Selected tasks                  | Contribution and remaining acceptance boundary                                                                                                  |
+| ----------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-001      | T003–T004, T017–T018            | Fresh isolated schema and unchanged external binding; actual reset/cutover and all other owners remain separate.                                |
+| FR-004      | T015–T023                       | Exact issuer/subject identity, atomic concurrent profile creation and non-key email.                                                            |
+| FR-005      | T021–T022                       | Current-actor-only profile API; native caches, device ownership and account-switch presentation remain separate.                                |
+| FR-006      | T018, T024–T032                 | Retained billing identity and server evidence; real upgrade, purchases/restores and native continuity remain separate.                          |
+| FR-007      | T025–T026, T029–T030            | Server Pro policy and subscription API; protected sporting owners and paid presentation remain separate.                                        |
+| FR-008      | T025–T032                       | Bounded positive-evidence outage grace, expiry/revocation and unknown state in the subscription increment.                                      |
+| FR-021      | T005–T006, T009–T010            | Durable jobs and retry/fencing prerequisites; accepted sporting observations and publication outcomes still need their owner.                   |
+| FR-050      | T010–T011, T020, T031           | Queue/process/schema/Auth0 and later entitlement diagnostics; sporting/search/notification freshness and production monitoring remain separate. |
+| FR-053      | T011–T013                       | Isolated local runtime and production deployment exclusion; stopping actual legacy writers is a release decision.                               |
+| SC-001      | T014, T023, T032                | Increment tests contribute evidence; the eight journeys and fourteen complete scenarios require later end-to-end qualification.                 |
+| SC-002      | T019–T023, T027–T032            | Controlled server identity/provider evidence; real iOS/Android upgrade/restore and cross-account proof remain separate.                         |
+| SC-007      | T007–T008, T021–T022, T029–T030 | JWT/current-user and subscription boundary tests; future protected resources need their own negative authorization tests.                       |
+| SC-012      | T014, T023, T032                | Each selected increment records its verification on the owning issue/PR; epic-wide acceptance requires every later increment.                   |
+
+FR-002–003, FR-009–020, FR-022–049 and FR-051–052 have no executable tasks in this server plan.
+SC-003–006 and SC-008–011 likewise belong to subsequent sporting, search, mobile or qualification increments.
+Their authority and acceptance owners remain in the epic/scenario tables below; no placeholder implementation tasks
+are implied. A generic queue test is not a sporting preservation test, and a local metrics scrape is not Sunday-load
+qualification.
+
+Setup/build tasks T001–T002, T012–T013 and T016 also derive directly from constitution II/IV/V and architecture
+D01/D02/D10. The cross-cutting maintenance scope is directly sourced by [#239](https://github.com/blockoutproject/blockout/issues/239):
+ArchUnit boundaries, generated error codes and the inactive core transport, annotation-based validation, ECS/metrics,
+and handwritten code documentation. Its acceptance is policy conformance and behavior preservation, not a new
+product story. Detailed test results, review state and merge evidence belong in GitHub rather than this map.
+
 ## Epic Obligations
 
 | Epic item                            | Requirement or architectural authority                                      | Acceptance boundary                                                                 |

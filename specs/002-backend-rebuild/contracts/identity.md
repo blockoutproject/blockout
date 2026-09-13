@@ -1,5 +1,7 @@
 # Identity and subscription contracts
 
+The current-user contract belongs to T015–T023. Subscription contracts below belong to the separate T024–T032 increment; their presence here does not make those routes available in the profile delivery. OpenAPI sources define generated transport types; this document describes behavior and delivery boundaries.
+
 ## Current user
 
 POST /api/v2/users/me has no request body. JWT supplies the actor. Return 201 with Location: /api/v2/users/me for the winning creation, or 200 for existing/concurrent reuse. GET on that Location is read-only, returning 200 or 404 USER_NOT_FOUND.

@@ -47,7 +47,9 @@ session's optional unauthorized cleanup callback. Do not reuse a gateway token f
 no configuration clears the context. No screen or session provider configures this client in the current delivery.
 
 The transport sends no cookies, forwards tokens only to the configured origin and rejects redirects. It performs one
-request with a 20-second timeout and caller cancellation. 401 triggers the configured session cleanup; 403 does not.
+request with a 20-second abort timer and caller cancellation on the fetch signal. The timer starts before token
+acquisition, but cannot interrupt the supplied credential callback or session cleanup: their lifecycle remains owned
+by the SDK/session. This is not an end-to-end deadline for those callbacks. 401 triggers the configured session cleanup; 403 does not.
 Clients branch on generated problem codes and retain a generic failure path for unknown future values. Server detail
 text and proxy bodies are never displayed as the error message.
 

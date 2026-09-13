@@ -1,6 +1,8 @@
-# Tasks: Executable Backend Foundation
+# Tasks: Backend Foundation and Identity
 
-Source: approved plan.md and spec.md. This increment covers infrastructure prerequisites and the technical portion of US8; no other story is represented as delivered.
+Source: [plan.md](plan.md), [spec.md](spec.md) and the [requirement mapping](coverage.md#planned-increment-boundaries). T001–T014 cover executable infrastructure, T015–T023 business-profile recreation, and T024–T032 server-verified subscription evidence. These are independently verifiable server increments, not completion of US1 or US8. Native continuity and the remaining stories require subsequent plans/tasks. GitHub owns reviews, merge state and acceptance evidence.
+
+Behavior-preserving policy work is directly sourced by [maintenance #239](https://github.com/blockoutproject/blockout/issues/239), under constitution V: dependency checks, standard validation, shared problem codes, inactive core transport, logging/monitoring and code documentation across the replacement. It supports these increments without authorizing new subscription or sporting behavior. Its scope and evidence live on the issue/PR; it does not reuse product task IDs.
 
 ## Phase 1: Setup
 

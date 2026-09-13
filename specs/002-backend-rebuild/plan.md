@@ -1,10 +1,12 @@
-# Implementation Plan: Executable Backend Foundation
+# Implementation Plan: Backend Foundation and Identity
 
-**Branch**: `tech/234-backend-foundation` | **Date**: 2026-09-12 | **Spec**: [Backend rebuild](spec.md)
+**Spec**: [Backend rebuild](spec.md) | **Architecture**: [Replacement decisions](../../docs/architecture/backend-rebuild-architecture.md)
 
 ## Summary
 
-Implement the approved first infrastructure increment of US8, with authentication prerequisites for US1 and durable processing prerequisites for US3/US5. This plan does not deliver the complete rebuild or authorize production cutover. API and worker share a transactional PostgreSQL job library. A separate Dockerized Liquibase process creates the fresh schema before either application starts.
+Derive three bounded increments from the complete rebuild specification: executable infrastructure, business-profile recreation, then server-verified subscription evidence. The infrastructure supplies prerequisites for US8 and durable work for US3/US5; the two identity increments cover server prerequisites of US1. None alone completes a whole user story or authorizes production cutover. [Coverage](coverage.md#planned-increment-boundaries) maps requirements to these tasks and identifies the later work.
+
+Core-service and core-worker are the two Spring Boot executables. Jobs, identity and logging are in-process libraries, not additional services; migrations is the separate Dockerized Liquibase job. Both executables share one release revision and PostgreSQL database.
 
 ## Technical Context
 
@@ -18,24 +20,25 @@ Implement the approved first infrastructure increment of US8, with authenticatio
 
 ## Constitution Check
 
-- I: approved specification remains behavioral authority; this increment is foundation only (FR-050, FR-053, D01–D03/D11/D12), not completion of US8 cutover.
-- II: no sporting, identity or billing owner is introduced. Jobs are technical state.
-- III: no UI impact; Figma gate is not applicable to this increment.
-- IV: no product contract changes or generated files committed. Future /api/v2 contracts remain source-first.
-- V: alternatives and verification are in research.md; operational status/evidence belongs in GitHub. No constitutional exceptions.
+- I: spec.md remains behavioral authority for all eight stories. The selected server increments cover profile recreation, billing continuity prerequisites and isolated operations; native continuity, sporting behavior and cutover remain later work.
+- II: identity owns profiles, external identities and billing associations; the subscription increment extends that same owner. Jobs and logging are technical libraries. Generated transport types stay in core-service adapters, never in application/domain libraries.
+- III: these increments introduce no screen or session-provider integration. Material UI work still requires approved Figma evidence before its plan is finalized.
+- IV: current-user and subsequent subscription contracts are source-first under libs/shared/contracts/specs/source/services/core/. Generated Java/TypeScript projections remain ignored, and changed consumers must be verified.
+- V: research.md records decisions, alternatives and verification. Tasks derive from this plan; behavior-preserving policy work is independently sourced by [maintenance #239](https://github.com/blockoutproject/blockout/issues/239). Execution evidence and approvals belong in GitHub. No constitutional exceptions.
 
 ## Project Structure
 
 - `apps/backend/core-service`: secured HTTP assembly and private management endpoints.
 - `apps/backend/core-worker`: bounded leased execution and process health.
 - `apps/backend/jobs`: job publication, persistence, configuration and schema readiness shared by both runtimes.
+- `apps/backend/identity`: user and subscription ownership exposed through application contracts; providers and PostgreSQL remain private adapters.
 - `apps/backend/logging`: Spring Boot stack-trace formatting and diagnostic privacy shared by both executables.
 - `apps/backend/migrations`: XML baseline, image and PostgreSQL migration tests.
 - `infra/compose/docker-compose.backend.yml`: isolated database/migration/API/worker topology.
 - `scripts/backend-foundation/`: image build, local lifecycle and smoke commands.
 - Skill references: identical portable Liquibase policy plus Blockout-specific profile and validation-policy link bridge.
 
-Each foundation module owns a single technical capability and uses populated role packages. Application roots contain only process entry points. The API separates security HTTP translation from configuration; the worker separates application outcome handling and telemetry from its scheduling adapter; jobs expose application ports implemented by PostgreSQL infrastructure. Spring wiring and typed properties live in `config`. Future business owners add feature packages with their own roles when their behavior exists; there is no speculative domain/shared tree.
+Each shared module owns one business or technical capability and uses populated role packages. Application roots contain only process entry points. The API separates security HTTP translation from configuration; the worker separates application outcome handling and telemetry from its scheduling adapter; jobs expose application ports implemented by PostgreSQL infrastructure. Spring wiring and typed properties live in `config`. Future business owners add feature packages with their own roles when their behavior exists; there is no speculative domain/shared tree.
 
 ## Schema Lifecycle
 
@@ -59,7 +62,9 @@ Native Maven modules and inferred Nx targets; explicit uncached image targets. I
 
 ## Delivery Boundaries
 
-No old database purge, Auth0/RevenueCat mutation, existing API rename, mobile change, search implementation, load qualification or VPS deployment. Next increment prioritizes paid identity continuity, then a full sporting ingestion/read path. This plan and tasks cover only the approved foundation; remaining user stories need their own subsequent design and delivery.
+The three increments contain no old database purge, Auth0/RevenueCat mutation, existing API rename, screen cutover, search implementation, load qualification or VPS deployment. The inactive generated core transport adapter is a prerequisite for later mobile integration, not a change to current screen routing.
+
+T001–T014 define executable infrastructure; T015–T023 define profile recreation and unchanged billing bindings; T024–T032 define subscription evidence and reconciliation. Their verification gates are independent. A passing profile delivery does not establish subscription or native continuity. Later sporting, search, community, mobile and release increments require their own accepted design and task derivation from the existing specification. Issue/PR evidence establishes delivery status; this plan describes scope.
 
 ## Identity and Subscription Increment
 

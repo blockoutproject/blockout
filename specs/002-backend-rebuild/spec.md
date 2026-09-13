@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-12
 
-**Status**: Draft for repository review.
+**Scope**: Behavioral baseline for the complete replacement; implementation is incremental.
 
 **Input**: Rebuild Blockout around coherent business ownership, preserve delivered capabilities on fresh business data, retain external identities and paid subscriptions, display dates in the device timezone, and redesign search reliability and relevance.
 
