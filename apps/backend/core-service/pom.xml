@@ -12,6 +12,16 @@
     <dependencies>
         <dependency>
             <groupId>com.blockout</groupId>
+            <artifactId>shared-models</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springdoc</groupId>
+                    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.blockout</groupId>
             <artifactId>logging</artifactId>
             <version>${project.version}</version>
         </dependency>

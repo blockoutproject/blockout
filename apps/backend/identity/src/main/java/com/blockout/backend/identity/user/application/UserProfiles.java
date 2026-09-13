@@ -46,7 +46,7 @@ public final class UserProfiles {
     if (!(existing instanceof ProfileResult.Missing)) return existing;
     var lookup = provider.find(identity);
     if (lookup instanceof IdentityLookup.Unavailable failure)
-      return new ProfileResult.Unavailable(failure.code());
+      return new ProfileResult.Unavailable(failure.reason());
     if (lookup instanceof IdentityLookup.Mismatch) return new ProfileResult.Mismatch();
     var attributes = ((IdentityLookup.Found) lookup).profile();
     return transactions.execute(

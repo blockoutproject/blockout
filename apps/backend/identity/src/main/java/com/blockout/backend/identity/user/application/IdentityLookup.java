@@ -4,7 +4,7 @@ package com.blockout.backend.identity.user.application;
 public sealed interface IdentityLookup {
   record Found(ExternalProfile profile) implements IdentityLookup {}
 
-  record Unavailable(String code) implements IdentityLookup {}
+  record Unavailable(IdentityFailureReason reason) implements IdentityLookup {}
 
   record Mismatch() implements IdentityLookup {}
 }

@@ -1,7 +1,10 @@
 package com.blockout.backend.api.user.api;
 
+import static com.blockout.shared.model.ApiProblemCodeEnum.*;
+
 import com.blockout.backend.api.user.api.generated.CurrentUserApi;
 import com.blockout.backend.identity.user.application.*;
+import com.blockout.shared.model.ApiProblemCodeEnum;
 import java.net.URI;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,14 +26,14 @@ public class CurrentUserController implements CurrentUserApi {
   @Override
   public ResponseEntity<?> ensureCurrentUser() {
     var actor = actors.current();
-    if (actor.isEmpty()) return problem(403, "USER_IDENTITY_REQUIRED");
+    if (actor.isEmpty()) return problem(403, USER_IDENTITY_REQUIRED);
     return response(profiles.ensure(actor.get()));
   }
 
   @Override
   public ResponseEntity<?> getCurrentUser() {
     var actor = actors.current();
-    if (actor.isEmpty()) return problem(403, "USER_IDENTITY_REQUIRED");
+    if (actor.isEmpty()) return problem(403, USER_IDENTITY_REQUIRED);
     return response(profiles.find(actor.get()));
   }
 
@@ -43,27 +46,33 @@ public class CurrentUserController implements CurrentUserApi {
         if (available.created()) builder.location(URI.create("/api/v2/users/me"));
         yield builder.body(mapper.toResponse(available.profile()));
       }
-      case ProfileResult.Missing _ -> problem(404, "USER_NOT_FOUND");
-      case ProfileResult.Inactive _ -> problem(403, "USER_INACTIVE");
-      case ProfileResult.Unsupported _ -> problem(409, "IDENTITY_NOT_SUPPORTED");
-      case ProfileResult.Mismatch _ -> problem(409, "IDENTITY_MISMATCH");
-      case ProfileResult.Unavailable failure -> problem(503, failure.code());
+      case ProfileResult.Missing _ -> problem(404, USER_NOT_FOUND);
+      case ProfileResult.Inactive _ -> problem(403, USER_INACTIVE);
+      case ProfileResult.Unsupported _ -> problem(409, IDENTITY_NOT_SUPPORTED);
+      case ProfileResult.Mismatch _ -> problem(409, IDENTITY_MISMATCH);
+      case ProfileResult.Unavailable failure ->
+          problem(
+              503,
+              switch (failure.reason()) {
+                case IDENTITY_PROVIDER_UNAVAILABLE -> IDENTITY_PROVIDER_UNAVAILABLE;
+                case IDENTITY_CONFIGURATION_ERROR -> IDENTITY_CONFIGURATION_ERROR;
+              });
     };
   }
 
-  static ResponseEntity<ProblemDetail> problem(int status, String code) {
+  static ResponseEntity<ProblemDetail> problem(int status, ApiProblemCodeEnum code) {
     var problem =
         ProblemDetail.forStatusAndDetail(
             HttpStatus.valueOf(status),
             switch (code) {
-              case "USER_NOT_FOUND" -> "The current profile does not exist.";
-              case "USER_INACTIVE" -> "The current profile is inactive.";
-              case "USER_IDENTITY_REQUIRED" -> "A supported native user session is required.";
-              case "IDENTITY_NOT_SUPPORTED", "IDENTITY_MISMATCH" ->
+              case USER_NOT_FOUND -> "The current profile does not exist.";
+              case USER_INACTIVE -> "The current profile is inactive.";
+              case USER_IDENTITY_REQUIRED -> "A supported native user session is required.";
+              case IDENTITY_NOT_SUPPORTED, IDENTITY_MISMATCH ->
                   "The identity cannot be used to create this profile.";
               default -> "Identity verification is temporarily unavailable.";
             });
-    problem.setProperty("code", code);
+    problem.setProperty("code", code.getValue());
     var response =
         ResponseEntity.status(status)
             .cacheControl(CacheControl.noStore())

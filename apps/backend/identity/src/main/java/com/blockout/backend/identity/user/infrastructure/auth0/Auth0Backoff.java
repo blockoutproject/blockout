@@ -1,5 +1,6 @@
 package com.blockout.backend.identity.user.infrastructure.auth0;
 
+import com.blockout.backend.identity.user.application.IdentityFailureReason;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
@@ -9,18 +10,18 @@ final class Auth0Backoff {
   private final Clock clock;
   private Instant retryAt = Instant.MIN;
   private long nextDelaySeconds = 5;
-  private String failureCode = "IDENTITY_PROVIDER_UNAVAILABLE";
+  private IdentityFailureReason failureReason = IdentityFailureReason.IDENTITY_PROVIDER_UNAVAILABLE;
 
   Auth0Backoff(Clock clock) {
     this.clock = clock;
   }
 
-  synchronized Optional<String> blockedReason() {
-    return clock.instant().isBefore(retryAt) ? Optional.of(failureCode) : Optional.empty();
+  synchronized Optional<IdentityFailureReason> blockedReason() {
+    return clock.instant().isBefore(retryAt) ? Optional.of(failureReason) : Optional.empty();
   }
 
   /** Returns true only when entering a new outage, for one boundary-owned log event. */
-  synchronized boolean failed(String code, Instant providerRetryAt) {
+  synchronized boolean failed(IdentityFailureReason reason, Instant providerRetryAt) {
     boolean firstFailure = retryAt.equals(Instant.MIN);
     var now = clock.instant();
     // Concurrent failures belong to one pause, rather than multiplying the delay per caller.
@@ -29,7 +30,7 @@ final class Auth0Backoff {
       nextDelaySeconds = Math.min(nextDelaySeconds * 2, 300);
     }
     if (providerRetryAt.isAfter(retryAt)) retryAt = providerRetryAt;
-    failureCode = code;
+    failureReason = reason;
     return firstFailure;
   }
 

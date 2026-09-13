@@ -1,5 +1,7 @@
 package com.blockout.backend.api.user.api;
 
+import static com.blockout.shared.model.ApiProblemCodeEnum.*;
+
 import com.blockout.backend.logging.SafeDiagnostics;
 import org.slf4j.*;
 import org.springframework.dao.DataAccessException;
@@ -19,6 +21,6 @@ public final class ProfileFailureHandler {
         .setCause(SafeDiagnostics.snapshot(failure))
         .log("Profile operation failed");
     return CurrentUserController.problem(
-        dependency ? 503 : 500, dependency ? "PROFILE_STORE_UNAVAILABLE" : "INTERNAL_ERROR");
+        dependency ? 503 : 500, dependency ? PROFILE_STORE_UNAVAILABLE : INTERNAL_ERROR);
   }
 }

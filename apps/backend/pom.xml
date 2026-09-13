@@ -220,6 +220,7 @@
                         <generateModelTests>false</generateModelTests>
                         <!-- BEGIN generated schemaMappings -->
                         <schemaMappings>
+                            <schemaMapping>ApiProblemCodeEnum=com.blockout.shared.model.ApiProblemCodeEnum</schemaMapping>
                             <schemaMapping>DevicePlatformEnum=com.blockout.shared.model.DevicePlatformEnum</schemaMapping>
                             <schemaMapping>EntityTypeEnum=com.blockout.shared.model.EntityTypeEnum</schemaMapping>
                             <schemaMapping>FormatEnum=com.blockout.shared.model.FormatEnum</schemaMapping>

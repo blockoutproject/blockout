@@ -66,6 +66,7 @@ test("workspace fragments produce the shared OpenAPI bundle", async () => {
   );
   assert.equal(bundle.openapi, "3.0.3");
   assert.deepEqual(Object.keys(bundle.components.schemas), [
+    "ApiProblemCodeEnum",
     "DevicePlatformEnum",
     "EntityTypeEnum",
     "FormatEnum",

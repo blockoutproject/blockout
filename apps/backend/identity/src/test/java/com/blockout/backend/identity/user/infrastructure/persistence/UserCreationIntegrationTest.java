@@ -211,7 +211,8 @@ class UserCreationIntegrationTest {
     var service =
         new UserProfiles(
             profiles,
-            _ -> new IdentityLookup.Unavailable("IDENTITY_PROVIDER_UNAVAILABLE"),
+            _ ->
+                new IdentityLookup.Unavailable(IdentityFailureReason.IDENTITY_PROVIDER_UNAVAILABLE),
             tx,
             Clock.systemUTC(),
             "project",

@@ -22,6 +22,8 @@ import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -200,7 +202,10 @@ class CurrentUserIntegrationTest {
 
   @Test
   void rejectsMissingAuthentication() throws IOException, InterruptedException {
-    assertThat(request("POST", null).statusCode()).isEqualTo(401);
+    var response = request("POST", null);
+    assertThat(response.statusCode()).isEqualTo(401);
+    assertThat(new JsonMapper().readTree(response.body()).path("code").asString())
+        .isEqualTo("AUTHENTICATION_REQUIRED");
     verifyNoInteractions(provider);
   }
 
@@ -252,15 +257,20 @@ class CurrentUserIntegrationTest {
     verifyNoInteractions(provider);
   }
 
-  @Test
-  void returnsSafeProviderFailure() throws IOException, InterruptedException, JOSEException {
-    when(provider.find(any()))
-        .thenReturn(new IdentityLookup.Unavailable("IDENTITY_PROVIDER_UNAVAILABLE"));
+  @ParameterizedTest
+  @CsvSource({
+    "IDENTITY_PROVIDER_UNAVAILABLE, IDENTITY_PROVIDER_UNAVAILABLE",
+    "IDENTITY_CONFIGURATION_ERROR, IDENTITY_CONFIGURATION_ERROR"
+  })
+  void returnsSafeProviderFailure(IdentityFailureReason reason, String expectedCode)
+      throws IOException, InterruptedException, JOSEException {
+    when(provider.find(any())).thenReturn(new IdentityLookup.Unavailable(reason));
     var response = request("POST", user());
     assertThat(response.statusCode()).isEqualTo(503);
-    assertThat(response.body())
-        .contains("IDENTITY_PROVIDER_UNAVAILABLE")
-        .doesNotContain("person@", "google-oauth2|", "exception");
+    assertThat(new JsonMapper().readTree(response.body()).path("code").asString())
+        .isEqualTo(expectedCode);
+    assertThat(response.body()).doesNotContain("person@", "google-oauth2|", "exception");
+    assertThat(response.headers().firstValue("content-type")).contains("application/problem+json");
     assertThat(response.headers().firstValue("retry-after")).isPresent();
   }
 

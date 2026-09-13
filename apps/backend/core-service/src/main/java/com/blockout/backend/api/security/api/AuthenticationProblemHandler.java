@@ -1,5 +1,8 @@
 package com.blockout.backend.api.security.api;
 
+import static com.blockout.shared.model.ApiProblemCodeEnum.*;
+
+import com.blockout.shared.model.ApiProblemCodeEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -28,21 +31,22 @@ public final class AuthenticationProblemHandler
       HttpServletRequest request, HttpServletResponse response, AuthenticationException failure)
       throws IOException {
     response.setHeader("WWW-Authenticate", "Bearer");
-    write(response, HttpStatus.UNAUTHORIZED, "Authentication required", "AUTHENTICATION_REQUIRED");
+    write(response, HttpStatus.UNAUTHORIZED, "Authentication required", AUTHENTICATION_REQUIRED);
   }
 
   @Override
   public void handle(
       HttpServletRequest request, HttpServletResponse response, AccessDeniedException failure)
       throws IOException {
-    write(response, HttpStatus.FORBIDDEN, "Access denied", "ACCESS_DENIED");
+    write(response, HttpStatus.FORBIDDEN, "Access denied", ACCESS_DENIED);
   }
 
-  private void write(HttpServletResponse response, HttpStatus status, String title, String code)
+  private void write(
+      HttpServletResponse response, HttpStatus status, String title, ApiProblemCodeEnum code)
       throws IOException {
     var problem = ProblemDetail.forStatusAndDetail(status, title + ".");
     problem.setTitle(title);
-    problem.setProperty("code", code);
+    problem.setProperty("code", code.getValue());
     response.setStatus(status.value());
     response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
     json.writeValue(response.getOutputStream(), problem);

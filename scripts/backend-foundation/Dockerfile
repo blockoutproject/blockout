@@ -8,6 +8,7 @@ ARG BACKEND_APP
 WORKDIR /workspace
 COPY apps/backend apps/backend
 COPY --from=contracts /workspace/libs/shared/contracts/generated/specs/core.json libs/shared/contracts/generated/specs/core.json
+COPY --from=contracts /workspace/libs/shared/contracts/generated/specs/shared.json libs/shared/contracts/generated/specs/shared.json
 RUN mvn -B -f apps/backend/pom.xml -pl ${BACKEND_APP} -am package -DskipTests -Dmaven.test.skip=true
 RUN cp apps/backend/${BACKEND_APP}/target/${BACKEND_APP}-0.0.1-SNAPSHOT.jar /app.jar
 FROM eclipse-temurin:25-jre-alpine

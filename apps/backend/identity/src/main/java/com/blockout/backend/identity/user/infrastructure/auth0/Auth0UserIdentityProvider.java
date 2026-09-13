@@ -123,8 +123,8 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
             || failure.status >= 500) pause(failure);
         else logUnavailable(failure);
       }
-      record(failure.code, started);
-      return new IdentityLookup.Unavailable(failure.code);
+      record(failure.reason.name(), started);
+      return new IdentityLookup.Unavailable(failure.reason);
     }
   }
 
@@ -147,14 +147,14 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
   }
 
   private void pause(ProviderFailure failure) {
-    if (backoff.failed(failure.code, failure.retryAt)) logUnavailable(failure);
+    if (backoff.failed(failure.reason, failure.retryAt)) logUnavailable(failure);
   }
 
   private void logUnavailable(ProviderFailure failure) {
     LOG.atWarn()
         .addKeyValue("event.action", "identity.lookup")
         .addKeyValue("event.outcome", "failure")
-        .addKeyValue("error.code", failure.code)
+        .addKeyValue("error.code", failure.reason.name())
         .log("Identity lookup unavailable");
   }
 
@@ -170,14 +170,15 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
       long lifetime = Duration.between(token.getIssuedAt(), token.getExpiresAt()).toSeconds();
       // Spring substitutes one second when expires_in is absent; do not turn that into a renewal
       // loop.
-      if (lifetime <= 1) throw new ProviderFailure("IDENTITY_CONFIGURATION_ERROR");
+      if (lifetime <= 1)
+        throw new ProviderFailure(IdentityFailureReason.IDENTITY_CONFIGURATION_ERROR);
       lifetime = Math.min(lifetime, 86400);
       accessToken = token.getTokenValue();
       metrics.counter("blockout.identity.auth0.tokens_issued").increment();
       refreshAt = clock.instant().plusSeconds(lifetime - Math.min(30, lifetime / 2));
       return accessToken;
     } catch (OAuth2AuthorizationException | RestClientException _) {
-      throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
+      throw new ProviderFailure(IdentityFailureReason.IDENTITY_PROVIDER_UNAVAILABLE);
     }
   }
 
@@ -199,10 +200,11 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
                   status -> !status.is2xxSuccessful(), (_, res) -> rejectResponse("profile", res))
               .body(Auth0Profile.class);
       if (profile == null || !validator.validate(profile).isEmpty())
-        throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE");
+        throw new ProviderFailure(IdentityFailureReason.IDENTITY_PROVIDER_UNAVAILABLE);
       return profile;
     } catch (RestClientException _) {
-      throw new ProviderFailure("IDENTITY_PROVIDER_UNAVAILABLE", 503, Instant.MIN);
+      throw new ProviderFailure(
+          IdentityFailureReason.IDENTITY_PROVIDER_UNAVAILABLE, 503, Instant.MIN);
     }
   }
 
@@ -215,8 +217,8 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
       metrics.counter("blockout.identity.auth0.rate_limited", "operation", operation).increment();
     throw new ProviderFailure(
         status == 401 || status == 403
-            ? "IDENTITY_CONFIGURATION_ERROR"
-            : "IDENTITY_PROVIDER_UNAVAILABLE",
+            ? IdentityFailureReason.IDENTITY_CONFIGURATION_ERROR
+            : IdentityFailureReason.IDENTITY_PROVIDER_UNAVAILABLE,
         status,
         retryAt(response.getHeaders()));
   }
@@ -247,17 +249,17 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
   private static final class ProviderFailure extends RuntimeException {
     @java.io.Serial private static final long serialVersionUID = 1L;
 
-    private final String code;
+    private final IdentityFailureReason reason;
     private final int status;
     private final Instant retryAt;
 
-    ProviderFailure(String code) {
-      this(code, 0, Instant.MIN);
+    ProviderFailure(IdentityFailureReason reason) {
+      this(reason, 0, Instant.MIN);
     }
 
-    ProviderFailure(String code, int status, Instant retryAt) {
-      super(code);
-      this.code = code;
+    ProviderFailure(IdentityFailureReason reason, int status, Instant retryAt) {
+      super(reason.name());
+      this.reason = reason;
       this.status = status;
       this.retryAt = retryAt;
     }

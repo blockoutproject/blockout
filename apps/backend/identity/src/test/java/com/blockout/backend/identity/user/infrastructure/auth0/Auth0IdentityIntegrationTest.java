@@ -343,7 +343,9 @@ class Auth0IdentityIntegrationTest {
       try {
         assertThat(received.await(3, TimeUnit.SECONDS)).isTrue();
         assertThat(result.get(8, TimeUnit.SECONDS))
-            .isEqualTo(new IdentityLookup.Unavailable("IDENTITY_PROVIDER_UNAVAILABLE"));
+            .isEqualTo(
+                new IdentityLookup.Unavailable(
+                    IdentityFailureReason.IDENTITY_PROVIDER_UNAVAILABLE));
       } finally {
         release.countDown();
       }

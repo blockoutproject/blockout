@@ -12,5 +12,5 @@ public sealed interface ProfileResult {
 
   record Mismatch() implements ProfileResult {}
 
-  record Unavailable(String code) implements ProfileResult {}
+  record Unavailable(IdentityFailureReason reason) implements ProfileResult {}
 }
