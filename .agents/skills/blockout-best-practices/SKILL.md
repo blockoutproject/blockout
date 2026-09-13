@@ -11,25 +11,25 @@ For any handwritten code creation, modification, or review, also read `reference
 the owning language policy. Apply its documentation requirements as part of the code change, not as an optional
 follow-up. A documentation audit uses the full scope requested by the human.
 
-| Signal                                                      | Read                                                                              |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Specification, plan, tasks, Spec Kit, or product behavior   | The applicable official `speckit-*` skill, constitution, and feature artifacts    |
-| Issue, branch, commit, pull request, or release             | `references/git-and-issues.md`                                                    |
-| OpenAPI, DTO, generated server/client, or shared enum       | `references/contracts.md`                                                         |
-| Spring Boot, Maven, Java structure, or backend design       | `references/backend-java.md`                                                      |
-| Liquibase changelog or replacement schema evolution         | `references/liquibase.md`                                                         |
-| Mapping between transport, application, and domain          | `references/mapping.md`                                                           |
-| REST route, controller, HTTP semantics, or pagination       | `references/rest.md` and `references/contracts.md`                                |
-| Application logging or operational diagnostics              | `references/logging.md`                                                           |
-| Javadoc, docstrings, TSDoc, comments, or exported contracts | `references/code-documentation.md`                                                |
-| Expo, React Native, Nx, mobile routing, forms, or UI        | `references/mobile-expo.md`, then the applicable technical skill                  |
-| OIDC, Auth0, login, token storage, or logout                | `references/authentication.md`                                                    |
-| Mobile test or component behavior                           | `references/mobile-testing.md` and `references/testing-and-validation.md`         |
-| Python scraper, provider parser, or ingestion flow          | `references/python-scrapers.md`                                                   |
-| Python scraper test or provider fixture                     | `references/python-scraper-testing.md` and `references/testing-and-validation.md` |
-| Java test, Spring test, or Testcontainers                   | `references/java-testing.md` and `references/testing-and-validation.md`           |
-| Validation scope, CI, local runtime, or smoke proof         | `references/testing-and-validation.md`                                            |
-| Figma design or visual evidence                             | `references/figma.md`, then the applicable Figma skill                            |
+| Signal                                                                      | Read                                                                              |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Specification, plan, tasks, Spec Kit, or product behavior                   | The applicable official `speckit-*` skill, constitution, and feature artifacts    |
+| Issue, branch, commit, pull request, or release                             | `references/git-and-issues.md`                                                    |
+| OpenAPI, DTO, generated server/client, or shared enum                       | `references/contracts.md`                                                         |
+| Spring Boot, Maven, Java, JPA entities/repositories, or persistence queries | `references/backend-java.md`                                                      |
+| Liquibase changelog or replacement schema evolution                         | `references/liquibase.md`                                                         |
+| Mapping between transport, application, and domain                          | `references/mapping.md`                                                           |
+| REST route, controller, HTTP semantics, or pagination                       | `references/rest.md` and `references/contracts.md`                                |
+| Application logging or operational diagnostics                              | `references/logging.md`                                                           |
+| Javadoc, docstrings, TSDoc, comments, or exported contracts                 | `references/code-documentation.md`                                                |
+| Expo, React Native, Nx, mobile routing, forms, or UI                        | `references/mobile-expo.md`, then the applicable technical skill                  |
+| OIDC, Auth0, login, token storage, or logout                                | `references/authentication.md`                                                    |
+| Mobile test or component behavior                                           | `references/mobile-testing.md` and `references/testing-and-validation.md`         |
+| Python scraper, provider parser, or ingestion flow                          | `references/python-scrapers.md`                                                   |
+| Python scraper test or provider fixture                                     | `references/python-scraper-testing.md` and `references/testing-and-validation.md` |
+| Java test, Spring test, or Testcontainers                                   | `references/java-testing.md` and `references/testing-and-validation.md`           |
+| Validation scope, CI, local runtime, or smoke proof                         | `references/testing-and-validation.md`                                            |
+| Figma design or visual evidence                                             | `references/figma.md`, then the applicable Figma skill                            |
 
 ## Repository Map
 
