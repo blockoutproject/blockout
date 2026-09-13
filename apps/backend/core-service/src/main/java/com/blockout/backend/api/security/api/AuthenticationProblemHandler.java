@@ -40,6 +40,20 @@ public final class AuthenticationProblemHandler
     write(response, HttpStatus.UNAUTHORIZED, AUTHENTICATION_REQUIRED);
   }
 
+  /**
+   * Rejects an invalid RevenueCat shared secret without an Auth0 Bearer challenge.
+   *
+   * @param request rejected webhook request; its body is not read
+   * @param response servlet-owned response
+   * @param failure Spring's rejected authorization result
+   * @throws IOException if the response cannot be written
+   */
+  public void webhookAuthenticationRequired(
+      HttpServletRequest request, HttpServletResponse response, AuthenticationException failure)
+      throws IOException {
+    write(response, HttpStatus.UNAUTHORIZED, WEBHOOK_AUTHENTICATION_FAILED);
+  }
+
   /** {@inheritDoc} */
   @Override
   public void handle(

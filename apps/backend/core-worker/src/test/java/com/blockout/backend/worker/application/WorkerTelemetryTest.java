@@ -2,6 +2,7 @@ package com.blockout.backend.worker.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -21,7 +22,8 @@ class WorkerTelemetryTest {
   final Logger logger = (Logger) LoggerFactory.getLogger(WorkerTelemetry.class);
   final ListAppender<ILoggingEvent> logs = new ListAppender<>();
   final SimpleMeterRegistry metrics = new SimpleMeterRegistry();
-  final WorkerTelemetry telemetry = new WorkerTelemetry(mock(JobRepository.class), metrics);
+  final JobRepository jobs = mock(JobRepository.class);
+  final WorkerTelemetry telemetry = new WorkerTelemetry(jobs, metrics);
 
   @BeforeEach
   void capture() {
@@ -87,5 +89,15 @@ class WorkerTelemetryTest {
     assertThat(
             metrics.get("blockout.jobs.executions").tag("outcome", "completed").counter().count())
         .isEqualTo(1);
+  }
+
+  @Test
+  void unavailableQueueMetricsRemainUnknownInsteadOfZero() {
+    when(jobs.count("pending")).thenThrow(new IllegalStateException("Database unavailable"));
+    when(jobs.oldestAvailableSeconds())
+        .thenThrow(new IllegalStateException("Database unavailable"));
+
+    assertThat(metrics.get("blockout.jobs.count").tag("state", "pending").gauge().value()).isNaN();
+    assertThat(metrics.get("blockout.jobs.oldest.available.seconds").gauge().value()).isNaN();
   }
 }

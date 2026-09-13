@@ -192,7 +192,7 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
   }
 
   /**
-   * Requests and caches one token with an early refresh margin and a one-day cache ceiling.
+   * Requests and caches one token for its provider lifetime, with a short early refresh margin.
    * Unusable token lifetimes fail rather than causing repeated immediate renewal.
    *
    * @return the cached Management API access token
@@ -207,7 +207,6 @@ public final class Auth0UserIdentityProvider implements UserIdentityProvider, Au
       // loop.
       if (lifetime <= 1)
         throw new ProviderFailure(IdentityFailureReason.IDENTITY_CONFIGURATION_ERROR);
-      lifetime = Math.min(lifetime, 86400);
       accessToken = token.getTokenValue();
       metrics.counter("blockout.identity.auth0.tokens_issued").increment();
       refreshAt = clock.instant().plusSeconds(lifetime - Math.min(30, lifetime / 2));

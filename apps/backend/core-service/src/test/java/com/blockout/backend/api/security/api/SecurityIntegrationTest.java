@@ -32,7 +32,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
       "management.server.port=0",
-      "blockout.revenuecat.webhook.signing-secret=fixture-signing-secret",
+      "blockout.revenuecat.webhook.authorization=Bearer fixture-webhook-secret",
       "blockout.identity.native-client-ids=native-client",
       "blockout.identity.auth0.base-url=https://issuer.example",
       "blockout.identity.auth0.client-id=fixture",

@@ -64,7 +64,7 @@ Depends on the delivered profile increment. Independent outcome: local Pro decis
 - [x] T026 [US1] Implement evidence, pending revisions and webhook receipt schema in apps/backend/migrations/ and owner persistence/policies in apps/backend/identity/.
 - [x] T027 [US1] Write RevenueCat V2 pagination/environment/gives_access/promotion/rate/failure tests in apps/backend/identity/src/test/.
 - [x] T028 [US1] Implement bounded read-only RevenueCat integration and live-lease reconciliation in apps/backend/identity/ and apps/backend/core-worker/.
-- [x] T029 [US1] Write HMAC/replay/transfer and API ownership/error tests in apps/backend/core-service/src/test/.
+- [x] T029 [US1] Write webhook-authorization/replay/transfer and API ownership/error tests in apps/backend/core-service/src/test/.
 - [x] T030 [US1] Implement subscription HTTP/refresh/webhook adapters and atomic first-profile refresh publication in apps/backend/core-service/ and apps/backend/identity/.
 - [x] T031 [US1] Add periodic bounded reconciliation, stale-proof/job diagnostics and operational validation in apps/backend/core-worker/, infra/compose/backend/ and specs/002-backend-rebuild/quickstart.md.
 - [x] T032 Validate full subscription delivery and isolated smoke through apps/backend/ and scripts/backend-foundation/; report external controlled-account evidence separately on the PR.

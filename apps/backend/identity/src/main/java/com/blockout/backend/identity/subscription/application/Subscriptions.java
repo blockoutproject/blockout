@@ -90,7 +90,7 @@ public final class Subscriptions {
    * @param userId newly created billing owner
    */
   public void initialize(UUID userId) {
-    request(userId, false, false);
+    request(userId, RefreshTrigger.AUTOMATIC);
   }
 
   /**
@@ -99,7 +99,7 @@ public final class Subscriptions {
    * @param userId authenticated active owner
    */
   public void refresh(UUID userId) {
-    tx.executeWithoutResult(_ -> request(userId, true, false));
+    tx.executeWithoutResult(_ -> request(userId, RefreshTrigger.USER));
   }
 
   /**
@@ -109,7 +109,7 @@ public final class Subscriptions {
    */
   public int reconcileDue() {
     var due = store.due(clock.instant());
-    for (var id : due) tx.executeWithoutResult(_ -> request(id, false, true));
+    for (var id : due) tx.executeWithoutResult(_ -> request(id, RefreshTrigger.PERIODIC));
     return due.size();
   }
 
@@ -194,7 +194,7 @@ public final class Subscriptions {
           for (var owner : store.owners(project, environment, customers)) {
             store.lock(owner);
             if (invalidated.contains(owner)) store.invalidate(owner);
-            request(owner, false, false);
+            request(owner, RefreshTrigger.AUTOMATIC);
           }
         });
   }
@@ -203,13 +203,12 @@ public final class Subscriptions {
    * Serializes request revisions without retaining SQL locks during provider reads.
    *
    * @param userId existing owner
-   * @param userRequest whether the 30-second user cooldown applies
-   * @param periodic whether active work and future due times should be skipped
+   * @param trigger selects user cooldown, periodic due checks or immediate event-driven work
    */
-  private void request(UUID userId, boolean userRequest, boolean periodic) {
+  private void request(UUID userId, RefreshTrigger trigger) {
     var current = store.lock(userId);
     var now = clock.instant();
-    if (userRequest
+    if (trigger == RefreshTrigger.USER
         && current.requestedAt() != null
         && now.isBefore(current.requestedAt().plusSeconds(30))) return;
     boolean pending =
@@ -217,22 +216,31 @@ public final class Subscriptions {
             && jobs.state(current.jobId())
                 .filter(s -> s == JobState.PENDING || s == JobState.RUNNING)
                 .isPresent();
-    if (periodic && !pending && current.jobId() != null) {
+    if (trigger == RefreshTrigger.PERIODIC && !pending && current.jobId() != null) {
       var recoverAt = jobs.finishedAt(current.jobId()).map(instant -> instant.plusSeconds(900));
       if (recoverAt.isPresent() && now.isBefore(recoverAt.get())) {
         store.deferScan(userId, recoverAt.get());
         return;
       }
     }
-    if (periodic && pending) {
+    if (trigger == RefreshTrigger.PERIODIC && pending) {
       store.deferScan(userId, now.plusSeconds(300));
       return;
     }
-    if (periodic && current.nextRefreshAt() != null && now.isBefore(current.nextRefreshAt()))
-      return;
+    if (trigger == RefreshTrigger.PERIODIC
+        && current.nextRefreshAt() != null
+        && now.isBefore(current.nextRefreshAt())) return;
     long revision = current.requestedRevision() + 1;
     UUID jobId = pending ? current.jobId() : publish(userId);
-    store.request(userId, revision, jobId, userRequest ? now : current.requestedAt());
+    store.request(
+        userId, revision, jobId, trigger == RefreshTrigger.USER ? now : current.requestedAt());
+  }
+
+  /** Selects only the scheduling rules that differ between existing request sources. */
+  private enum RefreshTrigger {
+    AUTOMATIC,
+    USER,
+    PERIODIC
   }
 
   /**

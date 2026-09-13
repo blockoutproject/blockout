@@ -9,7 +9,7 @@ import java.util.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Accepts signed provider notifications as requests to reread current evidence. */
+/** Accepts authenticated provider notifications as requests to reread current evidence. */
 @RestController
 public class RevenueCatWebhookController implements RevenueCatWebhookApi {
   private final Subscriptions subscriptions;

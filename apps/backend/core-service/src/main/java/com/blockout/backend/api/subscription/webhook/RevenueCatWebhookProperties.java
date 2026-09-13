@@ -7,8 +7,8 @@ import org.springframework.validation.annotation.Validated;
 /**
  * API-only webhook credential; no RevenueCat API key belongs in this process.
  *
- * @param signingSecret HMAC signing secret configured on the retained integration
+ * @param authorization complete secret Authorization value configured on the retained integration
  */
 @Validated
 @ConfigurationProperties("blockout.revenuecat.webhook")
-public record RevenueCatWebhookProperties(@NotBlank String signingSecret) {}
+public record RevenueCatWebhookProperties(@NotBlank String authorization) {}

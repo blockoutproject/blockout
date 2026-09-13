@@ -72,15 +72,16 @@ timestamps, original exception types and message-free stack traces formatted by 
 
 ## Subscription validation
 
-Run identity provider/policy tests, PostgreSQL coalescing/receipt tests and core HTTP/HMAC tests before
+Run identity provider/policy tests, PostgreSQL coalescing/receipt tests and core HTTP/webhook authorization tests before
 complete backend verification. Build all three images at one revision and explicitly reset the disposable
 local database after a baseline change. Run foundation and observability smoke against the isolated stack.
 Use synthetic provider fixtures to verify positive evidence, transient outage/grace, negative evidence,
 webhook deduplication, refresh publication and worker recovery. No production credentials are necessary.
 
-RevenueCat API credentials belong only to the worker; the webhook signing secret belongs only to the API.
-Use the retained project, environment and entitlement. HMAC must be enabled on the separately configured
-RevenueCat integration before live webhook use. A 404 remains unknown; this backend never creates provider
+RevenueCat API credentials belong only to the worker; the webhook Authorization secret belongs only to the API.
+Use the retained project, environment and entitlement. Configure the same complete Authorization value
+in the RevenueCat webhook dashboard and API environment before live use (for example `Bearer <random-secret>`).
+Use an HTTPS ingress in deployment; only the isolated local fixture uses HTTP. A 404 remains unknown; this backend never creates provider
 customers. Record controlled-account reads and unavailable native purchase/restore evidence separately
 on the PR. Neither mocks nor local smoke establish production subscription continuity.
 
@@ -90,6 +91,6 @@ The `subscription-smoke` Compose profile adds a synthetic HTTP fixture, not an a
 Its fixture overrides exist only in the smoke process and never modify retained provider settings.
 Worker configuration requires `BLOCKOUT_REVENUECAT_BASE_URL`, `BLOCKOUT_REVENUECAT_SECRET_KEY` and
 `BLOCKOUT_REVENUECAT_ENTITLEMENT_ID`; API configuration requires
-`BLOCKOUT_REVENUECAT_WEBHOOK_SIGNING_SECRET`. Live API keys need subscription-read permission.
+`BLOCKOUT_REVENUECAT_WEBHOOK_AUTHORIZATION`. Live API keys need subscription-read permission.
 The worker only reads the existing provider identity; signing configuration is a separately authorized
 RevenueCat dashboard operation. The sixth alert detects positive evidence stale for five minutes.

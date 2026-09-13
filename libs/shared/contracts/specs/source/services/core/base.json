@@ -27,10 +27,11 @@
         "scheme": "bearer",
         "bearerFormat": "JWT"
       },
-      "revenueCatSignature": {
+      "revenueCatAuthorization": {
         "type": "apiKey",
         "in": "header",
-        "name": "X-RevenueCat-Webhook-Signature"
+        "name": "Authorization",
+        "description": "Exact shared secret header configured in RevenueCat. HTTPS is required outside isolated fixtures."
       }
     }
   }

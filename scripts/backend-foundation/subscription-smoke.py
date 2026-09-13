@@ -1,7 +1,5 @@
-"""Assert signed receipt processing and provider reconciliation on the disposable Compose stack."""
+"""Assert authenticated receipt processing and provider reconciliation on the disposable Compose stack."""
 
-import hashlib
-import hmac
 import json
 import subprocess
 import time
@@ -43,7 +41,7 @@ def sql(statement):
 
 
 def webhook():
-    """Send exact signed bytes twice to prove durable event deduplication."""
+    """Send one authenticated event twice to prove durable event deduplication."""
     event = str(uuid.uuid4())
     body = json.dumps(
         {
@@ -56,17 +54,13 @@ def webhook():
             }
         }
     ).encode()
-    timestamp = str(int(time.time()))
-    signature = hmac.new(
-        b"smoke-only", timestamp.encode() + b"." + body, hashlib.sha256
-    ).hexdigest()
     for _ in range(2):
         request = Request(
             "http://127.0.0.1:18080/api/v2/webhooks/revenuecat",
             data=body,
             headers={
                 "Content-Type": "application/json",
-                "X-RevenueCat-Webhook-Signature": f"t={timestamp},v1={signature}",
+                "Authorization": "smoke-only",
             },
         )
         with urlopen(request, timeout=5) as response:
@@ -109,5 +103,5 @@ assert (
     == "auth0|smoke-237"
 )
 print(
-    "Signed webhook, duplicate receipt, worker reconciliation and positive-to-negative evidence verified"
+    "Authenticated webhook, duplicate receipt, worker reconciliation and positive-to-negative evidence verified"
 )

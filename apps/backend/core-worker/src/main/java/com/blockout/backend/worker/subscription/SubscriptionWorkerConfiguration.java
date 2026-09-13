@@ -4,7 +4,6 @@ import com.blockout.backend.identity.config.*;
 import com.blockout.backend.identity.subscription.application.*;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
 import org.springframework.scheduling.annotation.*;
 import tools.jackson.databind.json.JsonMapper;
@@ -12,7 +11,6 @@ import tools.jackson.databind.json.JsonMapper;
 /** Worker-only provider credentials, handler and bounded periodic discovery. */
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
-@EnableConfigurationProperties(RevenueCatProperties.class)
 @Import({SubscriptionConfiguration.class, RevenueCatConfiguration.class})
 public class SubscriptionWorkerConfiguration {
   /**

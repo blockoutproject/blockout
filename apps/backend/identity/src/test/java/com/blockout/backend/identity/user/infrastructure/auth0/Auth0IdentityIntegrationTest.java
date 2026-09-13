@@ -395,10 +395,13 @@ class Auth0IdentityIntegrationTest {
   }
 
   @Test
-  void capsTheCacheWithoutRejectingLongLivedProviderTokens() {
+  void reusesTheTokenForItsProviderLifetime() {
     tokenBody =
         "{\"access_token\":\"synthetic-secret\",\"token_type\":\"Bearer\",\"expires_in\":172800}";
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
+    clock.now = clock.now.plusSeconds(86400);
+    assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
+    assertThat(tokens).hasValue(1);
     clock.now = clock.now.plusSeconds(86400);
     assertThat(provider.find(actor())).isInstanceOf(IdentityLookup.Found.class);
     assertThat(tokens).hasValue(2);

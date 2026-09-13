@@ -42,7 +42,7 @@ import tools.jackson.databind.json.JsonMapper;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
       "management.server.port=0",
-      "blockout.revenuecat.webhook.signing-secret=fixture-signing-secret",
+      "blockout.revenuecat.webhook.authorization=Bearer fixture-webhook-secret",
       "blockout.identity.native-client-ids=native-client",
       "blockout.identity.auth0.base-url=https://tenant.example",
       "blockout.identity.auth0.client-id=fixture",
@@ -416,12 +416,14 @@ class CurrentUserIntegrationTest {
   }
 
   @Test
-  void signedWebhookCommitsOneReceiptAndNoUnknownProfile() throws Exception {
+  void authenticatedWebhookCommitsOneReceiptAndNoUnknownProfile() throws Exception {
     String body =
         "{ \"event\": {\"id\":\"event-1\",\"type\":\"INITIAL_PURCHASE\",\"event_timestamp_ms\":1,\"environment\":\"PRODUCTION\",\"app_user_id\":\"unknown\"}}";
-    String signature = signature(body, Instant.now().getEpochSecond());
-    var first = subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", null, body, signature);
-    var second = subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", null, body, signature);
+    String authorization = "Bearer fixture-webhook-secret";
+    var first =
+        subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", null, body, authorization);
+    var second =
+        subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", null, body, authorization);
     assertThat(first.statusCode()).isEqualTo(200);
     assertThat(second.statusCode()).isEqualTo(200);
     assertThat(sql.queryForObject("SELECT count(*) FROM identity.webhook_receipts", Integer.class))
@@ -429,33 +431,25 @@ class CurrentUserIntegrationTest {
     assertThat(sql.queryForObject("SELECT count(*) FROM identity.users", Integer.class)).isZero();
   }
 
-  @Test
-  void webhookRejectsModifiedBytesAndExpiredSignaturesBeforeParsing() throws Exception {
-    String body = "{}";
-    assertThat(
-            subscriptionRequest(
-                    "POST",
-                    "/api/v2/webhooks/revenuecat",
-                    null,
-                    "invalid-json",
-                    signature(body, Instant.now().getEpochSecond()))
-                .statusCode())
-        .isEqualTo(401);
-    assertThat(
-            subscriptionRequest(
-                    "POST",
-                    "/api/v2/webhooks/revenuecat",
-                    null,
-                    body,
-                    signature(body, Instant.now().minusSeconds(600).getEpochSecond()))
-                .statusCode())
-        .isEqualTo(401);
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.NullAndEmptySource
+  @org.junit.jupiter.params.provider.ValueSource(
+      strings = {"Bearer wrong-secret", "fixture-webhook-secret"})
+  void webhookRejectsInvalidCredentialsBeforeParsing(String authorization) throws Exception {
+    var response =
+        subscriptionRequest(
+            "POST", "/api/v2/webhooks/revenuecat", null, "invalid-json", authorization);
+    assertThat(response.statusCode()).isEqualTo(401);
+    assertThat(response.body())
+        .contains("WEBHOOK_AUTHENTICATION_FAILED")
+        .doesNotContain("wrong-secret");
+    assertThat(response.headers().firstValue("WWW-Authenticate")).isEmpty();
     assertThat(sql.queryForObject("SELECT count(*) FROM identity.webhook_receipts", Integer.class))
         .isZero();
   }
 
   @Test
-  void validSignatureStillRequiresTheGeneratedWebhookContract() throws Exception {
+  void authenticatedWebhookStillRequiresTheGeneratedContract() throws Exception {
     String body = "{\"event\":{\"type\":\"TEST\"}}";
     assertThat(
             subscriptionRequest(
@@ -463,23 +457,23 @@ class CurrentUserIntegrationTest {
                     "/api/v2/webhooks/revenuecat",
                     null,
                     body,
-                    signature(body, Instant.now().getEpochSecond()))
+                    "Bearer fixture-webhook-secret")
                 .statusCode())
         .isEqualTo(400);
   }
 
   /**
-   * Sends a real request through bearer or HMAC authentication.
+   * Sends a real request through native JWT or webhook-header authentication.
    *
    * @param method HTTP operation
    * @param path tested resource
    * @param token optional bearer credential
    * @param body optional original JSON bytes
-   * @param signature optional HMAC header
+   * @param authorization optional complete webhook Authorization value
    * @return received response
    */
   HttpResponse<String> subscriptionRequest(
-      String method, String path, String token, String body, String signature)
+      String method, String path, String token, String body, String authorization)
       throws IOException, InterruptedException {
     var builder =
         HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
@@ -490,48 +484,26 @@ class CurrentUserIntegrationTest {
                     : HttpRequest.BodyPublishers.ofString(body));
     if (token != null) builder.header("Authorization", "Bearer " + token);
     if (body != null) builder.header("Content-Type", "application/json");
-    if (signature != null) builder.header("X-RevenueCat-Webhook-Signature", signature);
+    if (authorization != null) builder.setHeader("Authorization", authorization);
     try (var client = HttpClient.newHttpClient()) {
       return client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
   }
 
-  /**
-   * Signs exact fixture bytes using the documented provider algorithm.
-   *
-   * @param body original JSON text
-   * @param timestamp delivery Unix timestamp
-   * @return provider-format signature
-   */
-  String signature(String body, long timestamp) throws java.security.GeneralSecurityException {
-    var mac = javax.crypto.Mac.getInstance("HmacSHA256");
-    mac.init(
-        new javax.crypto.spec.SecretKeySpec(
-            "fixture-signing-secret".getBytes(java.nio.charset.StandardCharsets.UTF_8),
-            "HmacSHA256"));
-    return "t="
-        + timestamp
-        + ",v1="
-        + HexFormat.of()
-            .formatHex(
-                mac.doFinal(
-                    (timestamp + "." + body).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-  }
-
   @Test
-  void webhookUsesHmacInsteadOfAnOptionalProviderBearerHeader() throws Exception {
-    String body = "{\"event\":{\"id\":\"hmac-only\",\"type\":\"TEST\",\"event_timestamp_ms\":1}}";
+  void webhookCredentialIsIndependentOfNativeUserTokens() throws Exception {
+    String body = "{\"event\":{\"id\":\"header-only\",\"type\":\"TEST\",\"event_timestamp_ms\":1}}";
     var response =
         subscriptionRequest(
-            "POST",
-            "/api/v2/webhooks/revenuecat",
-            "not-an-auth0-token",
-            body,
-            signature(body, Instant.now().getEpochSecond()));
+            "POST", "/api/v2/webhooks/revenuecat", null, body, "Bearer fixture-webhook-secret");
     assertThat(response.statusCode()).isEqualTo(200);
     var rejected = subscriptionRequest("POST", "/api/v2/webhooks/revenuecat", user(), body, null);
     assertThat(rejected.statusCode()).isEqualTo(401);
     assertThat(rejected.body()).contains("WEBHOOK_AUTHENTICATION_FAILED");
-    assertThat(rejected.headers().firstValue("WWW-Authenticate")).isEmpty();
+    assertThat(
+            subscriptionRequest(
+                    "GET", "/api/v2/users/me/subscription", "fixture-webhook-secret", null, null)
+                .statusCode())
+        .isEqualTo(401);
   }
 }

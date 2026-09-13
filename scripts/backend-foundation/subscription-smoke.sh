@@ -7,7 +7,7 @@ cd "$(dirname "$0")/../.."
 export BLOCKOUT_REVENUECAT_BASE_URL=http://subscription-fixture:8080
 export BLOCKOUT_REVENUECAT_SECRET_KEY=smoke-only
 export BLOCKOUT_REVENUECAT_ENTITLEMENT_ID=smoke-pro
-export BLOCKOUT_REVENUECAT_WEBHOOK_SIGNING_SECRET=smoke-only
+export BLOCKOUT_REVENUECAT_WEBHOOK_AUTHORIZATION=smoke-only
 export BLOCKOUT_IDENTITY_BILLING_PROJECT_ID=smoke-project
 export BLOCKOUT_IDENTITY_BILLING_ENVIRONMENT=sandbox
 compose=(docker compose --project-name blockout-foundation --file infra/compose/docker-compose.backend.yml --profile subscription-smoke)

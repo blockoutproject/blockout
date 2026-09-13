@@ -45,8 +45,7 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   @Nullable ResponseEntity<Object> authenticationRequired(
       AuthenticationException failure, WebRequest request) {
     var headers = new HttpHeaders();
-    if (!request.getDescription(false).equals("uri=/api/v2/webhooks/revenuecat"))
-      headers.set(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+    headers.set(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
     return handleExceptionInternal(failure, null, headers, HttpStatus.UNAUTHORIZED, request);
   }
 
@@ -95,10 +94,7 @@ public final class ApiExceptionHandler extends ResponseEntityExceptionHandler {
                 ? SUBSCRIPTION_STORE_UNAVAILABLE
                 : PROFILE_STORE_UNAVAILABLE)
             : switch (status.value()) {
-              case 401 ->
-                  request.getDescription(false).equals("uri=/api/v2/webhooks/revenuecat")
-                      ? WEBHOOK_AUTHENTICATION_FAILED
-                      : AUTHENTICATION_REQUIRED;
+              case 401 -> AUTHENTICATION_REQUIRED;
               case 403 -> ACCESS_DENIED;
               case 404 -> RESOURCE_NOT_FOUND;
               case 405 -> METHOD_NOT_ALLOWED;

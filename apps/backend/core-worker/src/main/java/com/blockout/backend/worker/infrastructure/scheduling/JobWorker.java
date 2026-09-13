@@ -143,23 +143,7 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
             () -> {
               attempts.execute(job, cancelled);
               return null;
-            }) {
-          /**
-           * {@inheritDoc} Releases capacity only after execution exits, not merely when
-           * cancellation is requested.
-           */
-          @Override
-          public void run() {
-            try {
-              super.run();
-            } finally {
-              // Future.done() also runs on cancellation, before an uncooperative handler exits.
-              active.remove(job.leaseToken());
-              var scheduled = timeout.get();
-              if (scheduled != null) scheduled.cancel(false);
-            }
-          }
-        };
+            });
     var work = new Execution(job, task, cancelled, new AtomicLong(now));
     active.put(job.leaseToken(), work);
     try {
@@ -174,7 +158,18 @@ public final class JobWorker implements SmartLifecycle, HealthIndicator {
               config.deadline().toMillis(),
               TimeUnit.MILLISECONDS));
       // A bounded handoff absorbs the gap between Runnable completion and an idle pool thread.
-      execution.execute(task);
+      execution.execute(
+          () -> {
+            try {
+              task.run();
+            } finally {
+              // Release capacity when the runnable exits, even if the cancelled handler ignored
+              // interruption.
+              active.remove(job.leaseToken());
+              var scheduled = timeout.get();
+              if (scheduled != null) scheduled.cancel(false);
+            }
+          });
     } catch (RejectedExecutionException _) {
       cancel(work);
       active.remove(job.leaseToken());

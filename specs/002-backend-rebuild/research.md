@@ -42,7 +42,7 @@ The error contract follows [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.htm
 | Concurrent pseudonyms                   | Normalized unique key with conflict arbitration                 | Pre-check only                                                 | Competing inserts cannot create duplicate identity or pseudonym             |
 | Typed local Pro decision                | Persist minimal server evidence, four states                    | Trust client isPro or call provider on each match read         | Clock/negative authorization tests; no network on reads                     |
 | Environment-isolated entitlement        | RevenueCat V2 subscription gives_access plus exact entitlement  | V1 get-or-create or environment-less active_entitlements alone | Complete pagination, sandbox exclusion, trials/promotion/grace cases        |
-| Recoverable event processing            | HMAC webhook receipt plus existing jobs                         | Apply event types directly                                     | Duplicates, ordering, transfers and crash recovery tested                   |
+| Recoverable event processing            | Authenticated webhook receipt plus existing jobs                | Apply event types directly                                     | Duplicates, ordering, transfers and crash recovery tested                   |
 
 Provider references: [Auth0 linking](https://auth0.com/docs/manage-users/user-accounts/user-account-linking), [RevenueCat identity](https://www.revenuecat.com/docs/customers/identifying-customers), [restore behavior](https://www.revenuecat.com/docs/projects/restore-behavior), [V2 subscriptions](https://www.revenuecat.com/docs/api-v2/customer/resources), [webhooks](https://www.revenuecat.com/docs/integrations/webhooks). Production configurations are verification inputs, not presumed inspected evidence. Existing affected users were already linked before billing adoption, as confirmed by the owner.
 
@@ -85,16 +85,36 @@ Official references: [Spring configuration validation](https://docs.spring.io/sp
 
 ## Subscription refinement decisions
 
-| Need                                   | Decision                                                                 | Simpler alternative and consequence                                         | Verification                             |
-| -------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------- | ---------------------------------------- |
-| Complete environment-specific evidence | V2 subscriptions, exact entitlement and gives_access                     | active_entitlements alone cannot isolate environment                        | Provider pagination/environment fixtures |
-| Honest expiry                          | No expiry inferred from billing dates; period ends schedule refresh only | Cutting access at ends_at breaks provider grace                             | Clock and grace fixtures                 |
-| Missing customer ambiguity             | 404 remains unknown                                                      | Treating every resource_missing as free hides invalid project configuration | 404 fixture                              |
-| Fenced failure recovery                | Extend existing job SQL effects to delayed/permanent failures            | Separate owner writes allow stale attempts to change proof                  | PostgreSQL lease/rollback tests          |
-| Raw signed body with generated API     | Scoped RequestBodyAdvice and JDK Mac                                     | Parsing then serializing changes signed bytes                               | MVC raw-byte signature tests             |
-| Bounded calls                          | Resilience4j rate limiter only; durable jobs own retries                 | Handwritten limiter duplicates library behavior                             | Controlled rate/retry tests              |
+| Need                                   | Decision                                                                          | Simpler alternative and consequence                                         | Verification                                                          |
+| -------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Complete environment-specific evidence | V2 subscriptions, exact entitlement and gives_access                              | active_entitlements alone cannot isolate environment                        | Provider pagination/environment fixtures                              |
+| Honest expiry                          | No expiry inferred from billing dates; period ends schedule refresh only          | Cutting access at ends_at breaks provider grace                             | Clock and grace fixtures                                              |
+| Missing customer ambiguity             | 404 remains unknown                                                               | Treating every resource_missing as free hides invalid project configuration | 404 fixture                                                           |
+| Fenced failure recovery                | Extend existing job SQL effects to delayed/permanent failures                     | Separate owner writes allow stale attempts to change proof                  | PostgreSQL lease/rollback tests                                       |
+| Authenticate provider ingress          | RevenueCat shared Authorization header over HTTPS and Spring Security access rule | Optional HMAC needs raw-body handling without a required benefit here       | Missing/wrong secret, native-token isolation and receipt replay tests |
+| Bounded calls                          | Resilience4j rate limiter only; durable jobs own retries                          | Handwritten limiter duplicates library behavior                             | Controlled rate/retry tests                                           |
 
 References: [RevenueCat subscription model](https://www.revenuecat.com/docs/api-v2/subscription-data-model),
 [V2 API](https://www.revenuecat.com/docs/api-v2), [webhooks](https://www.revenuecat.com/docs/integrations/webhooks),
-[Spring RequestBodyAdvice](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servlet/mvc/method/annotation/RequestBodyAdvice.html),
+[Spring request authorization](https://docs.spring.io/spring-security/reference/servlet/authorization/authorize-http-requests.html),
 [Resilience4j RateLimiter](https://resilience4j.readme.io/docs/ratelimiter).
+
+## Runtime simplicity decisions
+
+- **Provider tokens:** reuse the Auth0 token until its advertised expiry minus the renewal margin. An extra
+  one-day ceiling forces needless token issuance. Keep serialized renewal, rejected-token invalidation and
+  outage backoff because they protect the limited quota under ordinary concurrent logins.
+  [Auth0 token best practices](https://auth0.com/docs/secure/tokens/token-best-practices).
+- **Metrics:** pass queue readings directly to Micrometer. Its gauge already catches failures and returns NaN;
+  application wrappers would duplicate that behavior. Verify that unavailable SQL never appears as a zero backlog.
+  [Micrometer DefaultGauge](https://github.com/micrometer-metrics/micrometer/blob/main/micrometer-core/src/main/java/io/micrometer/core/instrument/internal/DefaultGauge.java).
+- **Worker cancellation:** compose a standard FutureTask with an executor Runnable instead of overriding
+  FutureTask.run. Keep the separate deadline scheduler and release capacity only when the Runnable exits:
+  interrupted network calls can take time to exit, and early release can exceed the configured concurrency.
+- **Subscription requests:** use a named request trigger for user, periodic and automatic requests. This keeps
+  their existing cooldown and coalescing rules explicit without pairs of positional booleans.
+- **Retained extensions:** Problem Detail translation and the small Boot stack-trace formatter serve the
+  shared error contract and prevent provider messages from entering logs. Native libraries continue to own
+  JSON parsing, JWT validation, OAuth exchange and ECS serialization. PostgreSQL transactions/lease fencing,
+  complete provider pagination and rate limits protect current behavior; replacing them with optimistic
+  shortcuts would change the accepted delivery guarantees.

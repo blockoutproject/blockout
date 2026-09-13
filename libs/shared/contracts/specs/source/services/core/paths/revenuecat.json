@@ -5,10 +5,10 @@
       "tags": ["RevenueCatWebhook"],
       "security": [
         {
-          "revenueCatSignature": []
+          "revenueCatAuthorization": []
         }
       ],
-      "description": "Verify HMAC timestamp and original JSON bytes before conversion. Commit receipt and reconciliation requests before 200. Duplicate receipts are acknowledged.",
+      "description": "Authenticate the configured shared Authorization header over HTTPS before request conversion. Commit receipt and reconciliation requests before 200. Duplicate receipts are acknowledged.",
       "requestBody": {
         "required": true,
         "content": {

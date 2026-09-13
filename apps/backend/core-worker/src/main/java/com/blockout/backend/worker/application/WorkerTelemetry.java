@@ -16,7 +16,7 @@ public final class WorkerTelemetry {
   private boolean pollDegraded;
 
   /**
-   * Registers bounded queue gauges; unavailable SQL reads produce NaN rather than a false zero.
+   * Registers bounded queue gauges; Micrometer reports failed SQL reads as NaN, never a false zero.
    *
    * @param jobs queue metric reads
    * @param metrics application-owned meter registry
@@ -25,26 +25,9 @@ public final class WorkerTelemetry {
     this.metrics = metrics;
     for (String state : List.of("pending", "running", "succeeded", "dead"))
       metrics.gauge(
-          "blockout.jobs.count",
-          List.of(Tag.of("state", state)),
-          jobs,
-          j -> {
-            try {
-              return j.count(state);
-            } catch (RuntimeException _) {
-              return Double.NaN;
-            }
-          });
+          "blockout.jobs.count", List.of(Tag.of("state", state)), jobs, j -> j.count(state));
     metrics.gauge(
-        "blockout.jobs.oldest.available.seconds",
-        jobs,
-        j -> {
-          try {
-            return j.oldestAvailableSeconds();
-          } catch (RuntimeException _) {
-            return Double.NaN;
-          }
-        });
+        "blockout.jobs.oldest.available.seconds", jobs, JobRepository::oldestAvailableSeconds);
   }
 
   /**
