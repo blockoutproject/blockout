@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 /** HTTP boundary for actor-bound provisioning and side-effect-free reads. */
 @RestController
 public class CurrentUserController implements CurrentUserApi {
-  private static final String USER_IDENTITY_REQUIRED = "USER_IDENTITY_REQUIRED";
-
   private final UserProfiles profiles;
   private final CurrentUserActor actors;
   private final UserProfileMapper mapper;
@@ -25,14 +23,14 @@ public class CurrentUserController implements CurrentUserApi {
   @Override
   public ResponseEntity<?> ensureCurrentUser() {
     var actor = actors.current();
-    if (actor.isEmpty()) return problem(403, USER_IDENTITY_REQUIRED);
+    if (actor.isEmpty()) return problem(403, "USER_IDENTITY_REQUIRED");
     return response(profiles.ensure(actor.get()));
   }
 
   @Override
   public ResponseEntity<?> getCurrentUser() {
     var actor = actors.current();
-    if (actor.isEmpty()) return problem(403, USER_IDENTITY_REQUIRED);
+    if (actor.isEmpty()) return problem(403, "USER_IDENTITY_REQUIRED");
     return response(profiles.find(actor.get()));
   }
 
@@ -60,7 +58,7 @@ public class CurrentUserController implements CurrentUserApi {
             switch (code) {
               case "USER_NOT_FOUND" -> "The current profile does not exist.";
               case "USER_INACTIVE" -> "The current profile is inactive.";
-              case USER_IDENTITY_REQUIRED -> "A supported native user session is required.";
+              case "USER_IDENTITY_REQUIRED" -> "A supported native user session is required.";
               case "IDENTITY_NOT_SUPPORTED", "IDENTITY_MISMATCH" ->
                   "The identity cannot be used to create this profile.";
               default -> "Identity verification is temporarily unavailable.";
