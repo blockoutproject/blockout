@@ -124,6 +124,11 @@ Observed implementation is weaker: team/pool writers compare a subset of source 
 
 Evidence: [team writer][team-writer], [team adapter][team-adapter], [team owner][teams], [pool writer][pool-writer], [pool adapter][pool-adapter], [club merge][club-ingestion], [club writer][club-writer].
 
+### Client refresh and report submission details
+
+- **Match refresh (V1-09/V1-10):** the match screen refreshes when focused, on explicit pull-to-refresh, and when the app returns from inactive/background to active while that screen is focused. Its entity query can start from cached data, treats that data as stale immediately, and disables automatic query retries. These triggers do not establish a continuous live-score stream or a guaranteed freshness interval. Evidence: [match refresh][match-refresh], [entity query][entity-query].
+- **Report submission (V1-15):** category, trimmed title and description are required in the mobile form. The request includes screen context, app version, device model and OS, plus business user ID/pseudo when available (otherwise guest identity). Images are selected from the image library and resized to width 1280, then encoded as JPEG before upload. These are existing diagnostics/attachment behaviors, not a new telemetry requirement. Backend image-type/size checks remain separate. Evidence: [report form][report-form], [report service][reports].
+
 ## Confirmed V2 constraints and additions
 
 These statements come from owner decisions during framing, not reverse-engineering:
@@ -412,3 +417,5 @@ Owner review should check the observable outcomes and confirmed decisions, not a
 [match-date]: ../../apps/frontend/mobile/src/modules/match/view-models/match-date.ts
 [season-filter]: ../../apps/frontend/mobile/src/shared/hooks/use-season-filter.ts
 [score-presentation]: ../../apps/frontend/mobile/src/modules/match/view-models/match-score-presentation.ts
+[match-refresh]: ../../apps/frontend/mobile/src/modules/match/hooks/use-match-refresh.ts
+[entity-query]: ../../apps/frontend/mobile/src/shared/hooks/use-entity-by-id.ts
