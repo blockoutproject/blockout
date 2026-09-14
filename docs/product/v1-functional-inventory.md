@@ -55,7 +55,7 @@ Each row identifies an actor/trigger, outcome and significant failure/permission
 
 ### Acquisition and classification
 
-FFVB pool discovery covers departmental, regional and national sources; the professional path enriches AALNV data. Calendars are obtained by POSTing season/league/pool parameters to the CSV export endpoint, decoding Windows-1252 semicolon-separated content. This CSV acquisition method is an explicit retained constraint. It does not mean that every datum comes from CSV: rankings, discovery, club contacts and professional enrichment also use HTML/XML.
+FFVB pool discovery handles departmental, regional and national source structures; regional/departmental discovery explicitly excludes league codes `LIGU`, `LIGY`, `LIMART`, `LIMY` and `LIRE`. The reason and desired V2 inclusion are not owner-confirmed. This is not an inventory of every French competition. Ingestion deduplicates league/pool links and skips pool links missing a usable season or code; the professional path enriches AALNV data. Calendars are obtained by POSTing season/league/pool parameters to the CSV export endpoint, decoding Windows-1252 semicolon-separated content. This CSV acquisition method is an explicit retained constraint. It does not mean that every datum comes from CSV: rankings, discovery, club contacts and professional enrichment also use HTML/XML.
 
 A raw division mapping belongs to a source league, season and raw label. The operator supplies division, format and gender. A newly discovered/unmapped pack is registered but not ingested as a guessed division. The owner manually prepares each season and standardizes presentation. A pack can exceptionally contain pools from different divisions; the current shared mapping is then imprecise. No automatic pack splitting is selected here.
 
@@ -104,6 +104,18 @@ Evidence: [match merge][match-changes], [LNV][lnv], [ranking parser][ranking], [
 
 Owner intent requires historical seasons to remain consultable even if the original provider source disappears. Therefore activity, provider visibility and historical accessibility must be distinguished in later specs; current deactivation cascades are not automatically the parity requirement.
 
+### Dates, seasons and displayed live state
+
+These rules refine V1-04–V1-13; listing the enclosing screen or API is not sufficient evidence for them.
+
+- **Provider timestamps:** CSV dates are parsed as `YYYY-MM-DD HH:mm`, interpreted in Europe/Paris and converted to UTC, except literal `00:00`, which is directly attached to UTC. Invalid values produce no parsed date. The meaning of the midnight exception (real kickoff versus unknown-time sentinel) is not confirmed. This is separate from the owner-reported LNV propagation latency.
+- **Calendar pagination:** page size selects distinct match days, not a fixed number of matches. Upcoming days ascend and finished days descend. Application date windows use Europe/Paris; database date extraction and mobile formatting are separate boundaries. Their behavior around midnight/daylight-saving changes or a device in another zone was not exercised.
+- **Mobile date labels:** match timestamps use device-local formatting, while relative day headers compare date-only values against the current UTC date. This can differ from the backend's Paris-day boundary; no production incident is claimed.
+- **Season choices:** search hardcodes `2026/2027`, `2025/2026`, `2024/2025` and starts with no season filter. The shared season selector used for the club-team list derives available seasons from returned items, sorts descending and defaults to the latest available; it retains a selection while it remains available. There is no established central season-discovery contract in these paths.
+- **Live versus replay:** the mobile match row shows `Live` when a live URL exists and the match is not finished, and `Rediffusion` once it is finished. Elapsed kickoff time also produces a presentation flag, but these computations do not query a streaming provider or prove that a broadcast is currently running.
+
+Evidence: [timestamp normalization][normalization], [match application][matches], [match queries][match-repo], [mobile dates][match-date], [search filters][search-filters], [season selection][season-filter], [score/status presentation][score-presentation].
+
 ### Source fields versus manual presentation
 
 Owner-confirmed rule: a manually corrected display name takes precedence without overwriting the original source name. Club logo is the default inherited by its teams, with an optional team override.
@@ -146,6 +158,11 @@ These are evidence gaps/product decisions, not delivery statuses. Resolve them i
 | G13 | Geocoding only fills missing coordinates; address changes can leave an older location.                                                                                     | Preserve owner-confirmed general implantation intent and specify refresh/unknown/ambiguous locations proportionately.                                                                     |
 | G14 | Pro and followed-list redesigns remain unmade; other pages were inspected structurally, not exhaustively exercised.                                                        | Complete missing designs and validate fields, actions and relevant states during specifications/design work; no screen absence removes a V1 capability.                                   |
 | G15 | Effective production defaults, Grafana dashboards and deployment versions were not independently inspected.                                                                | Retain the explicit owner-confirmed baseline and evidence limits. Before claiming runtime parity/cutover readiness, verify effective provider/operations settings with the owner.         |
+
+### Additional boundaries requiring specification decisions
+
+- **G16 — Dates and season availability:** define unknown kickoff time, timezone/day-boundary semantics and how selectable seasons become available. Characterize the `00:00` exception and different date bases before deciding whether to preserve or correct them. Fixed search choices are not a permanent three-season product limit.
+- **G17 — Competition coverage:** establish why the five source league codes are excluded and whether they belong in V2. Until confirmed, record the current exclusion without describing ingestion as universal FFVB coverage or silently removing it.
 
 ## Coverage evidence
 
@@ -391,3 +408,7 @@ Owner review should check the observable outcomes and confirmed decisions, not a
 [purchases-tests]: ../../apps/frontend/mobile/src/modules/subscription/providers/__tests__/purchases-provider.test.tsx
 [live-tests]: ../../apps/backend/matches-service/src/test/java/com/blockout/matches/match/application/MatchLiveLinkApplicationServiceUnitTest.java
 [ads-tests]: ../../apps/frontend/mobile/src/modules/advertising/api/__tests__/interstitial-controller.test.ts
+[normalization]: ../../apps/backend/competition-scraper/scraper/domain/normalization.py
+[match-date]: ../../apps/frontend/mobile/src/modules/match/view-models/match-date.ts
+[season-filter]: ../../apps/frontend/mobile/src/shared/hooks/use-season-filter.ts
+[score-presentation]: ../../apps/frontend/mobile/src/modules/match/view-models/match-score-presentation.ts
