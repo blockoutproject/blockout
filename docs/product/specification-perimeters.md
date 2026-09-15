@@ -40,6 +40,25 @@ Each row names the primary owner of its behavior. A consumer references the owni
 | F13 / [#259](https://github.com/blockoutproject/blockout/issues/259) | Shared quality/operations: measurable workload, performance/freshness/availability, security assurance, accessibility/platform/localization, documentation/diagnostics/monitoring and steady-state recovery/rebuild/backup needs.                                    | F11 owns privacy; F05 authentication; each domain owns action permissions and specific refinements. F14 owns migration-only criteria. No vendor/topology or speculative scale design. |
 | F14 / [#270](https://github.com/blockoutproject/blockout/issues/270) | V1→V2 transition: allowed reset/reconstruction, Auth0/Pro preservation, subscriber reconciliation and minimum surviving evidence, old clients/sessions, shared-provider dependencies and go/no-go/abort/recovery requirements.                                       | Uses F02/F05/F09/F13 rules; does not redefine normal account/Pro/history behavior or perform migration.                                                                               |
 
+## Feature specification references
+
+### F01 — Source acquisition
+
+[Source acquisition and observation reliability](../../specs/001-source-acquisition/spec.md) owns FR-001–FR-049 and acceptance scenarios A01–A36. These are requirement/scenario references, not implementation task IDs or delivery status.
+
+| Assigned coverage                                                           | Specification requirements | Acceptance scenarios       |
+| --------------------------------------------------------------------------- | -------------------------- | -------------------------- |
+| V1-22, G17: sources, discovery, exclusions, seasons and professional phases | FR-001–FR-007              | A01–A05, A16–A18           |
+| V1-19: acquisition classification/exclusion gates                           | FR-008–FR-010              | A06–A07                    |
+| V1-22: completeness, invalid/empty input and independent observations       | FR-011–FR-020              | A02, A08–A14, A17          |
+| V1-22/V1-23/V1-24: evidence and integration boundary                        | FR-021–FR-023              | A10–A11, A15, A17, A33     |
+| V1-23: club and coordinate observations                                     | FR-024–FR-029              | A19–A22                    |
+| V1-20/V1-22/V1-23: cadence and controls                                     | FR-030–FR-038              | A04, A07, A23–A28          |
+| V1-20/V1-24: incidents and recovery                                         | FR-039–FR-045              | A13–A15, A18, A22, A29–A33 |
+| V1-24, G01: historical acquisition                                          | FR-046–FR-049              | A14, A34–A36               |
+
+The [F01 dependency table](../../specs/001-source-acquisition/spec.md#cross-perimeter-dependencies) assigns follow-through to F02, F03, F13, F11, F12, F14 and R02. In particular, F02 must resolve sporting consequences and integration consistency without treating catalog absence, acquisition failure or stopping collection as automatic deletion. Pool classification overrides are an approved eligibility input, while their detailed mapping semantics and shared-model reconciliation remain F02-owned. R01 must reconcile these boundaries across the completed corpus.
+
 ## V1 capability coverage
 
 The inventory's linked route, embedded-module, source-contract, permission and automatic-work evidence remains part of coverage. Its 130 operations and 18 routes are omission checks, not an instruction to retain transport shapes or proof that every rule has already been identified. Inspect the referenced sources while drafting and extend traceability when discoveries are made.
@@ -95,7 +114,7 @@ Additional approved capabilities: F09 owns manual Pro grants and verified assist
 | G14 | R02: global Figma reconciliation                                                                 | All UI-owning specs identify required journeys/states first.         |
 | G15 | F13: steady-state production/operational requirements; F14: cutover evidence                     | Provider observations remain distinguished from unperformed tests.   |
 | G16 | F02: source-time/season meaning; F03: display/day/calendar rules; F04: selectable search seasons | F06 reuses calendar behavior. Each part has one owner.               |
-| G17 | F01: source competition coverage/exclusions                                                      | Owner decision required before expansion or removal.                 |
+| G17 | F01: source competition coverage/exclusions                                                      | See F01 coverage: FR-001–FR-003; A01/A16–A18.                        |
 
 ### Continuity questions and acceptance scenarios
 

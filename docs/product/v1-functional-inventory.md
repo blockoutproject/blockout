@@ -55,7 +55,7 @@ Each row identifies an actor/trigger, outcome and significant failure/permission
 
 ### Acquisition and classification
 
-FFVB pool discovery handles departmental, regional and national source structures; regional/departmental discovery explicitly excludes league codes `LIGU`, `LIGY`, `LIMART`, `LIMY` and `LIRE`. The reason and desired V2 inclusion are not owner-confirmed. This is not an inventory of every French competition. Ingestion deduplicates league/pool links and skips pool links missing a usable season or code; the professional path enriches AALNV data. Calendars are obtained by POSTing season/league/pool parameters to the CSV export endpoint, decoding Windows-1252 semicolon-separated content. This CSV acquisition method is an explicit retained constraint. It does not mean that every datum comes from CSV: rankings, discovery, club contacts and professional enrichment also use HTML/XML.
+FFVB pool discovery handles departmental, regional and national source structures; regional/departmental discovery explicitly excludes league codes `LIGU`, `LIGY`, `LIMART`, `LIMY` and `LIRE`. At the inventory baseline, the reason and desired V2 inclusion were not owner-confirmed. The subsequent owner decision retains all five exclusions; see the [source acquisition specification](../../specs/001-source-acquisition/spec.md#coverage-and-discovery), FR-001 and A01. This does not establish the historical reason for those exclusions. This is not an inventory of every French competition. Ingestion deduplicates league/pool links and skips pool links missing a usable season or code; the professional path enriches AALNV data. Calendars are obtained by POSTing season/league/pool parameters to the CSV export endpoint, decoding Windows-1252 semicolon-separated content. This CSV acquisition method is an explicit retained constraint. It does not mean that every datum comes from CSV: rankings, discovery, club contacts and professional enrichment also use HTML/XML.
 
 A raw division mapping belongs to a source league, season and raw label. The operator supplies division, format and gender. A newly discovered/unmapped pack is registered but not ingested as a guessed division. The owner manually prepares each season and standardizes presentation. A pack can exceptionally contain pools from different divisions; the current shared mapping is then imprecise. No automatic pack splitting is selected here.
 
@@ -142,6 +142,23 @@ These statements come from owner decisions during framing, not reverse-engineeri
 - **V2 addition:** users must be able to submit feature suggestions in the first V2 release. The exact form/category and processing behavior remain specification decisions.
 - Operational visibility should improve; no new monitoring vendor, alert threshold, availability target or performance budget is invented here.
 
+### Source acquisition specification references
+
+The [source acquisition specification](../../specs/001-source-acquisition/spec.md) records the owner-approved V2 decisions from #257. Its [evidence section](../../specs/001-source-acquisition/spec.md#evidence-and-decision-traceability) distinguishes code observations, public-source samples and changed behavior; the V1 descriptions above remain baseline evidence.
+
+| Inventory area                                                                       | V2 requirements | Acceptance scenarios       |
+| ------------------------------------------------------------------------------------ | --------------- | -------------------------- |
+| V1-22 / G17: supported discovery, phases, exclusions and seasons                     | FR-001–FR-007   | A01–A05, A16–A18           |
+| V1-19: acquisition eligibility from packs, pool overrides and exclusions             | FR-008–FR-010   | A06–A07                    |
+| V1-22: validation, partial/empty/unavailable input and independent rankings          | FR-011–FR-020   | A08–A14, A17               |
+| V1-22/V1-23/V1-24: observations, diagnostics and acquisition/integration distinction | FR-021–FR-023   | A10–A11, A15, A17, A33     |
+| V1-23: covered clubs and geocoding                                                   | FR-024–FR-029   | A19–A22                    |
+| V1-20/V1-22/V1-23: cadence, pauses, permissions and family relaunch                  | FR-030–FR-038   | A04, A07, A23–A28          |
+| V1-20/V1-24: scoped incident thresholds and actual recovery                          | FR-039–FR-045   | A13–A15, A18, A22, A29–A33 |
+| V1-24 / G01: obtainable historical reconstruction and exceptional recollection       | FR-046–FR-049   | A14, A34–A36               |
+
+These references cover acquisition only. Sporting identity, precedence, mapping-edit semantics, lifecycle and history remain assigned to F02; shared operations/privacy, administration, transition and design follow the specification's [cross-perimeter dependencies](../../specs/001-source-acquisition/spec.md#cross-perimeter-dependencies). Stopping collection because a pool is no longer discoverable is not an implicit business deactivation rule.
+
 ## Discrepancies and questions for specifications
 
 These are evidence gaps/product decisions, not delivery statuses. The [specification perimeter map](specification-perimeters.md) assigns their functional owners and consumers; resolve them in the relevant accepted specifications.
@@ -167,7 +184,7 @@ These are evidence gaps/product decisions, not delivery statuses. The [specifica
 ### Additional boundaries requiring specification decisions
 
 - **G16 — Dates and season availability:** define unknown kickoff time, timezone/day-boundary semantics and how selectable seasons become available. Characterize the `00:00` exception and different date bases before deciding whether to preserve or correct them. Fixed search choices are not a permanent three-season product limit.
-- **G17 — Competition coverage:** establish why the five source league codes are excluded and whether they belong in V2. Until confirmed, record the current exclusion without describing ingestion as universal FFVB coverage or silently removing it.
+- **G17 — Competition coverage:** the owner retains the five excluded league codes and explicitly extends V2 professional acquisition to all phases of three championships. See the [source acquisition specification](../../specs/001-source-acquisition/spec.md#coverage-and-discovery), FR-001–FR-003 and A01/A16–A18. The historical rationale for the exclusions is not established; retained coverage is not universal FFVB coverage and sampled provider availability is not an exhaustive guarantee.
 
 ## Coverage evidence
 
