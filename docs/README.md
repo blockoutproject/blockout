@@ -2,6 +2,7 @@
 
 - [Product vision](product/vision.md)
 - [V1 functional inventory](product/v1-functional-inventory.md)
+- [Identity and Pro continuity](product/identity-and-pro-continuity.md)
 - [Blockout V1 domain model](architecture/blockout-domain-model-v1.md)
 - [Mobile and identity architecture V1](architecture/mobile-and-identity-architecture-v1.md)
 - [Contract pipeline](engineering/contract-pipeline.md)
