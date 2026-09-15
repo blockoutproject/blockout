@@ -45,7 +45,7 @@
 - [ ] CHK020 Are the structural-immediate, three-cycle and 24-hour incident thresholds distinguishable and consistent with normal source cadence? [Coverage, Spec §FR-040–FR-042]
 - [ ] CHK021 Is actual recovery defined by usable evidence from the affected scope, excluding pause, exclusion, season closure and unrelated success? [Coverage, Spec §FR-043, §A30]
 - [ ] CHK022 Are incident persistence, opening/recovery-only notifications and grouped novelty/classification signals specified without prescribing a new incident platform? [Coverage, Spec §FR-044–FR-045]
-- [ ] CHK023 Are initial reconstruction, wrong-season substitution, unavailable archives and exceptional recollection under deliberate pause covered? [Coverage, Spec §FR-046–FR-049, §A34–A36]
+- [ ] CHK023 Are historical season/reference eligibility and operation under a current-collection pause distinguished from normal collection, while classification, exclusions, permissions, validation and archive-gap reporting remain required? [Coverage, Spec §FR-008, §FR-046–FR-049, §A34–A36]
 
 ## Acceptance Criteria Quality
 
