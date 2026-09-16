@@ -16,8 +16,8 @@
 - [ ] CHK002 Are same-club teams, same-division multiple pools, different divisions and separate seasons distinguished without selecting database keys? [Coverage, Spec §FR-002–FR-005, §A01–A02]
 - [ ] CHK003 Are permitted name normalization and scoped alias maintenance bounded without fuzzy matching or a new management interface? [Clarity, Spec §FR-006–FR-008]
 - [ ] CHK004 Are ranking-only team creation, unknown future participants and club establishment before fiche success defined without fictitious resources? [Completeness, Spec §FR-009, §FR-053, §A05]
-- [ ] CHK005 Are complete pool overrides, pack inheritance, removal and dominant exclusions consistent with acquisition eligibility? [Consistency, Spec §FR-011–FR-012, §FR-041; F01 §FR-008–FR-010]
-- [ ] CHK006 Are safe corrections distinguished from shared-team/target-collision cases, including whole-request refusal and recovery? [Coverage, Spec §FR-013–FR-014, §A07–A08]
+- [ ] CHK005 Are complete overrides, pack inheritance and dominant exclusions consistent with retaining published classification/visibility after removal, stopping collection and checking restoration? [Consistency, Spec §FR-004, §FR-011–FR-014, §FR-041, §A06–A08; F01 §FR-008–FR-010]
+- [ ] CHK006 Are safe corrections distinguished from shared-team/target-collision cases, including whole-request refusal and no collection resumption after refused restoration? [Coverage, Spec §FR-012–FR-014, §A07–A08]
 - [ ] CHK007 Are division presentation, new-selection restrictions, collection suspension and immediate conditional reactivation all specified? [Completeness, Spec §FR-015–FR-016, §A09–A10]
 
 ## Proportionate reliability and consistency
@@ -31,7 +31,7 @@
 ## Official sporting content
 
 - [ ] CHK013 Are LNV-only phases permitted without borrowing another phase's identity, and are undetermined participants handled consistently? [Coverage, Spec §FR-009, §FR-023]
-- [ ] CHK014 Is fixed source priority distinguished from fetch-time ordering, unknown information and explicit value withdrawal? [Clarity, Spec §FR-024–FR-027]
+- [ ] CHK014 Is fixed source priority distinguished from fetch-time ordering, unknown information and explicit withdrawal, with calendar authority defined before a higher source is established and preserved after its failure? [Clarity, Spec §FR-024–FR-027, §A27–A30]
 - [ ] CHK015 Are trusted published results, explicit provisional scores and genuinely ambiguous publication meaning distinguished without universal sporting-rule adjudication? [Clarity, Spec §FR-028]
 - [ ] CHK016 Does invalid set detail leave an exploitable official overall score usable, without mixing contradictory result observations? [Consistency, Spec §FR-024, §FR-029]
 - [ ] CHK017 Are special notation and result removal/correction specified without invented scores or implicit notification policy? [Coverage, Spec §FR-030–FR-031; Cross-Perimeter Dependencies §F07]
@@ -42,9 +42,9 @@
 ## Visibility and recovery
 
 - [ ] CHK021 Does confirmed withdrawal use the authoritative catalog of the resource's own season, including the LNV/FFVB distinction? [Clarity, Spec §FR-037]
-- [ ] CHK022 Are missing-match/participation consequences gated on complete non-empty treatment, with no inferred cancellation or global club cascade? [Consistency, Spec §FR-038–FR-040]
+- [ ] CHK022 Are missing-match/participation consequences gated on complete non-empty authoritative treatment, including LNV/FFVB disagreement, with no inferred cancellation or effect on other pools? [Consistency, Spec §FR-019, §FR-024, §FR-038–FR-040, §A27–A28]
 - [ ] CHK023 Are pause, exclusion, division inactivity, source absence and seasonal closure distinct, with cumulative visibility reasons? [Completeness, Spec §FR-016, §FR-041–FR-043]
-- [ ] CHK024 Are immediate rediscovery, retained follows/identities and unavailable direct links compatible without lifting unrelated reasons? [Coverage, Spec §FR-042–FR-044]
+- [ ] CHK024 Are catalog rediscovery and authoritative-calendar reappearance distinct, with no secondary-source reactivation, identity replacement or lifting of unrelated visibility reasons? [Coverage, Spec §FR-024, §FR-042–FR-044, §A30]
 - [ ] CHK025 Is normal V2 history conservation distinguished from consultation visibility and the migration-only V1 reset exception? [Consistency, Spec §FR-043; Cross-Perimeter Dependencies §F14]
 
 ## Presentation, coordinates and delivery boundaries

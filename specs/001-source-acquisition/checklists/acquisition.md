@@ -34,7 +34,7 @@
 - [ ] CHK012 Are calendar/ranking/provider independence and prior-state preservation compatible with usable partial input and the prohibition on absence withdrawal from incomplete treatment? [Consistency, Spec §FR-012, §FR-017–FR-020]
 - [ ] CHK013 Are valid empty calendars distinguished from initially empty phases, with a precise populated-to-empty threshold? [Consistency, Spec §FR-020, §FR-041]
 - [ ] CHK014 Are acquisition success, integration failure and application-data update claims consistently separated? [Consistency, Spec §FR-022, §FR-039, §FR-043]
-- [ ] CHK015 Are cycle-start settings, next-cycle division/classification changes and reliable configuration requirements distinguished from permitted prior reference reuse during discovery failure? [Consistency, Spec §FR-006, §FR-008, §FR-033–FR-034]
+- [ ] CHK015 Are reliable cycle-start settings and next-cycle division/classification changes distinct from permitted reference reuse and retained published classification, with no collection resumption after refused restoration? [Consistency, Spec §FR-006, §FR-008, §FR-033–FR-034, §A06]
 - [ ] CHK016 Are family-only relaunch, no duplicate runs and no implicit unpause consistent across competition, club and geocoding controls? [Consistency, Spec §FR-028, §FR-032–FR-036]
 
 ## Scenario and Recovery Coverage

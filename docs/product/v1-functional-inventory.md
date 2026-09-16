@@ -144,7 +144,7 @@ These statements come from owner decisions during framing, not reverse-engineeri
 
 ### Sporting data specification references
 
-The [sporting data specification](../../specs/002-sporting-data/spec.md) owns F02 decisions and its [evidence register](../../specs/002-sporting-data/spec.md#evidence-and-decision-traceability) distinguishes V1 observations, isolated exercises, provider samples and approved V2 behavior. Source reading is governed by [F01](../../specs/001-source-acquisition/spec.md); its tolerance and discovery-reference rules are consistent with F02.
+The [sporting data specification](../../specs/002-sporting-data/spec.md) owns F02 decisions and its [evidence register](../../specs/002-sporting-data/spec.md#evidence-and-decision-traceability) distinguishes V1 observations, isolated exercises, provider samples and approved V2 behavior. Source reading is governed by [F01](../../specs/001-source-acquisition/spec.md); its tolerance and discovery-reference rules are consistent with F02. F02 FR-012/A06–A08 distinguish retained published classification from collection eligibility after configuration removal/restoration; FR-024/FR-038–FR-042 and A27–A30 define calendar authority for conflicting withdrawals and reappearances.
 
 | Inventory area                                                | F02 requirements      | Acceptance scenarios |
 | ------------------------------------------------------------- | --------------------- | -------------------- |
