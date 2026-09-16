@@ -1,41 +1,49 @@
-# Specification Quality Checklist: Source Acquisition and Observation Reliability
+<a id="specification-quality-checklist-source-acquisition-and-observation-reliability"></a>
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
+# Checklist de qualité de la spécification : acquisition des sources et fiabilité des observations
 
-**Created**: 2026-09-15
+**Objectif** : Valider la complétude et la qualité de la spécification avant de passer à la planification
 
-**Feature**: [Source acquisition specification](../spec.md)
+**Créée le** : 2026-09-15
 
-## Content Quality
+**Fonctionnalité** : [Spécification d’acquisition des sources](../spec.md)
 
-- [x] No implementation details (languages, frameworks, APIs)
-- [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
-- [x] All mandatory sections completed
+<a id="content-quality"></a>
 
-## Requirement Completeness
+## Qualité du contenu
 
-- [x] No [NEEDS CLARIFICATION] markers remain
-- [x] Requirements are testable and unambiguous
-- [x] Success criteria are measurable
-- [x] Success criteria are technology-agnostic (no implementation details)
-- [x] All acceptance scenarios are defined
-- [x] Edge cases are identified
-- [x] Scope is clearly bounded
-- [x] Dependencies and assumptions identified
+- [x] Aucun détail d’implémentation (langages, frameworks, API)
+- [x] Centrée sur la valeur utilisateur et les besoins métier
+- [x] Rédigée pour des parties prenantes non techniques
+- [x] Toutes les sections obligatoires sont complétées
 
-## Feature Readiness
+<a id="requirement-completeness"></a>
 
-- [x] All functional requirements have clear acceptance criteria
-- [x] User scenarios cover primary flows
-- [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+## Complétude des exigences
+
+- [x] Aucun marqueur [NEEDS CLARIFICATION] ne subsiste
+- [x] Les exigences sont vérifiables et non ambiguës
+- [x] Les critères de réussite sont mesurables
+- [x] Les critères de réussite sont indépendants des technologies (aucun détail d’implémentation)
+- [x] Tous les scénarios d’acceptation sont définis
+- [x] Les cas limites sont identifiés
+- [x] Le périmètre est clairement délimité
+- [x] Les dépendances et hypothèses sont identifiées
+
+<a id="feature-readiness"></a>
+
+## Maturité de la spécification
+
+- [x] Toutes les exigences fonctionnelles ont des critères d’acceptation clairs
+- [x] Les scénarios utilisateurs couvrent les parcours principaux
+- [x] La fonctionnalité satisfait les résultats mesurables définis dans les critères de réussite
+- [x] Aucun détail d’implémentation ne se glisse dans la spécification
 
 ## Notes
 
-- This is the built-in Specify/Clarify quality checklist. Checked items concern the written requirements, not delivered runtime behavior, production acceptance or permission to start implementation.
-- Named official sources and the owner-required FFVB CSV method are source constraints. Repository paths and dated provider URLs are evidence, not selected V2 architecture or API designs.
-- FR-001–FR-049 map to A01–A36 through the specification's inventory coverage and individual scenario references; SC-001–SC-008 define measurable acceptance outcomes.
-- The clarification review preserves scoped handoffs to F02/F03/F11/F12/F13/F14/R02; these are not claims that the other specifications are complete. No unresolved F01 clarification marker remains.
-- The custom [acquisition checklist](acquisition.md) remains reviewer-owned and unchecked on generation. Its markers have a different lifecycle.
-- All functional specifications and the global consistency/design reviews remain prerequisites to technical planning under #247. A passing writing-quality checklist does not bypass that gate.
+- Il s’agit de la checklist de qualité intégrée à Specify/Clarify. Les éléments cochés concernent les exigences écrites, pas un comportement logiciel livré, une acceptation en production ou une autorisation de commencer l’implémentation.
+- Les sources officielles nommées et la méthode CSV FFVB exigée par le responsable produit sont des contraintes de source. Les chemins du dépôt et les URL fournisseur datées sont des éléments probants, pas des choix d’architecture V2 ou de conception d’API.
+- FR-001–FR-049 sont reliées à A01–A36 par la couverture de l’inventaire de la spécification et les références individuelles des scénarios ; SC-001–SC-008 définissent les résultats d’acceptation mesurables.
+- La revue de clarification préserve les transmissions délimitées à F02/F03/F11/F12/F13/F14/R02 ; elle n’affirme pas que les autres spécifications sont complètes. Aucun marqueur de clarification F01 non résolu ne subsiste.
+- La [checklist d’acquisition](acquisition.md) personnalisée reste sous la responsabilité du relecteur et non cochée à sa génération. Ses marqueurs ont un cycle de vie différent.
+- Toutes les spécifications fonctionnelles et les revues globales de cohérence et de conception visuelle restent des prérequis à la planification technique sous #247. Une checklist de qualité rédactionnelle satisfaite ne contourne pas ce jalon.

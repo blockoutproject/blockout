@@ -1,41 +1,49 @@
-# Specification Quality Checklist: Sporting Data Identity and Lifecycle
+<a id="specification-quality-checklist-sporting-data-identity-and-lifecycle"></a>
 
-**Purpose**: Validate specification completeness and quality before later technical planning
+# Checklist de qualité de la spécification : identité et cycle de vie des données sportives
 
-**Created**: 2026-09-16
+**Objectif** : Valider la complétude et la qualité de la spécification avant une planification technique ultérieure
 
-**Feature**: [Sporting data specification](../spec.md)
+**Créée le** : 2026-09-16
 
-## Content Quality
+**Fonctionnalité** : [Spécification des données sportives](../spec.md)
 
-- [x] No implementation details (languages, frameworks, APIs)
-- [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
-- [x] All mandatory sections completed
+<a id="content-quality"></a>
 
-## Requirement Completeness
+## Qualité du contenu
 
-- [x] No [NEEDS CLARIFICATION] markers remain
-- [x] Requirements are testable and unambiguous
-- [x] Success criteria are measurable
-- [x] Success criteria are technology-agnostic (no implementation details)
-- [x] All acceptance scenarios are defined
-- [x] Edge cases are identified
-- [x] Scope is clearly bounded
-- [x] Dependencies and assumptions identified
+- [x] Aucun détail d’implémentation (langages, frameworks, API)
+- [x] Centrée sur la valeur utilisateur et les besoins métier
+- [x] Rédigée pour des parties prenantes non techniques
+- [x] Toutes les sections obligatoires sont complétées
 
-## Feature Readiness
+<a id="requirement-completeness"></a>
 
-- [x] All functional requirements have clear acceptance criteria
-- [x] User scenarios cover primary flows
-- [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+## Complétude des exigences
+
+- [x] Aucun marqueur [NEEDS CLARIFICATION] ne subsiste
+- [x] Les exigences sont vérifiables et non ambiguës
+- [x] Les critères de réussite sont mesurables
+- [x] Les critères de réussite sont indépendants des technologies (aucun détail d’implémentation)
+- [x] Tous les scénarios d’acceptation sont définis
+- [x] Les cas limites sont identifiés
+- [x] Le périmètre est clairement délimité
+- [x] Les dépendances et hypothèses sont identifiées
+
+<a id="feature-readiness"></a>
+
+## Maturité de la spécification
+
+- [x] Toutes les exigences fonctionnelles ont des critères d’acceptation clairs
+- [x] Les scénarios utilisateurs couvrent les parcours principaux
+- [x] La fonctionnalité satisfait les résultats mesurables définis dans les critères de réussite
+- [x] Aucun détail d’implémentation ne se glisse dans la spécification
 
 ## Notes
 
-- These are built-in Specify/Clarify writing-quality checks, not runtime acceptance evidence, owner PR approval or permission to begin implementation.
-- FR-001–FR-053 are covered by A01–A38 and SC-001–SC-007. Sources, fixture limits and the isolated planning exercise are distinguished from unperformed V2/provider tests.
-- Clarify coverage is clear for scope, actors, identity/lifecycle, error/recovery, source precedence, constraints, vocabulary and measurable completion. Consumer presentation, common quality/privacy objectives, notifications and global design reconciliation have explicit owners in the dependency table; technical choices remain outside this functional phase.
-- No additional questions were needed during document authoring: the approved planning decisions supply the functional answers, including the bounded simplifications recorded in Clarifications.
-- The custom [sporting data checklist](sporting-data.md) is reviewer-owned and remains unchecked on generation. Its markers do not share this built-in checklist's lifecycle.
-- Technical planning remains blocked on acceptance of the complete corpus and global consistency/design review under #247.
+- Il s’agit des contrôles intégrés de qualité rédactionnelle Specify/Clarify, pas de preuves d’acceptation du logiciel, d’une approbation de PR par le responsable produit ou d’une autorisation de commencer l’implémentation.
+- FR-001–FR-053 sont couvertes par A01–A38 et SC-001–SC-007. Les sources, les limites des jeux de données et l’exercice préparatoire isolé sont distingués des tests V2 ou fournisseur non réalisés.
+- La couverture de clarification est claire pour le périmètre, les acteurs, l’identité et le cycle de vie, les erreurs et reprises, la priorité des sources, les contraintes, le vocabulaire et les critères mesurables d’achèvement. La présentation aux consommateurs, les objectifs communs de qualité et de confidentialité, les notifications et le rapprochement visuel global ont des responsables explicites dans le tableau des dépendances ; les choix techniques restent hors de cette phase fonctionnelle.
+- Aucune question supplémentaire n’a été nécessaire lors de la rédaction du document : les décisions préparatoires approuvées fournissent les réponses fonctionnelles, notamment les simplifications délimitées consignées dans les Clarifications.
+- La [checklist des données sportives](sporting-data.md) personnalisée relève du relecteur et reste non cochée à sa génération. Ses marqueurs ne partagent pas le cycle de vie de cette checklist intégrée.
+- La planification technique reste bloquée jusqu’à l’acceptation du corpus complet et de la revue globale de cohérence et de conception visuelle sous #247.
