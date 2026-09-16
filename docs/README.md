@@ -5,6 +5,7 @@
 - [Identity and Pro continuity](product/identity-and-pro-continuity.md)
 - [V2 functional specification perimeters](product/specification-perimeters.md)
 - [Source acquisition and observation reliability specification](../specs/001-source-acquisition/spec.md)
+- [Sporting data identity and lifecycle specification](../specs/002-sporting-data/spec.md)
 - [Blockout V1 domain model](architecture/blockout-domain-model-v1.md)
 - [Mobile and identity architecture V1](architecture/mobile-and-identity-architecture-v1.md)
 - [Contract pipeline](engineering/contract-pipeline.md)

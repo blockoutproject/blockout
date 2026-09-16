@@ -23,18 +23,18 @@
 ## Requirement Clarity
 
 - [ ] CHK006 Is a usable catalog distinguishable from a successful HTTP response, an error page, a partial read and a genuinely empty catalog? [Clarity, Spec §FR-004]
-- [ ] CHK007 Is immediate collection stopping on confirmed non-discoverability distinguished from suspension on discovery failure and from business deactivation? [Clarity, Spec §FR-005–FR-006, §FR-019]
-- [ ] CHK008 Is reference reuse between discovery attempts clearly bounded, with no fallback after the next failed discovery? [Clarity, Spec §FR-006, §FR-031]
-- [ ] CHK009 Is essential calendar invalidity distinguished from an isolated secondary-field anomaly and normally missing information? [Clarity, Spec §FR-011–FR-016]
+- [ ] CHK007 Is immediate source-collection stopping on confirmed catalog absence distinguished from continued use of valid same-season references during discovery failure and from F02 visibility? [Clarity, Spec §FR-005–FR-006, §FR-019]
+- [ ] CHK008 Is last-known reference reuse limited to previously successful discovery in the same season and current eligibility, ending on confirmed absence without invented references or configuration fallback? [Clarity, Spec §FR-006, §FR-031, §FR-034]
+- [ ] CHK009 Are global calendar invalidity, isolated match anomalies, secondary-field invalidity and normally missing/future-slot information distinguished? [Clarity, Spec §FR-011–FR-016]
 - [ ] CHK010 Is contradictory same-source evidence distinguished from identical repetition, cross-season code reuse and provider precedence? [Clarity, Spec §FR-013, §A09]
 - [ ] CHK011 Are cadence windows, unknown kickoff, corrected kickoff, overruns and scheduled due times specified without a false publication-freshness promise? [Clarity, Spec §FR-030–FR-031, §FR-035]
 
 ## Requirement Consistency
 
-- [ ] CHK012 Are calendar/ranking/provider independence and previous-data preservation consistent with whole-calendar rejection? [Consistency, Spec §FR-012, §FR-017–FR-020]
+- [ ] CHK012 Are calendar/ranking/provider independence and prior-state preservation compatible with usable partial input and the prohibition on absence withdrawal from incomplete treatment? [Consistency, Spec §FR-012, §FR-017–FR-020]
 - [ ] CHK013 Are valid empty calendars distinguished from initially empty phases, with a precise populated-to-empty threshold? [Consistency, Spec §FR-020, §FR-041]
 - [ ] CHK014 Are acquisition success, integration failure and application-data update claims consistently separated? [Consistency, Spec §FR-022, §FR-039, §FR-043]
-- [ ] CHK015 Are cycle-start settings, next-cycle configuration changes, discovery-failure suspension and fail-closed startup compatible? [Consistency, Spec §FR-006, §FR-033–FR-034]
+- [ ] CHK015 Are cycle-start settings, next-cycle division/classification changes and reliable configuration requirements distinguished from permitted prior reference reuse during discovery failure? [Consistency, Spec §FR-006, §FR-008, §FR-033–FR-034]
 - [ ] CHK016 Are family-only relaunch, no duplicate runs and no implicit unpause consistent across competition, club and geocoding controls? [Consistency, Spec §FR-028, §FR-032–FR-036]
 
 ## Scenario and Recovery Coverage
@@ -49,7 +49,7 @@
 
 ## Acceptance Criteria Quality
 
-- [ ] CHK024 Does every functional requirement have a concrete scenario reference, including the three final clarifications about cycle counting, contradictions and actual recovery? [Traceability, Spec §Inventory coverage, §A09, §A29–A30]
+- [ ] CHK024 Does every functional requirement have concrete scenario coverage, including cycle counting, locally contradictory matches, partial outcomes and actual recovery? [Traceability, Spec §Inventory coverage, §A08–A09, §A29–A30]
 - [ ] CHK025 Are success criteria measurable as user/operator outcomes with explicit provider, configuration and cadence assumptions? [Measurability, Spec §SC-001–SC-008, §Assumptions]
 - [ ] CHK026 Are primary, exception, denied, empty/partial and recovery scenarios represented without claiming that V2 acceptance tests already ran? [Coverage, Spec §User Scenarios & Testing, §Edge Cases]
 
