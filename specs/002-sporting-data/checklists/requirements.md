@@ -42,7 +42,7 @@
 ## Notes
 
 - Il s’agit des contrôles intégrés de qualité rédactionnelle Specify/Clarify, pas de preuves d’acceptation du logiciel, d’une approbation de PR par le responsable produit ou d’une autorisation de commencer l’implémentation.
-- FR-001–FR-053 sont couvertes par A01–A38 et SC-001–SC-007. Les sources, les limites des jeux de données et l’exercice préparatoire isolé sont distingués des tests V2 ou fournisseur non réalisés.
+- FR-001–FR-053 sont couvertes par A01–A39 et SC-001–SC-007. Les sources, les limites des jeux de données et l’exercice préparatoire isolé sont distingués des tests V2 ou fournisseur non réalisés.
 - La couverture de clarification est claire pour le périmètre, les acteurs, l’identité et le cycle de vie, les erreurs et reprises, la priorité des sources, les contraintes, le vocabulaire et les critères mesurables d’achèvement. La présentation aux consommateurs, les objectifs communs de qualité et de confidentialité, les notifications et le rapprochement visuel global ont des responsables explicites dans le tableau des dépendances ; les choix techniques restent hors de cette phase fonctionnelle.
 - Aucune question supplémentaire n’a été nécessaire lors de la rédaction du document : les décisions préparatoires approuvées fournissent les réponses fonctionnelles, notamment les simplifications délimitées consignées dans les Clarifications.
 - La [checklist des données sportives](sporting-data.md) personnalisée relève du relecteur et reste non cochée à sa génération. Ses marqueurs ne partagent pas le cycle de vie de cette checklist intégrée.

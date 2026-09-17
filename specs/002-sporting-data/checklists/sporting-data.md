@@ -55,7 +55,7 @@
 - [ ] CHK022 Les conséquences de l’absence d’un match ou d’une participation sont-elles conditionnées à un traitement complet non vide faisant autorité, y compris en cas de désaccord LNV/FFVB, sans annulation déduite ni effet sur les autres poules ? [Cohérence, Spécification §FR-019, §FR-024, §FR-038–FR-040, §A27–A28]
 - [ ] CHK023 Pause, exclusion, inactivité de division, absence à la source et clôture saisonnière sont-elles distinctes, avec cumul des motifs de visibilité ? [Complétude, Spécification §FR-016, §FR-041–FR-043]
 - [ ] CHK024 La redécouverte au catalogue et la réapparition dans le calendrier faisant autorité sont-elles distinctes, sans réactivation par une source secondaire, remplacement d’identité ou levée de motifs de visibilité sans rapport ? [Couverture, Spécification §FR-024, §FR-042–FR-044, §A30]
-- [ ] CHK025 La conservation normale de l’historique V2 est-elle distinguée de la visibilité en consultation et de l’exception de remise à zéro V1 limitée à la migration ? [Cohérence, Spécification §FR-043 ; Dépendances entre périmètres §F14]
+- [ ] CHK025 La conservation normale de l’historique V2 est-elle distinguée de la visibilité et de l’exception de remise à zéro V1, avec préservation des associations et fichiers des logos de clubs, rattachement certain et conservation des cas non résolus ? [Cohérence, Spécification §FR-043, §FR-046, §A39 ; Dépendances entre périmètres §F14]
 
 <a id="presentation-coordinates-and-delivery-boundaries"></a>
 
