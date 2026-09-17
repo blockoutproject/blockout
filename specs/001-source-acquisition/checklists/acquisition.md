@@ -51,7 +51,7 @@
 
 - [ ] CHK017 L’échec d’une page club et un géocodage réussi mais vide ou ambigu sont-ils distingués d’un échec technique, avec des conséquences explicites sur les nouvelles tentatives ? [Couverture, Spécification §FR-024–FR-029, §A19–A22]
 - [ ] CHK018 L’exigence de géocodage manuel inclut-elle les adresses inchangées non résolues tout en excluant le recalcul inutile des résultats valides ? [Couverture, Spécification §FR-027–FR-028, §A21]
-- [ ] CHK019 Les cycles planifiés, les nouvelles tentatives HTTP dans un cycle, les relances manuelles, le travail non exécuté et l’interruption des observations consécutives sont-ils clairement distingués ? [Couverture, Spécification §FR-041, §A29]
+- [ ] CHK019 Des séquences concrètes distinguent-elles les cycles planifiés, les tentatives HTTP, les relances manuelles échouées, le travail non exécuté, la remise à zéro après un succès ou un calendrier accepté non vide et l’interruption d’une séquence sans rétablissement d’un incident déjà ouvert ? [Couverture, Spécification §FR-041, §FR-043, §A29]
 - [ ] CHK020 Les seuils d’incident immédiat pour anomalie structurelle, à trois cycles et à 24 heures sont-ils distincts et cohérents avec la cadence normale des sources ? [Couverture, Spécification §FR-040–FR-042]
 - [ ] CHK021 Le rétablissement réel est-il défini par des éléments exploitables du périmètre concerné, en excluant pause, exclusion, clôture de saison et succès sans rapport ? [Couverture, Spécification §FR-043, §A30]
 - [ ] CHK022 La persistance des incidents, les notifications limitées à l’ouverture et au rétablissement et les signalements regroupés de nouveautés ou besoins de classification sont-ils spécifiés sans imposer une nouvelle plateforme d’incident ? [Couverture, Spécification §FR-044–FR-045]

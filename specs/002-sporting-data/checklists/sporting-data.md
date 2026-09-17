@@ -19,10 +19,10 @@
 - [ ] CHK001 L’identité Blockout, le contexte source, les noms d’origine et les personnalisations d’affichage sont-ils explicitement distingués ? [Clarté, Spécification §FR-001–FR-007]
 - [ ] CHK002 Les équipes d’un même club, les poules multiples dans une même division, les divisions différentes et les saisons distinctes sont-elles différenciées sans choisir de clés de base de données ? [Couverture, Spécification §FR-002–FR-005, §A01–A02]
 - [ ] CHK003 La normalisation autorisée des noms et la maintenance des alias délimités sont-elles bornées sans rapprochement approximatif ni nouvelle interface de gestion ? [Clarté, Spécification §FR-006–FR-008]
-- [ ] CHK004 La création d’équipe à partir du seul classement, les participants futurs inconnus et l’établissement d’un club avant la réussite de sa fiche sont-ils définis sans ressources fictives ? [Complétude, Spécification §FR-009, §FR-053, §A05]
+- [ ] CHK004 La publication sans attendre la fiche d’un club identifié sans ambiguïté est-elle garantie lorsque les autres conditions sont remplies, avec détails inconnus explicites et isolation locale des rattachements ambigus, sans créer de ressources fictives pour les places futures ni d’équipes à partir du seul classement ? [Complétude, Spécification §FR-009, §FR-053, §A05]
 - [ ] CHK005 Les dérogations complètes, l’héritage du pack et les exclusions prioritaires sont-ils cohérents avec la conservation de la classification et de la visibilité publiées après suppression, l’arrêt de collecte et les contrôles de restauration ? [Cohérence, Spécification §FR-004, §FR-011–FR-014, §FR-041, §A06–A08 ; F01 §FR-008–FR-010]
 - [ ] CHK006 Les corrections sans conflit sont-elles distinguées des cas d’équipe partagée ou de collision cible, avec refus intégral de la demande et absence de reprise de collecte après restauration refusée ? [Couverture, Spécification §FR-012–FR-014, §A07–A08]
-- [ ] CHK007 La présentation des divisions, les restrictions de nouvelle sélection, la suspension de collecte et la réactivation immédiate sous conditions sont-elles toutes spécifiées ? [Complétude, Spécification §FR-015–FR-016, §A09–A10]
+- [ ] CHK007 Les modifications de présentation conservent-elles l’état actif ou inactif, les doublons de nom sans distinction de casse sont-ils refusés à la création comme au renommage, et la réactivation explicite est-elle distinguée des restrictions de sélection, de visibilité et de collecte qui restent applicables ? [Complétude, Spécification §FR-015–FR-016, §A09–A10]
 
 <a id="proportionate-reliability-and-consistency"></a>
 
@@ -63,7 +63,7 @@
 
 - [ ] CHK026 Les réinitialisations indépendantes des noms complets et courts, l’héritage du logo actuel du club et les résultats des remplacements de logo échoués ou invalides sont-ils définis au fil des mises à jour sources et des anciennes saisons ? [Clarté, Spécification §FR-045–FR-046]
 - [ ] CHK027 Les permissions administratives et les résultats de refus sont-ils définis sans attribuer tous les privilèges aux modérateurs ni inventer un éditeur de matchs ? [Complétude, Spécification §FR-047–FR-048]
-- [ ] CHK028 L’échec de fiche, la localisation communale, les changements de rue seuls, les réponses de géocodage périmées et les nouvelles tentatives non résolues sont-ils distingués ? [Couverture, Spécification §FR-049–FR-053, §A36–A38]
+- [ ] CHK028 L’échec de fiche, la localisation communale, les changements de rue seuls, les réponses de géocodage périmées et les nouvelles tentatives non résolues sont-ils distingués ? [Couverture, Spécification §FR-049–FR-053, §A05, §A36–A38]
 - [ ] CHK029 Les scénarios d’acceptation individuels couvrent-ils toutes les exigences et tous les résultats mesurables sans prétendre que des sources échantillonnées prouvent une couverture logicielle complète ? [Traçabilité, Spécification §Scénarios utilisateurs et validation, §Critères de réussite, §Éléments probants et traçabilité des décisions]
 - [ ] CHK030 L’alignement F01, les états pour les consommateurs, la responsabilité de confidentialité et de qualité, la sémantique partagée et les jalons globaux Figma et corpus sont-ils explicites sans architecture ni tâches techniques ? [Périmètre, Spécification §Hypothèses, §Dépendances entre périmètres]
 
