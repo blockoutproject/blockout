@@ -102,7 +102,7 @@ Evidence: [match merge][match-changes], [LNV][lnv], [ranking parser][ranking], [
 | One club page retrieved, another fails/returns empty   | Missing club can be bulk-deactivated. A characterization test explicitly exercises this; it does not authorize retaining the behavior in V2.                                    | [Club ingestion][club-ingestion], [club-tests]                             |
 | Search owner entity becomes inactive                   | Search projection removes it. Club-team listing also filters active teams, while direct ID retrieval can have different behavior.                                               | [Search projections][projections], [team client][team-client]              |
 
-V2 preserves acquired sporting identities and history through provider outages and seasonal closure. [F02](../../specs/002-sporting-data/spec.md) distinguishes this conservation from visibility: confirmed absence from the authoritative catalog of the same season and explicit administrative exclusions can hide resources without erasing them. A club remains consultable without visible teams. During the one-time reset, irrecoverable V1 sporting data may be lost; this does not authorize routine V2 history erasure. V1 deactivation cascades are evidence, not an automatic parity requirement.
+V2 preserves acquired sporting identities and history through provider outages and seasonal closure. [F02](../../specs/002-sporting-data/spec.md) distinguishes this conservation from visibility: confirmed absence from the authoritative catalog of the same season and explicit administrative exclusions can hide resources without erasing them. A club remains consultable without visible teams. During the one-time reset, irrecoverable V1 sporting history may be lost; this does not authorize routine V2 history erasure or loss of manually associated club logos. F02 FR-043/FR-046 and A39 require preserved club references, logo URLs and files, with certain reattachment and unresolved associations retained for F14. V1 deactivation cascades are evidence, not an automatic parity requirement.
 
 ### Dates, seasons and displayed live state
 
@@ -136,11 +136,26 @@ These statements come from owner decisions during framing, not reverse-engineeri
 - Rebuild the backend for complete functional parity, with freedom to replace implementation radically where beneficial. KISS means an appropriate, reliable and optimal system, not minimal structure at any cost. Potential future fantasy/pronostics/social functionality is context only, not present scope.
 - The established mobile journeys/content remain the product constraint. Figma determines the redesign; missing Pro/followed-list designs must be completed without silently dropping V1 capabilities.
 - All functional specs must be completed and accepted before architecture/technical plans or implementation. Use the installed official Spec Kit procedures when those steps are reached; this inventory adds no alternative workflow.
-- One-time business-data/account reset is allowed for migration. Auth0 identities remain. This is distinct from ordinary user-requested account deletion and from retaining history after V2 starts operating. Irrecoverable old V1 sporting history need not be migrated; this exception does not weaken preservation of V2-acquired history or valid paid access.
+- One-time business-data/account reset is allowed for migration. Auth0 identities remain. This is distinct from ordinary user-requested account deletion and from retaining history after V2 starts operating. Irrecoverable old V1 sporting history need not be migrated; this exception does not weaken preservation of V2-acquired history, valid paid access or manually associated club logos. F14 must preserve club references, logo URLs and files before reset, apply only certain identity matches and retain unresolved associations. Other manual V1 presentation customizations are not included in this migration requirement.
 - Existing paid Pro users must keep access. Use Liquibase rather than Flyway for the future schema; no schema or migration is implemented here.
 - **V2 addition:** operators must be able to grant Pro manually in the first V2 release. Temporary/non-expiring grants, revocation, dedicated permission and independence from paid subscriptions are owner-approved in [identity and Pro continuity](identity-and-pro-continuity.md#paid-access-recovery-and-manual-grants). Detailed operator workflows remain specification decisions.
 - **V2 addition:** users must be able to submit feature suggestions in the first V2 release. The exact form/category and processing behavior remain specification decisions.
-- Operational visibility should improve; no new monitoring vendor, alert threshold, availability target or performance budget is invented here.
+- [F13](../../specs/003-shared-quality/spec.md) defines the approved quality and operations requirements, including 1,000 active users at about 100 user actions per second for one hour, useful consultation within two seconds in 95% of cases, propagation within one minute after acceptance and 99.5% monthly availability. It requires independent protection with 30-minute/four-hour recoverable-loss bounds, 30-day retention and tested restoration, with manual intervention and no guaranteed intervention time. These are V2 objectives, not measured V1 results or a selected monitoring vendor.
+
+### Shared quality and operations specification references
+
+[F13](../../specs/003-shared-quality/spec.md) covers V1-24, the operational part of G15 and shared Q05/Q07 requirements. The owner reports about 10,000 regular users and 10,000–20,000 app launches over a complete weekend; these are not measured concurrent sessions. Grafana is unavailable. Existing Dokploy database backups are reported to run every 30 minutes to four hours according to importance, outside the VPS, with 30-day retention. Club logos are reported to reside in S3; object recovery after deletion is not demonstrated.
+
+| Coverage                                                           | Requirements                 | Scenarios        |
+| ------------------------------------------------------------------ | ---------------------------- | ---------------- |
+| Workload, consultation performance, propagation and availability   | FR-001–FR-008                | A01–A04, A21     |
+| Operational visibility, incidents, partial work and reconstruction | FR-009–FR-014, FR-019–FR-021 | A05–A07, A10–A13 |
+| Access assurance and recovery across identity/Pro boundaries       | FR-015–FR-019, FR-027        | A08–A10, A17     |
+| Backup, restoration and compatible application rollback            | FR-022–FR-028                | A14–A18          |
+| Common mobile accessibility, language and degraded states          | FR-029–FR-031                | A19–A21          |
+| Club-logo continuity handed to F14 under F02 identity rules        | FR-024, FR-032               | A22              |
+
+The [F13 evidence register](../../specs/003-shared-quality/spec.md#éléments-probants-et-traçabilité-des-décisions) separates owner declarations, code observations and approved objectives. It does not report a completed V2 load test, production restoration, S3 inventory or migration.
 
 ### Sporting data specification references
 
