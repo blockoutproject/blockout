@@ -14,7 +14,7 @@ F01–F14 and R01–R02 are references local to this map, not Spec Kit task IDs.
 - When V1 behavior appears defective, present the observation, proposed V2 outcome and consequences to the owner. Do not silently fix functional behavior or reproduce it merely because a test describes it. Do not reopen decisions already accepted.
 - Place each administrative action with its business domain. F12 owns common administration access/configuration, not a second copy of every domain's rules.
 - Separate reliable source acquisition (F01) from sporting decisions made from observations (F02). Incomplete acquisition does not itself authorize deactivation.
-- The migration reset may lose old V1 sporting data that sources can no longer supply. V2 reconstructs what remains obtainable, then preserves its acquired history according to F02. This exception does not permit discarding Auth0 identities or valid paid access, or routinely losing V2 history.
+- The migration reset may lose old V1 sporting data that sources can no longer supply. V2 reconstructs what remains obtainable, then preserves its acquired identities and useful history according to F02. Conservation is distinct from visibility: confirmed same-season catalog withdrawal or explicit administrative exclusion may hide resources without erasure; outage or seasonal closure alone does not. This exception does not permit discarding Auth0 identities or valid paid access, or routinely losing V2 history.
 - Existing sporting corrections include names, logos and classifications; this map does not authorize a new manual score/match editor. Future fantasy, predictions and social ambitions remain context rather than V2 scope.
 - Keep the FFVB URL-discovery/CSV acquisition constraint, existing Auth0 identity and paid-access continuity, contract-first intent and Liquibase replacement constraint. Do not derive a technical solution from them during specification drafting.
 - Complete every functional specification before architecture or implementation. Perform the single planned global Figma reconciliation after drafting and global functional review, not once per perimeter.
@@ -57,7 +57,25 @@ Each row names the primary owner of its behavior. A consumer references the owni
 | V1-20/V1-24: incidents and recovery                                         | FR-039–FR-045              | A13–A15, A18, A22, A29–A33 |
 | V1-24, G01: historical acquisition                                          | FR-046–FR-049              | A14, A34–A36               |
 
-The [F01 dependency table](../../specs/001-source-acquisition/spec.md#cross-perimeter-dependencies) assigns follow-through to F02, F03, F13, F11, F12, F14 and R02. In particular, F02 must resolve sporting consequences and integration consistency without treating catalog absence, acquisition failure or stopping collection as automatic deletion. Pool classification overrides are an approved eligibility input, while their detailed mapping semantics and shared-model reconciliation remain F02-owned. R01 must reconcile these boundaries across the completed corpus.
+The [F01 dependency table](../../specs/001-source-acquisition/spec.md#cross-perimeter-dependencies) assigns follow-through to F02, F03, F13, F11, F12, F14 and R02. In particular, F02 defines sporting consequences and integration consistency without treating catalog absence, acquisition failure or stopping collection as automatic deletion. Pool classification overrides are an approved eligibility input, while their detailed mapping semantics and shared-model reconciliation remain F02-owned. R01 must reconcile these boundaries across the completed corpus.
+
+### F02 — Sporting data identity and lifecycle
+
+[Sporting data identity and lifecycle](../../specs/002-sporting-data/spec.md) owns FR-001–FR-053 and A01–A38. These references identify requirements and acceptance scenarios, not implementation tasks or delivery status.
+
+| Assigned coverage                                        | Specification requirements | Acceptance scenarios |
+| -------------------------------------------------------- | -------------------------- | -------------------- |
+| V1-22 / G07: sporting identity and scoped aliases        | FR-001–FR-009, FR-053      | A01–A05              |
+| V1-19 / G06: classification inheritance and correction   | FR-010–FR-016              | A06–A10, A31         |
+| V1-22 / G04: partial input, integration and replay       | FR-017–FR-022, FR-048      | A04, A11–A15, A27    |
+| V1-22 / G05: professional phases and source authority    | FR-023–FR-027              | A16–A18, A22         |
+| V1-22 / G08, G16: result and source-time semantics       | FR-028–FR-033              | A19–A23              |
+| V1-22 / G02: official standing with optional team links  | FR-034–FR-036              | A24–A25              |
+| V1-22/V1-23 / G01, G04: preserved history and visibility | FR-037–FR-044              | A26–A32              |
+| V1-18/V1-19 / G03: manual presentation and permissions   | FR-015, FR-045–FR-048      | A09, A15, A33–A35    |
+| V1-23 / G13: club details and municipal location         | FR-049–FR-052              | A36–A38              |
+
+The [F02 dependency table](../../specs/002-sporting-data/spec.md#cross-perimeter-dependencies) assigns consumer follow-through without declaring those specifications complete. F03 must include unlinked official-standing rows, provisional/unknown scores, undated matches, partial freshness and unavailable targets. F01/F12 must distinguish retained published classification from settings permitting collection, including refused restoration (FR-012, A06–A08). F04/F06 preserve visibility and identity semantics under authoritative-calendar withdrawals/reappearances (FR-024, FR-038–FR-042, A27–A30). F07 owns notification consequences of actual sporting transitions. F11/F12/F13/F14 own privacy, permission assignment, common operational objectives and transition criteria. R02 reconciles all required journeys/states with Figma in the global pass.
 
 ## V1 capability coverage
 

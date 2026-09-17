@@ -1,68 +1,82 @@
-# Acquisition Checklist: Source Acquisition and Observation Reliability
+<a id="acquisition-checklist-source-acquisition-and-observation-reliability"></a>
 
-**Purpose**: Review completeness, clarity and consistency of the source-acquisition requirements before accepting the functional specification.
+# Checklist d’acquisition : acquisition des sources et fiabilité des observations
 
-**Created**: 2026-09-15
+**Objectif** : Examiner la complétude, la clarté et la cohérence des exigences d’acquisition des sources avant l’acceptation de la spécification fonctionnelle.
 
-**Feature**: [Source acquisition specification](../spec.md)
+**Créée le** : 2026-09-15
 
-**Note**: This custom checklist is generated through the official `speckit-checklist` skill from the approved source-acquisition scope.
+**Fonctionnalité** : [Spécification d’acquisition des sources](../spec.md)
 
-**Review Ownership**: This is a reviewer-owned requirements-quality artifact. Mark an item `[x]` only when the reviewer determines the criterion is satisfied.
+**Note** : Cette checklist personnalisée est générée par la compétence officielle `speckit-checklist` à partir du périmètre approuvé d’acquisition des sources.
 
-**Marker Semantics**: `[x]` means requirements quality was reviewed and satisfied; it does not mean implementation work is complete.
+**Responsabilité de la revue** : Ce document de revue de qualité des exigences relève du relecteur. Un élément ne doit être marqué `[x]` que lorsque le relecteur estime le critère satisfait.
 
-## Requirement Completeness
+**Sens des marqueurs** : `[x]` signifie que la qualité des exigences a été examinée et jugée satisfaisante ; cela ne signifie pas que l’implémentation est terminée.
 
-- [ ] CHK001 Are supported sources, retained CSV acquisition, the five exclusions and boundaries against unrelated competitions explicit? [Completeness, Spec §FR-001–FR-003]
-- [ ] CHK002 Is all-phase coverage of the three professional championships explicitly distinguished from observed V1 behavior and sampled future availability? [Completeness, Spec §FR-002, §Evidence and Decision Traceability]
-- [ ] CHK003 Are season detection, activation, concurrent active seasons, closure and historical recollection specified separately? [Completeness, Spec §FR-007, §FR-046–FR-049]
-- [ ] CHK004 Are native pack classification, individual overrides, waiting for classification, explicit exclusion and pack-exclusion precedence all described? [Completeness, Spec §FR-008–FR-010]
-- [ ] CHK005 Does the observation handoff define context, times, native references, values, scope, completeness and reasons without selecting a transport or storage design? [Completeness, Spec §FR-021–FR-023]
+<a id="requirement-completeness"></a>
 
-## Requirement Clarity
+## Complétude des exigences
 
-- [ ] CHK006 Is a usable catalog distinguishable from a successful HTTP response, an error page, a partial read and a genuinely empty catalog? [Clarity, Spec §FR-004]
-- [ ] CHK007 Is immediate collection stopping on confirmed non-discoverability distinguished from suspension on discovery failure and from business deactivation? [Clarity, Spec §FR-005–FR-006, §FR-019]
-- [ ] CHK008 Is reference reuse between discovery attempts clearly bounded, with no fallback after the next failed discovery? [Clarity, Spec §FR-006, §FR-031]
-- [ ] CHK009 Is essential calendar invalidity distinguished from an isolated secondary-field anomaly and normally missing information? [Clarity, Spec §FR-011–FR-016]
-- [ ] CHK010 Is contradictory same-source evidence distinguished from identical repetition, cross-season code reuse and provider precedence? [Clarity, Spec §FR-013, §A09]
-- [ ] CHK011 Are cadence windows, unknown kickoff, corrected kickoff, overruns and scheduled due times specified without a false publication-freshness promise? [Clarity, Spec §FR-030–FR-031, §FR-035]
+- [ ] CHK001 Les sources prises en charge, la conservation de l’acquisition CSV, les cinq exclusions et les limites excluant les compétitions sans rapport sont-elles explicites ? [Complétude, Spécification §FR-001–FR-003]
+- [ ] CHK002 La couverture de toutes les phases des trois championnats professionnels est-elle explicitement distinguée du comportement V1 observé et des échantillons de disponibilité future ? [Complétude, Spécification §FR-002, §Éléments probants et traçabilité des décisions]
+- [ ] CHK003 La détection, l’activation, l’activité simultanée de plusieurs saisons, la clôture et la recollecte historique sont-elles spécifiées séparément ? [Complétude, Spécification §FR-007, §FR-046–FR-049]
+- [ ] CHK004 La classification native des packs, les dérogations individuelles, l’attente de classification, l’exclusion explicite et la priorité de l’exclusion du pack sont-elles toutes décrites ? [Complétude, Spécification §FR-008–FR-010]
+- [ ] CHK005 La transmission des observations définit-elle contexte, instants, références natives, valeurs, périmètre, complétude et motifs sans choisir une conception de transport ou de stockage ? [Complétude, Spécification §FR-021–FR-023]
 
-## Requirement Consistency
+<a id="requirement-clarity"></a>
 
-- [ ] CHK012 Are calendar/ranking/provider independence and previous-data preservation consistent with whole-calendar rejection? [Consistency, Spec §FR-012, §FR-017–FR-020]
-- [ ] CHK013 Are valid empty calendars distinguished from initially empty phases, with a precise populated-to-empty threshold? [Consistency, Spec §FR-020, §FR-041]
-- [ ] CHK014 Are acquisition success, integration failure and application-data update claims consistently separated? [Consistency, Spec §FR-022, §FR-039, §FR-043]
-- [ ] CHK015 Are cycle-start settings, next-cycle configuration changes, discovery-failure suspension and fail-closed startup compatible? [Consistency, Spec §FR-006, §FR-033–FR-034]
-- [ ] CHK016 Are family-only relaunch, no duplicate runs and no implicit unpause consistent across competition, club and geocoding controls? [Consistency, Spec §FR-028, §FR-032–FR-036]
+## Clarté des exigences
 
-## Scenario and Recovery Coverage
+- [ ] CHK006 Un catalogue exploitable se distingue-t-il d’une réponse HTTP réussie, d’une page d’erreur, d’une lecture partielle et d’un catalogue réellement vide ? [Clarté, Spécification §FR-004]
+- [ ] CHK007 L’arrêt immédiat de collecte d’une source après absence confirmée au catalogue est-il distingué de la poursuite d’utilisation de références valides de la même saison pendant un échec de découverte et de la visibilité F02 ? [Clarté, Spécification §FR-005–FR-006, §FR-019]
+- [ ] CHK008 La réutilisation des dernières références connues est-elle limitée à une découverte antérieure réussie dans la même saison et à l’éligibilité actuelle, avec fin sur absence confirmée, sans références inventées ni recours à une ancienne configuration ? [Clarté, Spécification §FR-006, §FR-031, §FR-034]
+- [ ] CHK009 L’invalidité globale d’un calendrier, les anomalies isolées de matchs, l’invalidité de champs secondaires et les informations normalement manquantes ou de places futures sont-elles distinguées ? [Clarté, Spécification §FR-011–FR-016]
+- [ ] CHK010 Les observations contradictoires d’une même source sont-elles distinguées des répétitions identiques, de la réutilisation de codes entre saisons et des priorités fournisseur ? [Clarté, Spécification §FR-013, §A09]
+- [ ] CHK011 Les fenêtres de cadence, le début inconnu, le début corrigé, les dépassements et les échéances planifiées sont-ils spécifiés sans fausse promesse de fraîcheur de publication ? [Clarté, Spécification §FR-030–FR-031, §FR-035]
 
-- [ ] CHK017 Are club-page failure and successful-but-empty/ambiguous geocoding distinguished from technical failure, with explicit retry consequences? [Coverage, Spec §FR-024–FR-029, §A19–A22]
-- [ ] CHK018 Does the manual geocoding requirement include unchanged unresolved addresses while excluding unnecessary recalculation of valid results? [Coverage, Spec §FR-027–FR-028, §A21]
-- [ ] CHK019 Are scheduled cycles, intra-cycle HTTP retries, manual relaunches, skipped work and interruption of consecutive observations clearly distinguished? [Coverage, Spec §FR-041, §A29]
-- [ ] CHK020 Are the structural-immediate, three-cycle and 24-hour incident thresholds distinguishable and consistent with normal source cadence? [Coverage, Spec §FR-040–FR-042]
-- [ ] CHK021 Is actual recovery defined by usable evidence from the affected scope, excluding pause, exclusion, season closure and unrelated success? [Coverage, Spec §FR-043, §A30]
-- [ ] CHK022 Are incident persistence, opening/recovery-only notifications and grouped novelty/classification signals specified without prescribing a new incident platform? [Coverage, Spec §FR-044–FR-045]
-- [ ] CHK023 Are historical season/reference eligibility and operation under a current-collection pause distinguished from normal collection, while classification, exclusions, permissions, validation and archive-gap reporting remain required? [Coverage, Spec §FR-008, §FR-046–FR-049, §A34–A36]
+<a id="requirement-consistency"></a>
 
-## Acceptance Criteria Quality
+## Cohérence des exigences
 
-- [ ] CHK024 Does every functional requirement have a concrete scenario reference, including the three final clarifications about cycle counting, contradictions and actual recovery? [Traceability, Spec §Inventory coverage, §A09, §A29–A30]
-- [ ] CHK025 Are success criteria measurable as user/operator outcomes with explicit provider, configuration and cadence assumptions? [Measurability, Spec §SC-001–SC-008, §Assumptions]
-- [ ] CHK026 Are primary, exception, denied, empty/partial and recovery scenarios represented without claiming that V2 acceptance tests already ran? [Coverage, Spec §User Scenarios & Testing, §Edge Cases]
+- [ ] CHK012 L’indépendance entre calendriers, classements et fournisseurs et la préservation de l’état antérieur sont-elles compatibles avec les entrées partielles exploitables et l’interdiction des retraits fondés sur l’absence après traitement incomplet ? [Cohérence, Spécification §FR-012, §FR-017–FR-020]
+- [ ] CHK013 Les calendriers vides valides sont-ils distingués des phases initialement vides, avec un seuil précis de passage de peuplé à vide ? [Cohérence, Spécification §FR-020, §FR-041]
+- [ ] CHK014 Réussite de l’acquisition, échec d’intégration et déclarations de mise à jour des données de l’application sont-ils séparés de façon cohérente ? [Cohérence, Spécification §FR-022, §FR-039, §FR-043]
+- [ ] CHK015 Les réglages fiables de début de cycle et les changements de division ou classification au cycle suivant sont-ils distincts de la réutilisation autorisée des références et de la classification publiée conservée, sans reprise de collecte après restauration refusée ? [Cohérence, Spécification §FR-006, §FR-008, §FR-033–FR-034, §A06]
+- [ ] CHK016 La relance uniquement par famille, l’absence d’exécutions en double et l’absence de levée implicite de pause sont-elles cohérentes dans les commandes de compétitions, clubs et géocodage ? [Cohérence, Spécification §FR-028, §FR-032–FR-036]
 
-## Dependencies, Privacy and Scope
+<a id="scenario-and-recovery-coverage"></a>
 
-- [ ] CHK027 Are permissions explicit and separate from live-moderator authority, while permission assignment stays with F12? [Completeness, Spec §FR-038, §Cross-Perimeter Dependencies]
-- [ ] CHK028 Are useful observations and diagnostic metadata distinguished from raw archives and prohibited personal diagnostic payloads, with retention assigned to F11/F13? [Consistency, Spec §FR-021–FR-023, §FR-025]
-- [ ] CHK029 Does each unresolved cross-domain decision have an identified owner and a defined F01 input/constraint rather than being left to an implementer? [Dependencies, Spec §Cross-Perimeter Dependencies]
-- [ ] CHK030 Are source inspection limits, explicit V2 changes, shared-model considerations, Figma follow-through and the whole-corpus gate stated without imposing technical architecture? [Scope, Spec §Assumptions, §Evidence and Decision Traceability, §Cross-Perimeter Dependencies]
+## Couverture des scénarios et de la reprise
+
+- [ ] CHK017 L’échec d’une page club et un géocodage réussi mais vide ou ambigu sont-ils distingués d’un échec technique, avec des conséquences explicites sur les nouvelles tentatives ? [Couverture, Spécification §FR-024–FR-029, §A19–A22]
+- [ ] CHK018 L’exigence de géocodage manuel inclut-elle les adresses inchangées non résolues tout en excluant le recalcul inutile des résultats valides ? [Couverture, Spécification §FR-027–FR-028, §A21]
+- [ ] CHK019 Des séquences concrètes distinguent-elles les cycles planifiés, les tentatives HTTP, les relances manuelles échouées, le travail non exécuté, la remise à zéro après un succès ou un calendrier accepté non vide et l’interruption d’une séquence sans rétablissement d’un incident déjà ouvert ? [Couverture, Spécification §FR-041, §FR-043, §A29]
+- [ ] CHK020 Les seuils d’incident immédiat pour anomalie structurelle, à trois cycles et à 24 heures sont-ils distincts et cohérents avec la cadence normale des sources ? [Couverture, Spécification §FR-040–FR-042]
+- [ ] CHK021 Le rétablissement réel est-il défini par des éléments exploitables du périmètre concerné, en excluant pause, exclusion, clôture de saison et succès sans rapport ? [Couverture, Spécification §FR-043, §A30]
+- [ ] CHK022 La persistance des incidents, les notifications limitées à l’ouverture et au rétablissement et les signalements regroupés de nouveautés ou besoins de classification sont-ils spécifiés sans imposer une nouvelle plateforme d’incident ? [Couverture, Spécification §FR-044–FR-045]
+- [ ] CHK023 L’éligibilité historique des saisons et références et l’exécution pendant une pause de collecte courante sont-elles distinguées de la collecte normale, tout en conservant les exigences de classification, d’exclusion, de permission, de validation et de compte rendu des lacunes d’archives ? [Couverture, Spécification §FR-008, §FR-046–FR-049, §A34–A36]
+
+<a id="acceptance-criteria-quality"></a>
+
+## Qualité des critères d’acceptation
+
+- [ ] CHK024 Chaque exigence fonctionnelle est-elle couverte par des scénarios concrets, notamment le comptage des cycles, les contradictions locales de matchs, les résultats partiels et le rétablissement réel ? [Traçabilité, Spécification §Couverture de l’inventaire, §A08–A09, §A29–A30]
+- [ ] CHK025 Les critères de réussite sont-ils mesurables comme résultats utilisateur ou opérateur avec des hypothèses explicites de fournisseur, configuration et cadence ? [Mesurabilité, Spécification §SC-001–SC-008, §Hypothèses]
+- [ ] CHK026 Les scénarios principaux, d’exception, de refus, de données vides ou partielles et de reprise sont-ils représentés sans prétendre que les tests d’acceptation V2 ont déjà été exécutés ? [Couverture, Spécification §Scénarios utilisateurs et validation, §Cas limites]
+
+<a id="dependencies-privacy-and-scope"></a>
+
+## Dépendances, confidentialité et périmètre
+
+- [ ] CHK027 Les permissions sont-elles explicites et distinctes de l’autorité du modérateur des directs, tandis que leur attribution reste dans F12 ? [Complétude, Spécification §FR-038, §Dépendances entre périmètres]
+- [ ] CHK028 Les observations utiles et métadonnées de diagnostic sont-elles distinguées des archives brutes et des données personnelles interdites dans les diagnostics, avec conservation attribuée à F11/F13 ? [Cohérence, Spécification §FR-021–FR-023, §FR-025]
+- [ ] CHK029 Chaque décision interdomaines non résolue a-t-elle un responsable identifié et une entrée ou contrainte F01 définie, plutôt que d’être laissée à l’implémenteur ? [Dépendances, Spécification §Dépendances entre périmètres]
+- [ ] CHK030 Les limites d’examen des sources, les changements V2 explicites, les considérations de modèle partagé, les suites Figma et le jalon du corpus complet sont-ils énoncés sans imposer d’architecture technique ? [Périmètre, Spécification §Hypothèses, §Éléments probants et traçabilité des décisions, §Dépendances entre périmètres]
 
 ## Notes
 
-- This checklist reviews the writing, not runtime correctness. All newly generated markers are intentionally unchecked.
-- Add reviewer findings inline and link the relevant requirement or scenario.
-- `speckit-implement` reads checklist state as a gate and must not change markers.
-- [requirements.md](requirements.md) has the separate built-in lifecycle maintained by Specify and Clarify.
+- Cette checklist examine la rédaction, pas le bon fonctionnement du logiciel. Tous les marqueurs nouvellement générés sont volontairement non cochés.
+- Ajouter les constats du relecteur à proximité des éléments concernés et relier l’exigence ou le scénario pertinent.
+- `speckit-implement` utilise l’état de la checklist comme condition de passage et ne doit pas modifier les marqueurs.
+- [requirements.md](requirements.md) suit le cycle de vie intégré distinct maintenu par Specify et Clarify.

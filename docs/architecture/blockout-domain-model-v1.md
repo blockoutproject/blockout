@@ -26,6 +26,19 @@ Generated transport models, persistence entities, provider records, search docum
 descriptions, and implementation notes do not redefine the Blockout domain. They remain explicit projections or
 evidence at their own boundaries.
 
+## V2 Sporting Semantics
+
+The owner-approved sporting decisions are specified in [F02](../../specs/002-sporting-data/spec.md#key-entities), with normative rules and acceptance scenarios in that specification. For V2 sporting behavior, those definitions refine the V1 descriptions below:
+
+- Team identity remains seasonal and division/format/gender scoped; a safe correction of erroneous classification preserves identities, while conflicting split/merge cases require explicit reconciliation.
+- Source packs supply classification defaults with complete pool overrides. Losing acquisition classification suspends collection while published resources retain their last accepted classification and visibility, subject to other visibility reasons; restoring settings must pass correction checks. A professional phase may have authoritative LNV evidence without an FFVB counterpart.
+- A match requires two identified teams but may have unknown date, kickoff or result. Published results, provisional scores and withdrawn results have distinct meanings.
+- Official standing rows preserve provider order/statistics and may lack a Blockout team link. They neither derive solely from current participations nor authorize creation of teams; no local ranking recalculation is selected for V2.
+- Sporting state conservation, source presence, collection eligibility and consultation visibility are distinct. Calendar membership authority follows the established source priority for the same season and phase; secondary calendars cannot contradict its withdrawals or reappearances. Hidden identities and relationships persist; clubs remain consultable without visible teams.
+- Source labels, comparison aliases and manual presentation are separate. Team logos inherit the current club logo unless overridden. Club coordinates represent municipality, not match venue.
+
+These semantic refinements do not assign service topology, persistence keys or contracts. Other domains remain governed by their existing definitions until their own specifications resolve changes. The V1 descriptions below remain baseline context rather than instructions to reproduce its runtime mechanisms.
+
 ## Modeling Principles
 
 ### Product Meaning Before Projection
