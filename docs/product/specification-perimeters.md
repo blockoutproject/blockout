@@ -29,7 +29,7 @@ Each row names the primary owner of its behavior. A consumer references the owni
 | F02 / [#258](https://github.com/blockoutproject/blockout/issues/258) | Sporting data: identity, seasons, classification/mappings, associations, source precedence, official standings, creation/correction, disappearance/reactivation, coordinates and history. Owns existing names/logos/classification administrative actions.                             | Consumes F01 observations. F03/F04/F06/F08 consume sporting meaning. F14 owns the migration exception; no new score editor is implied.                                                                                                                           |
 | F03 / [#263](https://github.com/blockoutproject/blockout/issues/263) | Sporting consultation: clubs, teams, pools, rankings, matches, entity calendars, map, media and official documents; navigation, displayed values, day grouping, date labels and partial/error/refresh states.                                                                          | F02 owns sporting truth, F09 Pro eligibility, F08 contributed live rules. F06 reuses calendar presentation while selecting a personal match set.                                                                                                                 |
 | F04 / [#264](https://github.com/blockoutproject/blockout/issues/264) | Search/discovery: suggestions, filters, season choices, ordering, pagination/count meaning, no-result versus failure/stale states and navigation.                                                                                                                                      | Uses F02 season/history semantics; no search engine or index design.                                                                                                                                                                                             |
-| F05 / [#261](https://github.com/blockoutproject/blockout/issues/261) | Accounts: guest/onboarding/authentication/bootstrap, profiles, linked identities, sessions/logout, deletion/provider cleanup/recovery and Auth0 age evidence.                                                                                                                          | F11 owns common privacy constraints; F09 paid rights; F08 publication eligibility; F14 migration. No email-only linking or new provider is authorized.                                                                                                           |
+| F05 / [#261](https://github.com/blockoutproject/blockout/issues/261) | [Accounts/identity specification](../../specs/005-accounts-identity/spec.md): guest/onboarding, existing associations only, minimal profile, sessions/isolation, age and durable deletion/return; FR-001–FR-039, A01–A32.                                                              | F11 owns common privacy constraints; F09 paid rights; F08 publication eligibility; F14 migration. Existing associations are preserved; no new linking, business-account merge or sign-in provider is authorized.                                                 |
 | F06 / [#265](https://github.com/blockoutproject/blockout/issues/265) | Following/personal feed: follow/unfollow teams/pools, followed lists and counters, personal match selection, seasonal renewal and missing-target handling.                                                                                                                             | Uses F03 calendar rules and F05 account state; supplies relationships to F07. No club following or automatic season carry-over is inferred.                                                                                                                      |
 | F07 / [#267](https://github.com/blockoutproject/blockout/issues/267) | Notifications: triggers, recipients, deduplication, inbox and push outcomes, read/opened/unread capabilities, deletion, token/device handling and target navigation.                                                                                                                   | Consumes F02 match transitions, F06 follows and F08 live transitions. No generic campaign UI or guaranteed push receipt is inferred.                                                                                                                             |
 | F08 / [#266](https://github.com/blockoutproject/blockout/issues/266) | Live contribution/moderation: URLs, ownership, publication windows/quotas/age, professional-match restrictions, reports, state transitions/history and moderator actions/exceptions.                                                                                                   | Uses F02 sporting context and F05 age evidence. F07 owns resulting notifications; do not duplicate account-age policy or infer stream-provider polling.                                                                                                          |
@@ -76,6 +76,22 @@ The [F01 dependency table](../../specs/001-source-acquisition/spec.md#cross-peri
 | V1-23 / G13: club details and municipal location         | FR-049–FR-052              | A36–A38              |
 
 The [F02 dependency table](../../specs/002-sporting-data/spec.md#cross-perimeter-dependencies) assigns consumer follow-through without declaring those specifications complete. F03 must include unlinked official-standing rows, provisional/unknown scores, undated matches, partial freshness and unavailable targets. F01/F12 must distinguish retained published classification from settings permitting collection, including refused restoration (FR-012, A06–A08). F04/F06 preserve visibility and identity semantics under authoritative-calendar withdrawals/reappearances (FR-024, FR-038–FR-042, A27–A30). F07 owns notification consequences of actual sporting transitions. F11/F12/F13/F14 own privacy, permission assignment, common operational objectives and transition criteria. R02 reconciles all required journeys/states with Figma in the global pass.
+
+### F05 — Accounts and identity
+
+[Accounts and identity](../../specs/005-accounts-identity/spec.md) owns FR-001–FR-039 and A01–A32. It preserves existing identities and associations, forbids new links or business-account merges, minimizes the business profile and defines durable deletion through return and paid restoration. V1 code remains historical evidence, not proof of these outcomes.
+
+| Assigned coverage                                                                            | Specification requirements   | Acceptance scenarios |
+| -------------------------------------------------------------------------------------------- | ---------------------------- | -------------------- |
+| V1-01; Q01; S02–S06: guest, onboarding, identity, duplicate refusal and migration recreation | FR-001–FR-010                | A01–A08              |
+| V1-02; G11: profile minimization, automatic creation, pseudo/photo editing and access        | FR-011–FR-016                | A09–A12              |
+| V1-01/V1-03; S10; Q01: sessions, degraded states, identity isolation and notifications       | FR-017–FR-023, FR-038–FR-039 | A13–A19              |
+| G12; Q02; S16 input: principal creation-date evidence and absent proof                       | FR-024–FR-025, FR-035        | A20–A22              |
+| V1-03; G11; Q04; S11–S12: deletion, provider/derived cleanup, retries and return             | FR-026–FR-035, FR-038        | A23–A29              |
+| S11; F09 interface S07–S09: restoration after deletion and paid transfer                     | FR-035–FR-036                | A30–A31              |
+| Q04; F11: outside-app request, ownership proof and privacy                                   | FR-029, FR-037–FR-038        | A32                  |
+
+The [F05 dependency table](../../specs/005-accounts-identity/spec.md#couverture-et-dépendances-entre-périmètres) supplies F06/F07 personal-state removal and destination isolation, F08 age evidence and unattributed contributions with preserved moderation, F09 full delete/recreate/restore qualification, F10/F11 private rights handling, F12 scoped permissions and F14 migration/store-publication evidence. This does not complete those receiving perimeters or authorize technical planning. R02 covers the specified states in the global Figma pass.
 
 ### F11 — Advertising, privacy and legal content
 
@@ -142,7 +158,7 @@ Additional approved capabilities: F09 owns manual Pro grants and verified assist
 | G08 | F02: result correction/status/lifecycle                                                          | F03/F06 consumption and F07 repeated/corrected notification effects. |
 | G09 | F04: failure, counts and pagination                                                              | F13 quality expectations.                                            |
 | G10 | F07: API-only notification capabilities and delivery behavior                                    | No inferred campaign or new screen.                                  |
-| G11 | F05: identity/linking/deletion                                                                   | F09/F11 shared rights/privacy; R02 design.                           |
+| G11 | F05: identity/existing associations/deletion                                                     | F09/F11 shared rights/privacy; R02 design.                           |
 | G12 | F09: rights/restore/grants; F05: age evidence; F08: publication eligibility                      | F14 preserves migration continuity.                                  |
 | G13 | F02: coordinates/refresh/unknown meaning                                                         | F01 geocoding observations; F03 map behavior.                        |
 | G14 | R02: global Figma reconciliation                                                                 | All UI-owning specs identify required journeys/states first.         |
@@ -154,7 +170,7 @@ Additional approved capabilities: F09 owns manual Pro grants and verified assist
 
 | Question | Primary owner or explicit split                                                                                     | Consumers / evidence                                             |
 | -------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Q01      | F05: linking/comparison/session/conflict rules                                                                      | F09 downstream rights; R02 journeys                              |
+| Q01      | F05: existing associations, duplicate refusal, session/conflict rules                                               | F09 downstream rights; R02 journeys                              |
 | Q02      | F05: age evidence and unavailable-field behavior; F08: publication eligibility outcome                              | Auth0 principal creation time is already the selected age basis. |
 | Q03      | F09: verified recovery, evidence, permissions and audit                                                             | F10 generic intake; F11 privacy; F12 common access               |
 | Q04      | F11 FR-021–FR-037, A16–A27: shared retention/privacy obligations; F05: deletion/provider/credential/retry lifecycle | F09 paid rights; F13 operational recovery                        |
@@ -163,25 +179,25 @@ Additional approved capabilities: F09 owns manual Pro grants and verified assist
 | Q07      | F14: reconciliation, mappings, old-client dependencies and transition criteria                                      | F02/F05/F09/F13 supply normal behavior and requirements.         |
 | Q08      | R02: global design/specification correction                                                                         | F05/F06/F09 and other UI specs define required behavior first.   |
 
-| Scenario | Lead specification                             | Supporting owners                   |
-| -------- | ---------------------------------------------- | ----------------------------------- |
-| S01      | F14: subscriber after reset                    | F05/F09                             |
-| S02      | F05: existing linked identities                | F09                                 |
-| S03      | F05: new linking and secondary identity        | F09 paid continuity                 |
-| S04      | F05: failed/cancelled/interrupted verification | F09 if rights are affected          |
-| S05      | F05: different emails/private relay            | No new linking                      |
-| S06      | F05: populated-account conflict                | F09 recovery remains separate       |
-| S07      | F09: reinstall/device/platform change          | F05                                 |
-| S08      | F09: restoration transfer                      | F05/F11                             |
-| S09      | F09: other-store/lost-login recovery           | F05/F10                             |
-| S10      | F05: logout/switch isolation                   | F09 cached/in-flight customer state |
-| S11      | F05: delete/recreate                           | F09 restore; F11 privacy            |
-| S12      | F05: partial deletion/stale credentials        | F11/F13                             |
-| S13      | F09: billing/expiry/revocation                 | F11 ad eligibility                  |
-| S14      | F09: unknown rights/outage tolerance           | F11/F13                             |
-| S15      | F09: grant lifecycle                           | F12 common access                   |
-| S16      | F08: seven-day publication eligibility         | F05 Auth0 age evidence              |
-| S17      | F14: update/old clients/role action            | F05/F12/F13                         |
+| Scenario | Lead specification                               | Supporting owners                   |
+| -------- | ------------------------------------------------ | ----------------------------------- |
+| S01      | F14: subscriber after reset                      | F05/F09                             |
+| S02      | F05: existing linked identities                  | F09                                 |
+| S03      | F05: refused new link / same-email duplicate     | F09 paid continuity                 |
+| S04      | F05: cancelled/failed login or profile bootstrap | F09 if rights are affected          |
+| S05      | F05: different emails/private relay              | No new linking                      |
+| S06      | F05: populated-account conflict                  | F09 recovery remains separate       |
+| S07      | F09: reinstall/device/platform change            | F05                                 |
+| S08      | F09: restoration transfer                        | F05/F11                             |
+| S09      | F09: other-store/lost-login recovery             | F05/F10                             |
+| S10      | F05: logout/switch isolation                     | F09 cached/in-flight customer state |
+| S11      | F05: delete/recreate                             | F09 restore; F11 privacy            |
+| S12      | F05: partial deletion/stale credentials          | F11/F13                             |
+| S13      | F09: billing/expiry/revocation                   | F11 ad eligibility                  |
+| S14      | F09: unknown rights/outage tolerance             | F11/F13                             |
+| S15      | F09: grant lifecycle                             | F12 common access                   |
+| S16      | F08: seven-day publication eligibility           | F05 Auth0 age evidence              |
+| S17      | F14: update/old clients/role action              | F05/F12/F13                         |
 
 These references allocate the existing scenarios; they do not replace their full expected outcomes in the continuity assessment. Extend the map with actual `specs/<feature>/spec.md` requirement/scenario references during drafting. Every approved continuity rule in that assessment must also be traced, even if it spans several scenarios.
 
