@@ -164,6 +164,10 @@ FR-029–FR-036 preserve partial data/recovery and F05/F09/F11/F13 boundaries. T
 
 [F04](../../specs/008-search-discovery/spec.md) covers V1-04, G09 and search-season consumption of G16 with FR-001–FR-030 and A01–A29. It separates stable examples from exhaustive text/filter search, uses dynamically available seasons, remembers filters per tab, and specifies approximate matching without changing sporting identities. Failures and partial results remain distinct from no matches; loaded counts are not exhaustive totals. These are V2 requirements, not evidence that the V1 search already implements them.
 
+### Following and personal feed specification references
+
+[F06](../../specs/009-following-personal-feed/spec.md) covers V1-11 and personal selection in V1-10 with FR-001–FR-028 and A01–A28. It preserves manual seasonal renewal and team/pool identities, shares one season across personal calendars and followed lists, and reuses F03 calendar semantics including past matches without results. Hidden targets remain absent from the app while their follow relations persist. Confirmed success, failure and uncertainty are distinguished, including failed profile refresh after a successful mutation. These are V2 requirements, not corrected V1 runtime behavior.
+
 ### Accounts and identity specification references
 
 [F05](../../specs/005-accounts-identity/spec.md) covers V1-01–V1-03, G11, account-age G12 and Q01/Q02/Q04. FR-001–FR-010 and A01–A08 preserve Auth0 and existing associations while forbidding new associations or business-account merges; first signup without a usable provider email is suspended. Business-profile recreation preserves prior identity/email ownership rather than assigning an address to the first returning method.

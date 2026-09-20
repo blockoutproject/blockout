@@ -128,6 +128,21 @@ F04 consumes F02 visibility and F03 destinations without adding searchable match
 
 The [F05 dependency table](../../specs/005-accounts-identity/spec.md#couverture-et-dépendances-entre-périmètres) supplies F06/F07 personal-state removal and destination isolation, F08 age evidence and unattributed contributions with preserved moderation, F09 full delete/recreate/restore qualification, F10/F11 private rights handling, F12 scoped permissions and F14 migration/store-publication evidence. This does not complete those receiving perimeters or authorize technical planning. R02 covers the specified states in the global Figma pass.
 
+### F06 — Following and personal feed
+
+[Following and personal feed](../../specs/009-following-personal-feed/spec.md) defines FR-001–FR-028 and A01–A28. F02 owns identities and visibility; F03 owns calendar presentation and F05 owns accounts.
+
+| Coverage                                                       | F06 requirements      | Acceptance scenarios |
+| -------------------------------------------------------------- | --------------------- | -------------------- |
+| V1-11: access, following, identity and manual seasonal renewal | FR-001–FR-007         | A01–A06              |
+| V1-11 / V1-10: shared personal season selection                | FR-008–FR-012         | A07–A12              |
+| V1-11 / F02: followed lists, history and hidden targets        | FR-013–FR-017         | A13–A17              |
+| V1-10 / F03: match union, deduplication and presentation       | FR-018–FR-019, FR-021 | A18–A21              |
+| V1-11: counts, uncertainty, concurrency and recovery           | FR-020, FR-022–FR-025 | A03, A06, A21–A26    |
+| Shared quality, notifications, privacy and rights              | FR-026–FR-028         | A26–A28              |
+
+Upcoming, finished and followed lists share a season filter, defaulting to the latest season among consultable follows, then the available catalog. All seasons is available; adding a follow in another season preserves the current selection. Search and club-page filters remain independent. Hidden targets have no visible followed entry or removal control, while their relations remain stored for an eligible reappearance. Counts represent relations, not filtered rows; mutation uncertainty is distinct from failure. F07 owns notification eligibility and delivery, and the display season is not a notification preference. R02 covers the shared filter and accessible empty, pending and recovery states.
+
 ### F09 — Pro subscriptions and grants
 
 [Pro subscriptions and grants](../../specs/006-pro-subscriptions/spec.md) owns FR-001–FR-034 and A01–A29. These functional requirements do not establish provider qualification or authorize technical implementation.
