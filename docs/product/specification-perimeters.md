@@ -95,6 +95,23 @@ Known instants use the phone timezone consistently for time, day groups and rela
 
 F04/F06 consume visibility and calendar rules; F07/F08 must not derive sporting events or contribution windows from the calendar category. F09 retains Pro eligibility; F10/F11 own reporting/privacy, F12 permissions and F13 quality. R02 specifies the accessible missing-result indication, unknown-time presentation, shared map points and document/error states during the global design pass.
 
+### F04 — Search and discovery
+
+[Search and discovery](../../specs/008-search-discovery/spec.md) defines FR-001–FR-030 and A01–A29. F02 owns identities, names, classification and visibility; search tolerance never changes identity.
+
+| Coverage                                                        | F04 requirements             | Acceptance scenarios |
+| --------------------------------------------------------------- | ---------------------------- | -------------------- |
+| V1-04: public access, suggestions and explicit search           | FR-001–FR-005, FR-028        | A01–A04, A28         |
+| V1-04: fields, spelling tolerance and verified names            | FR-006–FR-010, FR-019        | A05–A10              |
+| V1-04 / G16: filters, available seasons and navigation context  | FR-011–FR-016                | A11–A16              |
+| G09: ordering, exhaustive traversal, count meaning and recovery | FR-017–FR-019, FR-022–FR-025 | A17–A18, A22–A26     |
+| F02 / F03: visibility, history, identity and destinations       | FR-020–FR-021, FR-027        | A16, A19–A22         |
+| Shared quality, privacy, Pro and reporting                      | FR-026, FR-028–FR-030        | A27–A29              |
+
+Empty text without an explicit filter shows non-personalized examples stable during the visit. The automatic latest available season limits those examples; text or an explicit filter starts exhaustive search. Team and pool filters are remembered independently, while text is shared. Text searches prioritize direct matches over approximate matches; filter-only searches use alphabetical display-name order. All matches are progressively accessible, without a twenty-result cap or mandatory total. Partial responses and failures never establish an empty result or a false end of list.
+
+F04 consumes F02 visibility and F03 destinations without adding searchable matches or Pro benefits. F13 owns freshness and quality; F05/F09/F11 own account isolation, rights and advertising, and F10 owns reporting. R02 covers examples versus search, unavailable filters, homonyms, progressive loading and accessible recovery states.
+
 ### F05 — Accounts and identity
 
 [Accounts and identity](../../specs/005-accounts-identity/spec.md) owns FR-001–FR-039 and A01–A32. It preserves existing identities and associations, forbids new links or business-account merges, minimizes the business profile and defines durable deletion through return and paid restoration. V1 code remains historical evidence, not proof of these outcomes.
