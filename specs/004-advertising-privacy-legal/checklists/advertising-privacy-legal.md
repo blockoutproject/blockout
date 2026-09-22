@@ -57,7 +57,7 @@
 - [ ] CHK029 Le contexte fiable inclut-il la cible malgré l’échec de chargement et l’étape de connexion, sans nom inventé, jeton ni contenu fournisseur brut ? [Couverture, Spécification §FR-030, §A21]
 - [ ] CHK030 Les destinataires des tickets, captures, fichiers et notifications secondaires sont-ils délimités, y compris en cas d’échec partiel ? [Complétude, Spécification §FR-027, §FR-031, §A19, §A22–A23]
 - [ ] CHK031 L’outil GitHub, les réponses par e-mail et l’absence de dialogue intégré sont-ils des choix distincts des mécanismes techniques non sélectionnés ? [Périmètre, Spécification §FR-032–FR-033, §A22–A23]
-- [ ] CHK032 La création confirmée, incertaine ou échouée et les résultats secondaires ont-ils des conséquences compatibles avec une reprise sans doublon volontaire ? [Couverture, Spécification §FR-033, §A23]
+- [ ] CHK032 L’acceptation du contenu avec toutes les images, les états intermédiaires ou incertains et l’alerte secondaire indépendante sont-ils distingués sans livraison partielle, édition après confirmation ou doublon volontaire ? [Couverture, Spécification §FR-033, §A23]
 - [ ] CHK033 Chaque exigence possède-t-elle un scénario et un résultat mesurable, avec observations V1 et exigences futures distinguées ? [Traçabilité, Spécification §Couverture de l’inventaire et des décisions, §SC-001–SC-008]
 - [ ] CHK034 Les accords avec F01/F02/F05/F09/F10/F13 et les besoins de la revue Figma globale sont-ils explicites sans prétendre terminer les autres périmètres ? [Dépendances, Spécification §Dépendances entre périmètres, §Hypothèses]
 

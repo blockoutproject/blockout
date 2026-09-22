@@ -206,7 +206,7 @@ FR-019–FR-026 and A17–A24 preserve only the transferred paid right, require 
 
 [F11](../../specs/004-advertising-privacy-legal/spec.md) covers V1-17/V1-21 and the shared privacy part of Q04/Q05. FR-001–FR-014 and A01–A11 define one session-local counter for ten sporting navigation/live-link actions, advertising without personalization for the 13+ audience without age collection, privacy-choice recovery, and paid/manual/unknown Pro protection. FR-015–FR-020 and A12–A15 preserve public legal reading and authorized editing without a version-history or acceptance ledger.
 
-FR-021–FR-027 and A16–A19 delimit personal sporting fields, purposes, diagnostics and restrictions across recollection/restoration. FR-028–FR-034 and A20–A24 establish the agreement for F10: reporting before login or after failure, mandatory editable reply email, reliable target context, private treatment of personal data, GitHub operator history without a new periodic issue purge, and distinct primary/secondary outcomes. FR-035–FR-037 and A25–A27 define email-based rights requests and production-information evidence. These references do not certify provider settings, legal texts or indefinite personal-data retention.
+FR-021–FR-027 and A16–A19 delimit personal sporting fields, purposes, diagnostics and restrictions across recollection/restoration. FR-028–FR-034 and A20–A24 establish the agreement for F10: reporting before login or after failure, mandatory editable reply email, reliable target context, private treatment of personal data, GitHub operator history without a new periodic issue purge, and complete-submission acceptance distinct from intermediate effects and secondary operator alerts under FR-033/A23. FR-035–FR-037 and A25–A27 define email-based rights requests and production-information evidence. These references do not certify provider settings, legal texts or indefinite personal-data retention.
 
 ### Shared quality and operations specification references
 
@@ -534,3 +534,9 @@ Owner review should check the observable outcomes and confirmed decisions, not a
 [match-refresh]: ../../apps/frontend/mobile/src/modules/match/hooks/use-match-refresh.ts
 [entity-query]: ../../apps/frontend/mobile/src/shared/hooks/use-entity-by-id.ts
 [legal-screen]: ../../apps/frontend/mobile/src/modules/legal/ui/legal-document-screen.tsx
+
+### Reports and feature suggestions specification references
+
+[F10](../../specs/012-reports-feature-suggestions/spec.md) covers V1-15 and approved V2 suggestions with FR-001–FR-031, A01–A28 and SC-001–SC-006. FR-001–FR-015 define guest access, a shared problem/suggestion form, optional subject, mandatory editable reply email, safe context and up to five optional images, each at most 5 MiB after preparation. FR-016–FR-025 require complete submission, duplicate-free reconciliation and independent secondary alerts. FR-026–FR-031 apply private operator handling, domain boundaries and global design requirements.
+
+These are V2 requirements, not evidence that V1 provides complete-delivery guarantees. In the inspected V1, images are uploaded before issue creation and attached afterward; the GitHub adapter logs and absorbs attachment-update failures, so a successful response does not establish that all images reached the issue. F10 requires the content and all selected images in one authorized dossier before acceptance, with no partial-delivery completion or post-confirmation editing. GitHub remains the private operator tool and replies use email; storage and secondary-notification mechanisms are not selected by this specification.
