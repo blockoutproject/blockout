@@ -118,7 +118,7 @@ Before creating a page, section, screen, or pattern:
 
 ## Planning gate and scope
 
-For material UI work, resolve accepted product behavior first, then obtain explicit approval of the corresponding Figma design before the technical implementation plan is finalized. Read-only feasibility work may resolve design prerequisites before approval; it does not certify an unapproved design or authorize product implementation. Use the applicable official Spec Kit and Figma workflows rather than reproducing their mechanics here. A deliberately approved disposable prototype may precede Figma as exploration; it never removes the Figma gate.
+For material UI work, resolve accepted product behavior first, then obtain explicit approval of the corresponding Figma design before the technical implementation plan is finalized. Read-only feasibility work may resolve design prerequisites before approval; it does not certify an unapproved design or authorize product implementation. Use the applicable official Spec Kit and Figma workflows rather than reproducing their mechanics here. A deliberately approved standalone prototype may precede Figma as exploration; it never removes the Figma gate.
 
 A design issue must identify its authoritative specification/decision, target library/product file, scoped journeys or components, acceptance coverage and required evidence. Do not invent design authority from current screenshots or another product. If a required library capability is absent, report the conflict and obtain a design decision rather than detaching or silently drawing a replacement.
 
