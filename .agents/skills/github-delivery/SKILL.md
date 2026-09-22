@@ -19,7 +19,7 @@ Re-read native blockers, assignee and overlapping work before claiming. Do not o
 
 Synchronize the integration branch without losing local work. Applications normally deliver topic branches to `develop`, then promote `develop` to `main`. A standalone skills repository can deliver topics directly to `main`; no release tag is required. Follow the repository's actual accepted model.
 
-Name topics `feature/<issue>-<slug>`, `bugfix/<issue>-<slug>` or `tech/<issue>-<slug>`, unless a higher-priority instruction supplies another convention. Keep changes bounded, commits coherent and verification tied to the exact final tree. Push and open a **draft** PR when delivery is authorized. Use `Closes #N` only for complete delivery, `Refs #N` for intentional partial work and explain why.
+Delivery topic branches MUST use `feature/<issue>-<slug>`, `bugfix/<issue>-<slug>` or `tech/<issue>-<slug>`. The only additional topic-branch format is `prototype/<issue>-<slug>`, exclusively for the disposable workflow below. No other topic-branch format is permitted. Keep changes bounded, commits coherent and verification tied to the exact final tree. Push and open a **draft** PR when delivery is authorized. Use `Closes #N` only for complete delivery, `Refs #N` for intentional partial work and explain why.
 
 Report the draft PR and evidence. Readiness and merge remain human-directed; an instruction to implement is not an instruction to merge. Direct integration-branch pushes require explicit direction for small nonfunctional maintenance; never use them to bypass a behavior/contract/dependency/migration/security/CI review.
 
