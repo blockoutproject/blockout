@@ -6,6 +6,8 @@ This map defines the owner-approved functional decomposition from [#254](https:/
 
 The [constitution](../../.specify/memory/constitution.md) governs accepted specifications. These perimeters are documentary responsibilities, not microservices, runtime modules, endpoints or database boundaries. Accepted `spec.md` files will own observable V2 behavior. Existing code, contracts, tests and provider observations remain evidence; architecture and implementation follow acceptance of the complete functional corpus.
 
+V2 is a complete backend, ingestion and mobile rebuild, including mobile internals. V1 technical models, service boundaries, endpoints, schemas, frameworks and mobile organization are historical reference material, not defaults for V2. Accepted functional semantics, approved design evidence and explicit continuity/technology constraints remain binding; technical reuse must be justified in the approved V2 architecture and plans.
+
 F01–F14 and R01–R02 are references local to this map, not Spec Kit task IDs. GitHub owns issue status, assignments, blockers and acceptance evidence. The issue links below identify the work owning each perimeter, without duplicating its status here.
 
 ## Accepted framing rules
