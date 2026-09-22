@@ -1,9 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 -> 2.0.0
-- Modified sections: Project Constraints; Spec Kit Integration
-- Removed rules: local Spec Kit task identifier format; local convergence numbering
-- Added principles: none
+- Version change: 2.0.0 -> 3.0.0
+- Modified principle: II. Domain Integrity (exact contract-owned enum exception)
+- Removed rule: blanket transport-only restriction for all generated contracts
+- Added rule: exact contract-owned enums may enter Java/Python application and frontend code;
+  generated object DTOs remain at transport boundaries; pure domain remains independent
 - Added sections: none
 - Removed sections: none
 - Follow-up TODOs: none
@@ -31,9 +32,11 @@ says so.
 
 Complete resources MUST have one authoritative runtime owner. Domain, transport,
 application, persistence, provider, and presentation models remain explicit boundaries.
-Generated contracts remain at transport boundaries, provider evidence remains inside
-adapters, and the mobile gateway coordinates mobile views without becoming a business
-resource owner.
+Generated object DTOs MUST remain at transport boundaries. Generated OpenAPI enums MAY
+be reused by Java and Python application code and frontend code only when the contract
+owns the exact concept. Pure domain code MUST remain independent of generated contracts,
+including enums. Provider evidence remains inside adapters, and the mobile gateway
+coordinates mobile views without becoming a business resource owner.
 
 ### III. Design-Ready User Interfaces
 
@@ -103,4 +106,4 @@ incompatible governance changes, MINOR for added or materially expanded principl
 PATCH for non-semantic clarifications. Every plan, analysis, and final review MUST verify
 the applicable principles and record any justified exception before work proceeds.
 
-**Version**: 2.0.0 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-08-29
+**Version**: 3.0.0 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-09-22
