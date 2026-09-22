@@ -168,6 +168,14 @@ FR-029–FR-036 preserve partial data/recovery and F05/F09/F11/F13 boundaries. T
 
 [F06](../../specs/009-following-personal-feed/spec.md) covers V1-11 and personal selection in V1-10 with FR-001–FR-028 and A01–A28. It preserves manual seasonal renewal and team/pool identities, shares one season across personal calendars and followed lists, and reuses F03 calendar semantics including past matches without results. Hidden targets remain absent from the app while their follow relations persist. Confirmed success, failure and uncertainty are distinguished, including failed profile refresh after a successful mutation. These are V2 requirements, not corrected V1 runtime behavior.
 
+### Live contribution and moderation specification references
+
+[F08](../../specs/010-live-contributions-moderation/spec.md) covers V1-13/V1-14 and Q02/S16 with FR-001–FR-041 and A01–A40. It retains YouTube/Twitch/Facebook video and channel/page links, seven-day eligibility supplied by F05, professional-match restrictions and scoped moderation. F03 owns the neutral diffusion-link label; its finished-list category does not establish the F02 definitive result used by contribution and reporting rules.
+
+FR-006–FR-020 define publication from H−1, suspension when the kickoff time is unknown, review after a definitive result, continued visibility of an authorized active link while its replacement is pending, owner access/cancellation of a pending proposal and common quotas before/after the match. All matches receiving a new version count in the Paris civil day, including previously contributed matches; retries and refusals do not consume extra versions.
+
+FR-021–FR-039 specify version/period-targeted reports, thresholds of three or ten, mandatory review for all ordinary proposals after reporting-based hiding, fresh reporting counters after explicit reactivation and superseded competing proposals. Privacy, deleted ownership, visibility, concurrency and uncertain outcomes retain their common owners. FR-040–FR-041 hand accepted transitions to F07 and design needs to R02. These are approved V2 requirements; the V1 observations and test evidence below are not rewritten as if these behaviors were already implemented.
+
 ### Accounts and identity specification references
 
 [F05](../../specs/005-accounts-identity/spec.md) covers V1-01–V1-03, G11, account-age G12 and Q01/Q02/Q04. FR-001–FR-010 and A01–A08 preserve Auth0 and existing associations while forbidding new associations or business-account merges; first signup without a usable provider email is suspended. Business-profile recreation preserves prior identity/email ownership rather than assigning an address to the first returning method.
