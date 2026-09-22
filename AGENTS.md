@@ -2,6 +2,7 @@
 
 - Speak French in chat. Write repository files and GitHub content in English.
 - Apply `.specify/memory/constitution.md` to product intent and Spec Kit artifacts. Use the applicable official `speckit-*` procedure; do not duplicate it locally.
+- V2 is a complete backend, ingestion and mobile rebuild, including mobile internals. V1 code, technical models, contracts and architecture are historical discovery/transition evidence, not the target or a default to preserve. Derive technical choices from accepted V2 specs and approved plans; retain accepted semantics, design and continuity constraints. Existing paths, tools and platform skills describe how to work on the current tree, not a preselection of V2 architecture.
 - Load only relevant standalone skills from `.agents/skills`. Apply `karpathy-guidelines` and `code-documentation` to changed handwritten code alongside its language and testing skills.
 - Private functions may name a coherent step; a public boundary may have one consumer. Shared helpers require identical meaning and a concrete owner, not speculative reuse.
 - Keep shared technical conventions in the copied personal skills. Product decisions, repository paths, actual versions and executable commands remain in this repository. Installing a skill does not authorize migrating existing code or dependencies.
@@ -23,7 +24,7 @@
 
 ## Repository inputs
 
-- Product sources: `specs`, `docs/product`, `docs/architecture`. Read `docs/architecture/mobile-and-identity-architecture-v1.md` for authentication, session, PKCE, token handling and authorization decisions.
+- Product sources: `specs`, `docs/product`, `docs/architecture`. Read `docs/architecture/mobile-and-identity-architecture-v1.md` as historical identity/session evidence and for maintenance of V1; it does not select V2 topology, frameworks or provider adapters. V2 identity and authorization work follows accepted specs, continuity constraints and approved technical plans.
 - Mobile: `apps/frontend/mobile`; routes: `apps/frontend/mobile/src/app`; supported platforms: iOS and Android. Feature/shared locations follow the accepted scope and actual source structure.
 - Backend reactor: `apps/backend`. Scrapers: `apps/backend/club-scraper` and `apps/backend/competition-scraper`.
 - Contracts: `libs/shared/contracts/specs/source`; shared schemas: its `shared/schemas` directory. Generated clients use configured Java `target` outputs, `libs/shared/python-contract-clients` and the mobile Orval configuration.

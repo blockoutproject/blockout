@@ -200,8 +200,6 @@ En tant qu’utilisateur ou modérateur, je souhaite comprendre le résultat ré
 - **Attente de validation liée aux signalements** : Conséquence du masquage sur les nouvelles propositions du match ; elle est distincte de la validation après-match et des restrictions sportives.
 - **Décision de modération** : Action autorisée et son effet compréhensible sur les versions ; l’historique fonctionnel ne prescrit pas une architecture d’audit.
 
-Le [modèle de domaine partagé](../../docs/architecture/blockout-domain-model-v1.md) conserve l’identité du match et la séparation entre résultat sportif et lien modéré. Les états et périodes ci-dessus précisent le comportement fonctionnel sans choisir de schéma ni de frontière de service.
-
 #### Tableau des transitions
 
 | État ou situation initiale                               | Action admissible                                              | Résultat                                                                                                                                                                                 |
