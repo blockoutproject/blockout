@@ -33,6 +33,8 @@
 
 ## Notes
 
+- FR-018/A18/SC-004 limitent la sélection aux matchs actuellement consultables. Les suivis ne contournent ni un retrait individuel ni le retrait total après deux confirmations vides ; la panne conserve les dernières données autorisées.
+
 - La revue Specify/Clarify couvre FR-001–FR-028, A01–A28 et SC-001–SC-006. Elle porte sur les exigences, pas sur une implémentation ou une qualification.
 - Les décisions sont directement intégrées : saison commune aux calendriers et listes, défaut parmi les suivis consultables puis le catalogue, Toutes les saisons, maintien du choix après ajout d’un suivi, tri alphabétique et masquage complet des cibles indisponibles.
 - La couverture comprend acteurs, permissions, identité, transitions, reprises, concurrence, compteurs, confidentialité, accessibilité et limites entre périmètres. Aucun besoin de clarification métier supplémentaire n’est identifié ; présentation Figma et réalisation technique restent aux étapes prévues.

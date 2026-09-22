@@ -54,7 +54,7 @@
 
 ## Fil et compteurs
 
-- [ ] CHK019 L’union des rencontres des équipes et poules est-elle définie sans relation implicite ? [Qualité des exigences, Spec §FR-005, FR-018, A18]
+- [ ] CHK019 L’union des rencontres des équipes et poules reste-t-elle sans relation implicite, avec une sélection et une déduplication qui excluent tout match retiré, même avec résultat ou plusieurs suivis, et distinguent premier vide, second vide qualifié, panne et réapparition autorisée ? [Qualité des exigences, Spec §FR-005, FR-016, FR-018–FR-019, A18]
 
 - [ ] CHK020 La déduplication et le retrait du dernier suivi sélectionnant un match ont-ils des critères explicites ? [Qualité des exigences, Spec §FR-019, A18–A19]
 

@@ -40,7 +40,7 @@
 ## Cohérence des exigences
 
 - [ ] CHK012 L’indépendance entre calendriers, classements et fournisseurs et la préservation de l’état antérieur sont-elles compatibles avec les entrées partielles exploitables et l’interdiction des retraits fondés sur l’absence après traitement incomplet ? [Cohérence, Spécification §FR-012, §FR-017–FR-020]
-- [ ] CHK013 Les calendriers vides valides sont-ils distingués des phases initialement vides, avec un seuil précis de passage de peuplé à vide ? [Cohérence, Spécification §FR-020, §FR-041]
+- [ ] CHK013 Les calendriers vides valides sont-ils distingués des réponses invalides, sans incident spécifique, avec deux confirmations planifiées qualifiées et des règles explicites de première observation, interruption, autorité et reprise ? [Cohérence, Spécification §FR-019–FR-020, §A13 ; F02 §FR-019]
 - [ ] CHK014 Réussite de l’acquisition, échec d’intégration et déclarations de mise à jour des données de l’application sont-ils séparés de façon cohérente ? [Cohérence, Spécification §FR-022, §FR-039, §FR-043]
 - [ ] CHK015 Les réglages fiables de début de cycle et les changements de division ou classification au cycle suivant sont-ils distincts de la réutilisation autorisée des références et de la classification publiée conservée, sans reprise de collecte après restauration refusée ? [Cohérence, Spécification §FR-006, §FR-008, §FR-033–FR-034, §A06]
 - [ ] CHK016 La relance uniquement par famille, l’absence d’exécutions en double et l’absence de levée implicite de pause sont-elles cohérentes dans les commandes de compétitions, clubs et géocodage ? [Cohérence, Spécification §FR-028, §FR-032–FR-036]
@@ -51,7 +51,7 @@
 
 - [ ] CHK017 L’échec d’une page club et un géocodage réussi mais vide ou ambigu sont-ils distingués d’un échec technique, avec des conséquences explicites sur les nouvelles tentatives ? [Couverture, Spécification §FR-024–FR-029, §A19–A22]
 - [ ] CHK018 L’exigence de géocodage manuel inclut-elle les adresses inchangées non résolues tout en excluant le recalcul inutile des résultats valides ? [Couverture, Spécification §FR-027–FR-028, §A21]
-- [ ] CHK019 Des séquences concrètes distinguent-elles les cycles planifiés, les tentatives HTTP, les relances manuelles échouées, le travail non exécuté, la remise à zéro après un succès ou un calendrier accepté non vide et l’interruption d’une séquence sans rétablissement d’un incident déjà ouvert ? [Couverture, Spécification §FR-041, §FR-043, §A29]
+- [ ] CHK019 Les séquences distinguent-elles le seuil technique de trois échecs du seuil de deux calendriers vides, les tentatives HTTP, relances manuelles, cycles non exécutés et le rétablissement réel d’un incident technique ? [Couverture, Spécification §FR-020, §FR-041, §FR-043, §A13, §A29–A30]
 - [ ] CHK020 Les seuils d’incident immédiat pour anomalie structurelle, à trois cycles et à 24 heures sont-ils distincts et cohérents avec la cadence normale des sources ? [Couverture, Spécification §FR-040–FR-042]
 - [ ] CHK021 Le rétablissement réel est-il défini par des éléments exploitables du périmètre concerné, en excluant pause, exclusion, clôture de saison et succès sans rapport ? [Couverture, Spécification §FR-043, §A30]
 - [ ] CHK022 La persistance des incidents, les notifications limitées à l’ouverture et au rétablissement et les signalements regroupés de nouveautés ou besoins de classification sont-ils spécifiés sans imposer une nouvelle plateforme d’incident ? [Couverture, Spécification §FR-044–FR-045]
