@@ -15,8 +15,6 @@ libs/shared/python-contract-clients/src/blockout_contract_clients/
 apps/frontend/mobile/src/shared/generated/
 
 # Imported guidance and authentic provider fixtures
-.agents/skills/vercel-composition-patterns/
-.agents/skills/vercel-react-native-skills/
 .agents/skills/speckit-*/
 apps/backend/club-scraper/tests/fixtures/
 apps/backend/competition-scraper/tests/fixtures/
@@ -31,5 +29,12 @@ apps/frontend/mobile/android/
 apps/frontend/mobile/ios/
 apps/frontend/mobile/expo-env.d.ts
 
-# Portable Liquibase policy copied byte-for-byte from Maaatch
-.agents/skills/blockout-best-practices/references/liquibase.md
+# Official skill imports remain byte-identical
+.agents/skills/karpathy-guidelines/
+.agents/skills/link-workspace-packages/
+.agents/skills/monitor-ci/
+.agents/skills/nx-generate/
+.agents/skills/nx-import/
+.agents/skills/nx-plugins/
+.agents/skills/nx-run-tasks/
+.agents/skills/nx-workspace/
