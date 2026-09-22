@@ -41,6 +41,8 @@
 
 ## Notes
 
+- Les calendriers vides valides ne constituent pas des incidents. A13/FR-020 définissent les deux confirmations planifiées de la même autorité, leurs interruptions et l’absence d’effet des observations ou échecs indépendants secondaires ; A29/FR-041 conservent séparément le seuil de trois échecs techniques. A34–A36/FR-047–FR-048 préservent les données autorisées face aux vides exceptionnels répétés d’une saison clôturée et aux archives inexploitables ; les corrections sur calendrier historique complet non vide restent possibles. F02 possède le masquage et la conservation interne.
+
 - Il s’agit de la checklist de qualité intégrée à Specify/Clarify. Les éléments cochés concernent les exigences écrites, pas un comportement logiciel livré, une acceptation en production ou une autorisation de commencer l’implémentation.
 - Les sources officielles nommées et la méthode CSV FFVB exigée par le responsable produit sont des contraintes de source. Les chemins du dépôt et les URL fournisseur datées sont des éléments probants, pas des choix d’architecture V2 ou de conception d’API.
 - FR-001–FR-049 sont reliées à A01–A36 par la couverture de l’inventaire de la spécification et les références individuelles des scénarios ; SC-001–SC-008 définissent les résultats d’acceptation mesurables.

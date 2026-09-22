@@ -57,7 +57,7 @@ Each row names the primary owner of its behavior. A consumer references the owni
 | V1-20/V1-24: incidents and recovery                                         | FR-039–FR-045              | A13–A15, A18, A22, A29–A33 |
 | V1-24, G01: historical acquisition                                          | FR-046–FR-049              | A14, A34–A36               |
 
-The [F01 dependency table](../../specs/001-source-acquisition/spec.md#cross-perimeter-dependencies) assigns follow-through to F02, F03, F13, F11, F12, F14 and R02. In particular, F02 defines sporting consequences and integration consistency without treating catalog absence, acquisition failure or stopping collection as automatic deletion. Pool classification overrides are an approved eligibility input, while their detailed mapping semantics and shared-model reconciliation remain F02-owned. R01 must reconcile these boundaries across the completed corpus.
+The [F01 dependency table](../../specs/001-source-acquisition/spec.md#cross-perimeter-dependencies) assigns follow-through to F02, F03, F13, F11, F12, F14 and R02. In particular, F02 owns sporting consequences and internal data preservation. Confirmed match withdrawals hide matches everywhere, including results and old links. A fully valid empty calendar requires two consecutive qualified scheduled observations from the same authority, season and pool or phase under F01 FR-020; secondary observations or independent failures cannot advance or reset that confirmation. Technical failures preserve authorized data. Exceptional historical recollection of a closed season preserves authorized matches and participations when the calendar is entirely empty, even repeatedly; complete non-empty authoritative historical calendars can still support corrections and individual withdrawals. Independent visibility restrictions remain applicable. Valid emptiness does not open an incident, while the three-failure technical threshold remains separate. Catalog absence retains its independent visibility effect. Pool classification overrides are an approved eligibility input, while their detailed mapping semantics and shared-model reconciliation remain F02-owned. R01 must reconcile these boundaries across the completed corpus.
 
 ### F02 — Sporting data identity and lifecycle
 
@@ -127,6 +127,21 @@ F04 consumes F02 visibility and F03 destinations without adding searchable match
 | Q04; F11: outside-app request, ownership proof and privacy                                   | FR-029, FR-037–FR-038        | A32                  |
 
 The [F05 dependency table](../../specs/005-accounts-identity/spec.md#couverture-et-dépendances-entre-périmètres) supplies F06/F07 personal-state removal and destination isolation, F08 age evidence and unattributed contributions with preserved moderation, F09 full delete/recreate/restore qualification, F10/F11 private rights handling, F12 scoped permissions and F14 migration/store-publication evidence. This does not complete those receiving perimeters or authorize technical planning. R02 covers the specified states in the global Figma pass.
+
+### F06 — Following and personal feed
+
+[Following and personal feed](../../specs/009-following-personal-feed/spec.md) defines FR-001–FR-028 and A01–A28. F02 owns identities and visibility; F03 owns calendar presentation and F05 owns accounts.
+
+| Coverage                                                       | F06 requirements      | Acceptance scenarios |
+| -------------------------------------------------------------- | --------------------- | -------------------- |
+| V1-11: access, following, identity and manual seasonal renewal | FR-001–FR-007         | A01–A06              |
+| V1-11 / V1-10: shared personal season selection                | FR-008–FR-012         | A07–A12              |
+| V1-11 / F02: followed lists, history and hidden targets        | FR-013–FR-017         | A13–A17              |
+| V1-10 / F03: match union, deduplication and presentation       | FR-018–FR-019, FR-021 | A18–A21              |
+| V1-11: counts, uncertainty, concurrency and recovery           | FR-020, FR-022–FR-025 | A03, A06, A21–A26    |
+| Shared quality, notifications, privacy and rights              | FR-026–FR-028         | A26–A28              |
+
+Upcoming, finished and followed lists share a season filter, defaulting to the latest season among consultable follows, then the available catalog. All seasons is available; adding a follow in another season preserves the current selection. Search and club-page filters remain independent. Hidden targets have no visible followed entry or removal control, while their relations remain stored for an eligible reappearance. Counts represent relations, not filtered rows; mutation uncertainty is distinct from failure. F07 owns notification eligibility and delivery, and the display season is not a notification preference. R02 covers the shared filter and accessible empty, pending and recovery states.
 
 ### F09 — Pro subscriptions and grants
 

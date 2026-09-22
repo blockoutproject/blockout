@@ -28,7 +28,7 @@
 - [ ] CHK013 L’entrée dans « Terminés » distingue-t-elle clairement catégorie de calendrier et résultat sportif confirmé, sans nouvel onglet imposé ? [Clarté, FR-012–FR-013, tableau de décision]
 - [ ] CHK014 Résultat définitif précoce, provisoire et absent ont-ils des présentations distinctes avant et après la borne ? [Couverture, FR-012–FR-013, FR-019, A13]
 - [ ] CHK015 Report, résultat tardif, correction et retrait réévaluent-ils la présentation de la même identité sans annulation ou fin inventée ? [Transitions, FR-014, A14]
-- [ ] CHK016 Les seuils temporels préservent-ils les retraits et restrictions F02 sans republier un match ni déclencher un événement sportif ? [Cohérence, FR-015, A15, dépendances F07/F08]
+- [ ] CHK016 Le masquage des matchs retirés couvre-t-il résultats publics, anciens liens et suivis, sans republication par seuil temporel et avec réapparition sous réserve des restrictions F02 ? [Cohérence, FR-015, A15, dépendances F07/F08]
 
 ## Listes, résultats et cartes
 

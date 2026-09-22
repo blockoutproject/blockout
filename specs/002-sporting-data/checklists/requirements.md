@@ -41,6 +41,8 @@
 
 ## Notes
 
+- FR-019/FR-024/FR-038–FR-043 et A27–A31 distinguent masquage public des matchs retirés, conservation interne, deux confirmations planifiées de calendrier vide par la même autorité et réapparition sans doublon. Les observations ou échecs indépendants secondaires ne modifient pas ce compteur. Les vides exceptionnels répétés d’une saison clôturée conservent les données autorisées sans lever les restrictions indépendantes ; un calendrier historique complet non vide permet toujours les corrections et retraits individuels. Les pannes et sources secondaires ne justifient pas de retrait ; le catalogue conserve son autorité indépendante.
+
 - Il s’agit des contrôles intégrés de qualité rédactionnelle Specify/Clarify, pas de preuves d’acceptation du logiciel, d’une approbation de PR par le responsable produit ou d’une autorisation de commencer l’implémentation.
 - FR-001–FR-053 sont couvertes par A01–A39 et SC-001–SC-007. Les sources, les limites des jeux de données et l’exercice préparatoire isolé sont distingués des tests V2 ou fournisseur non réalisés.
 - La couverture de clarification est claire pour le périmètre, les acteurs, l’identité et le cycle de vie, les erreurs et reprises, la priorité des sources, les contraintes, le vocabulaire et les critères mesurables d’achèvement. La présentation aux consommateurs, les objectifs communs de qualité et de confidentialité, les notifications et le rapprochement visuel global ont des responsables explicites dans le tableau des dépendances ; les choix techniques restent hors de cette phase fonctionnelle.
