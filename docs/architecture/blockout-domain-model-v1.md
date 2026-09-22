@@ -2,23 +2,27 @@
 
 ## Authority Boundary
 
-This document is the architectural authority for durable Blockout vocabulary, conceptual relationships, ownership,
-and cross-feature invariants.
+This document records historical V1 vocabulary, conceptual relationships, ownership and cross-feature invariants.
+It is discovery and transition context, not an authoritative V2 model or a technical structure to preserve.
+V2 is a complete backend, ingestion and mobile rebuild. Its domain model must express accepted V2 specifications;
+historical entities, relationships, keys and runtime boundaries do not become requirements by being present here.
 
-Accepted specifications and explicit human decisions are the only sources that may change this architecture. This
-model does not define product journeys, screens, permissions, validation messages, endpoint shapes, or implementation
-status. A concept represented here is not evidence that a product capability is exposed.
+The V2 sporting references below retain the authority of their owning accepted specification. They are not evidence
+that the rest of the V1 model has been accepted for V2. Other V2 semantics follow their own accepted specifications
+and explicit owner decisions. Neither historical descriptions nor derived technical models may override them.
+This document does not establish implementation status or authorize an exposed product capability.
 
-### Four Authority Layers
+### V2 Authority Layers
 
-| Layer                   | Authority                                                                   |
-| ----------------------- | --------------------------------------------------------------------------- |
-| Product vision          | Product direction and principles                                            |
-| Domain architecture     | Durable vocabulary, relationships, ownership, and cross-feature invariants  |
-| Accepted specifications | Observable product intent, journeys, rules, and acceptance criteria         |
-| Executable system       | Delivered transport and runtime behavior through contracts, code, and tests |
+| Layer                              | Authority                                                                 |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| Product vision                     | Product direction and principles                                          |
+| Accepted specifications            | Observable product intent, journeys, rules, and acceptance criteria       |
+| Approved V2 domain model and plans | Specification-derived semantics and approved technical decisions          |
+| V1 documents and executable system | Historical evidence of decisions and delivered behavior, not V2 authority |
 
-Each layer constrains the layers below it without replacing their authority.
+The constitution governs these authorities. V1 evidence supports discovery and transition analysis without
+constraining the V2 target. Product vision alone does not authorize a capability absent from accepted specs.
 
 ### Explicitly Non-Authoritative Material
 
@@ -37,7 +41,9 @@ The owner-approved sporting decisions are specified in [F02](../../specs/002-spo
 - Sporting state conservation, source presence, collection eligibility and consultation visibility are distinct. Calendar membership authority follows the established source priority for the same season and phase; secondary calendars cannot contradict its withdrawals or reappearances. Hidden identities and relationships persist; clubs remain consultable without visible teams.
 - Source labels, comparison aliases and manual presentation are separate. Team logos inherit the current club logo unless overridden. Club coordinates represent municipality, not match venue.
 
-These semantic refinements do not assign service topology, persistence keys or contracts. Other domains remain governed by their existing definitions until their own specifications resolve changes. The V1 descriptions below remain baseline context rather than instructions to reproduce its runtime mechanisms.
+These accepted semantic refinements do not assign service topology, persistence keys or contracts. Other domains
+follow their owning accepted specifications; unresolved V2 semantics return to specification work rather than
+defaulting to V1. The remaining sections below describe V1 baseline context, not V2 modeling or runtime requirements.
 
 ## Modeling Principles
 

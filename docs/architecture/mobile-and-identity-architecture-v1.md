@@ -1,5 +1,22 @@
 # Mobile And Identity Architecture V1
 
+## Historical Status And V2 Authority
+
+This document records V1 architectural decisions and remains context for V1 maintenance and transition analysis.
+It is not the V2 target architecture. Its decisions, consequences and revisit triggers below apply to V1 only;
+they do not require proving a V1 limitation before selecting a different V2 design.
+
+V2 rebuilds the complete backend, ingestion and mobile application, including navigation, state, feature boundaries,
+API integration and native adapters. Existing services, gateway, frameworks, RabbitMQ, Elasticsearch and persistence
+choices have no default authority over V2. Retaining any of them requires justification from accepted requirements
+and approved technical plans. This document is also not proof that every stated V1 boundary was implemented.
+
+The [constitution](../../.specify/memory/constitution.md), accepted specifications, approved design evidence and
+explicit continuity constraints govern V2. In particular, existing identities and paid rights remain protected by
+the [identity and Pro continuity constraints](../product/identity-and-pro-continuity.md) and their owning specs.
+The [architecture phase](https://github.com/blockoutproject/blockout/issues/248) selects the V2 target after the
+global specification gate; this historical description neither selects it nor authorizes implementation.
+
 ## Context
 
 Blockout is a native mobile product backed by service-owned competition resources and provider ingestion. The
