@@ -120,7 +120,7 @@ Les intervenants disposent d’un dossier complet et privé dans GitHub, avec le
 - **FR-022** : Les changements de saisie NE DOIVENT PAS altérer silencieusement une opération encore en cours ou incertaine ; son résultat doit être établi avant une nouvelle soumission corrigée susceptible de la dupliquer.
 - **FR-023** : Une fermeture ou un redémarrage NE DOIT PAS prouver l’annulation d’un envoi transmis. L’absence de restauration du brouillon n’autorise ni faux échec ni duplication d’un envoi déjà accepté.
 - **FR-024** : Après acceptation complète, une confirmation compréhensible DOIT indiquer que les échanges éventuels passent par l’e-mail fourni. L’application NE DOIT proposer ni édition du ticket ni ajout d’image oubliée après confirmation.
-- **FR-025** : Une alerte secondaire à l’opérateur DOIT rester indépendante de l’acceptation complète. Son échec doit être identifiable pour l’exploitation sans invalider le dossier ni imposer une nouvelle soumission. Elle NE DOIT PAS copier de contenu personnel hors du circuit autorisé ; aucun mécanisme de notification n’est sélectionné.
+- **FR-025** : Une alerte secondaire à l’opérateur DOIT rester indépendante de l’acceptation complète. Son échec doit être identifiable pour l’exploitation sans invalider le dossier ni imposer une nouvelle soumission. Elle NE DOIT contenir aucune copie de contenu personnel, conformément à F11 ; aucun mécanisme de notification n’est sélectionné.
 
 #### Traitement et responsabilités
 
