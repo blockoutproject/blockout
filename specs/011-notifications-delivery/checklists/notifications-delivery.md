@@ -15,10 +15,10 @@
 - [ ] CHK003 L’union des suivis confirmés exclut-elle les doublons et les demandes encore incertaines ? [Complétude, FR-011–FR-012, A06]
 - [ ] CHK004 Les instants d’éligibilité, le retrait du dernier suivi, les envois partiels et le suivi tardif sont-ils délimités sans rattrapage implicite ? [Couverture, FR-012–FR-014, A07–A10]
 - [ ] CHK005 L’annonce anticipée, l’heure inconnue et la correction d’horaire distinguent-elles visibilité du lien, déclenchement et échéance de livraison ? [Clarté, FR-005–FR-006, FR-025–FR-026, A09–A11]
-- [ ] CHK006 Le résultat enrichi et la rediffusion tardive partagent-ils une limite après-match indépendante du live ? [Cohérence, FR-007–FR-009, A12–A17]
-- [ ] CHK007 Le contenu connu à la création et les traitements concurrents déterminent-ils les regroupements sans délai artificiel ni double annonce ? [Couverture, FR-007–FR-009, FR-038, A14]
+- [ ] CHK006 Le résultat enrichi et la rediffusion distincte partagent-ils une limite après-match indépendante du live et conservée après suppression ou échec de push ? [Cohérence, FR-007–FR-009, A12–A17]
+- [ ] CHK007 La priorité de l’avis enrichi est-elle explicite lorsque résultat et lien sont disponibles avant la création du résultat admissible, même si le lien est traité en premier, en concurrence ou après reprise ? [Couverture, FR-007–FR-009, FR-038, A12, A14]
 - [ ] CHK008 La publication, l’approbation et la réactivation sont-elles distinctes des propositions privées, refus et répétitions sans changement ? [Complétude, FR-010, A15–A16]
-- [ ] CHK009 La création dans la boîte, l’échec de push et la suppression personnelle ont-ils des conséquences explicites sur les limites d’annonce ? [Clarté, FR-009, FR-019, FR-024, A17]
+- [ ] CHK009 La création dans la boîte distingue-t-elle résultat enrichi, résultat simple déjà créé avec push en attente et destinataire admissible seulement au nouveau lien, sans rattrapage, résurrection ou contournement d’un retrait de suivi ou d’une restriction ? [Clarté, FR-007–FR-013, FR-019, FR-024–FR-026, FR-031, A13–A14, A17]
 
 ## Lecture, boîte et badges
 
