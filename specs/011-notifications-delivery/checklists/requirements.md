@@ -39,3 +39,5 @@
 - La [checklist de relecture](notifications-delivery.md) appartient au relecteur et reste non cochée. R01/R02 et l’acceptation globale sous #247 précèdent la planification technique.
 
 - La passe Specify/Clarify ne relève aucune décision fonctionnelle critique manquante : périmètre, identités, transitions, parcours, erreurs, qualité et dépendances sont définis. Les choix techniques et visuels restent réservés à leurs phases ; les 35 questions de relecture demeurent non cochées.
+
+- FR-024–FR-026, A26–A28/A37 et SC-004 distinguent la suspension des push en maintenance F12 de la création des entrées, sans exception opérateur ni extension des quinze minutes. Cette validation reste documentaire ; les cases du relecteur sont inchangées.

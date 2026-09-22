@@ -32,9 +32,9 @@
 
 ## Livraison, reprise et identité
 
-- [ ] CHK017 L’entrée personnelle est-elle indépendante de permission système, destination et succès du push ? [Cohérence, FR-024, A26]
-- [ ] CHK018 Les 15 minutes ont-elles une origine et une borne explicites que tentative, correction ou réassociation ne prolongent pas ? [Mesurabilité, FR-025, A27]
-- [ ] CHK019 Les conditions réévaluées avant envoi couvrent-elles suivi, compte, entrée, destination, restrictions et live devenu obsolète ? [Complétude, FR-026, A28]
+- [ ] CHK017 L’entrée personnelle est-elle indépendante de permission système, destination et succès du push, y compris pendant la maintenance F12 ? [Cohérence, FR-024, A26]
+- [ ] CHK018 Les quinze minutes ont-elles une origine et une borne explicites que tentative, correction, réassociation ou maintenance ne prolongent pas, sans rattrapage des avis expirés ? [Mesurabilité, FR-025, A27]
+- [ ] CHK019 Les contrôles avant envoi couvrent-ils suivi, compte, entrée, destination, restrictions et live obsolète, ainsi que la maintenance sans exception opérateur et la réévaluation après sa levée ? [Complétude, FR-026, A26–A28]
 - [ ] CHK020 Acceptation du fournisseur, échec, incertitude et réception prouvée restent-ils distingués sans garantie technique implicite ? [Clarté, FR-027–FR-028, A29]
 - [ ] CHK021 Les réussites partielles et invalidations ciblées empêchent-elles le renvoi volontaire aux installations déjà servies ? [Couverture, FR-028, A30]
 - [ ] CHK022 L’identité d’installation et la rotation de destination excluent-elles la fusion de téléphones partageant la même version système ? [Clarté, FR-029, A31]
