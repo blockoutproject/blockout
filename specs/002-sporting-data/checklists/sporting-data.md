@@ -39,7 +39,7 @@
 ## Contenu sportif officiel
 
 - [ ] CHK013 Les phases présentes uniquement sur la LNV sont-elles autorisées sans emprunter l’identité d’une autre phase, et les participants indéterminés sont-ils traités de façon cohérente ? [Couverture, Spécification §FR-009, §FR-023]
-- [ ] CHK014 La priorité fixe des sources est-elle distinguée de l’ordre de récupération, de l’information inconnue et du retrait explicite, avec une autorité de calendrier définie avant l’établissement d’une source supérieure et conservée après son échec ? [Clarté, Spécification §FR-024–FR-027, §A27–A30]
+- [ ] CHK014 La priorité fixe des sources est-elle distinguée de l’ordre de récupération, de l’information inconnue et du retrait explicite, avec une autorité de calendrier définie avant l’établissement d’une source supérieure et conservée après son échec, sans effet des observations ou échecs indépendants secondaires sur le compteur de confirmation du vide ? [Clarté, Spécification §FR-024–FR-027, §A27–A30]
 - [ ] CHK015 Les résultats publiés considérés comme fiables, les scores explicitement provisoires et le sens réellement ambigu d’une publication sont-ils distingués sans arbitrage universel des règles sportives ? [Clarté, Spécification §FR-028]
 - [ ] CHK016 Un détail de sets invalide laisse-t-il utilisable un score global officiel exploitable, sans mélanger des observations de résultat contradictoires ? [Cohérence, Spécification §FR-024, §FR-029]
 - [ ] CHK017 Les notations particulières et le retrait ou la correction de résultat sont-ils spécifiés sans scores inventés ni politique implicite de notification ? [Couverture, Spécification §FR-030–FR-031 ; Dépendances entre périmètres §F07]
@@ -52,10 +52,10 @@
 ## Visibilité et rétablissement
 
 - [ ] CHK021 Le retrait confirmé utilise-t-il le catalogue faisant autorité pour la saison propre à la ressource, y compris la distinction LNV/FFVB ? [Clarté, Spécification §FR-037]
-- [ ] CHK022 Le masquage intégral des matchs retirés, avec ou sans résultat, exige-t-il un calendrier complet faisant autorité et, pour un vide valide, deux confirmations planifiées qualifiées, sans effet sur les autres participations d’une équipe ni confusion avec une panne, un retrait au catalogue ou une annulation sportive ? [Cohérence, Spécification §FR-019, §FR-024, §FR-037–FR-040, §A27–A28]
+- [ ] CHK022 Le masquage intégral des matchs retirés, avec ou sans résultat, exige-t-il un calendrier complet faisant autorité et, pour un vide valide, deux confirmations planifiées qualifiées de la même autorité, avec conservation sur vide historique exceptionnel répété d’une saison clôturée, sans effet sur les autres participations d’une équipe ni confusion avec une panne, un retrait au catalogue ou une annulation sportive ? [Cohérence, Spécification §FR-019, §FR-024, §FR-037–FR-040, §FR-043, §A27–A28, §A31]
 - [ ] CHK023 Pause, exclusion, inactivité de division, absence à la source et clôture saisonnière sont-elles distinctes, avec cumul des motifs de visibilité ? [Complétude, Spécification §FR-016, §FR-041–FR-043]
 - [ ] CHK024 La redécouverte au catalogue et la réapparition dans le calendrier faisant autorité sont-elles distinctes, sans réactivation par une source secondaire, remplacement d’identité ou levée de motifs de visibilité sans rapport ? [Couverture, Spécification §FR-024, §FR-042–FR-044, §A30]
-- [ ] CHK025 La conservation normale de l’historique V2 est-elle distinguée de la visibilité et de l’exception de remise à zéro V1, avec préservation des associations et fichiers des logos de clubs, rattachement certain et conservation des cas non résolus ? [Cohérence, Spécification §FR-043, §FR-046, §A39 ; Dépendances entre périmètres §F14]
+- [ ] CHK025 La conservation sur vide exceptionnel répété et les corrections ou retraits individuels sur calendrier historique complet non vide sont-ils explicites, et la conservation normale de l’historique V2 est-elle distinguée de la visibilité et de l’exception de remise à zéro V1, avec préservation des associations et fichiers des logos de clubs, rattachement certain et conservation des cas non résolus ? [Cohérence, Spécification §FR-019, §FR-043, §FR-046, §A31, §A39 ; Dépendances entre périmètres §F14]
 
 <a id="presentation-coordinates-and-delivery-boundaries"></a>
 
