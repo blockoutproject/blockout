@@ -35,10 +35,12 @@ technology constraints remain binding; a rebuild MUST NOT silently discard them.
 
 The approved V2 domain model MUST express the accepted specifications' shared vocabulary,
 identities, relationships, ownership, lifecycle semantics, and cross-feature invariants.
+Once approved, it MUST constrain technical plans and implementation across features.
+Changes to these shared semantics MUST be resolved in the owning specifications and
+reflected consistently in the shared model before implementation.
 Historical V1 definitions MUST NOT constrain V2 unless explicitly accepted for V2;
 accepted V2 semantics recorded in a historical document retain their specification authority.
-Specifications own
-user-visible behavior, while plans derive technical projections without inventing product
+Specifications own user-visible behavior, while plans derive technical projections without inventing product
 capability or reverse-engineering intent from historical code. A concept present in the
 domain model MUST NOT be treated as exposed or selected unless an accepted specification
 says so.
@@ -98,11 +100,6 @@ every changed boundary.
   adapters, and authoritative resource ownership remain explicit in every technical plan
   they affect. V1 frameworks, service topology, messaging, storage, and mobile organization
   MUST NOT be selected implicitly from the existing tree or its implementation guidance.
-- All functional specifications, global functional review, and required global design
-  reconciliation MUST be accepted before V2 architecture selection or technical planning.
-  Overall architecture MUST be approved before independent per-feature technical plans;
-  architecture child issues are created only after the global specification gate. The
-  GitHub roadmap owns phase tracking and acceptance; this does not replace Spec Kit.
 - Secrets, credentials, personal data, provider payloads, and internal diagnostics MUST
   remain outside public artifacts and user-visible failures.
 

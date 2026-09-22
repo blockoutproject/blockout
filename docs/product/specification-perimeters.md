@@ -63,7 +63,7 @@ The [F01 dependency table](../../specs/001-source-acquisition/spec.md#cross-peri
 
 ### F02 — Sporting data identity and lifecycle
 
-[Sporting data identity and lifecycle](../../specs/002-sporting-data/spec.md) owns FR-001–FR-053 and A01–A38. These references identify requirements and acceptance scenarios, not implementation tasks or delivery status.
+[Sporting data identity and lifecycle](../../specs/002-sporting-data/spec.md) owns FR-001–FR-053 and A01–A39. These references identify requirements and acceptance scenarios, not implementation tasks or delivery status.
 
 | Assigned coverage                                        | Specification requirements | Acceptance scenarios |
 | -------------------------------------------------------- | -------------------------- | -------------------- |

@@ -291,8 +291,6 @@ En tant qu’opérateur autorisé, je souhaite des corrections de présentation 
 - **Classement officiel** : Tableau officiel attribué à sa source pour une poule ou phase, préservant l’identité et l’ordre des lignes et les liens facultatifs vers les équipes Blockout. Il ne s’agit ni d’un recalcul local à partir des résultats de matchs ni du seul ensemble des participations actuelles.
 - **Observation / motif de visibilité / personnalisation de présentation** : Les éléments sources se distinguent de l’état sportif accepté ; le retrait par la source, l’exclusion administrative et l’inactivité d’une division affectent la visibilité sans effacement ; les personnalisations explicites de présentation ne redéfinissent pas l’identité.
 
-Ces sémantiques sportives V2 approuvées par le responsable produit précisent le [modèle de domaine partagé](../../docs/architecture/blockout-domain-model-v1.md). Elles ne choisissent ni frontières de services exécutables, ni clés de base de données, ni protocoles, ni contrats publics.
-
 <a id="success-criteria-mandatory"></a>
 
 ## Critères de réussite _(obligatoire)_
