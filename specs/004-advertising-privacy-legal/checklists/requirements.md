@@ -41,3 +41,5 @@
 - F05/F09/F10 restent propriétaires de leurs parcours détaillés. Les règles communes, destinataires et critères de conservation sont explicites sans inventer de durées par domaine ; les paramètres effectifs et l’information légale doivent être qualifiés avant publication.
 - La [checklist de revue publicité et confidentialité](advertising-privacy-legal.md) relève du relecteur ; ses cases restent non cochées à la génération.
 - La rédaction de F11 n’autorise ni plan technique, ni tâches d’implémentation, ni nouvelle revue Figma par périmètre. L’acceptation du corpus sous #247 reste nécessaire.
+
+- FR-033, A23 et SC-007 définissent l’envoi entier F10, la réconciliation des effets intermédiaires et l’indépendance de l’alerte secondaire ; aucun dossier incomplet ne vaut acceptation. La checklist du relecteur conserve ses cases non cochées.
