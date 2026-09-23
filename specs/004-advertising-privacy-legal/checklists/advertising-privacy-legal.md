@@ -42,7 +42,7 @@
 ## Données personnelles, conservation et droits
 
 - [ ] CHK019 La matrice distingue-t-elle finalités, destinataires et propriétaires sans exiger tous les champs V1 ni autoriser leur réutilisation publicitaire ? [Complétude, Spécification §FR-021, §Catégories, finalités et responsabilités]
-- [ ] CHK020 Contacts utiles, arbitres rattachés aux matchs et restrictions d’usage sont-ils décrits sans annuaire personnel ou archive des anciennes coordonnées ? [Périmètre, Spécification §FR-022–FR-023, §A16]
+- [ ] CHK020 Contacts utiles, arbitres rattachés aux matchs et restrictions prioritaires sont-ils décrits sans annuaire personnel ni archive des anciennes coordonnées, sans contournement par correction administrative ou retour à la source F02 ? [Périmètre, Spécification §FR-022–FR-024, §A16–A17 ; F02 §A36]
 - [ ] CHK021 Les corrections et restrictions priment-elles sur collecte, réactivation et reconstruction sans supprimer indistinctement l’identité ou l’histoire sportives ? [Cohérence, Spécification §FR-023–FR-024, §A17]
 - [ ] CHK022 La restauration exige-t-elle l’application des restrictions courantes ou la suspension des accès concernés, avec sauvegardes distinctes d’une consultation alternative ? [Couverture, Spécification §FR-025, §A18]
 - [ ] CHK023 Les 30 jours de sauvegarde, données actives, tickets et journaux sont-ils distingués sans délai de conservation inventé ? [Clarté, Spécification §FR-026–FR-027, §FR-034]

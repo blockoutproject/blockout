@@ -33,6 +33,8 @@
 
 ## Notes
 
+- FR-004 conserve F02 comme propriétaire des corrections de coordonnées et de leur permission ; A04/A05 refusent les droits implicites, sans imposer un nouveau formulaire mobile.
+
 - La validation rédactionnelle couvre FR-001–FR-036, A01–A35 et SC-001–SC-007 : permissions, préparation indépendante, maintenance effective, contrôle au démarrage à froid, secours de cinq minutes, push, versions et récupération propriétaire.
 - Les cases évaluent les exigences, pas le blocage serveur livré, la disponibilité des stores, une procédure de secours qualifiée ou des écrans approuvés. La réalisation technique suit l’acceptation globale R01/R02 sous #247.
 - Les preuves V1 sont séparées des exigences V2 ; aucun fournisseur, contrôle périodique mobile, système général de suspension de tâches ou architecture nouvelle n’est imposé.

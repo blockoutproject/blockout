@@ -33,6 +33,8 @@
 
 ## Notes
 
+- FR-002 consomme les coordonnées effectives F02 et les restrictions F11, sans repli public vers une valeur source volontairement absente ; A01/A05 et F02 A36–A38 couvrent ces limites.
+
 - FR-015/A15 exigent le masquage des matchs retirés, même avec résultat conservé en interne ou suivi. Le retrait d’un résultat seul reste distinct de celui du match ; la réapparition et les restrictions suivent F02.
 
 - Cette validation Specify/Clarify porte sur la qualité des exigences, pas sur une implémentation, une validation Figma ou un essai fournisseur. FR-001–FR-036 sont reliées à A01–A34 et SC-001–SC-008.

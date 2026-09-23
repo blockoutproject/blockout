@@ -33,6 +33,8 @@
 
 ## Notes
 
+- Les corrections et absences volontaires de coordonnées de clubs relèvent des garanties existantes de reprise FR-019 et de protection des actions opérateur FR-022 ; la continuité V1 reste limitée par F14.
+
 - Ces contrôles Specify/Clarify portent sur les exigences écrites, pas sur un logiciel livré, une mesure de production ou une autorisation de commencer l’implémentation.
 - FR-001–FR-032 sont reliées à A01–A22 et SC-001–SC-008. Les objectifs, les conditions d’essai reproductibles et les limites de preuve sont distingués des mesures à obtenir.
 - Les outils V1 cités et le contexte d’exploitation sur VPS sont des éléments probants ; ils ne sélectionnent ni fournisseur ni topologie V2. Les réglages techniques restent dans la phase qui suit l’acceptation du corpus.
