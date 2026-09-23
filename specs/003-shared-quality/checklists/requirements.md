@@ -8,7 +8,7 @@
 
 ## Qualité du contenu
 
-- [x] Aucun détail d’implémentation (langages, frameworks, API)
+- [x] Aucun choix d’implémentation (langages, frameworks, contrats ou outils)
 - [x] Centrée sur la valeur utilisateur et les besoins métier
 - [x] Rédigée pour des parties prenantes non techniques
 - [x] Toutes les sections obligatoires sont complétées
@@ -38,7 +38,7 @@
 - Ces contrôles Specify/Clarify portent sur les exigences écrites, pas sur un logiciel livré, une mesure de production ou une autorisation de commencer l’implémentation.
 - FR-001–FR-032 sont reliées à A01–A22 et SC-001–SC-008. Les objectifs, les conditions d’essai reproductibles et les limites de preuve sont distingués des mesures à obtenir.
 - Les outils V1 cités et le contexte d’exploitation sur VPS sont des éléments probants ; ils ne sélectionnent ni fournisseur ni topologie V2. Les réglages techniques restent dans la phase qui suit l’acceptation du corpus.
-- Les décisions approuvées fixent charge, réactivité, propagation, disponibilité, bornes de perte, rétention et intervention manuelle. Aucun délai de reprise garanti, certification d’accessibilité ou mode hors ligne complet n’est implicite.
+- Les décisions approuvées fixent charge, réactivité des réponses API, propagation, disponibilité, bornes de perte, rétention et intervention manuelle. FR-001–FR-003, A01 et SC-001 définissent la mesure par famille de consultation, ses bornes et le décompte des échecs, sans choisir de contrat ou d’outil. Aucun délai d’affichage mobile, délai de reprise garanti, certification d’accessibilité ou mode hors ligne complet n’est implicite.
 - F05/F09/F11 restent responsables des règles d’identité, de droits et de confidentialité nécessaires aux reprises ; F14 porte la continuité des logos de clubs avant remise à zéro. La matrice des dépendances n’affirme pas que ces autres spécifications sont terminées.
 - La [checklist de qualité et d’exploitation](quality-operations.md) personnalisée relève du relecteur et ses cases restent non cochées à la génération.
 - La revue fonctionnelle et visuelle globale sous #247 précède la planification technique ; une checklist rédactionnelle satisfaite ne contourne pas ce jalon.
