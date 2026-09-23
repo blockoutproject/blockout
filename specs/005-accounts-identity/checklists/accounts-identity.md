@@ -14,9 +14,9 @@
 
 ## Complétude et limites
 
-- [ ] CHK001 L’accès invité, les actions réservées et l’onboarding facultatif sont-ils définis sans ajouter de mutation automatique après connexion ? [Complétude, Spécification §FR-001–FR-002, §A01–A02]
+- [ ] CHK001 L’accès invité, les actions réservées et l’onboarding facultatif sont-ils définis sans mutation automatique après connexion, avec un accueil de transition F14 distinct de l’onboarding déjà terminé ? [Complétude, Spécification §FR-001–FR-002, §A01–A02]
 - [ ] CHK002 Les fournisseurs retenus, la création automatique et l’absence de formulaire obligatoire sont-ils explicites ? [Clarté, Spécification §FR-003, §FR-008, §FR-012]
-- [ ] CHK003 La distinction entre migration, réinstallation et suppression volontaire est-elle suffisante pour déterminer le compte, l’ancienneté et les données retrouvées ? [Cohérence, Spécification §FR-010, §FR-024, §FR-035]
+- [ ] CHK003 La distinction entre migration, réinstallation et suppression volontaire détermine-t-elle le compte, l’ancienneté et les données retrouvées, sans confondre reconnexion obligatoire F14 et nouvelle identité ? [Cohérence, Spécification §FR-010, §FR-024, §FR-035]
 
 ## Identité et profil
 

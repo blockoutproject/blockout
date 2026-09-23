@@ -40,3 +40,4 @@
 - Les références Auth0, Apple et RevenueCat délimitent les choix de produit et contraintes externes déjà retenus. Elles ne choisissent pas les contrats, schémas ou mécanismes de reprise et ne prouvent pas les réglages actuels de production.
 - La checklist [comptes, identité et suppression](accounts-identity.md) appartient au relecteur ; ses marqueurs restent non cochés à la génération.
 - Aucun plan technique ni aucune tâche ne sont créés. R01/R02 et l’acceptation du corpus sous #247 restent requis avant les étapes techniques.
+- F14 précise la reconnexion explicite de transition et l’accueil avant connexion distinct de l’onboarding habituel ; les identités et droits demeurent conservés. Les scénarios A02/A04 et FR-002/FR-010 portent ces renvois sans qualification de migration implicite.

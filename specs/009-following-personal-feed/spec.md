@@ -121,7 +121,7 @@ En tant qu’utilisateur, je souhaite comprendre les compteurs et reprendre apr�
 - **FR-004** : Le retrait confirmé d’un suivi accessible DOIT supprimer cette relation personnelle, sans supprimer la ressource sportive. Retirer une relation déjà absente NE DOIT PAS répéter les effets sur les compteurs. L’état, la liste et la sélection des matchs DOIVENT être réévalués après confirmation.
 - **FR-005** : Suivre une poule NE DOIT PAS créer de suivis individuels de ses équipes ; suivre une équipe NE DOIT PAS créer de suivis de ses poules. Chaque relation conserve son sens et peut sélectionner les matchs pertinents indépendamment des autres.
 - **FR-006** : Un suivi DOIT rester attaché à l’identité F02, y compris lors d’une correction de nom/classification qui la conserve et d’une réapparition autorisée. Aucune ressemblance de nom, club ou classification ne transfère la relation vers une autre identité.
-- **FR-007** : Le renouvellement saisonnier des suivis DOIT rester manuel. Une nouvelle équipe ou poule saisonnière n’hérite pas des suivis anciens ; les ressources historiques encore consultables restent accessibles. La reprise exceptionnelle V1 appartient à F14.
+- **FR-007** : Le renouvellement saisonnier des suivis DOIT rester manuel. Une nouvelle équipe ou poule saisonnière n’hérite pas des suivis anciens ; les ressources historiques encore consultables restent accessibles. La remise à zéro exceptionnelle V1 suit [F14](../014-v1-v2-transition/spec.md) : aucune reprise des anciens suivis n’est promise ni déduite d’une ressemblance entre ressources ; les nouveaux suivis restent choisis volontairement.
 
 #### Saison commune et navigation
 
