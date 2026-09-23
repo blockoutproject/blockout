@@ -40,3 +40,4 @@
 - La qualification réelle des effets de transfert, des droits indépendants, du catalogue, des notifications et du cycle complet suppression/recréation/restauration reste requise pour chaque store. Les constats V1 et la documentation fournisseur n’en sont pas une preuve.
 - La checklist [abonnements et avantages Pro](pro-subscriptions.md) appartient au relecteur et reste non cochée.
 - Aucun plan technique ni aucune tâche ne sont créés. R01/R02 et l’acceptation du corpus sous #247 restent requis avant les étapes techniques.
+- F14 fournit l’accueil et l’aide de restauration après connexion ; FR-032 conserve le rapprochement et les preuves préalables, que cette aide ne remplace pas.

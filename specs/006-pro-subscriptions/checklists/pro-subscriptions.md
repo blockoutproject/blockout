@@ -51,7 +51,7 @@
 - [ ] CHK027 L’indépendance des cadeaux couvre-t-elle prélèvements, renouvellements, remboursements, transfert d’achat et suppression/recréation ? [Cohérence, FR-028, A27–A28]
 - [ ] CHK028 Les interventions sont-elles réservées au propriétaire dans RevenueCat au lancement, sans écran Blockout supplémentaire, délégation implicite ou présentation erronée du rôle Support ? [Périmètre, FR-023, FR-027, FR-029, A25]
 - [ ] CHK029 Les interventions échouées ou incertaines et leur visibilité dans l’application ont-elles des critères compatibles avec la fraîcheur et F13 ? [Reprise, FR-030–FR-031, A26, A29]
-- [ ] CHK030 Les exigences distinguent-elles les observations V1, la documentation fournisseur et la qualification future des réglages, identités et effets réels ? [Traçabilité, FR-032, A19, A21, éléments probants]
+- [ ] CHK030 Les exigences distinguent-elles observations V1 et qualification future des réglages, identités et effets réels, sans que l’aide de restauration F14 remplace les preuves préalables de continuité ? [Traçabilité, FR-032, A19, A21, éléments probants]
 - [ ] CHK031 L’accessibilité, l’assistance et les contenus publics restent-ils disponibles dans les états dégradés selon F05/F13 ? [Cohérence transversale, FR-033, A02, SC-008]
 - [ ] CHK032 La confidentialité des preuves/traces, la suppression et les restaurations de sauvegarde respectent-elles F11/F13 sans rétention illimitée ni restauration d’un droit révoqué ? [Cohérence, FR-034, A23, A29]
 

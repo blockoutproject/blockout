@@ -40,3 +40,4 @@
 - F05/F09/F11 restent responsables des règles d’identité, de droits et de confidentialité nécessaires aux reprises ; F14 porte la continuité des logos de clubs avant remise à zéro. La matrice des dépendances n’affirme pas que ces autres spécifications sont terminées.
 - La [checklist de qualité et d’exploitation](quality-operations.md) personnalisée relève du relecteur et ses cases restent non cochées à la génération.
 - La revue fonctionnelle et visuelle globale sous #247 précède la planification technique ; une checklist rédactionnelle satisfaite ne contourne pas ce jalon.
+- FR-028 distingue le retour compatible dans le cycle applicatif V2 de la transition F14, qui exige la récupération de V2 après ouverture sans retour fonctionnel V1 obligatoire.

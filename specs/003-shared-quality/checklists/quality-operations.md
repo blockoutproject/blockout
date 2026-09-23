@@ -45,7 +45,7 @@
 - [ ] CHK020 Les sauvegardes échouées, trop anciennes ou partielles ont-elles des conséquences d’exploitation distinctes d’une protection démontrée ? [Clarté, Spécification §FR-025, §A15]
 - [ ] CHK021 L’exercice de restauration avant lancement précise-t-il isolation, perte du stockage d’origine, données/fichiers, écarts et durée mesurée sans délai garanti ? [Mesurabilité, Spécification §FR-026, §A16]
 - [ ] CHK022 La restauration applique-t-elle les obligations courantes d’effacement et de droits avant remise à disposition, avec suspension si elles ne sont pas établies ? [Cohérence, Spécification §FR-027, §A17]
-- [ ] CHK023 Le retour de version est-il distinct d’une restauration de données, avec compatibilité exigée et responsabilité F14 pour la bascule initiale ? [Clarté, Spécification §FR-028, §A18]
+- [ ] CHK023 Le retour de version est-il distinct d’une restauration de données, avec compatibilité exigée et récupération V2 après ouverture selon F14 sans retour fonctionnel V1 obligatoire ? [Clarté, Spécification §FR-028, §A18]
 
 ## Plateformes et continuité
 

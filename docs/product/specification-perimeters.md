@@ -40,7 +40,7 @@ Each row names the primary owner of its behavior. A consumer references the owni
 | F11 / [#260](https://github.com/blockoutproject/blockout/issues/260) | [Advertising/privacy/legal specification](../../specs/004-advertising-privacy-legal/spec.md): common ten-action interstitial frequency, non-personalized advertising for the 13+ audience without age collection, legal reading/editing and shared privacy, FR-001–FR-037 and A01–A27. | Consumes F09 entitlement states. F05 owns the deletion lifecycle; domain owners apply shared privacy rules. Preserves the existing scoped mobile legal editor. No invented acceptance ledger or retention duration; F10 consumes the accepted support agreement. |
 | F12 / [#269](https://github.com/blockoutproject/blockout/issues/269) | [Common administration and app access](../../specs/013-administration-app-configuration/spec.md): scoped permissions, effective maintenance, cold-start checks with five-minute fallback, platform minimum versions and owner recovery; FR-001–FR-036, A01–A35.                        | Domain commands retain their owners. F07 entries continue while push delivery pauses within its original deadline; F14 owns old-client compatibility and retirement. No generic administration console.                                                          |
 | F13 / [#259](https://github.com/blockoutproject/blockout/issues/259) | [Shared quality/operations specification](../../specs/003-shared-quality/spec.md): measurable workload, performance/freshness/availability, security assurance, accessibility/platform/localization, diagnostics and recovery/protection, FR-001–FR-032 and A01–A22.                   | F11 owns privacy; F05 authentication; each domain owns action permissions and specific refinements. F14 owns migration-only criteria. No vendor/topology or speculative scale design.                                                                            |
-| F14 / [#270](https://github.com/blockoutproject/blockout/issues/270) | V1→V2 transition: allowed reset/reconstruction, Auth0/Pro preservation, subscriber reconciliation, preservation and certain reattachment of club-logo associations/files, old clients/sessions, shared-provider dependencies and go/no-go/abort/recovery requirements.                 | Uses F02/F05/F09/F13 rules; does not redefine normal account/Pro/history behavior or perform migration.                                                                                                                                                          |
+| F14 / [#270](https://github.com/blockoutproject/blockout/issues/270) | [V1 to V2 transition](../../specs/014-v1-v2-transition/spec.md): protected continuity and club logos, pre-login welcome, mandatory reauthentication, Pro recovery, automatic reconstruction, both-store availability and V2 recovery; FR-001–FR-040, A01–A36.                          | Domain rules remain authoritative. No manual approval of missing calendars, performed migration, permanent V1 coexistence or required functional return to V1 after opening.                                                                                     |
 
 ## Feature specification references
 
@@ -277,36 +277,36 @@ Additional approved capabilities: F09 owns manual Pro grants and verified assist
 
 ### Continuity questions and acceptance scenarios
 
-| Question | Primary owner or explicit split                                                                                     | Consumers / evidence                                             |
-| -------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Q01      | F05: existing associations, duplicate refusal, session/conflict rules                                               | F09 downstream rights; R02 journeys                              |
-| Q02      | F05: age evidence and unavailable-field behavior; F08: publication eligibility outcome                              | Auth0 principal creation time is already the selected age basis. |
-| Q03      | F09 FR-023–FR-026/FR-034, A22–A24: verified recovery and private audit                                              | F10 generic intake; F11 privacy; F12 common access               |
-| Q04      | F11 FR-021–FR-037, A16–A27: shared retention/privacy obligations; F05: deletion/provider/credential/retry lifecycle | F09 paid rights; F13 operational recovery                        |
-| Q05      | F09 FR-003–FR-011, A01–A11: access states, five-minute freshness and 72-hour outage bound                           | F11 advertising; F13 common quality targets                      |
-| Q06      | F09 FR-027–FR-030, A25–A29: owner-only RevenueCat grants                                                            | F12 common permissions                                           |
-| Q07      | F14: reconciliation, mappings, old-client dependencies and transition criteria                                      | F02/F05/F09/F13 supply normal behavior and requirements.         |
-| Q08      | R02: global design/specification correction                                                                         | F05/F06/F09 and other UI specs define required behavior first.   |
+| Question | Primary owner or explicit split                                                                                                             | Consumers / evidence                                                                   |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Q01      | F05: existing associations, duplicate refusal, session/conflict rules                                                                       | F09 downstream rights; R02 journeys                                                    |
+| Q02      | F05: age evidence and unavailable-field behavior; F08: publication eligibility outcome                                                      | Auth0 principal creation time is already the selected age basis.                       |
+| Q03      | F09 FR-023–FR-026/FR-034, A22–A24: verified recovery and private audit                                                                      | F10 generic intake; F11 privacy; F12 common access                                     |
+| Q04      | F11 FR-021–FR-037, A16–A27: shared retention/privacy obligations; F05: deletion/provider/credential/retry lifecycle                         | F09 paid rights; F13 operational recovery                                              |
+| Q05      | F09 FR-003–FR-011, A01–A11: access states, five-minute freshness and 72-hour outage bound                                                   | F11 advertising; F13 common quality targets                                            |
+| Q06      | F09 FR-027–FR-030, A25–A29: owner-only RevenueCat grants                                                                                    | F12 common permissions                                                                 |
+| Q07      | F14 FR-013–FR-039, A07–A35: complete reconciliation, protected associations, old-client dependencies, transition conditions and V2 recovery | F02/F05/F09/F13 own ongoing rules; no subscriber-sample proof or manual calendar gate. |
+| Q08      | R02: global design/specification correction                                                                                                 | F05/F06/F09 and other UI specs define required behavior first.                         |
 
-| Scenario | Lead specification                               | Supporting owners                   |
-| -------- | ------------------------------------------------ | ----------------------------------- |
-| S01      | F14: subscriber after reset                      | F05/F09                             |
-| S02      | F05: existing linked identities                  | F09                                 |
-| S03      | F05: refused new link / same-email duplicate     | F09 paid continuity                 |
-| S04      | F05: cancelled/failed login or profile bootstrap | F09 if rights are affected          |
-| S05      | F05: different emails/private relay              | No new linking                      |
-| S06      | F05: populated-account conflict                  | F09 recovery remains separate       |
-| S07      | F09: reinstall/device/platform change            | F05                                 |
-| S08      | F09: restoration transfer                        | F05/F11                             |
-| S09      | F09: other-store/lost-login recovery             | F05/F10                             |
-| S10      | F05: logout/switch isolation                     | F09 cached/in-flight customer state |
-| S11      | F05: delete/recreate                             | F09 restore; F11 privacy            |
-| S12      | F05: partial deletion/stale credentials          | F11/F13                             |
-| S13      | F09: billing/expiry/revocation                   | F11 ad eligibility                  |
-| S14      | F09: unknown rights/outage tolerance             | F11/F13                             |
-| S15      | F09: grant lifecycle                             | F12 common access                   |
-| S16      | F08: seven-day publication eligibility           | F05 Auth0 age evidence              |
-| S17      | F14: update/old clients/role action              | F05/F12/F13                         |
+| Scenario | Lead specification                                                                                                    | Supporting owners                                   |
+| -------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| S01      | F14 FR-006, FR-012–FR-019, A04/A07–A15: reauthenticated subscriber after reset                                        | F05/F09 continuity and restoration                  |
+| S02      | F05: existing linked identities                                                                                       | F09                                                 |
+| S03      | F05: refused new link / same-email duplicate                                                                          | F09 paid continuity                                 |
+| S04      | F05: cancelled/failed login or profile bootstrap                                                                      | F09 if rights are affected                          |
+| S05      | F05: different emails/private relay                                                                                   | No new linking                                      |
+| S06      | F05: populated-account conflict                                                                                       | F09 recovery remains separate                       |
+| S07      | F09: reinstall/device/platform change                                                                                 | F05                                                 |
+| S08      | F09: restoration transfer                                                                                             | F05/F11                                             |
+| S09      | F09: other-store/lost-login recovery                                                                                  | F05/F10                                             |
+| S10      | F05: logout/switch isolation                                                                                          | F09 cached/in-flight customer state                 |
+| S11      | F05: delete/recreate                                                                                                  | F09 restore; F11 privacy                            |
+| S12      | F05: partial deletion/stale credentials                                                                               | F11/F13                                             |
+| S13      | F09: billing/expiry/revocation                                                                                        | F11 ad eligibility                                  |
+| S14      | F09: unknown rights/outage tolerance                                                                                  | F11/F13                                             |
+| S15      | F09: grant lifecycle                                                                                                  | F12 common access                                   |
+| S16      | F08: seven-day publication eligibility                                                                                | F05 Auth0 age evidence                              |
+| S17      | F14 FR-006–FR-011, FR-028–FR-035, A01–A06/A25–A32: welcome, reauthentication, stores, role dependency and old clients | F05/F12/F13; no mobile-screen-only retirement proof |
 
 These references allocate the existing scenarios; they do not replace their full expected outcomes in the continuity assessment. Extend the map with actual `specs/<feature>/spec.md` requirement/scenario references during drafting. Every approved continuity rule in that assessment must also be traced, even if it spans several scenarios.
 
@@ -393,3 +393,23 @@ Acceptance requires the content and every selected image in the same authorized 
 Maintenance blocks ordinary mobile use and corresponding server operations, preserving legal information, assistance, operator authentication and authorized recovery commands. Check configuration at cold start or explicit retry, not on foreground return or periodic polling. On startup failure, an allowing configuration verified at most five minutes earlier may be used; this is not a session timer. Known restrictions remain until reliably lifted, and current server refusals prevail.
 
 Accepted short actions finish under their domain rules; acquisition controls remain separate. F07 entries continue while new sports pushes are suspended for everyone, including bypass operators. Lifting maintenance only permits still-eligible delivery before the original fifteen-minute deadline; expired notices are not replayed. Minimum versions have no operator bypass, maintenance is presented first, and the owner must have a qualified recovery path outside the mobile app. Store publication must be checked by the operator before raising a minimum, without automatic store monitoring. R02 receives configuration, permission, gate, retry, conflict and recovery states; F14 owns compatibility and retirement.
+
+### F14 — V1 to V2 transition and user welcome
+
+[F14](../../specs/014-v1-v2-transition/spec.md) defines the one-time business reset without treating it as voluntary account deletion. Auth0 principals, existing links, email ownership, age evidence, applicable Pro rights and indispensable continuity information remain protected. Historical personal business data are not promised to be restored. Club-reference-to-logo associations and the corresponding files require verifiable preservation before destruction; certain matches can be reapplied, unresolved matches remain preserved, and missing files do not satisfy the prerequisite. Other V1 presentation customizations are not added to this migration obligation.
+
+An installation identified as upgraded from V1 receives a short dismissible transition welcome before login, separate from ordinary onboarding. Personal use requires explicit Google/Apple reauthentication once per upgraded installation. The welcome explains the reset and Pro continuity, without a follow-selection step or campaign. Account resolution first attempts to retrieve applicable rights; “Restore purchases” requires a usable authenticated account and an explicit restoration action. Unknown rights, provider failures, missing purchases and uncertain outcomes remain distinct under F09, with verified assistance for cross-store or unresolved recovery. The help journey cannot replace preservation and complete subscriber reconciliation before reset.
+
+Reconstruction applies F01/F02 automatically to the current season and three completed seasons according to source availability, without manual approval of missing pools or an invented coverage percentage. Source gaps remain distinct from V2 defects. Initial imports generate no F07 announcement burst. Both iOS and Android must actually offer V2 before ordinary V1 access is retired. Old clients, sessions, role-assignment dependencies, collectors and delayed work cannot undermine V2 state; a forced-update screen alone is not retirement proof. After opening, recovery repairs or restores V2 under F13; a functional return to V1 is not required. No arbitrary downtime budget or destructive timeout is introduced.
+
+| Coverage                                                                    | Requirements                         | Scenarios         |
+| --------------------------------------------------------------------------- | ------------------------------------ | ----------------- |
+| Welcome, explicit login, ordinary onboarding and Pro-help entry             | FR-006–FR-012                        | A01–A06, A09–A11  |
+| Protected identity, rights, full reconciliation and changes through cutover | FR-002, FR-004, FR-013–FR-019        | A07–A15           |
+| Business reset, permissions, privacy and preserved club logos               | FR-001, FR-003–FR-005, FR-020–FR-023 | A15–A21           |
+| Automatic sporting reconstruction and no import announcements               | FR-024–FR-027                        | A22–A24           |
+| Both stores, old clients, shared dependencies and delayed work              | FR-028–FR-033                        | A25–A30           |
+| Blocking evidence, safe preparation failure and V2 recovery                 | FR-034–FR-039                        | A13, A20, A31–A35 |
+| Shared quality, visual handoff and evidence boundaries                      | FR-040                               | A36               |
+
+R02 receives the pre-login welcome, dismissal, mandatory login, reset explanations, Pro verification/restoration/assistance states and F12 restrictions. R01, R02 and #247 acceptance still precede technical planning. This coverage is documentary, not evidence of a performed export, provider test, migration, recovery exercise or approved design.
