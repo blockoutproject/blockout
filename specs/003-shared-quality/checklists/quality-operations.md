@@ -14,9 +14,9 @@
 
 ## Complétude et mesurabilité
 
-- [ ] CHK001 Les utilisateurs réguliers, ouvertures sur un week-end, utilisateurs simultanés et actions par seconde sont-ils distingués, sans transformer les déclarations V1 en mesures ? [Clarté, Spécification §FR-001, §Hypothèses]
-- [ ] CHK002 Les conditions de charge précisent-elles durée, parcours, diversité des données, plateformes, réseau, caches et travaux automatiques pour rendre les résultats reproductibles ? [Mesurabilité, Spécification §FR-001–FR-002, §A01]
-- [ ] CHK003 Le seuil de deux secondes définit-il début, contenu utile, proportion par famille, traitement des erreurs et attentes, et exclusions de connexion/paiement/documents ? [Clarté, Spécification §FR-003, §SC-001]
+- [ ] CHK001 Les utilisateurs réguliers, ouvertures sur un week-end, utilisateurs simultanés, actions et requêtes par seconde sont-ils distingués, y compris lorsque plusieurs requêtes contribuent à une action, sans transformer les déclarations V1 en mesures ? [Clarté, Spécification §FR-001, §Hypothèses]
+- [ ] CHK002 Les conditions de charge précisent-elles durée, client d’essai, familles d’actions et de requêtes, diversité des données, réseau, caches et travaux automatiques pour rendre les résultats reproductibles ? [Mesurabilité, Spécification §FR-001–FR-002, §A01]
+- [ ] CHK003 Le seuil de deux secondes définit-il l’émission de la requête et la réception complète, la proportion de réponses correctes par famille d’API, les listes vides valides, les erreurs et requêtes non terminées conservées dans le décompte, et les exclusions de connexion/paiement/documents, sans promesse de durée d’affichage mobile ? [Clarté, Spécification §FR-003, §A01, §SC-001]
 - [ ] CHK004 Le délai d’une minute commence-t-il à l’acceptation sportive et couvre-t-il les vues dérivées sans imposer un rafraîchissement continu ? [Clarté, Spécification §FR-004–FR-005, §A02]
 - [ ] CHK005 L’objectif de disponibilité définit-il parcours, période, maintenance, pannes externes, absence de mesure et absence de double comptage ? [Mesurabilité, Spécification §FR-006–FR-007, §A04]
 

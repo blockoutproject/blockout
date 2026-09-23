@@ -33,6 +33,8 @@
 
 ## Notes
 
+- FR-023 applique les restrictions de confidentialité aux trois modes des coordonnées de clubs définis par F02 ; A16–A19 et F02 A36 couvrent correction, collecte et restauration sans republication interdite.
+
 - Cette validation Specify/Clarify concerne la rédaction, pas un comportement livré, une mesure de production ou une certification juridique. FR-001–FR-037 sont couvertes par A01–A27 et SC-001–SC-008.
 - La revue de clarification couvre périmètre, rôles, entités, transitions, erreurs, dépendances, confidentialité, terminologie et critères de résultat. Les réponses déjà approuvées sont intégrées aux exigences sans nouveau journal de clarification.
 - Le compteur commun, l’échec sans remise à zéro, les parcours exclus, les droits inconnus, l’absence d’âge et de personnalisation, l’édition légale existante et le traitement des restrictions ont des résultats distincts. Les délais techniques de reprise ne sont pas copiés de la V1 ; une issue de reprise sans attente indéfinie est exigée.

@@ -41,6 +41,8 @@
 
 ## Notes
 
+- FR-026 utilise la localité effective définie par F02 après corrections et restrictions ; A19–A22 restent les scénarios de collecte de fiches et de géocodage, complétés par F02 A36–A38 pour les changements administratifs.
+
 - Les calendriers vides valides ne constituent pas des incidents. A13/FR-020 définissent les deux confirmations planifiées de la même autorité, leurs interruptions et l’absence d’effet des observations ou échecs indépendants secondaires ; A29/FR-041 conservent séparément le seuil de trois échecs techniques. A34–A36/FR-047–FR-048 préservent les données autorisées face aux vides exceptionnels répétés d’une saison clôturée et aux archives inexploitables ; les corrections sur calendrier historique complet non vide restent possibles. F02 possède le masquage et la conservation interne.
 
 - Il s’agit de la checklist de qualité intégrée à Specify/Clarify. Les éléments cochés concernent les exigences écrites, pas un comportement logiciel livré, une acceptation en production ou une autorisation de commencer l’implémentation.

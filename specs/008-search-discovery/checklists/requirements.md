@@ -33,6 +33,8 @@
 
 ## Notes
 
+- FR-006/FR-021/FR-026 et A06 utilisent la ville effective F02 pour rechercher et distinguer clubs et équipes, sans repli vers une ville source remplacée, volontairement absente ou restreinte. Les champs de nom et leurs alias restent distincts.
+
 - La revue Specify/Clarify porte sur les exigences : FR-001–FR-030 sont reliées à A01–A29 et SC-001–SC-007. Elle ne démontre aucune implémentation ou qualification mobile.
 - Les décisions sont intégrées directement : recherche exhaustive, saison disponible la plus récente, exemples sans choix explicite, filtres mémorisés par onglet, fautes tolérées, noms publics/sources/alias vérifiés, tri alphabétique sans texte et aucun total obligatoire.
 - La revue de couverture inclut rôles, identité, transitions, chargements, erreurs, reprise, concurrence des réponses, confidentialité, accessibilité et objectifs communs. Les interfaces techniques et la présentation Figma appartiennent aux étapes ultérieures.

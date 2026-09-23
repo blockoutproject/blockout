@@ -50,7 +50,7 @@
 ## Couverture des scénarios et de la reprise
 
 - [ ] CHK017 L’échec d’une page club et un géocodage réussi mais vide ou ambigu sont-ils distingués d’un échec technique, avec des conséquences explicites sur les nouvelles tentatives ? [Couverture, Spécification §FR-024–FR-029, §A19–A22]
-- [ ] CHK018 L’exigence de géocodage manuel inclut-elle les adresses inchangées non résolues tout en excluant le recalcul inutile des résultats valides ? [Couverture, Spécification §FR-027–FR-028, §A21]
+- [ ] CHK018 Le géocodage suit-il la localité effective F02 après corrections et restrictions, et sa relance manuelle inclut-elle les adresses inchangées non résolues tout en excluant le recalcul inutile des résultats valides ? [Couverture, Spécification §FR-026–FR-028, §A20–A21 ; F02 §A36–A38]
 - [ ] CHK019 Les séquences distinguent-elles le seuil technique de trois échecs du seuil de deux calendriers vides, les tentatives HTTP, relances manuelles, cycles non exécutés et le rétablissement réel d’un incident technique ? [Couverture, Spécification §FR-020, §FR-041, §FR-043, §A13, §A29–A30]
 - [ ] CHK020 Les seuils d’incident immédiat pour anomalie structurelle, à trois cycles et à 24 heures sont-ils distincts et cohérents avec la cadence normale des sources ? [Couverture, Spécification §FR-040–FR-042]
 - [ ] CHK021 Le rétablissement réel est-il défini par des éléments exploitables du périmètre concerné, en excluant pause, exclusion, clôture de saison et succès sans rapport ? [Couverture, Spécification §FR-043, §A30]
