@@ -9,7 +9,8 @@ Repository instructions and the accepted issue identify the canonical design fil
 
 ## Design Authority
 
-- An accepted feature specification owns future observable product and design intent.
+- Accepted specifications own future observable product and design intent, for a whole application release or an evolution.
+- An approved interactive prototype demonstrates scoped navigation and behavior; its exploratory styling does not override the designated Figma visual authority.
 - The designated UI library owns approved reusable variables, styles, foundations, icons, and components.
 - The designated product design file owns approved product patterns and representative screen states composed from published designated UI library instances.
 - Repository design tokens are controlled, versioned implementation projections of approved designated UI library values. They are not a separately maintained visual authority.
@@ -118,7 +119,9 @@ Before creating a page, section, screen, or pattern:
 
 ## Planning gate and scope
 
-For material UI work, resolve accepted product behavior first, then obtain explicit approval of the corresponding Figma design before the technical implementation plan is finalized. Read-only feasibility work may resolve design prerequisites before approval; it does not certify an unapproved design or authorize product implementation. Use the applicable official Spec Kit and Figma workflows rather than reproducing their mechanics here. A deliberately approved standalone prototype may precede Figma as exploration; it never removes the Figma gate.
+For material UI work, resolve accepted product behavior first, then obtain explicit approval of the corresponding Figma design before the technical implementation plan is finalized. Read-only feasibility work may resolve design prerequisites before approval; it does not certify an unapproved design or authorize product implementation. Use the applicable official Spec Kit and Figma workflows rather than reproducing their mechanics here.
+
+When following a prototype-first workflow, require explicit approval of the complete selected prototype scope before canonical translation, not just approval of one screen or lot. Use the design-workflow skill when available for decomposition and stage transitions. Reuse approved visual identity or settle the remaining art direction, then build or amend the designated UI Library from validated needs before composing Product Design patterns and complete screens with its published instances. Preserve the prototype's approved navigation, states and meaningful effects; reconcile specification, prototype and Figma differences explicitly before production. This sequence applies to a whole V1 or an evolution and its affected journeys; it does not force unrelated library maintenance through a new prototype.
 
 A design issue must identify its authoritative specification/decision, target library/product file, scoped journeys or components, acceptance coverage and required evidence. Do not invent design authority from current screenshots or another product. If a required library capability is absent, report the conflict and obtain a design decision rather than detaching or silently drawing a replacement.
 

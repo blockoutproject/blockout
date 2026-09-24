@@ -17,6 +17,7 @@
 - REST, generated DTOs/clients/enums or response validation: `openapi-codegen`; Liquibase changes only: `liquibase-schema`.
 - React feature/state/form/effect boundaries: `react-feature-architecture`, plus the owning platform and testing skills.
 - Operational logs: `application-logging`; Dockerfile/Compose edits: `docker-conventions`. Identity, session and authorization work must read the local architecture identified below.
+- SDD design workflow and dependency-based prototype planning: `design-workflow`; explicitly requested standalone prototypes: `design-prototyping`.
 - Design authority and evidence: `figma-design-governance`, plus the available Figma tool skill for the requested operation.
 - Nx: select the relevant official workspace, generation, task, linking, plugin, import or CI skill. Do not provision missing services implicitly.
 
