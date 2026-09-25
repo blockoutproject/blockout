@@ -31,7 +31,7 @@
 - [ ] CHK013 Les informations commerciales reposent-elles sur l’offre réelle, sans prix, essai, niveau ou partage familial inventé ? [Exactitude, FR-012–FR-013, A12]
 - [ ] CHK014 Les résultats annulé, différé, échoué, incertain et payé sont-ils suffisamment distincts pour éviter une nouvelle facturation involontaire ? [Couverture, FR-014, A13–A15]
 - [ ] CHK015 Un paiement confirmé avec activation indisponible conserve-t-il une issue honnête et une reprise sans invitation à payer à nouveau ? [Couverture exceptionnelle, FR-014–FR-015, A14]
-- [ ] CHK016 Le message d’activation et l’entrée du profil avant les choix de confidentialité expriment-ils uniquement l’absence de publicité, tout en préservant restauration et gestion et en maintenant la revalidation visuelle R02 ? [Mesurabilité, FR-015–FR-017, A15–A17]
+- [ ] CHK016 Does the profile entry open a provider-managed, dismissible Pro sheet rather than an app page, while the ad-free-only message, independent restore, store management and R02 review remain intact? [Measurability, FR-015–FR-017, A15–A17]
 - [ ] CHK017 La gestion de l’abonnement reste-t-elle attribuée au store d’origine, distincte du cadeau et compréhensible depuis l’autre plateforme ? [Clarté, FR-017–FR-018, A16]
 
 ## Restauration et récupération
@@ -56,6 +56,8 @@
 - [ ] CHK032 La confidentialité des preuves/traces, la suppression et les restaurations de sauvegarde respectent-elles F11/F13 sans rétention illimitée ni restauration d’un droit révoqué ? [Cohérence, FR-034, A23, A29]
 
 - [ ] CHK033 À 72 heures moins une seconde, exactement à 72 heures et après, la transition de statut est-elle distinguée du maintien de l’absence de publicité, sans restriction sportive ni dette publicitaire après confirmation fiable du statut gratuit ? [Bornes, FR-004, FR-009, A07, SC-002–SC-003]
+- [ ] CHK034 Does premium styling distinguish active/maintained from unknown/free/expired rights across light/dark themes and account switches without recoloring match cards or division contexts? [Design coherence, FR-005, FR-035, A30, SC-009]
+- [ ] CHK035 Are provider presentation, restoration and management qualified separately from Blockout entitlement/advertising ownership, with distinct Pro/privacy icons and no claim that a mock sheet proves SDK behavior? [Provider boundary, FR-017, A16, SC-009]
 
 ## Notes
 
