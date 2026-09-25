@@ -49,7 +49,7 @@
 - [ ] CHK028 Chargement, absence réelle, erreur et données partielles ont-ils des résultats définis sans perte des informations encore autorisées ? [Complétude, FR-029, FR-031, A27]
 - [ ] CHK029 Les déclencheurs d’actualisation et la propagation F13 sont-ils explicites sans promesse de publication fournisseur ou score continu ? [Mesurabilité, FR-030, A28, A33]
 - [ ] CHK030 Les changements de contexte et restrictions courantes prévalent-ils sur les réponses retardées et anciennes données ? [Cohérence, FR-018, FR-031, A29, A31]
-- [ ] CHK031 Are all public sporting consultations, including pool maps and complete club calendars, free for guests and all entitlement states without Pro gates, verification waits or upsells, while preserving F02 visibility, F05 permissions and F11 advertising rules? [Consistency, FR-001, FR-031–FR-033, A30–A31]
+- [ ] CHK031 Toutes les consultations sportives publiques, dont les cartes des poules et les calendriers complets des clubs, sont-elles gratuites pour les invités et tous les états de droits, sans blocage Pro, attente de vérification ni invitation à acheter, tout en préservant la visibilité F02, les permissions F05 et les règles publicitaires F11 ? [Cohérence, FR-001, FR-031–FR-033, A30–A31]
 - [ ] CHK032 L’accessibilité, la traçabilité V1/V2 et les états requis pour R02 sont-ils définis sans faire passer une preuve locale pour une qualification complète ? [Vérifiabilité, FR-034–FR-036, A32–A34]
 
 ## Notes
