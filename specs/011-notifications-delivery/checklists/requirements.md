@@ -33,11 +33,8 @@
 
 ## Notes
 
-- La validation rédactionnelle porte sur FR-001–FR-042, A01–A43 et SC-001–SC-006, avec une couverture explicite des décisions approuvées : découverte déjà terminée silencieuse, résultat enrichi, rediffusion tardive, lecture unique, badges et reprises de 15 minutes.
-- Les cases évaluent uniquement la qualité des exigences. Elles ne certifient ni implémentation, ni réception de push, ni migration, ni conception approuvée.
-- Les preuves V1 sont isolées des résultats V2 attendus ; aucune API, solution de stockage ou architecture n’est prescrite.
-- La [checklist de relecture](notifications-delivery.md) appartient au relecteur et reste non cochée. R01/R02 et l’acceptation globale sous #247 précèdent la planification technique.
-
-- La passe Specify/Clarify ne relève aucune décision fonctionnelle critique manquante : périmètre, identités, transitions, parcours, erreurs, qualité et dépendances sont définis. Les choix techniques et visuels restent réservés à leurs phases ; les 35 questions de relecture demeurent non cochées.
-
-- FR-024–FR-026, A26–A28/A37 et SC-004 distinguent la suspension des push en maintenance F12 de la création des entrées, sans exception opérateur ni extension des quinze minutes. Cette validation reste documentaire ; les cases du relecteur sont inchangées.
+- The writing-quality review covers FR-001–FR-046, A01–A52 and SC-001–SC-008, including daily 29–30-day retention, removal of manual deletion, minimal anti-duplicate facts, offline cleanup, protected restores and interrupted purge.
+- The five owner clarification answers are recorded in the specification. Scope, identities, lifecycle, journeys, failures, measurable outcomes and cross-domain responsibilities are explicit. Technical architecture and visual approval remain outside this specification revision.
+- These checks assess requirements quality only; they certify neither software behavior, push receipt, migration, physical purge nor approved design. Historical V1 evidence is distinct from target V2 behavior.
+- The [reviewer checklist](notifications-delivery.md) contains 44 unchecked questions. Global corpus acceptance and affected R02 design revalidation precede technical planning.
+- The original 15-minute push retry window, maintenance delivery suspension, result/live/replay triggers and their announcement limits remain distinct from inbox retention. No storage schema, API or implementation stack is selected.
