@@ -1,6 +1,6 @@
 # Spécification fonctionnelle : abonnements et avantages Pro
 
-**Branche de fonctionnalité** : `codex/262-pro-ad-free`
+**Branche de fonctionnalité** : `feature/262-pro-ad-free`
 
 **Créée le** : 2026-09-18
 
