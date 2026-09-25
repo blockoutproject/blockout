@@ -10,7 +10,7 @@
 
 ## Périmètre et états
 
-- [ ] CHK001 Les trois bénéfices sont-ils exhaustifs, sans restriction payante ajoutée implicitement aux autres consultations ? [Complétude, FR-001, A01]
+- [ ] CHK001 Is Blockout-served ad exemption the sole benefit, excluding external video ads, with pool maps and both club calendars free for guests/free/paid/gifted/unknown/expired rights and unchanged personal/admin permissions? [Completeness, FR-001, A01–A02, SC-001]
 - [ ] CHK002 Les droits indépendants et leur combinaison sont-ils définis sans confondre fin d’un droit et perte de tout accès Pro ? [Cohérence, FR-002, A03]
 - [ ] CHK003 Gratuit confirmé, droits inconnus, tolérance et paiement en attente ont-ils chacun un résultat identifiable ? [Clarté, FR-003–FR-004, tableau des états]
 - [ ] CHK004 L’absence de publicité et d’incitation au rachat en état inconnu est-elle cohérente avec F11, y compris à la fin de la tolérance ? [Cohérence, FR-004, A02, A07]
@@ -18,7 +18,7 @@
 
 ## Délais, preuve et panne
 
-- [ ] CHK006 La fenêtre normale de cinq minutes précise-t-elle son point de départ, les conditions de disponibilité et les réévaluations au premier plan ou à l’accès Pro ? [Mesurabilité, FR-007, A06]
+- [ ] CHK006 Does the five-minute freshness rule cover app opening, foregrounding, Pro information/management and ad eligibility without waiting on sport consultation? [Measurability, FR-007, A06]
 - [ ] CHK007 La vérification immédiate après achat/restauration est-elle distincte de la simple réception d’une réponse ou lecture de cache ? [Clarté, FR-008, A08, A14, A18]
 - [ ] CHK008 La borne exacte de 72 heures part-elle de la dernière confirmation fiable, sans remise à zéro par relance, reprise échouée ou changement d’heure locale ? [Mesurabilité, FR-008–FR-009, A07–A08, cas limites]
 - [ ] CHK009 Les fins certaines, révocations, transferts, échéances de cadeaux et suppressions prévalent-ils explicitement sur cette tolérance ? [Couverture négative, FR-009–FR-010, A09–A10]
@@ -31,7 +31,7 @@
 - [ ] CHK013 Les informations commerciales reposent-elles sur l’offre réelle, sans prix, essai, niveau ou partage familial inventé ? [Exactitude, FR-012–FR-013, A12]
 - [ ] CHK014 Les résultats annulé, différé, échoué, incertain et payé sont-ils suffisamment distincts pour éviter une nouvelle facturation involontaire ? [Couverture, FR-014, A13–A15]
 - [ ] CHK015 Un paiement confirmé avec activation indisponible conserve-t-il une issue honnête et une reprise sans invitation à payer à nouveau ? [Couverture exceptionnelle, FR-014–FR-015, A14]
-- [ ] CHK016 L’activation sans redémarrage et les entrées du profil sont-elles vérifiables sans imposer le placement visuel réservé à R02 ? [Mesurabilité, FR-015–FR-017, A15–A17]
+- [ ] CHK016 Do activation copy and the profile entry before privacy choices express only ad exemption, with restore/management preserved and R02 visual revalidation still required? [Measurability, FR-015–FR-017, A15–A17]
 - [ ] CHK017 La gestion de l’abonnement reste-t-elle attribuée au store d’origine, distincte du cadeau et compréhensible depuis l’autre plateforme ? [Clarté, FR-017–FR-018, A16]
 
 ## Restauration et récupération
@@ -54,6 +54,8 @@
 - [ ] CHK030 Les exigences distinguent-elles observations V1 et qualification future des réglages, identités et effets réels, sans que l’aide de restauration F14 remplace les preuves préalables de continuité ? [Traçabilité, FR-032, A19, A21, éléments probants]
 - [ ] CHK031 L’accessibilité, l’assistance et les contenus publics restent-ils disponibles dans les états dégradés selon F05/F13 ? [Cohérence transversale, FR-033, A02, SC-008]
 - [ ] CHK032 La confidentialité des preuves/traces, la suppression et les restaurations de sauvegarde respectent-elles F11/F13 sans rétention illimitée ni restauration d’un droit révoqué ? [Cohérence, FR-034, A23, A29]
+
+- [ ] CHK033 At 72 hours minus one second, exactly 72 hours and afterwards, is the status transition distinguished from continued ad suppression, with no sporting restriction or advertising debt after a reliable free result? [Boundaries, FR-004, FR-009, A07, SC-002–SC-003]
 
 ## Notes
 

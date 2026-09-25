@@ -200,7 +200,7 @@ FR-017–FR-025 and A13–A22 distinguish identity authentication, profile readi
 
 ### Pro subscriptions and grants specification references
 
-[F09](../../specs/006-pro-subscriptions/spec.md) covers V1-16, entitlement G12 and Q03/Q05/Q06 through FR-001–FR-034 and A01–A29. It preserves the three benefits, requires authentication before purchase/restore, distinguishes confirmed free from unknown rights, and separates payment outcome from entitlement activation. Profile access includes Pro information, restoration, store management and assistance.
+[F09](../../specs/006-pro-subscriptions/spec.md) covers V1-16, entitlement G12 and Q03/Q05/Q06 through FR-001–FR-034 and A01–A29. Its sole V2 Pro benefit is no advertising served by Blockout, excluding external video-service ads. Pool maps and complete club calendars are free for all users, guests included, unlike the historical V1 gates above. It preserves offers/subscriptions/gifts, requires authentication before purchase/restore, distinguishes confirmed free from unknown rights, and separates payment outcome from entitlement activation. Profile access includes Pro information, restoration, store management and assistance.
 
 FR-007–FR-011 and A06–A11 define five-minute normal verification, immediate verification after purchase/restore and at most 72 hours of outage tolerance from the last reliable active confirmation. Known restrictions and explicit grant expiry prevail; unknown rights after the bound leave public content accessible without advertisements or repurchase prompts. Store billing grace and F13 propagation are distinct.
 

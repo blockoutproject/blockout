@@ -23,7 +23,7 @@
 
 ## Pro, audience et choix
 
-- [ ] CHK007 Les droits Pro payés/manuels, gratuit, invité et inconnu sans preuve exploitable ont-ils chacun un résultat publicitaire distinct ? [Complétude, Spécification §FR-007–FR-008, §A05–A07]
+- [ ] CHK007 Do paid/gifted, guest/free and unknown states correctly govern only Blockout advertising, not sporting access, with external video ads excluded and no ads after the 72-hour status transition until reliable free evidence? [Completeness, FR-007–FR-008, A05–A07, F09 A07]
 - [ ] CHK008 L’absence de délai transformant un statut inconnu en gratuit et l’attribution de la validité des preuves à F09 sont-elles explicites ? [Cohérence, Spécification §FR-007, §Dépendances entre périmètres]
 - [ ] CHK009 La préparation parallèle, la réutilisation des choix et l’évitement de sollicitations inutiles pour un Pro connu sont-ils compatibles avec le contrôle avant présentation ? [Cohérence, Spécification §FR-008–FR-009, §A08]
 - [ ] CHK010 Le public 13+, l’absence de collecte d’âge et de personnalisation pour tous sont-ils distingués de l’ancienneté du compte et des réglages de production encore à qualifier ? [Clarté, Spécification §FR-010–FR-011, §A09, §A27]
