@@ -33,7 +33,7 @@
 
 ## Notes
 
-- Cette validation Specify/Clarify porte sur les exigences, pas sur une implémentation, une approbation humaine ou un essai fournisseur. FR-001–FR-034 sont reliées à A01–A29 et SC-001–SC-008.
+- This Specify/Clarify validation covers requirements, not implementation, human design approval or provider testing. FR-001–FR-035 trace to A01–A30 and SC-001–SC-009; the RevenueCat sheet and Pro theme still require R02 review and provider qualification.
 - Les décisions sont intégrées directement : fraîcheur normale de cinq minutes, tolérance de panne de 72 heures depuis la dernière preuve fiable, propriétaire seul dans RevenueCat pour les interventions manuelles. Aucun historique de correction n’est ajouté.
 - Le choix de l’outil opérateur et les contraintes des stores délimitent le produit ; ils ne sélectionnent aucun contrat, schéma ni mécanisme de validation côté application ou serveur.
 - F05 porte l’identité et la suppression, F11 la publicité et la confidentialité, F13 la qualité et la propagation, F14 le rapprochement historique et la transition. Les délais de notification store restent distincts des objectifs Blockout.
