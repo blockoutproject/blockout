@@ -1,0 +1,39 @@
+# Dependencies, caches and generated outputs
+node_modules/
+.nx/
+dist/
+target/
+coverage/
+.expo/
+.venv/
+.ruff_cache/
+.mypy_cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+**/generated/
+
+# Local environment and signing material
+.env
+.env.*
+!.env.example
+.envrc
+.direnv/
+*.jks
+*.keystore
+*.key
+*.pem
+*.p8
+*.p12
+*.mobileprovision
+
+# Private local runtime data
+logs/
+local/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.iml
