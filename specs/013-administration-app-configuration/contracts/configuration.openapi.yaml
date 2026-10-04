@@ -1,0 +1,829 @@
+{
+  "openapi": "3.0.3",
+  "info":
+    {
+      "title": "F12 administration and access configuration",
+      "version": "1.0.0",
+      "description": "Documentary source. Adopt under contracts/public/configuration using F13 shared Problem and generator tooling. No runtime or generated client is delivered. Companion contracts define cross-field validation and access semantics.",
+    },
+  "tags":
+    [
+      {
+        "name": "Access configuration",
+        "description": "Public access snapshot and authorized resource management.",
+      },
+    ],
+  "security": [{ "ConfigurationAccountBearer": [] }],
+  "paths":
+    {
+      "/api/v1/access-configuration":
+        {
+          "get":
+            {
+              "operationId": "readAccessConfiguration",
+              "tags": ["Access configuration"],
+              "summary": "readAccessConfiguration",
+              "description": "public. Maintenance-exempt. Native minimum restrictions remain a mobile navigation rule, not a trustworthy HTTP version assertion.",
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "Current validated persisted state (including unchanged revision for a valid no-op).",
+                      "headers":
+                        {
+                          "Cache-Control":
+                            {
+                              "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                              "schema":
+                                { "type": "string", "enum": ["no-store"] },
+                            },
+                        },
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AccessConfiguration",
+                                },
+                            },
+                        },
+                    },
+                  "500":
+                    { "$ref": "#/components/responses/ConfigurationError500" },
+                  "503":
+                    { "$ref": "#/components/responses/ConfigurationError503" },
+                },
+              "security": [],
+            },
+        },
+      "/api/v1/me/capabilities":
+        {
+          "get":
+            {
+              "operationId": "readCurrentCapabilities",
+              "tags": ["Access configuration"],
+              "summary": "readCurrentCapabilities",
+              "description": "Requires current usable F05 account. Maintenance-exempt. Native minimum restrictions remain a mobile navigation rule, not a trustworthy HTTP version assertion.",
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "Current validated persisted state (including unchanged revision for a valid no-op).",
+                      "headers":
+                        {
+                          "Cache-Control":
+                            {
+                              "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                              "schema":
+                                { "type": "string", "enum": ["no-store"] },
+                            },
+                        },
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/Capabilities" },
+                            },
+                        },
+                    },
+                  "401":
+                    { "$ref": "#/components/responses/ConfigurationError401" },
+                  "403":
+                    { "$ref": "#/components/responses/ConfigurationError403" },
+                  "500":
+                    { "$ref": "#/components/responses/ConfigurationError500" },
+                  "503":
+                    { "$ref": "#/components/responses/ConfigurationError503" },
+                },
+            },
+        },
+      "/api/v1/admin/configuration/maintenance":
+        {
+          "get":
+            {
+              "operationId": "readMaintenanceConfiguration",
+              "tags": ["Access configuration"],
+              "summary": "readMaintenanceConfiguration",
+              "description": "Requires configuration.maintenance.manage. Maintenance-exempt. Native minimum restrictions remain a mobile navigation rule, not a trustworthy HTTP version assertion.",
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "Current validated persisted state (including unchanged revision for a valid no-op).",
+                      "headers":
+                        {
+                          "Cache-Control":
+                            {
+                              "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                              "schema":
+                                { "type": "string", "enum": ["no-store"] },
+                            },
+                        },
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/Maintenance" },
+                            },
+                        },
+                    },
+                  "401":
+                    { "$ref": "#/components/responses/ConfigurationError401" },
+                  "403":
+                    { "$ref": "#/components/responses/ConfigurationError403" },
+                  "500":
+                    { "$ref": "#/components/responses/ConfigurationError500" },
+                  "503":
+                    { "$ref": "#/components/responses/ConfigurationError503" },
+                },
+            },
+        },
+      "/api/v1/admin/configuration/maintenance/content":
+        {
+          "patch":
+            {
+              "operationId": "updateMaintenanceContent",
+              "tags": ["Access configuration"],
+              "summary": "updateMaintenanceContent",
+              "description": "Requires configuration.maintenance.manage. Maintenance-exempt. Native minimum restrictions remain a mobile navigation rule, not a trustworthy HTTP version assertion.",
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "Current validated persisted state (including unchanged revision for a valid no-op).",
+                      "headers":
+                        {
+                          "Cache-Control":
+                            {
+                              "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                              "schema":
+                                { "type": "string", "enum": ["no-store"] },
+                            },
+                        },
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/Maintenance" },
+                            },
+                        },
+                    },
+                  "400":
+                    { "$ref": "#/components/responses/ConfigurationError400" },
+                  "409":
+                    { "$ref": "#/components/responses/ConfigurationError409" },
+                  "401":
+                    { "$ref": "#/components/responses/ConfigurationError401" },
+                  "403":
+                    { "$ref": "#/components/responses/ConfigurationError403" },
+                  "500":
+                    { "$ref": "#/components/responses/ConfigurationError500" },
+                  "503":
+                    { "$ref": "#/components/responses/ConfigurationError503" },
+                },
+              "requestBody":
+                {
+                  "required": true,
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/MaintenanceContentPatch",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/configuration/maintenance/state":
+        {
+          "put":
+            {
+              "operationId": "setMaintenanceState",
+              "tags": ["Access configuration"],
+              "summary": "setMaintenanceState",
+              "description": "Requires configuration.maintenance.manage. Maintenance-exempt. Native minimum restrictions remain a mobile navigation rule, not a trustworthy HTTP version assertion.",
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "Current validated persisted state (including unchanged revision for a valid no-op).",
+                      "headers":
+                        {
+                          "Cache-Control":
+                            {
+                              "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                              "schema":
+                                { "type": "string", "enum": ["no-store"] },
+                            },
+                        },
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/Maintenance" },
+                            },
+                        },
+                    },
+                  "400":
+                    { "$ref": "#/components/responses/ConfigurationError400" },
+                  "409":
+                    { "$ref": "#/components/responses/ConfigurationError409" },
+                  "401":
+                    { "$ref": "#/components/responses/ConfigurationError401" },
+                  "403":
+                    { "$ref": "#/components/responses/ConfigurationError403" },
+                  "500":
+                    { "$ref": "#/components/responses/ConfigurationError500" },
+                  "503":
+                    { "$ref": "#/components/responses/ConfigurationError503" },
+                },
+              "requestBody":
+                {
+                  "required": true,
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/MaintenanceStateCommand",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/configuration/versions":
+        {
+          "get":
+            {
+              "operationId": "readVersionConfiguration",
+              "tags": ["Access configuration"],
+              "summary": "readVersionConfiguration",
+              "description": "Requires configuration.versions.manage. Maintenance-exempt. Native minimum restrictions remain a mobile navigation rule, not a trustworthy HTTP version assertion.",
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "Current validated persisted state (including unchanged revision for a valid no-op).",
+                      "headers":
+                        {
+                          "Cache-Control":
+                            {
+                              "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                              "schema":
+                                { "type": "string", "enum": ["no-store"] },
+                            },
+                        },
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/Versions" },
+                            },
+                        },
+                    },
+                  "401":
+                    { "$ref": "#/components/responses/ConfigurationError401" },
+                  "403":
+                    { "$ref": "#/components/responses/ConfigurationError403" },
+                  "500":
+                    { "$ref": "#/components/responses/ConfigurationError500" },
+                  "503":
+                    { "$ref": "#/components/responses/ConfigurationError503" },
+                },
+            },
+          "patch":
+            {
+              "operationId": "updateVersionConfiguration",
+              "tags": ["Access configuration"],
+              "summary": "updateVersionConfiguration",
+              "description": "Requires configuration.versions.manage. Maintenance-exempt. Native minimum restrictions remain a mobile navigation rule, not a trustworthy HTTP version assertion.",
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "Current validated persisted state (including unchanged revision for a valid no-op).",
+                      "headers":
+                        {
+                          "Cache-Control":
+                            {
+                              "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                              "schema":
+                                { "type": "string", "enum": ["no-store"] },
+                            },
+                        },
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/Versions" },
+                            },
+                        },
+                    },
+                  "400":
+                    { "$ref": "#/components/responses/ConfigurationError400" },
+                  "409":
+                    { "$ref": "#/components/responses/ConfigurationError409" },
+                  "401":
+                    { "$ref": "#/components/responses/ConfigurationError401" },
+                  "403":
+                    { "$ref": "#/components/responses/ConfigurationError403" },
+                  "500":
+                    { "$ref": "#/components/responses/ConfigurationError500" },
+                  "503":
+                    { "$ref": "#/components/responses/ConfigurationError503" },
+                },
+              "requestBody":
+                {
+                  "required": true,
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            { "$ref": "#/components/schemas/VersionsPatch" },
+                        },
+                    },
+                },
+            },
+        },
+    },
+  "components":
+    {
+      "securitySchemes":
+        {
+          "ConfigurationAccountBearer":
+            { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+        },
+      "parameters":
+        {
+          "MaintenanceBypass":
+            {
+              "name": "X-Blockout-Maintenance-Bypass",
+              "in": "header",
+              "required": false,
+              "description": "Explicit account-bound memory choice on concerned ordinary operations. Server also requires current bypass permission. Never bypasses a minimum or other domain permission.",
+              "schema": { "type": "string", "enum": ["true"] },
+            },
+        },
+      "schemas":
+        {
+          "Revision":
+            {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Exact JavaScript-safe resource revision. Increment only for effective committed change.",
+            },
+          "Maintenance":
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties":
+                {
+                  "active": { "type": "boolean" },
+                  "message":
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4000,
+                      "x-maxUtf16Length": 4000,
+                      "description": "Nonblank; at most 4000 UTF-16 code units. maxLength alone is insufficient for supplementary characters; apply semantic validation.",
+                    },
+                  "imageUrl":
+                    {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uri",
+                      "maxLength": 2048,
+                      "x-maxUtf16Length": 2048,
+                      "description": "Null removes. Absolute HTTPS, nonempty host, no userinfo, controls or surrounding whitespace. Store fields additionally require the F14-qualified platform listing identity.",
+                    },
+                  "revision": { "$ref": "#/components/schemas/Revision" },
+                },
+              "required": ["active", "message", "imageUrl", "revision"],
+            },
+          "PlatformVersions":
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties":
+                {
+                  "minimumVersion":
+                    {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "maxLength": 32,
+                      "pattern": "^[0-9]+(\\.[0-9]+){0,2}$",
+                      "description": "Null removes minimum. One to three ASCII numeric components, each 0..2147483647; no whitespace/suffix. Semantic bounds required; responses normalize to three components.",
+                    },
+                  "storeUrl":
+                    {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uri",
+                      "maxLength": 2048,
+                      "x-maxUtf16Length": 2048,
+                      "description": "Null removes. Absolute HTTPS, nonempty host, no userinfo, controls or surrounding whitespace. Store fields additionally require the F14-qualified platform listing identity.",
+                    },
+                },
+              "required": ["minimumVersion", "storeUrl"],
+              "description": "Minimum requires a valid store URL; no minimum imposes no version restriction.",
+            },
+          "Versions":
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties":
+                {
+                  "ios": { "$ref": "#/components/schemas/PlatformVersions" },
+                  "android":
+                    { "$ref": "#/components/schemas/PlatformVersions" },
+                  "message":
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4000,
+                      "x-maxUtf16Length": 4000,
+                      "description": "Nonblank; at most 4000 UTF-16 code units. maxLength alone is insufficient for supplementary characters; apply semantic validation.",
+                      "nullable": true,
+                    },
+                  "revision": { "$ref": "#/components/schemas/Revision" },
+                },
+              "required": ["ios", "android", "message", "revision"],
+            },
+          "AccessConfiguration":
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties":
+                {
+                  "maintenance": { "$ref": "#/components/schemas/Maintenance" },
+                  "versions": { "$ref": "#/components/schemas/Versions" },
+                },
+              "required": ["maintenance", "versions"],
+              "description": "Coherent snapshot of both resources; no private capabilities or bypass. An older resource revision cannot establish a new complete mobile verification.",
+            },
+          "Capabilities":
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties":
+                {
+                  "accountId": { "type": "string", "format": "uuid" },
+                  "capabilities":
+                    {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "properties":
+                        {
+                          "configuration":
+                            {
+                              "type": "object",
+                              "additionalProperties": true,
+                              "properties":
+                                {
+                                  "manageMaintenance": { "type": "boolean" },
+                                  "manageVersions": { "type": "boolean" },
+                                  "bypassMaintenance": { "type": "boolean" },
+                                },
+                              "required":
+                                [
+                                  "manageMaintenance",
+                                  "manageVersions",
+                                  "bypassMaintenance",
+                                ],
+                            },
+                          "acquisition":
+                            {
+                              "type": "object",
+                              "additionalProperties": true,
+                              "properties":
+                                {
+                                  "read": { "type": "boolean" },
+                                  "control": { "type": "boolean" },
+                                  "manageSeasons": { "type": "boolean" },
+                                  "manageSources": { "type": "boolean" },
+                                },
+                              "required":
+                                [
+                                  "read",
+                                  "control",
+                                  "manageSeasons",
+                                  "manageSources",
+                                ],
+                            },
+                          "sport":
+                            {
+                              "type": "object",
+                              "additionalProperties": true,
+                              "properties":
+                                {
+                                  "readClassification": { "type": "boolean" },
+                                  "writeClassification": { "type": "boolean" },
+                                  "readDivisions": { "type": "boolean" },
+                                  "createDivisions": { "type": "boolean" },
+                                  "writeDivisionPresentation":
+                                    { "type": "boolean" },
+                                  "writeDivisionActivity":
+                                    { "type": "boolean" },
+                                  "readPresentation": { "type": "boolean" },
+                                  "writePresentation": { "type": "boolean" },
+                                  "readContacts": { "type": "boolean" },
+                                  "writeContacts": { "type": "boolean" },
+                                },
+                              "required":
+                                [
+                                  "readClassification",
+                                  "writeClassification",
+                                  "readDivisions",
+                                  "createDivisions",
+                                  "writeDivisionPresentation",
+                                  "writeDivisionActivity",
+                                  "readPresentation",
+                                  "writePresentation",
+                                  "readContacts",
+                                  "writeContacts",
+                                ],
+                            },
+                          "contributions":
+                            {
+                              "type": "object",
+                              "additionalProperties": true,
+                              "properties":
+                                {
+                                  "publish": { "type": "boolean" },
+                                  "withdraw": { "type": "boolean" },
+                                  "report": { "type": "boolean" },
+                                  "moderate": { "type": "boolean" },
+                                },
+                              "required":
+                                ["publish", "withdraw", "report", "moderate"],
+                            },
+                        },
+                      "required":
+                        [
+                          "configuration",
+                          "acquisition",
+                          "sport",
+                          "contributions",
+                        ],
+                    },
+                },
+              "required": ["accountId", "capabilities"],
+              "description": "21 known booleans are always present. Future fields are additive/ignorable. True does not establish resource eligibility or grant new authority.",
+            },
+          "MaintenanceContentPatch":
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties":
+                {
+                  "expectedRevision":
+                    { "$ref": "#/components/schemas/Revision" },
+                  "message":
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4000,
+                      "x-maxUtf16Length": 4000,
+                      "description": "Nonblank; at most 4000 UTF-16 code units. maxLength alone is insufficient for supplementary characters; apply semantic validation.",
+                    },
+                  "imageUrl":
+                    {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uri",
+                      "maxLength": 2048,
+                      "x-maxUtf16Length": 2048,
+                      "description": "Null removes. Absolute HTTPS, nonempty host, no userinfo, controls or surrounding whitespace. Store fields additionally require the F14-qualified platform listing identity.",
+                    },
+                },
+              "required": ["expectedRevision"],
+              "description": "At least one of message/imageUrl is required; absent preserves, null removes image only. Never changes active.",
+              "anyOf":
+                [{ "required": ["message"] }, { "required": ["imageUrl"] }],
+            },
+          "MaintenanceStateCommand":
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties":
+                {
+                  "expectedRevision":
+                    { "$ref": "#/components/schemas/Revision" },
+                  "active": { "type": "boolean" },
+                },
+              "required": ["expectedRevision", "active"],
+              "description": "Requires the current shared maintenance revision and usable message. No content edit.",
+            },
+          "PlatformVersionsPatch":
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties":
+                {
+                  "minimumVersion":
+                    {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1,
+                      "maxLength": 32,
+                      "pattern": "^[0-9]+(\\.[0-9]+){0,2}$",
+                      "description": "Null removes minimum. One to three ASCII numeric components, each 0..2147483647; no whitespace/suffix. Semantic bounds required; responses normalize to three components.",
+                    },
+                  "storeUrl":
+                    {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uri",
+                      "maxLength": 2048,
+                      "x-maxUtf16Length": 2048,
+                      "description": "Null removes. Absolute HTTPS, nonempty host, no userinfo, controls or surrounding whitespace. Store fields additionally require the F14-qualified platform listing identity.",
+                    },
+                },
+              "description": "Only provided fields change. Empty object is invalid.",
+              "minProperties": 1,
+            },
+          "VersionsPatch":
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties":
+                {
+                  "expectedRevision":
+                    { "$ref": "#/components/schemas/Revision" },
+                  "ios":
+                    { "$ref": "#/components/schemas/PlatformVersionsPatch" },
+                  "android":
+                    { "$ref": "#/components/schemas/PlatformVersionsPatch" },
+                  "message":
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4000,
+                      "x-maxUtf16Length": 4000,
+                      "description": "Nonblank; at most 4000 UTF-16 code units. maxLength alone is insufficient for supplementary characters; apply semantic validation.",
+                      "nullable": true,
+                    },
+                  "storeAvailabilityConfirmed":
+                    {
+                      "type": "boolean",
+                      "description": "Must be true if any minimum is added or numerically raised. Human availability confirmation, not stored monitoring evidence.",
+                    },
+                },
+              "required": ["expectedRevision"],
+              "description": "At least one editable field. Absent preserves; optional null clears; platform object cannot be null. Validate merged candidate and confirmation. Confirmation alone is not an edit.",
+              "anyOf":
+                [
+                  { "required": ["ios"] },
+                  { "required": ["android"] },
+                  { "required": ["message"] },
+                ],
+            },
+          "Problem":
+            {
+              "$ref": "../../005-accounts-identity/contracts/problem.schema.yaml",
+            },
+          "MaintenanceProblem":
+            {
+              "description": "Shared extension for maintenance-protected ordinary operations, not the seven exempt operations here. Classify code before generic 503 retries; no automatic retry. The maintenance projection never refreshes full verification time.",
+              "allOf":
+                [
+                  { "$ref": "#/components/schemas/Problem" },
+                  {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties":
+                      {
+                        "code":
+                          { "type": "string", "enum": ["MAINTENANCE_ACTIVE"] },
+                        "status": { "type": "integer", "enum": [503] },
+                        "maintenance":
+                          { "$ref": "#/components/schemas/Maintenance" },
+                      },
+                    "required": ["maintenance"],
+                  },
+                ],
+            },
+        },
+      "responses":
+        {
+          "ConfigurationError400":
+            {
+              "description": "Malformed/invalid candidate, unsupported field, empty patch, invalid version/URL/limit or absent required store acknowledgement (INVALID_REQUEST). No effect.",
+              "headers":
+                {
+                  "Cache-Control":
+                    {
+                      "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                      "schema": { "type": "string", "enum": ["no-store"] },
+                    },
+                },
+              "content":
+                {
+                  "application/problem+json":
+                    { "schema": { "$ref": "#/components/schemas/Problem" } },
+                },
+            },
+          "ConfigurationError401":
+            {
+              "description": "Missing/invalid/expired authentication (UNAUTHENTICATED).",
+              "headers":
+                {
+                  "Cache-Control":
+                    {
+                      "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                      "schema": { "type": "string", "enum": ["no-store"] },
+                    },
+                },
+              "content":
+                {
+                  "application/problem+json":
+                    { "schema": { "$ref": "#/components/schemas/Problem" } },
+                },
+            },
+          "ConfigurationError403":
+            {
+              "description": "Current usable account or required action permission absent (FORBIDDEN); no effect.",
+              "headers":
+                {
+                  "Cache-Control":
+                    {
+                      "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                      "schema": { "type": "string", "enum": ["no-store"] },
+                    },
+                },
+              "content":
+                {
+                  "application/problem+json":
+                    { "schema": { "$ref": "#/components/schemas/Problem" } },
+                },
+            },
+          "ConfigurationError409":
+            {
+              "description": "Expected revision differs from current resource (CONFIGURATION_STALE_REVISION); no effect. Reread before another explicit submission.",
+              "headers":
+                {
+                  "Cache-Control":
+                    {
+                      "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                      "schema": { "type": "string", "enum": ["no-store"] },
+                    },
+                },
+              "content":
+                {
+                  "application/problem+json":
+                    { "schema": { "$ref": "#/components/schemas/Problem" } },
+                },
+            },
+          "ConfigurationError500":
+            {
+              "description": "Safe unexpected failure, including effective revision overflow (INTERNAL_ERROR); diagnostic reference only.",
+              "headers":
+                {
+                  "Cache-Control":
+                    {
+                      "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                      "schema": { "type": "string", "enum": ["no-store"] },
+                    },
+                },
+              "content":
+                {
+                  "application/problem+json":
+                    { "schema": { "$ref": "#/components/schemas/Problem" } },
+                },
+            },
+          "ConfigurationError503":
+            {
+              "description": "Configuration state cannot be established (CONFIGURATION_UNAVAILABLE), or another required dependency is unavailable (DEPENDENCY_UNAVAILABLE). Never invent maintenance or recreate defaults. Eligible reads follow F13 bounded retry; mutations never auto-replay.",
+              "headers":
+                {
+                  "Cache-Control":
+                    {
+                      "description": "Configuration/capability state must not be HTTP cached. F12 owns explicit local fallback.",
+                      "schema": { "type": "string", "enum": ["no-store"] },
+                    },
+                },
+              "content":
+                {
+                  "application/problem+json":
+                    { "schema": { "$ref": "#/components/schemas/Problem" } },
+                },
+            },
+        },
+    },
+}

@@ -1,0 +1,1644 @@
+openapi: 3.0.3
+info:
+  title: F03 public sporting consultation
+  version: 1.0.0
+  description:
+    Documentary design source. Adopt through F13 roots and generated Java/TypeScript consumers; no runtime
+    delivered. Conditional rules in read-semantics.md are mandatory.
+tags:
+  - name: Sport consultation
+    description: Focused current public reads owned by F03 over sport application interfaces.
+paths:
+  /api/v1/clubs/{clubId}:
+    get:
+      operationId: readClub
+      tags:
+        - Sport consultation
+      summary: Read Club
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: clubId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Current validated read; independent source freshness is carried separately.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubDetailResponse"
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+  /api/v1/clubs/{clubId}/teams:
+    get:
+      operationId: readClubTeams
+      tags:
+        - Sport consultation
+      summary: Read ClubTeams
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: clubId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - $ref: "#/components/parameters/Season"
+        - $ref: "#/components/parameters/Cursor"
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Current validated read; independent source freshness is carried separately.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubTeamsResponse"
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+  /api/v1/clubs/{clubId}/calendar:
+    get:
+      operationId: readClubCalendar
+      tags:
+        - Sport consultation
+      summary: Read ClubCalendar
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: clubId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - $ref: "#/components/parameters/Season"
+        - $ref: "#/components/parameters/Category"
+        - $ref: "#/components/parameters/TimeZone"
+        - $ref: "#/components/parameters/Cursor"
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Current validated read; independent source freshness is carried separately.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarPageResponse"
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+  /api/v1/teams/{teamId}:
+    get:
+      operationId: readTeam
+      tags:
+        - Sport consultation
+      summary: Read Team
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Current validated read; independent source freshness is carried separately.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamDetailResponse"
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+  /api/v1/teams/{teamId}/calendar:
+    get:
+      operationId: readTeamCalendar
+      tags:
+        - Sport consultation
+      summary: Read TeamCalendar
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - $ref: "#/components/parameters/Category"
+        - $ref: "#/components/parameters/TimeZone"
+        - $ref: "#/components/parameters/Cursor"
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Current validated read; independent source freshness is carried separately.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarPageResponse"
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+  /api/v1/pools/{poolId}:
+    get:
+      operationId: readPool
+      tags:
+        - Sport consultation
+      summary: Read Pool
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: poolId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Current validated read; independent source freshness is carried separately.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PoolDetailResponse"
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+  /api/v1/pools/{poolId}/calendar:
+    get:
+      operationId: readPoolCalendar
+      tags:
+        - Sport consultation
+      summary: Read PoolCalendar
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: poolId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - $ref: "#/components/parameters/Category"
+        - $ref: "#/components/parameters/TimeZone"
+        - $ref: "#/components/parameters/Cursor"
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Current validated read; independent source freshness is carried separately.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarPageResponse"
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+  /api/v1/pools/{poolId}/standings:
+    get:
+      operationId: readPoolStandings
+      tags:
+        - Sport consultation
+      summary: Read PoolStandings
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: poolId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Current validated read; independent source freshness is carried separately.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandingsResponse"
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+  /api/v1/pools/{poolId}/map:
+    get:
+      operationId: readPoolMap
+      tags:
+        - Sport consultation
+      summary: Read PoolMap
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: poolId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Current validated read; independent source freshness is carried separately.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PoolMapResponse"
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+  /api/v1/matches/{matchId}:
+    get:
+      operationId: readMatch
+      tags:
+        - Sport consultation
+      summary: Read Match
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Current validated read; independent source freshness is carried separately.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDetailResponse"
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+  /api/v1/matches/{matchId}/information-sheet:
+    get:
+      operationId: readMatchInformationSheet
+      tags:
+        - Sport consultation
+      summary: Read MatchInformationSheet
+      description:
+        Apply read-semantics.md and F02 visibility. No Pro restriction, source collection, mutation or
+        private follow state. This operation refreshes only its own data.
+      security:
+        - {}
+        - ConsultationAccountBearer: []
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          description: Exact sporting resource identity; current visibility is rechecked.
+          schema:
+            type: string
+            description: Immutable resource ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - name: X-Blockout-Maintenance-Bypass
+          in: header
+          required: false
+          description: Explicit in-memory operator choice; current account permission still required.
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        "200":
+          description: Verified PDF bytes from the fixed FFVB form; no archive.
+          headers:
+            Cache-Control:
+              description: Explicit feature-owned retention only; no HTTP cache.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+                description: Verified PDF, at most 10 MiB decoded bytes.
+                x-maxBytes: 10485760
+        "400":
+          $ref: "#/components/responses/ConsultationError400"
+        "401":
+          $ref: "#/components/responses/ConsultationError401"
+        "403":
+          $ref: "#/components/responses/ConsultationError403"
+        "404":
+          $ref: "#/components/responses/ConsultationError404"
+        "500":
+          $ref: "#/components/responses/ConsultationError500"
+        "503":
+          $ref: "#/components/responses/ConsultationError503"
+        "409":
+          $ref: "#/components/responses/ConsultationError409"
+        "410":
+          $ref: "#/components/responses/ConsultationError410"
+        "502":
+          $ref: "#/components/responses/ConsultationError502"
+components:
+  securitySchemes:
+    ConsultationAccountBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Optional account authentication; never required for ordinary public consultation.
+  parameters:
+    Category:
+      name: category
+      in: query
+      required: true
+      description: Requested presentation category.
+      schema:
+        $ref: "#/components/schemas/CalendarCategoryEnum"
+    TimeZone:
+      name: timeZone
+      in: query
+      required: true
+      description: Valid IANA grouping zone; continuation preserves initial value.
+      schema:
+        type: string
+        description: IANA time-zone identifier.
+        minLength: 1
+        maxLength: 100
+    Season:
+      name: seasonId
+      in: query
+      required: true
+      description: Explicit F02 sporting season, never local calendar year.
+      schema:
+        type: string
+        description: Season ID.
+        minLength: 1
+        maxLength: 36
+        format: uuid
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Context-bound continuation from previous response; omit to start over.
+      schema:
+        type: string
+        description: Opaque validated cursor.
+        minLength: 1
+        maxLength: 2048
+  schemas:
+    CalendarCategoryEnum:
+      type: string
+      description: Presentation classification at the response evaluation instant.
+      enum:
+        - UPCOMING
+        - COMPLETED
+    ScheduleKindEnum:
+      type: string
+      description: Source precision retained in public consultation.
+      enum:
+        - INSTANT
+        - DATE_ONLY
+    ResultStateEnum:
+      type: string
+      description: Official aggregate availability/finality, not a time-derived result.
+      enum:
+        - ABSENT
+        - PROVISIONAL
+        - DEFINITIVE
+    SectionStateEnum:
+      type: string
+      description: Availability of an independent section.
+      enum:
+        - AVAILABLE
+        - ABSENT
+        - UNAVAILABLE
+    DocumentStateEnum:
+      type: string
+      description: Usable reference, known absence, unavailable reference or unmet result condition.
+      enum:
+        - AVAILABLE
+        - ABSENT
+        - UNAVAILABLE
+        - INELIGIBLE
+    StandingsStateEnum:
+      type: string
+      description: Official table state, independent of calendar/participation.
+      enum:
+        - AVAILABLE
+        - NOT_PUBLISHED
+        - UNAVAILABLE
+    ResourceIdentityResponse:
+      type: object
+      description: Current effective sporting identity; no guessed links.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          description: Immutable resource ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        name:
+          type: string
+          description: Effective permitted display name.
+          minLength: 1
+          maxLength: 240
+        logoUrl:
+          type: string
+          description: Absolute qualified HTTPS URL without userinfo; validate destination/redirect policy.
+          minLength: 1
+          maxLength: 2048
+          format: uri
+          pattern: ^https://
+      required:
+        - id
+        - name
+    SeasonResponse:
+      type: object
+      description: Canonical chronological season with exact published display label.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          description: Canonical season ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        label:
+          type: string
+          description: Published season label.
+          minLength: 1
+          maxLength: 80
+        startYear:
+          type: integer
+          description: Qualified published starting year, never match-date year.
+          minimum: 1
+          maximum: 9999
+      required:
+        - id
+        - label
+        - startYear
+    FreshnessResponse:
+      type: object
+      description: Actual source/integration evidence; absent means unknown.
+      additionalProperties: true
+      properties:
+        sourceObservedAt:
+          type: string
+          description: Actual source observation time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+        integratedAt:
+          type: string
+          description: Actual accepted integration time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+        sourceUnavailable:
+          type: boolean
+          description: True only when latest relevant source failure is established.
+    ClassificationResponse:
+      type: object
+      description: Known permitted sporting classification.
+      additionalProperties: true
+      properties:
+        division:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        format:
+          $ref: ../../002-sporting-data/contracts/admin.openapi.yaml#/components/schemas/FormatEnum
+        gender:
+          $ref: ../../002-sporting-data/contracts/admin.openapi.yaml#/components/schemas/GenderEnum
+    MunicipalPointResponse:
+      type: object
+      description: Qualified municipal location; never a gymnasium or phone position.
+      additionalProperties: true
+      properties:
+        municipalityCode:
+          type: string
+          description: Qualified municipality code.
+          minLength: 1
+          maxLength: 20
+        municipalityName:
+          type: string
+          description: Municipality display name.
+          minLength: 1
+          maxLength: 240
+        latitude:
+          type: number
+          format: double
+          description: Finite WGS84 latitude in degrees.
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          description: Finite WGS84 longitude in degrees.
+          minimum: -180
+          maximum: 180
+      required:
+        - municipalityCode
+        - municipalityName
+        - latitude
+        - longitude
+    ClubContactsResponse:
+      type: object
+      description: Only current permitted values; no fallback to suppressed automatic fields.
+      additionalProperties: true
+      properties:
+        phone:
+          type: string
+          description: Usable contact phone.
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          description: Usable contact email.
+          minLength: 1
+          maxLength: 320
+          format: email
+        website:
+          type: string
+          description: Usable absolute HTTP or HTTPS website without userinfo.
+          minLength: 1
+          maxLength: 2048
+          format: uri
+          pattern: ^https?://
+        address:
+          type: string
+          description: Permitted address; not an asserted gymnasium.
+          minLength: 1
+          maxLength: 1000
+        city:
+          type: string
+          description: Permitted city.
+          minLength: 1
+          maxLength: 240
+        postalCode:
+          type: string
+          description: Permitted postal code.
+          minLength: 1
+          maxLength: 40
+    ClubDetailResponse:
+      type: object
+      description: Independent common club information and authoritative current season choices.
+      additionalProperties: true
+      properties:
+        club:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        contacts:
+          $ref: "#/components/schemas/ClubContactsResponse"
+        location:
+          $ref: "#/components/schemas/MunicipalPointResponse"
+        seasons:
+          type: array
+          description: Seasons from viewable teams, newest first.
+          items:
+            $ref: "#/components/schemas/SeasonResponse"
+          minItems: 0
+        freshness:
+          $ref: "#/components/schemas/FreshnessResponse"
+        readAt:
+          type: string
+          description: Blockout read time, not provider freshness.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+      required:
+        - club
+        - contacts
+        - seasons
+        - freshness
+        - readAt
+    ParticipationResponse:
+      type: object
+      description: One visible participation; never inferred from a ranking row.
+      additionalProperties: true
+      properties:
+        pool:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        phaseLabel:
+          type: string
+          description: Published phase context when known.
+          minLength: 1
+          maxLength: 240
+      required:
+        - pool
+    TeamDetailResponse:
+      type: object
+      description: Common seasonal-team data; one identity and follow target across pools.
+      additionalProperties: true
+      properties:
+        team:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        club:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        season:
+          $ref: "#/components/schemas/SeasonResponse"
+        classification:
+          $ref: "#/components/schemas/ClassificationResponse"
+        participations:
+          type: array
+          description: Visible participations with stable pool-ID order.
+          items:
+            $ref: "#/components/schemas/ParticipationResponse"
+          minItems: 0
+        freshness:
+          $ref: "#/components/schemas/FreshnessResponse"
+        readAt:
+          type: string
+          description: Blockout read time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+      required:
+        - team
+        - season
+        - classification
+        - participations
+        - freshness
+        - readAt
+    ClubTeamsResponse:
+      type: object
+      description: Current page of visible teams; empty data does not prove season disappearance.
+      additionalProperties: true
+      properties:
+        teams:
+          type: array
+          description: At most 50 teams ordered by name then UUID.
+          items:
+            $ref: "#/components/schemas/TeamDetailResponse"
+          minItems: 0
+          maxItems: 50
+        seasonId:
+          type: string
+          description: Requested sporting season.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        nextCursor:
+          type: string
+          description: Opaque club-team continuation; absent at current end.
+          minLength: 1
+          maxLength: 2048
+        readAt:
+          type: string
+          description: Blockout read time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+      required:
+        - teams
+        - seasonId
+        - readAt
+    PoolDetailResponse:
+      type: object
+      description: Common pool data; independent tab reads remain separate.
+      additionalProperties: true
+      properties:
+        pool:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        season:
+          $ref: "#/components/schemas/SeasonResponse"
+        classification:
+          $ref: "#/components/schemas/ClassificationResponse"
+        competitionName:
+          type: string
+          description: Known competition name.
+          minLength: 1
+          maxLength: 240
+        leagueName:
+          type: string
+          description: Known league/organizer name.
+          minLength: 1
+          maxLength: 240
+        phaseLabel:
+          type: string
+          description: Known published phase.
+          minLength: 1
+          maxLength: 240
+        freshness:
+          $ref: "#/components/schemas/FreshnessResponse"
+        readAt:
+          type: string
+          description: Blockout read time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+      required:
+        - pool
+        - season
+        - classification
+        - freshness
+        - readAt
+    MatchScheduleResponse:
+      type: object
+      description:
+        INSTANT requires instant only; DATE_ONLY requires date only. Validate condition before cache
+        success.
+      additionalProperties: true
+      properties:
+        kind:
+          $ref: "#/components/schemas/ScheduleKindEnum"
+        instant:
+          type: string
+          description: Established UTC kickoff instant.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+        date:
+          type: string
+          description: Unconverted source sporting date.
+          minLength: 1
+          maxLength: 10
+          format: date
+      required:
+        - kind
+    SetResponse:
+      type: object
+      description: One attributable ordinary set; no inferred sporting winner.
+      additionalProperties: true
+      properties:
+        ordinal:
+          type: integer
+          description: Official set ordinal.
+          minimum: 1
+          maximum: 100
+        homePoints:
+          type: integer
+          description: Published home points.
+          minimum: 0
+          maximum: 10000
+        awayPoints:
+          type: integer
+          description: Published away points.
+          minimum: 0
+          maximum: 10000
+      required:
+        - ordinal
+        - homePoints
+        - awayPoints
+    GoldenSetResponse:
+      type: object
+      description: Explicit golden-set presence; either both point fields or neither.
+      additionalProperties: true
+      properties:
+        present:
+          type: boolean
+          description: Explicit source presence or explicit absence.
+        homePoints:
+          type: integer
+          description: Known home golden-set points.
+          minimum: 0
+          maximum: 10000
+        awayPoints:
+          type: integer
+          description: Known away golden-set points.
+          minimum: 0
+          maximum: 10000
+      required:
+        - present
+    MatchResultResponse:
+      type: object
+      description:
+        ABSENT forbids aggregate and details; other states require both tokens. Detail availability is
+        independent.
+      additionalProperties: true
+      properties:
+        state:
+          $ref: "#/components/schemas/ResultStateEnum"
+        homeToken:
+          type: string
+          description: Official integer/F/P token.
+          minLength: 1
+          maxLength: 20
+          pattern: ^([0-9]+|F|P)$
+        awayToken:
+          type: string
+          description: Official integer/F/P token.
+          minLength: 1
+          maxLength: 20
+          pattern: ^([0-9]+|F|P)$
+        detailState:
+          $ref: "#/components/schemas/SectionStateEnum"
+        sets:
+          type: array
+          description: Compatible ordinary sets, only with AVAILABLE detail.
+          items:
+            $ref: "#/components/schemas/SetResponse"
+          minItems: 0
+          maxItems: 100
+        goldenSet:
+          $ref: "#/components/schemas/GoldenSetResponse"
+      required:
+        - state
+        - detailState
+    CalendarMatchResponse:
+      type: object
+      description: One currently viewable dated match. Category is a read projection, not sporting finality.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          description: Immutable match ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        home:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        away:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        pool:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        schedule:
+          $ref: "#/components/schemas/MatchScheduleResponse"
+        category:
+          $ref: "#/components/schemas/CalendarCategoryEnum"
+        result:
+          $ref: "#/components/schemas/MatchResultResponse"
+        freshness:
+          $ref: "#/components/schemas/FreshnessResponse"
+      required:
+        - id
+        - home
+        - away
+        - pool
+        - schedule
+        - category
+        - result
+        - freshness
+    CalendarPoolGroupResponse:
+      type: object
+      description: One stable pool group within a complete day.
+      additionalProperties: true
+      properties:
+        pool:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        matches:
+          type: array
+          description: All eligible matches in this pool/day; no per-day match quota.
+          items:
+            $ref: "#/components/schemas/CalendarMatchResponse"
+          minItems: 1
+      required:
+        - pool
+        - matches
+    CalendarDayResponse:
+      type: object
+      description: One complete nonempty day under the loading timezone.
+      additionalProperties: true
+      properties:
+        date:
+          type: string
+          description: Grouping date, not result receipt date.
+          minLength: 1
+          maxLength: 10
+          format: date
+        groups:
+          type: array
+          description: Pool groups ordered by UUID.
+          items:
+            $ref: "#/components/schemas/CalendarPoolGroupResponse"
+          minItems: 1
+      required:
+        - date
+        - groups
+    CalendarPageResponse:
+      type: object
+      description: Up to seven complete nonempty days at one current read; no cross-page snapshot.
+      additionalProperties: true
+      properties:
+        days:
+          type: array
+          description: Days ordered by category direction.
+          items:
+            $ref: "#/components/schemas/CalendarDayResponse"
+          minItems: 0
+          maxItems: 7
+        groupingTimeZone:
+          type: string
+          description: Validated IANA zone captured for this loading context.
+          minLength: 1
+          maxLength: 100
+        evaluatedAt:
+          type: string
+          description: Single server classification instant for this page.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+        nextCursor:
+          type: string
+          description: Opaque context-bound position; absent at current end.
+          minLength: 1
+          maxLength: 2048
+      required:
+        - days
+        - groupingTimeZone
+        - evaluatedAt
+    StandingStatisticResponse:
+      type: object
+      description: One officially published column; absent value means unknown.
+      additionalProperties: true
+      properties:
+        key:
+          type: string
+          description: Qualified source column meaning.
+          minLength: 1
+          maxLength: 100
+        label:
+          type: string
+          description: Accessible display label.
+          minLength: 1
+          maxLength: 100
+        value:
+          type: string
+          description: Official bounded display token, including special ratio notation.
+          minLength: 1
+          maxLength: 100
+      required:
+        - key
+        - label
+    StandingRowResponse:
+      type: object
+      description: Official row order/rank; optional verified visible team link.
+      additionalProperties: true
+      properties:
+        ordinal:
+          type: integer
+          description: Official row order, not calculated rank.
+          minimum: 1
+          maximum: 100000
+        rank:
+          type: string
+          description: Published rank token, absent if unknown.
+          minLength: 1
+          maxLength: 40
+        sourceLabel:
+          type: string
+          description: Official team label.
+          minLength: 1
+          maxLength: 240
+        teamId:
+          type: string
+          description: Verified currently visible team; omitted without certain association.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        statistics:
+          type: array
+          description: Official available columns.
+          items:
+            $ref: "#/components/schemas/StandingStatisticResponse"
+          minItems: 0
+          maxItems: 100
+      required:
+        - ordinal
+        - sourceLabel
+        - statistics
+    StandingsResponse:
+      type: object
+      description: AVAILABLE requires rows; NOT_PUBLISHED/UNAVAILABLE forbids rows.
+      additionalProperties: true
+      properties:
+        poolId:
+          type: string
+          description: Requested pool.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        state:
+          $ref: "#/components/schemas/StandingsStateEnum"
+        rows:
+          type: array
+          description: Official row order.
+          items:
+            $ref: "#/components/schemas/StandingRowResponse"
+          minItems: 0
+          maxItems: 100000
+        freshness:
+          $ref: "#/components/schemas/FreshnessResponse"
+        readAt:
+          type: string
+          description: Blockout read time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+      required:
+        - poolId
+        - state
+        - freshness
+        - readAt
+    MapLocationGroupResponse:
+      type: object
+      description: Exact qualified municipal point shared by one or more participants.
+      additionalProperties: true
+      properties:
+        location:
+          $ref: "#/components/schemas/MunicipalPointResponse"
+        teams:
+          type: array
+          description: Each visible team sharing this point remains accessible.
+          items:
+            $ref: "#/components/schemas/ResourceIdentityResponse"
+          minItems: 0
+      required:
+        - location
+        - teams
+    PoolMapResponse:
+      type: object
+      description:
+        Participants come from relationships, independently of ranking. Native tile failures are client
+        state.
+      additionalProperties: true
+      properties:
+        poolId:
+          type: string
+          description: Requested pool.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        participantCount:
+          type: integer
+          description: All visible participating teams.
+          minimum: 0
+          maximum: 2147483647
+        locatedParticipantCount:
+          type: integer
+          description: Participating teams with reliable points, not marker count.
+          minimum: 0
+          maximum: 2147483647
+        locations:
+          type: array
+          description: Reliable point groups only.
+          items:
+            $ref: "#/components/schemas/MapLocationGroupResponse"
+          minItems: 0
+        freshness:
+          $ref: "#/components/schemas/FreshnessResponse"
+        readAt:
+          type: string
+          description: Blockout read time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+      required:
+        - poolId
+        - participantCount
+        - locatedParticipantCount
+        - locations
+        - freshness
+        - readAt
+    InformationSheetResponse:
+      type: object
+      description: AVAILABLE opens the match information-sheet relay; no client-controlled provider form.
+      additionalProperties: true
+      properties:
+        state:
+          $ref: "#/components/schemas/DocumentStateEnum"
+      required:
+        - state
+    ScoresheetResponse:
+      type: object
+      description: AVAILABLE requires externalUrl and definitive result; all other states forbid URL.
+      additionalProperties: true
+      properties:
+        state:
+          $ref: "#/components/schemas/DocumentStateEnum"
+        externalUrl:
+          type: string
+          description: Absolute qualified HTTPS URL without userinfo; validate destination/redirect policy.
+          minLength: 1
+          maxLength: 2048
+          format: uri
+          pattern: ^https://
+      required:
+        - state
+    MatchDetailResponse:
+      type: object
+      description: Independent match detail; private state and F08 links remain owner reads.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          description: Immutable match ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        home:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        away:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        pool:
+          $ref: "#/components/schemas/ResourceIdentityResponse"
+        schedule:
+          $ref: "#/components/schemas/MatchScheduleResponse"
+        category:
+          $ref: "#/components/schemas/CalendarCategoryEnum"
+        result:
+          $ref: "#/components/schemas/MatchResultResponse"
+        freshness:
+          $ref: "#/components/schemas/FreshnessResponse"
+        venue:
+          type: string
+          description: Known permitted match venue, not club location.
+          minLength: 1
+          maxLength: 1000
+        referees:
+          type: array
+          description: Known permitted referee labels; not logged.
+          items:
+            type: string
+            description: Permitted current referee label.
+            minLength: 1
+            maxLength: 1000
+          minItems: 0
+          maxItems: 20
+        officialCalendarUrl:
+          type: string
+          description: Absolute qualified HTTPS URL without userinfo; validate destination/redirect policy.
+          minLength: 1
+          maxLength: 2048
+          format: uri
+          pattern: ^https://
+        professionalMediaUrl:
+          type: string
+          description: Absolute qualified HTTPS URL without userinfo; validate destination/redirect policy.
+          minLength: 1
+          maxLength: 2048
+          format: uri
+          pattern: ^https://
+        informationSheet:
+          $ref: "#/components/schemas/InformationSheetResponse"
+        scoresheet:
+          $ref: "#/components/schemas/ScoresheetResponse"
+        readAt:
+          type: string
+          description: Blockout read time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+          pattern: Z$
+      required:
+        - id
+        - home
+        - away
+        - pool
+        - schedule
+        - category
+        - result
+        - freshness
+        - referees
+        - informationSheet
+        - scoresheet
+        - readAt
+    ProblemResponse:
+      description: F13 problem or F12 owned maintenance extension. MAINTENANCE_ACTIVE requires the typed maintenance branch and is classified before retries; validate this conditional rule before caching.
+      anyOf:
+        - $ref: ../../005-accounts-identity/contracts/problem.schema.yaml
+        - $ref: ../../013-administration-app-configuration/contracts/configuration.openapi.yaml#/components/schemas/MaintenanceProblem
+  responses:
+    ConsultationError400:
+      description: Malformed request, unsupported query or INVALID_CALENDAR_CURSOR.
+      headers:
+        Cache-Control:
+          description: Explicit feature-owned retention only; no HTTP cache.
+          schema:
+            type: string
+            enum:
+              - no-store
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+    ConsultationError401:
+      description: Supplied credentials invalid; guest reads need no token.
+      headers:
+        Cache-Control:
+          description: Explicit feature-owned retention only; no HTTP cache.
+          schema:
+            type: string
+            enum:
+              - no-store
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+    ConsultationError403:
+      description: Account/authentication refusal under F05.
+      headers:
+        Cache-Control:
+          description: Explicit feature-owned retention only; no HTTP cache.
+          schema:
+            type: string
+            enum:
+              - no-store
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+    ConsultationError404:
+      description: NOT_FOUND or DOCUMENT_UNAVAILABLE without hidden-resource disclosure.
+      headers:
+        Cache-Control:
+          description: Explicit feature-owned retention only; no HTTP cache.
+          schema:
+            type: string
+            enum:
+              - no-store
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+    ConsultationError409:
+      description: DOCUMENT_REFERENCE_CHANGED; reread current detail before another attempt.
+      headers:
+        Cache-Control:
+          description: Explicit feature-owned retention only; no HTTP cache.
+          schema:
+            type: string
+            enum:
+              - no-store
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+    ConsultationError410:
+      description: DOCUMENT_EXPIRED only with established evidence.
+      headers:
+        Cache-Control:
+          description: Explicit feature-owned retention only; no HTTP cache.
+          schema:
+            type: string
+            enum:
+              - no-store
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+    ConsultationError500:
+      description: Controlled internal failure.
+      headers:
+        Cache-Control:
+          description: Explicit feature-owned retention only; no HTTP cache.
+          schema:
+            type: string
+            enum:
+              - no-store
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+    ConsultationError502:
+      description: DOCUMENT_INVALID_RESPONSE; invalid binary is not automatically retryable.
+      headers:
+        Cache-Control:
+          description: Explicit feature-owned retention only; no HTTP cache.
+          schema:
+            type: string
+            enum:
+              - no-store
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"
+    ConsultationError503:
+      description: Typed F12 maintenance/admission or dependency failure; classify code before retry.
+      headers:
+        Cache-Control:
+          description: Explicit feature-owned retention only; no HTTP cache.
+          schema:
+            type: string
+            enum:
+              - no-store
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemResponse"

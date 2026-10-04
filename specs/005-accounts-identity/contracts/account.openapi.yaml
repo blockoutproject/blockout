@@ -1,0 +1,538 @@
+openapi: 3.0.3
+info:
+  title: Blockout F05 current-account API
+  version: 1.0.0
+  description:
+    Documentary contract for the approved F05 design. No deployed endpoint, provider qualification
+    or generated client is claimed.
+tags:
+  - name: Current account
+    description:
+      Authenticated account/profile/lifecycle operations; permissions and current business status
+      are server-side.
+security:
+  - AccountAuth0Bearer: []
+paths:
+  /api/v1/me/bootstrap:
+    post:
+      operationId: bootstrapCurrentAccount
+      tags:
+        - Current account
+      summary: Establish the current business account
+      description:
+        Only after explicit authentication. No body or caller-supplied identity. Concurrent/repeated
+        requests resolve one account. No ordinary GET invokes this operation.
+      responses:
+        "200":
+          description: Establish the current business account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BootstrapAccountResponse"
+        "400":
+          $ref: "#/components/responses/AccountError400"
+        "401":
+          $ref: "#/components/responses/AccountError401"
+        "403":
+          $ref: "#/components/responses/AccountError403"
+        "409":
+          $ref: "#/components/responses/AccountError409"
+        "500":
+          $ref: "#/components/responses/AccountError500"
+        "503":
+          $ref: "#/components/responses/AccountError503"
+  /api/v1/me:
+    get:
+      operationId: getCurrentAccount
+      tags:
+        - Current account
+      summary: Read the active current profile
+      description:
+        Read Blockout state only. Never create or contact Auth0. A deleting account returns
+        DELETION_IN_PROGRESS; absence returns ACCOUNT_NOT_FOUND.
+      responses:
+        "200":
+          description: Read the active current profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountProfileResponse"
+        "401":
+          $ref: "#/components/responses/AccountError401"
+        "403":
+          $ref: "#/components/responses/AccountError403"
+        "404":
+          $ref: "#/components/responses/AccountError404"
+        "409":
+          $ref: "#/components/responses/AccountError409"
+        "500":
+          $ref: "#/components/responses/AccountError500"
+        "503":
+          $ref: "#/components/responses/AccountError503"
+  /api/v1/me/account-age:
+    post:
+      operationId: retrieveCurrentAccountAge
+      tags:
+        - Current account
+      summary: Retrieve missing account-age evidence
+      description:
+        Return known evidence without a provider call; otherwise retrieve targeted Auth0 evidence
+        and preserve unknown on a documented absence. No background synchronization.
+      responses:
+        "200":
+          description: Retrieve missing account-age evidence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountAgeResponse"
+        "401":
+          $ref: "#/components/responses/AccountError401"
+        "403":
+          $ref: "#/components/responses/AccountError403"
+        "404":
+          $ref: "#/components/responses/AccountError404"
+        "409":
+          $ref: "#/components/responses/AccountError409"
+        "500":
+          $ref: "#/components/responses/AccountError500"
+        "503":
+          $ref: "#/components/responses/AccountError503"
+  /api/v1/me/profile:
+    patch:
+      operationId: updateCurrentProfile
+      tags:
+        - Current account
+      summary: Update the current username
+      description:
+        Owner only, expected revision required; preserve photo/email and reject stale or conflicting
+        mutation without partial effect.
+      responses:
+        "200":
+          description: Update the current username
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountProfileResponse"
+        "400":
+          $ref: "#/components/responses/AccountError400"
+        "401":
+          $ref: "#/components/responses/AccountError401"
+        "403":
+          $ref: "#/components/responses/AccountError403"
+        "409":
+          $ref: "#/components/responses/AccountError409"
+        "500":
+          $ref: "#/components/responses/AccountError500"
+        "503":
+          $ref: "#/components/responses/AccountError503"
+        "404":
+          $ref: "#/components/responses/AccountError404"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+  /api/v1/me/photo:
+    get:
+      operationId: getCurrentProfilePhoto
+      tags:
+        - Current account
+      summary: Read the current private photo
+      description:
+        Owner/current-account access; Cache-Control no-store. No photo returns PHOTO_NOT_FOUND.
+        A URL alone grants no access.
+      responses:
+        "200":
+          description: Private owner-authorized image; never cache across accounts.
+          headers:
+            Cache-Control:
+              description: Private image must not be persistently cached.
+              schema:
+                type: string
+                enum:
+                  - no-store
+          content:
+            image/png:
+              schema:
+                type: string
+                description: Validated private profile image bytes.
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                description: Validated private profile image bytes.
+                format: binary
+        "401":
+          $ref: "#/components/responses/AccountError401"
+        "403":
+          $ref: "#/components/responses/AccountError403"
+        "404":
+          $ref: "#/components/responses/AccountError404"
+        "409":
+          $ref: "#/components/responses/AccountError409"
+        "500":
+          $ref: "#/components/responses/AccountError500"
+        "503":
+          $ref: "#/components/responses/AccountError503"
+    put:
+      operationId: replaceCurrentProfilePhoto
+      tags:
+        - Current account
+      summary: Replace the current photo
+      description:
+        Validate actual PNG/JPEG and size, upload new object outside SQL, then recheck current
+        status/revision before changing association. Failure preserves prior photo. No automatic retry.
+      responses:
+        "200":
+          description: Replace the current photo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountProfileResponse"
+        "400":
+          $ref: "#/components/responses/AccountError400"
+        "401":
+          $ref: "#/components/responses/AccountError401"
+        "403":
+          $ref: "#/components/responses/AccountError403"
+        "409":
+          $ref: "#/components/responses/AccountError409"
+        "500":
+          $ref: "#/components/responses/AccountError500"
+        "503":
+          $ref: "#/components/responses/AccountError503"
+        "404":
+          $ref: "#/components/responses/AccountError404"
+        "413":
+          $ref: "#/components/responses/AccountError413"
+        "415":
+          $ref: "#/components/responses/AccountError415"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/UploadProfilePhotoRequest"
+    delete:
+      operationId: deleteCurrentProfilePhoto
+      tags:
+        - Current account
+      summary: Remove the current photo
+      description:
+        Explicit removal; recheck expected revision. Already absent at current revision is
+        unchanged. Physical obsolete-object cleanup follows the operating contract.
+      responses:
+        "200":
+          description: Remove the current photo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountProfileResponse"
+        "400":
+          $ref: "#/components/responses/AccountError400"
+        "401":
+          $ref: "#/components/responses/AccountError401"
+        "403":
+          $ref: "#/components/responses/AccountError403"
+        "409":
+          $ref: "#/components/responses/AccountError409"
+        "500":
+          $ref: "#/components/responses/AccountError500"
+        "503":
+          $ref: "#/components/responses/AccountError503"
+        "404":
+          $ref: "#/components/responses/AccountError404"
+      parameters:
+        - name: expectedRevision
+          in: query
+          required: true
+          description: Revision of the profile being edited.
+          schema:
+            type: integer
+            description: Expected/current profile revision, not an authentication session version.
+            format: int64
+            minimum: 0
+            maximum: 9007199254740991
+        - name: expectedAccountId
+          in: query
+          required: true
+          description:
+            Business UUID captured when this intent was confirmed. Must equal the authenticated
+            current account; a precondition, never ownership proof. Preserve on uncertain repetition.
+          schema:
+            type: string
+            format: uuid
+  /api/v1/me/deletion:
+    post:
+      operationId: requestCurrentAccountDeletion
+      tags:
+        - Current account
+      summary: Accept current-account deletion
+      description:
+        Durably block the original account before external work. 202 means acceptance, not
+        total physical erasure. Repeated pending acceptance does not enqueue another cleanup attempt;
+        no public status lookup.
+      responses:
+        "202":
+          description: Accept current-account deletion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDeletionAcceptedResponse"
+        "400":
+          $ref: "#/components/responses/AccountError400"
+        "401":
+          $ref: "#/components/responses/AccountError401"
+        "403":
+          $ref: "#/components/responses/AccountError403"
+        "409":
+          $ref: "#/components/responses/AccountError409"
+        "500":
+          $ref: "#/components/responses/AccountError500"
+        "503":
+          $ref: "#/components/responses/AccountError503"
+        "404":
+          $ref: "#/components/responses/AccountError404"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestAccountDeletionRequest"
+components:
+  securitySchemes:
+    AccountAuth0Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description:
+        Auth0 access token for the qualified API audience; validate signature, issuer, audience
+        and expiry plus current business status/permissions. Standard-token same-subject return limits
+        apply.
+  schemas:
+    AccountProfileResponse:
+      type: object
+      description:
+        Private active-account profile; all consumed fields are required, including explicit
+        nullable age.
+      additionalProperties: true
+      properties:
+        accountId:
+          type: string
+          description: Immutable business account UUID; never an authentication proof.
+          format: uuid
+        username:
+          type: string
+          description: Neutral or customized unique username.
+          minLength: 3
+          maxLength: 32
+          pattern: ^[A-Za-z0-9._-]+$
+        email:
+          type: string
+          description: Retained private provider contact address, not unique across accounts; cannot be edited through this API.
+          format: email
+        photoPresent:
+          type: boolean
+          description: Whether the current private photo endpoint has an associated image.
+        profileRevision:
+          type: integer
+          description: Expected/current profile revision, not an authentication session version.
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        principalCreatedAt:
+          type: string
+          description:
+            Reliable Auth0 principal creation instant; null means unknown, never substitute
+            business age.
+          format: date-time
+          nullable: true
+      required:
+        - accountId
+        - username
+        - email
+        - photoPresent
+        - profileRevision
+        - principalCreatedAt
+    ProviderSyncStatusEnum:
+      type: string
+      description: Provider synchronization result; does not by itself deny a known usable profile.
+      enum:
+        - UPDATED
+        - RETAINED
+        - UNAVAILABLE
+    BootstrapAccountResponse:
+      type: object
+      description: Explicit bootstrap result; additional response fields are compatible.
+      additionalProperties: true
+      properties:
+        profile:
+          $ref: "#/components/schemas/AccountProfileResponse"
+        providerSyncStatus:
+          $ref: "#/components/schemas/ProviderSyncStatusEnum"
+      required:
+        - profile
+        - providerSyncStatus
+    UpdateProfileRequest:
+      type: object
+      description:
+        Change only username; trim surrounding whitespace before applying the username format
+        rule.
+      additionalProperties: false
+      properties:
+        username:
+          type: string
+          description:
+            Requested username; effective value must be 3–32 ASCII letters/digits/dot/hyphen/underscore
+            after outer whitespace trimming.
+        expectedRevision:
+          type: integer
+          description: Expected/current profile revision, not an authentication session version.
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        expectedAccountId:
+          type: string
+          format: uuid
+          description:
+            Business UUID captured when this intent was confirmed. Must equal the authenticated
+            current account; a precondition, never ownership proof. Preserve on uncertain repetition.
+      required:
+        - username
+        - expectedRevision
+        - expectedAccountId
+    UploadProfilePhotoRequest:
+      type: object
+      description: Multipart photo request; server verifies content and the 5 MiB byte limit.
+      additionalProperties: false
+      properties:
+        file:
+          type: string
+          description: Actual PNG/JPEG file, at most 5,242,880 input bytes.
+          format: binary
+        expectedRevision:
+          type: integer
+          description: Expected/current profile revision, not an authentication session version.
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        expectedAccountId:
+          type: string
+          format: uuid
+          description:
+            Business UUID captured when this intent was confirmed. Must equal the authenticated
+            current account; a precondition, never ownership proof. Preserve on uncertain repetition.
+      required:
+        - file
+        - expectedRevision
+        - expectedAccountId
+    AccountAgeResponse:
+      type: object
+      description: Explicit missing-age retrieval result.
+      additionalProperties: true
+      properties:
+        principalCreatedAt:
+          type: string
+          description:
+            Reliable principal creation instant, or null when provider evidence is unavailable
+            without fabricating an age.
+          format: date-time
+          nullable: true
+      required:
+        - principalCreatedAt
+    RequestAccountDeletionRequest:
+      type: object
+      description: Explicit irreversible intent after the approved confirmation and billing explanation.
+      additionalProperties: false
+      properties:
+        confirmed:
+          type: boolean
+          description: Must be true; false does not authorize or enqueue cleanup.
+          enum:
+            - true
+        expectedAccountId:
+          type: string
+          format: uuid
+          description:
+            Business UUID captured when this intent was confirmed. Must equal the authenticated
+            current account; a precondition, never ownership proof. Preserve on uncertain repetition.
+      required:
+        - confirmed
+        - expectedAccountId
+    DeletionStatusEnum:
+      type: string
+      description: Accepted request is pending; not a physical-erasure certificate.
+      enum:
+        - DELETION_REQUESTED
+    AccountDeletionAcceptedResponse:
+      type: object
+      description: Durable acceptance for the original account, including a safe repeated request.
+      additionalProperties: true
+      properties:
+        status:
+          $ref: "#/components/schemas/DeletionStatusEnum"
+        acceptedAt:
+          type: string
+          description: Original durable acceptance instant, unchanged by repetition.
+          format: date-time
+      required:
+        - status
+        - acceptedAt
+    Problem:
+      $ref: ./problem.schema.yaml
+  responses:
+    AccountError400:
+      description: Malformed or business-invalid request (INVALID_REQUEST).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    AccountError401:
+      description: Missing, invalid or expired access token (UNAUTHENTICATED).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    AccountError403:
+      description: Current action refused (FORBIDDEN).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    AccountError404:
+      description: Current profile/photo absent; never proof of all provider erasure.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    AccountError409:
+      description: Declared account, identity, username or revision conflict; see behavior contract.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    AccountError413:
+      description: Input image exceeds 5 MiB (IMAGE_TOO_LARGE).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    AccountError415:
+      description: Unsupported or undecodable image (UNSUPPORTED_IMAGE).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    AccountError500:
+      description: Safe unexpected error (INTERNAL_ERROR).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    AccountError503:
+      description: Required dependency unavailable (DEPENDENCY_UNAVAILABLE).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"

@@ -1,0 +1,1258 @@
+openapi: 3.0.3
+info:
+  title: F02 normalized sporting observations
+  version: 1.0.0
+  description:
+    Documentary F02 design snapshot. Future adoption uses F13 roots and its single shared problem
+    schema. No server or generated client is delivered here. Conditional shape rules are explained in
+    companion contracts.
+tags:
+  - name: Sport
+    description: Sport-owned operations; no direct persistence or provider payload exposure.
+security:
+  - SportServiceBearer: []
+paths:
+  /internal/v1/sport/calendar-observations:
+    post:
+      operationId: integrateCalendarObservation
+      tags:
+        - Sport
+      summary: Integrate one calendar with independent match transactions
+      description:
+        Requires private service authentication and a known matching cycle/context. Apply integration.md
+        state, order, authority and privacy rules. Old or partial work cannot withdraw or overwrite newer
+        accepted facts.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarIntegrationInternalResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalendarObservationInternalRequest"
+  /internal/v1/sport/ranking-observations:
+    post:
+      operationId: integrateRankingObservation
+      tags:
+        - Sport
+      summary: Accept one coherent official ranking
+      description:
+        Requires private service authentication and a known matching cycle/context. Apply integration.md
+        state, order, authority and privacy rules. Old or partial work cannot withdraw or overwrite newer
+        accepted facts.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservationIntegrationInternalResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RankingObservationInternalRequest"
+  /internal/v1/sport/club-observations:
+    post:
+      operationId: integrateClubObservation
+      tags:
+        - Sport
+      summary: Accept permitted current club fields
+      description:
+        Requires private service authentication and a known matching cycle/context. Apply integration.md
+        state, order, authority and privacy rules. Old or partial work cannot withdraw or overwrite newer
+        accepted facts.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservationIntegrationInternalResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClubObservationInternalRequest"
+  /internal/v1/sport/locality-results:
+    post:
+      operationId: integrateLocalityResult
+      tags:
+        - Sport
+      summary: Publish only current qualified municipality result
+      description:
+        Requires private service authentication and a known matching cycle/context. Apply integration.md
+        state, order, authority and privacy rules. Old or partial work cannot withdraw or overwrite newer
+        accepted facts.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservationIntegrationInternalResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalityResultInternalRequest"
+components:
+  securitySchemes:
+    SportServiceBearer:
+      type: http
+      scheme: bearer
+      description: Private technical credential; private network also required.
+  schemas:
+    SportProblemResponse:
+      $ref: ./sport-problem.schema.yaml
+    SourceEnum:
+      type: string
+      description: "Designated source: LNV_PAGE for professional matches/standings; FFVB for other covered competitions. Backend validates context."
+      enum:
+        - FFVB
+        - LNV_PAGE
+    FieldStateEnum:
+      type: string
+      description: Observation meaning, not null coercion.
+      enum:
+        - KNOWN
+        - UNKNOWN
+        - INVALID
+        - CLEARED
+    ParticipantKindEnum:
+      type: string
+      description:
+        IDENTIFIED needs certain club/source name; PLACEHOLDER denotes recognized bye/qualifier;
+        INVALID is a local attribution failure.
+      enum:
+        - IDENTIFIED
+        - PLACEHOLDER
+        - INVALID
+    DispositionEnum:
+      type: string
+      description: Outcome of one distinct source reference.
+      enum:
+        - ACCEPTED
+        - UNCHANGED
+        - REJECTED
+        - CONTEXT_ONLY
+        - STALE
+    CoverageKindEnum:
+      type: string
+      description: Presence coverage, independent of optional enrichment quality.
+      enum:
+        - COMPLETE
+        - PARTIAL
+    PresenceKindEnum:
+      type: string
+      description: Source presence before filtering; placeholders are NONEMPTY.
+      enum:
+        - EMPTY
+        - NONEMPTY
+    FinalityEnum:
+      type: string
+      description: Finality from official publication, never elapsed time or universal set count.
+      enum:
+        - FINAL
+        - PROVISIONAL
+        - UNCONFIRMED
+    IntegrationStatusEnum:
+      type: string
+      description: COMPLETE requires all essential coverage and local transactions; otherwise INCOMPLETE.
+      enum:
+        - COMPLETE
+        - INCOMPLETE
+    LocalityOutcomeEnum:
+      type: string
+      description: Provider result; empty/ambiguous differ from technical failure.
+      enum:
+        - MATCHED
+        - EMPTY
+        - AMBIGUOUS
+        - TECHNICAL_FAILURE
+    SourceContextInternalRequest:
+      type: object
+      description: Known F01 source reference with independently verified sporting context. Published grouping/round context identifies separate pools when provider codes are reused; ordinary matchdays do not split a pool.
+      additionalProperties: false
+      properties:
+        qualifiedReferenceId:
+          type: string
+          description: Previously qualified discovery reference.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        seasonId:
+          type: string
+          description: Backend confirmed sporting season.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        poolId:
+          type: string
+          description: Backend pool/phase identity.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        providerContextKey:
+          type: string
+          description: Qualified league/competition/pool/phase scope.
+          minLength: 1
+          maxLength: 500
+        coveredRoundKeys:
+          type: array
+          description: Exactly the qualified distinct-group round of this one contextual pool, or empty for an ordinary pool. Never multiple Blockout pools; Jo is not universally a tour.
+          items:
+            type: string
+            description: Qualified source round key.
+            minLength: 1
+            maxLength: 100
+          maxItems: 1000
+          minItems: 0
+      required:
+        - qualifiedReferenceId
+        - seasonId
+        - poolId
+        - providerContextKey
+        - coveredRoundKeys
+    CoverageInternalRequest:
+      type: object
+      description:
+        Context/coverage proof reference, not a trusted completeness boolean. Backend verifies
+        current eligibility and reference scope.
+      additionalProperties: false
+      properties:
+        kind:
+          $ref: "#/components/schemas/CoverageKindEnum"
+        presence:
+          $ref: "#/components/schemas/PresenceKindEnum"
+        sourceRowCount:
+          type: integer
+          description: Rows before normalization, including duplicate representations.
+          minimum: 0
+          maximum: 100000
+        distinctReferenceCount:
+          type: integer
+          description: Distinct match/context references represented.
+          minimum: 0
+          maximum: 100000
+        essentialGaps:
+          type: array
+          description: Missing essential attribution/presence parts; nonempty means incomplete.
+          items:
+            type: string
+            description: Safe gap code.
+            minLength: 1
+            maxLength: 100
+          maxItems: 1000
+          minItems: 0
+      required:
+        - kind
+        - presence
+        - sourceRowCount
+        - distinctReferenceCount
+        - essentialGaps
+    ParticipantInternalRequest:
+      type: object
+      description:
+        Provider participant interpretation. No guessed team IDs; backend resolves certain
+        context. IDENTIFIED requires clubReference and sourceName; others forbid them.
+      additionalProperties: false
+      properties:
+        kind:
+          $ref: "#/components/schemas/ParticipantKindEnum"
+        clubReference:
+          type: string
+          description: Certainly attributable provider club reference.
+          minLength: 1
+          maxLength: 100
+        sourceName:
+          type: string
+          description: Original bounded team name, not a display override.
+          minLength: 1
+          maxLength: 240
+        teamReference:
+          type: string
+          description: Optional scoped provider team evidence; never FFVB equipe alone.
+          minLength: 1
+          maxLength: 100
+        reasonCode:
+          type: string
+          description: Required for INVALID or recognized placeholder interpretation.
+          minLength: 1
+          maxLength: 100
+      required:
+        - kind
+    ScheduleValueInternalRequest:
+      type: object
+      description:
+        Known date with optional explicitly reliable time. Time and timezone supplied together;
+        otherwise date-only. No implicit midnight.
+      additionalProperties: false
+      properties:
+        localDate:
+          type: string
+          description: Sporting date in source context.
+          minLength: 1
+          maxLength: 10
+          format: date
+        localTime:
+          type: string
+          description: Reliable local time, absent if unknown.
+          minLength: 1
+          maxLength: 8
+          pattern: ^[0-2][0-9]:[0-5][0-9](:[0-5][0-9])?$
+        timeZone:
+          type: string
+          description: Qualified IANA zone, ordinarily Europe/Paris.
+          minLength: 1
+          maxLength: 100
+      required:
+        - localDate
+    ResultValueInternalRequest:
+      type: object
+      description: Official aggregate tokens; retain F/P and numeric tokens without invented winner.
+      additionalProperties: false
+      properties:
+        homeToken:
+          type: string
+          description: Nonnegative integer, F or P as officially published.
+          minLength: 1
+          maxLength: 20
+          pattern: ^([0-9]+|F|P)$
+        awayToken:
+          type: string
+          description: Nonnegative integer, F or P as officially published.
+          minLength: 1
+          maxLength: 20
+          pattern: ^([0-9]+|F|P)$
+        finality:
+          $ref: "#/components/schemas/FinalityEnum"
+      required:
+        - homeToken
+        - awayToken
+        - finality
+    SetInternalRequest:
+      type: object
+      description: One ordinary set, not an inferred aggregate.
+      additionalProperties: false
+      properties:
+        ordinal:
+          type: integer
+          description: Source set ordinal.
+          minimum: 1
+          maximum: 100
+        homePoints:
+          type: integer
+          description: Official home points.
+          minimum: 0
+          maximum: 10000
+        awayPoints:
+          type: integer
+          description: Official away points.
+          minimum: 0
+          maximum: 10000
+      required:
+        - ordinal
+        - homePoints
+        - awayPoints
+    GoldenSetInternalRequest:
+      type: object
+      description:
+        Explicit golden-set indication; points either both present or both absent if unknown.
+        Not an ordinary sixth set.
+      additionalProperties: false
+      properties:
+        present:
+          type: boolean
+          description: True when explicitly published; false only with explicit absence evidence.
+        homePoints:
+          type: integer
+          description: Known official points, requires awayPoints.
+          minimum: 0
+          maximum: 10000
+        awayPoints:
+          type: integer
+          description: Known official points, requires homePoints.
+          minimum: 0
+          maximum: 10000
+      required:
+        - present
+    SetDetailInternalRequest:
+      type: object
+      description: Detail must be compatible with selected aggregate and attributable observation.
+      additionalProperties: false
+      properties:
+        ordinarySets:
+          type: array
+          description: Ordered ordinary sets.
+          items:
+            $ref: "#/components/schemas/SetInternalRequest"
+          maxItems: 100
+          minItems: 0
+        goldenSet:
+          $ref: "#/components/schemas/GoldenSetInternalRequest"
+      required:
+        - ordinarySets
+    TextObservationInternalRequest:
+      type: object
+      description:
+        State/value pair. KNOWN requires value and forbids reasonCode; UNKNOWN/CLEARED forbid
+        value; INVALID forbids value and requires safe reasonCode. Explicit clear needs field-authority
+        evidence.
+      additionalProperties: false
+      properties:
+        state:
+          $ref: "#/components/schemas/FieldStateEnum"
+        value:
+          type: string
+          description: Current permitted source text, not diagnostic payload.
+          minLength: 1
+          maxLength: 1000
+        reasonCode:
+          type: string
+          description: Safe finite adapter reason, no raw input.
+          minLength: 1
+          maxLength: 100
+        observedAt:
+          type: string
+          format: date-time
+          description:
+            Actual field observation time when different from the envelope, such as per-match
+            enrichment.
+      required:
+        - state
+    ScheduleObservationInternalRequest:
+      type: object
+      description:
+        State/value pair. KNOWN requires value and forbids reasonCode; UNKNOWN/CLEARED forbid
+        value; INVALID forbids value and requires safe reasonCode. Explicit clear needs field-authority
+        evidence.
+      additionalProperties: false
+      properties:
+        state:
+          $ref: "#/components/schemas/FieldStateEnum"
+        value:
+          $ref: "#/components/schemas/ScheduleValueInternalRequest"
+        reasonCode:
+          type: string
+          description: Safe finite adapter reason, no raw input.
+          minLength: 1
+          maxLength: 100
+        observedAt:
+          type: string
+          format: date-time
+          description:
+            Actual field observation time when different from the envelope, such as per-match
+            enrichment.
+      required:
+        - state
+    ResultObservationInternalRequest:
+      type: object
+      description:
+        State/value pair. KNOWN requires value and forbids reasonCode; UNKNOWN/CLEARED forbid
+        value; INVALID forbids value and requires safe reasonCode. Explicit clear needs field-authority
+        evidence.
+      additionalProperties: false
+      properties:
+        state:
+          $ref: "#/components/schemas/FieldStateEnum"
+        value:
+          $ref: "#/components/schemas/ResultValueInternalRequest"
+        reasonCode:
+          type: string
+          description: Safe finite adapter reason, no raw input.
+          minLength: 1
+          maxLength: 100
+        observedAt:
+          type: string
+          format: date-time
+          description:
+            Actual field observation time when different from the envelope, such as per-match
+            enrichment.
+        uninterpretedNotation:
+          type: string
+          minLength: 1
+          maxLength: 40
+          description:
+            Optional unrecognized sporting score token only when state INVALID; bounded nonpersonal
+            notation for controlled diagnosis, never arbitrary provider text or markup.
+      required:
+        - state
+    SetsObservationInternalRequest:
+      type: object
+      description:
+        State/value pair. KNOWN requires value and forbids reasonCode; UNKNOWN/CLEARED forbid
+        value; INVALID forbids value and requires safe reasonCode. Explicit clear needs field-authority
+        evidence.
+      additionalProperties: false
+      properties:
+        state:
+          $ref: "#/components/schemas/FieldStateEnum"
+        value:
+          $ref: "#/components/schemas/SetDetailInternalRequest"
+        reasonCode:
+          type: string
+          description: Safe finite adapter reason, no raw input.
+          minLength: 1
+          maxLength: 100
+        observedAt:
+          type: string
+          format: date-time
+          description:
+            Actual field observation time when different from the envelope, such as per-match
+            enrichment.
+      required:
+        - state
+    MatchObservationInternalRequest:
+      type: object
+      description:
+        One normalized source reference. Invalid secondary fields warn without rejecting identified
+        presence.
+      additionalProperties: false
+      properties:
+        reference:
+          type: string
+          description:
+            Qualified provider match/slot reference for ATTRIBUTABLE; stable local row key
+            within observation for LOCAL_REJECTION when no source reference can be established.
+          minLength: 1
+          maxLength: 100
+        roundKey:
+          type: string
+          description: Round/day context required when pool/reference is reused.
+          minLength: 1
+          maxLength: 100
+        home:
+          $ref: "#/components/schemas/ParticipantInternalRequest"
+        away:
+          $ref: "#/components/schemas/ParticipantInternalRequest"
+        schedule:
+          $ref: "#/components/schemas/ScheduleObservationInternalRequest"
+        result:
+          $ref: "#/components/schemas/ResultObservationInternalRequest"
+        sets:
+          $ref: "#/components/schemas/SetsObservationInternalRequest"
+        venue:
+          $ref: "#/components/schemas/TextObservationInternalRequest"
+        referees:
+          type: array
+          description: Only permitted current referee fields, never diagnostics.
+          items:
+            $ref: "#/components/schemas/TextObservationInternalRequest"
+          maxItems: 20
+          minItems: 0
+        informationSheet:
+          $ref: "#/components/schemas/InformationSheetObservationInternalRequest"
+        scoresheet:
+          $ref: "#/components/schemas/ExternalUrlObservationInternalRequest"
+        professionalMedia:
+          $ref: "#/components/schemas/ExternalUrlObservationInternalRequest"
+        anomalyCodes:
+          type: array
+          description: Local safe diagnostics.
+          items:
+            type: string
+            description: Safe anomaly code.
+            minLength: 1
+            maxLength: 100
+          maxItems: 100
+          minItems: 0
+        referenceKind:
+          $ref: "#/components/schemas/ReferenceKindEnum"
+      required:
+        - reference
+        - home
+        - away
+        - schedule
+        - result
+        - sets
+        - venue
+        - referees
+        - informationSheet
+        - scoresheet
+        - professionalMedia
+        - anomalyCodes
+        - referenceKind
+    CalendarObservationInternalRequest:
+      type: object
+      description:
+        Exactly one calendar observation; maximum decoded request 16 MiB. No truncation to
+        fit limits.
+      additionalProperties: false
+      properties:
+        observationId: &id001
+          type: string
+          description: Stable observation identity for same-content retry.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        cycleId: &id002
+          type: string
+          description: Issued acquisition cycle.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        cycleOrder: &id003
+          type: string
+          description: Backend-issued source/context order.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        source: &id004
+          $ref: "#/components/schemas/SourceEnum"
+        observedAt: &id005
+          type: string
+          description: Observation time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+        acquiredAt: &id006
+          type: string
+          description: Download completion time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+        publishedAt: &id007
+          type: string
+          description: Provider publication time only when explicitly available.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+        context:
+          $ref: "#/components/schemas/SourceContextInternalRequest"
+        coverage:
+          $ref: "#/components/schemas/CoverageInternalRequest"
+        matches:
+          type: array
+          description: All normalized entries, including local rejection/context slots.
+          items:
+            $ref: "#/components/schemas/MatchObservationInternalRequest"
+          maxItems: 100000
+          minItems: 0
+      required:
+        - observationId
+        - cycleId
+        - cycleOrder
+        - source
+        - observedAt
+        - acquiredAt
+        - context
+        - coverage
+        - matches
+    ItemIntegrationInternalResponse:
+      type: object
+      description: Distinct reference outcome; additional response fields accepted.
+      additionalProperties: true
+      properties:
+        reference:
+          type: string
+          description: Source reference.
+          minLength: 1
+          maxLength: 100
+        disposition:
+          $ref: "#/components/schemas/DispositionEnum"
+        matchId:
+          type: string
+          description: Resolved stable match when present.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        reasonCodes:
+          type: array
+          description: Reject/warning codes.
+          items:
+            type: string
+            description: Safe code.
+            minLength: 1
+            maxLength: 100
+          maxItems: 100
+          minItems: 0
+      required:
+        - reference
+        - disposition
+        - reasonCodes
+    CalendarIntegrationInternalResponse:
+      type: object
+      description: Accepted writes may exist with INCOMPLETE. Counts sum to returned distinct entries.
+      additionalProperties: true
+      properties:
+        observationId:
+          type: string
+          description: Submitted identity.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        status:
+          $ref: "#/components/schemas/IntegrationStatusEnum"
+        accepted:
+          type: integer
+          description: Changed accepted matches.
+          minimum: 0
+          maximum: 100000
+        unchanged:
+          type: integer
+          description: Accepted no-op matches.
+          minimum: 0
+          maximum: 100000
+        rejected:
+          type: integer
+          description: Local failed entries.
+          minimum: 0
+          maximum: 100000
+        contextOnly:
+          type: integer
+          description: Recognized contextual slots.
+          minimum: 0
+          maximum: 100000
+        stale:
+          type: integer
+          description: Superseded entries.
+          minimum: 0
+          maximum: 100000
+        items:
+          type: array
+          description: Disposition per distinct entry.
+          items:
+            $ref: "#/components/schemas/ItemIntegrationInternalResponse"
+          maxItems: 100000
+          minItems: 0
+        authoritySource:
+          $ref: "#/components/schemas/SourceEnum"
+        absenceReconciled:
+          type: boolean
+          description: Actual successful absence reconciliation, not download success.
+        diagnosticId:
+          type: string
+          description: Opaque diagnostic reference.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        integratedAt:
+          type: string
+          description: Backend report time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+      required:
+        - observationId
+        - status
+        - accepted
+        - unchanged
+        - rejected
+        - contextOnly
+        - stale
+        - items
+        - absenceReconciled
+        - diagnosticId
+        - integratedAt
+    ObservationIntegrationInternalResponse:
+      type: object
+      description: Outcome of a noncalendar observation; no empty calendar implications.
+      additionalProperties: true
+      properties:
+        observationId:
+          type: string
+          description: Submitted identity.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        disposition:
+          $ref: "#/components/schemas/DispositionEnum"
+        reasonCodes:
+          type: array
+          description: Outcome reasons.
+          items:
+            type: string
+            description: Safe code.
+            minLength: 1
+            maxLength: 100
+          maxItems: 100
+          minItems: 0
+        revision:
+          type: string
+          description: Current accepted resource revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        diagnosticId:
+          type: string
+          description: Opaque reference.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+      required:
+        - observationId
+        - disposition
+        - reasonCodes
+        - diagnosticId
+    RankingStatisticInternalRequest:
+      type: object
+      description:
+        One official value; UNKNOWN/INVALID has no value. Text retains special ratios rather
+        than invented numbers.
+      additionalProperties: false
+      properties:
+        key:
+          type: string
+          description: Qualified column meaning.
+          minLength: 1
+          maxLength: 100
+        state:
+          $ref: "#/components/schemas/FieldStateEnum"
+        value:
+          type: string
+          description: Official bounded display value; no raw markup.
+          minLength: 1
+          maxLength: 100
+      required:
+        - key
+        - state
+    RankingRowInternalRequest:
+      type: object
+      description: Official row, even without a navigable team.
+      additionalProperties: false
+      properties:
+        ordinal:
+          type: integer
+          description: Source row order.
+          minimum: 1
+          maximum: 100000
+        rank:
+          type: string
+          description: Official indicated rank, omitted when unknown.
+          minLength: 1
+          maxLength: 40
+        sourceLabel:
+          type: string
+          description: Official team label.
+          minLength: 1
+          maxLength: 240
+        verifiedTeamId:
+          type: string
+          description: Optional certain matching team; current visibility rechecked at read.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        statistics:
+          type: array
+          description: Available official columns.
+          items:
+            $ref: "#/components/schemas/RankingStatisticInternalRequest"
+          maxItems: 100
+          minItems: 0
+      required:
+        - ordinal
+        - sourceLabel
+        - statistics
+    RankingObservationInternalRequest:
+      type: object
+      description: One complete attributable ranking snapshot, independent of calendar.
+      additionalProperties: false
+      properties:
+        observationId: *id001
+        cycleId: *id002
+        cycleOrder: *id003
+        source: *id004
+        observedAt: *id005
+        acquiredAt: *id006
+        publishedAt: *id007
+        context:
+          $ref: "#/components/schemas/SourceContextInternalRequest"
+        rows:
+          type: array
+          description: Ordered official rows.
+          items:
+            $ref: "#/components/schemas/RankingRowInternalRequest"
+          maxItems: 100000
+          minItems: 0
+      required:
+        - observationId
+        - cycleId
+        - cycleOrder
+        - source
+        - observedAt
+        - acquiredAt
+        - context
+        - rows
+    ClubFieldsInternalRequest:
+      type: object
+      description: Current allowed club sheet fields. Absent property means not observed, not clear.
+      additionalProperties: false
+      properties:
+        sourceName:
+          $ref: "#/components/schemas/TextObservationInternalRequest"
+        address:
+          $ref: "#/components/schemas/TextObservationInternalRequest"
+        city:
+          $ref: "#/components/schemas/TextObservationInternalRequest"
+        postalCode:
+          $ref: "#/components/schemas/TextObservationInternalRequest"
+        email:
+          $ref: "#/components/schemas/TextObservationInternalRequest"
+        phone:
+          $ref: "#/components/schemas/TextObservationInternalRequest"
+        website:
+          $ref: "#/components/schemas/TextObservationInternalRequest"
+    ClubObservationInternalRequest:
+      type: object
+      description: Certainly identified current club, independent of season.
+      additionalProperties: false
+      properties:
+        observationId: *id001
+        cycleId: *id002
+        cycleOrder: *id003
+        source: *id004
+        observedAt: *id005
+        acquiredAt: *id006
+        publishedAt: *id007
+        clubId:
+          type: string
+          description: Known persistent club.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        qualifiedReferenceId:
+          type: string
+          description: Qualified club reference.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        fields:
+          $ref: "#/components/schemas/ClubFieldsInternalRequest"
+      required:
+        - observationId
+        - cycleId
+        - cycleOrder
+        - source
+        - observedAt
+        - acquiredAt
+        - clubId
+        - qualifiedReferenceId
+        - fields
+    LocalityContextInternalRequest:
+      type: object
+      description: Effective permitted municipality context; same revision required at publication.
+      additionalProperties: false
+      properties:
+        city:
+          type: string
+          description: Effective city/commune name.
+          minLength: 1
+          maxLength: 240
+        postalCode:
+          type: string
+          description: Effective postal code.
+          minLength: 1
+          maxLength: 20
+      required:
+        - city
+        - postalCode
+    MunicipalPointInternalRequest:
+      type: object
+      description: Verified unique commune centre, not gym location.
+      additionalProperties: false
+      properties:
+        communeCode:
+          type: string
+          description: Official commune code.
+          minLength: 1
+          maxLength: 20
+        communeName:
+          type: string
+          description: Official name matching effective context.
+          minLength: 1
+          maxLength: 240
+        postalCodes:
+          type: array
+          description: Candidate postal coverage.
+          items:
+            type: string
+            description: Official postal code.
+            minLength: 1
+            maxLength: 20
+          maxItems: 100
+          minItems: 1
+        longitude:
+          type: number
+          description: WGS84 longitude, degrees.
+          minimum: -180
+          maximum: 180
+        latitude:
+          type: number
+          description: WGS84 latitude, degrees.
+          minimum: -90
+          maximum: 90
+      required:
+        - communeCode
+        - communeName
+        - postalCodes
+        - longitude
+        - latitude
+    LocalityResultInternalRequest:
+      type: object
+      description:
+        MATCHED requires municipalPoint; all other outcomes forbid it. Technical failure never
+        clears a valid same-context point.
+      additionalProperties: false
+      properties:
+        observationId:
+          type: string
+          description: Stable result identity.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        cycleId:
+          type: string
+          description: Issued geocoding cycle.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        cycleOrder:
+          type: string
+          description: Backend-issued order.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        clubId:
+          type: string
+          description: Persistent club.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        localityRevision:
+          type: string
+          description: Requested effective locality revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        context:
+          $ref: "#/components/schemas/LocalityContextInternalRequest"
+        observedAt:
+          type: string
+          description: Provider observation time.
+          minLength: 1
+          maxLength: 40
+          format: date-time
+        outcome:
+          $ref: "#/components/schemas/LocalityOutcomeEnum"
+        municipalPoint:
+          $ref: "#/components/schemas/MunicipalPointInternalRequest"
+        reasonCode:
+          type: string
+          description: Safe outcome reason.
+          minLength: 1
+          maxLength: 100
+      required:
+        - observationId
+        - cycleId
+        - cycleOrder
+        - clubId
+        - localityRevision
+        - context
+        - observedAt
+        - outcome
+    ReferenceKindEnum:
+      type: string
+      description:
+        ATTRIBUTABLE is provider identity evidence; LOCAL_REJECTION is a diagnostic item key
+        only and must never create an identity.
+      enum:
+        - ATTRIBUTABLE
+        - LOCAL_REJECTION
+    InformationSheetDescriptorInternalRequest:
+      type: object
+      description: Attributable FFVB form descriptor; fixed supplier destination belongs to the adapter.
+      additionalProperties: false
+      properties:
+        season:
+          type: string
+          description: Exact qualified FFVB season parameter, not inferred from match date.
+          minLength: 1
+          maxLength: 80
+        organizerCode:
+          type: string
+          description: Qualified codent from the source context.
+          minLength: 1
+          maxLength: 100
+        matchCode:
+          type: string
+          description: Attributable codmatch from the source context.
+          minLength: 1
+          maxLength: 100
+      required: [season, organizerCode, matchCode]
+    InformationSheetObservationInternalRequest:
+      type: object
+      description: Secondary field. KNOWN requires value and forbids reasonCode; UNKNOWN/CLEARED forbid value; INVALID requires safe reasonCode and forbids value. Missing form alone is not explicit clearance.
+      additionalProperties: false
+      properties:
+        state:
+          $ref: "#/components/schemas/FieldStateEnum"
+        value:
+          $ref: "#/components/schemas/InformationSheetDescriptorInternalRequest"
+        reasonCode:
+          type: string
+          description: Safe qualified adapter reason, never provider content.
+          minLength: 1
+          maxLength: 100
+        observedAt:
+          type: string
+          format: date-time
+          description: Actual secondary observation time if different from envelope.
+      required: [state]
+    ExternalUrlObservationInternalRequest:
+      type: object
+      description: Attributable scoresheet or professional-media reference. KNOWN requires value and forbids reasonCode; UNKNOWN/CLEARED forbid value; INVALID requires safe reasonCode and forbids value. No guessed liveCode URL.
+      additionalProperties: false
+      properties:
+        state:
+          $ref: "#/components/schemas/FieldStateEnum"
+        value:
+          type: string
+          format: uri
+          pattern: ^https://
+          description: Qualified absolute HTTPS URL without userinfo; field-specific destination checks apply.
+          minLength: 1
+          maxLength: 2048
+        reasonCode:
+          type: string
+          description: Safe qualified adapter reason, not raw input.
+          minLength: 1
+          maxLength: 100
+        observedAt:
+          type: string
+          format: date-time
+          description: Actual secondary observation time if different from envelope.
+      required: [state]
+  responses:
+    SportError400:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError401:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError403:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError404:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError409:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError413:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError415:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError422:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError500:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError503:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"

@@ -1,0 +1,2041 @@
+openapi: 3.0.3
+info:
+  title: F01 source acquisition and administration
+  version: 1.0.0
+  description:
+    Documentary design only; no generated/runtime qualification. Apply README.md semantic rules and F13
+    errors/security. Request objects reject extra fields; response consumers accept additive fields while validating
+    consumed values.
+tags:
+  - name: Acquisition
+    description: F01 operations; F02 retains sports integration.
+paths:
+  /api/v1/admin/acquisition/seasons:
+    post:
+      operationId: prepareAcquisitionSeason
+      tags:
+        - Acquisition
+      summary: Prepare a published season
+      description:
+        Prepare a published season. See README.md for preconditions, privacy, replay and uncertain-outcome
+        semantics.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "201":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeasonDetailResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSeasonRequest"
+  /api/v1/admin/acquisition/seasons/{seasonId}:
+    get:
+      operationId: readAcquisitionSeason
+      tags:
+        - Acquisition
+      summary: Read season preparation and locked sources
+      description:
+        Read season preparation and locked sources. See README.md for preconditions, privacy, replay
+        and uncertain-outcome semantics.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeasonDetailResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            type: string
+            description: Resource UUID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque continuation from the previous page; absent for first page.
+          schema:
+            type: string
+            description: Continuation token.
+            minLength: 1
+            maxLength: 2000
+        - name: revision
+          in: query
+          required: false
+          description: Required with cursor; changing selection returns 409.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            description: Pinned read revision.
+            maximum: 9007199254740991
+  /api/v1/admin/acquisition/seasons/{seasonId}/sources:
+    post:
+      operationId: prepareAcquisitionSource
+      tags:
+        - Acquisition
+      summary: Prepare or correct an unlocked supported source
+      description:
+        Prepare or correct an unlocked supported source. See README.md for preconditions, privacy, replay
+        and uncertain-outcome semantics.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceBindingResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            type: string
+            description: Resource UUID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrepareSourceRequest"
+  /api/v1/admin/acquisition/sources/{bindingId}/validation:
+    post:
+      operationId: requestSourceValidation
+      tags:
+        - Acquisition
+      summary: Request bounded provider qualification before launch
+      description:
+        Request bounded provider qualification before launch. See README.md for preconditions, privacy,
+        replay and uncertain-outcome semantics.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "202":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CycleResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            type: string
+            description: Resource UUID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevisionRequest"
+  /api/v1/admin/acquisition/sources/{bindingId}/season-confirmation:
+    post:
+      operationId: confirmSourceSeason
+      tags:
+        - Acquisition
+      summary: Confirm missing season attribution explicitly
+      description:
+        Confirm missing season attribution explicitly. See README.md for preconditions, privacy, replay
+        and uncertain-outcome semantics.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceBindingResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            type: string
+            description: Resource UUID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmSeasonRequest"
+  /api/v1/admin/acquisition/seasons/{seasonId}/launch:
+    post:
+      operationId: launchAcquisitionSeason
+      tags:
+        - Acquisition
+      summary: Launch ready scopes and lock their sources
+      description:
+        Launch qualified covered source scopes independently of pool mapping and lock their sources. See README.md for preconditions, privacy, replay
+        and uncertain-outcome semantics.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeasonDetailResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            type: string
+            description: Resource UUID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevisionRequest"
+  /api/v1/admin/acquisition/seasons/{seasonId}/close:
+    post:
+      operationId: closeAcquisitionSeason
+      tags:
+        - Acquisition
+      summary: Permanently close a season while retaining history
+      description:
+        Permanently close a season while retaining history. See README.md for preconditions, privacy,
+        replay and uncertain-outcome semantics. Exact season-label confirmation and current season revision are mandatory. CLOSED is terminal; only already RUNNING cycles may finish. Cancel unstarted requests without affecting other seasons.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeasonDetailResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            type: string
+            description: Resource UUID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CloseSeasonRequest"
+  /internal/v1/acquisition/seasons/{seasonId}/families/{family}/initial-reconstruction:
+    post:
+      operationId: requestInitialReconstruction
+      tags:
+        - Acquisition
+      summary: Request initial reconstruction before season closure
+      description:
+        Request initial reconstruction before season closure. See README.md for preconditions, privacy,
+        replay and uncertain-outcome semantics. F14-authorized preparation only; require PREPARING, qualified references and an idle provider slot. Lock selected sources; never change other scopes or enable periodic collection. Closed seasons are refused.
+      security:
+        - AcquisitionServiceBearer: []
+      responses:
+        "202":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CycleResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            type: string
+            description: Resource UUID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - name: family
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            $ref: "#/components/schemas/FamilyEnum"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevisionRequest"
+  /api/v1/admin/acquisition/families:
+    get:
+      operationId: readAcquisitionFamilies
+      tags:
+        - Acquisition
+      summary: Read control states and honest latest outcomes
+      description:
+        Read control states and honest latest outcomes. See README.md for preconditions, privacy, replay
+        and uncertain-outcome semantics.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamiliesResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+  /api/v1/admin/acquisition/families/{family}/commands:
+    post:
+      operationId: commandAcquisitionFamily
+      tags:
+        - Acquisition
+      summary: Pause resume or rerun a family
+      description:
+        Pause resume or rerun a family. See README.md for preconditions, privacy, replay and uncertain-outcome
+        semantics.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamilyDetailResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: family
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            $ref: "#/components/schemas/FamilyEnum"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FamilyCommandRequest"
+  /api/v1/admin/acquisition/cycles/{cycleId}:
+    get:
+      operationId: readAcquisitionCycle
+      tags:
+        - Acquisition
+      summary: Resolve the known operation state after a lost response
+      description:
+        Resolve the known operation state after a lost response. See README.md for preconditions, privacy,
+        replay and uncertain-outcome semantics.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CycleResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            type: string
+            description: Resource UUID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+  /internal/v1/acquisition/collector-registrations:
+    post:
+      operationId: registerCollector
+      tags:
+        - Acquisition
+      summary: Register a replacement of the stopped collector
+      description:
+        Register a replacement of the stopped collector. See README.md for preconditions, privacy, replay
+        and uncertain-outcome semantics.
+      security:
+        - AcquisitionServiceBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterCollectorInternalResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterCollectorInternalRequest"
+  /internal/v1/acquisition/configuration:
+    get:
+      operationId: readCollectorConfiguration
+      tags:
+        - Acquisition
+      summary: Read current control and work configuration
+      description:
+        Read current control and work configuration. See README.md for preconditions, privacy, replay
+        and uncertain-outcome semantics.
+      security:
+        - AcquisitionServiceBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectorConfigurationInternalResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque continuation from the previous page; absent for first page.
+          schema:
+            type: string
+            description: Continuation token.
+            minLength: 1
+            maxLength: 2000
+        - name: revision
+          in: query
+          required: false
+          description: Required with cursor; changing selection returns 409.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            description: Pinned read revision.
+            maximum: 9007199254740991
+  /internal/v1/acquisition/cycles:
+    post:
+      operationId: startAcquisitionCycle
+      tags:
+        - Acquisition
+      summary: Start one cycle from a complete current configuration
+      description:
+        Start one cycle from a complete current configuration. See README.md for preconditions, privacy,
+        replay and uncertain-outcome semantics.
+      security:
+        - AcquisitionServiceBearer: []
+      responses:
+        "201":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CycleResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartCycleInternalRequest"
+  /internal/v1/acquisition/cycles/{cycleId}:
+    get:
+      operationId: readCollectorCycle
+      tags:
+        - Acquisition
+      summary: Read the registered cycle without replaying writes
+      description:
+        Read the registered cycle without replaying writes. See README.md for preconditions, privacy,
+        replay and uncertain-outcome semantics.
+      security:
+        - AcquisitionServiceBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CycleResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            type: string
+            description: Resource UUID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+  /internal/v1/acquisition/discoveries:
+    post:
+      operationId: publishDiscovery
+      tags:
+        - Acquisition
+      summary: Publish exact-scope discovered references and completeness
+      description:
+        Publish exact-scope discovered references and completeness. See README.md for preconditions,
+        privacy, replay and uncertain-outcome semantics.
+      security:
+        - AcquisitionServiceBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservationAckInternalResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishDiscoveryInternalRequest"
+  /internal/v1/acquisition/source-validations:
+    post:
+      operationId: publishSourceValidation
+      tags:
+        - Acquisition
+      summary: Record qualification against the same binding revision
+      description:
+        Record qualification against the same binding revision. See README.md for preconditions, privacy,
+        replay and uncertain-outcome semantics.
+      security:
+        - AcquisitionServiceBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservationAckInternalResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishValidationInternalRequest"
+  /internal/v1/acquisition/outcomes:
+    post:
+      operationId: publishAcquisitionOutcome
+      tags:
+        - Acquisition
+      summary: Record acquisition and integration results separately
+      description:
+        Record acquisition and integration results separately. See README.md for preconditions, privacy,
+        replay and uncertain-outcome semantics.
+      security:
+        - AcquisitionServiceBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservationAckInternalResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishOutcomeInternalRequest"
+  /internal/v1/acquisition/cycles/{cycleId}/completion:
+    post:
+      operationId: finishAcquisitionCycle
+      tags:
+        - Acquisition
+      summary: Finish a cycle from its actual recorded outcomes
+      description:
+        Finish a cycle from its actual recorded outcomes. See README.md for preconditions, privacy, replay
+        and uncertain-outcome semantics.
+      security:
+        - AcquisitionServiceBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CycleResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          description: Owning resource identity.
+          schema:
+            type: string
+            description: Resource UUID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinishCycleInternalRequest"
+  /api/v1/admin/acquisition/preparation:
+    get:
+      operationId: readAcquisitionPreparation
+      tags:
+        - Acquisition
+      summary: Read known seasons and discovered source proposals
+      description:
+        At most 500 combined entries ordered by kind then UUID under one revision. Omitted seasonLabel
+        is not proof of a next season. Requires F12 operational read permission.
+      security:
+        - AcquisitionUserBearer: []
+      responses:
+        "200":
+          description: Inspect explicit state; HTTP success does not imply supplier coverage or completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreparationOverviewResponse"
+        "400":
+          $ref: "#/components/responses/AcquisitionError400"
+        "401":
+          $ref: "#/components/responses/AcquisitionError401"
+        "403":
+          $ref: "#/components/responses/AcquisitionError403"
+        "404":
+          $ref: "#/components/responses/AcquisitionError404"
+        "409":
+          $ref: "#/components/responses/AcquisitionError409"
+        "422":
+          $ref: "#/components/responses/AcquisitionError422"
+        "503":
+          $ref: "#/components/responses/AcquisitionError503"
+        "500":
+          $ref: "#/components/responses/AcquisitionError500"
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque continuation from the previous page; absent for first page.
+          schema:
+            type: string
+            description: Continuation token.
+            minLength: 1
+            maxLength: 2000
+        - name: revision
+          in: query
+          required: false
+          description: Required with cursor; changing selection returns 409.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            description: Pinned read revision.
+            maximum: 9007199254740991
+components:
+  securitySchemes:
+    AcquisitionUserBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Auth0 token plus current F12 operation permissions.
+    AcquisitionServiceBearer:
+      type: http
+      scheme: bearer
+      description: Technical secret and private network; operation checked against current process/cycle.
+  schemas:
+    FamilyEnum:
+      type: string
+      description: Independent control family; FFVB reads share provider limits.
+      enum:
+        - FFVB_COMPETITIONS
+        - LNV_COMPETITIONS
+        - CLUBS
+        - GEOCODING
+    SeasonStateEnum:
+      type: string
+      description: Competition lifecycle; CLOSED is terminal and preserves history.
+      enum:
+        - PREPARING
+        - ACTIVE
+        - CLOSED
+    FamilyActionEnum:
+      type: string
+      description: Ordinary action; rerun never implicitly resumes.
+      enum:
+        - PAUSE
+        - RESUME
+        - RERUN
+    CycleModeEnum:
+      type: string
+      description: Single family operation mode; no download restart queue.
+      enum:
+        - PERIODIC
+        - MANUAL
+        - SOURCE_VALIDATION
+        - INITIAL_RECONSTRUCTION
+    CycleStateEnum:
+      type: string
+      description: Observed execution state; INTERRUPTED includes unstarted work cancelled by terminal closure.
+      enum:
+        - REQUESTED
+        - RUNNING
+        - SUCCEEDED
+        - PARTIAL
+        - FAILED
+        - INTERRUPTED
+        - INTEGRATION_UNCERTAIN
+    QualificationEnum:
+      type: string
+      description: Current binding revision qualification; known contradiction cannot be confirmed away.
+      enum:
+        - PENDING
+        - QUALIFIED
+        - REJECTED
+        - SEASON_CONFIRMATION_REQUIRED
+    CatalogOutcomeEnum:
+      type: string
+      description: Only COMPLETE within proven scope permits omission conclusions.
+      enum:
+        - COMPLETE
+        - PARTIAL
+        - INVALID
+        - UNAVAILABLE
+    WorkKindEnum:
+      type: string
+      description: Concrete provider read need; sport payload goes through F02.
+      enum:
+        - DISCOVERY
+        - CALENDAR
+        - RANKING
+        - MATCH_DETAIL
+        - CLUB
+        - GEOCODING
+        - SOURCE_VALIDATION
+    IntegrationOutcomeEnum:
+      type: string
+      description: Integration result separate from acquired source success.
+      enum:
+        - NOT_ATTEMPTED
+        - COMPLETE
+        - PARTIAL
+        - FAILED
+        - UNCERTAIN
+    AcquisitionOutcomeEnum:
+      type: string
+      description: Source acquisition outcome; valid empty is SUCCESS.
+      enum:
+        - SUCCESS
+        - PARTIAL
+        - INVALID
+        - UNAVAILABLE
+        - INTERRUPTED
+    RevisionRequest:
+      type: object
+      description: Optimistic command precondition.
+      additionalProperties: false
+      properties:
+        expectedRevision: &id001
+          type: integer
+          format: int64
+          minimum: 0
+          description: Last read owning resource revision; stale commands return 409.
+          maximum: 9007199254740991
+      required:
+        - expectedRevision
+    CreateSeasonRequest:
+      type: object
+      description: Prepare a season from observed publication, never by incrementing a year. Resolve startYear from the stored qualified candidate; reject unresolved chronology. The client does not submit a freely editable ordering year.
+      additionalProperties: false
+      properties:
+        candidateId:
+          type: string
+          description: Backend stored discovery candidate proving a published season.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        seasonLabel:
+          type: string
+          description: Exact observed sporting season; not inferred from match dates.
+          minLength: 1
+          maxLength: 80
+      required:
+        - candidateId
+        - seasonLabel
+    PrepareSourceRequest:
+      type: object
+      description:
+        Create or update a supported source before launch; any change invalidates prior qualification
+        and confirmation.
+      additionalProperties: false
+      properties:
+        expectedRevision: *id001
+        bindingId:
+          type: string
+          description: Omit on creation; existing unlocked binding on update.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        family:
+          $ref: "#/components/schemas/FamilyEnum"
+        sourceRole:
+          type: string
+          description: Published organizer code or one of the three configured LNV championship roles.
+          minLength: 1
+          maxLength: 100
+        sourceUrl:
+          type: string
+          description: Official supported URL; host/format/redirect checks precede any provider request.
+          minLength: 1
+          maxLength: 2000
+          format: uri
+        candidateId:
+          type: string
+          description: Optional discovered candidate; absent for explicitly supplied historical URL.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+      required:
+        - expectedRevision
+        - family
+        - sourceRole
+        - sourceUrl
+    ConfirmSeasonRequest:
+      type: object
+      description: Explicit missing-season-evidence confirmation after structural validation.
+      additionalProperties: false
+      properties:
+        expectedRevision: *id001
+        seasonConfirmed:
+          type: boolean
+          description: Must be true; applies only to this binding revision.
+          enum:
+            - true
+      required:
+        - expectedRevision
+        - seasonConfirmed
+    CloseSeasonRequest:
+      type: object
+      description: Exact displayed label and current season revision; no normalization or automatic retry.
+      additionalProperties: false
+      properties:
+        expectedRevision: *id001
+        confirmationSeasonLabel:
+          type: string
+          minLength: 1
+          maxLength: 80
+          description: Must exactly equal the stored season display label, for example 2026/2027.
+      required:
+        - expectedRevision
+        - confirmationSeasonLabel
+    FamilyCommandRequest:
+      type: object
+      description: One ordinary family command; duplicate active request returns existing operation.
+      additionalProperties: false
+      properties:
+        seasonId:
+          type: string
+          format: uuid
+          minLength: 1
+          maxLength: 36
+          description: Required for competition control scopes; forbidden for seasonless CLUBS and GEOCODING.
+        expectedRevision: *id001
+        action:
+          $ref: "#/components/schemas/FamilyActionEnum"
+      required:
+        - expectedRevision
+        - action
+    SourceBindingResponse:
+      type: object
+      description: Season binding read model; launched source never editable by ordinary commands.
+      additionalProperties: true
+      properties:
+        bindingId:
+          type: string
+          description: Binding identity.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        seasonId:
+          type: string
+          description: Accepted/preparing season identity.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        family:
+          $ref: "#/components/schemas/FamilyEnum"
+        sourceRole:
+          type: string
+          description: Organizer or LNV championship role.
+          minLength: 1
+          maxLength: 100
+        sourceUrl:
+          type: string
+          description: Authorized operator-only supported source URL.
+          minLength: 1
+          maxLength: 2000
+          format: uri
+        providerContextKey:
+          type: string
+          description: Qualified provider context when established.
+          minLength: 1
+          maxLength: 500
+        qualification:
+          $ref: "#/components/schemas/QualificationEnum"
+        revision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Current binding revision.
+          maximum: 9007199254740991
+        locked:
+          type: boolean
+          description: True after launch or initial reconstruction; pause/close never reset it.
+        reasonCode:
+          type: string
+          description: Safe stable reason; absent without a qualification issue.
+          minLength: 1
+          maxLength: 100
+      required:
+        - bindingId
+        - seasonId
+        - family
+        - sourceRole
+        - sourceUrl
+        - qualification
+        - revision
+        - locked
+    SeasonDetailResponse:
+      type: object
+      description: Prepared season with explicit readiness gaps; activation never asserts full supplier publication.
+      additionalProperties: true
+      properties:
+        seasonId:
+          type: string
+          description: F02 sporting season ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        startYear:
+          type: integer
+          description: Qualified published season starting year; absent on a candidate with unresolved chronology. Never derived from match dates or a free ordering input.
+          minimum: 1
+          maximum: 9999
+        seasonLabel:
+          type: string
+          description: Confirmed sporting season label.
+          minLength: 1
+          maxLength: 80
+        state:
+          $ref: "#/components/schemas/SeasonStateEnum"
+        revision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Season configuration revision.
+          maximum: 9007199254740991
+        sources:
+          type: array
+          description: This page of bindings; continuation preserves the same configuration revision.
+          items:
+            $ref: "#/components/schemas/SourceBindingResponse"
+          minItems: 0
+          maxItems: 500
+        nextCursor:
+          type: string
+          description: Opaque continuation; absent at end.
+          minLength: 1
+          maxLength: 2000
+        missingScopeCodes:
+          type: array
+          description: Safe missing-source or qualification reasons only; pool mapping never blocks source launch.
+          items:
+            type: string
+            description: Reason code.
+            minLength: 1
+            maxLength: 100
+          minItems: 0
+          maxItems: 500
+      required:
+        - seasonId
+        - seasonLabel
+        - startYear
+        - state
+        - revision
+        - sources
+        - missingScopeCodes
+    CycleResponse:
+      type: object
+      description:
+        Operation/cycle status safe for authorized operators; absence of acknowledgment proves neither
+        failure nor success.
+      additionalProperties: true
+      properties:
+        seasonId:
+          type: string
+          format: uuid
+          minLength: 1
+          maxLength: 36
+          description: Required for seasonal competition work. Omitted only for seasonless club/geocoding or root discovery; root discovery cannot acquire sporting data for a closed season.
+        cycleId:
+          type: string
+          description: Cycle ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        family:
+          $ref: "#/components/schemas/FamilyEnum"
+        mode:
+          $ref: "#/components/schemas/CycleModeEnum"
+        state:
+          $ref: "#/components/schemas/CycleStateEnum"
+        order:
+          type: string
+          description:
+            Backend monotonic order, decimal string matching F02 cycleOrder without JavaScript precision
+            loss.
+          pattern: ^(0|[1-9][0-9]{0,18})$
+          minLength: 1
+          maxLength: 20
+        configurationRevision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Selected immutable configuration revision.
+          maximum: 9007199254740991
+        acquisitionOutcome:
+          $ref: "#/components/schemas/AcquisitionOutcomeEnum"
+        integrationOutcome:
+          $ref: "#/components/schemas/IntegrationOutcomeEnum"
+        acceptedCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Accepted sports items when known.
+          maximum: 9007199254740991
+        rejectedCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Rejected items when known.
+          maximum: 9007199254740991
+        reasonCode:
+          type: string
+          description: Safe bounded diagnostic category.
+          minLength: 1
+          maxLength: 100
+      required:
+        - cycleId
+        - family
+        - mode
+        - state
+        - order
+        - configurationRevision
+    FamilyDetailResponse:
+      type: object
+      description: Family state and latest outcome without a complete execution-history explorer.
+      additionalProperties: true
+      properties:
+        seasonId:
+          type: string
+          format: uuid
+          minLength: 1
+          maxLength: 36
+          description: Required for competition control scopes; forbidden for seasonless CLUBS and GEOCODING.
+        family:
+          $ref: "#/components/schemas/FamilyEnum"
+        revision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Command precondition.
+          maximum: 9007199254740991
+        enabled:
+          type: boolean
+          description: Periodic scheduling enabled.
+        pausing:
+          type: boolean
+          description: Current cycle draining before pause.
+        currentCycle:
+          $ref: "#/components/schemas/CycleResponse"
+        lastAttemptAt:
+          type: string
+          description: Omitted before first attempt.
+          minLength: 1
+          maxLength: 50
+          format: date-time
+        lastSuccessAt:
+          type: string
+          description: Omitted without demonstrated success.
+          minLength: 1
+          maxLength: 50
+          format: date-time
+      required:
+        - family
+        - revision
+        - enabled
+        - pausing
+    FamiliesResponse:
+      type: object
+      description: Competition controls per season/provider and seasonless club/geocoding controls; permission required.
+      additionalProperties: true
+      properties:
+        families:
+          type: array
+          description: Exactly the supported family controls.
+          items:
+            $ref: "#/components/schemas/FamilyDetailResponse"
+          minItems: 0
+          maxItems: 500
+      required:
+        - families
+    RegisterCollectorInternalRequest:
+      type: object
+      description: Single replacement process registration after old process termination; repeated same ID is idempotent.
+      additionalProperties: false
+      properties:
+        processId:
+          type: string
+          description: Process-start UUID, retained for retries of this registration.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+      required:
+        - processId
+    RegisterCollectorInternalResponse:
+      type: object
+      description: Restart fence; not an HA lease or crash supervisor.
+      additionalProperties: true
+      properties:
+        processId:
+          type: string
+          description: Registered process identity.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        generation:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Backend generation; earlier generations cannot write observations.
+          maximum: 9007199254740991
+      required:
+        - processId
+        - generation
+    StartCycleInternalRequest:
+      type: object
+      description: Start one currently allowed family cycle after complete current configuration selection.
+      additionalProperties: false
+      properties:
+        seasonId:
+          type: string
+          format: uuid
+          minLength: 1
+          maxLength: 36
+          description: Required for seasonal competition work. Omitted only for seasonless club/geocoding or root discovery; root discovery cannot acquire sporting data for a closed season.
+        processId:
+          type: string
+          description: Registered live process.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        generation:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Current generation.
+          maximum: 9007199254740991
+        family:
+          $ref: "#/components/schemas/FamilyEnum"
+        mode:
+          $ref: "#/components/schemas/CycleModeEnum"
+        configurationRevision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Complete selected configuration revision.
+          maximum: 9007199254740991
+        requestedCycleId:
+          type: string
+          description:
+            Required for an already REQUESTED manual, initial reconstruction or validation operation; absent for
+            periodic.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+      required:
+        - processId
+        - generation
+        - family
+        - mode
+        - configurationRevision
+    SourceWorkInternalResponse:
+      type: object
+      description: One backend-qualified work/context descriptor; no raw provider payload.
+      additionalProperties: true
+      properties:
+        workId:
+          type: string
+          description: Stable work identity.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/WorkKindEnum"
+        family:
+          $ref: "#/components/schemas/FamilyEnum"
+        sourceUrl:
+          type: string
+          description: Validated provider URL or configured official discovery root.
+          minLength: 1
+          maxLength: 2000
+          format: uri
+        bindingId:
+          type: string
+          description: Absent for an unbound official root discovery target.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        qualifiedReferenceId:
+          type: string
+          description: Present for qualified sporting reads.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        seasonId:
+          type: string
+          description: Present for known seasonal work.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        poolId:
+          type: string
+          description: Present once F02 has classified contextual pool.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        providerContextKey:
+          type: string
+          description: Exact scope including distinct-group tour when required.
+          minLength: 1
+          maxLength: 500
+        dueAt:
+          type: string
+          description: Provider read eligibility instant.
+          minLength: 1
+          maxLength: 50
+          format: date-time
+        reliableStartAt:
+          type: string
+          description: Optional reliable match kickoff for its own detail window.
+          minLength: 1
+          maxLength: 50
+          format: date-time
+        localityRevision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Required for geocoding; checked by F02.
+          maximum: 9007199254740991
+        clubReference:
+          type: string
+          description: Provider club identifier as a string, with leading zeros.
+          minLength: 1
+          maxLength: 100
+        clubId:
+          type: string
+          format: uuid
+          description: Required for CLUB/GEOCODING work; F02-owned club identity.
+          minLength: 1
+          maxLength: 36
+        localityContext:
+          $ref: "#/components/schemas/LocalityContextInternalResponse"
+      required:
+        - workId
+        - kind
+        - family
+        - sourceUrl
+        - providerContextKey
+        - dueAt
+    CollectorConfigurationInternalResponse:
+      type: object
+      description:
+        Page of current eligible work; finish all pages at one revision before start-cycle. A changed
+        revision returns 409.
+      additionalProperties: true
+      properties:
+        revision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Configuration revision shared by all pages.
+          maximum: 9007199254740991
+        families:
+          type: array
+          description: Control state and pending explicit requests.
+          items:
+            $ref: "#/components/schemas/FamilyDetailResponse"
+          minItems: 0
+          maxItems: 500
+        work:
+          type: array
+          description: At most 500 work descriptors, ordered by stable work UUID.
+          items:
+            $ref: "#/components/schemas/SourceWorkInternalResponse"
+          minItems: 0
+          maxItems: 500
+        nextCursor:
+          type: string
+          description: Opaque continuation, absent at end; not an invitation to reuse stale settings.
+          minLength: 1
+          maxLength: 2000
+      required:
+        - revision
+        - families
+        - work
+    DiscoveredReferenceInternalRequest:
+      type: object
+      description: Normalized discovered reference from an exact requested catalog, not a guessed URL.
+      additionalProperties: false
+      properties:
+        providerContextKey:
+          type: string
+          description: Canonical full provider context; preserve case-sensitive values.
+          minLength: 1
+          maxLength: 500
+        sourceUrl:
+          type: string
+          description: Supported official reference read from published navigation.
+          minLength: 1
+          maxLength: 2000
+          format: uri
+        sourceLabel:
+          type: string
+          description: Exact necessary competition/pool label; no personal contacts.
+          minLength: 1
+          maxLength: 240
+        seasonLabel:
+          type: string
+          description: Omit when source provides no usable season proof.
+          minLength: 1
+          maxLength: 80
+        groupingKey:
+          type: string
+          description: Native grouping, not Blockout business division.
+          minLength: 1
+          maxLength: 100
+        roundKey:
+          type: string
+          description: Present only for independently qualified distinct-group tour.
+          minLength: 1
+          maxLength: 100
+        poolKey:
+          type: string
+          description: Native pool/phase key.
+          minLength: 1
+          maxLength: 100
+        structureQualified:
+          type: boolean
+          description: Adapter has recognized supported shape; backend still checks context and eligibility.
+      required:
+        - providerContextKey
+        - sourceUrl
+        - sourceLabel
+        - structureQualified
+    PublishDiscoveryInternalRequest:
+      type: object
+      description:
+        One catalog observation for exactly the backend requested work scope. No partial page may claim
+        a whole season.
+      additionalProperties: false
+      properties:
+        cycleId:
+          type: string
+          description: Known live cycle.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        workId:
+          type: string
+          description: Backend issued discovery target.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        observedAt:
+          type: string
+          description: Actual provider observation time.
+          minLength: 1
+          maxLength: 50
+          format: date-time
+        outcome:
+          $ref: "#/components/schemas/CatalogOutcomeEnum"
+        references:
+          type: array
+          description:
+            Whole requested catalog when COMPLETE; never silently truncate. Transport bound is checked
+            explicitly.
+          items:
+            $ref: "#/components/schemas/DiscoveredReferenceInternalRequest"
+          minItems: 0
+          maxItems: 10000
+        reasonCode:
+          type: string
+          description: Safe reason for partial/invalid/unavailable outcome.
+          minLength: 1
+          maxLength: 100
+      required:
+        - cycleId
+        - workId
+        - observedAt
+        - outcome
+        - references
+    PublishValidationInternalRequest:
+      type: object
+      description:
+        Source-validation result against a preparing binding revision; human confirmation cannot replace
+        this result.
+      additionalProperties: false
+      properties:
+        cycleId:
+          type: string
+          description: SOURCE_VALIDATION cycle.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        bindingId:
+          type: string
+          description: Binding being checked.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        bindingRevision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Snapshot being checked; stale result returns 409.
+          maximum: 9007199254740991
+        qualification:
+          $ref: "#/components/schemas/ValidationResultEnum"
+        providerContextKey:
+          type: string
+          description: Recognized championship/organizer scope when established.
+          minLength: 1
+          maxLength: 500
+        observedSeasonLabel:
+          type: string
+          description: Exact machine-readable label if available.
+          minLength: 1
+          maxLength: 80
+        reasonCode:
+          type: string
+          description: Safe structural/context diagnostic; required on rejection.
+          minLength: 1
+          maxLength: 100
+      required:
+        - cycleId
+        - bindingId
+        - bindingRevision
+        - qualification
+    PublishOutcomeInternalRequest:
+      type: object
+      description:
+        Per-scope operational result; sporting changes must already use F02. Does not prove recovery
+        beyond this scope.
+      additionalProperties: false
+      properties:
+        cycleId:
+          type: string
+          description: Known cycle.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        workId:
+          type: string
+          description: Affected backend issued scope.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        observedAt:
+          type: string
+          description: Time of attempt or provider observation.
+          minLength: 1
+          maxLength: 50
+          format: date-time
+        acquisitionOutcome:
+          $ref: "#/components/schemas/AcquisitionOutcomeEnum"
+        integrationOutcome:
+          $ref: "#/components/schemas/IntegrationOutcomeEnum"
+        acceptedCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Confirmed accepted items.
+          maximum: 9007199254740991
+        unchangedCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Confirmed unchanged items.
+          maximum: 9007199254740991
+        rejectedCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Rejected items.
+          maximum: 9007199254740991
+        reasonCode:
+          type: string
+          description: Safe diagnostic category; no raw content.
+          minLength: 1
+          maxLength: 100
+      required:
+        - cycleId
+        - workId
+        - observedAt
+        - acquisitionOutcome
+        - integrationOutcome
+    FinishCycleInternalRequest:
+      type: object
+      description: Terminal overall result; backend verifies recorded scope outcomes, not a trusted success flag.
+      additionalProperties: false
+      properties:
+        state:
+          $ref: "#/components/schemas/TerminalCycleStateEnum"
+      required:
+        - state
+    ObservationAckInternalResponse:
+      type: object
+      description: Acknowledged bounded observation, not evidence of full sporting integration.
+      additionalProperties: true
+      properties:
+        accepted:
+          type: boolean
+          description: True means recorded for its qualified scope.
+        revision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Resulting operational revision.
+          maximum: 9007199254740991
+      required:
+        - accepted
+        - revision
+    SportProblemResponse:
+      $ref: ../../002-sporting-data/contracts/sport-problem.schema.yaml
+    SeasonSummaryResponse:
+      type: object
+      description: One known season, without claiming all sources ready.
+      additionalProperties: true
+      properties:
+        seasonId:
+          type: string
+          description: Season ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        startYear:
+          type: integer
+          description: Qualified published season starting year; absent on a candidate with unresolved chronology. Never derived from match dates or a free ordering input.
+          minimum: 1
+          maximum: 9999
+        seasonLabel:
+          type: string
+          description: Published sporting season.
+          minLength: 1
+          maxLength: 80
+        state:
+          $ref: "#/components/schemas/SeasonStateEnum"
+      required:
+        - seasonId
+        - seasonLabel
+        - startYear
+        - state
+    SourceCandidateResponse:
+      type: object
+      description: Observed source candidate not automatically bound to a season.
+      additionalProperties: true
+      properties:
+        candidateId:
+          type: string
+          description: Stored observation identity.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        family:
+          $ref: "#/components/schemas/FamilyEnum"
+        sourceRole:
+          type: string
+          description: Published organizer or configured LNV championship role.
+          minLength: 1
+          maxLength: 100
+        sourceUrl:
+          type: string
+          description: Supported official candidate URL.
+          minLength: 1
+          maxLength: 2000
+          format: uri
+        startYear:
+          type: integer
+          description: Qualified published season starting year; absent on a candidate with unresolved chronology. Never derived from match dates or a free ordering input.
+          minimum: 1
+          maximum: 9999
+        seasonLabel:
+          type: string
+          description: Omit without established published season attribution.
+          minLength: 1
+          maxLength: 80
+        providerContextKey:
+          type: string
+          description: Published provider context.
+          minLength: 1
+          maxLength: 500
+      required:
+        - candidateId
+        - family
+        - sourceRole
+        - sourceUrl
+        - providerContextKey
+    PreparationOverviewResponse:
+      type: object
+      description: Administrative known seasons and proposals, paginated at one revision.
+      additionalProperties: true
+      properties:
+        revision:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+          description: Current preparation revision.
+        seasons:
+          type: array
+          description: Known seasons on this page.
+          items:
+            $ref: "#/components/schemas/SeasonSummaryResponse"
+          maxItems: 500
+        candidates:
+          type: array
+          description: Source candidates on this page, including ones without season proof.
+          items:
+            $ref: "#/components/schemas/SourceCandidateResponse"
+          maxItems: 500
+        nextCursor:
+          type: string
+          description: Omitted at end.
+          minLength: 1
+          maxLength: 2000
+      required:
+        - revision
+        - seasons
+        - candidates
+    LocalityContextInternalResponse:
+      type: object
+      description:
+        Effective permitted city/postal context from F02, excluded from logs; absent when work is not
+        GEOCODING.
+      additionalProperties: true
+      properties:
+        city:
+          type: string
+          description: Effective city/commune name, never inferred from a top-scored result.
+          minLength: 1
+          maxLength: 240
+        postalCode:
+          type: string
+          description: Effective postal code; compare candidates against city as well.
+          minLength: 1
+          maxLength: 20
+      required:
+        - city
+        - postalCode
+    ValidationResultEnum:
+      type: string
+      description: Terminal structural/context qualification for the current source revision.
+      enum:
+        - QUALIFIED
+        - REJECTED
+        - SEASON_CONFIRMATION_REQUIRED
+    TerminalCycleStateEnum:
+      type: string
+      description: Terminal declared cycle result, verified against actual outcomes.
+      enum:
+        - SUCCEEDED
+        - PARTIAL
+        - FAILED
+        - INTERRUPTED
+        - INTEGRATION_UNCERTAIN
+  responses:
+    AcquisitionError400:
+      description: Malformed request; safe F13 stable code and opaque diagnostic reference.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    AcquisitionError401:
+      description: Authentication missing or invalid; safe F13 stable code and opaque diagnostic reference.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    AcquisitionError403:
+      description: Operation forbidden; safe F13 stable code and opaque diagnostic reference.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    AcquisitionError404:
+      description: Resource absent or concealed; safe F13 stable code and opaque diagnostic reference.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    AcquisitionError409:
+      description:
+        Stale revision, locked binding, wrong lifecycle or current operation conflict; safe F13 stable
+        code and opaque diagnostic reference.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    AcquisitionError422:
+      description:
+        Supported request shape but incompatible provider/context or command preconditions; safe F13 stable
+        code and opaque diagnostic reference.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    AcquisitionError503:
+      description: Dependency unavailable; safe F13 stable code and opaque diagnostic reference.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    AcquisitionError500:
+      description: Unexpected controlled server failure; safe F13 problem without internal content.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"

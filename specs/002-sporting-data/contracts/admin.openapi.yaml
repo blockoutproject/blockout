@@ -1,0 +1,1153 @@
+openapi: 3.0.3
+info:
+  title: F02 sporting administrative commands
+  version: 1.0.0
+  description:
+    Documentary F02 design snapshot. Future adoption uses F13 roots and its single shared problem
+    schema. No server or generated client is delivered here. Conditional shape rules are explained in
+    companion contracts.
+tags:
+  - name: Sport
+    description: Sport-owned operations; no direct persistence or provider payload exposure.
+security:
+  - SportAccountBearer: []
+paths:
+  /api/v1/admin/sport/classification:
+    get:
+      operationId: readSportClassification
+      tags:
+        - Sport
+      summary: Read current scoped classification
+      description: Requires scoped classification permission; no collection side effect.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassificationConfigurationResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "404":
+          $ref: "#/components/responses/SportError404"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      parameters:
+        - name: scopeType
+          in: query
+          required: true
+          description: Scoped identifier.
+          schema:
+            $ref: "#/components/schemas/ScopeTypeEnum"
+        - name: scopeId
+          in: query
+          required: true
+          description: Requested pack/pool.
+          schema:
+            type: string
+            description: Requested pack/pool.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+    put:
+      operationId: correctSportClassification
+      tags:
+        - Sport
+      summary: Correct classification atomically
+      description:
+        Requires classification write on every scope. Reject split/merge/collision/out-of-scope
+        participation in full; preserve identities and published classification when acquisition input
+        is removed.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorrectClassificationRequest"
+  /api/v1/admin/sport/divisions:
+    post:
+      operationId: createSportDivision
+      tags:
+        - Sport
+      summary: Create an active division
+      description: Requires division creation permission; duplicate case-insensitive name rejected.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DivisionResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDivisionRequest"
+  /api/v1/admin/sport/divisions/{divisionId}:
+    get:
+      operationId: readSportDivision
+      tags:
+        - Sport
+      summary: Read current division
+      description: Requires division administration read permission.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DivisionResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "404":
+          $ref: "#/components/responses/SportError404"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      parameters: &id001
+        - name: divisionId
+          in: path
+          required: true
+          description: Stable division.
+          schema:
+            type: string
+            description: Stable division.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+  /api/v1/admin/sport/divisions/{divisionId}/presentation:
+    put:
+      operationId: editSportDivisionPresentation
+      tags:
+        - Sport
+      summary: Edit presentation without activation
+      description: Requires division presentation permission; retains active flag and identity.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DivisionResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditDivisionPresentationRequest"
+      parameters: *id001
+  /api/v1/admin/sport/divisions/{divisionId}/activity:
+    put:
+      operationId: setSportDivisionActivity
+      tags:
+        - Sport
+      summary: Explicitly activate or deactivate division
+      description:
+        Requires division lifecycle permission; changes only division restriction and reevaluates
+        eligibility.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DivisionResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetDivisionActivityRequest"
+      parameters: *id001
+  /api/v1/admin/sport/{resourceType}/{resourceId}/presentation:
+    get:
+      operationId: readSportPresentation
+      tags:
+        - Sport
+      summary: Read permitted current presentation
+      description: Requires scoped presentation read permission.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresentationResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "404":
+          $ref: "#/components/responses/SportError404"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      parameters: &id002
+        - name: resourceType
+          in: path
+          required: true
+          description: Supported presentation target.
+          schema:
+            type: string
+            description: Supported presentation target.
+            enum:
+              - clubs
+              - teams
+              - pools
+        - name: resourceId
+          in: path
+          required: true
+          description: Stable target.
+          schema:
+            type: string
+            description: Stable target.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+    put:
+      operationId: editSportPresentation
+      tags:
+        - Sport
+      summary: Edit named presentation fields
+      description:
+        Requires scoped presentation write permission; reject unsupported field/target combinations;
+        preserve independent names.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresentationResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditPresentationRequest"
+      parameters: *id002
+  /api/v1/admin/sport/clubs/{clubId}/contacts:
+    get:
+      operationId: readSportClubContacts
+      tags:
+        - Sport
+      summary: Read current permitted contact modes
+      description: Requires explicit club contact read/correction permission, with current privacy restrictions.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubContactConfigurationResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "404":
+          $ref: "#/components/responses/SportError404"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      parameters: &id003
+        - name: clubId
+          in: path
+          required: true
+          description: Persistent club.
+          schema:
+            type: string
+            description: Persistent club.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+    put:
+      operationId: editSportClubContacts
+      tags:
+        - Sport
+      summary: Correct contact fields without affecting identity
+      description:
+        Requires contact correction permission. Recompute effective locality only for relevant
+        changes; enforce privacy and no old-contact archive.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubContactConfigurationResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditClubContactsRequest"
+      parameters: *id003
+  /api/v1/admin/sport/{logoOwnerType}/{resourceId}/logo:
+    put:
+      operationId: replaceSportLogo
+      tags:
+        - Sport
+      summary: Validate and attach a fresh logo
+      description:
+        Requires scoped logo write before upload and at association. Keep old logo on failure;
+        do not overwrite V1 objects.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "404":
+          $ref: "#/components/responses/SportError404"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "413":
+          $ref: "#/components/responses/SportError413"
+        "415":
+          $ref: "#/components/responses/SportError415"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ReplaceLogoRequest"
+      parameters:
+        - name: logoOwnerType
+          in: path
+          required: true
+          description: Supported image owner.
+          schema:
+            type: string
+            description: Supported image owner.
+            enum:
+              - clubs
+              - teams
+              - divisions
+        - name: resourceId
+          in: path
+          required: true
+          description: Target owner.
+          schema:
+            type: string
+            description: Target owner.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+  /api/v1/admin/sport/teams/{teamId}/logo:
+    delete:
+      operationId: removeSportTeamLogo
+      tags:
+        - Sport
+      summary: Restore current club logo inheritance
+      description: Requires scoped team presentation permission. A stale revision has no effect.
+      responses:
+        "200":
+          description:
+            Usable result; inspect domain status and revision, never infer whole-calendar success
+            from HTTP 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandResponse"
+        "400":
+          $ref: "#/components/responses/SportError400"
+        "401":
+          $ref: "#/components/responses/SportError401"
+        "403":
+          $ref: "#/components/responses/SportError403"
+        "409":
+          $ref: "#/components/responses/SportError409"
+        "422":
+          $ref: "#/components/responses/SportError422"
+        "500":
+          $ref: "#/components/responses/SportError500"
+        "503":
+          $ref: "#/components/responses/SportError503"
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          description: Team ID.
+          schema:
+            type: string
+            description: Team ID.
+            minLength: 1
+            maxLength: 36
+            format: uuid
+        - name: expectedRevision
+          in: query
+          required: true
+          description: Current presentation revision.
+          schema:
+            type: string
+            description: Current presentation revision.
+            minLength: 1
+            maxLength: 20
+            pattern: ^(0|[1-9][0-9]{0,18})$
+components:
+  securitySchemes:
+    SportAccountBearer:
+      type: http
+      scheme: bearer
+      description: Current Auth0 session; explicit action and scope permission checked server-side.
+  schemas:
+    SportProblemResponse:
+      $ref: ./sport-problem.schema.yaml
+    NameModeEnum:
+      type: string
+      description: SOURCE restores current permitted automatic value.
+      enum:
+        - SOURCE
+        - MANUAL
+    ContactModeEnum:
+      type: string
+      description: Independent mode for one contact field.
+      enum:
+        - SOURCE
+        - MANUAL
+        - INTENTIONAL_ABSENCE
+    FormatEnum:
+      type: string
+      description: Accepted sporting format.
+      enum:
+        - SIX_V_SIX
+        - FOUR_V_FOUR
+        - TWO_V_TWO
+    GenderEnum:
+      type: string
+      description: Accepted sporting gender.
+      enum:
+        - FEMALE
+        - MALE
+        - MIXED
+    ScopeTypeEnum:
+      type: string
+      description: Acquisition classification scope.
+      enum:
+        - PACK
+        - POOL
+    ClassificationActionEnum:
+      type: string
+      description:
+        SET uses complete triple; CLEAR_PACK removes pack input; CLEAR_OVERRIDE restores current
+        pack inheritance.
+      enum:
+        - SET
+        - CLEAR_PACK
+        - CLEAR_OVERRIDE
+    ClassificationValueRequest:
+      type: object
+      description: Complete classification; division must be currently selectable.
+      additionalProperties: false
+      properties:
+        divisionId:
+          type: string
+          description: Active division.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        format:
+          $ref: "#/components/schemas/FormatEnum"
+        gender:
+          $ref: "#/components/schemas/GenderEnum"
+      required:
+        - divisionId
+        - format
+        - gender
+    ClassificationScopeRequest:
+      type: object
+      description:
+        Exact requested scope; all affected outside-scope participation conflicts reject entire
+        command.
+      additionalProperties: false
+      properties:
+        scopeType:
+          $ref: "#/components/schemas/ScopeTypeEnum"
+        scopeId:
+          type: string
+          description: Qualified pack/pool ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+      required:
+        - scopeType
+        - scopeId
+    CorrectClassificationRequest:
+      type: object
+      description:
+        Atomic command; SET requires classification, clears forbid it. CLEAR actions restricted
+        to their matching scope type.
+      additionalProperties: false
+      properties:
+        expectedRevision:
+          type: string
+          description: Current configuration intent revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        scopes:
+          type: array
+          description: Complete authorized requested scope.
+          items:
+            $ref: "#/components/schemas/ClassificationScopeRequest"
+          maxItems: 10000
+          minItems: 1
+        action:
+          $ref: "#/components/schemas/ClassificationActionEnum"
+        classification:
+          $ref: "#/components/schemas/ClassificationValueRequest"
+      required:
+        - expectedRevision
+        - scopes
+        - action
+    CommandResponse:
+      type: object
+      description: Committed current state reference; reread owning view after uncertain response.
+      additionalProperties: true
+      properties:
+        resourceId:
+          type: string
+          description: Target or configuration ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        revision:
+          type: string
+          description: Current operator revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        changed:
+          type: boolean
+          description: Whether desired state changed.
+      required:
+        - resourceId
+        - revision
+        - changed
+    ClassificationConfigurationResponse:
+      type: object
+      description:
+        Configuration view for exact scope. Accepted published classification is separate from
+        acquisition eligibility.
+      additionalProperties: true
+      properties:
+        scopeType:
+          $ref: "#/components/schemas/ScopeTypeEnum"
+        scopeId:
+          type: string
+          description: Requested scope.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        revision:
+          type: string
+          description: Configuration revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        acquisitionClassification:
+          type: object
+          description: Optional complete current acquisition classification.
+          additionalProperties: true
+          properties:
+            divisionId:
+              type: string
+              description: Division ID.
+              minLength: 1
+              maxLength: 36
+              format: uuid
+            format:
+              $ref: "#/components/schemas/FormatEnum"
+            gender:
+              $ref: "#/components/schemas/GenderEnum"
+          required:
+            - divisionId
+            - format
+            - gender
+        acceptedClassification:
+          type: object
+          description: Optional retained published classification.
+          additionalProperties: true
+          properties:
+            divisionId:
+              type: string
+              description: Division ID.
+              minLength: 1
+              maxLength: 36
+              format: uuid
+            format:
+              $ref: "#/components/schemas/FormatEnum"
+            gender:
+              $ref: "#/components/schemas/GenderEnum"
+          required:
+            - divisionId
+            - format
+            - gender
+        eligible:
+          type: boolean
+          description: Current acquisition eligibility, not public visibility.
+      required:
+        - scopeType
+        - scopeId
+        - revision
+        - eligible
+    DivisionPresentationRequest:
+      type: object
+      description: Name and colors, not activity.
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Division name; case-insensitive uniqueness.
+          minLength: 1
+          maxLength: 120
+        foregroundColor:
+          type: string
+          description: Hex RGB color.
+          minLength: 1
+          maxLength: 7
+          pattern: ^#[0-9a-fA-F]{6}$
+        backgroundColor:
+          type: string
+          description: Hex RGB color.
+          minLength: 1
+          maxLength: 7
+          pattern: ^#[0-9a-fA-F]{6}$
+      required:
+        - name
+        - foregroundColor
+        - backgroundColor
+    CreateDivisionRequest:
+      type: object
+      description: Explicit creation fields; duplicate names conflict. New division is active.
+      additionalProperties: false
+      properties:
+        presentation:
+          $ref: "#/components/schemas/DivisionPresentationRequest"
+      required:
+        - presentation
+    EditDivisionPresentationRequest:
+      type: object
+      description: Replace presentation without changing activity.
+      additionalProperties: false
+      properties:
+        expectedRevision:
+          type: string
+          description: Current division revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        presentation:
+          $ref: "#/components/schemas/DivisionPresentationRequest"
+      required:
+        - expectedRevision
+        - presentation
+    SetDivisionActivityRequest:
+      type: object
+      description: Explicit lifecycle action.
+      additionalProperties: false
+      properties:
+        expectedRevision:
+          type: string
+          description: Current division revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        active:
+          type: boolean
+          description: Desired active state, independent of source hiding.
+      required:
+        - expectedRevision
+        - active
+    DivisionResponse:
+      type: object
+      description: Current division presentation and independent activity.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          description: Stable division ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        revision:
+          type: string
+          description: Current revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        name:
+          type: string
+          description: Current name.
+          minLength: 1
+          maxLength: 120
+        foregroundColor:
+          type: string
+          description: Hex RGB.
+          minLength: 1
+          maxLength: 7
+        backgroundColor:
+          type: string
+          description: Hex RGB.
+          minLength: 1
+          maxLength: 7
+        active:
+          type: boolean
+          description: Current active state.
+        logoUrl:
+          type: string
+          description: Current permitted public image URL.
+          minLength: 1
+          maxLength: 2000
+          format: uri
+      required:
+        - id
+        - revision
+        - name
+        - foregroundColor
+        - backgroundColor
+        - active
+    NameEditRequest:
+      type: object
+      description: MANUAL requires value; SOURCE forbids it. No null/empty implicit clear.
+      additionalProperties: false
+      properties:
+        mode:
+          $ref: "#/components/schemas/NameModeEnum"
+        value:
+          type: string
+          description: Manual displayed name.
+          minLength: 1
+          maxLength: 240
+      required:
+        - mode
+    PresentationFieldsRequest:
+      type: object
+      description:
+        At least one field required semantically. Clubs allow displayName; teams/pools fullName
+        and shortName.
+      additionalProperties: false
+      properties:
+        displayName:
+          $ref: "#/components/schemas/NameEditRequest"
+        fullName:
+          $ref: "#/components/schemas/NameEditRequest"
+        shortName:
+          $ref: "#/components/schemas/NameEditRequest"
+    EditPresentationRequest:
+      type: object
+      description: Named fields apply atomically; no inferred identity change.
+      additionalProperties: false
+      properties:
+        expectedRevision:
+          type: string
+          description: Presentation intent revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        fields:
+          $ref: "#/components/schemas/PresentationFieldsRequest"
+      required:
+        - expectedRevision
+        - fields
+    NameFieldResponse:
+      type: object
+      description: Current permitted editing and effective values, no old-value history.
+      additionalProperties: true
+      properties:
+        mode:
+          $ref: "#/components/schemas/NameModeEnum"
+        automaticValue:
+          type: string
+          description: Current authorized automatic value.
+          minLength: 1
+          maxLength: 240
+        manualValue:
+          type: string
+          description: Current manual value when mode permits.
+          minLength: 1
+          maxLength: 240
+        effectiveValue:
+          type: string
+          description: Currently displayed value when allowed.
+          minLength: 1
+          maxLength: 240
+      required:
+        - mode
+    PresentationResponse:
+      type: object
+      description: Current presentation only; absent values are unknown/suppressed.
+      additionalProperties: true
+      properties:
+        resourceId:
+          type: string
+          description: Stable target ID.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        revision:
+          type: string
+          description: Presentation intent revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        displayName:
+          $ref: "#/components/schemas/NameFieldResponse"
+        fullName:
+          $ref: "#/components/schemas/NameFieldResponse"
+        shortName:
+          $ref: "#/components/schemas/NameFieldResponse"
+        logoUrl:
+          type: string
+          description: Current effective logo URL.
+          minLength: 1
+          maxLength: 2000
+          format: uri
+        ownLogo:
+          type: boolean
+          description: Whether an explicit own association exists.
+      required:
+        - resourceId
+        - revision
+        - ownLogo
+    ContactEditRequest:
+      type: object
+      description: MANUAL requires value; SOURCE and INTENTIONAL_ABSENCE forbid it. Privacy dominates.
+      additionalProperties: false
+      properties:
+        mode:
+          $ref: "#/components/schemas/ContactModeEnum"
+        value:
+          type: string
+          description: New permitted manual field value; field-specific validation still applies.
+          minLength: 1
+          maxLength: 1000
+      required:
+        - mode
+    ContactFieldsRequest:
+      type: object
+      description: At least one named contact edit; all others preserved.
+      additionalProperties: false
+      properties:
+        address:
+          $ref: "#/components/schemas/ContactEditRequest"
+        city:
+          $ref: "#/components/schemas/ContactEditRequest"
+        postalCode:
+          $ref: "#/components/schemas/ContactEditRequest"
+        email:
+          $ref: "#/components/schemas/ContactEditRequest"
+        phone:
+          $ref: "#/components/schemas/ContactEditRequest"
+        website:
+          $ref: "#/components/schemas/ContactEditRequest"
+    EditClubContactsRequest:
+      type: object
+      description: Atomic scoped contact correction, no personal history.
+      additionalProperties: false
+      properties:
+        expectedRevision:
+          type: string
+          description: Current contact intent revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        fields:
+          $ref: "#/components/schemas/ContactFieldsRequest"
+      required:
+        - expectedRevision
+        - fields
+    ContactFieldResponse:
+      type: object
+      description: Only current permitted slots; restrictions can suppress every value in any mode.
+      additionalProperties: true
+      properties:
+        mode:
+          $ref: "#/components/schemas/ContactModeEnum"
+        automaticValue:
+          type: string
+          description: Current automatic value when allowed.
+          minLength: 1
+          maxLength: 1000
+        manualValue:
+          type: string
+          description: Current manual value when allowed.
+          minLength: 1
+          maxLength: 1000
+        effectiveValue:
+          type: string
+          description: Current effective value when allowed.
+          minLength: 1
+          maxLength: 1000
+      required:
+        - mode
+    ClubContactConfigurationResponse:
+      type: object
+      description: Current contacts and locality revision for authorized operator.
+      additionalProperties: true
+      properties:
+        clubId:
+          type: string
+          description: Persistent club.
+          minLength: 1
+          maxLength: 36
+          format: uuid
+        revision:
+          type: string
+          description: Contact intent revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        localityRevision:
+          type: string
+          description: Effective municipality context revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        address:
+          $ref: "#/components/schemas/ContactFieldResponse"
+        city:
+          $ref: "#/components/schemas/ContactFieldResponse"
+        postalCode:
+          $ref: "#/components/schemas/ContactFieldResponse"
+        email:
+          $ref: "#/components/schemas/ContactFieldResponse"
+        phone:
+          $ref: "#/components/schemas/ContactFieldResponse"
+        website:
+          $ref: "#/components/schemas/ContactFieldResponse"
+      required:
+        - clubId
+        - revision
+        - localityRevision
+        - address
+        - city
+        - postalCode
+        - email
+        - phone
+        - website
+    ReplaceLogoRequest:
+      type: object
+      description:
+        File bytes through backend; actual PNG/JPEG decoding required, <=5,242,880 file bytes.
+        Multipart overhead maximum 65,536 bytes beyond that bound.
+      additionalProperties: false
+      properties:
+        expectedRevision:
+          type: string
+          description: Current presentation revision.
+          minLength: 1
+          maxLength: 20
+          pattern: ^(0|[1-9][0-9]{0,18})$
+        file:
+          type: string
+          format: binary
+          description: PNG/JPEG file <=5,242,880 bytes; MIME/extension alone insufficient.
+      required:
+        - expectedRevision
+        - file
+  responses:
+    SportError400:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError401:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError403:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError404:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError409:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError413:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError415:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError422:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError500:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"
+    SportError503:
+      description: Safe problem; see companion operation contract for code and no-effect/uncertainty semantics.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/SportProblemResponse"

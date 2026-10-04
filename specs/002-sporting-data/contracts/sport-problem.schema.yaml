@@ -1,0 +1,59 @@
+type: object
+description:
+  Single F02 documentary projection of the F13 problem profile. Future production adoption
+  references contracts/shared/schemas/problem.yaml owned by F13.
+additionalProperties: true
+properties:
+  type:
+    type: string
+    description: Stable problem URI reference.
+    minLength: 1
+    maxLength: 500
+  title:
+    type: string
+    description: Safe French category.
+    minLength: 1
+    maxLength: 240
+  status:
+    type: integer
+    description: Actual HTTP status.
+    minimum: 400
+    maximum: 599
+  code:
+    type: string
+    description: Stable open machine code.
+    minLength: 1
+    maxLength: 100
+  diagnosticId:
+    type: string
+    description: Opaque server technical reference.
+    minLength: 1
+    maxLength: 36
+    format: uuid
+  detail:
+    type: string
+    description: Safe explanation without provider or personal content.
+    minLength: 1
+    maxLength: 1000
+  instance:
+    type: string
+    description: Optional opaque urn:uuid reference.
+    minLength: 1
+    maxLength: 60
+  conflictingScopeIds:
+    type: array
+    description: Only for authorized classification conflict explanations.
+    items:
+      type: string
+      description: Affected permitted scope ID.
+      minLength: 1
+      maxLength: 36
+      format: uuid
+    maxItems: 10000
+    minItems: 0
+required:
+  - type
+  - title
+  - status
+  - code
+  - diagnosticId

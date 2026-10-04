@@ -1,0 +1,36 @@
+type: object
+description:
+  F05 documentary projection of the F13 problem profile; future production uses the single
+  F13-owned shared schema.
+additionalProperties: true
+properties:
+  type:
+    type: string
+    description: Stable problem URI reference, without private values.
+  title:
+    type: string
+    description: Safe localized category; repository descriptions remain English.
+  status:
+    type: integer
+    description: Actual HTTP status.
+    minimum: 400
+    maximum: 599
+  code:
+    type: string
+    description: Stable open machine code; unknown values use the generic safe fallback.
+  diagnosticId:
+    type: string
+    description: Opaque server diagnostic reference unrelated to an account.
+    format: uuid
+  detail:
+    type: string
+    description: Optional safe explanation without provider/personal details.
+  instance:
+    type: string
+    description: Optional opaque urn:uuid reference, never a copied request URL.
+required:
+  - type
+  - title
+  - status
+  - code
+  - diagnosticId
