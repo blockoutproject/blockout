@@ -17,6 +17,10 @@
 - Q: What should happen when a season is not available? → A: Offer only available seasons, without a dedicated unavailable-season screen. Preselect the newest available season, or All seasons when no season is offered. On a successful options reload, replace an invalid retained season with that same default and clear an unavailable division; the active filter control displays the resulting value. A failed options read keeps previously known choices.
 - Q: Does each source have a separate season for the same sporting year? → A: No. F02 owns one canonical season per sporting start year; F01 reuses it across qualified source bindings. Search selects that common identity, subject to type-specific viewability.
 
+### Session 2026-10-13 — Professional teams
+
+Professional teams without a club remain searchable by their available F02 fields. Club and club-city terms do not receive invented values or a provider-name guess. A later technical club association supplies those fields without replacing the team identity; current visibility and ordinary projection freshness still apply.
+
 ## User Scenarios & Testing
 
 Design input: [Discovery journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=916-2826) and its [October 10 approval](https://github.com/blockoutproject/blockout/issues/34#issuecomment-6102118765), prototype `2177c354254031ea3d7e5e98e201ea66ec7e6f1e`. This approval covers the affected design, not the withdrawn technical plan.

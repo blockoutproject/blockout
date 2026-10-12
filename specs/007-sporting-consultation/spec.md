@@ -27,6 +27,10 @@ Display ordinary youth pools using their accepted division/format/gender. Distin
 
 - Q: Does a failed PDF require an expired-link or reference-renewal journey? → A: No. Keep direct PDF reading and use the ordinary opening error with return and retry, retaining current visibility checks.
 
+### Session 2026-10-13 — Professional teams
+
+A qualified professional team may have no club under F02. Keep its usable page, matches, standings and follow action; omit the club navigation and any municipality point that has no associated club. Preserve ordinary partial/empty map states. When a club association exists, reuse the ordinary club journey. Professional artwork follows the F02 team customization → accepted LNV logo → optional club logo priority; removing customization restores the current automatic logo.
+
 ## User Scenarios & Testing
 
 Design input: [match](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=976-293), [standings](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1010-15711) and [map annotations](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1035-9522). Existing approval and the map evidence limits do not establish native/provider behavior.

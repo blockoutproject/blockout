@@ -39,7 +39,11 @@ Documentation checks use the pinned formatter without installing application dep
 
 ```sh
 npx --yes prettier@3.9.6 --check README.md AGENTS.md "specs/**/*.md" ".github/**/*.{md,yml}" .prettierrc.json
+npx --yes prettier@3.9.6 --check "contracts/**/*.yaml"
+npx --yes @redocly/cli@2.62.1 lint contracts/http/ingestion/openapi.yaml contracts/http/mobile/openapi.yaml --extends minimal
 git diff --check
 ```
 
 Validate local links, anchors and source ownership against the final tree. [Documentation CI](.github/workflows/ci.yml) establishes no runtime, provider or visual qualification. Personal skills are copied from their authoritative bank; official Spec Kit imports remain unchanged except for authorized constitution amendments through the official procedure. Publication follows [the Git delivery policy](AGENTS.md#git-delivery).
+
+The [F02 plan](specs/002-sporting-data/plan.md) adds the first authored [HTTP contract roots](specs/002-sporting-data/contracts/README.md) under the shared F13 conventions. Redocly's minimal ruleset checks source structure and references without inferring a product license. Runtime generation, compilation and consumer behavior remain future qualifications.

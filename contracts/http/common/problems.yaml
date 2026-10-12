@@ -1,0 +1,96 @@
+schemas:
+  ProblemResponse:
+    type: object
+    description:
+      RFC 9457 safe error profile. Consumers branch on type, never title or provider text.
+      F02 conflict extensions identify permitted sporting scopes only.
+    additionalProperties: true
+    properties:
+      type:
+        type: string
+        description: Stable machine identifier. Known F02 values are listed in the native contracts artifact.
+        format: uri
+      title:
+        type: string
+        description: Human-readable category, not a machine code.
+      status:
+        type: integer
+        description: HTTP status of this response.
+        minimum: 400
+        maximum: 599
+      detail:
+        type: string
+        description: Safe explanation without secrets, personal contact values or raw supplier data.
+      instance:
+        type: string
+        description: Optional opaque occurrence reference; no sensitive URL or internal topology.
+      conflictingResourceIds:
+        type: array
+        description: F02 classification conflicts visible to this authorized operator.
+        items:
+          type: string
+          description: Conflicting pool or team identity.
+          format: uuid
+    required:
+      - type
+      - title
+      - status
+responses:
+  "400":
+    description: Malformed or invalid request; no write.
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "401":
+    description: Missing, invalid or expired token; no write.
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "403":
+    description: Wrong client, environment, scope or action grant; no write.
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "404":
+    description: Unknown or deliberately unavailable resource.
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "409":
+    description:
+      Stale revision, incompatible classification or invalid current lifecycle context; no
+      command effects.
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "413":
+    description: Request or image exceeds the documented bound; no write.
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "415":
+    description: Unsupported image media type; previous image preserved.
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "422":
+    description: Readable request with rejected sporting or image content; no command effects.
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "503":
+    description:
+      Processing unavailable. A lost or interrupted mutation may have committed; follow the
+      owning reread/next-collection rule.
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"

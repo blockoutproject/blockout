@@ -30,6 +30,10 @@ Initial sports reconstruction uses F01 adapters and F02 integration for the curr
 - Device/store qualification must account for the selected native platform minimums and all affected users before V1 retirement; a newer stack is not permission to silently drop their continuity. F13 owns the technical matrix; this amendment performs no transition.
 - The simpler F13 backup operation removes routine monitoring and notifications, not F14 evidence before intentional destruction. Retain independent logo bytes/associations and identity/payment continuity before any reset. Every actual restoration still applies current privacy and expiry. Legal readers share F11 backend availability. F12 suppresses in-app legal/support/sign-in entries during all three global gates; ordinary entries and the standalone public F11 privacy/deletion page retain their scope.
 
+### Session 2026-10-13 — Optional professional club associations
+
+F02 professional teams may have no club and use contextual native LNV identity; there is no automatic FFVB/LNV club join or cross-season propagation. This does not weaken retention of existing club identities, manual logo bytes and associations before reset. Preserve unresolved legacy associations for controlled resolution without inventing a club or attaching a logo by name similarity. No reset or provider mutation is authorized by #43.
+
 ## User Scenarios & Testing
 
 Design input: the scoped [welcome/sign-in prototype approval](https://github.com/blockoutproject/blockout/issues/38#issuecomment-6096091323), revision `4f53558076c3518a5792f8ded711df9417df53e5`, and [five-state Figma approval](https://github.com/blockoutproject/blockout/issues/38#issuecomment-6096348752). These do not qualify provider or native continuity.

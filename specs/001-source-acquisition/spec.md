@@ -66,6 +66,10 @@ These are clarifications accepted by the product owner and incorporated into req
 
 - Q: Must alert closure be a custom business-recovery transition? → A: No. Use F13 native grouping, five-day reminders and native closures, without an independent incident ledger. A closure alone proves neither source nor integration recovery; the operator checks the affected execution outcomes and positive observations. Preserve the first failed competition-cycle threshold and the 24-hour club/geocoding policy. This nonvisual amendment is accepted in [#42](https://github.com/blockoutproject/blockout/issues/42).
 
+### Session 2026-10-13 — F02 integration boundary
+
+Professional team identities need no FFVB club association under F02. Do not collect FFVB professional calendars to establish one. Retrieve accepted-format LNV team logos with the existing calendar passages, once per distinct team in a passage, without a separate cadence; image failure is independent from usable match integration. Preserve observation order established before supplier reads and report a rejected older observation without replaying the whole integration pipeline. Calendar/detail priority and partial acceptance remain owned by F02.
+
 <a id="user-scenarios--testing-mandatory"></a>
 
 ## User Scenarios & Testing

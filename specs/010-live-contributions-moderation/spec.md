@@ -14,6 +14,10 @@
 
 - Q: Does KISS remove proposal history or moderation rules? → A: No. Keep concurrent proposals requiring validation, the first eligible immediate live publication, seven-day account age, existing quotas, three/ten report thresholds and moderator reactivation of every retained old version. Reactivation replaces the active link, retains its author and starts a new report period, without renewing F07 match-level announcements. F08 publication eligibility at H−1 remains distinct from F07 announcement at H.
 
+### Session 2026-10-13 — Sporting transition boundary
+
+F08 publication and F02 result acceptance must use one consistent order for the same match so that F07 can determine whether a public link existed when the result was accepted. This changes neither contribution eligibility nor reporting thresholds, and sporting corrections do not automatically publish, hide or reactivate a contribution. Professional restrictions apply even when a professional team has no associated club.
+
 ## User Scenarios & Testing
 
 The actors are the visitor, the signed-in person with a usable profile, the contribution owner, the reporter and the person with applicable moderation permissions. Free or Pro entitlements do not alter contribution eligibility. FR, A and SC identifiers are local to F08. These scenarios express expected V2 outcomes, not already successful V1 tests.

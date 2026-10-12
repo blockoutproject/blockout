@@ -1,0 +1,1324 @@
+openapi: 3.0.4
+info:
+  title: Blockout mobile API
+  version: 0.1.0
+  description:
+    Canonical backend/mobile boundary. This revision defines F02 authorized administration
+    only. F03 public reading, F01 scheduling and other owners add their own operations here; a feature
+    plan never owns an editable API copy.
+servers:
+  - url: /
+    description: Same-origin backend; deployment supplies its environment URL.
+tags:
+  - name: Sporting
+    description: F02 sporting identities, observations and authorized corrections.
+security:
+  - MobileToken: []
+paths:
+  /administration/clubs/{clubId}/presentation:
+    get:
+      operationId: getClubPresentation
+      tags:
+        - Sporting
+      summary: Read club presentation
+      description:
+        The backend requires the current F12 sporting-presentation grant for this resource.
+        No ordinary member, moderator or collector inheritance. A stale revision returns 409 with no effects;
+        after an uncertain response, GET current state before explicit retry. Return current effective
+        and manual values.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SportingPresentationResponse"
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: clubId
+          in: path
+          required: true
+          description: Stable club identity, including retained resources within the operator grant.
+          schema:
+            type: string
+            description: Stable club identity, including retained resources within the operator grant.
+            format: uuid
+    put:
+      operationId: setClubPresentation
+      tags:
+        - Sporting
+      summary: Set club display names
+      description:
+        "The backend requires the current F12 sporting-presentation grant for this resource.
+        No ordinary member, moderator or collector inheritance. A stale revision returns 409 with no effects;
+        after an uncertain response, GET current state before explicit retry. Source names, logo and identity
+        stay unchanged. The editor submits metadata and optional image in one transaction: names/colors
+        and logo either commit together or remain unchanged. logoAction=replace requires a decodable PNG/JPEG
+        image of at most 5242880 bytes; keep/automatic forbid an image. automatic clears only manual artwork,
+        selecting LNV then optional club for professionals, club for other teams, or the ordinary missing
+        artwork. No staging upload or persistent draft."
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SportingPresentationResponse"
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "409":
+          $ref: ../common/problems.yaml#/responses/409
+        "422":
+          $ref: ../common/problems.yaml#/responses/422
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+        "413":
+          $ref: ../common/problems.yaml#/responses/413
+        "415":
+          $ref: ../common/problems.yaml#/responses/415
+      parameters:
+        - name: clubId
+          in: path
+          required: true
+          description: Stable club identity, including retained resources within the operator grant.
+          schema:
+            type: string
+            description: Stable club identity, including retained resources within the operator grant.
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              description:
+                One ordinary multipart editor submission; metadata JSON plus an optional binary
+                image.
+              additionalProperties: false
+              properties:
+                metadata:
+                  $ref: "#/components/schemas/SetClubPresentationRequest"
+                image:
+                  type: string
+                  description:
+                    Image part only with logoAction=replace; actual PNG/JPEG bytes, at most
+                    5 MiB.
+                  format: binary
+              required:
+                - metadata
+            encoding:
+              metadata:
+                contentType: application/json
+              image:
+                contentType: image/png, image/jpeg
+  /administration/teams/{teamId}/presentation:
+    get:
+      operationId: getTeamPresentation
+      tags:
+        - Sporting
+      summary: Read team presentation
+      description:
+        The backend requires the current F12 sporting-presentation grant for this resource.
+        No ordinary member, moderator or collector inheritance. A stale revision returns 409 with no effects;
+        after an uncertain response, GET current state before explicit retry. Return current effective
+        and manual values.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SportingPresentationResponse"
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          description: Stable team identity, including retained resources within the operator grant.
+          schema:
+            type: string
+            description: Stable team identity, including retained resources within the operator grant.
+            format: uuid
+    put:
+      operationId: setTeamPresentation
+      tags:
+        - Sporting
+      summary: Set team display names
+      description:
+        "The backend requires the current F12 sporting-presentation grant for this resource.
+        No ordinary member, moderator or collector inheritance. A stale revision returns 409 with no effects;
+        after an uncertain response, GET current state before explicit retry. Source names, logo and identity
+        stay unchanged. The editor submits metadata and optional image in one transaction: names/colors
+        and logo either commit together or remain unchanged. logoAction=replace requires a decodable PNG/JPEG
+        image of at most 5242880 bytes; keep/automatic forbid an image. automatic clears only manual artwork,
+        selecting LNV then optional club for professionals, club for other teams, or the ordinary missing
+        artwork. No staging upload or persistent draft."
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SportingPresentationResponse"
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "409":
+          $ref: ../common/problems.yaml#/responses/409
+        "422":
+          $ref: ../common/problems.yaml#/responses/422
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+        "413":
+          $ref: ../common/problems.yaml#/responses/413
+        "415":
+          $ref: ../common/problems.yaml#/responses/415
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          description: Stable team identity, including retained resources within the operator grant.
+          schema:
+            type: string
+            description: Stable team identity, including retained resources within the operator grant.
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              description:
+                One ordinary multipart editor submission; metadata JSON plus an optional binary
+                image.
+              additionalProperties: false
+              properties:
+                metadata:
+                  $ref: "#/components/schemas/SetNamedSportingPresentationRequest"
+                image:
+                  type: string
+                  description:
+                    Image part only with logoAction=replace; actual PNG/JPEG bytes, at most
+                    5 MiB.
+                  format: binary
+              required:
+                - metadata
+            encoding:
+              metadata:
+                contentType: application/json
+              image:
+                contentType: image/png, image/jpeg
+  /administration/pools/{poolId}/presentation:
+    get:
+      operationId: getPoolPresentation
+      tags:
+        - Sporting
+      summary: Read pool presentation
+      description:
+        The backend requires the current F12 sporting-presentation grant for this resource.
+        No ordinary member, moderator or collector inheritance. A stale revision returns 409 with no effects;
+        after an uncertain response, GET current state before explicit retry. Return current effective
+        and manual values.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SportingPresentationResponse"
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: poolId
+          in: path
+          required: true
+          description: Stable pool identity, including retained resources within the operator grant.
+          schema:
+            type: string
+            description: Stable pool identity, including retained resources within the operator grant.
+            format: uuid
+    put:
+      operationId: setPoolPresentation
+      tags:
+        - Sporting
+      summary: Set pool display names
+      description:
+        "The backend requires the current F12 sporting-presentation grant for this resource.
+        No ordinary member, moderator or collector inheritance. A stale revision returns 409 with no effects;
+        after an uncertain response, GET current state before explicit retry. Source names, logo and identity
+        stay unchanged. The editor submits metadata and optional image in one transaction: names/colors
+        and logo either commit together or remain unchanged. logoAction=replace requires a decodable PNG/JPEG
+        image of at most 5242880 bytes; keep/automatic forbid an image. automatic clears only manual artwork,
+        selecting LNV then optional club for professionals, club for other teams, or the ordinary missing
+        artwork. No staging upload or persistent draft."
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SportingPresentationResponse"
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "409":
+          $ref: ../common/problems.yaml#/responses/409
+        "422":
+          $ref: ../common/problems.yaml#/responses/422
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+        "413":
+          $ref: ../common/problems.yaml#/responses/413
+        "415":
+          $ref: ../common/problems.yaml#/responses/415
+      parameters:
+        - name: poolId
+          in: path
+          required: true
+          description: Stable pool identity, including retained resources within the operator grant.
+          schema:
+            type: string
+            description: Stable pool identity, including retained resources within the operator grant.
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              description:
+                One ordinary multipart editor submission; metadata JSON plus an optional binary
+                image.
+              additionalProperties: false
+              properties:
+                metadata:
+                  $ref: "#/components/schemas/SetNamedSportingPresentationRequest"
+                image:
+                  type: string
+                  description:
+                    Image part only with logoAction=replace; actual PNG/JPEG bytes, at most
+                    5 MiB.
+                  format: binary
+              required:
+                - metadata
+            encoding:
+              metadata:
+                contentType: application/json
+              image:
+                contentType: image/png, image/jpeg
+  /administration/packs/{packId}/classification:
+    get:
+      operationId: getPackClassification
+      tags:
+        - Sporting
+      summary: Read pack classification
+      description:
+        Requires the F12 sporting-classification grant over the full affected scope. Shared
+        participation or target-identity conflicts refuse the entire command. No automatic split, merge
+        or partial correction. Read the own setting and effective acquisition classification.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassificationDetailResponse"
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: packId
+          in: path
+          required: true
+          description: Authorized pack identity.
+          schema:
+            type: string
+            description: Authorized pack identity.
+            format: uuid
+    put:
+      operationId: setPackClassification
+      tags:
+        - Sporting
+      summary: Set pack classification
+      description:
+        Requires the F12 sporting-classification grant over the full affected scope. Shared
+        participation or target-identity conflicts refuse the entire command. No automatic split, merge
+        or partial correction. Removal restores pack inheritance for a pool. With no effective setting,
+        collection stops but accepted published classification remains. Use the current revision and reread
+        after uncertainty.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassificationDetailResponse"
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "409":
+          $ref: ../common/problems.yaml#/responses/409
+        "422":
+          $ref: ../common/problems.yaml#/responses/422
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: packId
+          in: path
+          required: true
+          description: Authorized pack identity.
+          schema:
+            type: string
+            description: Authorized pack identity.
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetClassificationRequest"
+  /administration/pools/{poolId}/classification:
+    get:
+      operationId: getPoolClassification
+      tags:
+        - Sporting
+      summary: Read pool classification
+      description:
+        Requires the F12 sporting-classification grant over the full affected scope. Shared
+        participation or target-identity conflicts refuse the entire command. No automatic split, merge
+        or partial correction. Read the own setting and effective acquisition classification.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassificationDetailResponse"
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: poolId
+          in: path
+          required: true
+          description: Authorized pool identity.
+          schema:
+            type: string
+            description: Authorized pool identity.
+            format: uuid
+    put:
+      operationId: setPoolClassification
+      tags:
+        - Sporting
+      summary: Set pool classification
+      description:
+        Requires the F12 sporting-classification grant over the full affected scope. Shared
+        participation or target-identity conflicts refuse the entire command. No automatic split, merge
+        or partial correction. Removal restores pack inheritance for a pool. With no effective setting,
+        collection stops but accepted published classification remains. Use the current revision and reread
+        after uncertainty.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassificationDetailResponse"
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "409":
+          $ref: ../common/problems.yaml#/responses/409
+        "422":
+          $ref: ../common/problems.yaml#/responses/422
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: poolId
+          in: path
+          required: true
+          description: Authorized pool identity.
+          schema:
+            type: string
+            description: Authorized pool identity.
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetClassificationRequest"
+  /administration/clubs/{clubId}/contacts:
+    get:
+      operationId: getClubContacts
+      tags:
+        - Sporting
+      summary: Read editable club contacts
+      description:
+        Requires the F12 club-contact correction grant. Apply current F11 restrictions before
+        returning any personal value.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubContactsResponse"
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: clubId
+          in: path
+          required: true
+          description: Known club within the operator contact-correction grant.
+          schema:
+            type: string
+            description: Known club within the operator contact-correction grant.
+            format: uuid
+    patch:
+      operationId: setClubContacts
+      tags:
+        - Sporting
+      summary: Correct selected club contact fields
+      description:
+        Requires the F12 club-contact correction grant. Apply supplied modes atomically against
+        the current revision. Effective locality change invalidates its point and revision. After uncertainty,
+        reread; do not automatically replay.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubContactsResponse"
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "409":
+          $ref: ../common/problems.yaml#/responses/409
+        "422":
+          $ref: ../common/problems.yaml#/responses/422
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: clubId
+          in: path
+          required: true
+          description: Known club within the operator contact-correction grant.
+          schema:
+            type: string
+            description: Known club within the operator contact-correction grant.
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetClubContactsRequest"
+  /administration/divisions:
+    get:
+      operationId: listDivisions
+      tags:
+        - Sporting
+      summary: List configured divisions
+      description:
+        Requires the current division-management or sporting-classification grant. Deterministic
+        configuration list, including inactive divisions only when explicitly requested.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DivisionListResponse"
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: includeInactive
+          in: query
+          required: false
+          description: Include inactive divisions for lifecycle management.
+          schema:
+            type: boolean
+            default: false
+    post:
+      operationId: createDivision
+      tags:
+        - Sporting
+      summary: Create a sporting division
+      description:
+        "Requires the F12 division-management grant. New division is active. Case-insensitive
+        name uniqueness rejects duplicate creation. After a lost response, reread the list before any
+        explicit retry; no command ledger. The editor submits metadata and optional image in one transaction:
+        names/colors and logo either commit together or remain unchanged. logoAction=replace requires
+        a decodable PNG/JPEG image of at most 5242880 bytes; keep/automatic forbid an image. automatic
+        clears only manual artwork, selecting LNV then optional club for professionals, club for other
+        teams, or the ordinary missing artwork. No staging upload or persistent draft."
+      responses:
+        "201":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DivisionResponse"
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "409":
+          $ref: ../common/problems.yaml#/responses/409
+        "422":
+          $ref: ../common/problems.yaml#/responses/422
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+        "413":
+          $ref: ../common/problems.yaml#/responses/413
+        "415":
+          $ref: ../common/problems.yaml#/responses/415
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              description:
+                One ordinary multipart editor submission; metadata JSON plus an optional binary
+                image.
+              additionalProperties: false
+              properties:
+                metadata:
+                  $ref: "#/components/schemas/DivisionPresentationRequest"
+                image:
+                  type: string
+                  description:
+                    Image part only with logoAction=replace; actual PNG/JPEG bytes, at most
+                    5 MiB.
+                  format: binary
+              required:
+                - metadata
+            encoding:
+              metadata:
+                contentType: application/json
+              image:
+                contentType: image/png, image/jpeg
+  /administration/divisions/{divisionId}:
+    get:
+      operationId: getDivision
+      tags:
+        - Sporting
+      summary: Read a division
+      description: Requires the current division-management or sporting-classification grant.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DivisionResponse"
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: divisionId
+          in: path
+          required: true
+          description: Stable division identity.
+          schema:
+            type: string
+            description: Stable division identity.
+            format: uuid
+  /administration/divisions/{divisionId}/presentation:
+    put:
+      operationId: setDivisionPresentation
+      tags:
+        - Sporting
+      summary: Edit division presentation
+      description:
+        "Requires the F12 division-management grant. Name uniqueness and revision checked atomically.
+        Activity unchanged. Reread after an uncertain response. The editor submits metadata and optional
+        image in one transaction: names/colors and logo either commit together or remain unchanged. logoAction=replace
+        requires a decodable PNG/JPEG image of at most 5242880 bytes; keep/automatic forbid an image.
+        automatic clears only manual artwork, selecting LNV then optional club for professionals, club
+        for other teams, or the ordinary missing artwork. No staging upload or persistent draft."
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DivisionResponse"
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "409":
+          $ref: ../common/problems.yaml#/responses/409
+        "422":
+          $ref: ../common/problems.yaml#/responses/422
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+        "413":
+          $ref: ../common/problems.yaml#/responses/413
+        "415":
+          $ref: ../common/problems.yaml#/responses/415
+      parameters:
+        - name: divisionId
+          in: path
+          required: true
+          description: Stable division identity.
+          schema:
+            type: string
+            description: Stable division identity.
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              description:
+                One ordinary multipart editor submission; metadata JSON plus an optional binary
+                image.
+              additionalProperties: false
+              properties:
+                metadata:
+                  $ref: "#/components/schemas/SetDivisionPresentationRequest"
+                image:
+                  type: string
+                  description:
+                    Image part only with logoAction=replace; actual PNG/JPEG bytes, at most
+                    5 MiB.
+                  format: binary
+              required:
+                - metadata
+            encoding:
+              metadata:
+                contentType: application/json
+              image:
+                contentType: image/png, image/jpeg
+  /administration/divisions/{divisionId}/activity:
+    put:
+      operationId: setDivisionActivity
+      tags:
+        - Sporting
+      summary: Change division activity
+      description:
+        Requires the F12 division-lifecycle grant. Deactivation hides dependent resources and
+        suspends new acquisition under F01 rules. Reactivation lifts this reason only. Reread after uncertainty.
+      responses:
+        "200":
+          description: Accepted current projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DivisionResponse"
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
+        "401":
+          $ref: ../common/problems.yaml#/responses/401
+        "403":
+          $ref: ../common/problems.yaml#/responses/403
+        "404":
+          $ref: ../common/problems.yaml#/responses/404
+        "409":
+          $ref: ../common/problems.yaml#/responses/409
+        "503":
+          $ref: ../common/problems.yaml#/responses/503
+      parameters:
+        - name: divisionId
+          in: path
+          required: true
+          description: Stable division identity.
+          schema:
+            type: string
+            description: Stable division identity.
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetDivisionActivityRequest"
+components:
+  securitySchemes:
+    MobileToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description:
+        F13 issuer, environment audience, expiry and allowed-client checks apply. Mobile client
+        token; F12 current per-action and resource-scope grants are checked in the backend.
+  schemas:
+    SportingResourceKindEnum:
+      type: string
+      description: Resources with existing F02 identity editors.
+      enum:
+        - club
+        - team
+        - pool
+    ContactModeEnum:
+      type: string
+      description: Independent durable management mode for one field.
+      enum:
+        - source
+        - manual
+        - hidden
+    SetClassificationRequest:
+      type: object
+      description:
+        Desired pack default or complete pool override; null removes that setting. This is
+        a scoped atomic correction, not a list of partial pool patches.
+      additionalProperties: false
+      properties:
+        revision:
+          type: string
+          description: Current editing revision from the same resource GET.
+          minLength: 1
+        classification:
+          type: object
+          description:
+            Null removes the default/override; restoring inheritance may leave acquisition
+            unclassified while published facts retain their last classification.
+          additionalProperties: false
+          properties:
+            divisionId:
+              type: string
+              description: Active division for a new assignment.
+              format: uuid
+            format:
+              $ref: ../common/sporting-enums.yaml#/SportFormatEnum
+            gender:
+              $ref: ../common/sporting-enums.yaml#/SportGenderEnum
+          required:
+            - divisionId
+            - format
+            - gender
+          nullable: true
+      required:
+        - revision
+        - classification
+    ClassificationDetailResponse:
+      type: object
+      description:
+        A pack or pool editor projection. Current setting, effective acquisition classification
+        and retained published classification are distinct.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          description: Pack or pool identity.
+          format: uuid
+        revision:
+          type: string
+          description: Opaque revision covering relevant state and inherited values.
+        setting:
+          type: object
+          description: Own pack default or pool override; null means no own setting.
+          additionalProperties: true
+          properties:
+            divisionId:
+              type: string
+              description: Division identity.
+              format: uuid
+            format:
+              $ref: ../common/sporting-enums.yaml#/SportFormatEnum
+            gender:
+              $ref: ../common/sporting-enums.yaml#/SportGenderEnum
+          required:
+            - divisionId
+            - format
+            - gender
+          nullable: true
+        effective:
+          type: object
+          description:
+            Current acquisition classification after inheritance; null means collection cannot
+            start.
+          additionalProperties: true
+          properties:
+            divisionId:
+              type: string
+              description: Division identity.
+              format: uuid
+            format:
+              $ref: ../common/sporting-enums.yaml#/SportFormatEnum
+            gender:
+              $ref: ../common/sporting-enums.yaml#/SportGenderEnum
+          required:
+            - divisionId
+            - format
+            - gender
+          nullable: true
+      required:
+        - id
+        - revision
+        - setting
+        - effective
+    NamePresentationResponse:
+      type: object
+      description:
+        Names independent of identity. Effective values include eligible source and manual
+        precedence.
+      additionalProperties: true
+      properties:
+        sourceName:
+          type: string
+          description: Current attributable source label.
+          nullable: true
+        effectiveName:
+          type: string
+          description: Current display name.
+        manualName:
+          type: string
+          description: Current full/display name customization; null selects automatic.
+          nullable: true
+        effectiveShortName:
+          type: string
+          description: Team/pool short name if available; omitted for a club.
+        manualShortName:
+          type: string
+          description:
+            Independent team/pool short customization; null selects automatic; omitted for
+            a club.
+          nullable: true
+      required:
+        - sourceName
+        - effectiveName
+        - manualName
+    LogoPresentationResponse:
+      type: object
+      description:
+        Effective artwork projection. URLs designate backend-controlled image delivery subject
+        to current access rules; provider URLs are not public proxies.
+      additionalProperties: true
+      properties:
+        effectiveUrl:
+          type: string
+          description: Resolved valid image URL; null represents the ordinary missing-artwork state.
+          format: uri
+          nullable: true
+        manualUrl:
+          type: string
+          description: Current manual image, if any.
+          format: uri
+          nullable: true
+        automaticUrl:
+          type: string
+          description: Current eligible LNV/club fallback independent of a manual image; null when unavailable.
+          format: uri
+          nullable: true
+      required:
+        - effectiveUrl
+        - manualUrl
+        - automaticUrl
+    SportingPresentationResponse:
+      type: object
+      description:
+        Existing resource editor projection. A professional team has no compulsory club relation;
+        no editing operation sets that relation.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          description: Stable resource identity.
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/SportingResourceKindEnum"
+        revision:
+          type: string
+          description:
+            Opaque current editing revision, changed by relevant state changes, not freshness-only
+            refreshes.
+        names:
+          $ref: "#/components/schemas/NamePresentationResponse"
+        logo:
+          $ref: "#/components/schemas/LogoPresentationResponse"
+      required:
+        - id
+        - kind
+        - revision
+        - names
+        - logo
+    SetClubPresentationRequest:
+      type: object
+      description: Set the desired club display customization, leaving source/contact/logo values untouched.
+      additionalProperties: false
+      properties:
+        revision:
+          type: string
+          description: Current editing revision.
+          minLength: 1
+        manualName:
+          type: string
+          description:
+            Null restores the current automatic name. Empty string is invalid; whitespace-only
+            input is rejected.
+          nullable: true
+          minLength: 1
+        logoAction:
+          $ref: "#/components/schemas/LogoActionEnum"
+      required:
+        - revision
+        - manualName
+        - logoAction
+    SetNamedSportingPresentationRequest:
+      type: object
+      description:
+        Set both independent name customization slots to their desired states. Clearing one
+        never implicitly clears the other.
+      additionalProperties: false
+      properties:
+        revision:
+          type: string
+          description: Current editing revision.
+          minLength: 1
+        manualName:
+          type: string
+          description: Null restores current automatic full name; empty/whitespace-only is invalid.
+          nullable: true
+          minLength: 1
+        manualShortName:
+          type: string
+          description: Null restores current automatic short name; empty/whitespace-only is invalid.
+          nullable: true
+          minLength: 1
+        logoAction:
+          $ref: "#/components/schemas/LogoActionEnum"
+      required:
+        - revision
+        - manualName
+        - manualShortName
+        - logoAction
+    ContactFieldRequest:
+      type: object
+      description:
+        One desired contact mode. value is required and nonempty only for manual; forbidden
+        for source or hidden. No history of former values.
+      additionalProperties: false
+      properties:
+        mode:
+          $ref: "#/components/schemas/ContactModeEnum"
+        value:
+          type: string
+          description: Manual value validated for this field and current privacy rules.
+          minLength: 1
+      required:
+        - mode
+    ContactFieldResponse:
+      type: object
+      description:
+        Authorized current value and management mode. Privacy-restricted values remain null
+        even in manual mode.
+      additionalProperties: true
+      properties:
+        mode:
+          $ref: "#/components/schemas/ContactModeEnum"
+        effectiveValue:
+          type: string
+          description: Currently permitted value; null means absent.
+          nullable: true
+        sourceValue:
+          type: string
+          description: Currently eligible source value; null means absent/restricted.
+          nullable: true
+        manualValue:
+          type: string
+          description: Currently eligible manual value; null outside manual mode or when restricted.
+          nullable: true
+      required:
+        - mode
+        - effectiveValue
+        - sourceValue
+        - manualValue
+    SetClubContactsRequest:
+      type: object
+      description:
+        Set desired state only for supplied fields. Omitted fields are unchanged. At least
+        one field is required alongside revision.
+      additionalProperties: false
+      properties:
+        revision:
+          type: string
+          description: Current club contacts editing revision.
+          minLength: 1
+        address:
+          $ref: "#/components/schemas/ContactFieldRequest"
+        city:
+          $ref: "#/components/schemas/ContactFieldRequest"
+        postalCode:
+          $ref: "#/components/schemas/ContactFieldRequest"
+        email:
+          $ref: "#/components/schemas/ContactFieldRequest"
+        phone:
+          $ref: "#/components/schemas/ContactFieldRequest"
+        website:
+          $ref: "#/components/schemas/ContactFieldRequest"
+      required:
+        - revision
+    ClubContactsResponse:
+      type: object
+      description: Current independently managed club contacts; no personal data in error details or diagnostics.
+      additionalProperties: true
+      properties:
+        clubId:
+          type: string
+          description: Stable club identity.
+          format: uuid
+        revision:
+          type: string
+          description: Opaque contact editing revision.
+        address:
+          $ref: "#/components/schemas/ContactFieldResponse"
+        city:
+          $ref: "#/components/schemas/ContactFieldResponse"
+        postalCode:
+          $ref: "#/components/schemas/ContactFieldResponse"
+        email:
+          $ref: "#/components/schemas/ContactFieldResponse"
+        phone:
+          $ref: "#/components/schemas/ContactFieldResponse"
+        website:
+          $ref: "#/components/schemas/ContactFieldResponse"
+      required:
+        - clubId
+        - revision
+        - address
+        - city
+        - postalCode
+        - email
+        - phone
+        - website
+    DivisionPresentationRequest:
+      type: object
+      description: Division presentation only; never changes lifecycle.
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Nonempty display name, unique ignoring case.
+          minLength: 1
+        color:
+          type: string
+          description: sRGB hexadecimal color.
+          pattern: ^#[0-9A-Fa-f]{6}$
+          example: "#F0AA00"
+        gradient:
+          type: array
+          description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
+          items:
+            type: string
+            description: sRGB hexadecimal color.
+            pattern: ^#[0-9A-Fa-f]{6}$
+            example: "#F0AA00"
+          minItems: 3
+          maxItems: 3
+          nullable: true
+        logoAction:
+          $ref: "#/components/schemas/LogoActionEnum"
+      required:
+        - name
+        - color
+        - gradient
+        - logoAction
+    SetDivisionPresentationRequest:
+      type: object
+      description: Desired presentation with concurrency protection.
+      additionalProperties: false
+      properties:
+        revision:
+          type: string
+          description: Current division editing revision.
+          minLength: 1
+        name:
+          type: string
+          description: Nonempty display name, unique ignoring case.
+          minLength: 1
+        color:
+          type: string
+          description: sRGB hexadecimal color.
+          pattern: ^#[0-9A-Fa-f]{6}$
+          example: "#F0AA00"
+        gradient:
+          type: array
+          description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
+          items:
+            type: string
+            description: sRGB hexadecimal color.
+            pattern: ^#[0-9A-Fa-f]{6}$
+            example: "#F0AA00"
+          minItems: 3
+          maxItems: 3
+          nullable: true
+        logoAction:
+          $ref: "#/components/schemas/LogoActionEnum"
+      required:
+        - revision
+        - name
+        - color
+        - gradient
+        - logoAction
+    DivisionResponse:
+      type: object
+      description: Division identity, presentation and independent lifecycle.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          description: Stable division identity.
+          format: uuid
+        revision:
+          type: string
+          description: Current editing revision.
+        name:
+          type: string
+          description: Nonempty display name, unique ignoring case.
+          minLength: 1
+        color:
+          type: string
+          description: sRGB hexadecimal color.
+          pattern: ^#[0-9A-Fa-f]{6}$
+          example: "#F0AA00"
+        gradient:
+          type: array
+          description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
+          items:
+            type: string
+            description: sRGB hexadecimal color.
+            pattern: ^#[0-9A-Fa-f]{6}$
+            example: "#F0AA00"
+          minItems: 3
+          maxItems: 3
+          nullable: true
+        logo:
+          $ref: "#/components/schemas/LogoPresentationResponse"
+        active:
+          type: boolean
+          description: Explicit lifecycle state; presentation writes never change it.
+      required:
+        - id
+        - revision
+        - name
+        - color
+        - gradient
+        - logo
+        - active
+    DivisionListResponse:
+      type: object
+      description:
+        Administrative selection list; all matching configured divisions, ordered by case-folded
+        name then UUID. No pagination is needed for this configuration list.
+      additionalProperties: true
+      properties:
+        items:
+          type: array
+          description: Divisions matching includeInactive.
+          items:
+            $ref: "#/components/schemas/DivisionResponse"
+      required:
+        - items
+    SetDivisionActivityRequest:
+      type: object
+      description: Explicit lifecycle command separate from presentation. Never deletes sporting history.
+      additionalProperties: false
+      properties:
+        revision:
+          type: string
+          description: Current division revision.
+          minLength: 1
+        active:
+          type: boolean
+          description:
+            Desired activity; lifting inactivity leaves independent hiding/eligibility reasons
+            intact.
+      required:
+        - revision
+        - active
+    LogoActionEnum:
+      type: string
+      description: Desired logo behavior within the single editor save.
+      enum:
+        - keep
+        - replace
+        - automatic
