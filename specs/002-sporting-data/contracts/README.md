@@ -12,7 +12,7 @@
 | Backend / Expo mobile    | F02 corrections, F12 grants; existing administration journeys            | Shared mobile OpenAPI root under `contracts/http/mobile/`                      |
 | F02 / backend consumers  | F02 identities/current truth; each consumer owns its projections/actions | Explicit Java application interfaces, not internal HTTP or shared JPA entities |
 
-No business route currently exists to preserve. These sources establish the F13 roots without a feature-local API copy. F01's future plan must implement the accepted cycle context and outcomes; F07/F08 must use the common transaction/match-order boundary. F03/F04/F06 consume stable identities and current visibility without independently redefining them. Their public reading endpoints and F01 cycle/work-assignment endpoints are outside this F02 contract revision; later owners extend the same roots.
+F01 owns cycle/work assignment; F03/F04/F06 own public reading. Their future operations extend these same roots. F07/F08 consume the in-process transition boundary below.
 
 ## Operations
 
@@ -24,7 +24,8 @@ No business route currently exists to preserve. These sources establish the F13 
 | Ingestion | `POST /ingestion/pools/{poolId}/standings-observations`                                  | Atomically replace one usable official table.                                                                                                                |
 | Ingestion | `POST /ingestion/clubs/{clubId}/detail-observations` and `/locality-observations`        | Accept permitted current source values and revision-qualified municipality coordinates.                                                                      |
 | Ingestion | `POST /ingestion/teams/{teamId}/source-logo-observations`                                | Accept actual LNV image bytes separately from match processing.                                                                                              |
-| Mobile    | `GET` and `PUT /administration/{clubs,teams,pools}/{id}/presentation`                    | Existing authorized identity editor; each concrete route and parameter is defined in the root. One multipart save commits names and optional image together. |
+| Mobile    | `GET` and `PUT /administration/{clubs,teams}/{id}/presentation`                          | Existing authorized identity editor; each concrete route and parameter is defined in the root. One multipart save commits names and optional image together. |
+| Mobile    | `GET` and `PUT /administration/pools/{poolId}/presentation`                              | Pool name editor; JSON full/short names and editing revision, without image or logo action.                                                                  |
 | Mobile    | `GET` and `PUT /administration/{packs,pools}/{id}/classification`                        | Read and atomically correct the complete classification setting; no partial application across conflicting participations.                                   |
 | Mobile    | `GET` and `PATCH /administration/clubs/{clubId}/contacts`                                | Read permitted values and change supplied independent management modes.                                                                                      |
 | Mobile    | `GET` and `POST /administration/divisions`; `GET /administration/divisions/{divisionId}` | Read the configuration list or create a division through its existing editor.                                                                                |
@@ -34,11 +35,11 @@ No bulk job resource, generic alias editor, professional club-association route 
 
 ## Ingestion
 
-Provide focused operations for catalog, pool calendar, known-match detail, pool standings, known-club details, club geocoding and professional source-logo observations. Each accepts the qualified cycle/order context and rejects unrelated scope. Catalog/discovery retains native references; only attributable calendars create sporting teams/matches. Details and standings cannot create or restore calendar presence.
+The canonical operations above define request/response fields and errors. The [plan](../plan.md#acceptance-and-concurrency) defines transaction boundaries, observation ordering and absence-finalization guarantees.
 
 A calendar contains normalized attributable match candidates, recognized context-only slots and bounded local acquisition failures. Required envelope/context shape errors reject the request before writing. Invalid supplier secondary fields are omitted from their proposal with a filtered reason, not silently converted to null; supplier-level invalid rows remain explicit failures. Business acceptance errors are per match.
 
-Bound the complete calendar to 1,000 entries and 8 MiB of JSON, excluding images. Include every relevant row/slot/failure in its count; no truncation or automatic chunk finalization. Collapse identical native-reference duplicates; contradictory duplicates isolate that reference and block absence reconciliation. A qualified empty observation is explicitly distinguished from unreadable/missing essential sections.
+The calendar envelope is bounded to 1,000 total entries and 8 MiB, counting match candidates, context-only slots and failures. Refuse oversized input without truncation or automatic chunking. The canonical schema describes duplicate and completeness semantics.
 
 Successful HTTP processing returns a JSON outcome with per-reference accepted/unchanged/stale/rejected results, useful counts and whether absence was reconciled. A partial outcome is not an HTTP 207, asynchronous job or complete success. Globally invalid shape/context, permissions and unavailable processing use the shared Problem Details profile. No raw body or personal detail appears in reasons.
 
@@ -54,9 +55,9 @@ The collector authenticates with its environment-specific M2M client/audience an
 
 Retain existing resource editing, classification and division lifecycle journeys. Read projections expose current effective values, independent source/manual modes and a scoped editing revision; no supplier document or JPA entity is exposed.
 
-Commands carry the revision they edit and explicit desired values. Removing one customization does not reset another field; contact source/manual/hidden modes stay distinct. Use current F12 action/scope grants, with no moderator or M2M inheritance. Reject stale commands as conflicts without effects, and return the accepted projection after success. Lost responses lead to a read before any explicit retry; no persistent command history is added.
+Commands carry the revision they edit and explicit desired values; source/manual/hidden contact modes remain distinct. F12 grants are checked per action and resource. Each canonical operation defines its changes and refusal semantics; no moderator or M2M privilege is inherited.
 
-Presentation saves use ordinary `multipart/form-data`: one JSON metadata part and an image part only for `logoAction=replace`. `keep` preserves the image; `automatic` removes only manual artwork. The backend validates every part before committing the single editor transaction. There is no staging upload, media token or persistent draft. Division creation uses the same form with no prior revision; case-insensitive name uniqueness and rereading the configuration list handle an uncertain result. Other updates require their resource revision.
+Club, team and division presentation saves use `multipart/form-data`: JSON metadata plus an image only for `logoAction=replace`. `keep` preserves the current manual logo and `automatic` clears it; fallback is resource-specific in the canonical operation. Validate the complete form before the single editor transaction. Division creation has no prior revision; case-insensitive name uniqueness and rereading the list handle an uncertain result. Pool presentation uses JSON names and a revision only.
 
 Classification applies division/format/gender together, with pack inheritance or a full pool override. Refusals identify conflicting sporting scopes without partial mutation. Division name/color/logo editing and activation are distinct commands. No association, score, generic alias or split/merge endpoint is introduced.
 
@@ -73,7 +74,7 @@ F02 supplies stable resource IDs, contextual source attribution, useful facts/fr
 
 These are explicit application calls inside the modular backend, not another wire schema or a shared entity library. An inaccessible resource is unavailable to ordinary readers even when its retained data remains present for authorized administration.
 
-F07 processes required accepted-match transitions synchronously in the F02 transaction; F08 publication uses the same match lock. Composition and consumed facts belong to F07. After-commit push is best effort and cannot roll back accepted state. No broker, event archive or durable outbox.
+The [plan](../plan.md#results-and-dependent-transitions) defines synchronous F07 participation in the score transaction, shared F08 match locking and after-commit push. The table above identifies the values crossing these application boundaries.
 
 ## Compatibility and qualification
 

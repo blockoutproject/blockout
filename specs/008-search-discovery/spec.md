@@ -8,22 +8,9 @@
 
 **Input**: [#264](https://github.com/blockoutproject/blockout-legacy/issues/264), F04 in the [specification navigation](../../README.md#specifications). Define public discovery and search for clubs, teams and pools, their filters, seasons, ordering, complete browsing and recovery states. Identities and visibility remain governed by [F02](../002-sporting-data/spec.md), destinations by [F03](../007-sporting-consultation/spec.md) and shared quality by [F13](../003-shared-quality/spec.md). No other searchable resource type, engine, technical contract or mockup is added.
 
-## Clarifications
-
-### Session 2026-10-10
-
-- Q: Which search failure details belong in the interface? → A: Use ordinary loading, results, end and retry. Accept indexing delay without a freshness workflow; consume technical candidate batches on the server rather than exposing empty continuation pages. Input has one visible 200-character limit, without a separate analyzed-token limit.
-- Q: Which season opens search by default? → A: The newest available season for the resource type, including a published future season. A visit retains a valid choice; a new visit or reset recalculates the default. This replaces the calendar-based August 1 proposal.
-- Q: What should happen when a season is not available? → A: Offer only available seasons, without a dedicated unavailable-season screen. Preselect the newest available season, or All seasons when no season is offered. On a successful options reload, replace an invalid retained season with that same default and clear an unavailable division; the active filter control displays the resulting value. A failed options read keeps previously known choices.
-- Q: Does each source have a separate season for the same sporting year? → A: No. F02 owns one canonical season per sporting start year; F01 reuses it across qualified source bindings. Search selects that common identity, subject to type-specific viewability.
-
-### Session 2026-10-13 — Professional teams
-
-Professional teams without a club remain searchable by their available F02 fields. Club and club-city terms do not receive invented values or a provider-name guess. A later technical club association supplies those fields without replacing the team identity; current visibility and ordinary projection freshness still apply.
-
 ## User Scenarios & Testing
 
-Design input: [Discovery journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=916-2826) and its [October 10 approval](https://github.com/blockoutproject/blockout/issues/34#issuecomment-6102118765), prototype `2177c354254031ea3d7e5e98e201ea66ec7e6f1e`. This approval covers the affected design, not the withdrawn technical plan.
+Design input: [Discovery journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=916-2826) and its [October 10 approval](https://github.com/blockoutproject/blockout/issues/34#issuecomment-6102118765), prototype `2177c354254031ea3d7e5e98e201ea66ec7e6f1e`. This approval covers the affected design, without establishing technical or runtime qualification.
 
 The actors are the visitor and the signed-in person, with or without Pro. All have public search access. F04 grants no editing permission. FR, A and SC identifiers are local to this specification. Scenarios describe expected V2 behavior without attesting to implementation or tests already performed.
 
@@ -53,7 +40,7 @@ As a user, I want to find a resource despite input variations, without confusing
 **Acceptance Scenarios**:
 
 1. **A05** — **Given** a club named “Étoile Volley” in Lyon, **when** “etoile”, “ÉTOILE” or “etoile” is searched, **then** the club remains findable; “éto” allows word-prefix searching. Whitespace alone constitutes an empty field. (FR-006, FR-007)
-2. **A06** — **Given** teams and pools with the known fields provided by F04, **when** each field is searched separately, **then** full or short name, club, club city and division find the relevant teams; full or short name, division and league find the relevant pools. Name and city find clubs. After city correction under F02, search and distinguishing information use the effective city; intentional absence removes this field without hiding the club or its teams. The replaced raw city no longer remains a locality-matching criterion. A return to the source follows the currently authorized value and F13 propagation. (FR-006, FR-021, FR-026)
+2. **A06** — **Given** teams and pools with the known fields provided by F04, **when** each field is searched separately, **then** full or short name, club, club city and division find the relevant teams; full or short name, division and league find the relevant pools. Name and city find clubs. After city correction under F02, search and distinguishing information use the effective city; intentional absence removes this field without hiding the club or its teams. The replaced raw city no longer remains a locality-matching criterion. A return to the source follows the currently authorized value and F13 propagation. (FR-006, FR-021, FR-026) For a professional team without a club, its available name and division remain searchable, while no club or club-city match is invented. Attaching a verified club preserves the team identity and supplies its eligible fields.
 3. **A07** — **Given** an “Eagles” team attached to a club in Lyon and another Eagles team in another city, **when** “Eagles Lyon” is searched, **then** terms may match different fields of the same resource; the word Eagles alone does not satisfy the whole search. (FR-008)
 4. **A08** — **Given** a direct match for text and a resource with a similar name, **when** a small typo is entered, such as “Volly” for “Volley”, **then** the approximate match remains findable with relevance favoring direct matches. The wrong season, division, format or gender excludes the resource even if its name is similar. No unrelated result is added to fill the list. (FR-009, FR-011, FR-017)
 5. **A09** — **Given** a customized public name, its current source name and a verified alias bounded by F02, **when** each name is searched in its valid context, **then** the same identity is found once under its public name. Two resources with identical names remain two results; neither similarity nor accent tolerance merges their identities. (FR-010, FR-019)
@@ -133,7 +120,7 @@ As a user, I want to distinguish an empty search from a failure and retry withou
 
 #### Matching and identities
 
-- **FR-006**: Search MUST cover club name and city; team full and short names, club, club city and division; pool full and short names, division and league. Absent fields are not invented. The city used to search for and distinguish a club or its teams MUST be the effective authorized value under F02 FR-049, after correction, intentional absence or return to the source. A replaced, intentionally absent or restricted source city MUST NOT serve as fallback; name and alias rules remain distinct.
+- **FR-006**: Search MUST cover club name and city; team full and short names, club, club city and division; pool full and short names, division and league. Absent fields are not invented. The city used to search for and distinguish a club or its teams MUST be the effective authorized value under F02 FR-049, after correction, intentional absence or return to the source. A replaced, intentionally absent or restricted source city MUST NOT serve as fallback; name and alias rules remain distinct. Professional teams without a club MUST remain searchable by available F02 fields. Club and club-city terms remain absent, without guessed values. A verified technical club association supplies those fields under ordinary projection freshness without replacing team identity.
 - **FR-007**: Case, accents and excess whitespace MUST NOT prevent a textual match. Word prefixes MUST be searchable. Whitespace-only text is equivalent to absent text.
 - **FR-008**: Input with multiple terms MUST account for all terms, which may match several fields of the same resource. A match on only one term does not suffice to ignore the others.
 - **FR-009**: Search MUST tolerate small typos in recognizable names without inserting unrelated matches or relaxing filters. Search relevance favors direct matches without requiring every direct match to precede every approximate one. This tolerance creates neither aliases nor identities.

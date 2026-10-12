@@ -3,9 +3,9 @@ info:
   title: Blockout mobile API
   version: 0.1.0
   description:
-    Canonical backend/mobile boundary. This revision defines F02 authorized administration
-    only. F03 public reading, F01 scheduling and other owners add their own operations here; a feature
-    plan never owns an editable API copy.
+    Canonical backend/mobile boundary. Authored operations cover F02 authorized administration.
+    The F13 GET /health operation and other owners’ operations remain to be authored in this shared root;
+    a feature plan never owns an editable API copy.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
@@ -54,16 +54,9 @@ paths:
       operationId: setClubPresentation
       tags:
         - Sporting
-      summary: Set club display names
-      description:
-        "The backend requires the current F12 sporting-presentation grant for this resource.
-        No ordinary member, moderator or collector inheritance. A stale revision returns 409 with no effects;
-        after an uncertain response, GET current state before explicit retry. Source names, logo and identity
-        stay unchanged. The editor submits metadata and optional image in one transaction: names/colors
-        and logo either commit together or remain unchanged. logoAction=replace requires a decodable PNG/JPEG
-        image of at most 5242880 bytes; keep/automatic forbid an image. automatic clears only manual artwork,
-        selecting LNV then optional club for professionals, club for other teams, or the ordinary missing
-        artwork. No staging upload or persistent draft."
+      summary: Set club names and logo
+      description: >-
+        Requires the current F12 sporting-presentation grant for this resource. No ordinary member, moderator or collector inheritance. A stale revision returns 409 without effects; after an uncertain response, GET current state before explicit retry. Metadata and optional image commit together. replace requires a decodable PNG/JPEG image of at most 5242880 bytes; keep and automatic forbid an image. Changes the manual club display name and logo; source names, contacts and identity remain unchanged. automatic clears the manual club logo and uses ordinary missing artwork.
       responses:
         "200":
           description: Accepted current projection.
@@ -163,16 +156,9 @@ paths:
       operationId: setTeamPresentation
       tags:
         - Sporting
-      summary: Set team display names
-      description:
-        "The backend requires the current F12 sporting-presentation grant for this resource.
-        No ordinary member, moderator or collector inheritance. A stale revision returns 409 with no effects;
-        after an uncertain response, GET current state before explicit retry. Source names, logo and identity
-        stay unchanged. The editor submits metadata and optional image in one transaction: names/colors
-        and logo either commit together or remain unchanged. logoAction=replace requires a decodable PNG/JPEG
-        image of at most 5242880 bytes; keep/automatic forbid an image. automatic clears only manual artwork,
-        selecting LNV then optional club for professionals, club for other teams, or the ordinary missing
-        artwork. No staging upload or persistent draft."
+      summary: Set team names and logo
+      description: >-
+        Requires the current F12 sporting-presentation grant for this resource. No ordinary member, moderator or collector inheritance. A stale revision returns 409 without effects; after an uncertain response, GET current state before explicit retry. Metadata and optional image commit together. replace requires a decodable PNG/JPEG image of at most 5242880 bytes; keep and automatic forbid an image. Changes independent full/short names and the manual team logo without changing source values or identity. automatic resolves LNV then the optional club for professional teams, or the club for other teams, then ordinary missing artwork.
       responses:
         "200":
           description: Accepted current projection.
@@ -219,7 +205,7 @@ paths:
               additionalProperties: false
               properties:
                 metadata:
-                  $ref: "#/components/schemas/SetNamedSportingPresentationRequest"
+                  $ref: "#/components/schemas/SetTeamPresentationRequest"
                 image:
                   type: string
                   description:
@@ -250,7 +236,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SportingPresentationResponse"
+                $ref: "#/components/schemas/PoolPresentationResponse"
         "401":
           $ref: ../common/problems.yaml#/responses/401
         "403":
@@ -273,22 +259,15 @@ paths:
       tags:
         - Sporting
       summary: Set pool display names
-      description:
-        "The backend requires the current F12 sporting-presentation grant for this resource.
-        No ordinary member, moderator or collector inheritance. A stale revision returns 409 with no effects;
-        after an uncertain response, GET current state before explicit retry. Source names, logo and identity
-        stay unchanged. The editor submits metadata and optional image in one transaction: names/colors
-        and logo either commit together or remain unchanged. logoAction=replace requires a decodable PNG/JPEG
-        image of at most 5242880 bytes; keep/automatic forbid an image. automatic clears only manual artwork,
-        selecting LNV then optional club for professionals, club for other teams, or the ordinary missing
-        artwork. No staging upload or persistent draft."
+      description: >-
+        Requires the current F12 sporting-presentation grant for this resource. No ordinary member, moderator or collector inheritance. A stale revision returns 409 without effects; after an uncertain response, GET current state before explicit retry. Changes only the independent full/short name customizations. Source values, inherited artwork, classification and identity remain unchanged.
       responses:
         "200":
           description: Accepted current projection.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SportingPresentationResponse"
+                $ref: "#/components/schemas/PoolPresentationResponse"
         "400":
           $ref: ../common/problems.yaml#/responses/400
         "401":
@@ -303,10 +282,6 @@ paths:
           $ref: ../common/problems.yaml#/responses/422
         "503":
           $ref: ../common/problems.yaml#/responses/503
-        "413":
-          $ref: ../common/problems.yaml#/responses/413
-        "415":
-          $ref: ../common/problems.yaml#/responses/415
       parameters:
         - name: poolId
           in: path
@@ -319,29 +294,9 @@ paths:
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              type: object
-              description:
-                One ordinary multipart editor submission; metadata JSON plus an optional binary
-                image.
-              additionalProperties: false
-              properties:
-                metadata:
-                  $ref: "#/components/schemas/SetNamedSportingPresentationRequest"
-                image:
-                  type: string
-                  description:
-                    Image part only with logoAction=replace; actual PNG/JPEG bytes, at most
-                    5 MiB.
-                  format: binary
-              required:
-                - metadata
-            encoding:
-              metadata:
-                contentType: application/json
-              image:
-                contentType: image/png, image/jpeg
+              $ref: "#/components/schemas/SetPoolPresentationRequest"
   /administration/packs/{packId}/classification:
     get:
       operationId: getPackClassification
@@ -617,14 +572,8 @@ paths:
       tags:
         - Sporting
       summary: Create a sporting division
-      description:
-        "Requires the F12 division-management grant. New division is active. Case-insensitive
-        name uniqueness rejects duplicate creation. After a lost response, reread the list before any
-        explicit retry; no command ledger. The editor submits metadata and optional image in one transaction:
-        names/colors and logo either commit together or remain unchanged. logoAction=replace requires
-        a decodable PNG/JPEG image of at most 5242880 bytes; keep/automatic forbid an image. automatic
-        clears only manual artwork, selecting LNV then optional club for professionals, club for other
-        teams, or the ordinary missing artwork. No staging upload or persistent draft."
+      description: >-
+        Requires the F12 division-management grant. Creates an active division with a case-insensitively unique name, colors and optional logo. After an uncertain response, reread the list before explicit retry. Metadata and optional image commit together. replace requires a decodable PNG/JPEG image of at most 5242880 bytes; keep and automatic forbid an image. automatic selects ordinary missing artwork; it does not inherit a team or club logo.
       responses:
         "201":
           description: Accepted current projection.
@@ -711,13 +660,8 @@ paths:
       tags:
         - Sporting
       summary: Edit division presentation
-      description:
-        "Requires the F12 division-management grant. Name uniqueness and revision checked atomically.
-        Activity unchanged. Reread after an uncertain response. The editor submits metadata and optional
-        image in one transaction: names/colors and logo either commit together or remain unchanged. logoAction=replace
-        requires a decodable PNG/JPEG image of at most 5242880 bytes; keep/automatic forbid an image.
-        automatic clears only manual artwork, selecting LNV then optional club for professionals, club
-        for other teams, or the ordinary missing artwork. No staging upload or persistent draft."
+      description: >-
+        Requires the F12 division-management grant and the current editing revision. Changes the name, colors and logo without changing identity or activity. Case-insensitive name uniqueness applies; stale revisions return 409 without effects. After an uncertain response, GET current state before explicit retry. Metadata and optional image commit together. replace requires a decodable PNG/JPEG image of at most 5242880 bytes; keep and automatic forbid an image. automatic selects ordinary missing artwork; it does not inherit a team or club logo.
       responses:
         "200":
           description: Accepted current projection.
@@ -837,7 +781,6 @@ components:
       enum:
         - club
         - team
-        - pool
     ContactModeEnum:
       type: string
       description: Independent durable management mode for one field.
@@ -1023,7 +966,7 @@ components:
         - logo
     SetClubPresentationRequest:
       type: object
-      description: Set the desired club display customization, leaving source/contact/logo values untouched.
+      description: Set the manual club display name and logo action; source values, contacts and identity remain unchanged.
       additionalProperties: false
       properties:
         revision:
@@ -1043,11 +986,11 @@ components:
         - revision
         - manualName
         - logoAction
-    SetNamedSportingPresentationRequest:
+    SetTeamPresentationRequest:
       type: object
       description:
-        Set both independent name customization slots to their desired states. Clearing one
-        never implicitly clears the other.
+        Set independent team name customizations and the manual logo action. Clearing one field
+        never implicitly clears another.
       additionalProperties: false
       properties:
         revision:
@@ -1071,6 +1014,49 @@ components:
         - manualName
         - manualShortName
         - logoAction
+    SetPoolPresentationRequest:
+      type: object
+      description: Set independent pool full/short name customizations; no image or logo action.
+      additionalProperties: false
+      properties:
+        revision:
+          type: string
+          description: Current editing revision.
+          minLength: 1
+        manualName:
+          type: string
+          description: Null restores current automatic full name; empty/whitespace-only is invalid.
+          nullable: true
+          minLength: 1
+        manualShortName:
+          type: string
+          description: Null restores current automatic short name; empty/whitespace-only is invalid.
+          nullable: true
+          minLength: 1
+      required:
+        - revision
+        - manualName
+        - manualShortName
+    PoolPresentationResponse:
+      type: object
+      description: Current pool name presentation and editing revision.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          description: Stable resource identity.
+          format: uuid
+        revision:
+          type: string
+          description:
+            Opaque current editing revision, changed by relevant state changes, not freshness-only
+            refreshes.
+        names:
+          $ref: "#/components/schemas/NamePresentationResponse"
+      required:
+        - id
+        - revision
+        - names
     ContactFieldRequest:
       type: object
       description:

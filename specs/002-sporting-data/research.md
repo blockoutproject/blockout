@@ -40,9 +40,7 @@
 
 **Evidence limit**: Upstream source/tests were inspected, not executed. Complete Java/TypeScript generation, compilation, unknown-property handling, presence-aware mapping and real transport serialization remain implementation qualifications. No default value may silently turn an omitted observation into a supplied value.
 
-The [OpenAPI 3.0.4 specification](https://spec.openapis.org/oas/v3.0.4.html#special-considerations-for-multipart-content) supports JSON metadata plus binary image parts. One ordinary multipart editor command preserves atomic name/color/logo saving without staged media or a second write workflow. Its actual Spring/RestClient/Orval serialization remains a focused qualification, including optional image and explicit null in the JSON part.
-
-**Executed source checks**: Both canonical roots pass Redocly CLI 2.62.1 structural validation and bundle with their references resolved. Bundles remain outside Git. The repository formatter and local documentation links/anchors are checked on the delivery tree. These checks do not establish generated consumer or application behavior; the README keeps the repeatable source-validation commands.
+The [OpenAPI 3.0.4 specification](https://spec.openapis.org/oas/v3.0.4.html#special-considerations-for-multipart-content) supports JSON metadata plus binary image parts. For club, team and division editors, one ordinary multipart command preserves atomic name/color/logo saving without staged media or a second write workflow. Its actual Spring/RestClient/Orval serialization remains a focused qualification, including optional image and explicit null in the JSON part.
 
 ## Logos and locality
 
