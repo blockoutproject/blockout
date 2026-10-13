@@ -1,0 +1,251 @@
+Collection:
+  post:
+    operationId: establishAccount
+    tags:
+      - Accounts
+    summary: Establish my account
+    description:
+      Creates the authenticated principal’s account or refreshes its necessary provider
+      information after explicit sign-in. Never links by email. Repetition resolves the same current account. A deleted account is never restored;
+      explicit establishment creates a new account. Known information survives temporary provider absence.
+    responses:
+      "400":
+        $ref: ../../common/problems.yaml#/responses/400
+      "401":
+        $ref: ../../common/problems.yaml#/responses/401
+      "403":
+        $ref: ../../common/problems.yaml#/responses/403
+      "422":
+        $ref: ../../common/problems.yaml#/responses/422
+      "503":
+        $ref: ../../common/problems.yaml#/responses/503
+      "200":
+        description: Existing usable account.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/AccountResponse
+      "201":
+        description: New usable account.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Location:
+            description: Address of the created account.
+            schema:
+              type: string
+              format: uri-reference
+              example: /accounts/6c0f08bf-56b1-4a1d-8c1e-52caab3ddc79
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/AccountResponse
+Current:
+  get:
+    operationId: getMyAccount
+    tags:
+      - Accounts
+    summary: Read my account
+    description:
+      Returns the authenticated principal’s existing account without creating it or synchronizing
+      provider data. An absent account returns 404 and requires explicit establishment.
+    responses:
+      "401":
+        $ref: ../../common/problems.yaml#/responses/401
+      "403":
+        $ref: ../../common/problems.yaml#/responses/403
+      "404":
+        $ref: ../../common/problems.yaml#/responses/404
+      "503":
+        $ref: ../../common/problems.yaml#/responses/503
+      "200":
+        description: Current owner profile.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/AccountResponse
+Member:
+  parameters:
+    - name: accountId
+      in: path
+      required: true
+      description: Original business account identity; never substitute a later account.
+      schema:
+        type: string
+        format: uuid
+  get:
+    operationId: getAccount
+    tags:
+      - Accounts
+    summary: Read my original account
+    description:
+      Returns only the caller’s original account. An absent account returns 404; this does not
+      independently prove physical erasure at external providers.
+    responses:
+      "400":
+        $ref: ../../common/problems.yaml#/responses/400
+      "401":
+        $ref: ../../common/problems.yaml#/responses/401
+      "403":
+        $ref: ../../common/problems.yaml#/responses/403
+      "404":
+        $ref: ../../common/problems.yaml#/responses/404
+      "503":
+        $ref: ../../common/problems.yaml#/responses/503
+      "200":
+        description: Current owner profile.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            description: Supported atomic profile change media type.
+            schema:
+              type: string
+              enum:
+                - multipart/form-data
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/AccountResponse
+  patch:
+    operationId: changeAccountProfile
+    tags:
+      - Accounts
+    summary: Change my profile
+    description:
+      Saves supplied username and photo changes atomically for the usable owner. Omitted
+      fields preserve current values, including concurrent changes. Supplied values replace the last
+      accepted value; no revision token is required. After an uncertain response, read this account
+      before an explicit retry.
+    responses:
+      "400":
+        $ref: ../../common/problems.yaml#/responses/400
+      "401":
+        $ref: ../../common/problems.yaml#/responses/401
+      "403":
+        $ref: ../../common/problems.yaml#/responses/403
+      "404":
+        $ref: ../../common/problems.yaml#/responses/404
+      "409":
+        $ref: ../../common/problems.yaml#/responses/409
+      "413":
+        $ref: ../../common/problems.yaml#/responses/413
+      "415":
+        $ref: ../../common/problems.yaml#/responses/415
+      "422":
+        $ref: ../../common/problems.yaml#/responses/422
+      "503":
+        $ref: ../../common/problems.yaml#/responses/503
+      "200":
+        description: Complete accepted profile.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/AccountResponse
+    requestBody:
+      required: true
+      description:
+        Atomic profile changes; not JSON Patch or JSON Merge Patch. Supply username, photoAction,
+        or both; the username need not differ from its current value. A file is required only for
+        photoAction=replace and forbidden otherwise.
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            description: Changed profile fields and optional replacement image.
+            additionalProperties: false
+            required:
+              - metadata
+            properties:
+              metadata:
+                $ref: ./schemas.yaml#/ChangeAccountProfileRequest
+              image:
+                type: string
+                format: binary
+                description:
+                  Square PNG/JPEG, 1–1024 pixels per side and at most 5242880 bytes; actual
+                  decoded content is validated.
+          encoding:
+            metadata:
+              contentType: application/json
+            image:
+              contentType: image/png, image/jpeg
+  delete:
+    operationId: eraseAccount
+    tags:
+      - Accounts
+    summary: Delete my account
+    description:
+      Deletes the owner’s original account and local personal data, then attempts external cleanup.
+      External failure does not undo account deletion. Repeating deletion for an absent account returns
+      404 without further external calls. Never targets a replacement account or cancels store billing.
+    responses:
+      "400":
+        $ref: ../../common/problems.yaml#/responses/400
+      "401":
+        $ref: ../../common/problems.yaml#/responses/401
+      "403":
+        $ref: ../../common/problems.yaml#/responses/403
+      "404":
+        $ref: ../../common/problems.yaml#/responses/404
+      "503":
+        $ref: ../../common/problems.yaml#/responses/503
+      "204":
+        description: Account and local personal data deleted; external cleanup attempted. No response body.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+
+Photo:
+  parameters:
+    - name: accountId
+      in: path
+      required: true
+      description: Original business account identity; never substitute a later account.
+      schema:
+        type: string
+        format: uuid
+  get:
+    operationId: getAccountPhoto
+    tags:
+      - Accounts
+    summary: Read my profile photo
+    description:
+      Returns the usable owner’s accepted photo. A missing photo or inaccessible account
+      returns 404. No public profile-image access is granted.
+    responses:
+      "400":
+        $ref: ../../common/problems.yaml#/responses/400
+      "401":
+        $ref: ../../common/problems.yaml#/responses/401
+      "403":
+        $ref: ../../common/problems.yaml#/responses/403
+      "404":
+        $ref: ../../common/problems.yaml#/responses/404
+      "503":
+        $ref: ../../common/problems.yaml#/responses/503
+      "200":
+        description: Accepted photo bytes, without original metadata.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+              description: Square accepted photo.
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+              description: Square accepted photo.

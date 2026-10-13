@@ -82,7 +82,7 @@ The [7.26.0 Spring implementation](https://raw.githubusercontent.com/OpenAPITool
 
 **Decision**: Single existing Auth0 tenant, separate clients/audiences and a preproduction-only Database connection.
 
-**Rationale**: Preserve V1 identities and avoid another tenant expense. Hosted login can expose credentials only for provisioned preproduction users.
+**Rationale**: Preserve V1 identities and avoid another tenant expense. [F05](../005-accounts-identity/research.md#native-authentication-and-environment-boundary) owns the hosted-login connection and signup decisions.
 
 **Alternatives and tradeoffs**: Separate tenants offer stronger isolation but require additional identity/configuration/continuity work and were rejected by the owner. Shared directory and tenant-wide administration remain an explicit limitation.
 
@@ -98,13 +98,15 @@ The [7.26.0 Spring implementation](https://raw.githubusercontent.com/OpenAPITool
 
 The official React Native SDK documents React 19 / RN 0.78+ / Expo 53+ support, New Architecture support, native development/EAS builds, and incompatibility with Expo Go. Its credentials manager stores encrypted credentials on Android and in iOS Keychain, retrieves and refreshes expired credentials using refresh tokens, and persists renewal. Hosted Universal Login uses system browser authentication. Callback/logout configuration must match each native application. These statements support using standard SDK mechanisms, not a second custom credential store. No precise SDK patch was selected or compiled here. The README's Android minimum table is ambiguous ("35"); do not turn it into a final device floor. [Auth0 SDK](https://github.com/auth0/react-native-auth0). Its current Android source obtains min/compile/target SDK values from Gradle properties, so qualification must inspect the selected release's resolved native requirements. [Android build source](https://raw.githubusercontent.com/auth0/react-native-auth0/master/android/build.gradle).
 
-- Per-application database connections and manual test-user creation are documented. [Auth0 application connection example](https://github.com/auth0/docs/blob/master/articles/api-auth/tutorials/represent-multiple-apis.md). Disabling sign-up is **connection-wide**, so the dedicated preproduction test connection must not be shared with a production sign-up use case. No custom Action is needed for the accepted dedicated-connection arrangement. [Auth0 sign-up scope](https://support.auth0.com/center/s/article/disable-sign-ups-for-a-specific-application).
+- Per-application database connections are documented. [Auth0 application connection example](https://github.com/auth0/docs/blob/master/articles/api-auth/tutorials/represent-multiple-apis.md). F05 owns the connection-wide signup setting and its environment restrictions, with [provider evidence](../005-accounts-identity/research.md#native-authentication-and-environment-boundary).
 
 - Tenants contain applications, connections and users. Separate applications in one tenant do **not** isolate the directory or tenant-wide administrative capabilities. Auth0 recommends environment tenants for stronger isolation; the accepted single-tenant cost/continuity tradeoff remains explicit. [Tenant model](https://auth0.com/docs/get-started/auth0-overview/create-tenants).
 
 - Auth0 documents a default **86400-second (24-hour)** custom API access-token lifetime. Actual token `expires_in` remains authoritative and the chosen API setting must be checked at later configuration. Reusing an M2M token in process memory does not need a distributed cache and does not promise any free-tier quota. [Access tokens](https://auth0.com/docs/secure/tokens/access-tokens/get-access-tokens).
 
 ## Application observability
+
+The scoped [F05 cleanup decision](../005-accounts-identity/research.md#synchronous-business-deletion-and-manual-external-cleanup) uses native log alerting and private original-target references for manual handling. It accepts interruption before logging without a durable recovery record; the exception does not broaden other telemetry.
 
 **Decision**: Native Grafana alerts and manual investigation.
 

@@ -1,0 +1,57 @@
+AccountResponse:
+  type: object
+  description: Private usable profile returned only to its owner.
+  additionalProperties: true
+  required:
+    - accountId
+    - username
+    - email
+    - principalCreatedAt
+    - hasPhoto
+  properties:
+    accountId:
+      type: string
+      format: uuid
+      description: Business identity of this account lifecycle.
+    username:
+      type: string
+      description: Current unique display username.
+      minLength: 3
+      maxLength: 32
+      pattern: ^[A-Za-z0-9._-]{3,32}$
+    email:
+      type: string
+      description: Last usable provider email; not an account identifier or editable profile field.
+      format: email
+    principalCreatedAt:
+      type: string
+      format: date-time
+      nullable: true
+      description:
+        Reliable principal creation instant for account-age rules; null means unknown,
+        never a local creation-date fallback.
+    hasPhoto:
+      type: boolean
+      description: Whether this account currently has an accepted private photo.
+ChangeAccountProfileRequest:
+  type: object
+  description:
+    Supply username, photoAction, or both. Omission preserves the current field; null is invalid.
+    A supplied username may equal its current value.
+  additionalProperties: false
+  properties:
+    username:
+      type: string
+      description:
+        "Outer whitespace is trimmed before validation: 3–32 ASCII letters, digits, dot,
+        hyphen or underscore. Case-insensitive uniqueness is checked atomically."
+    photoAction:
+      $ref: "#/ProfilePhotoActionEnum"
+ProfilePhotoActionEnum:
+  type: string
+  description:
+    replace requires one image part; remove deletes the photo and forbids an image.
+    Omit photoAction to preserve the current photo.
+  enum:
+    - replace
+    - remove

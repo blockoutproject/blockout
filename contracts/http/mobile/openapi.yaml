@@ -3,18 +3,27 @@ info:
   title: Blockout mobile API
   version: 0.1.0
   description: >-
-    Backend API for sporting administration: presentation, classification, club contacts and division
-    lifecycle.
+    Backend API for account lifecycle and sporting administration.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
 tags:
+  - name: Accounts
+    description: Private account establishment, profile changes and erasure.
   - name: Sporting
     description: >-
       Sporting identities, presentation, classification and authorized corrections.
 security:
   - MobileToken: []
 paths:
+  /accounts:
+    $ref: ./accounts/paths.yaml#/Collection
+  /accounts/me:
+    $ref: ./accounts/paths.yaml#/Current
+  /accounts/{accountId}:
+    $ref: ./accounts/paths.yaml#/Member
+  /accounts/{accountId}/photo:
+    $ref: ./accounts/paths.yaml#/Photo
   /administration/clubs/{clubId}/presentation:
     get:
       operationId: getClubPresentation

@@ -28,7 +28,7 @@
 - Java/Spring/JPA: `java-spring`; JVM/database tests: `java-testing`.
 - HTTP contracts and generation: `openapi-codegen`; Liquibase changes only: `liquibase-schema`.
 - React feature/state/form boundaries: `react-feature-architecture` plus the selected platform/testing skills.
-- Logging: `application-logging`. Container configuration: `docker-conventions`.
+- Logging: `application-logging`; apply the explicit F05/F11 exception only to private original-target references needed for manual account cleanup, as defined in their owning specifications. It permits no public identifier, credential or payload disclosure. Container configuration: `docker-conventions`.
 - Nx: the relevant official workspace, generation, task, linking, plugin, import or CI skill; do not enable Nx Cloud/MCP or upgrade Nx implicitly.
 - If Expo is selected: `react-native-expo` and `expo-testing`. Python: `python-development` and `python-testing`; load ingestion references only for ingestion work.
 
