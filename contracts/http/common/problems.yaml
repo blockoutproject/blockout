@@ -80,7 +80,7 @@ responses:
           $ref: "#/schemas/ProblemResponse"
   "409":
     description:
-      Stale revision, incompatible classification or invalid current lifecycle context; no
+      Duplicate value, stale revision, incompatible classification or invalid current lifecycle context; no
       command effects.
     headers:
       Cache-Control:
@@ -108,7 +108,7 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   "422":
-    description: Readable request with rejected sporting or image content; no command effects.
+    description: Readable request with rejected business or image content; no command effects.
     headers:
       Cache-Control:
         $ref: ./headers.yaml#/NoStore
@@ -118,7 +118,7 @@ responses:
           $ref: "#/schemas/ProblemResponse"
   "503":
     description: >-
-      Processing unavailable. An interrupted mutation may have committed; administrative clients read
+      Processing unavailable. An interrupted mutation may have committed; mobile clients read
       current state before retrying, while ingestion resumes through the next ordinary collection.
     headers:
       Cache-Control:

@@ -82,7 +82,7 @@ The [7.26.0 Spring implementation](https://raw.githubusercontent.com/OpenAPITool
 
 **Decision**: Single existing Auth0 tenant, separate clients/audiences and a preproduction-only Database connection.
 
-**Rationale**: Preserve V1 identities and avoid another tenant expense. Hosted login can expose credentials only for provisioned preproduction users.
+**Rationale**: Preserve V1 identities and avoid another tenant expense. Hosted login exposes native email/password signup only in preproduction; Google/Apple remain production-only methods under F05.
 
 **Alternatives and tradeoffs**: Separate tenants offer stronger isolation but require additional identity/configuration/continuity work and were rejected by the owner. Shared directory and tenant-wide administration remain an explicit limitation.
 
@@ -98,7 +98,7 @@ The [7.26.0 Spring implementation](https://raw.githubusercontent.com/OpenAPITool
 
 The official React Native SDK documents React 19 / RN 0.78+ / Expo 53+ support, New Architecture support, native development/EAS builds, and incompatibility with Expo Go. Its credentials manager stores encrypted credentials on Android and in iOS Keychain, retrieves and refreshes expired credentials using refresh tokens, and persists renewal. Hosted Universal Login uses system browser authentication. Callback/logout configuration must match each native application. These statements support using standard SDK mechanisms, not a second custom credential store. No precise SDK patch was selected or compiled here. The README's Android minimum table is ambiguous ("35"); do not turn it into a final device floor. [Auth0 SDK](https://github.com/auth0/react-native-auth0). Its current Android source obtains min/compile/target SDK values from Gradle properties, so qualification must inspect the selected release's resolved native requirements. [Android build source](https://raw.githubusercontent.com/auth0/react-native-auth0/master/android/build.gradle).
 
-- Per-application database connections and manual test-user creation are documented. [Auth0 application connection example](https://github.com/auth0/docs/blob/master/articles/api-auth/tutorials/represent-multiple-apis.md). Disabling sign-up is **connection-wide**, so the dedicated preproduction test connection must not be shared with a production sign-up use case. No custom Action is needed for the accepted dedicated-connection arrangement. [Auth0 sign-up scope](https://support.auth0.com/center/s/article/disable-sign-ups-for-a-specific-application).
+- Per-application database connections are documented. [Auth0 application connection example](https://github.com/auth0/docs/blob/master/articles/api-auth/tutorials/represent-multiple-apis.md). The sign-up setting is **connection-wide**. Enable it only on the dedicated preproduction connection, which is disabled for production. No custom Action is needed for the accepted dedicated-connection arrangement. [Auth0 sign-up scope](https://support.auth0.com/center/s/article/disable-sign-ups-for-a-specific-application).
 
 - Tenants contain applications, connections and users. Separate applications in one tenant do **not** isolate the directory or tenant-wide administrative capabilities. Auth0 recommends environment tenants for stronger isolation; the accepted single-tenant cost/continuity tradeoff remains explicit. [Tenant model](https://auth0.com/docs/get-started/auth0-overview/create-tenants).
 

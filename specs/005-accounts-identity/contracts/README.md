@@ -1,0 +1,44 @@
+# F05 interfaces
+
+The [canonical mobile OpenAPI root](../../../contracts/http/mobile/openapi.yaml) references account [operations](../../../contracts/http/mobile/accounts/paths.yaml) and [schemas](../../../contracts/http/mobile/accounts/schemas.yaml). These are the only editable HTTP sources. [F13](../../003-shared-quality/contracts/README.md) owns generation, shared headers/errors and compatibility; F05 owns account meaning. No account contract is copied into this folder.
+
+## Provider, consumers and operations
+
+The modular backend supplies these operations to the native mobile account feature. The collector is not a consumer and receives no account authorization. Existing sporting operations remain unchanged; they consume account usability/current F12 rights in-process, not through another service call.
+
+| Operation                         | Need and observable effect                                                                                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /accounts`                  | Explicit establishment after authenticated login, or targeted missing-provider-data retry. 201 + Location for creation; 200 for an existing usable account. No caller-supplied identity or email. |
+| `GET /accounts/me`                | Existing current profile at ordinary startup/read; no creation or Auth0 synchronization.                                                                                                          |
+| `GET /accounts/{accountId}`       | Owner reread of the original target after a profile/deletion uncertainty. A valid original owner can receive minimal pending-erasure information despite the business block.                      |
+| `PATCH /accounts/{accountId}`     | One atomic multipart profile save. JSON metadata contains only changed username/photo intent; image only for replacement. Omitted fields retain current values.                                   |
+| `GET /accounts/{accountId}/photo` | Private accepted binary photo, no-store; missing/inaccessible photo returns 404.                                                                                                                  |
+| `DELETE /accounts/{accountId}`    | Durable erasure acceptance for the original lifecycle, returning 202 with account identity, accepted time and monitor Location. Repetition does not retry provider cleanup.                       |
+
+All account responses are private and `no-store`, including errors. F13's allowed client/environment/scope validation precedes use-case ownership. Other accounts are not exposed through UUID guessing. Photo bytes receive the same authorization as the profile. API absence never alone proves every supplier's physical erasure.
+
+Known pending erasure on profile reads/establishment returns 409 Problem Details with `type=urn:blockout:problem:account-erasure-pending`, original `accountId` and `acceptedAt`. It is not a profile representation or permission to recreate. DELETE repetition returns the original 202 receipt; after completed removal, 404 is permitted without new effects. A current token whose business account is gone can only access the narrowly authorized pending receipt, not ordinary private resources.
+
+## Validation and failure semantics
+
+- `ChangeAccountProfileRequest` rejects unknown fields and explicit null. Outer username whitespace is trimmed before the 3–32 character/ASCII validation and case-insensitive uniqueness check. Structural generation alone cannot express normalization before validation.
+- A changed username or photo replace/remove intent is required. Omitted/keep photo forbids an image; replace requires exactly one decodable square PNG/JPEG of at most 1024 pixels per side and 5 MiB. Cross-part checks are focused handwritten boundary validation. A failed field rejects the whole save.
+- Current values are returned after successful save. Supplied concurrent fields use last accepted value; omitted fields preserve current changes. There is no revision token, stale-profile error or new conflict sheet. This differs intentionally from the sporting editor's owner-approved revision rules.
+- Username collision uses `urn:blockout:problem:username-unavailable` (409). Missing usable first-creation email uses `urn:blockout:problem:provider-email-unavailable` (422); unavailable required provider retrieval uses the common unavailable type (503). Invalid image content uses the existing `invalid-image` type (422); malformed input, unsupported media and excessive size retain common 400/415/413 categories. These suffixes share `urn:blockout:problem:`; no parallel `code` property is added.
+- Responses tolerate additional properties, while known fields remain validated. `principalCreatedAt: null` means unknown age; a missing required field or wrong type is invalid. Multipart omission and null are distinct. Do not force a JSON validation path onto binary images.
+- An interrupted mutation can have committed. Reread the original target before an explicit retry; no automatic retry, network-reconnection replay or token-renewal replay. No deduplication key/job store is necessary for these original-target effects.
+
+The account-specific pending Problem Details extends the shared profile without changing its existing sporting fields. Qualify the generated plain `allOf` extension and multipart metadata/file binding in Spring/Jackson and Orval/Zod before adopting them; source validation alone is not compilation/runtime evidence.
+
+## Other boundaries and coordinated consumers
+
+| Boundary                              | Authority and integration                                                                                                                                                                                                                          |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth0 native SDK / hosted login       | Provider protocol; no Blockout login/logout/password endpoint. F05 selects environment connections, credential lifecycle and existing-principal rules.                                                                                             |
+| Auth0 Management API                  | Backend-only exact-principal lookup and scoped cleanup; minimal read/delete capabilities, no mobile secret. Existing linked identities and preproduction scope are checked before destructive operations.                                          |
+| RevenueCat SDK and customer API       | F09 owns entitlements/restore; F05 passes usable business UUIDs and cleans original customer references. Non-creating inspection is required for manual erasure verification.                                                                      |
+| Notifications                         | F07 owns destination registration/removal contracts. Carry the original account association so a late removal cannot delete a new binding; one best-effort local sign-out attempt, full server-side erasure scope. No premature new endpoint here. |
+| Permissions / admission               | F12 owns capabilities and global gates; business use cases consult current state. No grant enumeration or administration API is invented by F05.                                                                                                   |
+| Contributions, support and transition | F08 detaches attribution; F10/F11 own private requests and retained content; F14 owns historical coverage and cutover. Native restore does not erase an old RevenueCat customer automatically.                                                     |
+
+Generate backend/mobile consumers from the same canonical revision. F05 adds operations to an unimplemented API; it neither changes F02 operations nor creates a new deployment/version surface. Future changes must preserve all F12-admitted mobile versions under F13's compatibility policy.
