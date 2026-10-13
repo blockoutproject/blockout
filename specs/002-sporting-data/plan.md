@@ -28,7 +28,7 @@ Keep one authoritative sporting model in the modular backend. The separate colle
 
 **Constraints**: Backend is the only business writer; no supplier call inside a SQL transaction; no raw-document archive, durable ingestion queue, automatic pipeline replay or speculative abstraction.
 
-**Scale/Scope**: Covered FFVB competitions and three professional LNV championships; current season and initial three completed seasons under F14. Calendar transport bound: 1,000 entries and 8 MiB excluding images, with explicit refusal instead of truncation.
+**Scale/Scope**: Covered FFVB competitions and three professional LNV championships; current season and initial three completed seasons under F14. Ingestion JSON transport bound: 8 MiB, with an additional 1,000-entry calendar limit and explicit refusal instead of truncation.
 
 ## Constitution Check
 
@@ -67,7 +67,7 @@ A nontransactional application loop calls a separately proxied transactional mat
 
 Use a monotonically increasing backend cycle order plus a collector read ordinal allocated before each supplier request. The cycle order dominates; it is a conservative logical ordering, not a supplier publication timestamp or a measurement of parallel request completion. F01 owns cycle registration, starting configuration and reconstruction mode. Per-match accepted order prevents old whole observations from applying, including late fields previously missing. No per-field salvage or observation history. Preserve actual observation times separately for freshness.
 
-The pool's current calendar order advances when a globally qualified calendar is admitted. Check it before each match transaction and before finalization; a superseded request cannot create late identities, restore participation or reconcile absence. Keep the last completed order to recognize already finalized repeats without undoing newer work. Details only enrich already known matches and never restore calendar presence. Standing, club, logo and catalog observations use the same order discipline at their own replacement scope.
+The pool's current calendar order advances when a globally qualified calendar is admitted. Check it before each match transaction and before finalization; a superseded request cannot create late identities, restore participation or reconcile absence. Keep the last completed order to recognize already finalized repeats without undoing newer work. Details only enrich already known matches and never restore calendar presence. Standing, club, logo and catalog observations use the same order discipline at their own replacement scope. Catalog presence and qualified absence commit in one transaction for the source-season binding; validate the full submitted scope and duplicate identities before changing it. An unusable catalog preserves its prior references. This does not make calendar match processing atomic.
 
 Serialize short sporting identity/participation/classification writes with `PESSIMISTIC_WRITE` on the existing season row, released after each match. Match writes and F08 publication share the match lock; club changes use the club row. Use one lock order (season, division when required, match, club; sorted IDs within a kind). Operations acquiring a later kind do not then acquire an earlier one. Division state checks for new classifications are protected in the command transaction. Clubs shared across seasons retain unique provider-reference constraints; a concurrent creation conflict rolls back that item and is reported for a later collection, without speculative SQL upsert or distributed locking.
 
@@ -87,7 +87,7 @@ Acquire LNV images once per distinct team during ordinary calendar passages; ima
 
 Manual names, logos and contact modes remain independent from source values. Administration submits desired resource state with its current revision. Increment the editing revision for relevant accepted state changes, not merely a collection timestamp refresh. Repeated requests cannot silently overwrite newer edits. After an uncertain response, read current state before explicit retry; matching state establishes the current outcome, not proof that a specific historical request executed.
 
-Club, team and division editors use one multipart request for JSON metadata and an optional image; validate all parts before committing names/colors and logo changes together. Pool editing changes names only through JSON. Division activity remains a separate command. [Canonical contracts](contracts/README.md#mobile-administration) define each resource’s supported fields and actions.
+Club, team and division editors use one atomic multipart `PATCH` request for JSON metadata and an optional image; validate all parts before committing names/colors and logo changes together. Pool editing changes names only through JSON. Division activity remains a separate command. [Canonical contracts](contracts/README.md#mobile-administration) define each resource’s supported fields and actions.
 
 Classification corrections validate all affected participations and target uniqueness under the season lock, then apply all or none. Division presentation never toggles activity. Permissions are checked per action/scope through F12; collector credentials cannot invoke mobile administration.
 

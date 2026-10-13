@@ -20,7 +20,7 @@
 
 **Alternatives considered**: Individual HTTP calls complicate proving calendar completeness; a whole-calendar SQL transaction loses valid matches on one local error; per-field late merging adds competing ages. All are rejected. The next ordinary collection is the recovery path.
 
-**Bounds**: The selected 1,000-entry/8-MiB envelope is an initial transport safeguard, not a provider capacity claim. Inspected LNV phases included 156, 182 and 198 matches; the inspected FFVB youth export required qualified partitioning of 465 rows. Oversized input is refused, never truncated or automatically split into purportedly complete calendars.
+**Bounds**: The selected 1,000-entry/8-MiB envelope is an initial transport safeguard, not a provider capacity claim. Inspected LNV phases included 156, 182 and 198 matches; the inspected FFVB youth export required qualified partitioning of 465 rows. The same 8-MiB JSON safeguard covers the other ingestion requests; catalog and standings have no extra item quota without a demonstrated domain bound. This is not proof of exhaustive supplier coverage: qualification must include complete source-season catalogs. Oversized input is refused, never truncated or automatically split into purportedly complete calendars.
 
 ## Score, sets and notifications
 
@@ -40,7 +40,15 @@
 
 **Evidence limit**: Upstream source/tests were inspected, not executed. Complete Java/TypeScript generation, compilation, unknown-property handling, presence-aware mapping and real transport serialization remain implementation qualifications. No default value may silently turn an omitted observation into a supplied value.
 
-The [OpenAPI 3.0.4 specification](https://spec.openapis.org/oas/v3.0.4.html#special-considerations-for-multipart-content) supports JSON metadata plus binary image parts. For club, team and division editors, one ordinary multipart command preserves atomic name/color/logo saving without staged media or a second write workflow. Its actual Spring/RestClient/Orval serialization remains a focused qualification, including optional image and explicit null in the JSON part.
+The [OpenAPI 3.0.4 specification](https://spec.openapis.org/oas/v3.0.4.html#special-considerations-for-multipart-content) supports JSON metadata plus binary image parts. For club, team and division editors, one atomic multipart `PATCH` preserves atomic name/color/logo saving without staged media or a second write workflow. Its actual Spring/RestClient/Orval serialization remains a focused qualification, including PATCH parsing by the selected Servlet container, optional image and explicit null in the JSON part. Spring’s [multipart resolver documentation](https://docs.spring.io/spring-framework/docs/7.0.9/javadoc-api/org/springframework/web/multipart/support/StandardServletMultipartResolver.html) describes container-dependent parsing; it is supporting evidence, not qualification of the selected Boot runtime.
+
+## HTTP resource semantics
+
+**Decision**: Keep the existing resource URLs and operation IDs. Presentation changes with `keep/replace/automatic` logo instructions use atomic PATCH; names-only pool presentation, classification settings and activity use PUT for complete writable state. Division creation uses POST with a 201 Location; ingestion POST processes observations without exposing a stored observation/job resource. The catalog commits within one source-season scope, while calendar matches retain independent outcomes.
+
+**Rationale and alternatives**: [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html) distinguishes replacement from resource-specific processing; [RFC 5789](https://www.rfc-editor.org/rfc/rfc5789.html) permits a defined atomic patch format. Requiring clients to upload an unchanged logo for PUT or introducing staged media would complicate the accepted single-save editor. Existing body revisions already guard relevant editing state; keep their 409 conflicts rather than introduce a second ETag/If-Match concurrency protocol. No-op writes cause no new state transition or revision. The JSON/multipart patch formats remain explicit contracts, not claims of JSON Patch or Merge Patch compliance.
+
+**Evidence limit**: These are unshipped contracts, with no generated consumer to migrate. HTTP method/header validation is documentary; actual generated clients, multipart PATCH and server transaction behavior remain qualification work. F13 owns response cache policy and the limits of REST conformance.
 
 ## Logos and locality
 

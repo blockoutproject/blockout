@@ -42,24 +42,38 @@ schemas:
 responses:
   "400":
     description: Malformed or invalid request; no write.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
     content:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
   "401":
     description: Missing, invalid or expired token; no write.
+    headers:
+      WWW-Authenticate:
+        $ref: ./headers.yaml#/BearerChallenge
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
     content:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
   "403":
     description: Wrong client, environment, scope or action grant; no write.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
     content:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
   "404":
     description: Unknown or deliberately unavailable resource.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
     content:
       application/problem+json:
         schema:
@@ -68,24 +82,36 @@ responses:
     description:
       Stale revision, incompatible classification or invalid current lifecycle context; no
       command effects.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
     content:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
   "413":
     description: Request or image exceeds the documented bound; no write.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
     content:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
   "415":
-    description: Unsupported image media type; previous image preserved.
+    description: Unsupported request or image media type; no write.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
     content:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
   "422":
     description: Readable request with rejected sporting or image content; no command effects.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
     content:
       application/problem+json:
         schema:
@@ -94,6 +120,9 @@ responses:
     description: >-
       Processing unavailable. An interrupted mutation may have committed; administrative clients read
       current state before retrying, while ingestion resumes through the next ordinary collection.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
     content:
       application/problem+json:
         schema:

@@ -25,9 +25,19 @@ paths:
         Returns the club's effective names, manual customizations and logo values, and current editing
         revision. Requires permission to manage sporting presentation for this club.
       responses:
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
         "200":
           description: >-
             Current authorized values.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              description: Supported atomic change-document media type.
+              schema:
+                type: string
+                enum: [multipart/form-data]
           content:
             application/json:
               schema:
@@ -49,7 +59,7 @@ paths:
             type: string
             description: Stable club identity, including retained resources within the operator grant.
             format: uuid
-    put:
+    patch:
       operationId: setClubPresentation
       tags:
         - Sporting
@@ -64,6 +74,9 @@ paths:
         "200":
           description: >-
             Updated values after the complete change is accepted.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -96,6 +109,10 @@ paths:
             description: Stable club identity, including retained resources within the operator grant.
             format: uuid
       requestBody:
+        description: >-
+          Atomic presentation changes encoded as JSON metadata and an optional image. All metadata
+          fields remain required; logoAction=keep preserves only the existing logo. This is not a
+          JSON Merge Patch or JSON Patch document.
         required: true
         content:
           multipart/form-data:
@@ -131,9 +148,19 @@ paths:
         Returns the team's effective names, manual customizations and logo values, and current editing
         revision. Requires permission to manage sporting presentation for this team.
       responses:
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
         "200":
           description: >-
             Current authorized values.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              description: Supported atomic change-document media type.
+              schema:
+                type: string
+                enum: [multipart/form-data]
           content:
             application/json:
               schema:
@@ -155,7 +182,7 @@ paths:
             type: string
             description: Stable team identity, including retained resources within the operator grant.
             format: uuid
-    put:
+    patch:
       operationId: setTeamPresentation
       tags:
         - Sporting
@@ -172,6 +199,9 @@ paths:
         "200":
           description: >-
             Updated values after the complete change is accepted.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -204,6 +234,10 @@ paths:
             description: Stable team identity, including retained resources within the operator grant.
             format: uuid
       requestBody:
+        description: >-
+          Atomic presentation changes encoded as JSON metadata and an optional image. All metadata
+          fields remain required; logoAction=keep preserves only the existing logo. This is not a
+          JSON Merge Patch or JSON Patch document.
         required: true
         content:
           multipart/form-data:
@@ -239,9 +273,14 @@ paths:
         Returns the pool's effective names, manual customizations, and current editing revision.
         Requires permission to manage sporting presentation for this pool.
       responses:
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
         "200":
           description: >-
             Current authorized values.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -274,9 +313,14 @@ paths:
         unchanged. A stale revision returns 409 without changes. After an uncertain response, read
         current state before an explicit retry.
       responses:
+        "415":
+          $ref: ../common/problems.yaml#/responses/415
         "200":
           description: >-
             Updated values after the complete change is accepted.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -320,9 +364,14 @@ paths:
         Returns the pack default, effective acquisition classification and current editing revision.
         Requires sporting-classification permission over the full affected scope.
       responses:
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
         "200":
           description: >-
             Current authorized values.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -358,9 +407,14 @@ paths:
         entire change without splitting or merging teams. After an uncertain response, read current
         state before an explicit retry.
       responses:
+        "415":
+          $ref: ../common/problems.yaml#/responses/415
         "200":
           description: >-
             Updated values after the complete change is accepted.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -404,9 +458,14 @@ paths:
         Returns the pool override, effective acquisition classification and current editing revision.
         Requires sporting-classification permission over the full affected scope.
       responses:
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
         "200":
           description: >-
             Current authorized values.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -441,9 +500,14 @@ paths:
         collision refuses the entire change without splitting or merging teams. After an uncertain
         response, read current state before an explicit retry.
       responses:
+        "415":
+          $ref: ../common/problems.yaml#/responses/415
         "200":
           description: >-
             Updated values after the complete change is accepted.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -488,9 +552,19 @@ paths:
         Requires permission to correct contacts for this club. Current privacy restrictions apply to
         every returned value.
       responses:
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
         "200":
           description: >-
             Current authorized values.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              description: Supported atomic change-document media type.
+              schema:
+                type: string
+                enum: [application/json]
           content:
             application/json:
               schema:
@@ -524,9 +598,14 @@ paths:
         stale revision returns 409 without changes. After an uncertain response, read current state
         before an explicit retry; do not replay automatically.
       responses:
+        "415":
+          $ref: ../common/problems.yaml#/responses/415
         "200":
           description: >-
             Updated values after the complete change is accepted.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -571,9 +650,14 @@ paths:
         included only when requested. Requires division-management or sporting-classification
         permission.
       responses:
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
         "200":
           description: >-
             Configured divisions matching the requested activity filter.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -607,6 +691,15 @@ paths:
         "201":
           description: >-
             Created active division.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
+            Location:
+              description: URI of the created division, returned on every successful creation.
+              schema:
+                type: string
+                format: uri-reference
+                example: /administration/divisions/7e747352-4b76-4676-bd17-a694c7c4fd88
           content:
             application/json:
               schema:
@@ -639,7 +732,7 @@ paths:
               additionalProperties: false
               properties:
                 metadata:
-                  $ref: "#/components/schemas/DivisionPresentationRequest"
+                  $ref: "#/components/schemas/CreateDivisionRequest"
                 image:
                   type: string
                   description:
@@ -663,9 +756,14 @@ paths:
         Returns the division’s presentation, activity and current editing revision. Requires
         division-management or sporting-classification permission.
       responses:
+        "400":
+          $ref: ../common/problems.yaml#/responses/400
         "200":
           description: >-
             Current authorized values.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -688,7 +786,7 @@ paths:
             description: Stable division identity.
             format: uuid
   /administration/divisions/{divisionId}/presentation:
-    put:
+    patch:
       operationId: setDivisionPresentation
       tags:
         - Sporting
@@ -704,6 +802,9 @@ paths:
         "200":
           description: >-
             Updated values after the complete change is accepted.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -736,6 +837,10 @@ paths:
             description: Stable division identity.
             format: uuid
       requestBody:
+        description: >-
+          Atomic presentation changes encoded as JSON metadata and an optional image. All metadata
+          fields remain required; logoAction=keep preserves only the existing logo. This is not a
+          JSON Merge Patch or JSON Patch document.
         required: true
         content:
           multipart/form-data:
@@ -774,9 +879,14 @@ paths:
         restriction. A stale revision returns 409 without changes. After an uncertain response, read
         current state before an explicit retry.
       responses:
+        "415":
+          $ref: ../common/problems.yaml#/responses/415
         "200":
           description: >-
             Updated values after the complete change is accepted.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
           content:
             application/json:
               schema:
@@ -979,7 +1089,7 @@ components:
           type: string
           description: >-
             Current team fallback, independent of manual artwork: LNV then the associated club for
-            professionals, or the club for other teams. Null for a club or when no fallback is
+            professionals, or the club for other teams. Null for a club, a division or when no fallback is
             available.
           format: uri
           nullable: true
@@ -1153,7 +1263,9 @@ components:
       type: object
       description:
         Set desired state only for supplied fields. Omitted fields are unchanged. At least
-        one field is required alongside revision.
+        one field is required alongside revision. This application/json change document replaces
+        each supplied field mode atomically; it is not JSON Merge Patch or JSON Patch. Null field
+        objects are invalid; use source or hidden mode instead.
       additionalProperties: false
       properties:
         revision:
@@ -1207,7 +1319,7 @@ components:
         - email
         - phone
         - website
-    DivisionPresentationRequest:
+    CreateDivisionRequest:
       type: object
       description: >-
         Name, colors and logo action used when creating an active division.
