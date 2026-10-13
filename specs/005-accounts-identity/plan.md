@@ -4,7 +4,7 @@
 
 **Input**: [#44](https://github.com/blockoutproject/blockout/issues/44); approved [F13 foundation](../003-shared-quality/plan.md). This dossier defines future implementation; it creates no runtime or provider configuration.
 
-**Status**: Draft. Scoped prototype and Figma approvals are pending. Final constitutional review and publication follow those approvals.
+**Status**: Ready for technical review. Existing in-app design approvals remain applicable; provider-hosted authentication and native crop interfaces are outside the prototype/Figma scope agreed with the owner.
 
 ## Summary
 
@@ -34,15 +34,15 @@ Account erasure durably blocks the original account and removes its local person
 
 ## Constitution Check
 
-| Principle                    | Evaluation                                                                                                                                                                                                                                          |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I — Specification-led intent | Owner-agreed changes are integrated into F05 and affected F07/F09/F13/F14 sources. No product implementation is authorized.                                                                                                                         |
-| II — Domain integrity        | F05 owns account identity, profile and erasure. F12 owns permissions/admission; F09 entitlements; F14 transition; F07 destinations; F08 attribution; F10/F11 private requests. Their responsibilities are not copied into F05 services.             |
-| III — Approved design        | **Pending:** prototype `e1a7915` is reviewable; owner approval and subsequent Figma reconciliation/approval are required for hosted signup and square cropping. Unchanged journeys retain their approvals. This draft does not pass the final gate. |
-| IV — Contract first          | Extend the one canonical mobile root, reuse common errors/headers, and generate actual consumers together. No copy in the feature folder or production-generated files.                                                                             |
-| V — Simplicity               | Ordinary SDK, SQL and manual provider operations meet the agreed scope. No per-device business sessions, entitlement mirror, workflow engine or full historical-user migration. See [research](research.md).                                        |
+| Principle                    | Evaluation                                                                                                                                                                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| I — Specification-led intent | Owner-agreed changes are integrated into F05 and affected F07/F09/F13/F14 sources. No product implementation is authorized.                                                                                                                                        |
+| II — Domain integrity        | F05 owns account identity, profile and erasure. F12 owns permissions/admission; F09 entitlements; F14 transition; F07 destinations; F08 attribution; F10/F11 private requests. Their responsibilities are not copied into F05 services.                            |
+| III — Approved design        | Existing in-app approvals apply: the shared image field and single sign-in entry are retained. The owner excludes hosted Auth0 and native crop UI from prototype/Figma reproduction. See the scoped [design evidence](spec.md#hosted-sign-in-and-design-evidence). |
+| IV — Contract first          | Extend the one canonical mobile root, reuse common errors/headers, and generate actual consumers together. No copy in the feature folder or production-generated files.                                                                                            |
+| V — Simplicity               | Ordinary SDK, SQL and manual provider operations meet the agreed scope. No per-device business sessions, entitlement mirror, workflow engine or full historical-user migration. See [research](research.md).                                                       |
 
-Finalization remains blocked only by the stated design approvals and subsequent consistency/validation review. Runtime qualifications in [quickstart](quickstart.md) remain future implementation evidence, not approvals claimed by this dossier.
+The retained in-app design introduces no new visual decision or additional approval gate. Runtime qualifications in [quickstart](quickstart.md) remain future implementation evidence, not approvals claimed by this dossier.
 
 ## Project Structure
 
@@ -84,7 +84,7 @@ Use separate native app registrations, clients and API audiences in the existing
 
 ## Profile, photo and concurrent changes
 
-The mobile prepares a square crop through native ImagePicker (`allowsEditing`, square aspect on Android; native square editing on iOS), then uses ImageManipulator once to resize without enlargement to at most 1024 pixels and encode PNG. Check the prepared upload against 5 MiB; a large original is not rejected solely for exceeding the upload bound. The original library asset remains untouched. Cancellation and preparation failure preserve the draft. The prototype's web crop is illustrative, not a custom editor selected for native production.
+The mobile prepares a square crop through native ImagePicker (`allowsEditing`, square aspect on Android; native square editing on iOS), then uses ImageManipulator once to resize without enlargement to at most 1024 pixels and encode PNG. Check the prepared upload against 5 MiB; a large original is not rejected solely for exceeding the upload bound. The original library asset remains untouched. Cancellation and preparation failure preserve the draft. The shared image field handles selection, preview, replacement and explicit removal, as required by F13; native selection/crop UI is not reproduced in the web prototype or Figma. The profile-specific square and size rules do not apply automatically to other image owners.
 
 The single save sends an atomic multipart `PATCH /accounts/{accountId}` with JSON metadata and an image only for replacement. Only changed fields are submitted. Absence preserves current state; photo removal is explicit. Validate actual PNG/JPEG, byte size, square dimensions and successful decoding before the short SQL transaction; re-encode accepted pixels without unrelated original metadata using standard Java ImageIO. Replace/remove bytes and their association in that transaction. Do not persist a temporary upload or introduce a storage synchronization process.
 
@@ -123,4 +123,4 @@ Private provider credentials stay server-side. Diagnostics identify stages/outco
 
 ## Complexity Tracking
 
-No constitutional complexity exception is requested. The pending design gate is a prerequisite to satisfy, not a justified waiver.
+No constitutional complexity exception is requested.

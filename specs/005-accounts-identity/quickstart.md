@@ -28,7 +28,7 @@ Fail sign-out destination removal: local sign-out succeeds, no durable retry app
 
 Select large, rotated and transparent photos, including platform-supported source formats needing conversion. Move/zoom the square crop, cancel, retry after preparation failure and save username/photo together. Expected: original library image unchanged; accepted output square, no enlargement, at most 1024 pixels/5 MiB; old photo preserved on refusal and removed only by explicit intent. Qualify the documented iOS crop limitation with actual large assets.
 
-Check both themes, 320-point layout, large text, VoiceOver/TalkBack, focus order, meaningful labels, reachable actions and native permission denial. The web crop establishes none of these native guarantees.
+Check both themes, 320-point layout, large text, VoiceOver/TalkBack, focus order, meaningful labels, reachable actions and native permission denial. The web prototype reuses the common selection/replacement/removal field and omits native picker/crop UI; it establishes none of these native guarantees. Check the shared control across profile, sporting logos and support attachments while preserving owner-specific limits, multiplicity and removal meaning.
 
 ## Durable erasure and manual continuation
 

@@ -102,7 +102,7 @@ As an iOS or Android user, I want French content, accessible actions and underst
 **Acceptance Scenarios**:
 
 1. **A19** — **Given** a supported iOS or Android phone, **when** the user browses the application, **then** Blockout-owned content and errors are in French, without changing source names or sporting identifiers. Dates and times retain F02/F03 meaning. (FR-029)
-2. **A20** — **Given** screen reading, enlarged text or reduced motion enabled, **when** the user follows representative journeys, **then** actions have an understandable name, role and state; essential information remains readable and errors identifiable without depending on color or animation alone. (FR-030)
+2. **A20** — **Given** screen reading, enlarged text or reduced motion enabled, **when** the user follows representative journeys, **then** actions have an understandable name, role and state; essential information remains readable and errors identifiable without depending on color or animation alone. Image selection, replacement and removal use the same control in profile, sporting and support forms while preserving their distinct rules. (FR-030, FR-033)
 3. **A21** — **Given** lost connectivity or failed loading, **when** the user views data or submits an action, **then** they can leave the waiting state and distinguish retained data, absent data, error and an uncertain outcome. A retry respects current rights and does not repeat indefinitely. No new offline editing capability is implicit. (FR-008, FR-016, FR-019, FR-031)
 
 ### User Story 7 — Preserve logo associations during transition (Priority: P1)
@@ -177,6 +177,7 @@ As an operator who has associated club logos, I want the authorized reset not to
 - **FR-030**: Essential actions and information MUST be usable with platform screen readers, system text enlargement and reduced motion. Controls MUST present an understandable name, role and state, a touch target of at least 44 logical points, and consistent reading and focus order; essential text MUST NOT be truncated in a way that prevents action. An error, selection or essential information MUST NOT depend solely on color, an unexplained gesture or animation. Contrast and states must support these accessible interactions; a specification does not establish certification.
 - **FR-031**: Journeys MUST retain consistent loading, absence, retained-data, error, refusal, action-in-progress and retry states with usable navigation. Retained information remains subject to current rights. Disconnection MUST NOT become an empty list or successful modification. Ordinary mobile business reads and writes MUST NOT retry automatically or replay on reconnection; recovery is explicit. Owner-approved navigation/foreground refreshes and standard identity-token renewal remain distinct and do not authorize replay of an uncertain mutation. This mobile-request rule does not disable required F01/F07 backend processing retries or F09 provider-owned entitlement/cache behavior. No complete offline mode, offline action queue or continuous result stream is required; F03–F10 own their specific journeys.
 - **FR-032**: Protection and restoration checks MUST account for club-logo associations and files whose continuity F02 requires. F14 MUST have evidence of their independent retention before any reset, explicitly distinguishing reapplied associations, associations awaiting a match and missing files. F02 identity rules prohibit automatic matching solely by name. FR-022 scheduled protection MUST NOT authorize deliberate loss of associations during this prepared transition. A reported missing file MUST NOT count as evidence of retention or authorization to reset. The approved manual recovery scope is limited to club logos; this specification executes neither exports, associations nor resets.
+- **FR-033**: In-app image selection, preview, replacement and removal MUST use one shared control across profile photos, sporting logos and support attachments. Labels, single/multiple selection, validation rules and removal versus automatic-logo restoration remain owned by the relevant feature. Reuse does not introduce file upload for URL-only media. Native picker/crop and provider-hosted authentication interfaces are outside the prototype/Figma reproduction scope.
 
 ### Key Entities
 
@@ -224,14 +225,14 @@ As an operator who has associated club logos, I want the authorized reset not to
 
 ### Inventory coverage
 
-| Assigned coverage                                            | Requirements                  | Scenarios        | Authority                                    |
-| ------------------------------------------------------------ | ----------------------------- | ---------------- | -------------------------------------------- |
-| current authorised views and honest freshness                | FR-004–FR-005, FR-008         | A02–A03, A21     | E01, E02, E05, E07                           |
-| operational visibility and recovery                          | FR-009–FR-014, FR-019–FR-021  | A05–A07, A10–A13 | E01–E04, E07                                 |
-| shared access and recovery guarantees                        | FR-015–FR-019, FR-027         | A08–A10, A17     | E02; F05/F09/F11 retain their business rules |
-| protection and restoration                                   | FR-022–FR-028                 | A14–A18          | E01, E04, E06                                |
-| Shared quality: platforms, accessibility and degraded states | FR-008, FR-016, FR-029–FR-031 | A19–A21          | E05; mobile foundation and scope decisions   |
-| Club-logo continuity: commitment handed to F14               | FR-024, FR-032                | A22              | E01, E06; F02 FR-002, FR-043, FR-046         |
+| Assigned coverage                                            | Requirements                          | Scenarios        | Authority                                    |
+| ------------------------------------------------------------ | ------------------------------------- | ---------------- | -------------------------------------------- |
+| current authorised views and honest freshness                | FR-004–FR-005, FR-008                 | A02–A03, A21     | E01, E02, E05, E07                           |
+| operational visibility and recovery                          | FR-009–FR-014, FR-019–FR-021          | A05–A07, A10–A13 | E01–E04, E07                                 |
+| shared access and recovery guarantees                        | FR-015–FR-019, FR-027                 | A08–A10, A17     | E02; F05/F09/F11 retain their business rules |
+| protection and restoration                                   | FR-022–FR-028                         | A14–A18          | E01, E04, E06                                |
+| Shared quality: platforms, accessibility and degraded states | FR-008, FR-016, FR-029–FR-031, FR-033 | A19–A21          | E05; mobile foundation and scope decisions   |
+| Club-logo continuity: commitment handed to F14               | FR-024, FR-032                        | A22              | E01, E06; F02 FR-002, FR-043, FR-046         |
 
 ## Cross-feature dependencies
 

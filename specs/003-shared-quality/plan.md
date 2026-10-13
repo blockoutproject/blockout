@@ -123,6 +123,8 @@ Retain authorized usable data where permitted, while applying F07 expiry and non
 
 Use native builds on both platforms. Qualify VoiceOver/TalkBack, text enlargement, reduced motion, reading/focus order, names/roles/states, contrast and at least 44 logical-point targets. Reproduce the approved [F12 gate composition](../013-administration-app-configuration/spec.md#session-2026-10-12--f13-planning-reconciliation), including its provisional offline artwork and retry/store behavior.
 
+Use one shared in-app image selection/preview/replacement/removal control, corresponding to [UI Library — Structure / Image Field](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=230-489). Feature owners supply labels, multiplicity, validation and removal/restoration meaning. The prototype shares `ImagePicker`/`ImageWell`; native implementation reuses the same application control around ordinary platform selection. Native picker/crop and hosted Auth0 UI are not custom screens to reproduce in Figma. URL-only maintenance media remains URL-only.
+
 ## Manual delivery and operations
 
 PRs and `develop` run CI only. A merge triggers neither deployment nor EAS builds. A manual “Prepare release” action selects Server, Mobile or Both at an exact revision. Server preparation publishes backend, collector and dedicated migration images to GHCR and qualifies them in preproduction; mobile preparation explicitly builds EAS binaries in addition to local native development. Native workflow results retain source revisions, image digests and build IDs.
@@ -160,6 +162,7 @@ Dokploy 0.30.8 has a statically verified S3 credential-redaction defect across c
 | FR-022–028; SC-006                           | Native independent backups, retention, initial isolated restore and compatible rollback; restore bytes/associations/rights and failed migration. |
 | FR-029–031; SC-007                           | French native phones, accessible approved states and explicit business retries; device/accessibility/lifecycle checks.                           |
 | FR-032; SC-008                               | F14 logo retention and certain-identity reassociation; no missing file treated as retention proof.                                               |
+| FR-033                                       | Shared image control across profile, sporting editors and support; verify selection, replacement and removal with each owner’s constraints.      |
 | Withdrawn FR-001–003, FR-006–007, SC-001/003 | Excluded; no performance/capacity or monthly availability qualification is reintroduced.                                                         |
 
 [Quickstart](quickstart.md) defines the validation scenarios. Delivery follows [AGENTS.md](../../AGENTS.md#git-delivery).
