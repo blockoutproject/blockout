@@ -2,16 +2,16 @@ openapi: 3.0.4
 info:
   title: Blockout ingestion API
   version: 0.1.0
-  description:
-    Canonical backend/collector boundary. F02 owns sporting acceptance; F01 owns cycle registration,
-    source bindings and work scheduling. No provider HTML/CSV contract or new scheduler is implied. This
-    is a planning contract, not a deployed API.
+  description: >-
+    Collector API for submitting contextual sporting observations. Requests use an authorized
+    collection cycle; the backend owns accepted sporting identities and state.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
 tags:
   - name: Sporting
-    description: F02 sporting identities, observations and authorized corrections.
+    description: >-
+      Sporting observations and their acceptance outcomes.
 security:
   - CollectorToken: []
 paths:
@@ -21,12 +21,14 @@ paths:
       tags:
         - Sporting
       summary: Accept qualified catalog discovery
-      description:
-        Accept attributable references and reconcile catalog absence only for a complete current
-        binding. No cross-season catalog withdrawal.
+      description: >-
+        Accepts pool references within the authorized source-season binding. Only a complete current
+        catalog may establish absence; partial discovery preserves unobserved references. Catalog
+        absence never withdraws pools from another season.
       responses:
         "200":
-          description: Accepted current projection.
+          description: >-
+            Catalog processing outcomes and whether absence was reconciled.
           content:
             application/json:
               schema:
@@ -68,13 +70,16 @@ paths:
       tags:
         - Sporting
       summary: Integrate a bounded calendar
-      description:
-        Each match commits independently. F07 internal effects share its transaction. Only
-        a fully successful complete current calendar finalizes absence. Stale work is ignored whole. A
-        timeout can leave successful match commits; the next ordinary collection is the recovery path.
+      description: >-
+        Processes each match independently and returns per-match outcomes. An accepted score and its
+        required internal notification updates succeed together. Only a complete, current calendar
+        with every match successfully processed may reconcile absence. Older match observations are
+        ignored in full. A timeout may leave some matches committed; use the next ordinary collection
+        instead of automatically replaying the request.
       responses:
         "200":
-          description: Accepted current projection.
+          description: >-
+            Calendar processing outcomes; HTTP success does not mean every match was accepted.
           content:
             application/json:
               schema:
@@ -116,12 +121,15 @@ paths:
       tags:
         - Sporting
       summary: Accept known-match detail
-      description:
-        Same logical order as calendars, with no page priority. Does not create matches/teams
-        or restore presence. F07 required effects share the match transaction.
+      description: >-
+        Updates an already-known match using the same logical observation order as calendars, without
+        page-specific priority. Does not create matches or teams or restore calendar presence. The
+        accepted result and required internal notification updates succeed together.
       responses:
         "200":
-          description: Accepted current projection.
+          description: >-
+            Processing outcome for the submitted observation; inspect outcome to distinguish
+            acceptance, no change, stale input and rejection.
           content:
             application/json:
               schema:
@@ -168,7 +176,9 @@ paths:
         sporting identities from standings.
       responses:
         "200":
-          description: Accepted current projection.
+          description: >-
+            Processing outcome for the submitted observation; inspect outcome to distinguish
+            acceptance, no change, stale input and rejection.
           content:
             application/json:
               schema:
@@ -215,7 +225,9 @@ paths:
         establishes no withdrawal.
       responses:
         "200":
-          description: Accepted current projection.
+          description: >-
+            Processing outcome for the submitted observation; inspect outcome to distinguish
+            acceptance, no change, stale input and rejection.
           content:
             application/json:
               schema:
@@ -262,7 +274,9 @@ paths:
         requires both coordinates and forbids ambiguity. Technical failure does not erase a valid point.
       responses:
         "200":
-          description: Accepted current projection.
+          description: >-
+            Processing outcome for the submitted observation; inspect outcome to distinguish
+            acceptance, no change, stale input and rejection.
           content:
             application/json:
               schema:
@@ -310,7 +324,9 @@ paths:
         Retain only latest valid source image; manual logo and optional club relation are never modified.
       responses:
         "200":
-          description: Accepted current projection.
+          description: >-
+            Processing outcome for the submitted observation; inspect outcome to distinguish
+            acceptance, no change, stale input and rejection.
           content:
             application/json:
               schema:
@@ -345,7 +361,8 @@ paths:
         - name: cycleId
           in: query
           required: true
-          description: Authorized existing F01 cycle.
+          description: >-
+            Existing authorized collection cycle.
           schema:
             type: string
             description: Cycle identity.
@@ -387,20 +404,23 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description:
-        F13 issuer, environment audience, expiry and allowed-client checks apply. Only the
-        dedicated collector M2M client with sporting:ingest scope.
+      description: >-
+        Bearer token for the dedicated collector client in this environment, with sporting:ingest
+        scope. The backend validates issuer, audience, expiry and client identity. Mobile tokens
+        cannot authorize ingestion.
   schemas:
     ObservationContextInternalRequest:
       type: object
-      description:
-        F01-owned authorized cycle context. Backend resolves source, season, scope, cycle order
-        and normal/reconstruction mode from cycleId; none is trusted from a caller flag.
+      description: >-
+        Authorized collection context. The backend resolves source, season, scope, logical order and
+        reconstruction mode from cycleId; callers cannot override them with request flags.
       additionalProperties: false
       properties:
         cycleId:
           type: string
-          description: Existing authorized F01 cycle; completed/foreign cycles cannot authorize new writes.
+          description: >-
+            Existing authorized collection cycle; completed cycles or cycles outside the requested
+            scope cannot authorize new writes.
           format: uuid
         readOrdinal:
           type: integer
@@ -751,7 +771,8 @@ components:
       properties:
         packReference:
           type: string
-          description: Native grouping supplying F01 acquisition defaults.
+          description: >-
+            Native grouping that supplies default acquisition classification.
           minLength: 1
         competitionReference:
           type: string
@@ -780,9 +801,9 @@ components:
         - sourceName
     CatalogObservationInternalRequest:
       type: object
-      description:
-        Qualified complete or partial catalog inside a known F01 source-season binding. Partial
-        discovery never proves absence; no teams are created here.
+      description: >-
+        Complete or partial catalog within a known source-season binding. Partial discovery never
+        proves absence; catalog observations create no teams.
       additionalProperties: false
       properties:
         context:
@@ -803,9 +824,9 @@ components:
         - pools
     CatalogOutcomeInternalResponse:
       type: object
-      description:
-        Current discovered references usable by subsequent F01 collection under eligibility
-        checks.
+      description: >-
+        Discovered pool references and acceptance outcomes. Resolved references remain subject to
+        current collection eligibility.
       additionalProperties: true
       properties:
         outcomes:
@@ -878,10 +899,10 @@ components:
         - rows
     ClubDetailsInternalRequest:
       type: object
-      description:
-        Source-managed values only; cannot erase manual modes. Omitted invalid/unavailable
-        values preserve previous useful source facts. Null explicitly withdraws a source value. Current
-        F11 restrictions prevail.
+      description: >-
+        Source-managed club values; manual corrections and deliberate absences remain protected.
+        Omitted invalid or unavailable values preserve previous usable source facts. Null explicitly
+        withdraws a source value. Current privacy restrictions apply.
       additionalProperties: false
       properties:
         context:
@@ -933,18 +954,18 @@ components:
         - ambiguous
     ClubLocalityObservationInternalRequest:
       type: object
-      description:
-        F01 geocoder response for the effective locality context. The backend checks the revision
-        before publishing and applies current privacy rules.
+      description: >-
+        Geocoding result for the effective locality context. Only the current locality revision can
+        publish coordinates; current privacy restrictions apply.
       additionalProperties: false
       properties:
         context:
           $ref: "#/components/schemas/ObservationContextInternalRequest"
         localityRevision:
           type: string
-          description:
-            Opaque revision obtained with the F01 locality work item; an old revision cannot
-            publish.
+          description: >-
+            Opaque revision supplied with the locality work item; an old revision cannot publish
+            coordinates.
         outcome:
           $ref: "#/components/schemas/GeocodingOutcomeEnum"
         latitude:

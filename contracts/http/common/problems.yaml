@@ -1,14 +1,16 @@
 schemas:
   ProblemResponse:
     type: object
-    description:
-      RFC 9457 safe error profile. Consumers branch on type, never title or provider text.
-      F02 conflict extensions identify permitted sporting scopes only.
+    description: >-
+      RFC 9457 error response. Consumers use type as the machine identifier, never title or provider
+      text. Conflict details identify only resources visible to the authorized caller.
     additionalProperties: true
     properties:
       type:
         type: string
-        description: Stable machine identifier. Known F02 values are listed in the native contracts artifact.
+        description: >-
+          Stable URI identifying the problem category. Clients use generic error handling for an
+          unrecognized type.
         format: uri
       title:
         type: string
@@ -26,7 +28,9 @@ schemas:
         description: Optional opaque occurrence reference; no sensitive URL or internal topology.
       conflictingResourceIds:
         type: array
-        description: F02 classification conflicts visible to this authorized operator.
+        description: >-
+          Pool or team identities involved in a classification conflict and visible to the authorized
+          caller.
         items:
           type: string
           description: Conflicting pool or team identity.
@@ -87,9 +91,9 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   "503":
-    description:
-      Processing unavailable. A lost or interrupted mutation may have committed; follow the
-      owning reread/next-collection rule.
+    description: >-
+      Processing unavailable. An interrupted mutation may have committed; administrative clients read
+      current state before retrying, while ingestion resumes through the next ordinary collection.
     content:
       application/problem+json:
         schema:

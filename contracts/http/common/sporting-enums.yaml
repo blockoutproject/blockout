@@ -1,13 +1,15 @@
 SportFormatEnum:
   type: string
-  description: F02 accepted sporting format; 2x2 does not imply beach volleyball.
+  description: >-
+    Sporting format; 2x2 does not imply beach volleyball.
   enum:
     - 6x6
     - 4x4
     - 2x2
 SportGenderEnum:
   type: string
-  description: F02 classification gender.
+  description: >-
+    Gender category of the sporting classification.
   enum:
     - female
     - male
