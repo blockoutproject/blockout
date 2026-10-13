@@ -15,7 +15,7 @@
 | Business relationships         | F06 follows, F07 destinations/inbox, F08 attribution and F12 rights reference the business UUID. Each owner defines its own model and accepted cleanup. F05 does not add those features' tables.       |
 | Historical customer references | Only established references needed for continuity or scoped erasure, discovered through F14's private evidence. No blanket copied customer profile or email-derived mapping.                           |
 
-Apply changes under the account row lock and current owner/usability check. The unique username constraint handles competing accounts. A profile change contains only supplied fields; a concurrent omitted field is not overwritten. Image validation happens before the short transaction and authorization is rechecked at commit.
+The unique username constraint handles competing accounts. Profile mutation and validation follow the [plan](plan.md#profile-photo-and-concurrent-changes).
 
 A reliable known principal age remains usable during a provider outage. A null age restricts only dependent operations. No independent entitlement state, account-session table, global revision column or provider-profile mirror is stored.
 
@@ -23,20 +23,20 @@ A reliable known principal age remains usable during a provider outage. A null a
 
 Keep the account/identity row keyed by the **original** business UUID in pending state, with personal profile fields removed. The unique `(issuer, subject)` reservation remains until cleanup is resolved; there is no second duplicate request registry. Its fields are acceptance time, pending state, original issuer/subject, original linked provider identities and principal creation evidence when available, plus the original RevenueCat targets required for cleanup. Identity references are private personal data with a limited cleanup purpose, not log attributes. Do not keep username, email, photo, full provider documents or business rights in this record.
 
-Acceptance locks the original account and commits its pending state together with erasure of local personal state and owner-defined detachment of retained content. Concurrent personal writers coordinate through that same account lock: a transaction either commits before the erasure that removes its result, or finds the account unusable. External calls run after commit. A competing bootstrap resolves a unique-key collision by rereading the same row under lock, including its pending state; it cannot treat the removed personal fields as permission to create another account. Provider synchronization captured for an existing UUID cannot write into a later UUID.
+Concurrent personal writers use the account row lock: they commit before erasure removes their result, or find the account unusable. A competing bootstrap resolves a unique-key collision by rereading this row under lock; removed profile fields do not permit recreation. Provider synchronization captured for an existing UUID cannot write into a later UUID. The [plan](plan.md#erasure-and-manual-resolution) owns transaction sequencing and supplier calls.
 
 Pending principal/linked-identity references prevent bootstrap while an old target could still be affected. A valid original principal may read only the minimal pending outcome despite business unusability. The complete original reference set is never exposed to the mobile.
 
-| Transition               | Guard and effects                                                                                                                                                                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Absent → active          | Explicit bootstrap, validated allowed principal, usable provider email and no pending original-identity block. Unique principal and username constraints settle concurrent attempts.                                                   |
-| Active → active          | Explicit login synchronization or authorized profile field changes; omitted or temporarily missing values preserve current data.                                                                                                       |
-| Active → pending erasure | Valid original owner and explicit intent; commit durable acceptance and local cleanup before any provider delete.                                                                                                                      |
-| Pending → pending        | Process/provider failure, ambiguous outcome or incomplete original targets. Further login/repeated requests do not run cleanup. Manual inspection/repair uses existing tools.                                                          |
-| Pending → absent         | Operator/ordinary initial completion establishes that old destructive work is resolved, then removes the blocking record and unnecessary references. Independent justified retention stays with F11 and does not grant account access. |
-| Absent → new active      | Explicit registration with fresh account UUID and current provider evidence. No resurrection of old rights, age, gifts, follows or attribution.                                                                                        |
+| Transition               | Guard and effects                                                                                                                                                                                          |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Absent → active          | Explicit bootstrap, validated allowed principal, usable provider email and no pending original-identity block. Unique principal and username constraints settle concurrent attempts.                       |
+| Active → active          | Explicit login synchronization or authorized profile field changes; omitted or temporarily missing values preserve current data.                                                                           |
+| Active → pending erasure | Valid original owner and explicit intent; commit durable acceptance and local cleanup before any provider delete.                                                                                          |
+| Pending → pending        | Process/provider failure, ambiguous outcome or incomplete original targets. Further login/repeated requests do not run cleanup. Manual inspection/repair uses existing tools.                              |
+| Pending → absent         | The initial cleanup attempt or subsequent manual resolution establishes the plan’s completion conditions; remove the block and unnecessary references. Independent F11 retention grants no account access. |
+| Absent → new active      | Explicit registration with fresh account UUID and current provider evidence. No resurrection of old rights, age, gifts, follows or attribution.                                                            |
 
-Do not interpret absent business state as evidence of physical supplier deletion. Before manual deletion of a reused Auth0 subject, compare the original principal evidence; an ambiguity cannot authorize deleting the new incarnation. No per-step flags, attempt list, durable job or generic recovery payload is introduced.
+No per-step flags, attempt list, durable job or generic recovery payload is stored. Supplier evidence and safe manual targeting follow the [completion conditions](plan.md#erasure-and-manual-resolution).
 
 ## Mobile transient state
 

@@ -16,7 +16,7 @@
 
 **Decision:** one Auth0 tenant, distinct application/audience configuration. Production exposes Google/Apple; preproduction only its dedicated Database connection, with native signup. Destructive preproduction cleanup refuses social or cross-connection identities. Use the native SDK's secure credential management and ordinary renewal; independently clear local credentials when browser logout fails.
 
-**Rationale:** native signup removes manual test provisioning without a second tenant or an application password form. Connection settings are not per-user directory isolation. Explicit local clearing is necessary because the inspected SDK's combined logout can fail before reaching it.
+**Rationale:** native signup removes manual test provisioning without a second tenant or an application password form. Signup is connection-wide; the dedicated connection is disabled for production, so no custom Action is needed for this separation. Connection settings are not per-user directory isolation. Explicit local clearing is necessary because the inspected SDK's combined logout can fail before reaching it.
 
 **Alternatives:** another tenant adds account/configuration cost without an accepted requirement; public signup on a shared production-enabled connection would weaken the intended boundary. Federated global logout, ephemeral-session policy changes, bespoke refresh timers and custom JWT claims are not selected.
 
@@ -48,13 +48,13 @@
 
 **Rationale:** [identifying customers](https://www.revenuecat.com/docs/customers/identifying-customers) documents explicit App User IDs and creation of a missing customer during login. [Restoration](https://www.revenuecat.com/docs/getting-started/restoring-purchases) and [restore behavior](https://www.revenuecat.com/docs/projects/restore-behavior) distinguish explicit restoration, store account and potentially receipt-wide transfer. Moving a purchase does not establish deletion of the old customer record. Existing configured devices also need qualification after erasure because SDK association can recreate a missing record.
 
-**Alternatives:** no backend entitlement projection, automatic `syncPurchases` migration, email-based ownership inference, systematic full-user export or separate gift ledger. The owner-reported small paid population supports manual exception handling, not silent loss of valid gifts or deletion coverage.
+**Alternatives:** no backend entitlement projection, automatic `syncPurchases` migration, email-based ownership inference, systematic full-user export or separate gift ledger. The owner reported approximately 10,000 V1 accounts and 18 paying subscribers during planning. This unaudited scale supports manual exception handling; it is not a capacity target or permission to lose valid gifts or erasure coverage.
 
 **Evidence limit:** neither dashboard samples nor a Test Store purchase prove Apple/Google production restoration, all historical customer relationships or cross-device cleanup. F09/F14 own their qualification and private continuity coverage before cutover.
 
 ## Durable acceptance, manual incomplete cleanup
 
-**Decision:** atomically accept erasure and remove local personal data, retain one pending state with exact original targets, then attempt ordinary provider cleanup once. Any unresolved work is inspected and completed manually. Reconnection checks only the stored block, without provider polling or retry.
+**Decision:** one durable pending state and one initial cleanup attempt, with manual resolution when completion is not established. The [plan](plan.md#erasure-and-manual-resolution) defines the sequence and completion conditions.
 
 **Rationale:** a durable obligation survives process loss without an automatic recovery platform. Retaining original principal/linked identities blocks premature recreation, including a detached secondary identity. Safe operator targeting is more important than an apparent automatic completion state.
 
@@ -62,7 +62,7 @@
 
 **Evidence:** [Auth0 delete user](https://auth0.com/docs/api/management/v2/users/delete-users-by-id) does not supply an incarnation compare-and-delete guarantee. Original creation evidence and controlled manual handling are therefore necessary before deleting a reused subject. [Auth0 Sign in with Apple revocation](https://support.auth0.com/center/s/article/deleted-apple-users-receive-email-service-id-has-revoked-your-sign-in-with-apple-account) describes native behavior, not qualification of this tenant. [RevenueCat v2 customers](https://www.revenuecat.com/docs/api-v2/customer) documents asynchronous deletion acceptance and non-creating inspection. Do not use a get-or-create API to verify erasure. [Customer deletion](https://www.revenuecat.com/docs/dashboard-and-metrics/customer-profile#delete-customer) does not cancel store subscriptions.
 
-**Limits:** asynchronous accepted RevenueCat deletion can normally leave manual work, not merely a rare failure. No physical-purge or immediate cross-device SDK-revocation guarantee is invented. F11 deadlines and private retention purposes remain binding, and unresolved evidence keeps affected recreation blocked. Restored backups require manual reconciliation before reopening access.
+**Limits:** asynchronous accepted RevenueCat deletion can normally leave manual work, not merely a rare failure. Neither asynchronous acceptance nor installed SDK behavior proves physical purge or immediate cross-device revocation. The plan keeps unresolved recreation blocked and F11 obligations applicable.
 
 ## HTTP and proof boundaries
 

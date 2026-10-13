@@ -1,47 +1,40 @@
 # Quickstart: validate account lifecycle
 
-**Scope**: [plan](plan.md), [model](data-model.md) and [contracts](contracts/README.md).
-
 ## Prerequisites
 
-These scenarios validate the future implementation. No production workspace, runnable account service or native build exists in this planning task. Use the actual Maven/npm/Nx targets supplied by authorized implementation; do not treat prototype commands as production validation. Documentary checks are in the [README](../../README.md#verification).
+This guide validates the future [F05 implementation](plan.md). No account runtime or native build exists yet; use the actual implementation targets when available. Current documentary commands are in the [README](../../README.md#verification).
 
-Prepare isolated synthetic accounts: two distinct principals sharing an email, an existing linked identity, a dedicated preproduction Database user, missing provider email/age, paid and gifted qualification customers, and two devices. Keep provider identifiers, secrets and private evidence outside this repository. Destructive provider tests require their separately authorized scope; preproduction may not erase social or cross-connection principals in the shared tenant.
+Prepare synthetic principals for shared email, existing linked identities, missing email/age and dedicated preproduction signup, plus two devices and qualification purchase/gift accounts. Keep private evidence outside the repository. Destructive provider tests require authorization and must not target social or cross-connection principals from preproduction.
 
-## Contracts and local data
+## Contracts and profile data
 
-Lint/bundle the canonical mobile root with F13's selected tools, generate Java interfaces/DTOs and TypeScript Query/Zod outputs, then compile/test actual consumers. Exercise multipart metadata plus image, omission versus null, trimming before username constraints, unknown request rejection, additional response tolerance, pending Problem Details and binary photo responses. Expected: valid requests bind correctly; invalid fields cannot enter accepted state or the mobile cache.
+1. **Generate and compile** the canonical mobile contract through the [F13 toolchain](../003-shared-quality/quickstart.md#contract-boundary). Exercise multipart binding, omission/null, the photo-action enum, username normalization, pending Problem Details and binary responses. **Expected:** valid requests/responses cross the Java/TypeScript boundary; invalid ones are refused before persistence or caching.
+2. **Race creation and profile edits** with PostgreSQL Testcontainers: one principal, competing usernames, disjoint fields and the same field. **Expected:** one account per principal, case-insensitive username uniqueness, shared email allowed, omitted fields preserved and last accepted supplied value retained. A supplied unchanged username succeeds; an empty change document is refused.
+3. **Save and remove photos** together with username changes; submit malformed, oversized and non-square content. **Expected:** atomic save, previous profile preserved on refusal, accepted pixels within the contract bounds without unrelated metadata, removal only by explicit intent.
 
-With PostgreSQL Testcontainers, race bootstrap for one principal and edits for a case-insensitive username. Expected: one account per principal, at most one winner for the username, shared email permitted. Race disjoint profile fields and then the same field; verify omitted-field preservation and last accepted supplied value. Reject malformed/oversize/non-square photos without changing the previous profile. Decode accepted storage and verify square bounds and removal of unrelated metadata.
+## Authentication and isolation
 
-## Authentication and account isolation
+1. **Sign in on physical iOS/Android:** production Google/Apple and dedicated preproduction email/password signup. Exercise callback, cancellation, outage, renewal and failed browser logout. **Expected:** configured environment/client/audience restrictions apply, and local logout clears credentials/private state despite browser failure. This does not claim global provider logout.
+2. **Read and establish accounts:** ordinary GET, first establishment without usable email, explicit login with provider failure, missing-age retry, linked methods and same-email distinct principals. **Expected:** GET neither creates nor contacts Auth0; missing first email blocks creation; known email/age survive failure; only age-dependent actions wait for unknown age.
+3. **Switch A → B and A → guest → A** while queries, photo preparation and entitlement callbacks are delayed. **Expected:** no prior-session result or unaccepted action enters the new session. Different-owner, visitor, expired/wrong-client/environment and collector credentials cannot perform owner operations.
+4. **Fail push disassociation on logout, then reassociate B.** **Expected:** local logout succeeds without durable retry; delayed A removal cannot remove B. Any still-delivered A system push cannot expose A's private inbox under guest/B.
 
-On physical iOS/Android builds, exercise production Google/Apple and preproduction native email/password signup/login, callbacks, cancellation, temporary outage, renewal and browser logout failure. Expected: production has no Database journey, preproduction no social method; actual connection/client/audience restrictions reject cross-environment credentials. Local logout clears credentials/private data even when browser logout fails, without claiming global provider/device logout.
+## Native photo and shared control
 
-Ordinary profile GET must neither create nor contact Auth0. Explicit establishment requires usable first email and preserves known information on later provider failure. Unknown age suspends only dependent actions; retained age survives ordinary profile recreation. Verify existing linked methods and same-email distinct principals without new linking.
+Select large, rotated and transparent assets, including supported source formats needing conversion; crop, cancel, fail preparation and save. **Expected:** the library original remains unchanged; prepared output is square, not enlarged, at most 1024 pixels per side and 5 MiB. Qualify the documented iOS large-image crop limitation.
 
-Delay A's queries, photo preparation and entitlement callbacks across A → B and A → guest → A. Expected: no old result or not-yet-accepted mutation enters the new session. Directly call owner operations with another account, visitor/expired/wrong-client tokens and collector credentials; all refuse without disclosure or effects. F05's explicitly accepted same-subject JWT limit is tested as documented, not as invented immediate revocation.
+Apply [F13 accessibility checks](../003-shared-quality/quickstart.md#native-mobile-and-approved-design) to the common image control, including native permission denial, 320-point layout and both themes. **Expected:** profile, sporting and support fields share selection/replacement/removal behavior while retaining owner-specific limits and removal meaning. The prototype omits native picker/crop UI and cannot qualify it.
 
-Fail sign-out destination removal: local sign-out succeeds, no durable retry appears, and a late A removal cannot remove B's binding. A system notification may still arrive under the accepted limitation, but cannot open A's private data under guest/B.
+## Erasure and return
 
-## Native photo and accessibility
+1. **Fail before acceptance, then after each supplier boundary or process stop.** **Expected:** before acceptance, no destructive effect; afterward, unusable account on both devices, local erasure and preserved unowned moderation state, with minimal pending references discoverable privately.
+2. **Lose the DELETE response, repeat it and sign in while pending**, including a formerly linked secondary identity. **Expected:** the original UUID's result is recoverable with valid ownership; no provider polling, cleanup retry or premature recreation. Inaccessible/absent API state is not proof of supplier purge.
+3. **Exercise successful initial completion and incomplete cleanup.** **Expected:** close only when the [completion conditions](plan.md#erasure-and-manual-resolution) are established; otherwise resolve manually with existing private tools. Include asynchronous RevenueCat acceptance and reused Auth0 subjects; uncertainty never authorizes destructive guessing.
+4. **Return after resolution**, with a second device still holding its old RevenueCat SDK association. **Expected:** a fresh business UUID and no old profile, rights, age, gifts, follows or attribution; no reassociation of the erased account at startup/re-entry. Measure the actual cross-device provider behavior. Verify the accepted same-subject token-validity limitation in [FR-035](spec.md#deletion-and-return), without assuming immediate revocation.
 
-Select large, rotated and transparent photos, including platform-supported source formats needing conversion. Move/zoom the square crop, cancel, retry after preparation failure and save username/photo together. Expected: original library image unchanged; accepted output square, no enlargement, at most 1024 pixels/5 MiB; old photo preserved on refusal and removed only by explicit intent. Qualify the documented iOS crop limitation with actual large assets.
+## Integration with other owners
 
-Check both themes, 320-point layout, large text, VoiceOver/TalkBack, focus order, meaningful labels, reachable actions and native permission denial. The web prototype reuses the common selection/replacement/removal field and omits native picker/crop UI; it establishes none of these native guarantees. Check the shared control across profile, sporting logos and support attachments while preserving owner-specific limits, multiplicity and removal meaning.
-
-## Durable erasure and manual continuation
-
-Inject failure before acceptance: no external delete or local account loss. After acceptance, fail/process-stop each supplier boundary: the original account is unusable on both devices, local private data/destinations are erased, useful contributions remain unowned with their moderation unchanged, and the minimal pending request remains findable privately.
-
-Lose the DELETE response and reread the original UUID. Expected: distinguish accepted pending state, inaccessible/absent resource and unavailable verification; no blind deletion of a later account. Repeat requests and sign in during cleanup: no provider polling/retry or automatic recreation, including a former linked secondary identity returning separately.
-
-Using authorized private tools, inspect and complete original targets. Include delayed RevenueCat v2 deletion, historical customers left after purchase transfer and Auth0 subject reuse. Expected: acceptance is not called physical purge; unknown incarnation never authorizes destructive guessing; no complete profile, per-step ledger or recovery job is retained. Resolve the block only after original destructive work cannot affect a new lifecycle.
-
-On two devices, test a still-configured RevenueCat SDK after erasure and the next startup/re-entry. Establish the actual provider outcome; do not assume customer deletion revokes installed SDKs. A returned account uses a fresh UUID and receives no old rights, age, follows, gifts or ownership. Separately exercise the accepted still-valid same-subject JWT case.
-
-## Restoration and private obligations
-
-Restore a still-valid qualification purchase explicitly on each original store after resolved erasure. Verify receipt-wide effects, new-account assignment, absence of gift/data resurrection, and assistance when original-store access is unavailable. Check historical targets and valid gifts under F14's full private continuity coverage; a sample or dashboard observation is insufficient.
-
-Exercise the existing public privacy-page request route without installation/sign-in. Verify proportionate private ownership review, truthful pending/outcome communication and F11 retention. For a database restore, apply current erasures, rights and expiry before affected access or push. Inspect logs/errors with synthetic failures: no personal subject/email, credential, photo or provider payload leaks.
+- **F09 purchases:** restore a valid qualification purchase after resolved erasure on each original store. Verify current-account assignment without old data/gifts; use [F09 qualification](../006-pro-subscriptions/spec.md#success-criteria) for receipt-wide transfer and assisted exceptions.
+- **F14 continuity:** supply the necessary historical customer references and valid-gift evidence to the [transition qualification](../014-v1-v2-transition/spec.md#success-criteria). Native restoration does not prove population coverage or erase old customer records.
+- **F10/F11 private requests:** exercise the existing public privacy-page route under [FR-037–FR-038](spec.md#deletion-and-return); ownership verification precedes erasure and outcome communication remains truthful. Inspect synthetic diagnostics for personal data, token or payload leakage.
+- **F13 restoration:** include pending/resolved account erasure in the [isolated restore qualification](../003-shared-quality/quickstart.md#initial-restore-and-activation-condition); current erasure, rights and expiry apply before affected access or push resumes.

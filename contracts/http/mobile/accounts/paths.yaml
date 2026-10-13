@@ -162,8 +162,9 @@ Member:
     requestBody:
       required: true
       description:
-        Atomic profile changes; not JSON Patch or JSON Merge Patch. At least one effective
-        change field is required. A file is required only for photoAction=replace and forbidden otherwise.
+        Atomic profile changes; not JSON Patch or JSON Merge Patch. Supply username, photoAction,
+        or both; the username need not differ from its current value. A file is required only for
+        photoAction=replace and forbidden otherwise.
       content:
         multipart/form-data:
           schema:
