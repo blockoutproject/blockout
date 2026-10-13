@@ -1,0 +1,51 @@
+# Data model: sporting identities and accepted facts
+
+**Authority**: [specification](spec.md), [plan](plan.md). Names below identify responsibilities, not generated DTOs or a requirement for one table per paragraph.
+
+## Retained relational concepts
+
+| Concept            | Retained fields and relations                                                                                                                                                         | Integrity and lifecycle                                                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Season             | Stable UUID, unique qualified start year, canonical label; F01 lifecycle/bindings referenced                                                                                          | No season inferred from a postponed match date; closed history retained.                                                                                         |
+| Club               | Stable UUID, unique provider/reference association, source and display names, contact modes, locality revision and coordinates, manual logo reference                                 | Reference strings preserve leading zeros. No name/address merge; no automatic disappearance from page failure.                                                   |
+| Division           | UUID, case-insensitive unique name, colors/logo, explicit active state and editing revision                                                                                           | Presentation does not reactivate. Inactive choices cannot be newly assigned.                                                                                     |
+| Pool               | UUID, unique provider/season/competition/tour/group native context; pack relation, override, accepted classification, catalog/empty reasons, current and completed calendar order     | Complete override contains division/format/gender together. Missing acquisition mapping preserves published classification.                                      |
+| Team               | UUID, season/classification, source/comparison/display names; provider identity, optional club, manual/source logo references                                                         | FFVB key uses club/classification/normalized name in the season. LNV key uses native TeamID within season/championship; club optional. No cross-season transfer. |
+| Participation      | Unique team/pool pair and current presence                                                                                                                                            | Withdrawal retains relation. Other visible participation keeps the team usable.                                                                                  |
+| Match              | UUID, contextual native reference, pool and two teams; local date/time/zone, optional resolved instant, result/sets, permitted venue details, accepted observation order and presence | No pair/date identity. Dateless state retained but not public. No fictitious opponent.                                                                           |
+| Official standings | One current table per pool, source/freshness, ordered rows with official position/name/stats and optional team association                                                            | Atomic table replacement; preserve unmatched rows and nonnumeric ratio meanings. No team creation or rank recomputation.                                         |
+| Image              | PNG/JPEG bytes, actual media type, byte size and owner association                                                                                                                    | Maximum 5,242,880 bytes; validated replacement and association commit together. No seasonal archive.                                                             |
+
+Provider observations and accepted data are distinct. Application values describe decisions; generated HTTP objects and JPA entities do not leak between boundaries. Retain only useful current provenance/freshness for independently accepted groups (for example schedule, result and sets), not a history of each scalar.
+
+## Corrections and provider references
+
+Normalize FFVB team comparison for case, excess spaces and straight/typographic apostrophes only. Preserve source labels, accents, digits, dots and hyphens. Verified aliases are scoped associations to known identities, never an approximate merge index. A confirmed native LNV reference can retain identity through a source-label change.
+
+Classification corrections recompute the affected identity constraints while preserving UUIDs. Every shared participation must fit the requested scope and target key. Conflicts refuse the full command; no automatic team split/merge. A technical professional club attachment changes only its optional club relation and resulting read presentation; it cannot re-key a team or rewrite follows.
+
+## Current facts, ordering and visibility
+
+A collection token is `(cycleOrder, readOrdinal)`, validated against F01's authorized cycle context. Keep the latest accepted token on each replaced scope. Arrival time and provider match date do not order observations. A rejected old match observation supplies no fields. Identical accepted state produces no new sporting event.
+
+The pool's current calendar order prevents superseded per-match work and late absence reconciliation. Its completed order distinguishes completed duplicates from interrupted partial work without retaining an observation log. A new ordinary cycle may retry failures; no checkpoint, payload archive or automatic continuation exists.
+
+Current catalog absence, qualified calendar emptiness, match/participation absence and division inactivity are distinct reasons. Public visibility is derived through current relations and restrictions. Catalog reappearance clears catalog absence only; valid nonempty calendar evidence clears calendar emptiness. Details and standings never restore participation. Deactivation does not hide clubs.
+
+F01's cycle context identifies normal versus initial reconstruction and whether work was already running at closure. Clients cannot turn arbitrary work into an initial import to suppress F07 effects. F07 owns minimal consumed-announcement facts and personal inbox data; they are not copied into a second F02 history.
+
+## Results and temporal precision
+
+Retain authoritative overall result separately from optional sets. Known/provisional/final meaning follows source evidence; a universal winning-set count or elapsed time is insufficient. Preserve recognized special notation without numeric substitutions or invented winners. Uninterpreted notation is bounded diagnostic material, not a normal zero score.
+
+Omitted new facts preserve usable accepted values; qualified explicit withdrawals follow field semantics. Invalid sets do not reject a usable result. Previously accepted compatible sets keep their own observation time; incompatible sets are unavailable. Result withdrawal clears its sets, with the same match UUID.
+
+Use local date, optional local time, zone and optional resolved instant rather than requiring a fabricated timestamp. Europe/Paris is the ordinary covered context; ambiguous or nonexistent local time stays unresolved. FFVB 00:00 is unknown without contrary evidence. F03 owns user-zone grouping and calendar categories.
+
+## Presentation and privacy
+
+Full/short name customizations are independent fields. Contact overrides independently represent source management, manual value or deliberate absence. F11 restrictions prevail over all three modes and over restored data. Do not retain previous personal contact values as history.
+
+Effective municipality/postal context has a revision. Changing it clears the previous point and invalidates older responses; street-only changes or source changes hidden by a manual override do not. Empty/ambiguous responses stay unresolved until context change or F01 family relaunch; technical failure does not erase a valid current point.
+
+Professional logo resolution is manual team → accepted LNV → optional club → missing. Other teams retain manual team → club. Store only the last valid source image; a failed replacement changes no image association. Ordinary publication does not expose provider credentials or turn a source URL into a public proxy.

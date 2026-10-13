@@ -1,0 +1,129 @@
+schemas:
+  ProblemResponse:
+    type: object
+    description: >-
+      RFC 9457 error response. Consumers use type as the machine identifier, never title or provider
+      text. Conflict details identify only resources visible to the authorized caller.
+    additionalProperties: true
+    properties:
+      type:
+        type: string
+        description: >-
+          Stable URI identifying the problem category. Clients use generic error handling for an
+          unrecognized type.
+        format: uri
+      title:
+        type: string
+        description: Human-readable category, not a machine code.
+      status:
+        type: integer
+        description: HTTP status of this response.
+        minimum: 400
+        maximum: 599
+      detail:
+        type: string
+        description: Safe explanation without secrets, personal contact values or raw supplier data.
+      instance:
+        type: string
+        description: Optional opaque occurrence reference; no sensitive URL or internal topology.
+      conflictingResourceIds:
+        type: array
+        description: >-
+          Pool or team identities involved in a classification conflict and visible to the authorized
+          caller.
+        items:
+          type: string
+          description: Conflicting pool or team identity.
+          format: uuid
+    required:
+      - type
+      - title
+      - status
+responses:
+  "400":
+    description: Malformed or invalid request; no write.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "401":
+    description: Missing, invalid or expired token; no write.
+    headers:
+      WWW-Authenticate:
+        $ref: ./headers.yaml#/BearerChallenge
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "403":
+    description: Wrong client, environment, scope or action grant; no write.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "404":
+    description: Unknown or deliberately unavailable resource.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "409":
+    description:
+      Stale revision, incompatible classification or invalid current lifecycle context; no
+      command effects.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "413":
+    description: Request or image exceeds the documented bound; no write.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "415":
+    description: Unsupported request or image media type; no write.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "422":
+    description: Readable request with rejected sporting or image content; no command effects.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"
+  "503":
+    description: >-
+      Processing unavailable. An interrupted mutation may have committed; administrative clients read
+      current state before retrying, while ingestion resumes through the next ordinary collection.
+    headers:
+      Cache-Control:
+        $ref: ./headers.yaml#/NoStore
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/ProblemResponse"

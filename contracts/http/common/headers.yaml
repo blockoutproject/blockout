@@ -1,0 +1,12 @@
+NoStore:
+  description: >-
+    Always returned on these authenticated responses, including errors. HTTP caches must not store
+    them; this does not define the application-owned in-memory query cache.
+  schema:
+    type: string
+    enum: [no-store]
+BearerChallenge:
+  description: Bearer authentication challenge returned with every 401 response.
+  schema:
+    type: string
+    example: Bearer

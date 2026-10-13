@@ -31,3 +31,8 @@ jobs:
 
       - name: Check documentation formatting
         run: npx --yes prettier@3.9.6 --check README.md AGENTS.md "specs/**/*.md" ".github/**/*.{md,yml}" .prettierrc.json
+
+      - name: Check contract formatting and structure
+        run: |
+          npx --yes prettier@3.9.6 --check "contracts/**/*.yaml"
+          npx --yes @redocly/cli@2.62.1 lint contracts/http/ingestion/openapi.yaml contracts/http/mobile/openapi.yaml --extends minimal

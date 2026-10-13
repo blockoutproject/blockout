@@ -6,38 +6,7 @@
 
 **Status**: Accepted functional baseline; shared technical dossier formalized in [plan.md](plan.md). Runtime implementation and qualification are not performed.
 
-**Input**: Approved functional quality and operations for [#259](https://github.com/blockoutproject/blockout-legacy/issues/259), F13 in the [specification navigation](../../README.md#specifications), as amended by the owner. Preserve F01/F02 behavior, protect irreplaceable data/files and support ordinary manual operations. F14 owns V1 club/logo continuity. No performance/capacity qualification or monthly availability accounting is retained.
-
-## Clarifications
-
-### Session 2026-10-04
-
-- Q: Does zero duplicate incident notification require exactly-once transport delivery? → A: Superseded by the 2026-10-12 native-alert decision below. The earlier opening/recovery-only guarantee is no longer the current notification contract.
-
-### Session 2026-10-05
-
-- Q: What backup and recovery baseline replaces custom recovery machinery? → A: Use standard scheduled data backups, initially every 30 minutes with 30-day retention, and manual restoration. Collection has no separate four-hour loss objective; source availability limits later reconstruction.
-- Q: Do performance goals remain deferred work? → A: No. Remove concurrency/latency targets, load tests, benchmarks and capacity planning from the present scope, release gates and roadmap; create no deferred work item. Focus on a correct application and production delivery, retaining ordinary diagnostics and domain-owned timing rules.
-- Q: Is monthly availability accounting required? → A: No. Remove the monthly availability target, calculation and proof obligations; retain actionable incident detection, alerts and manual operations.
-- Q: Must every failure have an automated recovery protocol? → A: No. Keep ordinary correctness and useful domain state for important incomplete actions; standard tools, monitoring and authorized manual intervention are the baseline. F10 permits exceptional manually resolved duplicate issues.
-
-### Session 2026-10-06
-
-- Q: What is the retained operations baseline? → A: The backup monitoring and separate hourly image schedule are superseded by the 2026-10-12 clarification. Every new application delivery still qualifies its own source-matching candidate and promotes the same qualified artifacts without rebuilding; documents alone trigger no application delivery.
-
-### Session 2026-10-10
-
-- Q: Must every internal failure distinction become a separate user state? → A: No. Use ordinary feedback/retry for reads, follows and PDF opening, accept search indexing delay, and apply F10's bounded support checking with manual exceptional-duplicate handling. Keep necessary protections for consequential actions.
-
-### Session 2026-10-12 — F13 planning reconciliation
-
-Decisions accepted for [planning issue #42](https://github.com/blockoutproject/blockout/issues/42):
-
-- Use native application alert grouping and closure, with reminders every five days. A native resolved notification is not by itself proof of business recovery: the operator checks current execution outcomes and affected-scope successes. No independent incident ledger or custom notification engine is required.
-- Back up authoritative data and required image bytes every 30 minutes with 30-day retention. Require no backup notification, monitoring dashboard, automatic verification or recurring drill. The operator may inspect the existing backup tool and destination when in doubt. A failed or stopped schedule may go unnoticed.
-- Perform one initial manual restore in isolation before relying on V2 protection. Every actual restoration still checks current privacy, identity, rights and expiry before reopening access or sends.
-- Ordinary mobile business reads and writes have no automatic retry or reconnection replay. Keep authorized retained data and explicit retry; owner-approved navigation/foreground refreshes and standard identity-token renewal remain distinct. This does not remove F01/F07 backend processing retries or F09 provider-owned entitlement/cache behavior. Application permissions do not replace F09's entitlement authority with a second Blockout decision.
-- The F05 preproduction-only hosted sign-in and F12 blocking screens remain owned by their specifications. The owner explicitly approved final [prototype `04d1d6a07c42a58f9bf668c4d60b4480db719324`](https://github.com/blockoutproject/product-prototype/commit/04d1d6a07c42a58f9bf668c4d60b4480db719324) and its Figma translation in Codex on 2026-10-12, after the three-gate simplification and official Lucide retry-icon correction. F05 hosted-login Figma was separately approved the same day. Exact design references and bounded evidence are recorded in F05/F12. The illustration remains an approved provisional placeholder, not selected final artwork. F12 suppresses in-app legal/support/sign-in access during its three global gates; maintenance administration requires an already signed-in usable authorized operator and supplies no authentication entry. Operational instructions must account for this accepted limit without adding an emergency console. Visual approval proves no native/provider behavior.
+**Input**: Approved functional quality and operations for [#259](https://github.com/blockoutproject/blockout-legacy/issues/259), F13 in the [specification navigation](../../README.md#specifications). Preserve F01/F02 behavior, protect irreplaceable data/files and support ordinary manual operations. F14 owns V1 club/logo continuity. No performance/capacity qualification or monthly availability accounting is retained.
 
 ## User Scenarios & Testing
 
@@ -59,7 +28,7 @@ then exercise a supplier failure and a visibility restriction.
 
 **Acceptance Scenarios**:
 
-1. **A01** — Withdrawn: synthetic workload and latency qualification are outside scope, not deferred release work. (FR-001–FR-003)
+1. **A01** — **Given** a delivery candidate, **when** its qualification is prepared, **then** functional correctness and domain timing are checked without a synthetic workload, latency or capacity programme. (FR-001–FR-003)
 2. **A02** — **Given** an accepted sporting correction, **when** affected views are consulted/refreshed and derived projection processing completes, **then** they use the accepted state rather than restoring an older version. Current visibility and permissions apply even before a projection catches up; no continuous screen refresh or global propagation stopwatch is required. (FR-004, FR-005)
 3. **A03** — **Given** an unavailable supplier and retained consultable data, **when** a user opens its details or calendar, **then** the accepted data remains usable under F02 with honest freshness. The supplier failure is visible to operations, not interpreted as sporting absence or successful integration. (FR-005, FR-008)
 
@@ -73,7 +42,7 @@ As an independent operator, I want actionable alerts and the information needed 
 
 **Acceptance Scenarios**:
 
-1. **A04** — Withdrawn: monthly availability calculation and its proof are outside scope. Incident detection remains covered by A05–A07. (FR-006, FR-007)
+1. **A04** — **Given** operational monitoring, **when** its scope is reviewed, **then** it covers incident detection under A05–A07 without monthly availability calculation or reporting. (FR-006, FR-007)
 2. **A05** — **Given** significant unavailability, including loss of the production host or its local monitoring, **when** it is detected, **then** an alert can reach the operator without depending on that host functioning. Detection time, scope and last known state are available. The operator intervenes according to availability; no guaranteed intervention time is announced. (FR-009–FR-011)
 3. **A06** — **Given** a persistent F01 acquisition failure or a later pause, **when** native alert evaluation repeats or closes its condition, **then** reports remain grouped by useful scope with five-day reminders and the native closure is not treated as evidence of business recovery. The operator checks a usable observation of the affected scope; acquisition success does not prove a failed integration recovered. No separate incident ledger is required. (FR-010, FR-012)
 4. **A07** — **Given** partial integration or a refused retry, **when** the operator views diagnostics and instructions, **then** they distinguish successful elements, failed elements, affected scope, reason and authorized recovery action. Useful information exposes no secret, personal data or raw provider document. (FR-010, FR-013, FR-014)
@@ -164,16 +133,16 @@ As an operator who has associated club logos, I want the authorized reset not to
 
 #### Functional quality and freshness
 
-- **FR-001**: Withdrawn: no concurrency or action-rate target is retained in the current scope or deferred roadmap.
-- **FR-002**: Withdrawn: no load-test, benchmark or capacity-study protocol is required for this scope or release.
-- **FR-003**: Withdrawn: no numerical API latency or percentile acceptance target is retained. Ordinary correctness and bounded user waits remain required by FR-008.
+- **FR-001**: No concurrency or action-rate target is retained in the current scope or deferred roadmap.
+- **FR-002**: No load-test, benchmark or capacity-study protocol is required for this scope or release.
+- **FR-003**: No numerical API latency or percentile acceptance target is retained. Ordinary correctness and bounded user waits remain required by FR-008.
 - **FR-004**: Accepted sporting changes MUST update their affected views and derived projections. New consultation/refresh MUST respect current permissions and visibility; a stale projection never authorises disclosure. Keep freshness honest and update failed projections through normal processing/manual correction. No global numerical propagation objective or continuous screen refresh is required.
 - **FR-005**: Distinguish supplier observation, acquisition, accepted integration and completed projection. Success at one step MUST NOT prove the next; failed or pending integration/projection remains diagnosable. F01 collection timing and domain-owned expiry/freshness rules remain applicable without a global performance qualification.
 
 #### Incident detection and operations
 
-- **FR-006**: Withdrawn: no monthly availability target or accounting is required. Incident detection and safe operations remain under FR-008–FR-014.
-- **FR-007**: Withdrawn: no monthly availability report, coverage calculation or retained proof series is required. Missing diagnostics MUST NOT be represented as healthy operation under FR-010.
+- **FR-006**: No monthly availability target or accounting is required. Incident detection and safe operations remain under FR-008–FR-014.
+- **FR-007**: No monthly availability report, coverage calculation or retained proof series is required. Missing diagnostics MUST NOT be represented as healthy operation under FR-010.
 - **FR-008**: Isolate failures to the capabilities that actually depend on them. Retained viewable data MUST remain usable without claiming a failed refresh succeeded. Keep ordinary loading, empty, failure and retry outcomes understandable. Internal distinctions do not require separate screens: F06 follows and F07 reads reconcile discreetly, F10 support permits retry after available checks, and F03 PDF opening uses an ordinary error. Preserve domain-specific safeguards for purchases, erasure and moderation. Bound waits and attempts; never invent success or block navigation indefinitely.
 - **FR-009**: Important application incidents MUST automatically alert the operator: essential-journey failure, failed integration/reconstruction or projection, and F01 acquisition incidents. Backup failure and scheduling are explicitly excluded from this alert obligation under FR-025. Host-loss detection and application-alert transmission MUST NOT depend only on the monitored production host. Document and verify the selected application monitoring; no monthly availability accounting is required.
 - **FR-010**: The operator MUST be able to know the affected scope, time and outcome of the last observation, last success, pending or failed work and available partial-success counts. Never run, awaiting eligibility, paused, in progress, completed and failed states MUST remain distinguishable. Inaccessible monitoring or execution without a confirmed outcome MUST NOT be presented as healthy.
@@ -221,9 +190,9 @@ As an operator who has associated club logos, I want the authorized reset not to
 
 ### Measurable Outcomes
 
-- **SC-001**: Withdrawn with A01 and FR-001–FR-003. No performance or capacity evidence is a release condition or deferred task.
+- **SC-001**: A01 verifies the qualification scope under FR-001–FR-003. No performance or capacity evidence is a release condition or deferred task.
 - **SC-002**: A02/A03 verify accepted changes across affected views, current restrictions and honest freshness. Supplier failure never becomes sporting deletion or integration success. No global propagation timing benchmark is required.
-- **SC-003**: Withdrawn with A04 and FR-006–FR-007. A05–A07 retain actual incident detection and diagnostics, without monthly availability accounting.
+- **SC-003**: A04 verifies the operational scope under FR-006–FR-007. A05–A07 retain actual incident detection and diagnostics, without monthly availability accounting.
 - **SC-004**: A05–A07 distinguish each failing scope, partial success, native alert closure and positively evidenced business recovery. Application incident detection and transmission do not depend solely on the monitored production host. Verify native grouping, five-day reminders and delivery limits without an exact logical-transition guarantee or independent incident ledger. Missing observations and pauses do not prove healthy operation. Manual intervention has no guaranteed response time.
 - **SC-005**: A08–A13 prevent unauthorized access, cross-account leaks, ordinary duplicate business effects, stale overwrite and incomplete reconstructions presented as complete. Apply each domain's explicit exceptional-delivery limits. Uncertainty never becomes invented success, and useful manual resolution does not require a generic recovery engine.
 - **SC-006**: A14–A18 verify the declared 30-minute data-and-image backup schedule, independent 30-day retention and one initial isolated manual restoration. There is no backup notification, dashboard, automatic verification or recurring drill requirement; failures and stopped schedules may go unnoticed. Report actual recovered scope, gaps and duration without a zero-loss guarantee. Every actual restore checks current rights, erasure, notification expiry and privacy before affected access resumes. These runtime qualifications are NOT EXECUTED.
