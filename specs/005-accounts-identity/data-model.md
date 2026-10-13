@@ -19,30 +19,24 @@ The unique username constraint handles competing accounts. Profile mutation and 
 
 A reliable known principal age remains usable during a provider outage. A null age restricts only dependent operations. No independent entitlement state, account-session table, global revision column or provider-profile mirror is stored.
 
-## Pending erasure
+## Deletion boundary
 
-Keep the account/identity row keyed by the **original** business UUID in pending state, with personal profile fields removed. The unique `(issuer, subject)` reservation remains until cleanup is resolved; there is no second duplicate request registry. Its fields are acceptance time, pending state, original issuer/subject, original linked provider identities and principal creation evidence when available, plus the original RevenueCat targets required for cleanup. Identity references are private personal data with a limited cleanup purpose, not log attributes. Do not keep username, email, photo, full provider documents or business rights in this record.
+No pending account or deletion-request entity is stored. The original account row lock coordinates short personal-write transactions: a writer commits before deletion removes its result, or finds the original account absent. Provider synchronization captured for an existing UUID cannot update a replacement UUID. External calls take place after the transaction; private failure logs are operational evidence, not an exhaustive or durable workflow record.
 
-Concurrent personal writers use the account row lock: they commit before erasure removes their result, or find the account unusable. A competing bootstrap resolves a unique-key collision by rereading this row under lock; removed profile fields do not permit recreation. Provider synchronization captured for an existing UUID cannot write into a later UUID. The [plan](plan.md#erasure-and-manual-resolution) owns transaction sequencing and supplier calls.
+| Transition          | Guard and effects                                                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Absent → active     | Explicit establishment, validated principal and usable provider email; unique principal and username constraints settle concurrent creation.           |
+| Active → active     | Authorized login synchronization or profile save; omitted or temporarily unavailable fields preserve known data.                                       |
+| Active → absent     | Owner confirmation and atomic local removal; preserve unowned content/moderation, then attempt external cleanup without rollback.                      |
+| Absent → new active | Explicit registration with a new business UUID; no old profile, follows, grants, gifts or attribution. Actual Auth0 principal evidence determines age. |
 
-Pending principal/linked-identity references prevent bootstrap while an old target could still be affected. A valid original principal may read only the minimal pending outcome despite business unusability. The complete original reference set is never exposed to the mobile.
-
-| Transition               | Guard and effects                                                                                                                                                                                          |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Absent → active          | Explicit bootstrap, validated allowed principal, usable provider email and no pending original-identity block. Unique principal and username constraints settle concurrent attempts.                       |
-| Active → active          | Explicit login synchronization or authorized profile field changes; omitted or temporarily missing values preserve current data.                                                                           |
-| Active → pending erasure | Valid original owner and explicit intent; commit durable acceptance and local cleanup before any provider delete.                                                                                          |
-| Pending → pending        | Process/provider failure, ambiguous outcome or incomplete original targets. Further login/repeated requests do not run cleanup. Manual inspection/repair uses existing tools.                              |
-| Pending → absent         | The initial cleanup attempt or subsequent manual resolution establishes the plan’s completion conditions; remove the block and unnecessary references. Independent F11 retention grants no account access. |
-| Absent → new active      | Explicit registration with fresh account UUID and current provider evidence. No resurrection of old rights, age, gifts, follows or attribution.                                                            |
-
-No per-step flags, attempt list, durable job or generic recovery payload is stored. Supplier evidence and safe manual targeting follow the [completion conditions](plan.md#erasure-and-manual-resolution).
+A repeated DELETE for the original absent UUID causes no provider effects. Re-registration does not wait for a cleanup row or provider-completion proof. Original target references appear only in the scoped private diagnostics/support handling in the [plan](plan.md#erasure-and-manual-resolution). No SQL retry record or per-step state is added.
 
 ## Mobile transient state
 
 The native Auth0 SDK holds credentials in its secure store. The application holds a session UUID, current account identity and private query/form state in memory. Every sign-out/account change rotates the session UUID and removes private state. In-flight callbacks include their captured generation; those from an older generation are rejected even after A → guest → A.
 
-Authentication, business-profile availability, erasure-in-progress and RevenueCat SDK entitlement state remain distinct. Known network failure does not imply revocation. No persistent business cache or write queue is added. F07's expiry and current permissions still restrict retained in-memory data.
+Authentication, business-profile availability and RevenueCat SDK entitlement state remain distinct. Known network failure does not imply revocation. No persistent business cache or write queue is added. F07's expiry and current permissions still restrict retained in-memory data.
 
 Onboarding and the F14 transition-welcome completion retain their accepted installation-specific purpose independently of account deletion. This is not a persistent private profile cache.
 

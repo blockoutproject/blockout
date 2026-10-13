@@ -6,8 +6,8 @@ Collection:
     summary: Establish my account
     description:
       Creates the authenticated principal’s account or refreshes its necessary provider
-      information after explicit sign-in. Never links by email. Repetition resolves the same account;
-      pending erasure blocks creation. Existing known information survives temporary provider absence.
+      information after explicit sign-in. Never links by email. Repetition resolves the same current account. A deleted account is never restored;
+      explicit establishment creates a new account. Known information survives temporary provider absence.
     responses:
       "400":
         $ref: ../../common/problems.yaml#/responses/400
@@ -43,8 +43,6 @@ Collection:
           application/json:
             schema:
               $ref: ./schemas.yaml#/AccountResponse
-      "409":
-        $ref: "#/responses/ErasurePending"
 Current:
   get:
     operationId: getMyAccount
@@ -53,8 +51,7 @@ Current:
     summary: Read my account
     description:
       Returns the authenticated principal’s existing account without creating it or synchronizing
-      provider data. An absent profile requires explicit account establishment; pending erasure reveals
-      only its minimal accepted-request state.
+      provider data. An absent account returns 404 and requires explicit establishment.
     responses:
       "401":
         $ref: ../../common/problems.yaml#/responses/401
@@ -73,8 +70,6 @@ Current:
           application/json:
             schema:
               $ref: ./schemas.yaml#/AccountResponse
-      "409":
-        $ref: "#/responses/ErasurePending"
 Member:
   parameters:
     - name: accountId
@@ -90,9 +85,8 @@ Member:
       - Accounts
     summary: Read my original account
     description:
-      Returns only the caller’s account. A valid original owner can read minimal pending-erasure
-      information despite ordinary access being blocked. A 404 means no accessible resource, not independent
-      proof of physical supplier erasure.
+      Returns only the caller’s original account. An absent account returns 404; this does not
+      independently prove physical erasure at external providers.
     responses:
       "400":
         $ref: ../../common/problems.yaml#/responses/400
@@ -119,8 +113,6 @@ Member:
           application/json:
             schema:
               $ref: ./schemas.yaml#/AccountResponse
-      "409":
-        $ref: "#/responses/ErasurePending"
   patch:
     operationId: changeAccountProfile
     tags:
@@ -191,12 +183,11 @@ Member:
     operationId: eraseAccount
     tags:
       - Accounts
-    summary: Request account erasure
+    summary: Delete my account
     description:
-      Accepts explicit erasure for the original owner, blocks ordinary access on all devices
-      and removes local personal data before provider cleanup. Repeating a pending request returns
-      its acceptance without restarting cleanup. Never targets a replacement account or cancels store
-      billing.
+      Deletes the owner’s original account and local personal data, then attempts external cleanup.
+      External failure does not undo account deletion. Repeating deletion for an absent account returns
+      404 without further external calls. Never targets a replacement account or cancels store billing.
     responses:
       "400":
         $ref: ../../common/problems.yaml#/responses/400
@@ -208,24 +199,12 @@ Member:
         $ref: ../../common/problems.yaml#/responses/404
       "503":
         $ref: ../../common/problems.yaml#/responses/503
-      "202":
-        description:
-          Durably accepted, not a claim of complete physical erasure. Read the original
-          account for its minimal pending state; unresolved supplier work is handled through private
-          support.
+      "204":
+        description: Account and local personal data deleted; external cleanup attempted. No response body.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
-          Location:
-            description: Original account address for checking the pending outcome.
-            schema:
-              type: string
-              format: uri-reference
-              example: /accounts/6c0f08bf-56b1-4a1d-8c1e-52caab3ddc79
-        content:
-          application/json:
-            schema:
-              $ref: ./schemas.yaml#/AccountErasureAcceptedResponse
+
 Photo:
   parameters:
     - name: accountId
@@ -270,15 +249,3 @@ Photo:
               type: string
               format: binary
               description: Square accepted photo.
-responses:
-  ErasurePending:
-    description:
-      Erasure is already accepted. Ordinary account access and recreation remain blocked;
-      no provider cleanup is triggered by this read or repeated establishment.
-    headers:
-      Cache-Control:
-        $ref: ../../common/headers.yaml#/NoStore
-    content:
-      application/problem+json:
-        schema:
-          $ref: ./schemas.yaml#/AccountErasurePendingResponse

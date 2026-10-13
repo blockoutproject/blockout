@@ -106,6 +106,8 @@ The official React Native SDK documents React 19 / RN 0.78+ / Expo 53+ support, 
 
 ## Application observability
 
+The scoped [F05 cleanup decision](../005-accounts-identity/research.md#synchronous-business-deletion-and-manual-external-cleanup) uses native log alerting and private original-target references for manual handling. It accepts interruption before logging without a durable recovery record; the exception does not broaden other telemetry.
+
 **Decision**: Native Grafana alerts and manual investigation.
 
 **Rationale**: Scope, latest successful stages and partial outcomes support intervention without a custom incident system.

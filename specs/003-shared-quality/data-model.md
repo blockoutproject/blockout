@@ -26,7 +26,7 @@ Logical fields: useful nonpersonal scope, stage, observed time, outcome, latest 
 
 The relevant owner's ordinary state and structured logs/metrics supply these facts. Never-run, awaiting eligibility and paused are not successful executions. A start becomes completed, partially successful or failed only with evidence; a lost process can leave an unknown outcome. Missing telemetry does not infer health. Do not synthesize false completion from an HTTP call or native alert closure.
 
-An incident is the operational condition plus native Grafana alert state, not a new PostgreSQL incident table. Native firing/resolved and repeat grouping are provider states; business recovery requires useful results for the affected scope. Keep detection, alert, manual intervention and observed recovery times distinct where available without an intervention guarantee. Logs retain 14 days; no personal identifiers, raw provider files or secrets enter logs/labels/alerts.
+An incident is the operational condition plus native Grafana alert state, not a new PostgreSQL incident table. Native firing/resolved and repeat grouping are provider states; business recovery requires useful results for the affected scope. Keep detection, alert, manual intervention and observed recovery times distinct where available without an intervention guarantee. Logs retain 14 days. Only [F05 original-target references](../005-accounts-identity/plan.md#erasure-and-manual-resolution) needed for manual cleanup may enter private logs under F11; labels and Discord alerts contain no personal references. Raw provider files and secrets remain excluded. This exception creates no deletion entity or exhaustive incident ledger.
 
 ## Restorable set
 

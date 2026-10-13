@@ -10,14 +10,14 @@ The modular backend supplies these operations to the native mobile account featu
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST /accounts`                  | Explicit establishment after authenticated login, or targeted missing-provider-data retry. 201 + Location for creation; 200 for an existing usable account. No caller-supplied identity or email. |
 | `GET /accounts/me`                | Existing current profile at ordinary startup/read; no creation or Auth0 synchronization.                                                                                                          |
-| `GET /accounts/{accountId}`       | Owner reread of the original target after a profile/deletion uncertainty. A valid original owner can receive minimal pending-erasure information despite the business block.                      |
+| `GET /accounts/{accountId}`       | Owner reread of the original target after a profile/deletion uncertainty. An absent original account returns 404 without provider effects.                                                        |
 | `PATCH /accounts/{accountId}`     | One atomic multipart profile save. JSON metadata contains supplied username/photo intent; image only for replacement. Omitted fields retain current values.                                       |
 | `GET /accounts/{accountId}/photo` | Private accepted binary photo, no-store; missing/inaccessible photo returns 404.                                                                                                                  |
-| `DELETE /accounts/{accountId}`    | Durable erasure acceptance for the original lifecycle, returning 202 with account identity, accepted time and monitor Location. Repetition does not retry provider cleanup.                       |
+| `DELETE /accounts/{accountId}`    | Synchronous local deletion, then bounded external attempts; 204 without a body even if external cleanup is logged for manual handling. Absent original UUID: 404 without further effects.         |
 
 All account responses are private and `no-store`, including errors. F13's allowed client/environment/scope validation precedes use-case ownership. Other accounts are not exposed through UUID guessing. Photo bytes receive the same authorization as the profile. API absence never alone proves every supplier's physical erasure.
 
-Known pending erasure on profile reads/establishment returns 409 Problem Details with `type=urn:blockout:problem:account-erasure-pending`, original `accountId` and `acceptedAt`. It is not a profile representation or permission to recreate. DELETE repetition returns the original 202 receipt; after completed removal, 404 is permitted without new effects. A valid original owner whose account is pending may access that receipt, not ordinary private resources.
+DELETE targets the original business UUID. After a lost response, read that original resource before explicit retry; never substitute an account recreated by later authentication. A 404 establishes resource absence, not physical provider purge. If the read is also unavailable, use an ordinary error and permit local sign-out without claiming confirmed deletion. No deletion receipt, monitor URL or pending-account error is exposed.
 
 ## Validation and failure semantics
 
@@ -28,7 +28,7 @@ Known pending erasure on profile reads/establishment returns 409 Problem Details
 - Responses tolerate additional properties, while known fields remain validated. `principalCreatedAt: null` means unknown age; a missing required field or wrong type is invalid. Multipart omission and null are distinct. Do not force a JSON validation path onto binary images.
 - An interrupted mutation can have committed. Reread the original target before an explicit retry; no automatic retry, network-reconnection replay or token-renewal replay. No deduplication key/job store is necessary for these original-target effects.
 
-The account-specific pending Problem Details extends the shared profile without changing its existing sporting fields. Qualify the generated plain `allOf` extension and multipart metadata/file binding in Spring/Jackson and Orval/Zod before adopting them; source validation alone is not compilation/runtime evidence.
+Shared Problem Details remain unchanged. Qualify multipart metadata/file binding and bodyless 204 handling in the generated Spring/Jackson and Orval/Zod consumers; source validation alone is not compilation/runtime evidence.
 
 ## Other boundaries and coordinated consumers
 
@@ -41,4 +41,4 @@ The account-specific pending Problem Details extends the shared profile without 
 | Permissions / admission               | F12 owns capabilities and global gates; business use cases consult current state. No grant enumeration or administration API is invented by F05.                                                                                                   |
 | Contributions, support and transition | F08 detaches attribution; F10/F11 own private requests and retained content; F14 owns historical coverage and cutover. Native restore does not erase an old RevenueCat customer automatically.                                                     |
 
-Generate backend/mobile consumers from the same canonical revision. F05 adds operations to an unimplemented API; it neither changes F02 operations nor creates a new deployment/version surface. Future changes must preserve all F12-admitted mobile versions under F13's compatibility policy.
+Generate backend/mobile consumers from the same canonical revision. These account contracts are not yet implemented or released, so removing the draft receipt/pending shapes requires no deployed-client migration. Generate both consumers together; F02 operations and the deployment/version surface remain unchanged. Future changes must preserve all F12-admitted mobile versions under F13's compatibility policy.

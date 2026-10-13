@@ -31,6 +31,6 @@
 
 ## Notes
 
-- Reassessed on 2026-10-12. FR-019/FR-023/FR-035 retain approved Auth0 token-validity limits and RevenueCat SDK state, including the explicit same-subject return limitation. The two implementation-independence criteria remain unchecked while these technical constraints are present. They are accepted continuity/simplicity decisions to carry into the owning native plan, not authorization to weaken account isolation or reopen identity policy.
+- FR-019/FR-023/FR-035 retain approved Auth0 token-validity limits and RevenueCat SDK state, including the explicit same-subject return limitation. The two implementation-independence criteria remain unchecked while these technical constraints are present. The private cleanup-reference exception also reflects the explicit manual-repair decision. These are accepted continuity/simplicity decisions to carry into the owning native plan, not authorization to weaken account isolation or reopen identity policy.
 
-- Current owner decisions are integrated into the requirements and [technical plan](../plan.md). [Design evidence](../spec.md#design-evidence) retains the approved in-app scope and excludes provider/native interfaces from reproduction; neither this checklist nor the prototype establishes native/provider qualification.
+- Current owner decisions are integrated into the requirements and [technical plan](../plan.md). [Design evidence](../spec.md#design-evidence) retains the approved in-app scope and excludes provider/native interfaces from reproduction; the revised deletion sheet has separate scoped prototype and Figma approvals. Neither this checklist nor the prototype establishes native/provider qualification.

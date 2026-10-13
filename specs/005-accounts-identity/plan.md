@@ -4,13 +4,13 @@
 
 **Input**: [#44](https://github.com/blockoutproject/blockout/issues/44); approved [F13 foundation](../003-shared-quality/plan.md). This dossier defines future implementation; it creates no runtime or provider configuration.
 
-**Status**: Ready for technical review. Existing in-app design approvals remain applicable; provider-hosted authentication and native crop interfaces are outside the prototype/Figma scope agreed with the owner.
+**Status**: Ready for technical review. The owner approved the revised deletion prototype and its Figma translation separately. Unchanged in-app approvals remain applicable; hosted authentication and native crop interfaces remain outside reproduction scope.
 
 ## Summary
 
 Keep public access independent of authentication. Resolve each validated Auth0 principal to one PostgreSQL business account, with a neutral username, optional square photo and current server-side permissions. Native Auth0 credentials and a transient mobile session generation isolate private state; RevenueCat's SDK remains the entitlement authority.
 
-Account erasure durably blocks the original account and removes its local personal data before provider cleanup. Keep only the original references needed to finish an incomplete request manually. No recovery worker, reconnection cleanup, operation ledger or new administration screen is introduced.
+Delete the original account and its local personal data synchronously, then attempt bounded provider cleanup. Private failure diagnostics support manual repair; no pending account, recovery worker, polling or replay is introduced. The app returns directly to guest home after the request.
 
 ## Technical Context
 
@@ -18,7 +18,7 @@ Account erasure durably blocks the original account and removes its local person
 
 **Primary Dependencies**: Spring Security resource server, JPA/Hibernate and ordinary PostgreSQL transactions; native `react-native-auth0`, Expo ImagePicker/ImageManipulator and TanStack Query. RevenueCat integration follows F09; contract tooling follows [F13](../003-shared-quality/contracts/README.md). Inspected SDK evidence is in [research](research.md#native-authentication-and-environment-boundary).
 
-**Storage**: F13 PostgreSQL for accounts, photo bytes and minimal pending erasure references. Native Auth0 secure credential storage; business cache and session generation in memory only. RevenueCat's standard cache remains separate.
+**Storage**: F13 PostgreSQL for accounts and photo bytes; no pending-erasure row. Native Auth0 secure credential storage; business cache and session generation in memory only. RevenueCat's standard cache remains separate.
 
 **Testing**: JUnit/Spring MVC/Testcontainers PostgreSQL; Jest Expo/React Native Testing Library; controlled native iOS/Android provider scenarios. Browser prototype tests establish only simulated behavior.
 
@@ -34,15 +34,15 @@ Account erasure durably blocks the original account and removes its local person
 
 ## Constitution Check
 
-| Principle                    | Evaluation                                                                                                                                                                                                                                      |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I — Specification-led intent | Owner-agreed changes are integrated into F05 and affected F07/F09/F13/F14 sources. No product implementation is authorized.                                                                                                                     |
-| II — Domain integrity        | F05 owns account identity, profile and erasure. F12 owns permissions/admission; F09 entitlements; F14 transition; F07 destinations; F08 attribution; F10/F11 private requests. Their responsibilities are not copied into F05 services.         |
-| III — Approved design        | Existing in-app approvals apply: the shared image field and single sign-in entry are retained. The owner excludes hosted Auth0 and native crop UI from prototype/Figma reproduction. See the scoped [design evidence](spec.md#design-evidence). |
-| IV — Contract first          | Extend the one canonical mobile root, reuse common errors/headers, and generate actual consumers together. No copy in the feature folder or production-generated files.                                                                         |
-| V — Simplicity               | Ordinary SDK, SQL and manual provider operations meet the agreed scope. No per-device business sessions, entitlement mirror, workflow engine or full historical-user migration. See [research](research.md).                                    |
+| Principle                    | Evaluation                                                                                                                                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| I — Specification-led intent | Owner-agreed changes are integrated into F05 and affected F01/F07/F08/F09/F10/F11/F13/F14 sources. No product implementation is authorized.                                                                                                |
+| II — Domain integrity        | F05 owns account identity, profile and erasure. F12 owns permissions/admission; F09 entitlements; F14 transition; F07 destinations; F08 attribution; F10/F11 private requests. Their responsibilities are not copied into F05 services.    |
+| III — Approved design        | The revised deletion sheet and direct guest return have separate prototype and Figma approvals. Unchanged image/sign-in approvals and the exclusion of hosted/native UI remain applicable. See [design evidence](spec.md#design-evidence). |
+| IV — Contract first          | Extend the one canonical mobile root, reuse common errors/headers, and generate actual consumers together. No copy in the feature folder or production-generated files.                                                                    |
+| V — Simplicity               | Ordinary SDK, SQL and manual provider operations meet the agreed scope. No per-device business sessions, entitlement mirror, workflow engine or full historical-user migration. See [research](research.md).                               |
 
-The retained in-app design introduces no new visual decision or additional approval gate. Runtime qualifications in [quickstart](quickstart.md) remain future implementation evidence, not approvals claimed by this dossier.
+Both scoped design approvals satisfy the post-design check. Runtime qualifications in [quickstart](quickstart.md) remain future implementation evidence, not approvals claimed by this dossier.
 
 ## Project Structure
 
@@ -76,9 +76,9 @@ Use the existing modular application, feature-local responsibilities and ordinar
 
 Validate JWT signature, issuer, environment audience, expiry, allowed client and required scopes with Spring Security. Use the validated `(issuer, sub)` as the unique principal mapping; never trust a body-supplied subject or resolve by email. PostgreSQL uniqueness settles simultaneous bootstrap attempts. Generate an available neutral username using the same rules as manual edits; email is not unique.
 
-After an explicit successful login, `POST /accounts` establishes the account or synchronizes its necessary provider email and age evidence. Read Auth0 by exact principal ID outside the SQL transaction, then recheck current account/deletion state when committing. A synchronization started for an existing UUID cannot become creation or update of a replacement UUID. An ordinary startup/profile read uses `GET /accounts/me` and never contacts Auth0 or creates an account. Missing necessary age evidence can be retrieved through an explicit targeted retry using bootstrap, without requiring another login while authentication is valid.
+After an explicit successful login, `POST /accounts` establishes the account or synchronizes its necessary provider email and age evidence. Read Auth0 by exact principal ID outside the SQL transaction, then recheck the original account state when committing. A synchronization started for an existing UUID cannot become creation or update of a replacement UUID. An ordinary startup/profile read uses `GET /accounts/me` and never contacts Auth0 or creates an account. Missing necessary age evidence can be retrieved through an explicit targeted retry using bootstrap, without requiring another login while authentication is valid.
 
-First creation without a usable provider email fails without a partial account. Existing known email/age survive a provider outage; username and photo are never provider-synchronized. Account age uses the retained Auth0 principal's `created_at`, including existing linked methods; unknown age remains unknown and only age-dependent actions are suspended.
+First creation without a usable provider email fails without a partial account. Existing known email/age survive a provider outage; username and photo are never provider-synchronized. Account age uses the actual Auth0 principal's `created_at`, including existing linked methods. A principal surviving failed cleanup retains its age after new business registration; successful identity deletion normally yields a new principal date. Unknown age remains unknown and only age-dependent actions are suspended.
 
 Use separate native app registrations, clients and API audiences in the existing tenant. Enable the dedicated database connection only for preproduction, with native signup; enable Google/Apple only for production. No credentials or Management API secret in the mobile. Before any preproduction destructive provider operation, establish that the principal belongs exclusively to the dedicated connection, without linked foreign identities. Shared tenant administrative powers remain a real isolation limit. These are future configuration/qualification instructions, not actions performed here.
 
@@ -102,16 +102,17 @@ All protected business use cases verify current account usability and their own 
 
 ## Erasure and manual resolution
 
-1. Validate the original account owner and explicit confirmation. Before acceptance, obtain or retain the minimal original provider targets needed for safe cleanup, including existing linked identities. Missing essential identity scope refuses acceptance without external effects; known references need no redundant lookup. No arbitrary recent-login threshold is introduced.
-2. In one short transaction, lock the original account, establish its [minimal pending state](data-model.md#pending-erasure), erase personal profile fields/associations and detach retained useful contribution/report attribution under F08. All devices lose business usability; retained hidden content stays hidden.
-3. After commit, attempt ordinary cleanup of the exact Auth0 and RevenueCat targets once. Auth0 deletion includes its supported linked-profile/revocation behavior; Google/Apple global accounts and store billing are not deleted. If this attempt establishes the completion conditions below, close the request. Otherwise leave it pending for manual resolution; an asynchronous acceptance alone is insufficient and triggers no polling or automatic retry.
-4. Keep unresolved requests discoverable through private database/provider tools and F13's existing diagnostic/incident route. An operator inspects remaining targets, performs necessary authorized cleanup and establishes completion. No per-step ledger, periodic retry, special resume command or automatic check at later login. Public support/privacy obligations retain their owners.
-5. Before resolving the block, establish that no original destructive work can affect a later account. Compare a reused Auth0 subject with the original principal/creation evidence before any manual delete; email is never the target. RevenueCat v2 deletion acceptance may be asynchronous. Use non-creating inspection and available provider guarantees; do not pretend that HTTP 200 proves physical deletion or require evidence the supplier cannot supply. Ambiguity keeps the request pending for private resolution.
-6. Resolution releases the principal/linked-identity block and removes references no longer justified. A later explicit registration creates a fresh business UUID, age and baseline permissions, with no old profile, follows, gifts or contribution ownership. Separate legitimate F11 retention does not alone block recreation indefinitely.
+1. Present the shared bottom sheet from the profile with concise consequences, the confirmation checkbox and plain store-billing guidance; no subscription-management action. Validate the owner and explicit confirmation; capture the original business UUID and known Auth0/RevenueCat targets, including justified historical references. Do not block local deletion on a live provider lookup. Missing external target/scope evidence is logged for manual handling; no destructive provider call proceeds without the applicable environment and identity-scope checks.
+2. In one short PostgreSQL transaction, lock and remove the original account, photo and personal associations; detach retained contribution/report attribution under F08 without changing moderation. A definite transaction failure starts no external cleanup and preserves the usable account/session. Other personal writers use the same account lock.
+3. After commit, attempt each known original Auth0 and RevenueCat cleanup once with ordinary bounded calls. Continue to the other targets on failure; never roll back local deletion. Trust documented acknowledgments: Auth0 204 confirms user removal; RevenueCat v2 200 queues asynchronous customer deletion. That successful acknowledgment alone needs neither polling nor manual intervention. Global Google/Apple accounts and store billing remain separate.
+4. Emit a private failure/uncertainty diagnostic for missing target evidence or failed external cleanup. Use native Grafana log alerting and a generic Discord notification. The operator uses existing database/provider/support tools to inspect and repair original targets, verifying current use before destructive action. Never guess a replacement or match by email. No pending record, outbox, worker, retry ledger or new administration screen.
+5. Return HTTP 204 after local deletion and bounded attempts, including logged provider failure. Independently clear mobile credentials and private session state despite browser/provider logout failure, then navigate to guest home without a receipt, progress view or success toast. If the response is lost, read the original account before explicit retry; unavailable read uses an ordinary error and permits local sign-out without claiming confirmed deletion. Repeated DELETE of an absent original UUID returns 404 without new provider calls.
 
-While pending, bootstrap checks the stored original principal and linked-identity references before creating anything, including a formerly linked secondary identity returning as a separate principal. It does not poll providers. The [HTTP contract](contracts/README.md) defines minimal owner reads after an uncertain deletion response. Invalid authentication leads to guest/support, not silent recreation.
+Private diagnostics may retain only the original account ID, relevant provider references and minimal original-target verification evidence, with operation, environment, provider, time and a safe outcome/reason. Exclude email, profile content, images, tokens, secrets and raw provider payloads. Keep these references out of metric labels and Discord messages. Logs retain F13's 14 days; an unresolved case beyond that period uses existing private support handling for still-needed evidence, removed when its purpose ends. [F11](../004-advertising-privacy-legal/spec.md) governs purpose and recipients.
 
-Standard Auth0 token validity remains accepted: after completed deletion and same-subject registration, an earlier still-valid token can authorize the new account under its current permissions until expiration. No custom token lifecycle claim, connection flag, per-device business session list or artificial registration delay is added. This exception does not authorize a stale UUID-targeted mutation or old cleanup to affect the new lifecycle.
+A process interruption after commit but before logging can leave external cleanup unreported. No durable mechanism closes that accepted gap, and an alert's native closure does not establish repair. Manual handling has no guaranteed response time.
+
+Explicit sign-in may create a new business UUID immediately, without a cleanup gate or polling. Its profile, follows, grants, gifts and attribution start empty; age uses the actual Auth0 principal. No special coordination handles simultaneous return and an in-flight provider delete: ordinary errors and manual assistance apply. Standard Auth0 token validity is retained; an earlier still-valid same-subject token can authorize the new account under its current rights. No custom session registry, lifecycle claim or re-registration delay is added. An old UUID-targeted request still cannot act on the replacement UUID.
 
 ## Continuity, operations and limits
 
@@ -119,7 +120,7 @@ F14 preserves existing Auth0 principals, linking and age while establishing new 
 
 F10/F11 own external privacy requests and any data within retained content. The existing public privacy page provides the external deletion request direction and contact, without a new portal; its store registration is qualified by F14. Restoring a backup requires manual reconciliation of current erasures/rights/expiry before reopening affected access or sends.
 
-Private provider credentials stay server-side. Diagnostics identify stages/outcomes and incomplete obligations without logging subjects, email, photos, tokens or raw provider payloads. Use existing F13 operations; no erasure dashboard or automated repair service. F13's evolving Liquibase baseline and later freeze policy apply without additional schema history during disposable development.
+Private provider credentials stay server-side. The narrowly scoped private cleanup-reference exception follows F05/F11; all other diagnostics retain F13’s personal-data exclusions. Use existing F13 operations; no erasure dashboard or automated repair service. F13's evolving Liquibase baseline and later freeze policy apply without additional schema history during disposable development.
 
 ## Complexity Tracking
 
