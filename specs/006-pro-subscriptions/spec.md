@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Accepted functional baseline with owner-agreed planning corrections; revised guest-entry design approval and technical-plan finalization remain pending.
+**Status**: Accepted functional baseline with owner-agreed planning corrections and approved guest-entry prototype; Figma approval and technical-plan finalization remain pending.
 
 **Input**: [#262](https://github.com/blockoutproject/blockout-legacy/issues/262), F09 in the [specification navigation](../../README.md#specifications). Define paid and gifted Pro entitlements, their refresh, purchases, restorations, transfers and assisted recovery, in continuity with [F05](../005-accounts-identity/spec.md) and [F11](../004-advertising-privacy-legal/spec.md). No new benefit, subscription tier, web purchase or pricing change is selected here.
 
@@ -227,6 +227,7 @@ An already known valid Pro entitlement avoids unnecessary advertising age/consen
 - Support uses the F10/F11 process with proportionate verification. Provider capabilities must meet guarantees before activation: technical impossibility does not allow the implementation to merge accounts or broaden transfer without a product decision.
 - F05 identity choices remain settled: existing associations only, no new Google/Apple linking, migration/deletion distinction, guest access, original-business-UUID targeting and the accepted provider-concurrency limits. F09 does not redefine them.
 - The 2026-10-06 scoped approval in [scoped design approval](https://github.com/blockoutproject/blockout/issues/34#issuecomment-6021179909) covers the provider-managed sheet entry from the profile, distinct Pro/privacy icons, the ad-free-only offer, SDK-active/to-verify states, subtle premium chrome in both themes, unchanged sporting palettes, free guest maps and club calendars, unavailable offers, pending payment/activation, restoration and assistance. No Blockout Pro page or gift-operator screen is required. Actual provider-managed content and native/store behavior remain to qualify; a material design change requires revalidation.
+- The owner approved [prototype `6858562`](https://github.com/blockoutproject/product-prototype/commit/6858562) for the shared compact invitation artwork and guest Pro entry: unchanged full login artwork, contextual sign-in copy, no price or retained purchase intent. Its Figma translation is awaiting separate approval: [light sheet](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5263-6347), [dark sheet](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5263-6529) and [shared pattern with narrow coverage](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=6671-169809). These visual checks do not qualify native authentication or billing.
 
 ## V1 evidence and limitations
 

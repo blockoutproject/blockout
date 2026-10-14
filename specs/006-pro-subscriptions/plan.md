@@ -4,7 +4,7 @@
 
 **Input**: [#48](https://github.com/blockoutproject/blockout/issues/48), the approved [F13 foundation](../003-shared-quality/plan.md), [F05 account lifecycle](../005-accounts-identity/plan.md) and [F11 advertising](../004-advertising-privacy-legal/plan.md).
 
-**Status**: Draft pending the guest Pro invitation's prototype approval, Figma reconciliation and separate Figma approval. The agreed technical decisions below authorize no production implementation or provider configuration.
+**Status**: Draft pending separate Figma approval of the guest Pro invitation. Prototype revision `6858562` is approved and its Figma translation is ready for review. The agreed technical decisions below authorize no production implementation or provider configuration.
 
 ## Summary
 
@@ -38,7 +38,7 @@ No Pro HTTP endpoint, backend rights mirror, gift ledger, webhook, polling, pers
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | I — Specification-led intent | Guest entry and V2 offer presentation are integrated into F09. F14 records the absence of V1 gifts without weakening continuity for categories actually present. |
 | II — Domain integrity        | F05 owns identity/erasure, F09 Pro consumption, F10 assistance, F11 advertising/privacy and F14 continuity. No new ownership or service boundary.                |
-| III — Approved design        | Existing scoped approvals remain applicable. The new guest invitation is pending prototype and Figma approvals; finalization is blocked until both are recorded. |
+| III — Approved design        | Existing scoped approvals remain applicable. Prototype `6858562` is approved; the translated guest invitation still requires Figma approval before finalization. |
 | IV — Contract first          | [Contracts](contracts/README.md) define SDK and consumer agreements. No new HTTP operation or editable copy of the canonical API is needed.                      |
 | V — Simplicity               | Native SDK state/UI and manual intervention satisfy the agreed need. [Research](research.md) explains alternatives and evidence limits.                          |
 
