@@ -34,7 +34,7 @@ Representative current exports included ABCCS/EFA (132 rows), LIRA/PMA (110), PT
 
 ## LNV coverage, time and images
 
-**Decision**: Use the official [women's first division](https://www.lnv.fr/competitions/saforelle-volstar), [men's first division](https://www.lnv.fr/competitions/alterna-volstar) and [men's second division](https://www.lnv.fr/competitions/volstar-masculine-2) entries and their published DataProject phase links, without XML or FFVB fallback.
+**Decision**: Use the official [women's first division](https://www.lnv.fr/competitions/saforelle-volstar), [men's first division](https://www.lnv.fr/competitions/alterna-volstar) and [men's second division](https://www.lnv.fr/competitions/volstar-masculine-2) entries and their published DataProject phase links, without XML or FFVB fallback for sporting facts. The document-only exception in [F03 research](../007-sporting-consultation/research.md) adds qualified information-sheet codes and published PDF references without another sporting authority.
 
 **Observed**: These entries referenced ID/PID/CID 135/193/316, 137/192/315 and 139/196/318 for the current samples. Grouped calendar bodies were approximately 3.48–4.37 MB and contained 156, 182 and 198 unique matches after mobile/desktop deduplication. The DataProject portal root displayed an older season than the official LNV entry pages; it is not an authoritative current-season selector. Historical IDs 113, 115 and 116 exposed separate regular/playoff phase links. Men's playoff phase PID161 contained 22 matches; match 8697 provided set details. Missing standings in that playoff sample does not authorize fabricating a table or claiming every absence is a parser failure.
 

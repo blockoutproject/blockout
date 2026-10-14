@@ -14,6 +14,8 @@ Validation is missing, pending, invalid, needs season confirmation or qualified.
 
 Native child packs/pools/phases and their published context remain F02-owned. A complete usable catalog may remove current acquisition eligibility; a failed catalog cannot. Keep latest qualified discovery references needed for same-season reuse, not an export archive. Current classification and privacy changes retain F02 authority.
 
+Verified professional document-label associations are ordinary collector configuration scoped by season/championship and native team identity. They qualify only the auxiliary document code described by [F03](../007-sporting-consultation/data-model.md#qualified-documents). F02 retains the resulting match reference; no extra source binding, control, mapping UI or payload history is introduced.
+
 ## Collection control
 
 One control exists per `(season, FFVB)` or `(season, LNV)`, plus one seasonless club-sheet and one seasonless geocoding control. Retain desired activity, editing revision, at most one pending manual request, current cycle, last attempt and last success evidence. Requested intent, confirmed execution and last outcome are independent values, not a single overloaded status.

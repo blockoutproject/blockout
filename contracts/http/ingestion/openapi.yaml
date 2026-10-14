@@ -630,12 +630,7 @@ components:
         - home
         - away
     ResultStateEnum:
-      type: string
-      description: Evidence supplied by the designated source, never elapsed-time inference.
-      enum:
-        - provisional
-        - final
-        - special
+      $ref: ../common/sporting-enums.yaml#/ResultStateEnum
     MatchFactsInternalRequest:
       type: object
       description:
@@ -704,6 +699,50 @@ components:
           type: string
           description: Available authorized match venue address; not a team practice-location association.
           nullable: true
+        referees:
+          type: array
+          description: Permitted published referee names. Omitted preserves accepted values; null explicitly removes them.
+          nullable: true
+          items:
+            type: string
+            description: Sporting-purpose referee name, never a contact detail.
+        professionalStreamUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Published professional HTTP(S) stream destination. Omitted preserves; null withdraws. Never overwrites a user contribution.
+        informationSheet:
+          $ref: "#/components/schemas/InformationSheetInternalRequest"
+        scoresheetUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Published qualified PDF URL for professional matches; omit for acquisition failure, null for qualified withdrawal. Amateur delivery uses the known official match context.
+        statisticsUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Published professional statistics PDF URL; omission preserves, null explicitly withdraws. Not extracted player statistics.
+    InformationSheetInternalRequest:
+      type: object
+      description: Qualified official form locator. Omission preserves an existing association; null explicitly withdraws it. Professional qualification requires verified same-season/championship team associations and a unique exact participants/date match; an established code survives rescheduling.
+      additionalProperties: false
+      nullable: true
+      properties:
+        seasonLabel:
+          type: string
+          description: Qualified provider season value, preserving its expected form representation.
+        organizerReference:
+          type: string
+          description: Qualified provider organizer code; not inferred from a display label.
+        matchCode:
+          type: string
+          minLength: 1
+          description: Qualified document match code, not a replacement sporting identity.
+      required:
+        - seasonLabel
+        - organizerReference
+        - matchCode
     CalendarMatchInternalRequest:
       type: object
       description:

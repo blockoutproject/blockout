@@ -14,3 +14,10 @@ SportGenderEnum:
     - female
     - male
     - mixed
+ResultStateEnum:
+  type: string
+  description: Evidence supplied by the designated source, never elapsed-time inference.
+  enum:
+    - provisional
+    - final
+    - special

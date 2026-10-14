@@ -3,7 +3,7 @@ info:
   title: Blockout mobile API
   version: 0.1.0
   description: >-
-    Backend API for application access, account lifecycle and sporting administration.
+    Backend API for application access, account lifecycle, public sporting consultation and administration.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
@@ -20,6 +20,30 @@ tags:
 security:
   - MobileToken: []
 paths:
+  /clubs/{clubId}:
+    $ref: ./consultation/paths.yaml#/Club
+  /clubs/{clubId}/teams:
+    $ref: ./consultation/paths.yaml#/ClubTeams
+  /clubs/{clubId}/logo:
+    $ref: ./consultation/paths.yaml#/ClubLogo
+  /teams/{teamId}:
+    $ref: ./consultation/paths.yaml#/Team
+  /teams/{teamId}/logo:
+    $ref: ./consultation/paths.yaml#/TeamLogo
+  /divisions/{divisionId}/logo:
+    $ref: ./consultation/paths.yaml#/DivisionLogo
+  /pools/{poolId}:
+    $ref: ./consultation/paths.yaml#/Pool
+  /pools/{poolId}/standings:
+    $ref: ./consultation/paths.yaml#/Standings
+  /pools/{poolId}/participants:
+    $ref: ./consultation/paths.yaml#/Participants
+  /matches:
+    $ref: ./consultation/paths.yaml#/Matches
+  /matches/{matchId}:
+    $ref: ./consultation/paths.yaml#/Match
+  /matches/{matchId}/documents/{documentKind}:
+    $ref: ./consultation/paths.yaml#/Document
   /administration/collection-seasons:
     $ref: ./collection/paths.yaml#/Seasons
   /administration/collection-seasons/{seasonId}:

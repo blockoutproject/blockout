@@ -47,6 +47,8 @@ Catalog presence and eligible absence changes commit together within their sourc
 
 F01 adds optional published calendar/standings entry URLs to catalog candidates and a detail URL to match candidates. Retain only qualified current acquisition references under the same context/order checks; omission preserves a usable prior reference. These fields neither authorize arbitrary backend fetching nor change sporting identity. The collector uses them through F01's admitted target projection; no URL is a public proxy.
 
+The [F03 public read boundary](../../007-sporting-consultation/contracts/README.md) consumes these accepted facts without exposing administrative projections. Optional match enrichment now carries permitted referees, professional stream/PDF references and a qualified information-sheet locator. Binary document retrieval remains a public backend operation under current admission and visibility, not a collector-supplied arbitrary URL proxy. Result-state values have one canonical owner in `contracts/http/common/sporting-enums.yaml`; the existing ingestion reference remains valid.
+
 Use optional/null/value semantics without per-field state wrappers. No proposal preserves the old usable fact; explicit null has only the owning field's qualified absence/removal meaning. An old whole observation is rejected before mapping new facts. Keep required identities and context separate from optional sporting values.
 
 Images use a separate binary submission with observation metadata, actual PNG/JPEG validation and the 5-MiB bound. Backend accepts bytes; it does not fetch a collector-supplied URL. Provenance URLs are descriptive evidence with no credentials or arbitrary proxy behavior.

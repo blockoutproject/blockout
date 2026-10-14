@@ -1,0 +1,63 @@
+# Research: Sporting consultation
+
+## Public reads and calendar progression
+
+**Decision**: Extend the existing backend mobile API with resource reads for clubs, teams, pools and matches. Use one filtered match collection, seven complete nonempty display days per page, with an exclusive continuation day. Read projections include the summaries needed by their actual callers; there is no endpoint per screen or generic batch dispatcher.
+
+**Rationale**: The accepted calendar moves by days rather than by an arbitrary match count. F02 retains identities, facts and visibility; F03 derives presentation without another database or projection worker. A short read-only repeatable-read transaction keeps day selection and match retrieval coherent within one response. PostgreSQL supplies date/time conversion; Hibernate/JPA remains the ordinary persistence boundary.
+
+**Alternatives**: Match-count pagination splits days; durable cursors or a frozen snapshot add state without the accepted continuity guarantee. Ordinary reads may miss a concurrently moved match until refresh; identity deduplication prevents duplicate cards. No total count is needed.
+
+**Evidence**: [PostgreSQL date/time functions](https://www.postgresql.org/docs/18/functions-datetime.html), [transaction isolation](https://www.postgresql.org/docs/18/transaction-iso.html), and [Hibernate 7.4 query language](https://docs.hibernate.org/orm/7.4/querylanguage/html_single/) support the relevant building blocks. The final two-query projection, generated Java models and PostgreSQL execution remain to be qualified. Known instants and date-only values follow different grouping rules; a date-only value is never converted into a fictional instant.
+
+## Retained mobile queries
+
+**Decision**: Use TanStack Query memory state and generated query functions/keys. Retained calendars disable automatic focus, reconnect and mount refetches, ordinary retries and invalidation-triggered refetches. A newly opened page reads its common information and initial tab; other tabs load when first opened. Manual refresh replaces only the active tab and, for calendars, only the first page on success. Match detail keeps its accepted focus, foreground and explicit refresh behavior.
+
+**Rationale**: This preserves the accepted distinction between a retained calendar and a fresh match detail without another cache or synchronization loop. Cancel pending pagination before replacement and reject obsolete responses by their query/session context. Known restrictions remain authoritative.
+
+**Alternatives**: Default infinite-query refetch reloads retained pages and violates the selected refresh scope. Clearing the cache before fetching loses the usable list on failure. A handwritten backup cache duplicates ownership.
+
+**Evidence**: The published TanStack Query 5.104.2 implementation and [QueryClient API](https://tanstack.com/query/latest/docs/framework/react/reference/classes/QueryClient) were inspected for the native infinite-query `pages: 1` option and replacement only after successful fetching. This is a supported mechanism to qualify with the selected F13 client generation; it is not an executed application integration or permission to update dependencies implicitly.
+
+## Native maps
+
+**Decision**: Use `react-native-maps` 1.27.2 with Apple Maps on iOS and Google Maps on Android. Keep the approved Blockout markers, location selection and participant summaries. Use only accepted municipality coordinates, group coincident points without displacement, and request no device location. Native basemap behavior replaces the former requirement to detect every tile failure; zero and partial location coverage remain explicit.
+
+**Rationale**: The [Expo map-view integration](https://docs.expo.dev/versions/latest/sdk/map-view/) supports this ordinary platform split within the accepted Expo 57 baseline. Google key restrictions and build configuration are future implementation work, not provider changes in this task.
+
+**Alternatives**: `expo-maps` was still alpha in the examined documentation, with relevant Apple marker interactions requiring a newer iOS minimum. A timer or tile-error detector cannot reliably establish basemap failure. Google-only maps on both platforms adds an iOS integration the accepted experience does not need.
+
+**Evidence limits**: `onMapLoaded` is Google-specific; readiness is not proof that all tiles loaded. The [Google callback documentation](https://developers.google.com/android/reference/com/google/android/gms/maps/GoogleMap.OnMapLoadedCallback) also distinguishes loading and interruption. The web prototype's Leaflet/OpenStreetMap background illustrates interactions only. Native marker rendering, touch handling, accessibility and physical-device behavior remain unqualified.
+
+## Match documents and source authority
+
+**Decision**: Keep three separate documents: information sheet for any viewable match with a qualified reference; official scoresheet after a definitive result; and professional statistics PDF under the same result condition. F02 treats a published official result as definitive unless contrary evidence exists. No additional confirmation, homologation wait or player-statistics extraction is added.
+
+**Professional association**: DataProject remains the sole source of professional sporting identity, presence, participants, schedule, results and standings. The applicable LNV XML supplies only an FFVB information-sheet code. Verified team-label associations are technical configuration scoped to season and championship; exact participants/date and a unique candidate establish the document association. Once established, its code stays attached to the same match through rescheduling. No fuzzy matching, automatic alias learning, operator UI or historical reconstruction from current feeds is selected. Unmatched references remain unavailable.
+
+**Observed evidence**: The official [LAM](https://www.lnv.fr/xml/calendrier-LAM.xml), [LAF](https://www.lnv.fr/xml/calendrier-LAF.xml) and [LBM](https://www.lnv.fr/xml/calendrier-LBM.xml) feeds and DataProject calendars were examined. Exact names/date alone matched 90 of 536 examined current-calendar entries; this bounded exploratory comparison establishes neither complete coverage nor production parser correctness. Differing published labels explain the need for verified associations. A current professional prematch code returned an information-sheet PDF through the official FFVB form before the match had a result. Current feeds establish no historical availability.
+
+**Acquisition**: The [FFVB information-sheet endpoint](https://www.ffvbbeach.org/ffvbapp/adressier/fiche_match_ffvb.php) returned a PDF for a form POST using `wss_saison`, `codmatch` and `codent`; equivalent GET parameters returned HTML in the examined request. The [FFVB scoresheet endpoint](https://www.ffvbbeach.org/ffvbapp/resu/ffvolley_fdme.php) returned a PDF for a qualified amateur reference. Completed DataProject matches exposed distinct Scoresheet and DataVolley links through ordinary Telerik form POSTs using the page's hidden fields and actual tab event. The examined documents were PDFs, including one served as `application/octet-stream`. Do not guess blob URLs, fixed tab indices or a document from another match.
+
+**Alternatives**: Recreating V1's full FFVB/XML/DataProject sporting merge adds competing authorities. Guessing codes or joining only by labels risks opening another match's document. Dropping prematch information sheets loses accepted utility. The narrow qualified-reference exception preserves both simplicity and sporting ownership.
+
+**Evidence limits**: Sampled current and historical documents establish concrete retrieval paths, not complete seasonal coverage or perpetual supplier support. Qualified origins/redirects and form context must be tested against representative fixtures before implementation adoption. No raw provider PDF or personal information is committed.
+
+## PDF transport and reading
+
+**Decision**: The backend relays the qualified document on demand, outside SQL transactions, using bounded ordinary HTTP requests and the accepted source reference. It accepts no arbitrary client URL. The mobile downloads through its shared transport with cancellation, writes a temporary Expo FileSystem file and displays that local URI with `react-native-pdf` 7.0.5. Remove temporary files on close/failure and leftovers at cold start; no offline archive, export workflow, token renewal, job or automatic retry is added.
+
+**Rationale**: [react-native-pdf](https://github.com/wonday/react-native-pdf) supports direct PDF viewing on both platforms. Its inspected 7.0.5 download implementation retains cache files even with `cache: false` and does not actively cancel its download on unmount. Keeping network ownership in the common transport avoids relying on those behaviors. The reader receives a local file only. [Expo FileSystem](https://docs.expo.dev/versions/latest/sdk/filesystem/) provides cache files, byte writes and deletion; [Expo Fetch](https://docs.expo.dev/versions/latest/sdk/expo/) supplies the standard transport building blocks.
+
+**Alternatives**: System external readers do not guarantee reading without another installed application. A Google Drive viewer adds a third-party dependency and disclosure of the source URL. A custom PDF renderer or patched dependency would duplicate supported native rendering.
+
+**Evidence limits**: The examined supporting package was `react-native-blob-util` 0.25.1. Published config plugins 14.0.2 declare Expo >=56 compatibility; unpublished repository versions are not selected. PDF reader source/release notes address Android page-size compatibility, but no Expo 57/RN 0.86 native build, physical-device rendering, cancellation or cleanup has been executed here. Qualify the declared package combination before adoption; failure reopens this boundary rather than authorizing a fork or a changed minimum platform.
+
+## Contracts, privacy and operations
+
+**Decision**: Retain F13's OpenAPI 3.0.4, Redocly, OpenAPI Generator and Orval pipeline and existing Problem Details responses. Public projections contain only effective authorized values. Account, follow and editing state remain separately owned. Binary PDF/image responses are intentionally not parsed as JSON; successful JSON is validated once before caching. Common access restrictions apply to public reads and document/image delivery.
+
+**Rationale and limits**: Resource summaries avoid repeated calls without exposing private administrative values or adding a universal aggregate. Ordinary logs identify operation, bounded outcome and safe diagnostics, never contacts, referee names, PDF contents or provider payloads. F11's durable suppression applies to club contacts; F03 adds no generic personal-data registry. There is no collection schedule, incident workflow, performance programme or recovery service specific to consultation.
+
+**Verification**: Contract lint/bundling and prototype checks are distinct from generated-consumer compilation, native behavior, source qualification and design approval. The latter retain the explicit gates and scenarios in [plan.md](plan.md) and [quickstart.md](quickstart.md).

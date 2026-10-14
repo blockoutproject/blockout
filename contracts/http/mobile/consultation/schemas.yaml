@@ -1,0 +1,578 @@
+CalendarCategoryEnum:
+  type: string
+  description: Presentation category; Completed does not itself establish a definitive result.
+  enum:
+    - upcoming
+    - completed
+MatchDocumentKindEnum:
+  type: string
+  description: Distinct official PDF uses; statistics applies only to professional matches.
+  enum:
+    - information
+    - scoresheet
+    - statistics
+StandingsAvailabilityEnum:
+  type: string
+  description:
+    Available includes a usable retained table; notPublished is qualified absence, unavailable means
+    no usable table.
+  enum:
+    - available
+    - notPublished
+    - unavailable
+SportingSeasonResponse:
+  type: object
+  description: Viewable sporting season, independent of calendar postponements.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable season identity.
+      format: uuid
+    label:
+      type: string
+      description: Canonical display label.
+    startYear:
+      type: integer
+      description: Sporting start year.
+      minimum: 1900
+  required:
+    - id
+    - label
+    - startYear
+SportingIdentityResponse:
+  type: object
+  description: Public effective presentation of a viewable resource.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable resource identity.
+      format: uuid
+    name:
+      type: string
+      description: Effective full name.
+    shortName:
+      type: string
+      description: Effective short name; omitted when unavailable.
+    logoUrl:
+      type: string
+      description: Backend image resource; omitted when no effective image exists.
+      format: uri-reference
+  required:
+    - id
+    - name
+SportingDivisionResponse:
+  type: object
+  description: Effective division presentation.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Division identity.
+      format: uuid
+    name:
+      type: string
+      description: Effective division name.
+    logoUrl:
+      type: string
+      description: Backend image resource; omitted when unavailable.
+      format: uri-reference
+    primaryColor:
+      type: string
+      description: Accepted primary sRGB color; omitted when unavailable.
+      pattern: ^#[0-9A-Fa-f]{6}$
+    secondaryColor:
+      type: string
+      description: Accepted secondary sRGB color; omitted when unavailable.
+      pattern: ^#[0-9A-Fa-f]{6}$
+  required:
+    - id
+    - name
+SportingClassificationResponse:
+  type: object
+  description: Available accepted classification; absent members remain unknown.
+  additionalProperties: true
+  properties:
+    division:
+      $ref: "#/SportingDivisionResponse"
+    format:
+      $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+    gender:
+      $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+MunicipalityLocationResponse:
+  type: object
+  description: Reliable municipality-level location, never an exact gymnasium.
+  additionalProperties: true
+  properties:
+    latitude:
+      type: number
+      description: Latitude in decimal degrees.
+      format: double
+      minimum: -90
+      maximum: 90
+    longitude:
+      type: number
+      description: Longitude in decimal degrees.
+      format: double
+      minimum: -180
+      maximum: 180
+    label:
+      type: string
+      description: Effective municipality label.
+  required:
+    - latitude
+    - longitude
+    - label
+SportingContactsResponse:
+  type: object
+  description: Permitted effective contacts only; an omitted member has no usable public value.
+  additionalProperties: true
+  properties:
+    address:
+      type: string
+      description: Contact street address, not a confirmed match venue.
+    city:
+      type: string
+      description: Effective municipality.
+    postalCode:
+      type: string
+      description: Postal identifier preserving leading zeros.
+    email:
+      type: string
+      description: Permitted email destination.
+      format: email
+    phone:
+      type: string
+      description: Permitted telephone destination.
+    websiteUrl:
+      type: string
+      description: Usable public HTTP(S) website without credentials.
+      format: uri
+ClubDetailResponse:
+  type: object
+  description: Public club information; seasons derive from viewable teams.
+  additionalProperties: true
+  properties:
+    club:
+      $ref: "#/SportingIdentityResponse"
+    contacts:
+      $ref: "#/SportingContactsResponse"
+    location:
+      $ref: "#/MunicipalityLocationResponse"
+    seasons:
+      type: array
+      description: Available seasons newest first, then stable identity. Empty means no viewable season.
+      items:
+        $ref: "#/SportingSeasonResponse"
+  required:
+    - club
+    - contacts
+    - seasons
+PoolSummaryResponse:
+  type: object
+  description: Viewable pool identity and available competition context.
+  additionalProperties: true
+  properties:
+    pool:
+      $ref: "#/SportingIdentityResponse"
+    season:
+      $ref: "#/SportingSeasonResponse"
+    classification:
+      $ref: "#/SportingClassificationResponse"
+    competitionName:
+      type: string
+      description: Known league or competition label.
+    phaseName:
+      type: string
+      description: Known published phase label, omitted when unavailable.
+  required:
+    - pool
+    - season
+    - classification
+TeamSummaryResponse:
+  type: object
+  description: Viewable team with its season and available relationships.
+  additionalProperties: true
+  properties:
+    team:
+      $ref: "#/SportingIdentityResponse"
+    season:
+      $ref: "#/SportingSeasonResponse"
+    classification:
+      $ref: "#/SportingClassificationResponse"
+    club:
+      $ref: "#/SportingIdentityResponse"
+    professional:
+      type: boolean
+      description: Whether this is a professional competition team.
+  required:
+    - team
+    - season
+    - classification
+    - professional
+ClubTeamsResponse:
+  type: object
+  description: Viewable teams in one club season; no arbitrary team cap.
+  additionalProperties: true
+  properties:
+    seasonId:
+      type: string
+      description: Requested season identity.
+      format: uuid
+    items:
+      type: array
+      description: Teams ordered by effective name then UUID; empty is a successful empty selection.
+      items:
+        $ref: "#/TeamSummaryResponse"
+  required:
+    - seasonId
+    - items
+TeamDetailResponse:
+  type: object
+  description: Public team context; follow state and editing permissions are separate.
+  additionalProperties: true
+  properties:
+    team:
+      $ref: "#/TeamSummaryResponse"
+    participations:
+      type: array
+      description: Viewable pools, stable season/competition/name/UUID order; each opens its exact identity.
+      items:
+        $ref: "#/PoolSummaryResponse"
+  required:
+    - team
+    - participations
+PoolDetailResponse:
+  type: object
+  description: Public pool context; standings and participants load independently.
+  additionalProperties: true
+  properties:
+    pool:
+      $ref: "#/PoolSummaryResponse"
+  required:
+    - pool
+StandingRowResponse:
+  type: object
+  description: One official row; unknown rank/statistics never become zero.
+  additionalProperties: true
+  properties:
+    sourceName:
+      type: string
+      description: Official displayed team label.
+    position:
+      type: integer
+      description: Published rank; omitted when unstated.
+      minimum: 1
+    team:
+      $ref: "#/SportingIdentityResponse"
+    statistics:
+      type: object
+      description: Published column label to exact display value, including special ratios; missing keys are unknown.
+      additionalProperties:
+        type: string
+        description: Official statistic text.
+  required:
+    - sourceName
+    - statistics
+PoolStandingsResponse:
+  type: object
+  description: Independent official standings state without locally recomputed rankings.
+  additionalProperties: true
+  properties:
+    poolId:
+      type: string
+      description: Owning pool identity.
+      format: uuid
+    availability:
+      $ref: "#/StandingsAvailabilityEnum"
+    observedAt:
+      type: string
+      description: Observation time of the usable table, required when available; not the response/cache-read time.
+      format: date-time
+    lastAttemptFailed:
+      type: boolean
+      description: Latest attempted table acquisition failed; a usable older table may remain available.
+    columns:
+      type: array
+      description: Published statistic column labels in display order; empty when no usable table.
+      items:
+        type: string
+        description: Published column label.
+      uniqueItems: true
+    rows:
+      type: array
+      description: Official row order; empty when no usable table. An unassociated row has no team link.
+      items:
+        $ref: "#/StandingRowResponse"
+  required:
+    - poolId
+    - availability
+    - lastAttemptFailed
+    - columns
+    - rows
+PoolParticipantResponse:
+  type: object
+  description: Current viewable participation, independently of any standings row.
+  additionalProperties: true
+  properties:
+    team:
+      $ref: "#/TeamSummaryResponse"
+    location:
+      $ref: "#/MunicipalityLocationResponse"
+  required:
+    - team
+PoolParticipantsResponse:
+  type: object
+  description: All current viewable participants, including teams without a reliable location.
+  additionalProperties: true
+  properties:
+    poolId:
+      type: string
+      description: Owning pool identity.
+      format: uuid
+    items:
+      type: array
+      description:
+        Teams in stable effective-name/UUID order. Missing location means no marker; identical coordinates
+        retain every participant.
+      items:
+        $ref: "#/PoolParticipantResponse"
+  required:
+    - poolId
+    - items
+MatchScheduleResponse:
+  type: object
+  description: Usable sporting date with optional resolved instant; date alone is never converted.
+  additionalProperties: true
+  properties:
+    localDate:
+      type: string
+      description: Published sporting date.
+      format: date
+    instant:
+      type: string
+      description: Resolved kickoff instant; omitted when no reliable time/offset is established.
+      format: date-time
+    timeZone:
+      type: string
+      description: IANA source context, ordinarily Europe/Paris.
+    observedAt:
+      type: string
+      description: Observation time of the accepted schedule, not current read time.
+      format: date-time
+  required:
+    - localDate
+    - timeZone
+    - observedAt
+MatchResultResponse:
+  type: object
+  description: Accepted official result, independent of calendar classification.
+  additionalProperties: true
+  properties:
+    state:
+      $ref: ../../common/sporting-enums.yaml#/ResultStateEnum
+    homeSets:
+      type: integer
+      description: Published home total; omitted for a nonnumeric special notation.
+      minimum: 0
+    awaySets:
+      type: integer
+      description: Published away total; omitted for a nonnumeric special notation.
+      minimum: 0
+    specialLabel:
+      type: string
+      description: Recognized official notation; present for a special result.
+    observedAt:
+      type: string
+      description: Observation time of this accepted result.
+      format: date-time
+  required:
+    - state
+    - observedAt
+MatchSetScoreResponse:
+  type: object
+  description: One usable set in official sequence.
+  additionalProperties: true
+  properties:
+    home:
+      type: integer
+      description: Published home points.
+      minimum: 0
+    away:
+      type: integer
+      description: Published away points.
+      minimum: 0
+  required:
+    - home
+    - away
+MatchSetsResponse:
+  type: object
+  description: Compatible optional detail, independent from overall result freshness.
+  additionalProperties: true
+  properties:
+    observedAt:
+      type: string
+      description: Observation time of these accepted sets.
+      format: date-time
+    items:
+      type: array
+      description: Played sets in sequence; empty is explicitly no played sets, not an acquisition error.
+      items:
+        $ref: "#/MatchSetScoreResponse"
+  required:
+    - observedAt
+    - items
+MatchSummaryResponse:
+  type: object
+  description: One publicly viewable dated match with enough context for its calendar card.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable match identity.
+      format: uuid
+    pool:
+      $ref: "#/PoolSummaryResponse"
+    home:
+      $ref: "#/SportingIdentityResponse"
+    away:
+      $ref: "#/SportingIdentityResponse"
+    schedule:
+      $ref: "#/MatchScheduleResponse"
+    category:
+      $ref: "#/CalendarCategoryEnum"
+    result:
+      $ref: "#/MatchResultResponse"
+  required:
+    - id
+    - pool
+    - home
+    - away
+    - schedule
+    - category
+MatchPoolGroupResponse:
+  type: object
+  description: Stable pool group within one display day.
+  additionalProperties: true
+  properties:
+    poolId:
+      type: string
+      description: Group pool identity.
+      format: uuid
+    matches:
+      type: array
+      description:
+        Known instants in category direction, unknown times last, UUID tie-breaker; every match belongs
+        to this pool.
+      items:
+        $ref: "#/MatchSummaryResponse"
+      minItems: 1
+  required:
+    - poolId
+    - matches
+MatchDayResponse:
+  type: object
+  description: One complete nonempty display day.
+  additionalProperties: true
+  properties:
+    date:
+      type: string
+      description: Day in the loading time zone for instants; unchanged sporting date for date-only values.
+      format: date
+    pools:
+      type: array
+      description: Nonempty groups ordered by stable pool UUID.
+      items:
+        $ref: "#/MatchPoolGroupResponse"
+      minItems: 1
+  required:
+    - date
+    - pools
+MatchCalendarResponse:
+  type: object
+  description: Up to seven complete nonempty days. Separate responses are not one immutable snapshot.
+  additionalProperties: true
+  properties:
+    category:
+      $ref: "#/CalendarCategoryEnum"
+    timeZone:
+      type: string
+      description: IANA grouping zone used for this page and its continuation.
+    evaluatedAt:
+      type: string
+      description: Single instant used to evaluate category for this response, not source freshness.
+      format: date-time
+    days:
+      type: array
+      description: Upcoming ascending, completed descending. Empty means no eligible matches in this portion.
+      items:
+        $ref: "#/MatchDayResponse"
+      maxItems: 7
+    nextDay:
+      type: string
+      description:
+        Exclusive boundary for the next request with the same filters, category and timeZone. Omitted
+        when exhausted.
+      format: date
+  required:
+    - category
+    - timeZone
+    - evaluatedAt
+    - days
+MatchDocumentResponse:
+  type: object
+  description: An eligible document action; presence does not guarantee supplier delivery.
+  additionalProperties: true
+  properties:
+    kind:
+      $ref: "#/MatchDocumentKindEnum"
+    url:
+      type: string
+      description: Backend-owned match document resource; never a raw provider URL.
+      format: uri-reference
+  required:
+    - kind
+    - url
+MatchDetailResponse:
+  type: object
+  description: Public match facts and currently eligible actions; absent optional values remain unavailable.
+  additionalProperties: true
+  properties:
+    match:
+      $ref: "#/MatchSummaryResponse"
+    sets:
+      $ref: "#/MatchSetsResponse"
+    venueName:
+      type: string
+      description: Known permitted match venue, never inferred from club municipality.
+    venueAddress:
+      type: string
+      description: Known permitted match venue address.
+    referees:
+      type: array
+      description: Permitted published referee names for this sporting purpose; omitted when unknown.
+      items:
+        type: string
+        description: Published referee display name.
+    streamUrl:
+      type: string
+      description:
+        Current permitted professional or contributed HTTP(S) stream destination, without live/replay
+        assertion.
+      format: uri
+    officialCalendarUrl:
+      type: string
+      description: Qualified official FFVB calendar destination when available.
+      format: uri
+    documents:
+      type: array
+      description:
+        Available qualified references. Information is result-independent; scoresheet/statistics require
+        a definitive result; statistics is professional only.
+      items:
+        $ref: "#/MatchDocumentResponse"
+      maxItems: 3
+  required:
+    - match
+    - documents
