@@ -6,7 +6,7 @@
 
 These are future implementation scenarios. The Blockout runtime and its executable targets do not exist yet; use the actual owning Maven/npm targets once implemented, not invented commands. Run the current [README documentation checks](../../README.md#verification) for this documentary delivery.
 
-Use isolated PostgreSQL 18.6, the F13 contract toolchain and synthetic/minimized supplier observations. Keep raw supplier documents and personal contact data outside public fixtures. Prototype/browser evidence does not establish native or provider behavior.
+Use isolated PostgreSQL at the [F13-selected version](../003-shared-quality/plan.md#technical-context), the F13 contract toolchain and synthetic/minimized supplier observations. Keep raw supplier documents and personal contact data outside public fixtures. Prototype/browser evidence does not establish native or provider behavior.
 
 ## Identities and useful partial success
 

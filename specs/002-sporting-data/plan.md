@@ -12,11 +12,11 @@ Keep one authoritative sporting model in the modular backend. The separate colle
 
 ## Technical Context
 
-**Language/Version**: Java 25 LTS, Spring Boot 4.1.1; TypeScript and Expo mobile baseline from [F13](../003-shared-quality/plan.md#technical-context).
+**Language/Version**: Java/Spring Boot backend and TypeScript/Expo mobile; versions follow the [F13 technical context](../003-shared-quality/plan.md#technical-context).
 
-**Primary Dependencies**: Spring Data JPA/Hibernate managed by Boot, MapStruct for mechanical mappings; OpenAPI 3.0.4, Redocly CLI 2.62.1, OpenAPI Generator 7.26.0 and Orval 8.41.0.
+**Primary Dependencies**: Spring Data JPA/Hibernate managed by Boot and MapStruct for mechanical mappings; dialect and generators follow the [F13 contract toolchain](../003-shared-quality/plan.md#http-generation-errors-and-compatibility).
 
-**Storage**: PostgreSQL 18.6 for relational facts, image bytes and associations. F13 evolving Liquibase baseline until first preproduction/production version.
+**Storage**: F13 PostgreSQL for relational facts, image bytes and associations. F13 evolving Liquibase baseline until first preproduction/production version.
 
 **Testing**: JUnit, Spring MVC, Testcontainers PostgreSQL and generated Java/TypeScript contract checks; existing prototype browser checks and future native mobile qualification.
 
@@ -85,7 +85,7 @@ The score, F07 required internal inbox updates and minimal processed-announcemen
 
 Acquire LNV images once per distinct team during ordinary calendar passages; image failure is independent from match acceptance. Store validated PNG/JPEG bytes (at most 5 MiB) and associations atomically in PostgreSQL. The [data model](data-model.md#presentation-and-privacy) owns effective logo precedence; binary submissions stay separate from calendar JSON. The backend does not fetch arbitrary image URLs.
 
-Manual names, logos and contact modes remain independent from source values. Administration submits desired resource state with its current revision. Increment the editing revision for relevant accepted state changes, not merely a collection timestamp refresh. Repeated requests cannot silently overwrite newer edits. After an uncertain response, read current state before explicit retry; matching state establishes the current outcome, not proof that a specific historical request executed.
+Manual names, logos and contact modes remain independent from source values. Enforce the [field restrictions and revision rules](data-model.md#presentation-and-privacy) owned here for F11 confidentiality, using existing club transactions. Administration submits desired resource state with its current revision. Increment the editing revision for relevant accepted state changes, not merely a collection timestamp refresh. Repeated requests cannot silently overwrite newer edits. After an uncertain response, read current state before explicit retry; matching state establishes the current outcome, not proof that a specific historical request executed.
 
 Club, team and division editors reuse F13's shared image selection/preview/replacement/removal control, retaining the effective-logo restoration rules and their own image limits. They use one atomic multipart `PATCH` request for JSON metadata and an optional image; validate all parts before committing names/colors and logo changes together. Pool editing changes names only through JSON. Division activity remains a separate command. [Canonical contracts](contracts/README.md#mobile-administration) define each resource’s supported fields and actions.
 

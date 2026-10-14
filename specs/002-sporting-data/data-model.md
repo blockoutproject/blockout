@@ -44,7 +44,7 @@ Use local date, optional local time, zone and optional resolved instant rather t
 
 ## Presentation and privacy
 
-Full/short name customizations are independent fields. Contact overrides independently represent source management, manual value or deliberate absence. F11 restrictions prevail over all three modes and over restored data. Do not retain previous personal contact values as history.
+Full/short name customizations are independent fields. Contact overrides independently represent source management, manual value or deliberate absence. [F11 restrictions](../004-advertising-privacy-legal/spec.md#purposes-minimization-and-shared-restrictions) prevail over all three modes and over restored data. Keep a durable restriction flag in the existing metadata of each affected field: address, city, postal code, email, phone or website. An authorized manual transaction locks the club, clears source and manual values, applies the flag and advances the editing revision for changed state. Ingestion ignores restricted values and projections expose null; ordinary edits and source restoration cannot lift the flag. Any deliberate lifting requires an authorized manual rights decision. A restriction changing effective locality also clears obsolete coordinates and advances the locality revision under the rules below. Do not retain previous personal contact values as history.
 
 Effective municipality/postal context has a revision. Changing it clears the previous point and invalidates older responses; street-only changes or source changes hidden by a manual override do not. Empty/ambiguous responses stay unresolved until context change or F01 family relaunch; technical failure does not erase a valid current point.
 

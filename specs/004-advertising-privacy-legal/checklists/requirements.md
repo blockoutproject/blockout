@@ -31,6 +31,6 @@
 
 ## Notes
 
-- Reassessed on 2026-10-12. FR-007 deliberately retains the approved RevenueCat SDK entitlement-state dependency from F09. The two implementation-independence criteria remain unchecked while that technical constraint is present; accepted advertising behavior and provider limitations are unchanged.
-
-- Reviewed for #42: legal reading follows backend availability, while failed delivery preserves valid content. [F12](../../013-administration-app-configuration/spec.md) suppresses blocked in-app legal routes; ordinary legal access and standalone public privacy/deletion obligations remain. Privacy and restoration requirements are preserved.
+- Reviewed for #45. The specification integrates all-age access, local advertising age declaration, eligible adult personalization, EU27 distribution with existing-user continuity, native ad failure limits, integrated-browser reading and club-field restrictions. Existing support, privacy and restoration protections remain applicable.
+- Implementation-independence items remain unchecked: the accepted RevenueCat SDK state and native advertising/permission limitations are deliberate constraints. This checklist is not legal, provider, native or visual approval.
+- The required prototype and Figma approvals cover the affected age/privacy/search and public-document scope; exact references and evidence limits are in the plan. The combined dossier remains subject to owner review.
