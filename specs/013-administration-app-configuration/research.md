@@ -22,6 +22,8 @@ The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions
 
 **Decision:** Allow the SDK's silent token renewal during maintenance. Expiration of an access token differs from needing a new interactive sign-in. If interactive authentication is necessary, no sign-in entry is offered at the gate. A network error does not itself erase credentials or revoke the account.
 
+**Explicit retry:** Reuse the existing button, native credential retrieval and the account query's supported `refetch`. TanStack documents this user-triggered fetch independently of automatic retries; Expo supports separate route guards for ordinary and operational access. These mechanisms cover identification recovery and a manager without personal bypass, without another retry controller or navigation system. [TanStack manual refetch](https://tanstack.com/query/latest/docs/framework/react/guides/disabling-queries), [Expo protected routes](https://docs.expo.dev/router/advanced/protected/). Native integration remains to be qualified.
+
 **Alternatives:** A combined optionally authenticated endpoint couples public admission to token failure handling. An additional permission endpoint duplicates a read already needed for the account. A second credential store or handwritten renewal scheduler duplicates the SDK. All are unnecessary here.
 
 ## Temporary maintenance bypass
