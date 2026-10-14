@@ -11,12 +11,32 @@ servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
 tags:
+  - name: Collection
+    description: Source qualification, collection control and current operational evidence.
   - name: Sporting
     description: >-
       Sporting observations and their acceptance outcomes.
 security:
   - CollectorToken: []
 paths:
+  /ingestion/collector-runtime:
+    $ref: ./collection/paths.yaml#/Runtime
+  /ingestion/collection-work:
+    $ref: ./collection/paths.yaml#/Work
+  /ingestion/collection-cycles:
+    $ref: ./collection/paths.yaml#/Cycles
+  /ingestion/collection-cycles/{cycleId}:
+    $ref: ./collection/paths.yaml#/Cycle
+  /ingestion/collection-cycles/{cycleId}/targets:
+    $ref: ./collection/paths.yaml#/Targets
+  /ingestion/collection-cycles/{cycleId}/results:
+    $ref: ./collection/paths.yaml#/Results
+  /ingestion/collection-cycles/{cycleId}/completion:
+    $ref: ./collection/paths.yaml#/Completion
+  /ingestion/source-bindings/{sourceBindingId}/validation:
+    $ref: ./collection/paths.yaml#/Validation
+  /ingestion/season-source-observations:
+    $ref: ./collection/paths.yaml#/SeasonDiscovery
   /ingestion/source-bindings/{sourceBindingId}/catalog-observations:
     post:
       operationId: observeSportingCatalog
@@ -450,7 +470,8 @@ components:
       type: object
       description: >-
         Authorized collection context. The backend resolves source, season, scope, logical order and
-        reconstruction mode from cycleId; callers cannot override them with request flags.
+        reconstruction mode and current collector incarnation from cycleId; callers cannot override them
+        with request flags. Each domain write checks this context under the runtime fence through commit.
       additionalProperties: false
       properties:
         cycleId:
@@ -690,6 +711,10 @@ components:
         facts.
       additionalProperties: false
       properties:
+        detailUrl:
+          type: string
+          format: uri
+          description: Published supported match-detail entry without credentials; omission preserves an existing usable reference.
         nativeMatchReference:
           type: string
           description:
@@ -829,6 +854,14 @@ components:
           type: string
           description: Only a separately qualified group within a shared export; absent otherwise.
           minLength: 1
+        calendarUrl:
+          type: string
+          format: uri
+          description: Published supported calendar entry without credentials; omission preserves the previous usable reference.
+        standingsUrl:
+          type: string
+          format: uri
+          description: Published supported standings entry when available; omission does not invent absence.
         sourceName:
           type: string
           description: Current source label, independent of manual display naming.

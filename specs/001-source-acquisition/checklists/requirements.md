@@ -31,6 +31,8 @@
 
 ## Notes
 
+- Rechecked for #47: shared-resource reads do not import unclassified calendars; hourly LNV detail outside its own fast window, explicit pending requests, pause cancellation, active-season source preparation and backend-only initial reconstruction are integrated in the owning requirements. The [plan](../plan.md#design-acceptance) records the scoped prototype and Figma approvals. Provider samples and documentation do not establish exhaustive source or runtime qualification.
+
 - Rechecked on 2026-10-12 after removing connection reuse, compression and HTTP-validator prescriptions. FR-037 retains bounded provider work, the accepted retry limit and honest failure outcomes; A45 covers these obligations. Transport mechanisms remain technical-planning choices. Historical corpus review is not a new planning gate.
 
 - Reviewed for #42: native alert grouping, five-day reminders and closure remain distinct from positive acquisition/integration recovery evidence. Existing failure thresholds and stage distinctions are preserved.

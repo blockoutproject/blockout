@@ -1,0 +1,85 @@
+CollectionFamilyEnum:
+  type: string
+  description: Independent collection control family.
+  enum:
+    - ffvb
+    - lnv
+    - club-sheets
+    - geocoding
+CollectionProviderEnum:
+  type: string
+  description: Official competition provider.
+  enum:
+    - ffvb
+    - lnv
+CollectionSeasonStateEnum:
+  type: string
+  description: Acquisition lifecycle; closed is terminal.
+  enum:
+    - preparing
+    - active
+    - closed
+SourceValidationStateEnum:
+  type: string
+  description: Current candidate qualification; an edited candidate loses previous evidence.
+  enum:
+    - unvalidated
+    - pending
+    - invalid
+    - confirmation-required
+    - qualified
+CollectionCycleStateEnum:
+  type: string
+  description: Execution state; an obsolete incarnation interrupts unfinished work.
+  enum:
+    - running
+    - completed
+    - interrupted
+CollectionModeEnum:
+  type: string
+  description: Backend-authorized collection purpose; absent for candidate validation. Only the exploitation command can request initial import.
+  enum:
+    - periodic
+    - manual
+    - initial-import
+CollectionStageEnum:
+  type: string
+  description: Independent operational stage, never an implied whole-pipeline success.
+  enum:
+    - discovery
+    - calendar
+    - details
+    - standings
+    - club-sheet
+    - geocoding
+    - logo
+CollectionPhaseEnum:
+  type: string
+  description: Independent acquisition or business-integration evidence for the same stage.
+  enum:
+    - acquisition
+    - integration
+CollectionOutcomeEnum:
+  type: string
+  description: Current scoped outcome; a successful HTTP call alone does not establish success.
+  enum:
+    - success
+    - partial
+    - failed
+    - unconfirmed
+CollectionTargetKindEnum:
+  type: string
+  description: Qualified read purpose; provider parsing remains source-specific.
+  enum:
+    - discovery
+    - calendar
+    - standings
+    - details
+    - club-sheet
+    - geocoding
+CollectionResourceKindEnum:
+  type: string
+  description: Discovered sporting resource kind.
+  enum:
+    - pack
+    - pool

@@ -12,7 +12,7 @@
 | Backend / Expo mobile    | F02 corrections, F12 grants; existing administration journeys            | Shared mobile OpenAPI root under `contracts/http/mobile/`                      |
 | F02 / backend consumers  | F02 identities/current truth; each consumer owns its projections/actions | Explicit Java application interfaces, not internal HTTP or shared JPA entities |
 
-F01 owns cycle/work assignment; F03/F04/F06 own public reading. Their future operations extend these same roots. F07/F08 consume the in-process transition boundary below.
+[F01](../../001-source-acquisition/contracts/README.md) owns the current cycle/work-assignment operations in these same roots; F03/F04/F06 own future public reading. F07/F08 consume the in-process transition boundary below.
 
 ## Operations
 
@@ -44,6 +44,8 @@ All ingestion JSON bodies are bounded to 8 MiB. The calendar also has a 1,000-en
 Calendar processing returns per-reference accepted/unchanged/stale/rejected results, useful counts and whether absence was reconciled. Results follow distinct match references in first-occurrence order, then acquisition failures in their input order; context-only slots have no result. A partial outcome is not an HTTP 207, asynchronous job or complete success. Globally invalid shape/context, permissions and unavailable processing use the shared Problem Details profile. No raw body or personal detail appears in reasons.
 
 Catalog presence and eligible absence changes commit together within their source-season scope; invalid or unauthorized entries reject the whole request. Results correspond positionally to every input pool, including identical duplicates, so repeated native labels in different competition/tour/group contexts remain unambiguous. The full compound identity governs deduplication, not the displayed pool reference alone. Standings similarly replace one table atomically; calendar match commits remain independent.
+
+F01 adds optional published calendar/standings entry URLs to catalog candidates and a detail URL to match candidates. Retain only qualified current acquisition references under the same context/order checks; omission preserves a usable prior reference. These fields neither authorize arbitrary backend fetching nor change sporting identity. The collector uses them through F01's admitted target projection; no URL is a public proxy.
 
 Use optional/null/value semantics without per-field state wrappers. No proposal preserves the old usable fact; explicit null has only the owning field's qualified absence/removal meaning. An old whole observation is rejected before mapping new facts. Keep required identities and context separate from optional sporting values.
 

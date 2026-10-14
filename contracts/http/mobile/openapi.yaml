@@ -8,6 +8,8 @@ servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
 tags:
+  - name: Collection
+    description: Source qualification, collection control and current operational evidence.
   - name: ApplicationAccess
     description: Public admission settings and separately authorized maintenance/version management.
   - name: Accounts
@@ -18,6 +20,36 @@ tags:
 security:
   - MobileToken: []
 paths:
+  /administration/collection-seasons:
+    $ref: ./collection/paths.yaml#/Seasons
+  /administration/collection-seasons/{seasonId}:
+    $ref: ./collection/paths.yaml#/Season
+  /administration/collection-seasons/{seasonId}/closure:
+    $ref: ./collection/paths.yaml#/Closure
+  /administration/collection-seasons/{seasonId}/source-launches:
+    $ref: ./collection/paths.yaml#/Launch
+  /administration/collection-seasons/{seasonId}/source-bindings:
+    $ref: ./collection/paths.yaml#/Sources
+  /administration/source-bindings/{sourceBindingId}:
+    $ref: ./collection/paths.yaml#/Source
+  /administration/source-bindings/{sourceBindingId}/candidate:
+    $ref: ./collection/paths.yaml#/Candidate
+  /administration/source-bindings/{sourceBindingId}/validations:
+    $ref: ./collection/paths.yaml#/Validation
+  /administration/source-bindings/{sourceBindingId}/season-confirmation:
+    $ref: ./collection/paths.yaml#/Confirmation
+  /administration/source-bindings/{sourceBindingId}/children:
+    $ref: ./collection/paths.yaml#/Children
+  /administration/collection-controls:
+    $ref: ./collection/paths.yaml#/Controls
+  /administration/collection-controls/{controlId}:
+    $ref: ./collection/paths.yaml#/Control
+  /administration/collection-controls/{controlId}/activity:
+    $ref: ./collection/paths.yaml#/Activity
+  /administration/collection-controls/{controlId}/requests:
+    $ref: ./collection/paths.yaml#/Requests
+  /administration/collection-controls/{controlId}/results:
+    $ref: ./collection/paths.yaml#/Results
   /application-access:
     $ref: ./access/paths.yaml#/Public
   /administration/maintenance:
