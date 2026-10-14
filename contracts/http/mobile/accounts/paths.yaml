@@ -12,13 +12,13 @@ Collection:
       explicit establishment creates a new account. Known information survives temporary provider absence.
     responses:
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "422":
-        $ref: ../../common/problems.yaml#/responses/422
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "200":
@@ -58,13 +58,13 @@ Current:
       An absent account returns 404; this read never triggers automatic establishment.
     responses:
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "404":
-        $ref: ../../common/problems.yaml#/responses/404
+        $ref: ../../common/problems.yaml#/responses/NotFound
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
       "200":
         description: Current owner profile.
         headers:
@@ -94,13 +94,13 @@ Member:
       independently prove physical erasure at external providers.
     responses:
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "404":
-        $ref: ../../common/problems.yaml#/responses/404
+        $ref: ../../common/problems.yaml#/responses/NotFound
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "200":
@@ -126,21 +126,21 @@ Member:
       before an explicit retry.
     responses:
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "404":
-        $ref: ../../common/problems.yaml#/responses/404
+        $ref: ../../common/problems.yaml#/responses/NotFound
       "409":
-        $ref: ../../common/problems.yaml#/responses/409
+        $ref: ../../common/problems.yaml#/responses/Conflict
       "413":
-        $ref: ../../common/problems.yaml#/responses/413
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
       "415":
-        $ref: ../../common/problems.yaml#/responses/415
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
       "422":
-        $ref: ../../common/problems.yaml#/responses/422
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "200":
@@ -193,13 +193,13 @@ Member:
       404 without further external calls. Never targets a replacement account or cancels store billing.
     responses:
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "404":
-        $ref: ../../common/problems.yaml#/responses/404
+        $ref: ../../common/problems.yaml#/responses/NotFound
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "204":
@@ -228,13 +228,13 @@ Photo:
       returns 404. No public profile-image access is granted.
     responses:
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "404":
-        $ref: ../../common/problems.yaml#/responses/404
+        $ref: ../../common/problems.yaml#/responses/NotFound
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "200":

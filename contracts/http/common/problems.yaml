@@ -40,7 +40,7 @@ schemas:
       - title
       - status
 responses:
-  "400":
+  BadRequest:
     description: Malformed or invalid request; no write.
     headers:
       Cache-Control:
@@ -49,7 +49,7 @@ responses:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
-  "401":
+  Unauthorized:
     description: Missing or invalid token, including expiration or an unexpected issuer or audience; no write.
     headers:
       WWW-Authenticate:
@@ -60,7 +60,7 @@ responses:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
-  "403":
+  Forbidden:
     description: Authenticated caller lacks the required client authorization, scope or business permission; no write.
     headers:
       Cache-Control:
@@ -69,7 +69,7 @@ responses:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
-  "404":
+  NotFound:
     description: Unknown or deliberately unavailable resource.
     headers:
       Cache-Control:
@@ -78,7 +78,7 @@ responses:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
-  "409":
+  Conflict:
     description:
       Duplicate value, stale revision, incompatible classification or invalid current lifecycle context; no
       command effects.
@@ -89,7 +89,7 @@ responses:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
-  "413":
+  ContentTooLarge:
     description: Request or image exceeds the documented bound; no write.
     headers:
       Cache-Control:
@@ -98,7 +98,7 @@ responses:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
-  "415":
+  UnsupportedMediaType:
     description: Unsupported request or image media type; no write.
     headers:
       Cache-Control:
@@ -107,7 +107,7 @@ responses:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
-  "422":
+  UnprocessableContent:
     description: Readable request with rejected business or image content; no command effects.
     headers:
       Cache-Control:
@@ -116,7 +116,7 @@ responses:
       application/problem+json:
         schema:
           $ref: "#/schemas/ProblemResponse"
-  "503":
+  ServiceUnavailable:
     description: >-
       Processing unavailable. An interrupted mutation may have committed; mobile clients read
       current state before retrying, while ingestion resumes through the next ordinary collection.

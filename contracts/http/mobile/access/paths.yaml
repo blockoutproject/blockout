@@ -19,7 +19,7 @@ Public:
             schema:
               $ref: ./schemas.yaml#/ApplicationAccessResponse
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
 Maintenance:
   get:
     operationId: getMaintenanceSettings
@@ -42,11 +42,11 @@ Maintenance:
             schema:
               $ref: ./schemas.yaml#/MaintenanceSettingsResponse
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
   patch:
     operationId: changeMaintenanceSettings
     tags:
@@ -75,19 +75,19 @@ Maintenance:
             schema:
               $ref: ./schemas.yaml#/MaintenanceSettingsResponse
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "409":
-        $ref: ../../common/problems.yaml#/responses/409
+        $ref: ../../common/problems.yaml#/responses/Conflict
       "415":
-        $ref: ../../common/problems.yaml#/responses/415
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
       "422":
-        $ref: ../../common/problems.yaml#/responses/422
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
 Activation:
   put:
     operationId: setMaintenanceActivation
@@ -115,19 +115,19 @@ Activation:
             schema:
               $ref: ./schemas.yaml#/MaintenanceSettingsResponse
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "409":
-        $ref: ../../common/problems.yaml#/responses/409
+        $ref: ../../common/problems.yaml#/responses/Conflict
       "415":
-        $ref: ../../common/problems.yaml#/responses/415
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
       "422":
-        $ref: ../../common/problems.yaml#/responses/422
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
 Versions:
   get:
     operationId: getApplicationVersionSettings
@@ -150,11 +150,11 @@ Versions:
             schema:
               $ref: ./schemas.yaml#/ApplicationVersionsResponse
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
   patch:
     operationId: changeApplicationVersionSettings
     tags:
@@ -184,16 +184,16 @@ Versions:
             schema:
               $ref: ./schemas.yaml#/ApplicationVersionsResponse
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "409":
-        $ref: ../../common/problems.yaml#/responses/409
+        $ref: ../../common/problems.yaml#/responses/Conflict
       "415":
-        $ref: ../../common/problems.yaml#/responses/415
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
       "422":
-        $ref: ../../common/problems.yaml#/responses/422
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable

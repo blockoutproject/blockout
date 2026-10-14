@@ -45,7 +45,7 @@ paths:
         revision. Requires global sporting-presentation permission; resource conditions still apply.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -59,13 +59,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/SportingPresentationResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: clubId
           in: path
@@ -100,23 +100,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/SportingPresentationResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
       parameters:
         - name: clubId
           in: path
@@ -167,7 +167,7 @@ paths:
         revision. Requires global sporting-presentation permission; resource conditions still apply.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -181,13 +181,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/SportingPresentationResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: teamId
           in: path
@@ -224,23 +224,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/SportingPresentationResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
       parameters:
         - name: teamId
           in: path
@@ -291,7 +291,7 @@ paths:
         Requires global sporting-presentation permission; resource conditions still apply.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -303,13 +303,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/PoolPresentationResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: poolId
           in: path
@@ -331,7 +331,7 @@ paths:
         current state before an explicit retry.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Updated values after the complete change is accepted.
@@ -343,19 +343,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/PoolPresentationResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: poolId
           in: path
@@ -382,7 +382,7 @@ paths:
         Requires global sporting-classification permission; all affected resources remain subject to their business rules.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -394,13 +394,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClassificationDetailResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: packId
           in: path
@@ -425,7 +425,7 @@ paths:
         state before an explicit retry.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Updated values after the complete change is accepted.
@@ -437,19 +437,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClassificationDetailResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: packId
           in: path
@@ -476,7 +476,7 @@ paths:
         Requires global sporting-classification permission; all affected resources remain subject to their business rules.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -488,13 +488,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClassificationDetailResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: poolId
           in: path
@@ -518,7 +518,7 @@ paths:
         response, read current state before an explicit retry.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Updated values after the complete change is accepted.
@@ -530,19 +530,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClassificationDetailResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: poolId
           in: path
@@ -570,7 +570,7 @@ paths:
         every returned value.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -584,13 +584,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClubContactsResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: clubId
           in: path
@@ -614,7 +614,7 @@ paths:
         current state before an explicit retry; do not replay automatically.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Updated values after the complete change is accepted.
@@ -628,19 +628,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClubContactsResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: clubId
           in: path
@@ -668,7 +668,7 @@ paths:
         permission.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Configured divisions matching the requested activity filter.
@@ -680,11 +680,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/DivisionListResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: includeInactive
           in: query
@@ -722,21 +722,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/DivisionResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
       requestBody:
         required: true
         content:
@@ -774,7 +774,7 @@ paths:
         division-management or sporting-classification permission.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -786,13 +786,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/DivisionResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: divisionId
           in: path
@@ -829,23 +829,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/DivisionResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
       parameters:
         - name: divisionId
           in: path
@@ -899,7 +899,7 @@ paths:
         current state before an explicit retry.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Updated values after the complete change is accepted.
@@ -911,17 +911,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/DivisionResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: divisionId
           in: path
