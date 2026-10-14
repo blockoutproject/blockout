@@ -26,7 +26,7 @@ Classification corrections recompute the affected identity constraints while pre
 
 ## Current facts, ordering and visibility
 
-A collection token is `(cycleOrder, readOrdinal)`, validated against F01's authorized cycle context. Keep the latest accepted token on each replaced scope. Arrival time and provider match date do not order observations. A rejected old match observation supplies no fields. Identical accepted state produces no new sporting event.
+A collection token is `(cycleOrder, readOrdinal)`, validated against F01's authorized cycle context. Each collection write holds F01's current-incarnation shared row lock until its domain transaction commits; a pre-transaction token check alone does not prevent a superseded process from writing. Keep the latest accepted token on each replaced scope. Arrival time and provider match date do not order observations. A rejected old match observation supplies no fields. Identical accepted state produces no new sporting event.
 
 The pool's current calendar order prevents superseded per-match work and late absence reconciliation. Its completed order distinguishes completed duplicates from interrupted partial work without retaining an observation log. A new ordinary cycle may retry failures; no checkpoint, payload archive or automatic continuation exists.
 

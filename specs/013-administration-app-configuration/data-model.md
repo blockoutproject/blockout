@@ -2,7 +2,7 @@
 
 ## Permissions and locking
 
-Store a unique association `(accountId, permission)` referencing the active F05 business UUID. Deletion cascades with that account. Permission identifiers come from known backend action definitions, not user-supplied expressions, arbitrary scopes or Auth0 role names. F12 defines `maintenance.manage`, `application-versions.manage` and `maintenance.bypass`; existing F02 actions keep separate presentation, classification and division-lifecycle grants. Other owners extend actual action definitions in their plans rather than receiving an implicit F12 administrator privilege.
+Store a unique association `(accountId, permission)` referencing the active F05 business UUID. Deletion cascades with that account. Permission identifiers come from known backend action definitions, not user-supplied expressions, arbitrary scopes or Auth0 role names. F12 defines `maintenance.manage`, `application-versions.manage` and `maintenance.bypass`; existing F02 actions keep separate presentation, classification and division-lifecycle grants. F01 adds the independent `collection.manage` action. Other owners extend actual action definitions in their plans rather than receiving an implicit F12 administrator privilege.
 
 Ordinary account capabilities are evaluated from usability and domain conditions, not seeded as privileged rows. No role, delegation scope, owner-account table, grant history or session registry is needed. The product owner controls the SQL access used for assignment; a mobile operator cannot obtain that access through an application grant.
 
@@ -10,7 +10,7 @@ Manual assignment/revocation locks the target account in a short transaction bef
 
 ## Permission projection
 
-Extend the canonical F05 `AccountResponse` with a required `permissions` object of named boolean capabilities. Current fields cover `manageMaintenance`, `manageApplicationVersions`, `bypassMaintenance`, `manageSportingPresentation`, `manageSportingClassification` and `manageDivisionLifecycle`. They express current grants, not unconditional eligibility for every domain resource. No generic `isAdmin` or owner flag is returned.
+Extend the canonical F05 `AccountResponse` with a required `permissions` object of named boolean capabilities. Current fields cover `manageMaintenance`, `manageApplicationVersions`, `bypassMaintenance`, `manageSportingPresentation`, `manageSportingClassification`, `manageDivisionLifecycle` and `manageCollection`. They express current grants, not unconditional eligibility for every domain resource. No generic `isAdmin` or owner flag is returned.
 
 Properties are optional and absence means no capability. Responses tolerate additional properties, so a future action does not make the entire account unreadable for an older app. The server emits the known capability values; the client accepts only literal true as a positive grant. Future owners add fields and backend mappings together; no dynamic client evaluator or permission-schema registry is introduced.
 

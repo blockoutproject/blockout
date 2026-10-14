@@ -1,0 +1,522 @@
+CollectorRuntimeInternalResponse:
+  type: object
+  description: Single current collector incarnation in this environment.
+  additionalProperties: true
+  properties:
+    revision:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Monotonic runtime registration revision.
+    incarnationId:
+      type: string
+      description: Current startup UUID; null before first registration.
+      format: uuid
+      nullable: true
+  required:
+    - revision
+    - incarnationId
+RegisterCollectorRuntimeInternalRequest:
+  type: object
+  description:
+    Replace the runtime after reading its revision. Repeating the current UUID is a no-op;
+    stale replacement is refused.
+  additionalProperties: false
+  properties:
+    revision:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Expected current registration revision.
+    incarnationId:
+      type: string
+      description: New UUID generated once by this startup.
+      format: uuid
+  required:
+    - revision
+    - incarnationId
+CollectionWorkInternalResponse:
+  type: object
+  description:
+    Current controls and pending source validations, no durable execution queue. Initial mode
+    is supplied by the backend only.
+  additionalProperties: true
+  properties:
+    controls:
+      type: array
+      description: Controls and pending mode; closed controls cannot admit work.
+      items:
+        $ref: "#/CollectionControlInternalResponse"
+    validations:
+      type: array
+      description: Unstarted validation candidates.
+      items:
+        $ref: "#/SourceValidationWorkInternalResponse"
+  required:
+    - controls
+    - validations
+CollectionControlInternalResponse:
+  type: object
+  description: Internal scheduling/admission context, not a mobile administration representation.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Control identity.
+      format: uuid
+    family:
+      $ref: ../../common/collection-enums.yaml#/CollectionFamilyEnum
+    seasonId:
+      type: string
+      description: Present only for competitions.
+      format: uuid
+    revision:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Current admission revision.
+    enabled:
+      type: boolean
+      description: Desired eligibility.
+    seasonState:
+      $ref: ../../common/collection-enums.yaml#/CollectionSeasonStateEnum
+    requestId:
+      type: string
+      description: Pending request identity, absent when none.
+      format: uuid
+    requestedMode:
+      $ref: ../../common/collection-enums.yaml#/CollectionModeEnum
+    runningCycleId:
+      type: string
+      description: Current running cycle, absent when none.
+      format: uuid
+    lastStartedAt:
+      type: string
+      description: Most recent logical start; absent when never started.
+      format: date-time
+  required:
+    - id
+    - family
+    - revision
+    - enabled
+SourceValidationWorkInternalResponse:
+  type: object
+  description: One current candidate awaiting validation; editing or closure invalidates this work.
+  additionalProperties: true
+  properties:
+    sourceBindingId:
+      type: string
+      description: Supported binding identity.
+      format: uuid
+    revision:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Exact candidate revision.
+    candidateUrl:
+      type: string
+      description: Supported official URL to qualify.
+      format: uri
+    seasonLabel:
+      type: string
+      description: Expected canonical season.
+  required:
+    - sourceBindingId
+    - revision
+    - candidateUrl
+    - seasonLabel
+StartCollectionCycleInternalRequest:
+  type: object
+  description:
+    Admit one current cycle. Supply controlId for collection, or sourceBindingId for candidate
+    validation, never both. Backend selects mode and authorizes the snapshot.
+  additionalProperties: false
+  properties:
+    cycleId:
+      type: string
+      description:
+        New collector UUID; read this same cycle after an uncertain response before any supplier
+        work.
+      format: uuid
+    incarnationId:
+      type: string
+      description: Current registered startup.
+      format: uuid
+    controlId:
+      type: string
+      description: Collection control for ordinary or authorized initial work.
+      format: uuid
+    sourceBindingId:
+      type: string
+      description: Candidate binding for validation only.
+      format: uuid
+    revision:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Current revision of the supplied control or candidate.
+    requestId:
+      type: string
+      description: Pending request being consumed; absent for a periodic tick or source validation.
+      format: uuid
+  required:
+    - cycleId
+    - incarnationId
+    - revision
+CollectionCycleInternalResponse:
+  type: object
+  description:
+    Backend-admitted immutable acquisition context. A successful admission commits running
+    before reads; a superseded incarnation cannot write.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Cycle identity.
+      format: uuid
+    incarnationId:
+      type: string
+      description: Authorizing runtime incarnation.
+      format: uuid
+    controlId:
+      type: string
+      description: Collection control; absent for source validation.
+      format: uuid
+    sourceBindingId:
+      type: string
+      description: Validation candidate; absent for ordinary collection.
+      format: uuid
+    cycleOrder:
+      type: integer
+      format: int64
+      minimum: 1
+      maximum: 9007199254740991
+      description: Backend-assigned monotonic logical order.
+    mode:
+      $ref: ../../common/collection-enums.yaml#/CollectionModeEnum
+    state:
+      $ref: ../../common/collection-enums.yaml#/CollectionCycleStateEnum
+    startedAt:
+      type: string
+      description: Logical start at admission.
+      format: date-time
+    completedAt:
+      type: string
+      description: Known terminal completion time; absent otherwise.
+      format: date-time
+    candidate:
+      $ref: "#/SourceValidationWorkInternalResponse"
+  required:
+    - id
+    - incarnationId
+    - cycleOrder
+    - mode
+    - state
+    - startedAt
+CollectionTargetInternalResponse:
+  type: object
+  description:
+    One authorized target selected at admission from the starting snapshot. Kind determines
+    applicable optional fields; absent context is never invented. Discovery requires a binding and URL;
+    calendar/standings/details require binding, URL, pool and complete classification; details additionally
+    require match identity. Club sheets require club identity/reference; geocoding requires club identity
+    and current localityRevision; a null permitted municipality means no provider query, with postalCode
+    only when available.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Backend target identity within this cycle.
+      format: uuid
+    kind:
+      $ref: ../../common/collection-enums.yaml#/CollectionTargetKindEnum
+    sourceBindingId:
+      type: string
+      description: Competition binding for discovery/calendar/standings/details.
+      format: uuid
+    url:
+      type: string
+      description: Qualified official read URL; no credentials or arbitrary host.
+      format: uri
+    seasonLabel:
+      type: string
+      description: Expected canonical season for competitions.
+    competitionReference:
+      type: string
+      description: Native competition/championship reference.
+    packReference:
+      type: string
+      description: Native pack reference when applicable.
+    poolReference:
+      type: string
+      description: Native pool/phase reference when applicable.
+    tourReference:
+      type: string
+      description: Qualified round context only.
+    groupReference:
+      type: string
+      description: Qualified group context only.
+    poolId:
+      type: string
+      description: Known pool for calendar/standings/details.
+      format: uuid
+    matchId:
+      type: string
+      description: Known match for details.
+      format: uuid
+    clubId:
+      type: string
+      description: Known club for club-sheet/geocoding.
+      format: uuid
+    clubReference:
+      type: string
+      description: Native club string, including leading zeros.
+    divisionId:
+      type: string
+      description: Starting effective acquisition classification; required for calendar/standings/details.
+      format: uuid
+    format:
+      $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+    gender:
+      $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+    localityRevision:
+      type: string
+      description: Required for geocoding; returned unchanged with the locality result.
+    municipality:
+      type: string
+      description:
+        Current permitted effective municipality; null means absent/restricted and forbids
+        a provider query. Never copied to diagnostics or a retained cycle snapshot.
+      nullable: true
+    postalCode:
+      type: string
+      description: Current permitted effective postal context; absent when unknown.
+    lastAttemptAt:
+      type: string
+      description: Actual previous attempt; absent when never attempted.
+      format: date-time
+    lastSuccessAt:
+      type: string
+      description: Actual previous usable observation; absent when none.
+      format: date-time
+    fastWindowEndsAt:
+      type: string
+      description:
+        End of the currently applicable pool or match fast window; absent outside any reliable
+        window.
+      format: date-time
+    provider:
+      $ref: ../../common/collection-enums.yaml#/CollectionProviderEnum
+    organizerReference:
+      type: string
+      description: Native organizer context for FFVB reads.
+    nativeMatchReference:
+      type: string
+      description: Native match reference within the qualified provider/pool context, required for details.
+  required:
+    - id
+    - kind
+CollectionTargetPageInternalResponse:
+  type: object
+  description:
+    Target identities selected at admission, ordered by UUID with stable pagination. Eligibility/configuration
+    is frozen; permitted locality values and their revision are read from current business state. Obsolete
+    cycles cannot authorize writes.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Authorized targets; no ineligible calendar reserve.
+      items:
+        $ref: "#/CollectionTargetInternalResponse"
+    page:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Zero-based page.
+    hasNext:
+      type: boolean
+      description: More targets remain.
+  required:
+    - items
+    - page
+    - hasNext
+RecordCollectionResultInternalRequest:
+  type: object
+  description:
+    Record one current scope/stage result. No raw supplier payload; acquisition and integration
+    must be reported separately.
+  additionalProperties: false
+  properties:
+    scopeId:
+      type: string
+      description: Authorized target or source identity in this cycle.
+      format: uuid
+    stage:
+      $ref: ../../common/collection-enums.yaml#/CollectionStageEnum
+    readOrdinal:
+      type: integer
+      format: int64
+      minimum: 1
+      maximum: 9007199254740991
+      description: Assigned before the supplier read; integration keeps that read ordinal.
+    observedAt:
+      type: string
+      description: Actual observation completion time.
+      format: date-time
+    outcome:
+      $ref: ../../common/collection-enums.yaml#/CollectionOutcomeEnum
+    reasonType:
+      type: string
+      description: Machine reason when relevant.
+      format: uri
+    reason:
+      type: string
+      description: Safe concise explanation without personal values or raw documents.
+    obtainedCount:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Known obtained items; omitted if not measured.
+    rejectedCount:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Known rejected items; omitted if not measured.
+  required:
+    - scopeId
+    - stage
+    - readOrdinal
+    - observedAt
+    - outcome
+CompleteCollectionCycleInternalRequest:
+  type: object
+  description:
+    Declare the admitted passage finished; this does not turn omitted/failed scopes into success.
+    Identical terminal repetition is a no-op; contradictions conflict.
+  additionalProperties: false
+  properties:
+    finishedAt:
+      type: string
+      description: Actual end of selected work.
+      format: date-time
+  required:
+    - finishedAt
+SubmitSourceValidationInternalRequest:
+  type: object
+  description:
+    Finish a source-validation cycle. Candidate revision and open season are rechecked; late
+    results cannot validate an edited/closed source. state is limited to invalid, confirmation-required
+    or qualified; other lifecycle values are refused.
+  additionalProperties: false
+  properties:
+    cycleId:
+      type: string
+      description: Admitted validation cycle for this exact candidate.
+      format: uuid
+    state:
+      $ref: ../../common/collection-enums.yaml#/SourceValidationStateEnum
+    observedAt:
+      type: string
+      description: Actual completion.
+      format: date-time
+    seasonEvidence:
+      type: string
+      description: Safe seasonal evidence when established; no raw document.
+    reason:
+      type: string
+      description: Safe incompatibility or missing-evidence explanation.
+  required:
+    - cycleId
+    - state
+    - observedAt
+SourceValidationInternalResponse:
+  type: object
+  description: Accepted current qualification; no mobile presentation payload.
+  additionalProperties: true
+  properties:
+    sourceBindingId:
+      type: string
+      description: Binding identity.
+      format: uuid
+    revision:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Resulting candidate revision.
+    state:
+      $ref: ../../common/collection-enums.yaml#/SourceValidationStateEnum
+  required:
+    - sourceBindingId
+    - revision
+    - state
+ObserveSeasonSourceInternalRequest:
+  type: object
+  description:
+    Propose one qualified sporting season and supported root found through official entry discovery.
+    Never activate, overwrite an operator candidate, unlock or reopen a season.
+  additionalProperties: false
+  properties:
+    incarnationId:
+      type: string
+      description: Current collector startup.
+      format: uuid
+    startYear:
+      type: integer
+      format: int64
+      minimum: 1900
+      maximum: 9007199254740991
+      description: Qualified sporting start year, never derived solely from a provider ID.
+    provider:
+      $ref: ../../common/collection-enums.yaml#/CollectionProviderEnum
+    organizerReference:
+      type: string
+      description: Supported official organizer/championship identity.
+      minLength: 1
+    candidateUrl:
+      type: string
+      description: Published supported official URL without credentials.
+      format: uri
+    evidenceUrl:
+      type: string
+      description: Official discovery entry establishing scope and season.
+      format: uri
+    observedAt:
+      type: string
+      description: Actual discovery completion time.
+      format: date-time
+  required:
+    - incarnationId
+    - startYear
+    - provider
+    - organizerReference
+    - candidateUrl
+    - evidenceUrl
+    - observedAt
+SeasonSourceInternalResponse:
+  type: object
+  description:
+    Resolved season and binding; identical proposals reuse current identities without lifecycle
+    changes.
+  additionalProperties: true
+  properties:
+    seasonId:
+      type: string
+      description: Canonical season identity.
+      format: uuid
+    sourceBindingId:
+      type: string
+      description: Current binding identity.
+      format: uuid
+  required:
+    - seasonId
+    - sourceBindingId

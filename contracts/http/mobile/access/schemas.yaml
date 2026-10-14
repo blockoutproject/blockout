@@ -218,6 +218,9 @@ AccountPermissionsResponse:
     manageSportingClassification:
       type: boolean
       description: Manage sporting acquisition classification, subject to resource rules.
+    manageCollection:
+      type: boolean
+      description: Manage source preparation, collection controls and season commands; grants no sporting editing power.
     manageDivisionLifecycle:
       type: boolean
       description: Manage division creation and activity, subject to resource rules.

@@ -1,0 +1,469 @@
+Runtime:
+  get:
+    operationId: getCollectorRuntime
+    tags:
+      - Collection
+    summary: Read current collector incarnation
+    description: Requires the environment collector credential. Returns current registration only.
+    responses:
+      "200":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectorRuntimeInternalResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+  put:
+    operationId: registerCollectorRuntime
+    tags:
+      - Collection
+    summary: Register a collector startup
+    description:
+      Requires the environment collector credential. Atomically replaces the expected incarnation
+      and invalidates unfinished old work after admitted writes finish. Repeating the current UUID is
+      a no-op; a stale revision for another UUID returns 409. A superseded process must stop, not register
+      again automatically.
+    responses:
+      "200":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectorRuntimeInternalResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/RegisterCollectorRuntimeInternalRequest
+Work:
+  get:
+    operationId: getCollectionWork
+    tags:
+      - Collection
+    summary: Read current scheduling context
+    description:
+      Requires the current incarnation and collector credential. Returns current controls and
+      pending candidate validations; this read neither claims nor starts work.
+    responses:
+      "200":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionWorkInternalResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+    parameters:
+      - name: incarnationId
+        in: query
+        required: true
+        description: Current runtime; obsolete values return 409.
+        schema:
+          type: string
+          description: Current startup UUID.
+          format: uuid
+Cycles:
+  post:
+    operationId: startCollectionCycle
+    tags:
+      - Collection
+    summary: Admit a collection cycle
+    description:
+      Requires the current collector incarnation. Checks the selected control/candidate revision,
+      lifecycle, pause and accepted pending intent; one concurrent cycle per control or candidate. Commits
+      running and freezes authorized context before provider reads. Lost acknowledgement requires GET
+      of the supplied cycleId before work. An existing matching cycle returns 200; conflicting identity/context
+      returns 409.
+    responses:
+      "201":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Location:
+            description: URI of the created resource.
+            schema:
+              type: string
+              description: Created resource URI.
+              format: uri-reference
+              example: /ingestion/collection-cycles/00000000-0000-4000-8000-000000000001
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionCycleInternalResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+      "200":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionCycleInternalResponse
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/StartCollectionCycleInternalRequest
+Cycle:
+  get:
+    operationId: getCollectionCycle
+    tags:
+      - Collection
+    summary: Read a current cycle
+    description:
+      Requires collector credentials. Returns retained current context after uncertain admission/completion;
+      no execution-history lookup guarantee.
+    responses:
+      "200":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionCycleInternalResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: cycleId
+        in: path
+        required: true
+        description: Stable resource identity.
+        schema:
+          type: string
+          description: Stable resource identity.
+          format: uuid
+Targets:
+  get:
+    operationId: listCollectionCycleTargets
+    tags:
+      - Collection
+    summary: Read admitted acquisition targets
+    description:
+      Requires the current collector and a running cycle. Frozen authorized references and
+      classification govern reads; current restrictions still govern integration. Details newly identified
+      within an authorized calendar may use its resulting match identity.
+    responses:
+      "200":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionTargetPageInternalResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+    parameters:
+      - name: cycleId
+        in: path
+        required: true
+        description: Stable resource identity.
+        schema:
+          type: string
+          description: Stable resource identity.
+          format: uuid
+      - name: page
+        in: query
+        required: false
+        description: Zero-based page.
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: Zero-based page.
+          default: 0
+      - name: size
+        in: query
+        required: false
+        description: Bounded page size.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+          description: Items per page.
+Results:
+  post:
+    operationId: recordCollectionResult
+    tags:
+      - Collection
+    summary: Record current scoped evidence
+    description:
+      Requires the current running cycle and authorized scope. Accepts one stage result; older
+      read ordinals are ignored. Repeating identical evidence is harmless. Valid empty or ambiguous geocoding
+      is ordinary success, never technical failure. This updates current evidence only; it does not apply
+      sporting data.
+    responses:
+      "200":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionCycleInternalResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: cycleId
+        in: path
+        required: true
+        description: Stable resource identity.
+        schema:
+          type: string
+          description: Stable resource identity.
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/RecordCollectionResultInternalRequest
+Completion:
+  put:
+    operationId: completeCollectionCycle
+    tags:
+      - Collection
+    summary: Complete selected collection work
+    description:
+      Requires the current collector incarnation. Completes this running cycle after selected
+      work; omitted or unconfirmed stages never become success. Identical terminal repetition is harmless;
+      contradictory completion returns 409.
+    responses:
+      "200":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/CollectionCycleInternalResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: cycleId
+        in: path
+        required: true
+        description: Stable resource identity.
+        schema:
+          type: string
+          description: Stable resource identity.
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/CompleteCollectionCycleInternalRequest
+Validation:
+  put:
+    operationId: submitCollectionSourceValidation
+    tags:
+      - Collection
+    summary: Apply candidate validation
+    description:
+      Requires the exact admitted source-validation cycle. Accepts invalid, confirmation-required
+      or qualified only. Qualified requires positive source structure/scope/season evidence; confirmation-required
+      means only seasonal attribution is missing. Changed candidates or closed seasons reject late results
+      without effects.
+    responses:
+      "200":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/SourceValidationInternalResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: sourceBindingId
+        in: path
+        required: true
+        description: Stable resource identity.
+        schema:
+          type: string
+          description: Stable resource identity.
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/SubmitSourceValidationInternalRequest
+SeasonDiscovery:
+  post:
+    operationId: observeCollectionSeasonSource
+    tags:
+      - Collection
+    summary: Propose a discovered seasonal source
+    description:
+      Requires the current collector incarnation. Reuses canonical season identity by qualified
+      start year and proposes a supported root reference. Never overwrites operator edits or accepted
+      bindings, activates collection, reopens history or assigns classification. Repeating a proposal
+      has no extra effect.
+    responses:
+      "200":
+        description: Current accepted state; no implicit success for work not yet performed.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/SeasonSourceInternalResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/ObserveSeasonSourceInternalRequest

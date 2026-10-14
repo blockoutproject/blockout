@@ -24,7 +24,7 @@ Keep current action grants in PostgreSQL, assigned manually by the product owner
 
 **Performance Goals**: No new performance, load, capacity or monthly availability programme.
 
-**Constraints**: Current rights before effects; no silent old-state overwrite; no polling, persisted access fallback, automatic business retry, generic operator console or privileged bootstrap endpoint. Maintenance does not cancel accepted work or pause collection.
+**Constraints**: Current rights before effects; no silent old-state overwrite; no mobile access polling, persisted access fallback, automatic business retry, generic operator console or privileged bootstrap endpoint. Maintenance does not cancel accepted work or pause collection.
 
 **Scale/Scope**: F12 administration/admission; targeted F05/F02/F13/F14 reconciliation. Other owners retain their commands and lifecycle rules.
 

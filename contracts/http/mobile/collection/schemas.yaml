@@ -1,0 +1,487 @@
+CollectionRevision:
+  type: integer
+  format: int64
+  minimum: 0
+  maximum: 9007199254740991
+  description: Current editing revision of this resource; stale commands have no effects.
+CollectionSeasonResponse:
+  type: object
+  description:
+    Canonical season and current acquisition lifecycle. Source changes advance this preparation
+    revision.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable season identity.
+      format: uuid
+    label:
+      type: string
+      description: Canonical season label, also used for exact closure confirmation.
+    startYear:
+      type: integer
+      format: int64
+      minimum: 1900
+      maximum: 9007199254740991
+      description: Qualified sporting start year.
+    revision:
+      $ref: "#/CollectionRevision"
+    state:
+      $ref: ../../common/collection-enums.yaml#/CollectionSeasonStateEnum
+  required:
+    - id
+    - label
+    - startYear
+    - revision
+    - state
+CollectionSeasonListResponse:
+  type: object
+  description:
+    All known seasons, newest start year first, UUID as tie-breaker; no pagination for this
+    configuration list.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Known seasons, including preparing and closed.
+      items:
+        $ref: "#/CollectionSeasonResponse"
+  required:
+    - items
+SourceBindingResponse:
+  type: object
+  description:
+    Supported root source and current qualification, distinct from discovered child pools and
+    mappings.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable source-binding identity.
+      format: uuid
+    seasonId:
+      type: string
+      description: Owning season.
+      format: uuid
+    provider:
+      $ref: ../../common/collection-enums.yaml#/CollectionProviderEnum
+    organizerReference:
+      type: string
+      description:
+        Native organizer or supported professional championship identity; preserves leading
+        zeros.
+    label:
+      type: string
+      description: Human-readable source name.
+    revision:
+      $ref: "#/CollectionRevision"
+    candidateUrl:
+      type: string
+      description: Proposed supported official URL, without credentials; null when missing.
+      format: uri
+      nullable: true
+    acceptedUrl:
+      type: string
+      description: Locked official URL; null before launch.
+      format: uri
+      nullable: true
+    locked:
+      type: boolean
+      description:
+        Reference is immutable after periodic launch or first initial-import admission, including
+        during pause and after closure.
+    validation:
+      $ref: ../../common/collection-enums.yaml#/SourceValidationStateEnum
+    validatedAt:
+      type: string
+      description: Last candidate validation completion; null if never validated.
+      format: date-time
+      nullable: true
+    seasonEvidence:
+      type: string
+      description: Safe attributable seasonal evidence; null if absent.
+      nullable: true
+    reason:
+      type: string
+      description: Safe explanation of missing/invalid evidence; null when unnecessary.
+      nullable: true
+    launched:
+      type: boolean
+      description:
+        Source has been enabled for periodic collection; initial reconstruction alone locks
+        but does not launch it.
+  required:
+    - id
+    - seasonId
+    - provider
+    - organizerReference
+    - label
+    - revision
+    - candidateUrl
+    - acceptedUrl
+    - locked
+    - validation
+    - validatedAt
+    - seasonEvidence
+    - reason
+    - launched
+SourceBindingListResponse:
+  type: object
+  description:
+    Supported roots for one season, ordered by provider, organizer reference and UUID; no classification
+    readiness.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Known and missing supported references.
+      items:
+        $ref: "#/SourceBindingResponse"
+  required:
+    - items
+CreateSourceBindingRequest:
+  type: object
+  description:
+    Add a missing supported source before launch. Existing provider/organizer identity conflicts;
+    no arbitrary scraping configuration.
+  additionalProperties: false
+  properties:
+    seasonRevision:
+      $ref: "#/CollectionRevision"
+    provider:
+      $ref: ../../common/collection-enums.yaml#/CollectionProviderEnum
+    organizerReference:
+      type: string
+      description: Supported native organizer or championship reference.
+      minLength: 1
+    candidateUrl:
+      type: string
+      description: Supported official URL without credentials.
+      format: uri
+  required:
+    - seasonRevision
+    - provider
+    - organizerReference
+    - candidateUrl
+SetSourceCandidateRequest:
+  type: object
+  description:
+    Replace the entire candidate URL and clear its prior validation; locked/closed sources
+    refuse changes.
+  additionalProperties: false
+  properties:
+    revision:
+      $ref: "#/CollectionRevision"
+    url:
+      type: string
+      description: Supported official candidate URL without credentials.
+      format: uri
+  required:
+    - revision
+    - url
+RequestSourceValidationRequest:
+  type: object
+  description:
+    Request validation of the exact current candidate; a duplicate pending request creates
+    no extra work.
+  additionalProperties: false
+  properties:
+    revision:
+      $ref: "#/CollectionRevision"
+  required:
+    - revision
+ConfirmSourceSeasonRequest:
+  type: object
+  description: Confirm missing seasonal attribution only after compatible source structure was established.
+  additionalProperties: false
+  properties:
+    revision:
+      $ref: "#/CollectionRevision"
+    seasonLabel:
+      type: string
+      description: Exact canonical label of the owning season.
+      minLength: 1
+  required:
+    - revision
+    - seasonLabel
+LaunchCollectionSourcesRequest:
+  type: object
+  description:
+    Atomically launch explicitly selected qualified sources in an open season. Existing periodically
+    launched bindings remain unchanged; no mapping is created. The selected list is configuration-sized
+    and bounded by the 8 MiB JSON request limit; it is not a generic batch dispatcher. Qualified references
+    locked by initial reconstruction may be activated without editing their accepted URL.
+  additionalProperties: false
+  properties:
+    revision:
+      $ref: "#/CollectionRevision"
+    sourceBindingIds:
+      type: array
+      description:
+        Distinct selected source bindings belonging to this season; unqualified input refuses
+        the whole command.
+      items:
+        type: string
+        description: Selected source identity.
+        format: uuid
+      minItems: 1
+      uniqueItems: true
+  required:
+    - revision
+    - sourceBindingIds
+CloseCollectionSeasonRequest:
+  type: object
+  description: Irreversibly close this season; cancel unstarted work and let admitted cycles finish once.
+  additionalProperties: false
+  properties:
+    revision:
+      $ref: "#/CollectionRevision"
+    confirmation:
+      type: string
+      description: Exact displayed canonical season label.
+      minLength: 1
+  required:
+    - revision
+    - confirmation
+CollectionCycleSummaryResponse:
+  type: object
+  description: Current confirmed execution; request acceptance alone creates no running cycle.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Cycle identity.
+      format: uuid
+    state:
+      $ref: ../../common/collection-enums.yaml#/CollectionCycleStateEnum
+    mode:
+      $ref: ../../common/collection-enums.yaml#/CollectionModeEnum
+    startedAt:
+      type: string
+      description: Backend-confirmed logical start.
+      format: date-time
+    completedAt:
+      type: string
+      description: Terminal time if known; absent while running or when interruption time is unknown.
+      format: date-time
+  required:
+    - id
+    - state
+    - mode
+    - startedAt
+CollectionControlResponse:
+  type: object
+  description:
+    Desired activity, pending intent and confirmed execution are independent. Reads never trigger
+    work.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Control identity.
+      format: uuid
+    family:
+      $ref: ../../common/collection-enums.yaml#/CollectionFamilyEnum
+    seasonId:
+      type: string
+      description: Season identity for competition controls; absent for club sheets and geocoding.
+      format: uuid
+    revision:
+      $ref: "#/CollectionRevision"
+    enabled:
+      type: boolean
+      description: Desired periodic eligibility; running work drains after false.
+    pendingRequestId:
+      type: string
+      description: Accepted unstarted manual request; null when none.
+      format: uuid
+      nullable: true
+    cycle:
+      $ref: "#/CollectionCycleSummaryResponse"
+    lastAttemptAt:
+      type: string
+      description: Last actual attempt, null if never attempted.
+      format: date-time
+      nullable: true
+    lastSuccessAt:
+      type: string
+      description:
+        Last fully successful control pass, null if none; partial success does not advance
+        it.
+      format: date-time
+      nullable: true
+  required:
+    - id
+    - family
+    - revision
+    - enabled
+    - pendingRequestId
+    - lastAttemptAt
+    - lastSuccessAt
+CollectionControlListResponse:
+  type: object
+  description: Requested configuration controls, ordered by family then UUID; no execution history.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Competition controls for the selected season, or the two seasonless controls.
+      items:
+        $ref: "#/CollectionControlResponse"
+  required:
+    - items
+SetCollectionActivityRequest:
+  type: object
+  description:
+    Replace desired activity; pause cancels an unstarted request and resume never restores
+    it.
+  additionalProperties: false
+  properties:
+    revision:
+      $ref: "#/CollectionRevision"
+    enabled:
+      type: boolean
+      description: Desired eligibility; a closed season cannot resume.
+  required:
+    - revision
+    - enabled
+RequestCollectionRequest:
+  type: object
+  description:
+    Request one ordinary passage of this control; existing pending/running work is returned.
+    No individual target or initial-import flag.
+  additionalProperties: false
+  properties:
+    revision:
+      $ref: "#/CollectionRevision"
+  required:
+    - revision
+CollectionResultResponse:
+  type: object
+  description: Latest evidence for one scope and stage, retained independently of pause and results elsewhere.
+  additionalProperties: true
+  properties:
+    scopeId:
+      type: string
+      description: Backend-owned operational scope identity.
+      format: uuid
+    scopeLabel:
+      type: string
+      description: Safe scope label without personal values.
+    stage:
+      $ref: ../../common/collection-enums.yaml#/CollectionStageEnum
+    outcome:
+      $ref: ../../common/collection-enums.yaml#/CollectionOutcomeEnum
+    observedAt:
+      type: string
+      description: Actual attempt/observation completion time.
+      format: date-time
+    lastSuccessAt:
+      type: string
+      description: Last usable success for this exact scope and stage, null if absent.
+      format: date-time
+      nullable: true
+    firstFailureAt:
+      type: string
+      description: Beginning of a current technical outage, null when not applicable.
+      format: date-time
+      nullable: true
+    reasonType:
+      type: string
+      description: Stable safe machine problem type when relevant.
+      format: uri
+    reason:
+      type: string
+      description: Safe concise diagnostic, excluding raw documents and personal data.
+    obtainedCount:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Known obtained items; absent when not measured.
+    rejectedCount:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Known rejected items; absent when not measured.
+  required:
+    - scopeId
+    - scopeLabel
+    - stage
+    - outcome
+    - observedAt
+    - lastSuccessAt
+    - firstFailureAt
+CollectionResultPageResponse:
+  type: object
+  description:
+    Current results ordered by scope UUID then stage; concurrent updates may change later pages,
+    without snapshot/history guarantees.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Results on this page.
+      items:
+        $ref: "#/CollectionResultResponse"
+    page:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Zero-based page index.
+    hasNext:
+      type: boolean
+      description: Another page was present when read.
+  required:
+    - items
+    - page
+    - hasNext
+DiscoveredCollectionResourceResponse:
+  type: object
+  description: Native child reference in the selected source hierarchy, independent of mapping readiness.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable pack or pool identity.
+      format: uuid
+    label:
+      type: string
+      description: Native/display label.
+    kind:
+      $ref: ../../common/collection-enums.yaml#/CollectionResourceKindEnum
+    parentId:
+      type: string
+      description: Pack parent for a child pool; omitted for a root entry.
+      format: uuid
+  required:
+    - id
+    - label
+    - kind
+DiscoveredCollectionResourcePageResponse:
+  type: object
+  description:
+    Current discovered children, ordered by kind, label and UUID; concurrent catalog changes
+    may alter later pages.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Direct children of the selected source or parent pack.
+      items:
+        $ref: "#/DiscoveredCollectionResourceResponse"
+    page:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Zero-based page.
+    hasNext:
+      type: boolean
+      description: More children were present when read.
+  required:
+    - items
+    - page
+    - hasNext
