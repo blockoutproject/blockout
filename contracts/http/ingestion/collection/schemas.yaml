@@ -124,11 +124,19 @@ SourceValidationWorkInternalResponse:
     seasonLabel:
       type: string
       description: Expected canonical season.
+    provider:
+      $ref: ../../common/collection-enums.yaml#/CollectionProviderEnum
+    organizerReference:
+      type: string
+      description: Expected official organizer/championship identity; the candidate must match it.
+      minLength: 1
   required:
     - sourceBindingId
     - revision
     - candidateUrl
     - seasonLabel
+    - provider
+    - organizerReference
 StartCollectionCycleInternalRequest:
   type: object
   description:
