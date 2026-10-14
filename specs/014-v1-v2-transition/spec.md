@@ -117,6 +117,8 @@ A difficulty is observable and recoverable without reintroducing data that has b
 
 ### Functional Requirements
 
+F11 selects EU27 availability for new store downloads, without a geographic application access gate. Preserve existing users outside those storefronts and their applicable identities/Pro rights. Qualify store update/redownload and Pro offer availability before release. Returning users supply the new advertising age declaration when required without replaying completed ordinary onboarding or a completed transition welcome. No country field or location lookup is added.
+
 #### Reset scope
 
 - **FR-001**: The transition MUST distinguish reset V1 business data from protected information needed for continuity. Recovery of old follows, the inbox and its states, contributions and unretained profile customizations MUST NOT be promised. Business profiles are recreated under F05; F02 subsequently governs V2 history retention. This exceptional operation does not become an ordinary erasure feature.

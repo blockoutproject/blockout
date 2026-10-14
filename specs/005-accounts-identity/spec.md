@@ -120,6 +120,8 @@ As an account holder, I want to delete my account, return directly to guest acce
 
 ### Functional Requirements
 
+Advertising age declaration and correction belong to [F11](../004-advertising-privacy-legal/spec.md#entitlements-and-advertising-choices). They do not add a profile field, account age gate or identity check. Guest and signed-in users use the same installation-local advertising controls outside F12 blocking gates.
+
 #### Access and identity resolution
 
 - **FR-001**: The system MUST allow guest access to public content, legal documents and support before sign-in or after failure. Personal actions require a usable identity and account; their sign-in prompt MUST NOT automatically execute a purchase, publication, deletion or other mutation. F12 global maintenance, unavailable-access and mandatory-update gates take precedence over these ordinary journeys: no in-app legal/support/sign-in entry or direct-route bypass is available. Maintenance administration is limited to an already signed-in usable operator with current permissions; the gate offers no authentication entry. Ordinary sign-in failures outside global blocking retain support and legal access.

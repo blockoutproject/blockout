@@ -604,8 +604,9 @@ paths:
         Requires permission to correct contacts for this club. Applies supplied field modes atomically
         against the current revision; omitted fields are unchanged. A change to the effective
         municipality or postal context clears the old point and advances the locality revision. A
-        stale revision returns 409 without changes. After an uncertain response, read current state
-        before an explicit retry; do not replay automatically.
+        stale revision or a write conflicting with a contact privacy restriction returns 409 without
+        changes. Ordinary edits cannot lift a privacy restriction. After an uncertain response, read
+        current state before an explicit retry; do not replay automatically.
       responses:
         "415":
           $ref: ../common/problems.yaml#/responses/415

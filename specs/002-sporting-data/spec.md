@@ -202,6 +202,8 @@ As an authorized operator, I want durable presentation and contact-detail correc
 
 ### Functional Requirements
 
+The [F11 club-contact restriction](../004-advertising-privacy-legal/spec.md#purposes-minimization-and-shared-restrictions) removes source and manual values for the targeted field and prevents their republication. Ordinary manual editing, deliberate absence and return to source do not lift this separate restriction. Handling is manual without a new administration journey; there is no generic person-matching subsystem.
+
 #### Identity and classification
 
 - **FR-001**: Sporting identity, source reference and context, original source labels and displayed presentation MUST remain distinct. A source or display change MUST NOT by itself replace Blockout identities.
