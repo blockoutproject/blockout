@@ -3,11 +3,13 @@ info:
   title: Blockout mobile API
   version: 0.1.0
   description: >-
-    Backend API for account lifecycle and sporting administration.
+    Backend API for application access, account lifecycle and sporting administration.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
 tags:
+  - name: ApplicationAccess
+    description: Public admission settings and separately authorized maintenance/version management.
   - name: Accounts
     description: Private account establishment, profile changes and erasure.
   - name: Sporting
@@ -16,6 +18,14 @@ tags:
 security:
   - MobileToken: []
 paths:
+  /application-access:
+    $ref: ./access/paths.yaml#/Public
+  /administration/maintenance:
+    $ref: ./access/paths.yaml#/Maintenance
+  /administration/maintenance/activation:
+    $ref: ./access/paths.yaml#/Activation
+  /administration/application-versions:
+    $ref: ./access/paths.yaml#/Versions
   /accounts:
     $ref: ./accounts/paths.yaml#/Collection
   /accounts/me:
@@ -32,10 +42,10 @@ paths:
       summary: Read club presentation
       description: >-
         Returns the club's effective names, manual customizations and logo values, and current editing
-        revision. Requires permission to manage sporting presentation for this club.
+        revision. Requires global sporting-presentation permission; resource conditions still apply.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -43,30 +53,27 @@ paths:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
             Accept-Patch:
-              description: Supported atomic change-document media type.
-              schema:
-                type: string
-                enum: [multipart/form-data]
+              $ref: ../common/headers.yaml#/AcceptPatchMultipart
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SportingPresentationResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: clubId
           in: path
           required: true
-          description: Stable club identity, including retained resources within the operator grant.
+          description: Stable club identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable club identity, including retained resources within the operator grant.
+            description: Stable club identity, including retained resources available to authorized administration.
             format: uuid
     patch:
       operationId: setClubPresentation
@@ -74,7 +81,7 @@ paths:
         - Sporting
       summary: Set club names and logo
       description: >-
-        Requires permission to manage presentation for this club. Saves the manual display name and
+        Requires global sporting-presentation permission; resource conditions still apply. Saves the manual display name and
         logo action together, preserving source values and identity. replace requires a decodable
         PNG/JPEG image of at most 5242880 bytes; keep and automatic forbid an image. For a club,
         automatic clears its manual logo and selects missing artwork. A stale revision returns 409
@@ -86,36 +93,38 @@ paths:
           headers:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              $ref: ../common/headers.yaml#/AcceptPatchMultipart
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SportingPresentationResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
       parameters:
         - name: clubId
           in: path
           required: true
-          description: Stable club identity, including retained resources within the operator grant.
+          description: Stable club identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable club identity, including retained resources within the operator grant.
+            description: Stable club identity, including retained resources available to authorized administration.
             format: uuid
       requestBody:
         description: >-
@@ -155,10 +164,10 @@ paths:
       summary: Read team presentation
       description: >-
         Returns the team's effective names, manual customizations and logo values, and current editing
-        revision. Requires permission to manage sporting presentation for this team.
+        revision. Requires global sporting-presentation permission; resource conditions still apply.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -166,30 +175,27 @@ paths:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
             Accept-Patch:
-              description: Supported atomic change-document media type.
-              schema:
-                type: string
-                enum: [multipart/form-data]
+              $ref: ../common/headers.yaml#/AcceptPatchMultipart
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SportingPresentationResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: teamId
           in: path
           required: true
-          description: Stable team identity, including retained resources within the operator grant.
+          description: Stable team identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable team identity, including retained resources within the operator grant.
+            description: Stable team identity, including retained resources available to authorized administration.
             format: uuid
     patch:
       operationId: setTeamPresentation
@@ -197,7 +203,7 @@ paths:
         - Sporting
       summary: Set team names and logo
       description: >-
-        Requires permission to manage presentation for this team. Saves the manual independent full
+        Requires global sporting-presentation permission; resource conditions still apply. Saves the manual independent full
         and short names and the logo action together, preserving source values and identity. replace
         requires a decodable PNG/JPEG image of at most 5242880 bytes; keep and automatic forbid an
         image. automatic clears the manual team logo. For a professional team, it resolves the accepted LNV logo, then its associated
@@ -211,36 +217,38 @@ paths:
           headers:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              $ref: ../common/headers.yaml#/AcceptPatchMultipart
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SportingPresentationResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
       parameters:
         - name: teamId
           in: path
           required: true
-          description: Stable team identity, including retained resources within the operator grant.
+          description: Stable team identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable team identity, including retained resources within the operator grant.
+            description: Stable team identity, including retained resources available to authorized administration.
             format: uuid
       requestBody:
         description: >-
@@ -280,10 +288,10 @@ paths:
       summary: Read pool presentation
       description: >-
         Returns the pool's effective names, manual customizations, and current editing revision.
-        Requires permission to manage sporting presentation for this pool.
+        Requires global sporting-presentation permission; resource conditions still apply.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -295,21 +303,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/PoolPresentationResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: poolId
           in: path
           required: true
-          description: Stable pool identity, including retained resources within the operator grant.
+          description: Stable pool identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable pool identity, including retained resources within the operator grant.
+            description: Stable pool identity, including retained resources available to authorized administration.
             format: uuid
     put:
       operationId: setPoolPresentation
@@ -317,13 +325,13 @@ paths:
         - Sporting
       summary: Set pool display names
       description: >-
-        Requires permission to manage presentation for this pool. Sets independent full and short name
+        Requires global sporting-presentation permission; resource conditions still apply. Sets independent full and short name
         customizations; source values, inherited artwork, classification and identity remain
         unchanged. A stale revision returns 409 without changes. After an uncertain response, read
         current state before an explicit retry.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Updated values after the complete change is accepted.
@@ -335,27 +343,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/PoolPresentationResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: poolId
           in: path
           required: true
-          description: Stable pool identity, including retained resources within the operator grant.
+          description: Stable pool identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable pool identity, including retained resources within the operator grant.
+            description: Stable pool identity, including retained resources available to authorized administration.
             format: uuid
       requestBody:
         required: true
@@ -371,10 +379,10 @@ paths:
       summary: Read pack classification
       description: >-
         Returns the pack default, effective acquisition classification and current editing revision.
-        Requires sporting-classification permission over the full affected scope.
+        Requires global sporting-classification permission; all affected resources remain subject to their business rules.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -386,13 +394,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClassificationDetailResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: packId
           in: path
@@ -408,7 +416,7 @@ paths:
         - Sporting
       summary: Set pack classification
       description: >-
-        Requires sporting-classification permission over the full affected scope. Sets or removes the
+        Requires global sporting-classification permission; all affected resources remain subject to their business rules. Sets or removes the
         complete pack default atomically. Removing the pack default leaves pools without their own
         override unclassified for acquisition; individual overrides remain in effect. Without an
         effective classification, collection stops while accepted published classification remains. A
@@ -417,7 +425,7 @@ paths:
         state before an explicit retry.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Updated values after the complete change is accepted.
@@ -429,19 +437,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClassificationDetailResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: packId
           in: path
@@ -465,10 +473,10 @@ paths:
       summary: Read pool classification
       description: >-
         Returns the pool override, effective acquisition classification and current editing revision.
-        Requires sporting-classification permission over the full affected scope.
+        Requires global sporting-classification permission; all affected resources remain subject to their business rules.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -480,13 +488,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClassificationDetailResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: poolId
           in: path
@@ -502,7 +510,7 @@ paths:
         - Sporting
       summary: Set pool classification
       description: >-
-        Requires sporting-classification permission over the full affected scope. Sets or removes the
+        Requires global sporting-classification permission; all affected resources remain subject to their business rules. Sets or removes the
         complete pool override atomically. Removing the pool override restores its pack default, if
         available. Without an effective classification, collection stops while accepted published
         classification remains. A stale revision, conflicting shared participation or target-identity
@@ -510,7 +518,7 @@ paths:
         response, read current state before an explicit retry.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Updated values after the complete change is accepted.
@@ -522,19 +530,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClassificationDetailResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: poolId
           in: path
@@ -558,11 +566,11 @@ paths:
       summary: Read editable club contacts
       description: >-
         Returns current contact values, independent management modes and the editing revision.
-        Requires permission to correct contacts for this club. Current privacy restrictions apply to
+        Requires global sporting-presentation permission for contact correction. Current privacy restrictions apply to
         every returned value.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -570,30 +578,27 @@ paths:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
             Accept-Patch:
-              description: Supported atomic change-document media type.
-              schema:
-                type: string
-                enum: [application/json]
+              $ref: ../common/headers.yaml#/AcceptPatchJson
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ClubContactsResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: clubId
           in: path
           required: true
-          description: Known club within the operator contact-correction grant.
+          description: Stable club identity for contact correction.
           schema:
             type: string
-            description: Known club within the operator contact-correction grant.
+            description: Stable club identity for contact correction.
             format: uuid
     patch:
       operationId: setClubContacts
@@ -601,7 +606,7 @@ paths:
         - Sporting
       summary: Correct selected club contact fields
       description: >-
-        Requires permission to correct contacts for this club. Applies supplied field modes atomically
+        Requires global sporting-presentation permission for contact correction. Applies supplied field modes atomically
         against the current revision; omitted fields are unchanged. A change to the effective
         municipality or postal context clears the old point and advances the locality revision. A
         stale revision or a write conflicting with a contact privacy restriction returns 409 without
@@ -609,39 +614,41 @@ paths:
         current state before an explicit retry; do not replay automatically.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Updated values after the complete change is accepted.
           headers:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              $ref: ../common/headers.yaml#/AcceptPatchJson
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ClubContactsResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: clubId
           in: path
           required: true
-          description: Known club within the operator contact-correction grant.
+          description: Stable club identity for contact correction.
           schema:
             type: string
-            description: Known club within the operator contact-correction grant.
+            description: Stable club identity for contact correction.
             format: uuid
       requestBody:
         required: true
@@ -661,7 +668,7 @@ paths:
         permission.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Configured divisions matching the requested activity filter.
@@ -673,11 +680,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/DivisionListResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: includeInactive
           in: query
@@ -715,21 +722,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/DivisionResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
       requestBody:
         required: true
         content:
@@ -767,7 +774,7 @@ paths:
         division-management or sporting-classification permission.
       responses:
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "200":
           description: >-
             Current authorized values.
@@ -779,13 +786,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/DivisionResponse"
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: divisionId
           in: path
@@ -815,28 +822,30 @@ paths:
           headers:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              $ref: ../common/headers.yaml#/AcceptPatchMultipart
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/DivisionResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
       parameters:
         - name: divisionId
           in: path
@@ -890,7 +899,7 @@ paths:
         current state before an explicit retry.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Updated values after the complete change is accepted.
@@ -902,17 +911,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/DivisionResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: divisionId
           in: path
@@ -936,8 +945,8 @@ components:
       bearerFormat: JWT
       description: >-
         Bearer token issued to an allowed mobile client for this environment. The backend validates
-        issuer, audience, expiry and client identity, then checks the required action and resource
-        permissions. Ordinary membership, moderation or collector credentials grant no implicit
+        issuer, audience, expiry and client identity, then checks current global action grants and resource
+        conditions. Ordinary membership, moderation or collector credentials grant no implicit
         administrative permission.
   schemas:
     SportingResourceKindEnum:

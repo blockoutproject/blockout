@@ -1,0 +1,199 @@
+Public:
+  get:
+    operationId: getApplicationAccess
+    tags:
+      - ApplicationAccess
+    summary: Read application access configuration
+    description:
+      Returns complete maintenance and platform-version settings without authentication. Inactive maintenance
+      content is not published. This read does not create or identify an account.
+    security: []
+    responses:
+      "200":
+        description: Current accepted state.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ApplicationAccessResponse
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+Maintenance:
+  get:
+    operationId: getMaintenanceSettings
+    tags:
+      - ApplicationAccess
+    summary: Read maintenance settings
+    description:
+      Requires maintenance-management permission. Returns prepared content and activation without granting
+      ordinary access.
+    responses:
+      "200":
+        description: Current accepted state.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/MaintenanceSettingsResponse
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+  patch:
+    operationId: changeMaintenanceSettings
+    tags:
+      - ApplicationAccess
+    summary: Change maintenance content
+    description:
+      Requires maintenance-management permission. Saves only supplied content fields atomically, preserving
+      activation. A stale revision returns 409 without changes; reread after an uncertain response before explicit
+      retry.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/ChangeMaintenanceRequest
+    responses:
+      "200":
+        description: Current accepted state.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/MaintenanceSettingsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+Activation:
+  put:
+    operationId: setMaintenanceActivation
+    tags:
+      - ApplicationAccess
+    summary: Set maintenance activation
+    description:
+      Requires maintenance-management permission. Sets the desired active state without changing content;
+      already admitted short operations may finish. A stale revision returns 409 without effects. Reread current
+      maintenance after an uncertain result.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/SetMaintenanceActivationRequest
+    responses:
+      "200":
+        description: Current accepted state.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/MaintenanceSettingsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+Versions:
+  get:
+    operationId: getApplicationVersionSettings
+    tags:
+      - ApplicationAccess
+    summary: Read application version settings
+    description:
+      Requires application-version-management permission. Returns both platform thresholds and links
+      with the shared message.
+    responses:
+      "200":
+        description: Current accepted state.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ApplicationVersionsResponse
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+  patch:
+    operationId: changeApplicationVersionSettings
+    tags:
+      - ApplicationAccess
+    summary: Change application version settings
+    description:
+      Requires application-version-management permission. Applies supplied changes atomically and leaves
+      maintenance unchanged. Validate HTTPS App Store/Google Play links and require a link for each retained minimum.
+      The operator verifies actual download availability. A stale revision returns 409; reread after an uncertain
+      response.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/ChangeApplicationVersionsRequest
+    responses:
+      "200":
+        description: Current accepted state.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ApplicationVersionsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable

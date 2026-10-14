@@ -8,7 +8,7 @@
 
 **Input**: F14, [#270](https://github.com/blockoutproject/blockout-legacy/issues/270). Define authorized reset outcomes, continuity, welcome and cutover conditions, consuming [F05 identity requirements](../005-accounts-identity/spec.md), [F09 paid-right continuity](../006-pro-subscriptions/spec.md) and [F13 protection/recovery](../003-shared-quality/spec.md), without executing migration or choosing its architecture.
 
-The actors are the V1 user, visitor, holder of a recognized account, subscriber or Pro beneficiary, authorized operator and product owner. Recreating a business profile during migration does not create a new person or constitute voluntary deletion. Opening V2 means making it available for ordinary use; preparation, store publication, maintenance, reconstruction and opening are distinct stages.
+The actors are the V1 user, visitor, holder of a recognized account, subscriber or Pro beneficiary, authorized operator and product owner. Recreating a business profile during migration does not create a new person or constitute voluntary deletion. Opening V2 means making it available for ordinary use; preparation, store publication, maintenance, reconstruction and opening are distinct stages. Before public V2 publication, prepare the owner account through the normal production sign-in journey using the production binary in its test channel, assign its permissions manually, and verify administration. Enable maintenance before publication when public opening is deferred, as defined by F12; no special seeded administrator or bootstrap endpoint is required.
 
 ## User Scenarios & Testing
 

@@ -30,7 +30,7 @@ paths:
         withdraws pools from another season. Results follow the input pool order, including duplicates.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Catalog outcomes in input order. All changes commit together; a stale catalog changes nothing.
@@ -42,21 +42,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/CatalogOutcomeInternalResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: sourceBindingId
           in: path
@@ -87,7 +87,7 @@ paths:
         instead of automatically replaying the request.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Calendar processing outcomes; HTTP success does not mean every match was accepted.
@@ -99,21 +99,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/CalendarOutcomeInternalResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: poolId
           in: path
@@ -141,7 +141,7 @@ paths:
         accepted result and required internal notification updates succeed together.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Processing outcome for the submitted observation; inspect outcome to distinguish
@@ -154,21 +154,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/ObservationOutcomeInternalResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: matchId
           in: path
@@ -195,7 +195,7 @@ paths:
         sporting identities from standings.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Processing outcome for the submitted observation; inspect outcome to distinguish
@@ -208,21 +208,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/ObservationOutcomeInternalResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: poolId
           in: path
@@ -249,7 +249,7 @@ paths:
         establishes no withdrawal.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Processing outcome for the submitted observation; inspect outcome to distinguish
@@ -262,21 +262,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/ObservationOutcomeInternalResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: clubId
           in: path
@@ -303,7 +303,7 @@ paths:
         requires both coordinates and forbids ambiguity. Technical failure does not erase a valid point.
       responses:
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "200":
           description: >-
             Processing outcome for the submitted observation; inspect outcome to distinguish
@@ -316,21 +316,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/ObservationOutcomeInternalResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: clubId
           in: path
@@ -369,23 +369,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/ObservationOutcomeInternalResponse"
         "400":
-          $ref: ../common/problems.yaml#/responses/400
+          $ref: ../common/problems.yaml#/responses/BadRequest
         "401":
-          $ref: ../common/problems.yaml#/responses/401
+          $ref: ../common/problems.yaml#/responses/Unauthorized
         "403":
-          $ref: ../common/problems.yaml#/responses/403
+          $ref: ../common/problems.yaml#/responses/Forbidden
         "404":
-          $ref: ../common/problems.yaml#/responses/404
+          $ref: ../common/problems.yaml#/responses/NotFound
         "409":
-          $ref: ../common/problems.yaml#/responses/409
+          $ref: ../common/problems.yaml#/responses/Conflict
         "413":
-          $ref: ../common/problems.yaml#/responses/413
+          $ref: ../common/problems.yaml#/responses/ContentTooLarge
         "415":
-          $ref: ../common/problems.yaml#/responses/415
+          $ref: ../common/problems.yaml#/responses/UnsupportedMediaType
         "422":
-          $ref: ../common/problems.yaml#/responses/422
+          $ref: ../common/problems.yaml#/responses/UnprocessableContent
         "503":
-          $ref: ../common/problems.yaml#/responses/503
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
       parameters:
         - name: teamId
           in: path

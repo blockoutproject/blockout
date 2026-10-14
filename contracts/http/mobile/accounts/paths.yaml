@@ -1,24 +1,26 @@
 Collection:
+  parameters:
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
   post:
     operationId: establishAccount
     tags:
       - Accounts
     summary: Establish my account
     description:
-      Creates the authenticated principal’s account or refreshes its necessary provider
+      Subject to current maintenance admission, creates the authenticated principal’s account or refreshes its necessary provider
       information after explicit sign-in. Never links by email. Repetition resolves the same current account. A deleted account is never restored;
       explicit establishment creates a new account. Known information survives temporary provider absence.
     responses:
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "422":
-        $ref: ../../common/problems.yaml#/responses/422
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "200":
         description: Existing usable account.
         headers:
@@ -51,16 +53,18 @@ Current:
     summary: Read my account
     description:
       Returns the authenticated principal’s existing account without creating it or synchronizing
-      provider data. An absent account returns 404 and requires explicit establishment.
+      provider data. Includes current action permissions and remains readable during maintenance for
+      account identification, without opening blocked navigation or other account operations.
+      An absent account returns 404; this read never triggers automatic establishment.
     responses:
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "404":
-        $ref: ../../common/problems.yaml#/responses/404
+        $ref: ../../common/problems.yaml#/responses/NotFound
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
       "200":
         description: Current owner profile.
         headers:
@@ -72,6 +76,7 @@ Current:
               $ref: ./schemas.yaml#/AccountResponse
 Member:
   parameters:
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
     - name: accountId
       in: path
       required: true
@@ -89,26 +94,22 @@ Member:
       independently prove physical erasure at external providers.
     responses:
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "404":
-        $ref: ../../common/problems.yaml#/responses/404
+        $ref: ../../common/problems.yaml#/responses/NotFound
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "200":
         description: Current owner profile.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
           Accept-Patch:
-            description: Supported atomic profile change media type.
-            schema:
-              type: string
-              enum:
-                - multipart/form-data
+            $ref: ../../common/headers.yaml#/AcceptPatchMultipart
         content:
           application/json:
             schema:
@@ -125,28 +126,30 @@ Member:
       before an explicit retry.
     responses:
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "404":
-        $ref: ../../common/problems.yaml#/responses/404
+        $ref: ../../common/problems.yaml#/responses/NotFound
       "409":
-        $ref: ../../common/problems.yaml#/responses/409
+        $ref: ../../common/problems.yaml#/responses/Conflict
       "413":
-        $ref: ../../common/problems.yaml#/responses/413
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
       "415":
-        $ref: ../../common/problems.yaml#/responses/415
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
       "422":
-        $ref: ../../common/problems.yaml#/responses/422
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "200":
         description: Complete accepted profile.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchMultipart
         content:
           application/json:
             schema:
@@ -190,15 +193,15 @@ Member:
       404 without further external calls. Never targets a replacement account or cancels store billing.
     responses:
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "404":
-        $ref: ../../common/problems.yaml#/responses/404
+        $ref: ../../common/problems.yaml#/responses/NotFound
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "204":
         description: Account and local personal data deleted; external cleanup attempted. No response body.
         headers:
@@ -207,6 +210,7 @@ Member:
 
 Photo:
   parameters:
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
     - name: accountId
       in: path
       required: true
@@ -224,15 +228,15 @@ Photo:
       returns 404. No public profile-image access is granted.
     responses:
       "400":
-        $ref: ../../common/problems.yaml#/responses/400
+        $ref: ../../common/problems.yaml#/responses/BadRequest
       "401":
-        $ref: ../../common/problems.yaml#/responses/401
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
       "403":
-        $ref: ../../common/problems.yaml#/responses/403
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "404":
-        $ref: ../../common/problems.yaml#/responses/404
+        $ref: ../../common/problems.yaml#/responses/NotFound
       "503":
-        $ref: ../../common/problems.yaml#/responses/503
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "200":
         description: Accepted photo bytes, without original metadata.
         headers:

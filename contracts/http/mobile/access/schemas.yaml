@@ -1,0 +1,223 @@
+SettingsRevision:
+  type: integer
+  format: int64
+  minimum: 0
+  maximum: 9007199254740991
+  description:
+    Monotonic revision of one settings group, exactly representable in JavaScript. Submit the revision
+    read for that group.
+MaintenanceSettingsResponse:
+  type: object
+  description: Stored maintenance settings, visible only with maintenance-management permission.
+  additionalProperties: true
+  properties:
+    revision:
+      $ref: "#/SettingsRevision"
+    active:
+      type: boolean
+      description: Whether ordinary access is blocked by maintenance.
+    message:
+      type: string
+      minLength: 1
+      description: Plain maintenance text, trimmed and nonempty. Saving it does not activate maintenance.
+    imageUrl:
+      type: string
+      format: uri
+      nullable: true
+      description:
+        Optional controlled HTTPS image URL without credentials or personalized tracking; null removes
+        it. Display failure does not block text or retry.
+  required:
+    - revision
+    - active
+    - message
+    - imageUrl
+PublicMaintenanceResponse:
+  type: object
+  description:
+    Published maintenance state. Message and image are null when inactive; active maintenance has a nonempty
+    message.
+  additionalProperties: true
+  properties:
+    revision:
+      $ref: "#/SettingsRevision"
+    active:
+      type: boolean
+      description: Current maintenance restriction.
+    message:
+      type: string
+      nullable: true
+      description: Published plain text when active; null when inactive.
+    imageUrl:
+      type: string
+      format: uri
+      nullable: true
+      description:
+        Optional controlled HTTPS image URL without credentials or personalized tracking; null removes
+        it. Display failure does not block text or retry.
+  required:
+    - revision
+    - active
+    - message
+    - imageUrl
+ChangeMaintenanceRequest:
+  type: object
+  description:
+    Atomic content changes. Omitted fields are preserved; imageUrl null removes the image. Activation
+    is unchanged.
+  additionalProperties: false
+  properties:
+    revision:
+      $ref: "#/SettingsRevision"
+    message:
+      type: string
+      minLength: 1
+      description: Plain maintenance text, trimmed and nonempty. Saving it does not activate maintenance.
+    imageUrl:
+      type: string
+      format: uri
+      nullable: true
+      description:
+        Optional controlled HTTPS image URL without credentials or personalized tracking; null removes
+        it. Display failure does not block text or retry.
+  required:
+    - revision
+SetMaintenanceActivationRequest:
+  type: object
+  description:
+    Set the desired activation state using the current maintenance revision. This does not toggle or
+    replace content.
+  additionalProperties: false
+  properties:
+    revision:
+      $ref: "#/SettingsRevision"
+    active:
+      type: boolean
+      description: Desired activation state; true requires a usable stored message.
+  required:
+    - revision
+    - active
+PlatformVersionResponse:
+  type: object
+  description: One platform minimum and store destination. A non-null minimum requires a valid store URL.
+  additionalProperties: true
+  properties:
+    minimumVersion:
+      type: string
+      nullable: true
+      pattern: ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$
+      description: Minimum major.minor.patch, with JavaScript-safe numeric components; null means no minimum.
+      example: 2.10.0
+    storeUrl:
+      type: string
+      format: uri
+      nullable: true
+      description:
+        HTTPS Blockout link on the platform store; required when a minimum remains. Null removes an optional
+        link.
+  required:
+    - minimumVersion
+    - storeUrl
+ChangePlatformVersionRequest:
+  type: object
+  description:
+    Omitted fields remain unchanged; null removes a value. The resulting minimum requires a valid store
+    URL.
+  additionalProperties: false
+  properties:
+    minimumVersion:
+      type: string
+      nullable: true
+      pattern: ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$
+      description: Minimum major.minor.patch, with JavaScript-safe numeric components; null means no minimum.
+      example: 2.10.0
+    storeUrl:
+      type: string
+      format: uri
+      nullable: true
+      description:
+        HTTPS Blockout link on the platform store; required when a minimum remains. Null removes an optional
+        link.
+ApplicationVersionsResponse:
+  type: object
+  description: Both platform settings and one shared message, governed by a single revision.
+  additionalProperties: true
+  properties:
+    revision:
+      $ref: "#/SettingsRevision"
+    ios:
+      $ref: "#/PlatformVersionResponse"
+    android:
+      $ref: "#/PlatformVersionResponse"
+    message:
+      type: string
+      nullable: true
+      minLength: 1
+      description: Optional trimmed update message. Null uses the standard app text; blank text is rejected.
+  required:
+    - revision
+    - ios
+    - android
+    - message
+ChangeApplicationVersionsRequest:
+  type: object
+  description:
+    Atomic partial change to version settings. Omitted platforms and fields are unchanged; explicit null
+    removes optional values.
+  additionalProperties: false
+  properties:
+    revision:
+      $ref: "#/SettingsRevision"
+    ios:
+      $ref: "#/ChangePlatformVersionRequest"
+    android:
+      $ref: "#/ChangePlatformVersionRequest"
+    message:
+      type: string
+      nullable: true
+      minLength: 1
+      description: Optional trimmed update message. Null uses the standard app text; blank text is rejected.
+  required:
+    - revision
+ApplicationAccessResponse:
+  type: object
+  description:
+    Complete public configuration from one coherent database snapshot. Failure never yields permissive
+    defaults. No account or grant data.
+  additionalProperties: true
+  properties:
+    maintenance:
+      $ref: "#/PublicMaintenanceResponse"
+    versions:
+      $ref: "#/ApplicationVersionsResponse"
+  required:
+    - maintenance
+    - versions
+AccountPermissionsResponse:
+  type: object
+  description:
+    Current global action capabilities for this account. Only literal true grants a capability; absent
+    fields grant nothing. Resource conditions and server checks still apply. Additional future capabilities may
+    be ignored.
+  additionalProperties: true
+  properties:
+    manageMaintenance:
+      type: boolean
+      description: Manage maintenance content and activation; does not grant version management or personal bypass.
+    manageApplicationVersions:
+      type: boolean
+      description: Manage platform minimums, store links and the shared update message.
+    bypassMaintenance:
+      type: boolean
+      description:
+        May explicitly bypass maintenance personally, without a minimum-version exception or additional
+        business right.
+    manageSportingPresentation:
+      type: boolean
+      description: Manage sporting presentation and authorized club contact corrections, subject to resource rules.
+    manageSportingClassification:
+      type: boolean
+      description: Manage sporting acquisition classification, subject to resource rules.
+    manageDivisionLifecycle:
+      type: boolean
+      description: Manage division creation and activity, subject to resource rules.
