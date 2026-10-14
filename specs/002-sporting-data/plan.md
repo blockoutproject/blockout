@@ -79,6 +79,8 @@ Current manual classification changes cannot be overwritten by the cycle's start
 
 The [data model](data-model.md#results-and-temporal-precision) defines result/set compatibility, independent freshness and unresolved dates. Apply these rules before accepting a match transition.
 
+Qualified match documents use the same per-match acceptance/order rules. The [F03 plan](../007-sporting-consultation/plan.md#maps-and-documents) introduces only the document-reference exception to professional acquisition and the public read boundary; no PDF bytes, competing sporting authority or additional collection process are retained.
+
 The score, F07 required internal inbox updates and minimal processed-announcement facts share one database transaction. F07 failure rolls back that match; it cannot roll back other matches. Under the same match lock, F07 reads the current F08 public link to fix result/replay composition. Initial imports suppress announcements, and corrections do not recreate consumed or purged announcements. Push happens after commit with ordinary best-effort delivery; no durable outbox or retry queue.
 
 ## Presentation, administration and locality

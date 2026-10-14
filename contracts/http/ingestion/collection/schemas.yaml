@@ -373,11 +373,7 @@ RecordCollectionResultInternalRequest:
     phase:
       $ref: ../../common/collection-enums.yaml#/CollectionPhaseEnum
     readOrdinal:
-      type: integer
-      format: int64
-      minimum: 1
-      maximum: 9007199254740991
-      description: Assigned before the supplier read; integration keeps that read ordinal.
+      $ref: ../../common/scalars.yaml#/CollectionReadOrdinal
     observedAt:
       type: string
       description: Actual observation completion time.
@@ -417,12 +413,12 @@ CompleteCollectionCycleInternalRequest:
     Identical terminal repetition is a no-op; contradictions conflict.
   additionalProperties: false
   properties:
-    finishedAt:
+    completedAt:
       type: string
       description: Actual end of selected work.
       format: date-time
   required:
-    - finishedAt
+    - completedAt
 SubmitSourceValidationInternalRequest:
   type: object
   description:
@@ -484,11 +480,7 @@ ObserveSeasonSourceInternalRequest:
       description: Current collector startup.
       format: uuid
     startYear:
-      type: integer
-      format: int64
-      minimum: 1900
-      maximum: 9007199254740991
-      description: Qualified sporting start year, never derived solely from a provider ID.
+      $ref: ../../common/scalars.yaml#/SportingStartYear
     provider:
       $ref: ../../common/collection-enums.yaml#/CollectionProviderEnum
     organizerReference:

@@ -25,8 +25,8 @@ schemas:
 responses:
   AccessUnavailable:
     description:
-      Maintenance refusal with current published maintenance, or ordinary service unavailability. Distinguish
-      by problem type; this response never grants admission.
+      Maintenance refusal with current published maintenance (urn:blockout:problem:maintenance), or
+      ordinary service unavailability (urn:blockout:problem:unavailable). This response never grants admission.
     headers:
       Cache-Control:
         $ref: ../../common/headers.yaml#/NoStore

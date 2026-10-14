@@ -19,11 +19,7 @@ CollectionSeasonResponse:
       type: string
       description: Canonical season label, also used for exact closure confirmation.
     startYear:
-      type: integer
-      format: int64
-      minimum: 1900
-      maximum: 9007199254740991
-      description: Qualified sporting start year.
+      $ref: ../../common/scalars.yaml#/SportingStartYear
     revision:
       $ref: "#/CollectionRevision"
     state:
@@ -173,13 +169,13 @@ SetSourceCandidateRequest:
   properties:
     revision:
       $ref: "#/CollectionRevision"
-    url:
+    candidateUrl:
       type: string
       description: Supported official candidate URL without credentials.
       format: uri
   required:
     - revision
-    - url
+    - candidateUrl
 RequestSourceValidationRequest:
   type: object
   description:

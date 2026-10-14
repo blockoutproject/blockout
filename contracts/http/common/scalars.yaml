@@ -1,0 +1,12 @@
+SportingStartYear:
+  type: integer
+  format: int64
+  minimum: 1900
+  maximum: 9007199254740991
+  description: Sporting season start year, independent of postponed match dates.
+CollectionReadOrdinal:
+  type: integer
+  format: int64
+  minimum: 1
+  maximum: 9007199254740991
+  description: Increasing ordinal allocated before a provider read within one cycle; retained for its integration result.
