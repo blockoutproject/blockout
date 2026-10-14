@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Reassessed on 2026-10-12. FR-003/FR-007/FR-017 and SC-002 deliberately retain the approved RevenueCat SDK/cache and provider-managed UI constraints. Implementation-independence and technology-agnostic success criteria remain unchecked. The owning native plan must account for these accepted constraints and qualify provider behavior; this checklist grants no new architecture or design approval.
+- FR-003/FR-007/FR-017 and SC-002 deliberately retain the approved RevenueCat SDK/cache and provider-managed UI constraints. Implementation-independence and technology-agnostic success criteria remain unchecked. The [native plan](../plan.md) accounts for these constraints and identifies future provider qualifications; the revised guest invitation still requires prototype and Figma approval; this checklist grants no new architecture or design approval.
