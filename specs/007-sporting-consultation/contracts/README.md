@@ -23,6 +23,6 @@ JSON responses tolerate additive properties while validating known fields; omitt
 
 ## Compatibility and qualification
 
-The additions preserve existing administration and ingestion routes. Optional enrichment fields do not change absence reconciliation, source authority or result ownership. Shared scalar definitions and vocabulary apply across administration, collection and consultation. Update backend interfaces, Java collector client and Orval mobile outputs together from the canonical roots, using F13's existing Redocly → generation chain.
+The additions preserve existing administration and ingestion routes. Optional enrichment fields do not change absence reconciliation, source authority or result ownership. Shared scalar definitions and vocabulary apply across administration, collection and consultation; public contacts use `website` consistently with collection and administration. These authored contracts have no deployed consumers, so no compatibility alias is needed. Update backend interfaces, Java collector client and Orval mobile outputs together from the canonical roots, using F13's existing Redocly → generation chain.
 
 Check enums, date/date-time preservation, optional values, error responses, binary handling and deterministic regeneration in active consumers. Lint/bundle success establishes source structure only; generated Java/TypeScript compilation and native download/rendering remain future qualification under [quickstart.md](../quickstart.md).

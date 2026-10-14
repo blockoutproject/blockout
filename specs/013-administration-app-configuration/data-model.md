@@ -10,7 +10,7 @@ Manual assignment/revocation locks the target account in a short transaction bef
 
 ## Permission projection
 
-Extend the canonical F05 `AccountResponse` with a required `permissions` object of named boolean capabilities. Current fields cover `manageMaintenance`, `manageApplicationVersions`, `bypassMaintenance`, `manageSportingPresentation`, `manageSportingClassification`, `manageDivisionLifecycle` and `manageCollection`. They express current grants, not unconditional eligibility for every domain resource. No generic `isAdmin` or owner flag is returned.
+Extend the canonical F05 `AccountResponse` with a required `permissions` object of named boolean capabilities. Current fields cover `manageMaintenance`, `manageApplicationVersions`, `bypassMaintenance`, `manageSportingPresentation`, `manageSportingClassification`, `manageDivisionLifecycle` and `manageCollection`. They express current grants, not unconditional eligibility for every domain resource. The [canonical permission projection](../../contracts/http/mobile/access/schemas.yaml) includes division presentation under sporting presentation, while division lifecycle covers creation and activity. No separate division-management grant, generic `isAdmin` or owner flag is returned.
 
 Properties are optional and absence means no capability. Responses tolerate additional properties, so a future action does not make the entire account unreadable for an older app. The server emits the known capability values; the client accepts only literal true as a positive grant. Future owners add fields and backend mappings together; no dynamic client evaluator or permission-schema registry is introduced.
 

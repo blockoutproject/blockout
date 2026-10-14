@@ -48,7 +48,10 @@ ObservationOutcomeInternalResponse:
       format: uuid
     reasonType:
       type: string
-      description: Stable machine problem type for a refusal or stale observation.
+      description: >-
+        Stable problem type for a refusal, using the shared error categories.
+        urn:blockout:problem:stale-observation identifies an observation older than accepted state.
+        This is an item outcome, not an HTTP failure of the whole submission.
       format: uri
     homeTeamId:
       type: string

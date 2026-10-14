@@ -208,7 +208,7 @@ AccountPermissionsResponse:
         business right.
     manageSportingPresentation:
       type: boolean
-      description: Manage sporting presentation and authorized club contact corrections, subject to resource rules.
+      description: Manage club, team, pool and division presentation and authorized club contact corrections, subject to resource rules.
     manageSportingClassification:
       type: boolean
       description: Manage sporting acquisition classification, subject to resource rules.

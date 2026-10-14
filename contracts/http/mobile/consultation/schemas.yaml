@@ -151,7 +151,7 @@ SportingContactsResponse:
     phone:
       type: string
       description: Permitted telephone destination.
-    websiteUrl:
+    website:
       type: string
       description: Usable public HTTP(S) website without credentials.
       format: uri

@@ -25,7 +25,8 @@ schemas:
         description: Safe explanation without secrets, personal contact values or raw supplier data.
       instance:
         type: string
-        description: Optional opaque occurrence reference; no sensitive URL or internal topology.
+        description: Optional URI reference identifying this occurrence; opaque to clients, without sensitive URLs or internal topology.
+        format: uri-reference
       conflictingResourceIds:
         type: array
         description: >-
@@ -41,7 +42,7 @@ schemas:
       - status
 responses:
   BadRequest:
-    description: Malformed or invalid request; no write.
+    description: Malformed or invalid request (urn:blockout:problem:invalid-request); no write.
     headers:
       Cache-Control:
         $ref: ./headers.yaml#/NoStore
@@ -50,7 +51,9 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   Unauthorized:
-    description: Missing or invalid token, including expiration or an unexpected issuer or audience; no write.
+    description: >-
+      Missing or invalid token, including expiration or an unexpected issuer or audience
+      (urn:blockout:problem:unauthenticated); no write.
     headers:
       WWW-Authenticate:
         $ref: ./headers.yaml#/BearerChallenge
@@ -61,7 +64,9 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   Forbidden:
-    description: Authenticated caller lacks the required client authorization, scope or business permission; no write.
+    description: >-
+      Authenticated caller lacks the required client authorization, scope or business permission
+      (urn:blockout:problem:forbidden); no write.
     headers:
       Cache-Control:
         $ref: ./headers.yaml#/NoStore
@@ -70,7 +75,7 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   NotFound:
-    description: Unknown or deliberately unavailable resource.
+    description: Unknown or deliberately unavailable resource (urn:blockout:problem:not-found).
     headers:
       Cache-Control:
         $ref: ./headers.yaml#/NoStore
@@ -79,9 +84,13 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   Conflict:
-    description:
-      Duplicate value, stale revision, incompatible classification or invalid current lifecycle context; no
-      command effects.
+    description: >-
+      Conflict with current state (urn:blockout:problem:conflict); no command effects.
+      Specific types distinguish a stale editing revision (urn:blockout:problem:stale-revision),
+      an invalid acquisition cycle context (urn:blockout:problem:invalid-cycle-context),
+      conflicting sporting identities (urn:blockout:problem:identity-conflict), incompatible
+      classification (urn:blockout:problem:classification-conflict), or an already-used username
+      (urn:blockout:problem:username-unavailable), where applicable to the operation.
     headers:
       Cache-Control:
         $ref: ./headers.yaml#/NoStore
@@ -90,7 +99,7 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   ContentTooLarge:
-    description: Request or image exceeds the documented bound; no write.
+    description: Request or image exceeds the documented bound (urn:blockout:problem:payload-too-large); no write.
     headers:
       Cache-Control:
         $ref: ./headers.yaml#/NoStore
@@ -99,7 +108,7 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   UnsupportedMediaType:
-    description: Unsupported request or image media type; no write.
+    description: Unsupported request or image media type (urn:blockout:problem:unsupported-media-type); no write.
     headers:
       Cache-Control:
         $ref: ./headers.yaml#/NoStore
@@ -108,7 +117,12 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   UnprocessableContent:
-    description: Readable request with rejected business or image content; no command effects.
+    description: >-
+      Readable request with rejected business content (urn:blockout:problem:unprocessable-content);
+      no command effects. Specific types distinguish invalid image content
+      (urn:blockout:problem:invalid-image), an invalid sporting observation
+      (urn:blockout:problem:invalid-observation), or missing usable provider email when creating an
+      account (urn:blockout:problem:provider-email-unavailable), where applicable to the operation.
     headers:
       Cache-Control:
         $ref: ./headers.yaml#/NoStore
@@ -118,7 +132,7 @@ responses:
           $ref: "#/schemas/ProblemResponse"
   ServiceUnavailable:
     description: >-
-      Processing unavailable. An interrupted mutation may have committed; mobile clients read
+      Processing unavailable (urn:blockout:problem:unavailable). An interrupted mutation may have committed; mobile clients read
       current state before retrying, while ingestion resumes through the next ordinary collection.
     headers:
       Cache-Control:
