@@ -19,14 +19,12 @@ MaintenanceSettingsResponse:
     message:
       type: string
       minLength: 1
-      description: Plain maintenance text, trimmed and nonempty. Saving it does not activate maintenance.
+      description: Stored plain maintenance text, trimmed and nonempty.
     imageUrl:
       type: string
       format: uri
       nullable: true
-      description:
-        Optional controlled HTTPS image URL without credentials or personalized tracking; null removes
-        it. Display failure does not block text or retry.
+      description: Optional controlled HTTPS image URL without credentials or personalized tracking; null means no stored image. Display failure does not block text or retry.
   required:
     - revision
     - active
@@ -52,9 +50,7 @@ PublicMaintenanceResponse:
       type: string
       format: uri
       nullable: true
-      description:
-        Optional controlled HTTPS image URL without credentials or personalized tracking; null removes
-        it. Display failure does not block text or retry.
+      description: Optional controlled HTTPS image URL without credentials or personalized tracking; null means no published image. Display failure does not block text or retry.
   required:
     - revision
     - active
@@ -112,9 +108,7 @@ PlatformVersionResponse:
       type: string
       format: uri
       nullable: true
-      description:
-        HTTPS Blockout link on the platform store; required when a minimum remains. Null removes an optional
-        link.
+      description: HTTPS Blockout link on the platform store; present when a minimum is configured; null means no store link.
   required:
     - minimumVersion
     - storeUrl
@@ -153,7 +147,7 @@ ApplicationVersionsResponse:
       type: string
       nullable: true
       minLength: 1
-      description: Optional trimmed update message. Null uses the standard app text; blank text is rejected.
+      description: Optional trimmed update message. Null means the standard app text applies.
   required:
     - revision
     - ios

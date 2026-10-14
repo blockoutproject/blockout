@@ -43,7 +43,7 @@ Club:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 ClubTeams:
   get:
-    operationId: getClubTeams
+    operationId: listClubTeams
     tags:
       - Sporting
     summary: Read teams in a club season
@@ -222,7 +222,7 @@ Standings:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 Participants:
   get:
-    operationId: getPoolParticipants
+    operationId: listPoolParticipants
     tags:
       - Sporting
     summary: Read pool participants
@@ -265,7 +265,7 @@ Participants:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 Matches:
   get:
-    operationId: getMatches
+    operationId: listMatches
     tags:
       - Sporting
     summary: Read a sporting calendar

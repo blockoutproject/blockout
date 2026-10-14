@@ -1,0 +1,415 @@
+CatalogObservations:
+  post:
+    operationId: observeSportingCatalog
+    tags:
+      - Sporting
+    summary: Accept qualified catalog discovery
+    description: >-
+      Accepts pool references atomically within the authorized source-season binding. An invalid or
+      unauthorized entry refuses the whole catalog without changes. Only a complete current catalog
+      may reconcile absence; partial discovery preserves unobserved references. Absence never
+      withdraws pools from another season. Results follow the input pool order, including duplicates.
+    responses:
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "200":
+        description: >-
+          Catalog outcomes in input order. All changes commit together; a stale catalog changes nothing.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas.yaml#/CatalogOutcomeInternalResponse"
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: sourceBindingId
+        in: path
+        required: true
+        description: Backend identity in the authorized cycle scope.
+        schema:
+          type: string
+          description: Backend identity in the authorized cycle scope.
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/CatalogObservationInternalRequest"
+CalendarObservations:
+  post:
+    operationId: observePoolCalendar
+    tags:
+      - Sporting
+    summary: Integrate a bounded calendar
+    description: >-
+      Processes each match independently, rechecking its authorized scope before writing, and returns
+      per-match outcomes. An item refusal preserves earlier commits. An accepted score and its
+      required internal notification updates succeed together. Only a complete, current calendar
+      with every match successfully processed may reconcile absence. Older match observations are
+      ignored in full. A timeout may leave some matches committed; use the next ordinary collection
+      instead of automatically replaying the request.
+    responses:
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "200":
+        description: >-
+          Calendar processing outcomes; HTTP success does not mean every match was accepted.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas.yaml#/CalendarOutcomeInternalResponse"
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: poolId
+        in: path
+        required: true
+        description: Backend identity in the authorized cycle scope.
+        schema:
+          type: string
+          description: Backend identity in the authorized cycle scope.
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/CalendarObservationInternalRequest"
+MatchDetailObservations:
+  post:
+    operationId: observeMatchDetail
+    tags:
+      - Sporting
+    summary: Accept known-match detail
+    description: >-
+      Updates an already-known match using the same logical observation order as calendars, without
+      page-specific priority. Does not create matches or teams or restore calendar presence. The
+      accepted result and required internal notification updates succeed together.
+    responses:
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "200":
+        description: >-
+          Processing outcome for the submitted observation; inspect outcome to distinguish
+          acceptance, no change, stale input and rejection.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas.yaml#/ObservationOutcomeInternalResponse"
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: matchId
+        in: path
+        required: true
+        description: Backend identity in the authorized cycle scope.
+        schema:
+          type: string
+          description: Backend identity in the authorized cycle scope.
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/MatchDetailObservationInternalRequest"
+StandingsObservations:
+  post:
+    operationId: observePoolStandings
+    tags:
+      - Sporting
+    summary: Replace a usable official table
+    description:
+      Replace the table atomically, preserving source order and unmatched rows. Never create
+      sporting identities from standings.
+    responses:
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "200":
+        description: >-
+          Processing outcome for the submitted observation; inspect outcome to distinguish
+          acceptance, no change, stale input and rejection.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas.yaml#/ObservationOutcomeInternalResponse"
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: poolId
+        in: path
+        required: true
+        description: Backend identity in the authorized cycle scope.
+        schema:
+          type: string
+          description: Backend identity in the authorized cycle scope.
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/StandingsObservationInternalRequest"
+ClubDetailObservations:
+  post:
+    operationId: observeClubDetails
+    tags:
+      - Sporting
+    summary: Accept permitted club page details
+    description:
+      Known clubs only; source fields are independent of manual/hidden modes. Page failure
+      establishes no withdrawal.
+    responses:
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "200":
+        description: >-
+          Processing outcome for the submitted observation; inspect outcome to distinguish
+          acceptance, no change, stale input and rejection.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas.yaml#/ObservationOutcomeInternalResponse"
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: clubId
+        in: path
+        required: true
+        description: Backend identity in the authorized cycle scope.
+        schema:
+          type: string
+          description: Backend identity in the authorized cycle scope.
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/ClubDetailsInternalRequest"
+ClubLocalityObservations:
+  post:
+    operationId: observeClubLocality
+    tags:
+      - Sporting
+    summary: Accept current locality evidence
+    description:
+      Accept only the effective locality revision. Empty/ambiguous stays unresolved; located
+      requires both coordinates and forbids ambiguity. Technical failure does not erase a valid point.
+    responses:
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "200":
+        description: >-
+          Processing outcome for the submitted observation; inspect outcome to distinguish
+          acceptance, no change, stale input and rejection.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas.yaml#/ObservationOutcomeInternalResponse"
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: clubId
+        in: path
+        required: true
+        description: Backend identity in the authorized cycle scope.
+        schema:
+          type: string
+          description: Backend identity in the authorized cycle scope.
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "./schemas.yaml#/ClubLocalityObservationInternalRequest"
+TeamLogoObservations:
+  post:
+    operationId: observeProfessionalTeamLogo
+    tags:
+      - Sporting
+    summary: Accept an LNV logo
+    description:
+      Professional team in the authorized existing calendar cycle only. Validate actual PNG/JPEG
+      bytes and decodability, at most 5242880 bytes. Image failure is independent of match acceptance.
+      Retain only latest valid source image; manual logo and optional club relation are never modified.
+    responses:
+      "200":
+        description: >-
+          Processing outcome for the submitted observation; inspect outcome to distinguish
+          acceptance, no change, stale input and rejection.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: "./schemas.yaml#/ObservationOutcomeInternalResponse"
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
+    parameters:
+      - name: teamId
+        in: path
+        required: true
+        description: Known professional team.
+        schema:
+          type: string
+          description: Known professional team.
+          format: uuid
+      - name: cycleId
+        in: query
+        required: true
+        description: >-
+          Existing authorized collection cycle.
+        schema:
+          type: string
+          description: Cycle identity.
+          format: uuid
+      - name: readOrdinal
+        in: query
+        required: true
+        description: Ordinal allocated before reading this logo.
+        schema:
+          $ref: ../../common/scalars.yaml#/CollectionReadOrdinal
+      - name: observedAt
+        in: query
+        required: true
+        description: UTC observation completion time.
+        schema:
+          type: string
+          description: Freshness only.
+          format: date-time
+    requestBody:
+      required: true
+      description: Actual image bytes; no URL fetching or base64 calendar payload.
+      content:
+        image/png:
+          schema:
+            type: string
+            format: binary
+            description: PNG/JPEG bytes, at most 5 MiB.
+        image/jpeg:
+          schema:
+            type: string
+            format: binary
+            description: PNG/JPEG bytes, at most 5 MiB.

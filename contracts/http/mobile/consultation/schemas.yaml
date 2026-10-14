@@ -14,11 +14,11 @@ MatchDocumentKindEnum:
 StandingsAvailabilityEnum:
   type: string
   description:
-    Available includes a usable retained table; notPublished is qualified absence, unavailable means
+    Available includes a usable retained table; not-published is qualified absence, unavailable means
     no usable table.
   enum:
     - available
-    - notPublished
+    - not-published
     - unavailable
 SportingSeasonResponse:
   type: object
@@ -33,9 +33,7 @@ SportingSeasonResponse:
       type: string
       description: Canonical display label.
     startYear:
-      type: integer
-      description: Sporting start year.
-      minimum: 1900
+      $ref: ../../common/scalars.yaml#/SportingStartYear
   required:
     - id
     - label
@@ -78,17 +76,25 @@ SportingDivisionResponse:
       type: string
       description: Backend image resource; omitted when unavailable.
       format: uri-reference
-    primaryColor:
+    color:
       type: string
-      description: Accepted primary sRGB color; omitted when unavailable.
+      description: Accepted division sRGB color.
       pattern: ^#[0-9A-Fa-f]{6}$
-    secondaryColor:
-      type: string
-      description: Accepted secondary sRGB color; omitted when unavailable.
-      pattern: ^#[0-9A-Fa-f]{6}$
+    gradient:
+      type: array
+      description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
+      nullable: true
+      minItems: 3
+      maxItems: 3
+      items:
+        type: string
+        description: sRGB hexadecimal color.
+        pattern: ^#[0-9A-Fa-f]{6}$
   required:
     - id
     - name
+    - color
+    - gradient
 SportingClassificationResponse:
   type: object
   description: Available accepted classification; absent members remain unknown.

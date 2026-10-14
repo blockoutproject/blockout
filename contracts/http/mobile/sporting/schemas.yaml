@@ -1,0 +1,544 @@
+SportingResourceKindEnum:
+  type: string
+  description: >-
+    Club and team resources with presentation editors.
+  enum:
+    - club
+    - team
+ContactModeEnum:
+  type: string
+  description: Independent durable management mode for one field.
+  enum:
+    - source
+    - manual
+    - hidden
+SetClassificationRequest:
+  type: object
+  description:
+    Desired pack default or complete pool override; null removes that setting. This is
+    a scoped atomic correction, not a list of partial pool patches.
+  additionalProperties: false
+  properties:
+    revision:
+      type: string
+      description: Current editing revision from the same resource GET.
+      minLength: 1
+    classification:
+      type: object
+      description: >-
+        Null removes this pack default or pool override. A pool then inherits its pack default, if
+        any. Missing acquisition classification does not erase the classification of published
+        data.
+      additionalProperties: false
+      properties:
+        divisionId:
+          type: string
+          description: Active division for a new assignment.
+          format: uuid
+        format:
+          $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+        gender:
+          $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+      required:
+        - divisionId
+        - format
+        - gender
+      nullable: true
+  required:
+    - revision
+    - classification
+ClassificationDetailResponse:
+  type: object
+  description: >-
+    Current pack or pool setting, effective acquisition classification and editing revision. The
+    effective value governs collection; it does not describe the retained classification of
+    already published sporting data.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Pack or pool identity.
+      format: uuid
+    revision:
+      type: string
+      description: Opaque revision covering relevant state and inherited values.
+    setting:
+      type: object
+      description: Own pack default or pool override; null means no own setting.
+      additionalProperties: true
+      properties:
+        divisionId:
+          type: string
+          description: Division identity.
+          format: uuid
+        format:
+          $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+        gender:
+          $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+      required:
+        - divisionId
+        - format
+        - gender
+      nullable: true
+    effective:
+      type: object
+      description:
+        Current acquisition classification after inheritance; null means collection cannot
+        start.
+      additionalProperties: true
+      properties:
+        divisionId:
+          type: string
+          description: Division identity.
+          format: uuid
+        format:
+          $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+        gender:
+          $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+      required:
+        - divisionId
+        - format
+        - gender
+      nullable: true
+  required:
+    - id
+    - revision
+    - setting
+    - effective
+NamePresentationResponse:
+  type: object
+  description:
+    Names independent of identity. Effective values include eligible source and manual
+    precedence.
+  additionalProperties: true
+  properties:
+    sourceName:
+      type: string
+      description: Current attributable source label.
+      nullable: true
+    effectiveName:
+      type: string
+      description: Current display name.
+    manualName:
+      type: string
+      description: Current full/display name customization; null means the automatic name applies.
+      nullable: true
+    effectiveShortName:
+      type: string
+      description: Team/pool short name if available; omitted for a club.
+    manualShortName:
+      type: string
+      description:
+        Independent team/pool short customization; null means the automatic name applies; omitted for
+        a club.
+      nullable: true
+  required:
+    - sourceName
+    - effectiveName
+    - manualName
+LogoPresentationResponse:
+  type: object
+  description:
+    Effective artwork projection. URLs designate backend-controlled image delivery subject
+    to current access rules; provider URLs are not public proxies.
+  additionalProperties: true
+  properties:
+    effectiveUrl:
+      type: string
+      description: Resolved valid image URL; null represents the ordinary missing-artwork state.
+      format: uri-reference
+      nullable: true
+    manualUrl:
+      type: string
+      description: Current manual image, if any.
+      format: uri-reference
+      nullable: true
+    automaticUrl:
+      type: string
+      description: >-
+        Current team fallback, independent of manual artwork: LNV then the associated club for
+        professionals, or the club for other teams. Null for a club, a division or when no fallback is
+        available.
+      format: uri-reference
+      nullable: true
+  required:
+    - effectiveUrl
+    - manualUrl
+    - automaticUrl
+SportingPresentationResponse:
+  type: object
+  description: >-
+    Club or team names, effective and manual logo values, and editing revision. Team club
+    associations are not editable through this projection.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable resource identity.
+      format: uuid
+    kind:
+      $ref: "#/SportingResourceKindEnum"
+    revision:
+      type: string
+      description:
+        Opaque current editing revision, changed by relevant state changes, not freshness-only
+        refreshes.
+    names:
+      $ref: "#/NamePresentationResponse"
+    logo:
+      $ref: "#/LogoPresentationResponse"
+  required:
+    - id
+    - kind
+    - revision
+    - names
+    - logo
+SetClubPresentationRequest:
+  type: object
+  description: Set the manual club display name and logo action; source values, contacts and identity remain unchanged.
+  additionalProperties: false
+  properties:
+    revision:
+      type: string
+      description: Current editing revision.
+      minLength: 1
+    manualName:
+      type: string
+      description:
+        Null restores the current automatic name. Empty string is invalid; whitespace-only
+        input is rejected.
+      nullable: true
+      minLength: 1
+    logoAction:
+      $ref: "#/LogoActionEnum"
+  required:
+    - revision
+    - manualName
+    - logoAction
+SetTeamPresentationRequest:
+  type: object
+  description:
+    Set independent team name customizations and the manual logo action. Clearing one field
+    never implicitly clears another.
+  additionalProperties: false
+  properties:
+    revision:
+      type: string
+      description: Current editing revision.
+      minLength: 1
+    manualName:
+      type: string
+      description: Null restores current automatic full name; empty/whitespace-only is invalid.
+      nullable: true
+      minLength: 1
+    manualShortName:
+      type: string
+      description: Null restores current automatic short name; empty/whitespace-only is invalid.
+      nullable: true
+      minLength: 1
+    logoAction:
+      $ref: "#/LogoActionEnum"
+  required:
+    - revision
+    - manualName
+    - manualShortName
+    - logoAction
+SetPoolPresentationRequest:
+  type: object
+  description: Set independent pool full/short name customizations; no image or logo action.
+  additionalProperties: false
+  properties:
+    revision:
+      type: string
+      description: Current editing revision.
+      minLength: 1
+    manualName:
+      type: string
+      description: Null restores current automatic full name; empty/whitespace-only is invalid.
+      nullable: true
+      minLength: 1
+    manualShortName:
+      type: string
+      description: Null restores current automatic short name; empty/whitespace-only is invalid.
+      nullable: true
+      minLength: 1
+  required:
+    - revision
+    - manualName
+    - manualShortName
+PoolPresentationResponse:
+  type: object
+  description: Current pool name presentation and editing revision.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable resource identity.
+      format: uuid
+    revision:
+      type: string
+      description:
+        Opaque current editing revision, changed by relevant state changes, not freshness-only
+        refreshes.
+    names:
+      $ref: "#/NamePresentationResponse"
+  required:
+    - id
+    - revision
+    - names
+ContactFieldRequest:
+  type: object
+  description:
+    One desired contact mode. value is required and nonempty only for manual; forbidden
+    for source or hidden. No history of former values.
+  additionalProperties: false
+  properties:
+    mode:
+      $ref: "#/ContactModeEnum"
+    value:
+      type: string
+      description: Manual value validated for this field and current privacy rules.
+      minLength: 1
+  required:
+    - mode
+ContactFieldResponse:
+  type: object
+  description:
+    Authorized current value and management mode. Privacy-restricted values remain null
+    even in manual mode.
+  additionalProperties: true
+  properties:
+    mode:
+      $ref: "#/ContactModeEnum"
+    effectiveValue:
+      type: string
+      description: Currently permitted value; null means absent.
+      nullable: true
+    sourceValue:
+      type: string
+      description: Currently eligible source value; null means absent/restricted.
+      nullable: true
+    manualValue:
+      type: string
+      description: Currently eligible manual value; null outside manual mode or when restricted.
+      nullable: true
+  required:
+    - mode
+    - effectiveValue
+    - sourceValue
+    - manualValue
+SetClubContactsRequest:
+  type: object
+  description:
+    Set desired state only for supplied fields. Omitted fields are unchanged. At least
+    one field is required alongside revision. This application/json change document replaces
+    each supplied field mode atomically; it is not JSON Merge Patch or JSON Patch. Null field
+    objects are invalid; use source or hidden mode instead.
+  additionalProperties: false
+  properties:
+    revision:
+      type: string
+      description: Current club contacts editing revision.
+      minLength: 1
+    address:
+      $ref: "#/ContactFieldRequest"
+    city:
+      $ref: "#/ContactFieldRequest"
+    postalCode:
+      $ref: "#/ContactFieldRequest"
+    email:
+      $ref: "#/ContactFieldRequest"
+    phone:
+      $ref: "#/ContactFieldRequest"
+    website:
+      $ref: "#/ContactFieldRequest"
+  required:
+    - revision
+ClubContactsResponse:
+  type: object
+  description: Current independently managed club contacts; no personal data in error details or diagnostics.
+  additionalProperties: true
+  properties:
+    clubId:
+      type: string
+      description: Stable club identity.
+      format: uuid
+    revision:
+      type: string
+      description: Opaque contact editing revision.
+    address:
+      $ref: "#/ContactFieldResponse"
+    city:
+      $ref: "#/ContactFieldResponse"
+    postalCode:
+      $ref: "#/ContactFieldResponse"
+    email:
+      $ref: "#/ContactFieldResponse"
+    phone:
+      $ref: "#/ContactFieldResponse"
+    website:
+      $ref: "#/ContactFieldResponse"
+  required:
+    - clubId
+    - revision
+    - address
+    - city
+    - postalCode
+    - email
+    - phone
+    - website
+CreateDivisionRequest:
+  type: object
+  description: >-
+    Name, colors and logo action used when creating an active division.
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+      description: Nonempty display name, unique ignoring case.
+      minLength: 1
+    color:
+      type: string
+      description: sRGB hexadecimal color.
+      pattern: ^#[0-9A-Fa-f]{6}$
+      example: "#F0AA00"
+    gradient:
+      type: array
+      description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
+      items:
+        type: string
+        description: sRGB hexadecimal color.
+        pattern: ^#[0-9A-Fa-f]{6}$
+        example: "#F0AA00"
+      minItems: 3
+      maxItems: 3
+      nullable: true
+    logoAction:
+      $ref: "#/LogoActionEnum"
+  required:
+    - name
+    - color
+    - gradient
+    - logoAction
+SetDivisionPresentationRequest:
+  type: object
+  description: >-
+    Division name, colors and logo action with the current editing revision; activity remains
+    unchanged.
+  additionalProperties: false
+  properties:
+    revision:
+      type: string
+      description: Current division editing revision.
+      minLength: 1
+    name:
+      type: string
+      description: Nonempty display name, unique ignoring case.
+      minLength: 1
+    color:
+      type: string
+      description: sRGB hexadecimal color.
+      pattern: ^#[0-9A-Fa-f]{6}$
+      example: "#F0AA00"
+    gradient:
+      type: array
+      description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
+      items:
+        type: string
+        description: sRGB hexadecimal color.
+        pattern: ^#[0-9A-Fa-f]{6}$
+        example: "#F0AA00"
+      minItems: 3
+      maxItems: 3
+      nullable: true
+    logoAction:
+      $ref: "#/LogoActionEnum"
+  required:
+    - revision
+    - name
+    - color
+    - gradient
+    - logoAction
+DivisionResponse:
+  type: object
+  description: Division identity, presentation and independent lifecycle.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable division identity.
+      format: uuid
+    revision:
+      type: string
+      description: Current editing revision.
+    name:
+      type: string
+      description: Nonempty display name, unique ignoring case.
+      minLength: 1
+    color:
+      type: string
+      description: sRGB hexadecimal color.
+      pattern: ^#[0-9A-Fa-f]{6}$
+      example: "#F0AA00"
+    gradient:
+      type: array
+      description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
+      items:
+        type: string
+        description: sRGB hexadecimal color.
+        pattern: ^#[0-9A-Fa-f]{6}$
+        example: "#F0AA00"
+      minItems: 3
+      maxItems: 3
+      nullable: true
+    logo:
+      $ref: "#/LogoPresentationResponse"
+    active:
+      type: boolean
+      description: Explicit lifecycle state; presentation writes never change it.
+  required:
+    - id
+    - revision
+    - name
+    - color
+    - gradient
+    - logo
+    - active
+DivisionListResponse:
+  type: object
+  description:
+    Administrative selection list; all matching configured divisions, ordered by case-folded
+    name then UUID. No pagination is needed for this configuration list.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Divisions matching includeInactive.
+      items:
+        $ref: "#/DivisionResponse"
+  required:
+    - items
+SetDivisionActivityRequest:
+  type: object
+  description: Explicit lifecycle command separate from presentation. Never deletes sporting history.
+  additionalProperties: false
+  properties:
+    revision:
+      type: string
+      description: Current division revision.
+      minLength: 1
+    active:
+      type: boolean
+      description:
+        Desired activity; lifting inactivity leaves independent hiding/eligibility reasons
+        intact.
+  required:
+    - revision
+    - active
+LogoActionEnum:
+  type: string
+  description: Desired logo behavior within the single editor save.
+  enum:
+    - keep
+    - replace
+    - automatic
