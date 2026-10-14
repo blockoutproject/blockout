@@ -31,4 +31,4 @@
 
 ## Notes
 
-- FR-003/FR-007/FR-017 and SC-002 deliberately retain the approved RevenueCat SDK/cache and provider-managed UI constraints. Implementation-independence and technology-agnostic success criteria remain unchecked. The [native plan](../plan.md) accounts for these constraints and identifies future provider qualifications; prototype `6858562` is approved and the translated guest invitation still requires Figma approval. This checklist grants no new architecture or design approval.
+- FR-003/FR-007/FR-017 and SC-002 deliberately retain the approved RevenueCat SDK/cache and provider-managed UI constraints. Implementation-independence and technology-agnostic success criteria remain unchecked. The [native plan](../plan.md) accounts for these constraints and identifies future provider qualifications; prototype `6858562` and its Figma translation are approved within the scope recorded in the specification. This checklist grants no new architecture or design approval.

@@ -4,7 +4,7 @@
 
 **Input**: [#48](https://github.com/blockoutproject/blockout/issues/48), the approved [F13 foundation](../003-shared-quality/plan.md), [F05 account lifecycle](../005-accounts-identity/plan.md) and [F11 advertising](../004-advertising-privacy-legal/plan.md).
 
-**Status**: Draft pending separate Figma approval of the guest Pro invitation. Prototype revision `6858562` is approved and its Figma translation is ready for review. The agreed technical decisions below authorize no production implementation or provider configuration.
+**Status**: Prepared for PR review. The guest-entry prototype and Figma translation are explicitly approved; see [design evidence](spec.md#assumptions-and-dependencies). This dossier authorizes no production implementation or provider configuration.
 
 ## Summary
 
@@ -34,15 +34,15 @@ No Pro HTTP endpoint, backend rights mirror, gift ledger, webhook, polling, pers
 
 ## Constitution Check
 
-| Principle                    | Evaluation                                                                                                                                                       |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I — Specification-led intent | Guest entry and V2 offer presentation are integrated into F09. F14 records the absence of V1 gifts without weakening continuity for categories actually present. |
-| II — Domain integrity        | F05 owns identity/erasure, F09 Pro consumption, F10 assistance, F11 advertising/privacy and F14 continuity. No new ownership or service boundary.                |
-| III — Approved design        | Existing scoped approvals remain applicable. Prototype `6858562` is approved; the translated guest invitation still requires Figma approval before finalization. |
-| IV — Contract first          | [Contracts](contracts/README.md) define SDK and consumer agreements. No new HTTP operation or editable copy of the canonical API is needed.                      |
-| V — Simplicity               | Native SDK state/UI and manual intervention satisfy the agreed need. [Research](research.md) explains alternatives and evidence limits.                          |
+| Principle                    | Evaluation                                                                                                                                                        |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I — Specification-led intent | Guest entry and V2 offer presentation are integrated into F09. F14 records the absence of V1 gifts without weakening continuity for categories actually present.  |
+| II — Domain integrity        | F05 owns identity/erasure, F09 Pro consumption, F10 assistance, F11 advertising/privacy and F14 continuity. No new ownership or service boundary.                 |
+| III — Approved design        | Existing scoped approvals remain applicable. Prototype `6858562` and its Figma translation are explicitly approved for the shared invitation and guest Pro entry. |
+| IV — Contract first          | [Contracts](contracts/README.md) define SDK and consumer agreements. No new HTTP operation or editable copy of the canonical API is needed.                       |
+| V — Simplicity               | Native SDK state/UI and manual intervention satisfy the agreed need. [Research](research.md) explains alternatives and evidence limits.                           |
 
-The [existing scoped approval](https://github.com/blockoutproject/blockout/issues/34#issuecomment-6021179909) and [Pro journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5258-5951) remain references for unchanged scope. The scoped reconciliation is allowed by principle III while independent planning proceeds. It is not a waiver of either design approval. Recheck this table after reconciliation before reporting the dossier complete.
+The [existing scoped approval](https://github.com/blockoutproject/blockout/issues/34#issuecomment-6021179909) and [Pro journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5258-5951) remain references for unchanged scope. The [scoped reconciliation approval](https://github.com/blockoutproject/blockout/issues/48#issuecomment-6178680728) covers the shared invitation and guest Pro entry. These approvals do not qualify native authentication or billing.
 
 ## Project Structure
 
@@ -107,4 +107,4 @@ F05's local-first deletion and bounded provider attempts remain unchanged. Failu
 
 [Research](research.md) records official documentation, source inspection and bounded console observations. [Quickstart](quickstart.md) defines future integrated qualifications. No native build, purchase, restoration, gift rendering or account-switch transaction has been qualified here.
 
-Finalize only after the guest prototype and corresponding Figma revision are explicitly approved, then run repository documentary checks and review the owning/consumer consistency. Deliver specifications and native artifacts together through a draft PR to `develop`. Do not generate tasks, configure providers, implement the product, merge or close #48 automatically.
+The scoped prototype and Figma approvals are recorded in the specification. Review specifications and native planning artifacts together through a draft PR to `develop`, with repository documentary checks and owning/consumer consistency verified. Do not generate tasks, configure providers, implement the product, merge or close #48 automatically.
