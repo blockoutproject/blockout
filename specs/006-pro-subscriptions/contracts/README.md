@@ -1,0 +1,23 @@
+# F09 integration contracts
+
+F09 adds no HTTP operation. The authoritative [mobile OpenAPI root](../../../contracts/http/mobile/openapi.yaml) remains shared; account bootstrap/read/delete belong to [F05](../../005-accounts-identity/contracts/README.md). Do not add an entitlement endpoint, webhook or duplicate schema merely to represent native SDK state.
+
+| Boundary            | Semantic owner / provider → consumer                                         | Agreement                                                                                                                                                                                                   |
+| ------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account/session     | F05 account lifecycle → mobile Pro                                           | Usable UUID plus current session generation. Configure/associate before operations; discard old callbacks and clear rights/UI on change. No email identity or automatic establishment on a missing account. |
+| Native entitlement  | RevenueCat `CustomerInfo` → F09 → F11 and app chrome                         | SDK-active, inactive and unavailable remain distinct. F09 supplies current-account state; advertising owns its remaining eligibility. No backend projection, custom expiry or persisted copy.               |
+| Purchase/restore    | Official purchases/UI 10.13.0 → F09                                          | Explicit usable-account action; native outcomes separate from entitlement. Receipt-wide restore is accepted, profile merging is not. No success message without current active rights.                      |
+| Guest entry         | F05 shared invitation → F09 navigation                                       | Pro-specific copy, no price/provider offer, dismissal preserves context, ordinary sign-in without saved intent or automatic Pro reopening.                                                                  |
+| Management/support  | Official Customer Center → F09 navigation → F10                              | Embed `CustomerCenterView`; `onDismiss` closes it, an identified native Custom Action closes Pro then opens the existing report form. No full provider payload or receipt is automatically transmitted.     |
+| Provider operations | Owner RevenueCat console → SDK/native refresh and private F10/F11 assistance | Supported grant/change/revoke/manual recovery; check beneficiary and scope. No custom operator API or ledger.                                                                                               |
+| Continuity/erasure  | F14 historical references and F05 cleanup → native store restoration         | Preserve existing products/customer history at transition; erasure targets original references. New-account restore grants paid rights only, with manual exceptions and no pending-cleanup gate.            |
+
+## SDK source and consumer coordination
+
+The [published UI source](https://github.com/RevenueCat/react-native-purchases/blob/10.13.0/react-native-purchases-ui/src/index.tsx) and upstream package types are authoritative for callback signatures; do not copy editable SDK DTOs into this folder. Generated HTTP DTOs remain governed by F13, independently of this native boundary.
+
+Account, advertising and navigation consumers must agree on unavailable versus inactive state and current-session attribution before integration. Neither optional fields nor newly observed native outcomes may be silently interpreted as inactive, paid or cancelled. Preserve safe verification/support for unsupported or uncertain results.
+
+The embedded `RevenueCatUI.Paywall` receives the explicit V2 offering and shares the app-controlled dismissal/session boundary with `CustomerCenterView`. Customer Center has no purchase offering or second support channel; the existing profile F10 entry remains reachable after closing a failed provider view. Its native paths and shared-configuration checks follow the [plan](../plan.md#entry-offers-and-assistance).
+
+The separate V2 offering reuses existing products and entitlement; V1 presentation remains selected by V1 during coexistence. Provider identifiers are deployment configuration. No server API version or mobile minimum-version change is needed for this planning change.

@@ -1,0 +1,24 @@
+# Data model: Pro entitlements
+
+These are logical ownership and mobile-consumption concepts, not new database entities. F09 creates no table or migration.
+
+| Concept                      | Source and meaningful fields                                                                                 | Lifecycle and validation                                                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Usable account context       | F05 business UUID and in-memory session generation                                                           | Available only after usable-account establishment. No email-derived ID. Changing session clears previous rights/UI and rejects its callbacks.                       |
+| Customer association         | Native SDK App User ID associated with that UUID; F05/F14 retain necessary historical references             | Await current association before operations. Native logout may create an anonymous ID, which gives no Blockout guest rights or purchase permission.                 |
+| Pro entitlement              | Current account's `CustomerInfo`, active `Blockout Pro` entry, supported origin/validity/renewal information | SDK owns active/inactive status, cache and expiry. Show only known information; do not calculate an independent grant union or expiration deadline.                 |
+| Operation outcome            | Transient native purchase/restore result, cancellation, pending, failure or uncertainty                      | Separate from entitlement. A successful restore without active Pro is not activation. No persistent journal or recovery queue; restart re-establishes native state. |
+| Offer                        | Explicitly selected V2 offering, existing packages/products and localized store terms                        | Only a usable account with inactive rights can be encouraged to purchase. Missing/failed lookup has no fallback price. No new product/price source.                 |
+| Gift / assisted intervention | Supported RevenueCat console operation and existing private F10/F11 evidence                                 | Owner-only, verified recipient/scope, reread uncertain outcomes before repeating. No Blockout gift ledger; no sensitive evidence in public artifacts.               |
+
+## State consumption
+
+| Evidence for the current account                   | Pro presentation                                                                  | Advertising / premium chrome                                                                     |
+| -------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Guest                                              | Shared sign-in invitation, no provider offer or price                             | No previous-account rights; F11 independently decides guest eligibility.                         |
+| Association pending/failed, or no usable SDK state | Verification/retry/support; no purchase encouragement                             | No ads and no inherited premium styling.                                                         |
+| SDK-active entitlement                             | Native entitlement/management information, restore and assistance                 | No Blockout ads; subtle approved Pro chrome.                                                     |
+| SDK-inactive entitlement                           | Native offer, restore and assistance                                              | F11 may allow ads; no Pro chrome.                                                                |
+| Payment pending or outcome uncertain               | Native pending instructions or explicit verification/support; no blind repurchase | No new Pro inferred; preserve independent active rights and F11's accepted uncertainty handling. |
+
+An external grant/revocation becomes visible on a native refresh, not a server-push promise. A cancelled purchase removes no independent entitlement. Account switching discards local presentation, not a store transaction. Deletion and historical references follow [F05's data model](../005-accounts-identity/data-model.md); restoration never resurrects deleted profile data or gifts.
