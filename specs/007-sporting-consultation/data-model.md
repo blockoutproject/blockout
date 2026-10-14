@@ -17,7 +17,7 @@
 
 ## Calendar derivation
 
-Evaluate category once per request. A definitive official result gives Completed immediately; otherwise use kickoff plus six elapsed hours, or midnight in Europe/Paris after a date-only match. A missing date supplies no public row. A provisional result remains provisional in either category.
+Evaluate category once per request. A definitive official result gives Completed immediately; otherwise use kickoff plus six elapsed hours, or midnight in Europe/Paris after a date-only match. A missing date supplies no public row. Provisional and unconfirmed results retain their finality in either category. The shared result state controls definitive-result behavior; a special notation alone does not establish completion or document eligibility.
 
 Convert an established instant into the requested IANA grouping zone. A date alone keeps its sporting date. Order days ascending for Upcoming and descending for Completed; order pools by stable UUID and matches by known instant in the traversal direction, unknown times last, then UUID. The exclusive continuation day uses that same category and zone. Read day selection and its matches in one short read-only repeatable-read transaction. Concurrent changes across pages remain possible and are resolved by explicit refresh, not a durable server snapshot.
 

@@ -36,7 +36,7 @@ F01's cycle context identifies normal versus initial reconstruction and whether 
 
 ## Results and temporal precision
 
-Retain authoritative overall result separately from optional sets. Known/provisional/final meaning follows source evidence; a universal winning-set count or elapsed time is insufficient. Preserve recognized special notation without numeric substitutions or invented winners. Uninterpreted notation is bounded diagnostic material, not a normal zero score.
+Retain authoritative overall result separately from optional sets. Finality follows source evidence: explicitly provisional, definitive, or unconfirmed when publication meaning is ambiguous. A universal winning-set count or elapsed time is insufficient. Preserve recognized special notation independently of finality, without numeric substitutions or invented winners. Uninterpreted notation is bounded diagnostic material, not a normal zero score.
 
 Omitted new facts preserve usable accepted values; qualified explicit withdrawals follow field semantics. Invalid sets do not reject a usable result. Previously accepted compatible sets keep their own observation time; incompatible sets are unavailable. Result withdrawal clears its sets, with the same match UUID.
 

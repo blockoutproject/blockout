@@ -16,8 +16,11 @@ SportGenderEnum:
     - mixed
 ResultStateEnum:
   type: string
-  description: Evidence supplied by the designated source, never elapsed-time inference.
+  description: >-
+    Result finality from the designated source. Provisional is explicitly temporary; final is definitive;
+    unconfirmed means the publication does not establish finality. A special notation does not determine
+    this state, and elapsed time never changes it.
   enum:
     - provisional
     - final
-    - special
+    - unconfirmed

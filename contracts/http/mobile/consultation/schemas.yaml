@@ -382,7 +382,8 @@ MatchResultResponse:
       minimum: 0
     specialLabel:
       type: string
-      description: Recognized official notation; present for a special result.
+      description: Recognized official notation, independent of result finality; present for a special result.
+      minLength: 1
     observedAt:
       type: string
       description: Observation time of this accepted result.

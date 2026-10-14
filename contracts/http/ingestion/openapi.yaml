@@ -678,7 +678,7 @@ components:
               minimum: 0
             specialLabel:
               type: string
-              description: Recognized official forfeit/penalty notation; required when state is special.
+              description: Recognized official forfeit/penalty notation, independent of result finality; present for a special result.
               minLength: 1
           required:
             - state

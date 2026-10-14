@@ -20,8 +20,7 @@ Club:
           type: string
           description: Stable club identity.
           format: uuid
-      - &id001
-        $ref: ../access/parameters.yaml#/MaintenanceBypass
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -72,7 +71,7 @@ ClubTeams:
           type: string
           description: Selected season identity.
           format: uuid
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -115,7 +114,7 @@ Team:
           type: string
           description: Stable team identity.
           format: uuid
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -157,7 +156,7 @@ Pool:
           type: string
           description: Stable pool identity.
           format: uuid
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -200,7 +199,7 @@ Standings:
           type: string
           description: Stable pool identity.
           format: uuid
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -243,7 +242,7 @@ Participants:
           type: string
           description: Stable pool identity.
           format: uuid
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -334,7 +333,7 @@ Matches:
           type: string
           description: Display-day boundary.
           format: date
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -377,7 +376,7 @@ Match:
           type: string
           description: Stable match identity.
           format: uuid
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -427,7 +426,7 @@ Document:
         description: Official document use.
         schema:
           $ref: ./schemas.yaml#/MatchDocumentKindEnum
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -472,7 +471,7 @@ ClubLogo:
           type: string
           description: Stable club identity.
           format: uuid
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -522,7 +521,7 @@ TeamLogo:
           type: string
           description: Stable team identity.
           format: uuid
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
@@ -572,7 +571,7 @@ DivisionLogo:
           type: string
           description: Stable division identity.
           format: uuid
-      - *id001
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
         description: Current authorized representation.
