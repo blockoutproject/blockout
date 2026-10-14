@@ -3,11 +3,13 @@ info:
   title: Blockout mobile API
   version: 0.1.0
   description: >-
-    Backend API for account lifecycle and sporting administration.
+    Backend API for application access, account lifecycle and sporting administration.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
 tags:
+  - name: ApplicationAccess
+    description: Public admission settings and separately authorized maintenance/version management.
   - name: Accounts
     description: Private account establishment, profile changes and erasure.
   - name: Sporting
@@ -16,6 +18,14 @@ tags:
 security:
   - MobileToken: []
 paths:
+  /application-access:
+    $ref: ./access/paths.yaml#/Public
+  /administration/maintenance:
+    $ref: ./access/paths.yaml#/Maintenance
+  /administration/maintenance/activation:
+    $ref: ./access/paths.yaml#/Activation
+  /administration/application-versions:
+    $ref: ./access/paths.yaml#/Versions
   /accounts:
     $ref: ./accounts/paths.yaml#/Collection
   /accounts/me:

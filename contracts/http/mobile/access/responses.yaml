@@ -1,0 +1,11 @@
+Unavailable:
+  description:
+    Maintenance refusal with current published maintenance, or ordinary service unavailability. Distinguish
+    by problem type; this response never grants admission.
+  headers:
+    Cache-Control:
+      $ref: ../../common/headers.yaml#/NoStore
+  content:
+    application/problem+json:
+      schema:
+        $ref: ./schemas.yaml#/AccessProblemResponse

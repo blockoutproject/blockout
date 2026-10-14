@@ -8,7 +8,10 @@ AccountResponse:
     - email
     - principalCreatedAt
     - hasPhoto
+    - permissions
   properties:
+    permissions:
+      $ref: ../access/schemas.yaml#/AccountPermissionsResponse
     accountId:
       type: string
       format: uuid
