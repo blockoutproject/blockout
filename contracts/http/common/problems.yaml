@@ -50,7 +50,7 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   "401":
-    description: Missing, invalid or expired token; no write.
+    description: Missing or invalid token, including expiration or an unexpected issuer or audience; no write.
     headers:
       WWW-Authenticate:
         $ref: ./headers.yaml#/BearerChallenge
@@ -61,7 +61,7 @@ responses:
         schema:
           $ref: "#/schemas/ProblemResponse"
   "403":
-    description: Wrong client, environment, scope or action grant; no write.
+    description: Authenticated caller lacks the required client authorization, scope or business permission; no write.
     headers:
       Cache-Control:
         $ref: ./headers.yaml#/NoStore

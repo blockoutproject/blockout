@@ -30,7 +30,7 @@ An incident is the operational condition plus native Grafana alert state, not a 
 
 ## Restorable set
 
-Logical fields: environment, native backup timestamp/status, private S3 object reference and bytes, retained lifetime, actual restoration outcome if performed. These are native Dokploy/S3 records, not a duplicate registry. The database dump contains authoritative relational/image values; derived state can be rebuilt according to its owner. Identities/grants, application configuration and provider state are not magically captured by a database dump.
+Logical fields: environment, native backup timestamp/status, private S3 object reference and bytes, retained lifetime, actual restoration outcome if performed. These are native Dokploy/S3 records, not a duplicate registry. The database dump contains authoritative relational/image values, including F05 business accounts and F12 permission associations/settings as of the backup. Derived state can be rebuilt according to its owner. Auth0 identities/configuration, other provider state and deployment secrets/configuration outside PostgreSQL are not included; their owning procedures retain responsibility for recovery.
 
 A scheduled run may fail, produce a copy or remain without a confirmed outcome. Presence does not mean validated restoration. S3 expires copies using the 30-day rule; no exact deletion-at-720-hours guarantee. One initial isolated restoration validates expected data/bytes/associations and limitations. A real restored copy remains closed to affected access/sends until current erasure, permissions, F07 expiry and F14 continuity obligations are applied. No recurring restore job or persistent backup-verification model.
 

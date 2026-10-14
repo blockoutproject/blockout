@@ -19,7 +19,7 @@ Public:
             schema:
               $ref: ./schemas.yaml#/ApplicationAccessResponse
       "503":
-        $ref: ./responses.yaml#/Unavailable
+        $ref: ../../common/problems.yaml#/responses/503
 Maintenance:
   get:
     operationId: getMaintenanceSettings
@@ -35,6 +35,8 @@ Maintenance:
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
         content:
           application/json:
             schema:
@@ -44,7 +46,7 @@ Maintenance:
       "403":
         $ref: ../../common/problems.yaml#/responses/403
       "503":
-        $ref: ./responses.yaml#/Unavailable
+        $ref: ../../common/problems.yaml#/responses/503
   patch:
     operationId: changeMaintenanceSettings
     tags:
@@ -67,11 +69,7 @@ Maintenance:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
           Accept-Patch:
-            description: Atomic partial-change media type.
-            schema:
-              type: string
-              enum:
-                - application/json
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
         content:
           application/json:
             schema:
@@ -89,7 +87,7 @@ Maintenance:
       "422":
         $ref: ../../common/problems.yaml#/responses/422
       "503":
-        $ref: ./responses.yaml#/Unavailable
+        $ref: ../../common/problems.yaml#/responses/503
 Activation:
   put:
     operationId: setMaintenanceActivation
@@ -129,7 +127,7 @@ Activation:
       "422":
         $ref: ../../common/problems.yaml#/responses/422
       "503":
-        $ref: ./responses.yaml#/Unavailable
+        $ref: ../../common/problems.yaml#/responses/503
 Versions:
   get:
     operationId: getApplicationVersionSettings
@@ -145,6 +143,8 @@ Versions:
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
         content:
           application/json:
             schema:
@@ -154,7 +154,7 @@ Versions:
       "403":
         $ref: ../../common/problems.yaml#/responses/403
       "503":
-        $ref: ./responses.yaml#/Unavailable
+        $ref: ../../common/problems.yaml#/responses/503
   patch:
     operationId: changeApplicationVersionSettings
     tags:
@@ -178,11 +178,7 @@ Versions:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
           Accept-Patch:
-            description: Atomic partial-change media type.
-            schema:
-              type: string
-              enum:
-                - application/json
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
         content:
           application/json:
             schema:
@@ -200,4 +196,4 @@ Versions:
       "422":
         $ref: ../../common/problems.yaml#/responses/422
       "503":
-        $ref: ./responses.yaml#/Unavailable
+        $ref: ../../common/problems.yaml#/responses/503

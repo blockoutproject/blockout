@@ -42,7 +42,7 @@ paths:
       summary: Read club presentation
       description: >-
         Returns the club's effective names, manual customizations and logo values, and current editing
-        revision. Requires permission to manage sporting presentation for this club.
+        revision. Requires global sporting-presentation permission; resource conditions still apply.
       responses:
         "400":
           $ref: ../common/problems.yaml#/responses/400
@@ -53,10 +53,7 @@ paths:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
             Accept-Patch:
-              description: Supported atomic change-document media type.
-              schema:
-                type: string
-                enum: [multipart/form-data]
+              $ref: ../common/headers.yaml#/AcceptPatchMultipart
           content:
             application/json:
               schema:
@@ -73,10 +70,10 @@ paths:
         - name: clubId
           in: path
           required: true
-          description: Stable club identity, including retained resources within the operator grant.
+          description: Stable club identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable club identity, including retained resources within the operator grant.
+            description: Stable club identity, including retained resources available to authorized administration.
             format: uuid
     patch:
       operationId: setClubPresentation
@@ -84,7 +81,7 @@ paths:
         - Sporting
       summary: Set club names and logo
       description: >-
-        Requires permission to manage presentation for this club. Saves the manual display name and
+        Requires global sporting-presentation permission; resource conditions still apply. Saves the manual display name and
         logo action together, preserving source values and identity. replace requires a decodable
         PNG/JPEG image of at most 5242880 bytes; keep and automatic forbid an image. For a club,
         automatic clears its manual logo and selects missing artwork. A stale revision returns 409
@@ -96,6 +93,8 @@ paths:
           headers:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              $ref: ../common/headers.yaml#/AcceptPatchMultipart
           content:
             application/json:
               schema:
@@ -122,10 +121,10 @@ paths:
         - name: clubId
           in: path
           required: true
-          description: Stable club identity, including retained resources within the operator grant.
+          description: Stable club identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable club identity, including retained resources within the operator grant.
+            description: Stable club identity, including retained resources available to authorized administration.
             format: uuid
       requestBody:
         description: >-
@@ -165,7 +164,7 @@ paths:
       summary: Read team presentation
       description: >-
         Returns the team's effective names, manual customizations and logo values, and current editing
-        revision. Requires permission to manage sporting presentation for this team.
+        revision. Requires global sporting-presentation permission; resource conditions still apply.
       responses:
         "400":
           $ref: ../common/problems.yaml#/responses/400
@@ -176,10 +175,7 @@ paths:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
             Accept-Patch:
-              description: Supported atomic change-document media type.
-              schema:
-                type: string
-                enum: [multipart/form-data]
+              $ref: ../common/headers.yaml#/AcceptPatchMultipart
           content:
             application/json:
               schema:
@@ -196,10 +192,10 @@ paths:
         - name: teamId
           in: path
           required: true
-          description: Stable team identity, including retained resources within the operator grant.
+          description: Stable team identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable team identity, including retained resources within the operator grant.
+            description: Stable team identity, including retained resources available to authorized administration.
             format: uuid
     patch:
       operationId: setTeamPresentation
@@ -207,7 +203,7 @@ paths:
         - Sporting
       summary: Set team names and logo
       description: >-
-        Requires permission to manage presentation for this team. Saves the manual independent full
+        Requires global sporting-presentation permission; resource conditions still apply. Saves the manual independent full
         and short names and the logo action together, preserving source values and identity. replace
         requires a decodable PNG/JPEG image of at most 5242880 bytes; keep and automatic forbid an
         image. automatic clears the manual team logo. For a professional team, it resolves the accepted LNV logo, then its associated
@@ -221,6 +217,8 @@ paths:
           headers:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              $ref: ../common/headers.yaml#/AcceptPatchMultipart
           content:
             application/json:
               schema:
@@ -247,10 +245,10 @@ paths:
         - name: teamId
           in: path
           required: true
-          description: Stable team identity, including retained resources within the operator grant.
+          description: Stable team identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable team identity, including retained resources within the operator grant.
+            description: Stable team identity, including retained resources available to authorized administration.
             format: uuid
       requestBody:
         description: >-
@@ -290,7 +288,7 @@ paths:
       summary: Read pool presentation
       description: >-
         Returns the pool's effective names, manual customizations, and current editing revision.
-        Requires permission to manage sporting presentation for this pool.
+        Requires global sporting-presentation permission; resource conditions still apply.
       responses:
         "400":
           $ref: ../common/problems.yaml#/responses/400
@@ -316,10 +314,10 @@ paths:
         - name: poolId
           in: path
           required: true
-          description: Stable pool identity, including retained resources within the operator grant.
+          description: Stable pool identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable pool identity, including retained resources within the operator grant.
+            description: Stable pool identity, including retained resources available to authorized administration.
             format: uuid
     put:
       operationId: setPoolPresentation
@@ -327,7 +325,7 @@ paths:
         - Sporting
       summary: Set pool display names
       description: >-
-        Requires permission to manage presentation for this pool. Sets independent full and short name
+        Requires global sporting-presentation permission; resource conditions still apply. Sets independent full and short name
         customizations; source values, inherited artwork, classification and identity remain
         unchanged. A stale revision returns 409 without changes. After an uncertain response, read
         current state before an explicit retry.
@@ -362,10 +360,10 @@ paths:
         - name: poolId
           in: path
           required: true
-          description: Stable pool identity, including retained resources within the operator grant.
+          description: Stable pool identity, including retained resources available to authorized administration.
           schema:
             type: string
-            description: Stable pool identity, including retained resources within the operator grant.
+            description: Stable pool identity, including retained resources available to authorized administration.
             format: uuid
       requestBody:
         required: true
@@ -381,7 +379,7 @@ paths:
       summary: Read pack classification
       description: >-
         Returns the pack default, effective acquisition classification and current editing revision.
-        Requires sporting-classification permission over the full affected scope.
+        Requires global sporting-classification permission; all affected resources remain subject to their business rules.
       responses:
         "400":
           $ref: ../common/problems.yaml#/responses/400
@@ -418,7 +416,7 @@ paths:
         - Sporting
       summary: Set pack classification
       description: >-
-        Requires sporting-classification permission over the full affected scope. Sets or removes the
+        Requires global sporting-classification permission; all affected resources remain subject to their business rules. Sets or removes the
         complete pack default atomically. Removing the pack default leaves pools without their own
         override unclassified for acquisition; individual overrides remain in effect. Without an
         effective classification, collection stops while accepted published classification remains. A
@@ -475,7 +473,7 @@ paths:
       summary: Read pool classification
       description: >-
         Returns the pool override, effective acquisition classification and current editing revision.
-        Requires sporting-classification permission over the full affected scope.
+        Requires global sporting-classification permission; all affected resources remain subject to their business rules.
       responses:
         "400":
           $ref: ../common/problems.yaml#/responses/400
@@ -512,7 +510,7 @@ paths:
         - Sporting
       summary: Set pool classification
       description: >-
-        Requires sporting-classification permission over the full affected scope. Sets or removes the
+        Requires global sporting-classification permission; all affected resources remain subject to their business rules. Sets or removes the
         complete pool override atomically. Removing the pool override restores its pack default, if
         available. Without an effective classification, collection stops while accepted published
         classification remains. A stale revision, conflicting shared participation or target-identity
@@ -568,7 +566,7 @@ paths:
       summary: Read editable club contacts
       description: >-
         Returns current contact values, independent management modes and the editing revision.
-        Requires permission to correct contacts for this club. Current privacy restrictions apply to
+        Requires global sporting-presentation permission for contact correction. Current privacy restrictions apply to
         every returned value.
       responses:
         "400":
@@ -580,10 +578,7 @@ paths:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
             Accept-Patch:
-              description: Supported atomic change-document media type.
-              schema:
-                type: string
-                enum: [application/json]
+              $ref: ../common/headers.yaml#/AcceptPatchJson
           content:
             application/json:
               schema:
@@ -600,10 +595,10 @@ paths:
         - name: clubId
           in: path
           required: true
-          description: Known club within the operator contact-correction grant.
+          description: Stable club identity for contact correction.
           schema:
             type: string
-            description: Known club within the operator contact-correction grant.
+            description: Stable club identity for contact correction.
             format: uuid
     patch:
       operationId: setClubContacts
@@ -611,7 +606,7 @@ paths:
         - Sporting
       summary: Correct selected club contact fields
       description: >-
-        Requires permission to correct contacts for this club. Applies supplied field modes atomically
+        Requires global sporting-presentation permission for contact correction. Applies supplied field modes atomically
         against the current revision; omitted fields are unchanged. A change to the effective
         municipality or postal context clears the old point and advances the locality revision. A
         stale revision or a write conflicting with a contact privacy restriction returns 409 without
@@ -626,6 +621,8 @@ paths:
           headers:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              $ref: ../common/headers.yaml#/AcceptPatchJson
           content:
             application/json:
               schema:
@@ -648,10 +645,10 @@ paths:
         - name: clubId
           in: path
           required: true
-          description: Known club within the operator contact-correction grant.
+          description: Stable club identity for contact correction.
           schema:
             type: string
-            description: Known club within the operator contact-correction grant.
+            description: Stable club identity for contact correction.
             format: uuid
       requestBody:
         required: true
@@ -825,6 +822,8 @@ paths:
           headers:
             Cache-Control:
               $ref: ../common/headers.yaml#/NoStore
+            Accept-Patch:
+              $ref: ../common/headers.yaml#/AcceptPatchMultipart
           content:
             application/json:
               schema:
@@ -946,8 +945,8 @@ components:
       bearerFormat: JWT
       description: >-
         Bearer token issued to an allowed mobile client for this environment. The backend validates
-        issuer, audience, expiry and client identity, then checks the required action and resource
-        permissions. Ordinary membership, moderation or collector credentials grant no implicit
+        issuer, audience, expiry and client identity, then checks current global action grants and resource
+        conditions. Ordinary membership, moderation or collector credentials grant no implicit
         administrative permission.
   schemas:
     SportingResourceKindEnum:

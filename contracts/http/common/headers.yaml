@@ -1,7 +1,6 @@
 NoStore:
   description: >-
-    Always returned on these authenticated responses, including errors. HTTP caches must not store
-    them; this does not define the application-owned in-memory query cache.
+    HTTP caches must not store the response, whether public or authenticated, including errors; this does not define the application-owned in-memory query cache.
   schema:
     type: string
     enum: [no-store]
@@ -10,3 +9,13 @@ BearerChallenge:
   schema:
     type: string
     example: Bearer
+AcceptPatchJson:
+  description: Supported atomic JSON change-document media type for this resource.
+  schema:
+    type: string
+    enum: [application/json]
+AcceptPatchMultipart:
+  description: Supported atomic multipart change-document media type for this resource.
+  schema:
+    type: string
+    enum: [multipart/form-data]

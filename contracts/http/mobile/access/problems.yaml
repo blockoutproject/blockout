@@ -1,0 +1,36 @@
+schemas:
+  AccessProblemResponse:
+    type: object
+    description:
+      Shared Problem Details profile for mobile admission. Type urn:blockout:problem:maintenance requires
+      status 503 and active maintenance data; other unavailability has no maintenance meaning.
+    additionalProperties: true
+    properties:
+      type:
+        $ref: ../../common/problems.yaml#/schemas/ProblemResponse/properties/type
+      title:
+        $ref: ../../common/problems.yaml#/schemas/ProblemResponse/properties/title
+      status:
+        $ref: ../../common/problems.yaml#/schemas/ProblemResponse/properties/status
+      detail:
+        $ref: ../../common/problems.yaml#/schemas/ProblemResponse/properties/detail
+      instance:
+        $ref: ../../common/problems.yaml#/schemas/ProblemResponse/properties/instance
+      maintenance:
+        $ref: ./schemas.yaml#/PublicMaintenanceResponse
+    required:
+      - type
+      - title
+      - status
+responses:
+  AccessUnavailable:
+    description:
+      Maintenance refusal with current published maintenance, or ordinary service unavailability. Distinguish
+      by problem type; this response never grants admission.
+    headers:
+      Cache-Control:
+        $ref: ../../common/headers.yaml#/NoStore
+    content:
+      application/problem+json:
+        schema:
+          $ref: "#/schemas/AccessProblemResponse"

@@ -221,26 +221,3 @@ AccountPermissionsResponse:
     manageDivisionLifecycle:
       type: boolean
       description: Manage division creation and activity, subject to resource rules.
-AccessProblemResponse:
-  type: object
-  description:
-    Shared Problem Details profile for mobile admission. Type urn:blockout:problem:maintenance requires
-    status 503 and active maintenance data; other unavailability has no maintenance meaning.
-  additionalProperties: true
-  properties:
-    type:
-      $ref: ../../common/problems.yaml#/schemas/ProblemResponse/properties/type
-    title:
-      $ref: ../../common/problems.yaml#/schemas/ProblemResponse/properties/title
-    status:
-      $ref: ../../common/problems.yaml#/schemas/ProblemResponse/properties/status
-    detail:
-      $ref: ../../common/problems.yaml#/schemas/ProblemResponse/properties/detail
-    instance:
-      $ref: ../../common/problems.yaml#/schemas/ProblemResponse/properties/instance
-    maintenance:
-      $ref: "#/PublicMaintenanceResponse"
-  required:
-    - type
-    - title
-    - status
