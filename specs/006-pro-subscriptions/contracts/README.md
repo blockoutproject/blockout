@@ -18,4 +18,6 @@ The [published UI source](https://github.com/RevenueCat/react-native-purchases/b
 
 Account, advertising and navigation consumers must agree on unavailable versus inactive state and current-session attribution before integration. Neither optional fields nor newly observed native outcomes may be silently interpreted as inactive, paid or cancelled. Preserve safe verification/support for unsupported or uncertain results.
 
+The embedded `RevenueCatUI.Paywall` receives the explicit V2 offering and shares the app-controlled dismissal/session boundary with `CustomerCenterView`. Customer Center has no purchase offering or second support channel; the existing profile F10 entry remains reachable after closing a failed provider view. Its native paths and shared-configuration checks follow the [plan](../plan.md#entry-offers-and-assistance).
+
 The separate V2 offering reuses existing products and entitlement; V1 presentation remains selected by V1 during coexistence. Provider identifiers are deployment configuration. No server API version or mobile minimum-version change is needed for this planning change.
