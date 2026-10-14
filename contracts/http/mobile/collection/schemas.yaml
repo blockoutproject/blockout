@@ -52,7 +52,8 @@ SourceBindingResponse:
   type: object
   description:
     Supported root source and current qualification, distinct from discovered child pools and
-    mappings.
+    mappings. An unfinished validation from a replaced collector is exposed as unvalidated;
+    accepted qualification remains intact.
   additionalProperties: true
   properties:
     id:
@@ -82,7 +83,7 @@ SourceBindingResponse:
       nullable: true
     acceptedUrl:
       type: string
-      description: Locked official URL; null before launch.
+      description: Accepted official URL; present once locked by periodic launch or initial-import admission, null before either event.
       format: uri
       nullable: true
     locked:
@@ -358,18 +359,22 @@ RequestCollectionRequest:
     - revision
 CollectionResultResponse:
   type: object
-  description: Latest evidence for one scope and stage, retained independently of pause and results elsewhere.
+  description: Latest evidence for one stable domain scope, stage and acquisition/integration phase, retained independently of pause and results elsewhere.
   additionalProperties: true
   properties:
     scopeId:
       type: string
-      description: Backend-owned operational scope identity.
+      description: >-
+        Stable domain UUID: binding for discovery, pool for calendar/standings, match for details,
+        club for club-sheet/geocoding, team for logo. Reused across cycles.
       format: uuid
     scopeLabel:
       type: string
       description: Safe scope label without personal values.
     stage:
       $ref: ../../common/collection-enums.yaml#/CollectionStageEnum
+    phase:
+      $ref: ../../common/collection-enums.yaml#/CollectionPhaseEnum
     outcome:
       $ref: ../../common/collection-enums.yaml#/CollectionOutcomeEnum
     observedAt:
@@ -378,12 +383,12 @@ CollectionResultResponse:
       format: date-time
     lastSuccessAt:
       type: string
-      description: Last usable success for this exact scope and stage, null if absent.
+      description: Last usable success for this exact scope, stage and phase, null if absent.
       format: date-time
       nullable: true
     firstFailureAt:
       type: string
-      description: Beginning of a current technical outage, null when not applicable.
+      description: First failure of this scope/stage/phase outage across cycles, preserved until affected-scope recovery; null when not applicable.
       format: date-time
       nullable: true
     reasonType:
@@ -409,6 +414,7 @@ CollectionResultResponse:
     - scopeId
     - scopeLabel
     - stage
+    - phase
     - outcome
     - observedAt
     - lastSuccessAt
@@ -416,7 +422,7 @@ CollectionResultResponse:
 CollectionResultPageResponse:
   type: object
   description:
-    Current results ordered by scope UUID then stage; concurrent updates may change later pages,
+    Current results ordered by scope UUID, stage then phase; concurrent updates may change later pages,
     without snapshot/history guarantees.
   additionalProperties: true
   properties:

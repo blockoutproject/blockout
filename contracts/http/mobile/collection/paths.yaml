@@ -9,7 +9,7 @@ Seasons:
       collection and closed history.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Known seasons in display order.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -36,7 +36,7 @@ Season:
       preparation revision.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Current season lifecycle and preparation revision.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -76,7 +76,7 @@ Closure:
       an uncertain result before an explicit retry.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Season closed; already admitted work may finish.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -132,7 +132,7 @@ Launch:
       an uncertain result before an explicit retry.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Current season after activation of the selected sources.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -184,7 +184,7 @@ Sources:
       state, without classification readiness.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Supported source bindings and their current qualification.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -223,7 +223,7 @@ Sources:
       after an uncertain result before an explicit retry.
     responses:
       "201":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Missing supported source binding created.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -282,7 +282,7 @@ Source:
       accepted binding and qualification; reads do not fetch the provider.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Current source candidate, accepted reference and qualification.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -322,7 +322,7 @@ Candidate:
       result before an explicit retry.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Candidate URL saved; prior qualification cleared when changed.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -374,10 +374,10 @@ Validation:
       for the exact current candidate in an open season. It does not prove qualification or a start time.
       Read the source binding to observe the result; repeated pending requests create no duplicate. Stale
       revisions return 409 without changes. Read current state after an uncertain result before an explicit
-      retry.
+      retry. A new explicit request replaces an obsolete interrupted validation; it is not automatically replayed.
     responses:
       "202":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Validation request accepted or already pending; qualification is not yet established.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -431,7 +431,7 @@ Confirmation:
       Read current state after an uncertain result before an explicit retry.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Missing seasonal attribution confirmed for the current candidate.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -483,7 +483,7 @@ Controls:
       controls; without it returns the independent club-sheet and geocoding controls.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Controls for the selected season or the two seasonless families.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -519,7 +519,7 @@ Control:
       request and confirmed execution independently. No provider call or restart occurs.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Current activity, pending request and cycle state.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -559,7 +559,7 @@ Activity:
       after an uncertain result before an explicit retry.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Desired activity saved; pending work cancelled when paused.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -608,13 +608,13 @@ Requests:
     summary: Request one collection passage
     description:
       Requires current global collection-management permission. Returns 202 for an accepted
-      or already pending request, 200 for an existing running cycle. Neither adds duplicate work. Paused,
+      or already pending request, 200 for an existing running cycle. Neither adds duplicate work. Activity is checked before returning existing work. Paused,
       pausing, unlaunched or closed competition scopes refuse the request. Read the control to observe
       admission/result; there is no individual pool or club rerun. Stale revisions return 409 without
       changes. Read current state after an uncertain result before an explicit retry.
     responses:
       "202":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Collection request accepted or already pending.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -641,7 +641,7 @@ Requests:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Existing running cycle; no additional passage requested.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -676,7 +676,7 @@ Results:
       exclude raw payloads and personal values.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Current scoped results and retained success/failure evidence.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -737,7 +737,7 @@ Children:
       the source, or a pack in that source. Does not fetch providers or expose mapping shortcuts.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Discovered direct children of the selected source or pack.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore

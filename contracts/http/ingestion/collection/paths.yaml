@@ -7,7 +7,7 @@ Runtime:
     description: Requires the environment collector credential. Returns current registration only.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Current collector registration.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -35,7 +35,7 @@ Runtime:
       again automatically.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Current collector registration after replacement or identical repetition.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -73,10 +73,10 @@ Work:
     summary: Read current scheduling context
     description:
       Requires the current incarnation and collector credential. Returns current controls and
-      pending candidate validations; this read neither claims nor starts work.
+      pending candidate validations; obsolete unfinished validation is not requeued. This read neither claims nor starts work.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Current controls and pending candidate validations; no work started.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -117,7 +117,7 @@ Cycles:
       returns 409.
     responses:
       "201":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Cycle admitted and running; authorized context recorded.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -149,7 +149,7 @@ Cycles:
       "503":
         $ref: ../../common/problems.yaml#/responses/ServiceUnavailable
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Existing matching admitted cycle; no additional work created.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -174,7 +174,7 @@ Cycle:
       no execution-history lookup guarantee.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Retained current cycle state.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -213,7 +213,7 @@ Targets:
       within an authorized calendar may use its resulting match identity.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Authorized targets selected at admission.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -270,13 +270,13 @@ Results:
       - Collection
     summary: Record current scoped evidence
     description:
-      Requires the current running cycle and authorized scope. Accepts one stage result; older
+      Requires a current running control passage and authorized domain scope. Accepts one stage/phase result under the stable control/scope/stage/phase key; older
       read ordinals are ignored. Repeating identical evidence is harmless. Valid empty or ambiguous geocoding
       is ordinary success, never technical failure. This updates current evidence only; it does not apply
       sporting data.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Current cycle after accepting or ignoring scoped evidence according to observation order.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -324,12 +324,12 @@ Completion:
       - Collection
     summary: Complete selected collection work
     description:
-      Requires the current collector incarnation. Completes this running cycle after selected
+      Requires the current collector incarnation and a control passage, not candidate validation. Completes this running cycle after selected
       work; omitted or unconfirmed stages never become success. Identical terminal repetition is harmless;
       contradictory completion returns 409.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Control passage completed; individual result outcomes remain unchanged.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -380,10 +380,10 @@ Validation:
       Requires the exact admitted source-validation cycle. Accepts invalid, confirmation-required
       or qualified only. Qualified requires positive source structure/scope/season evidence; confirmation-required
       means only seasonal attribution is missing. Changed candidates or closed seasons reject late results
-      without effects.
+      without effects. The accepted qualification and completion commit together; repeating the identical accepted result is a no-op.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Candidate qualification applied and validation completed.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -437,7 +437,7 @@ SeasonDiscovery:
       has no extra effect.
     responses:
       "200":
-        description: Current accepted state; no implicit success for work not yet performed.
+        description: Canonical season and source binding resolved without activation.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore

@@ -37,12 +37,11 @@ CollectionCycleStateEnum:
     - interrupted
 CollectionModeEnum:
   type: string
-  description: Backend-authorized purpose; only the exploitation command can request initial import.
+  description: Backend-authorized collection purpose; absent for candidate validation. Only the exploitation command can request initial import.
   enum:
     - periodic
     - manual
     - initial-import
-    - source-validation
 CollectionStageEnum:
   type: string
   description: Independent operational stage, never an implied whole-pipeline success.
@@ -54,6 +53,11 @@ CollectionStageEnum:
     - club-sheet
     - geocoding
     - logo
+CollectionPhaseEnum:
+  type: string
+  description: Independent acquisition or business-integration evidence for the same stage.
+  enum:
+    - acquisition
     - integration
 CollectionOutcomeEnum:
   type: string

@@ -172,7 +172,7 @@ CollectionCycleInternalResponse:
   type: object
   description:
     Backend-admitted immutable acquisition context. A successful admission commits running
-    before reads; a superseded incarnation cannot write.
+    before reads; a superseded incarnation cannot write. Exactly one of controlId or sourceBindingId is present. A control passage requires mode; candidate validation requires candidate and omits mode, with no sporting-ingestion authorization.
   additionalProperties: true
   properties:
     id:
@@ -215,7 +215,6 @@ CollectionCycleInternalResponse:
     - id
     - incarnationId
     - cycleOrder
-    - mode
     - state
     - startedAt
 CollectionTargetInternalResponse:
@@ -229,9 +228,11 @@ CollectionTargetInternalResponse:
     only when available.
   additionalProperties: true
   properties:
-    id:
+    scopeId:
       type: string
-      description: Backend target identity within this cycle.
+      description: >-
+        Stable domain UUID reused across cycles: binding for discovery, pool for calendar/standings,
+        match for details, club for club-sheet/geocoding.
       format: uuid
     kind:
       $ref: ../../common/collection-enums.yaml#/CollectionTargetKindEnum
@@ -319,12 +320,12 @@ CollectionTargetInternalResponse:
       type: string
       description: Native match reference within the qualified provider/pool context, required for details.
   required:
-    - id
+    - scopeId
     - kind
 CollectionTargetPageInternalResponse:
   type: object
   description:
-    Target identities selected at admission, ordered by UUID with stable pagination. Eligibility/configuration
+    Domain targets selected at admission, ordered by kind then scopeId with stable pagination. Eligibility/configuration
     is frozen; permitted locality values and their revision are read from current business state. Obsolete
     cycles cannot authorize writes.
   additionalProperties: true
@@ -349,17 +350,20 @@ CollectionTargetPageInternalResponse:
     - hasNext
 RecordCollectionResultInternalRequest:
   type: object
-  description:
-    Record one current scope/stage result. No raw supplier payload; acquisition and integration
-    must be reported separately.
+  description: Record one current scope/stage/phase result. Each phase keeps the acquisition stage so that calendar and standings integration remain independent. No raw supplier payload.
   additionalProperties: false
   properties:
     scopeId:
       type: string
-      description: Authorized target or source identity in this cycle.
+      description: >-
+        Stable domain UUID: binding for discovery, pool for calendar/standings, match for details,
+        club for club-sheet/geocoding, team for logo. It must belong to the admitted scope;
+        never allocate a result UUID per cycle.
       format: uuid
     stage:
       $ref: ../../common/collection-enums.yaml#/CollectionStageEnum
+    phase:
+      $ref: ../../common/collection-enums.yaml#/CollectionPhaseEnum
     readOrdinal:
       type: integer
       format: int64
@@ -394,13 +398,14 @@ RecordCollectionResultInternalRequest:
   required:
     - scopeId
     - stage
+    - phase
     - readOrdinal
     - observedAt
     - outcome
 CompleteCollectionCycleInternalRequest:
   type: object
   description:
-    Declare the admitted passage finished; this does not turn omitted/failed scopes into success.
+    Declare an admitted control passage finished, including one with failed results; this does not turn omitted/failed scopes into success. Candidate validation ends through its own result submission, not this operation.
     Identical terminal repetition is a no-op; contradictions conflict.
   additionalProperties: false
   properties:
@@ -413,7 +418,7 @@ CompleteCollectionCycleInternalRequest:
 SubmitSourceValidationInternalRequest:
   type: object
   description:
-    Finish a source-validation cycle. Candidate revision and open season are rechecked; late
+    Atomically apply the candidate result and finish its admitted validation. Identical accepted repetition is a no-op; conflicting results are refused. Candidate revision and open season are rechecked; late
     results cannot validate an edited/closed source. state is limited to invalid, confirmation-required
     or qualified; other lifecycle values are refused.
   additionalProperties: false
