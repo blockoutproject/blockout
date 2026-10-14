@@ -4,7 +4,7 @@
 
 **Input**: [#44](https://github.com/blockoutproject/blockout/issues/44); approved [F13 foundation](../003-shared-quality/plan.md). This dossier defines future implementation; it creates no runtime or provider configuration.
 
-**Status**: Ready for technical review. The owner approved the revised deletion prototype and its Figma translation separately. Unchanged in-app approvals remain applicable; hosted authentication and native crop interfaces remain outside reproduction scope.
+**Design scope**: The revised deletion prototype and Figma translation are approved; unchanged in-app approvals remain applicable. Hosted authentication and native crop interfaces remain outside reproduction scope.
 
 ## Summary
 

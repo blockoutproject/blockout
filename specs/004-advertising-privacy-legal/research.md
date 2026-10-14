@@ -6,7 +6,7 @@
 
 **Rationale**: The [wrapper mediation guidance](https://docs.page/invertase/react-native-google-mobile-ads/mediation) and [Google Meta adapter guidance](https://developers.google.com/admob/android/mediation/meta) support the ordinary integration. One placement matches the accepted shared counter and one prepared ad. Expo config plugins and native development builds fit F13; Expo Go does not qualify adapters.
 
-**Alternatives considered**: Separate Meta UI/SDK orchestration, Equativ, native pin overrides, Next-Gen ad pools and custom bridges add boundaries without an accepted need. No full mediation framework is added.
+**Alternatives considered**: Separate Meta UI/SDK orchestration, Equativ, native pin overrides, Next-Gen ad pools and custom bridges add boundaries without an accepted need.
 
 **Evidence limit**: Published wrapper types/pins and provider documentation were inspected. The reviewed core pins include Android Google Mobile Ads 25.4.0/UMP 4.0 and iOS Google Mobile Ads 13.6/UMP 3.1; compatible Meta package pins must be resolved together at installation. Newer examples on a supplier page do not authorize overriding them. No native compilation or delivery was performed.
 
@@ -36,7 +36,9 @@
 
 **Decision**: One prepared ad, one current transition and one runtime counter at ten, shared by navigation/live. Use native display/dismissal/failure events. No load wait, automatic catch-up, presentation watchdog or replacement close control.
 
-**Rationale**: [Interstitial guidance](https://docs.page/invertase/react-native-google-mobile-ads/ad-formats) supports loading ahead and event-driven lifecycle. Count actual accepted actions and reset only on actual display. Check native expiry before use; do not add a timer-based reload service. Existing F05/F09 session and entitlement ownership prevents old callbacks from affecting a new user.
+**Rationale**: The [imperative interstitial API](https://docs.page/invertase/react-native-google-mobile-ads/ad-formats/interstitial) exposes load/show and presentation events. Inspection of the [published 17.2.0 package](https://www.npmjs.com/package/react-native-google-mobile-ads/v/17.2.0) confirms that `show()` can reject separately from `ERROR`, whereas the convenience hook absorbs call failures. The direct API lets the existing pending transition handle both channels without a second recovery mechanism. `CLOSED` permits reloading the same instance; retirement uses `destroy()`. After failure/no-fill, the next eligible action starts one new load instead of an immediate retry loop.
+
+**Freshness**: Google documents one-hour interstitial expiry on [Android](https://developers.google.com/admob/android/interstitial) and [iOS](https://developers.google.com/admob/ios/interstitial). The inspected imperative wrapper exposes loaded state, not an expiry getter. Retain one load timestamp and discard/recreate stale ads when next used; this applies the documented cache limit without hourly background refresh. Native presentation failures still cover ads that become unusable sooner. Published source and documentation establish these API choices; device behavior, mediation and integrated navigation remain unqualified.
 
 **Alternatives considered**: A separate live ad on every link was rejected in favor of the shared ten-action rule. Ad pools, persistent counters and a custom recovery state machine add no accepted benefit. An exceptional missing SDK callback may require restarting; that limitation replaces a guaranteed custom timeout recovery.
 
@@ -56,7 +58,7 @@
 
 ## Targeted club-contact restriction
 
-**Decision**: Persist a restriction in each affected existing F02 contact field's metadata. An authorized manual transaction clears source/manual values under the club lock and advances the current revision. Collection and ordinary edits cannot restore restricted data.
+**Decision**: Use the [F02 field-restriction mechanism](../002-sporting-data/data-model.md#presentation-and-privacy) so collection and ordinary edits cannot restore restricted data.
 
 **Rationale**: F02 already owns contact modes, source values, locking and revisions. Clearing a displayed override alone would allow the next collection or return-to-source to republish personal data. A durable field restriction is the smallest mechanism preserving the accepted invariant.
 

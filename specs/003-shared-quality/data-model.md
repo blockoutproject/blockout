@@ -16,23 +16,13 @@
 
 PostgreSQL constraints enforce structural references/uniqueness and use-case transactions commit related changes. Domain owners select required optimistic concurrency or other ordinary SQL controls with their concrete operations. F13 neither creates a universal version column nor promises global ordering across independent use cases. External calls do not hold database transactions open.
 
-## Quality objective
-
-Logical fields: owning requirement, affected user/operation, expected observable result and applicable evidence. This is specification/test intent, not persisted business data. Domain scheduling/expiry is meaningful; the withdrawn load, percentile-latency and monthly-availability objectives create no records or metrics programme.
-
 ## Operational observation and incident
 
-Logical fields: useful nonpersonal scope, stage, observed time, outcome, latest useful success, affected count/partial success when available, safe reason and allowed recovery action. Supplier observation, acquisition, accepted integration and projection are distinct stages; a stage success cannot advance another stage's meaning.
-
-The relevant owner's ordinary state and structured logs/metrics supply these facts. Never-run, awaiting eligibility and paused are not successful executions. A start becomes completed, partially successful or failed only with evidence; a lost process can leave an unknown outcome. Missing telemetry does not infer health. Do not synthesize false completion from an HTTP call or native alert closure.
-
-An incident is the operational condition plus native Grafana alert state, not a new PostgreSQL incident table. Native firing/resolved and repeat grouping are provider states; business recovery requires useful results for the affected scope. Keep detection, alert, manual intervention and observed recovery times distinct where available without an intervention guarantee. Logs retain 14 days. Only [F05 original-target references](../005-accounts-identity/plan.md#erasure-and-manual-resolution) needed for manual cleanup may enter private logs under F11; labels and Discord alerts contain no personal references. Raw provider files and secrets remain excluded. This exception creates no deletion entity or exhaustive incident ledger.
+Domain owners supply their operational state; structured logs/metrics and native Grafana alert state provide diagnostics. F13 defines no separate incident entity. [The operations plan](plan.md#manual-delivery-and-operations) owns stage distinctions, recovery evidence, retention and the limited F05 private-reference exception.
 
 ## Restorable set
 
-Logical fields: environment, native backup timestamp/status, private S3 object reference and bytes, retained lifetime, actual restoration outcome if performed. These are native Dokploy/S3 records, not a duplicate registry. The database dump contains authoritative relational/image values; derived state can be rebuilt according to its owner. Identities/grants, application configuration and provider state are not magically captured by a database dump.
-
-A scheduled run may fail, produce a copy or remain without a confirmed outcome. Presence does not mean validated restoration. S3 expires copies using the 30-day rule; no exact deletion-at-720-hours guarantee. One initial isolated restoration validates expected data/bytes/associations and limitations. A real restored copy remains closed to affected access/sends until current erasure, permissions, F07 expiry and F14 continuity obligations are applied. No recurring restore job or persistent backup-verification model.
+Dokploy/S3 own backup status and object metadata. The database dump retains authoritative relations and image bytes; domain owners govern rebuilding derived state. Application configuration and external provider state are separate from that dump. [Backup and recovery rules](plan.md#backups-and-recovery) define retention, initial restoration evidence and the conditions for reopening restored data.
 
 ## Club-logo transition set — F14
 
