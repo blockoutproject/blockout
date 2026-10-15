@@ -1,0 +1,106 @@
+ReplaceFollowStateRequest:
+  type: object
+  description: Complete desired follow state; repeated identical state has no additional effect.
+  additionalProperties: false
+  properties:
+    following:
+      type: boolean
+      description: True to follow; false to stop following.
+  required:
+    - following
+FollowStateResponse:
+  type: object
+  description: Current owner relationship state for a viewable target; false does not imply a stored relation.
+  additionalProperties: true
+  properties:
+    following:
+      type: boolean
+      description: Whether the owner currently follows this viewable target.
+  required:
+    - following
+FollowerCountResponse:
+  type: object
+  description: Public count of existing relationships, without follower identities.
+  additionalProperties: true
+  properties:
+    count:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+      description: Existing follow relationships for this target; independent of the viewer’s season filter.
+  required:
+    - count
+FollowOptionsResponse:
+  type: object
+  description: Viewable seasons and the ordinary personal-space default.
+  additionalProperties: true
+  properties:
+    seasons:
+      type: array
+      description: Distinct viewable catalog/follow seasons, newest sporting start year first, then UUID.
+      items:
+        $ref: ../consultation/schemas.yaml#/SportingSeasonResponse
+    defaultSeasonId:
+      type: string
+      format: uuid
+      description: Newest viewable followed season, otherwise newest catalog season; omitted when seasons is empty.
+  required:
+    - seasons
+PersonalMatchCalendarResponse:
+  type: object
+  description: Personal match selection and its calendar evaluated together.
+  additionalProperties: true
+  properties:
+    hasAvailableFollows:
+      type: boolean
+      description:
+        Whether any followed team or pool is viewable in the selected season, independently of calendar
+        category.
+    calendar:
+      $ref: ../consultation/schemas.yaml#/MatchCalendarResponse
+  required:
+    - hasAvailableFollows
+    - calendar
+TeamFollowsResponse:
+  type: object
+  description: One page of viewable followed teams.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: At most twenty targets, effective public name in French alphabetical order then UUID.
+      maxItems: 20
+      items:
+        $ref: ../consultation/schemas.yaml#/TeamSummaryResponse
+    nextPage:
+      type: integer
+      format: int64
+      minimum: 1
+      maximum: 107374182
+      description:
+        Next zero-based page for the same season selection; omitted when exhausted. No immutable snapshot
+        or total is implied.
+  required:
+    - items
+PoolFollowsResponse:
+  type: object
+  description: One page of viewable followed pools.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: At most twenty targets, effective public name in French alphabetical order then UUID.
+      maxItems: 20
+      items:
+        $ref: ../consultation/schemas.yaml#/PoolSummaryResponse
+    nextPage:
+      type: integer
+      format: int64
+      minimum: 1
+      maximum: 107374182
+      description:
+        Next zero-based page for the same season selection; omitted when exhausted. No immutable snapshot
+        or total is implied.
+  required:
+    - items

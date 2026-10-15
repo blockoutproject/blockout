@@ -1,0 +1,25 @@
+Category:
+  name: category
+  in: query
+  required: true
+  description: Calendar presentation category.
+  schema:
+    $ref: ./schemas.yaml#/CalendarCategoryEnum
+TimeZone:
+  name: timeZone
+  in: query
+  required: true
+  description: Valid IANA zone for grouping instants; date-only matches keep their sporting date.
+  schema:
+    type: string
+    description: IANA zone.
+    example: Europe/Paris
+NextDay:
+  name: nextDay
+  in: query
+  required: false
+  description: Exclusive day boundary returned by the preceding response; omit to start or refresh.
+  schema:
+    type: string
+    description: Display-day boundary.
+    format: date

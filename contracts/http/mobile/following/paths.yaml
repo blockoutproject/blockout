@@ -1,0 +1,351 @@
+TeamFollows:
+  parameters:
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    - $ref: ./parameters.yaml#/Season
+    - $ref: ./parameters.yaml#/Page
+  get:
+    operationId: listTeamFollows
+    tags:
+      - Following
+    summary: List my followed teams
+    description:
+      Returns only the usable owner’s viewable follows in pages of twenty. Preserve the season for continuation;
+      concurrent changes can shift pages until refresh. Unsupported page ranges or continuations return 400,
+      not a false end of results. No hidden-target placeholders or total count.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/TeamFollowsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+TeamFollow:
+  parameters:
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ./parameters.yaml#/Team
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: getTeamFollowState
+    tags:
+      - Following
+    summary: Read my team follow state
+    description:
+      Returns the usable owner’s state. A viewable target without a relationship returns following=false;
+      unknown or hidden targets return 404.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/FollowStateResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+  put:
+    operationId: replaceTeamFollowState
+    tags:
+      - Following
+    summary: Replace my team follow state
+    description:
+      Atomically replaces the usable owner’s desired state. Repetition does not duplicate a relationship.
+      Last server-recorded state wins across devices. After an uncertain response, read current state before an
+      explicit retry.
+    requestBody:
+      required: true
+      description: Desired state for this owner and target.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/ReplaceFollowStateRequest
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/FollowStateResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+TeamFollowerCount:
+  parameters:
+    - $ref: ./parameters.yaml#/Team
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: getTeamFollowerCount
+    tags:
+      - Following
+    summary: Read a team follower count
+    description:
+      Returns existing relationships for a viewable target without disclosing accounts. Ordinary access
+      is public; explicit maintenance bypass requires an authorized mobile token. A failure is not a zero count.
+    security:
+      - {}
+      - MobileToken: []
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/FollowerCountResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+PoolFollows:
+  parameters:
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    - $ref: ./parameters.yaml#/Season
+    - $ref: ./parameters.yaml#/Page
+  get:
+    operationId: listPoolFollows
+    tags:
+      - Following
+    summary: List my followed pools
+    description:
+      Returns only the usable owner’s viewable follows in pages of twenty. Preserve the season for continuation;
+      concurrent changes can shift pages until refresh. Unsupported page ranges or continuations return 400,
+      not a false end of results. No hidden-target placeholders or total count.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/PoolFollowsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+PoolFollow:
+  parameters:
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ./parameters.yaml#/Pool
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: getPoolFollowState
+    tags:
+      - Following
+    summary: Read my pool follow state
+    description:
+      Returns the usable owner’s state. A viewable target without a relationship returns following=false;
+      unknown or hidden targets return 404.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/FollowStateResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+  put:
+    operationId: replacePoolFollowState
+    tags:
+      - Following
+    summary: Replace my pool follow state
+    description:
+      Atomically replaces the usable owner’s desired state. Repetition does not duplicate a relationship.
+      Last server-recorded state wins across devices. After an uncertain response, read current state before an
+      explicit retry.
+    requestBody:
+      required: true
+      description: Desired state for this owner and target.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/ReplaceFollowStateRequest
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/FollowStateResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+PoolFollowerCount:
+  parameters:
+    - $ref: ./parameters.yaml#/Pool
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: getPoolFollowerCount
+    tags:
+      - Following
+    summary: Read a pool follower count
+    description:
+      Returns existing relationships for a viewable target without disclosing accounts. Ordinary access
+      is public; explicit maintenance bypass requires an authorized mobile token. A failure is not a zero count.
+    security:
+      - {}
+      - MobileToken: []
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/FollowerCountResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Options:
+  parameters:
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: getFollowOptions
+    tags:
+      - Following
+    summary: Read my follow season choices
+    description:
+      Returns the usable owner’s viewable catalog/follow seasons and ordinary default. Hidden follows
+      alone expose no season. A read failure does not prove a retained selection unavailable.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/FollowOptionsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Matches:
+  parameters:
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    - $ref: ./parameters.yaml#/Season
+    - $ref: ../consultation/parameters.yaml#/Category
+    - $ref: ../consultation/parameters.yaml#/TimeZone
+    - $ref: ../consultation/parameters.yaml#/NextDay
+  get:
+    operationId: listPersonalMatches
+    tags:
+      - Following
+    summary: Read my personal sporting calendar
+    description:
+      Returns the usable owner’s matches selected by a followed participant or pool, each once. Current
+      visibility applies. Preserve season, category and timeZone for nextDay; concurrent moves can be absent until
+      refresh. No general-calendar fallback.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/PersonalMatchCalendarResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
