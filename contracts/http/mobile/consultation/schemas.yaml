@@ -568,6 +568,10 @@ MatchDetailResponse:
         Current permitted professional or contributed HTTP(S) stream destination, without live/replay
         assertion.
       format: uri
+    streamContributionId:
+      type: string
+      format: uuid
+      description: Exact version of a contributed streamUrl; present with a contributive link, omitted for professional links or no link.
     officialCalendarUrl:
       type: string
       description: Qualified official FFVB calendar destination when available.

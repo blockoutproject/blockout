@@ -1,0 +1,578 @@
+OwnCollection:
+  parameters:
+    - $ref: ./parameters.yaml#/StreamAccount
+    - $ref: ./parameters.yaml#/StreamMatch
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: listOwnStreamContributions
+    tags:
+      - StreamContributions
+    summary: Read my match contributions
+    description:
+      Only the original usable account may access its own versions on a currently viewable match.
+      Returns eligibility, quota usage and personal versions. Page changes may shift items; refresh starts
+      at zero.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/OwnStreamContributionsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/StreamPage
+  post:
+    operationId: createStreamContribution
+    tags:
+      - StreamContributions
+    summary: Submit a stream address
+    description:
+      Only the original usable account may access its own versions on a currently viewable match.
+      A stale revision returns 409 before duplicate detection; no effects. After an uncertain response, read
+      current state before a new explicit action. Rechecks seven-day account age, H−1, ownership and quotas.
+      Post-result submissions and unresolved hiding waits require approval. An identical current active or
+      pending address for this owner returns 200 without quota use; a new version returns 201.
+    requestBody:
+      required: true
+      description: Complete input for this atomic operation; unknown fields and null values are rejected.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/CreateStreamContributionRequest
+    responses:
+      "201":
+        description: Created resource.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Location:
+            description: URI reference identifying the created resource.
+            schema:
+              type: string
+              description: Created resource URI.
+              format: uri-reference
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/OwnStreamContributionDetailResponse
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/OwnStreamContributionDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+OwnMember:
+  parameters:
+    - $ref: ./parameters.yaml#/StreamAccount
+    - $ref: ./parameters.yaml#/StreamMatch
+    - $ref: ./parameters.yaml#/StreamContribution
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: getOwnStreamContribution
+    tags:
+      - StreamContributions
+    summary: Read my contribution version
+    description:
+      Only the original usable account may access its own versions on a currently viewable match.
+      Unknown or non-owned versions return 404.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/OwnStreamContributionDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+  patch:
+    operationId: updateOwnStreamContribution
+    tags:
+      - StreamContributions
+    summary: Cancel or withdraw my version
+    description:
+      Only the original usable account may access its own versions on a currently viewable match.
+      A stale revision returns 409 before duplicate detection; no effects. After an uncertain response, read
+      current state before a new explicit action. Cancel applies only to pending; withdraw only to active.
+      The other active/pending version and consumed quotas are preserved. A current repeated completed transition
+      returns 200 without new effects.
+    requestBody:
+      required: true
+      description: Complete input for this atomic operation; unknown fields and null values are rejected.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/UpdateOwnStreamContributionRequest
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/OwnStreamContributionDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+OwnReport:
+  parameters:
+    - $ref: ./parameters.yaml#/StreamAccount
+    - $ref: ./parameters.yaml#/StreamContribution
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: getOwnStreamReport
+    tags:
+      - StreamContributions
+    summary: Read my report state
+    description:
+      Returns this account’s reporting state, without its reason. An existing report remains readable
+      if its version is no longer active, while its match remains viewable; otherwise an inactive version is
+      unavailable.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/StreamReportStateResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+  post:
+    operationId: createStreamReport
+    tags:
+      - StreamContributions
+    summary: Report a stream version
+    description:
+      Requires the original usable account and current reporting permission. Reports another owner’s currently public version, including an ownerless link. No age or publication
+      quota condition. An existing report returns 200 without replacing its reason or evaluating the threshold
+      again, even if that version is now hidden; its match must remain viewable. A new report requires the
+      targeted version still to be active or returns 409. Counts 3 before a definitive result or 10 afterward
+      hide the version and require future proposal approval.
+    requestBody:
+      required: true
+      description: Complete input for this atomic operation; unknown fields and null values are rejected.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/CreateStreamReportRequest
+    responses:
+      "201":
+        description: Created resource.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Location:
+            description: URI reference identifying the created resource.
+            schema:
+              type: string
+              description: Created resource URI.
+              format: uri-reference
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/StreamReportStateResponse
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/StreamReportStateResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Moderation:
+  parameters:
+    - $ref: ./parameters.yaml#/StreamPage
+    - $ref: ./parameters.yaml#/StreamSeason
+    - $ref: ./parameters.yaml#/StreamQuery
+    - $ref: ./parameters.yaml#/StreamPlatform
+    - $ref: ./parameters.yaml#/StreamFilter
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: listStreamModeration
+    tags:
+      - StreamContributions
+    summary: Find matches for video moderation
+    description:
+      Requires current stream-link moderation permission. Private reads may include hidden matches;
+      publication never bypasses sporting visibility or professional restrictions. Returns distinct matches
+      and current counts. The to-review selection has no examined/dismissed state.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/StreamModerationResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+AdministrationCollection:
+  parameters:
+    - $ref: ./parameters.yaml#/StreamMatch
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: listModeratedStreamContributions
+    tags:
+      - StreamContributions
+    summary: Read match contribution history
+    description:
+      Requires current stream-link moderation permission. Private reads may include hidden matches;
+      publication never bypasses sporting visibility or professional restrictions. Returns current context
+      and active link independently of the version page. Paged versions use the optional state filter.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ModeratedStreamContributionsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+    parameters:
+      - $ref: ./parameters.yaml#/StreamPage
+      - $ref: ./parameters.yaml#/StreamVersionState
+  post:
+    operationId: createModeratedStreamContribution
+    tags:
+      - StreamContributions
+    summary: Publish a stream address directly
+    description:
+      Requires current stream-link moderation permission. Private reads may include hidden matches;
+      publication never bypasses sporting visibility or professional restrictions. A stale revision returns
+      409 before duplicate detection; no effects. After an uncertain response, read current state before a
+      new explicit action. Verifies the original actor account. Bypasses ordinary age, time and quota rules.
+      Replaces the active version, supersedes pending alternatives and clears the report hold atomically. An
+      unchanged current address for this actor returns 200 without a new version; otherwise 201.
+    requestBody:
+      required: true
+      description: Complete input for this atomic operation; unknown fields and null values are rejected.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/CreateModeratedStreamContributionRequest
+    responses:
+      "201":
+        description: Created resource.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Location:
+            description: URI reference identifying the created resource.
+            schema:
+              type: string
+              description: Created resource URI.
+              format: uri-reference
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ModeratedStreamContributionDetailResponse
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ModeratedStreamContributionDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+AdministrationMember:
+  parameters:
+    - $ref: ./parameters.yaml#/StreamMatch
+    - $ref: ./parameters.yaml#/StreamContribution
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: getModeratedStreamContribution
+    tags:
+      - StreamContributions
+    summary: Read a contribution for moderation
+    description:
+      Requires current stream-link moderation permission. Private reads may include hidden matches;
+      publication never bypasses sporting visibility or professional restrictions. Returns the exact version
+      and current decision.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ModeratedStreamContributionDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+  patch:
+    operationId: updateModeratedStreamContribution
+    tags:
+      - StreamContributions
+    summary: Decide a contribution version
+    description:
+      Requires current stream-link moderation permission. Private reads may include hidden matches;
+      publication never bypasses sporting visibility or professional restrictions. A stale revision returns
+      409 before duplicate detection; no effects. After an uncertain response, read current state before a
+      new explicit action. Verifies the original actor account. Approval selects a pending version, supersedes
+      all alternatives and clears the hold. Rejection changes only a pending proposal; withdrawal changes only
+      the active version. These latter actions do not clear an independent hold. A current repeated completed
+      transition has no new effect.
+    requestBody:
+      required: true
+      description: Complete input for this atomic operation; unknown fields and null values are rejected.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/UpdateModeratedStreamContributionRequest
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ModeratedStreamContributionDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Reactivations:
+  parameters:
+    - $ref: ./parameters.yaml#/StreamMatch
+    - $ref: ./parameters.yaml#/StreamContribution
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  post:
+    operationId: createStreamReactivation
+    tags:
+      - StreamContributions
+    summary: Reactivate a historical address
+    description:
+      Requires current stream-link moderation permission. Private reads may include hidden matches;
+      publication never bypasses sporting visibility or professional restrictions. A stale revision returns
+      409 before duplicate detection; no effects. After an uncertain response, read current state before a
+      new explicit action. Verifies the original actor account. Accepts rejected, withdrawn, hidden, replaced
+      or superseded versions. Creates a new active version with the remaining original owner and zero reports,
+      replaces the active link, supersedes pending alternatives and clears the hold. Uses no ordinary quota.
+    requestBody:
+      required: true
+      description: Complete input for this atomic operation; unknown fields and null values are rejected.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/CreateStreamReactivationRequest
+    responses:
+      "201":
+        description: Created resource.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Location:
+            description: URI reference identifying the created resource.
+            schema:
+              type: string
+              description: Created resource URI.
+              format: uri-reference
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ModeratedStreamContributionDetailResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Reports:
+  parameters:
+    - $ref: ./parameters.yaml#/StreamMatch
+    - $ref: ./parameters.yaml#/StreamContribution
+    - $ref: ./parameters.yaml#/StreamPage
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: listStreamReports
+    tags:
+      - StreamContributions
+    summary: Read reports on a version
+    description:
+      Requires current stream-link moderation permission. Private reads may include hidden matches;
+      publication never bypasses sporting visibility or professional restrictions. Returns report dates and
+      available reasons without reporter identities. Erased reasons are null; those facts still count.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/StreamReportsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable

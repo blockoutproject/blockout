@@ -218,3 +218,6 @@ AccountPermissionsResponse:
     manageDivisionLifecycle:
       type: boolean
       description: Manage division creation and activity, subject to resource rules.
+    moderateStreamLinks:
+      type: boolean
+      description: Consult and moderate video contributions, including publication and withdrawal; grants no other administration or maintenance bypass.

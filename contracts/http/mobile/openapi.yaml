@@ -2,8 +2,9 @@ openapi: 3.0.4
 info:
   title: Blockout mobile API
   version: 0.1.0
-  description: >-
-    Backend API for application access, account lifecycle, public sporting consultation, discovery, personal following and administration.
+  description:
+    Backend API for application access, account lifecycle, public sporting consultation, discovery,
+    personal following and administration.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
@@ -15,10 +16,11 @@ tags:
   - name: Accounts
     description: Private account establishment, profile changes and erasure.
   - name: Sporting
-    description: >-
-      Sporting identities, presentation, classification and authorized corrections.
+    description: Sporting identities, presentation, classification and authorized corrections.
   - name: Following
     description: Personal team/pool follows, public counts and personal match selection.
+  - name: StreamContributions
+    description: Owned stream links, exact-version reports and authorized video moderation.
 security:
   - MobileToken: []
 paths:
@@ -136,14 +138,30 @@ paths:
     $ref: ./sporting/paths.yaml#/DivisionPresentation
   /administration/divisions/{divisionId}/activity:
     $ref: ./sporting/paths.yaml#/DivisionActivity
+  /accounts/{accountId}/matches/{matchId}/stream-contributions:
+    $ref: ./contributions/paths.yaml#/OwnCollection
+  /accounts/{accountId}/matches/{matchId}/stream-contributions/{contributionId}:
+    $ref: ./contributions/paths.yaml#/OwnMember
+  /accounts/{accountId}/stream-contributions/{contributionId}/report:
+    $ref: ./contributions/paths.yaml#/OwnReport
+  /administration/stream-moderation:
+    $ref: ./contributions/paths.yaml#/Moderation
+  /administration/matches/{matchId}/stream-contributions:
+    $ref: ./contributions/paths.yaml#/AdministrationCollection
+  /administration/matches/{matchId}/stream-contributions/{contributionId}:
+    $ref: ./contributions/paths.yaml#/AdministrationMember
+  /administration/matches/{matchId}/stream-contributions/{contributionId}/reactivations:
+    $ref: ./contributions/paths.yaml#/Reactivations
+  /administration/matches/{matchId}/stream-contributions/{contributionId}/reports:
+    $ref: ./contributions/paths.yaml#/Reports
 components:
   securitySchemes:
     MobileToken:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: >-
+      description:
         Bearer token issued to an allowed mobile client for this environment. The backend validates
         issuer, audience, expiry and client identity, then checks current global action grants and resource
-        conditions. Ordinary membership, moderation or collector credentials grant no implicit
-        administrative permission.
+        conditions. Ordinary membership, moderation or collector credentials grant no implicit administrative
+        permission.

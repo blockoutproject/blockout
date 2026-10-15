@@ -1,0 +1,39 @@
+# Research: live contributions and moderation
+
+## Local address recognition
+
+**Decision:** Parse with Java 25 `URI`, require an absolute HTTP(S) address, a nonempty recognized host and no user information. Compare case-insensitive exact domains or dot-delimited subdomains of youtube.com, twitch.tv and facebook.com; also accept youtu.be and fb.watch. Preserve the submitted path, query and fragment. Compare stored addresses literally for same-owner active/pending deduplication; no provider identity inference.
+
+**Rationale:** [Java URI](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/net/URI.html) supplies syntax and host/user-info components without network resolution. Recognition establishes neither video existence nor availability. No provider request, SDK, redirect expansion or query cleanup is justified by the accepted journey.
+
+**Alternatives:** Remote validation introduces provider availability and access dependencies without guaranteeing later playback. A custom URL parser adds no useful guarantee.
+
+## Transactions, quotas and erasure
+
+**Decision:** Use short JPA transactions and the existing sporting-root/account lock order. Match publication and sporting result acceptance serialize on the match. Lock the submitting account for quota evaluation across matches. Count recorded ordinary versions and distinct matches between successive Europe/Paris midnights; record quota participation when creating a version. Use partial uniqueness for active match versions, pending owner/match versions and reports with an existing author. Re-read original ownership after account locking before copying it into a reactivation.
+
+**Rationale:** [Spring Data JPA locking](https://docs.spring.io/spring-data/jpa/reference/jpa/locking.html) supports repository lock metadata. [PostgreSQL partial indexes](https://www.postgresql.org/docs/18/indexes-partial.html) enforce conditional uniqueness, and [explicit locking](https://www.postgresql.org/docs/18/explicit-locking.html) supplies transaction-scoped row protection. [LocalDate.atStartOfDay](<https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/time/LocalDate.html#atStartOfDay(java.time.ZoneId)>) expresses calendar boundaries; adding 24 hours would fail on Paris daylight-saving changes. F05 erasure retains report facts but nulls their author and reason; these anonymous rows must not collide.
+
+**Alternatives:** Unsynchronized counts alone cannot enforce concurrent quotas. Synchronized counters, daily reset jobs and distributed locks add lifecycle work without need. A general decision/event ledger duplicates the necessary version state. F07's required internal effects stay in the same transaction; its ordinary post-commit push is not guaranteed delivery.
+
+## Current-state reads and HTTP resources
+
+**Decision:** Keep the existing mobile OpenAPI root, page-based twenty-item lists and shared Problem Details. Commands carry the viewed contribution revision; administrative commands also carry the original actor account UUID. A stale revision returns 409 before duplicate/no-op evaluation. A lost response permits one bounded current-state read and a later explicit action, never an automatic write retry or exact historical receipt.
+
+**Rationale:** The existing [contract conventions](../003-shared-quality/contracts/README.md), [HTTP semantics](https://www.rfc-editor.org/rfc/rfc9110.html) and [PATCH semantics](https://www.rfc-editor.org/rfc/rfc5789.html) fit completed synchronous operations. Body revisions follow already approved business-conflict semantics; no HTTP conditional header is introduced. Known current state is useful even when a delayed request can still finish afterward.
+
+**Alternatives:** A request registry, durable job or replay queue adds retention and reconciliation work. Cursor snapshots and total-count envelopes are unnecessary for these moderation/history lists. No generic bulk endpoint or hypermedia framework is needed by the current callers; resource-shaped routes alone are not a claim of full REST conformance.
+
+## Search, attention and mobile freshness
+
+**Decision:** Use parameterized PostgreSQL substring queries over effective team names and recorded addresses, escaping LIKE metacharacters. Filter by season, platform and state. “To review” is a query over pending proposals, unresolved hiding waits and reported active versions. Use native Spring Data paging/Slice and TanStack Query's existing explicit fetching/invalidation, with no polling.
+
+**Rationale:** [PostgreSQL pattern matching](https://www.postgresql.org/docs/18/functions-matching.html) provides ILIKE; [Spring Data query methods](https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html) provide the ordinary query boundary. [TanStack Query invalidation](https://tanstack.com/query/v5/docs/framework/react/guides/query-invalidation) and [query cancellation](https://tanstack.com/query/v5/docs/framework/react/guides/query-cancellation) support the selected memory-only lifecycle. Current counts come from database aggregates, not downloaded pages.
+
+**Alternatives:** A search index duplicates private moderation state. An “examined” state would create an unrequested workflow. Polling and persistent caching add freshness and privacy obligations without an accepted need. Retain manual refresh and ordinary action/read feedback.
+
+## Evidence limits
+
+The owner approved prototype [5413817](https://github.com/blockoutproject/product-prototype/commit/54138170f14775fe11132aaa61433329059cbfbb), then the scoped Figma reconciliation linked in [plan.md](plan.md), in the #52 planning conversation. Prototype tests (206), TypeScript and its build passed; browser checks covered complete moderator actions, unavailable report reasons and current-state recovery. These observations establish fictional web behavior only.
+
+Documentation establishes native capabilities, not their integrated execution. Generation/compilation, real PostgreSQL concurrency, native mobile networking/accessibility and F07 integration remain [future qualifications](quickstart.md). No provider account or application runtime was configured and no dependency upgrade was selected.

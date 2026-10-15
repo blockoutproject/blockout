@@ -68,6 +68,8 @@ Use [account associations and explicit action grants](data-model.md#permissions-
 
 The owner alone uses an authorized database connection to grant/revoke rights. Delegated mobile operators receive neither SQL credentials nor a grant-management operation. Permission changes and protected mutations coordinate through the existing F05 account-row lock. Transactions needing domain roots acquire those first in their owner's order, then account locks; [F02](../002-sporting-data/plan.md) records the same order. Check current grants after obtaining the account lock. An admitted short mutation may finish before withdrawal; one ordered after withdrawal is refused.
 
+F08 adds the global `stream-links.moderate` grant and `moderateStreamLinks` projection for the complete video-moderation scope, including publication and withdrawal. It supplies no unrelated administrative right; video moderation remains ordinary business access during maintenance unless separately granted explicit bypass.
+
 Grant projections control presentation only. The three F12 capabilities are separate; domain grants remain global per action while resource ownership and domain invariants still apply. Account erasure removes grants, and recreation never restores them. No business permission follows from a generic administrator identity or Pro entitlement.
 
 ## Configuration and server admission

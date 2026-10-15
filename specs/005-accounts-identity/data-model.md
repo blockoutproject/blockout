@@ -42,6 +42,6 @@ Onboarding and the F14 transition-welcome completion retain their accepted insta
 
 ## Retained content, providers and restoration
 
-F08 retains useful links and moderation state without deleted-account attribution; it owns report history and content-specific restrictions. F07 removes personal inbox/destinations; F12 removes personal grants. F10/F11 own private support and legal retention. RevenueCat store purchases remain distinct from customer records and gifts; Auth0 deletion does not delete Google/Apple global accounts.
+F08 retains useful links and moderation state without deleted-account attribution; it removes reporter attribution and free-text reasons in this local transaction while preserving counted report facts and moderation decisions. It owns contribution history and content-specific restrictions. F07 removes personal inbox/destinations; F12 removes personal grants. F10/F11 own private support and legal retention. RevenueCat store purchases remain distinct from customer records and gifts; Auth0 deletion does not delete Google/Apple global accounts.
 
 F14's transition evidence must keep required historical customer targets discoverable even after native purchase transfer. A returned user receives a new business UUID, and old cleanup never resolves its target through the current principal-to-account mapping. Restore of a PostgreSQL backup must apply current erasure, permission and expiry obligations before affected access or push resumes.
