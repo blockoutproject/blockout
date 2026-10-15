@@ -1,0 +1,87 @@
+openapi: 3.0.4
+info:
+  title: Blockout legacy mobile access API
+  version: 0.1.0
+  description: Public update information for already distributed mobile applications.
+servers:
+  - url: /
+    description: Existing public backend host used by the installed application.
+tags:
+  - name: LegacyApplicationAccess
+    description: Compatible update information for retired application versions.
+security: []
+paths:
+  /api/v1/mobile/public/config/app-status:
+    get:
+      tags: [LegacyApplicationAccess]
+      operationId: getLegacyApplicationStatus
+      summary: Read update information
+      description: >-
+        Returns the flat representation understood by installed legacy applications.
+        Maintenance is false so the mandatory-update action remains accessible;
+        this read grants no ordinary application access.
+      responses:
+        "200":
+          description: Current compatible update information.
+          headers:
+            Cache-Control:
+              $ref: ../common/headers.yaml#/NoStore
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegacyApplicationStatusResponse"
+        "503":
+          $ref: ../common/problems.yaml#/responses/ServiceUnavailable
+components:
+  schemas:
+    LegacyApplicationStatusResponse:
+      type: object
+      description: Historical application-status representation with additive response compatibility.
+      additionalProperties: true
+      required:
+        - maintenance
+        - message
+        - image_url
+        - last_update
+        - min_version_ios
+        - min_version_android
+      properties:
+        maintenance:
+          type: boolean
+          description: False for retired versions so their update action is not hidden by maintenance.
+          example: false
+        message:
+          type: string
+          nullable: true
+          description: Historical maintenance message; null when unused.
+        image_url:
+          type: string
+          nullable: true
+          description: Historical maintenance image URL; null when unused.
+        last_update:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last settings update instant, or null when no timestamp is supplied.
+        min_version_ios:
+          type: string
+          nullable: true
+          description: Minimum iOS application version; historical null means no minimum. Retirement requires a non-null supported release version.
+          example: 2.0.0
+        min_version_android:
+          type: string
+          nullable: true
+          description: Minimum Android application version; historical null means no minimum. Retirement requires a non-null supported release version.
+          example: 2.0.0
+        store_url_ios:
+          type: string
+          nullable: true
+          description: App Store update URL. Historically optional or null; retirement requires a usable URL.
+        store_url_android:
+          type: string
+          nullable: true
+          description: Google Play update URL. Historically optional or null; retirement requires a usable URL.
+        force_update_message:
+          type: string
+          nullable: true
+          description: Optional update explanation. Absent or null uses the installed application's fallback wording.
