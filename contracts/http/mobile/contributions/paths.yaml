@@ -40,7 +40,7 @@ OwnCollection:
       - StreamContributions
     summary: Submit a stream address
     description:
-      Only the original usable account may access its own versions on a currently viewable match.
+      Requires the original usable owner account and a currently viewable match.
       A stale revision returns 409 before duplicate detection; no effects. After an uncertain response, read
       current state before a new explicit action. Rechecks seven-day account age, H−1, ownership and quotas.
       Post-result submissions and unresolved hiding waits require approval. An identical current active or
@@ -135,7 +135,7 @@ OwnMember:
       - StreamContributions
     summary: Cancel or withdraw my version
     description:
-      Only the original usable account may access its own versions on a currently viewable match.
+      Requires the original usable owner account and a currently viewable match.
       A stale revision returns 409 before duplicate detection; no effects. After an uncertain response, read
       current state before a new explicit action. Cancel applies only to pending; withdraw only to active.
       The other active/pending version and consumed quotas are preserved. A current repeated completed transition
@@ -282,8 +282,7 @@ Moderation:
       - StreamContributions
     summary: Find matches for video moderation
     description:
-      Requires current stream-link moderation permission. Private reads may include hidden matches;
-      publication never bypasses sporting visibility or professional restrictions. Returns distinct matches
+      Requires current stream-link moderation permission. Private reads may include hidden matches. Returns distinct matches
       and current counts. The to-review selection has no examined/dismissed state.
     responses:
       "200":
@@ -315,8 +314,7 @@ AdministrationCollection:
       - StreamContributions
     summary: Read match contribution history
     description:
-      Requires current stream-link moderation permission. Private reads may include hidden matches;
-      publication never bypasses sporting visibility or professional restrictions. Returns current context
+      Requires current stream-link moderation permission. Private reads may include hidden matches. Returns current context
       and active link independently of the version page. Paged versions use the optional state filter.
     responses:
       "200":
@@ -347,8 +345,8 @@ AdministrationCollection:
       - StreamContributions
     summary: Publish a stream address directly
     description:
-      Requires current stream-link moderation permission. Private reads may include hidden matches;
-      publication never bypasses sporting visibility or professional restrictions. A stale revision returns
+      Requires current stream-link moderation permission. Publication never bypasses sporting visibility
+      or professional restrictions. A stale revision returns
       409 before duplicate detection; no effects. After an uncertain response, read current state before a
       new explicit action. Verifies the original actor account. Bypasses ordinary age, time and quota rules.
       Replaces the active version, supersedes pending alternatives and clears the report hold atomically. An
@@ -412,8 +410,7 @@ AdministrationMember:
       - StreamContributions
     summary: Read a contribution for moderation
     description:
-      Requires current stream-link moderation permission. Private reads may include hidden matches;
-      publication never bypasses sporting visibility or professional restrictions. Returns the exact version
+      Requires current stream-link moderation permission. Private reads may include hidden matches. Returns the exact version
       and current decision.
     responses:
       "200":
@@ -443,8 +440,8 @@ AdministrationMember:
       - StreamContributions
     summary: Decide a contribution version
     description:
-      Requires current stream-link moderation permission. Private reads may include hidden matches;
-      publication never bypasses sporting visibility or professional restrictions. A stale revision returns
+      Requires current stream-link moderation permission. Publication never bypasses sporting visibility
+      or professional restrictions. A stale revision returns
       409 before duplicate detection; no effects. After an uncertain response, read current state before a
       new explicit action. Verifies the original actor account. Approval selects a pending version, supersedes
       all alternatives and clears the hold. Rejection changes only a pending proposal; withdrawal changes only
@@ -496,8 +493,8 @@ Reactivations:
       - StreamContributions
     summary: Reactivate a historical address
     description:
-      Requires current stream-link moderation permission. Private reads may include hidden matches;
-      publication never bypasses sporting visibility or professional restrictions. A stale revision returns
+      Requires current stream-link moderation permission. Publication never bypasses sporting visibility
+      or professional restrictions. A stale revision returns
       409 before duplicate detection; no effects. After an uncertain response, read current state before a
       new explicit action. Verifies the original actor account. Accepts rejected, withdrawn, hidden, replaced
       or superseded versions. Creates a new active version with the remaining original owner and zero reports,
@@ -553,8 +550,7 @@ Reports:
       - StreamContributions
     summary: Read reports on a version
     description:
-      Requires current stream-link moderation permission. Private reads may include hidden matches;
-      publication never bypasses sporting visibility or professional restrictions. Returns report dates and
+      Requires current stream-link moderation permission. Private reads may include hidden matches. Returns report dates and
       available reasons without reporter identities. Erased reasons are null; those facts still count.
     responses:
       "200":

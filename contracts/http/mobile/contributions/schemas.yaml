@@ -464,7 +464,7 @@ StreamModerationMatchResponse:
     - publiclyViewable
 StreamModerationCountsResponse:
   type: object
-  description: Current counts over all recorded versions, not the loaded page.
+  description: Match badges computed independently of the loaded page; historical reports remain available per version.
   additionalProperties: true
   properties:
     active:
@@ -480,13 +480,18 @@ StreamModerationCountsResponse:
       maximum: 9007199254740991
     hidden:
       type: integer
-      description: Report-hidden historical versions.
+      description: Unresolved report-hidden version; zero after a moderator selects a retained link.
+      minimum: 0
+      maximum: 1
+    reports:
+      type: integer
+      description: Counted reports on the active version or the unresolved report-hidden version, including erased reporters.
       format: int64
       minimum: 0
       maximum: 9007199254740991
-    reports:
+    rejected:
       type: integer
-      description: Counted reports across all versions, including erased reporters.
+      description: Rejected versions retained in history, independently of the loaded page.
       format: int64
       minimum: 0
       maximum: 9007199254740991
@@ -495,6 +500,7 @@ StreamModerationCountsResponse:
     - pending
     - hidden
     - reports
+    - rejected
 StreamModerationItemResponse:
   type: object
   description: One match concerned by contributions.

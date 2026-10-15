@@ -40,7 +40,7 @@ SportingSeasonResponse:
     - startYear
 SportingIdentityResponse:
   type: object
-  description: Public effective presentation of a viewable resource.
+  description: Effective resource identity and presentation; the supplying operation determines access.
   additionalProperties: true
   properties:
     id:
@@ -177,7 +177,7 @@ ClubDetailResponse:
     - seasons
 PoolSummaryResponse:
   type: object
-  description: Viewable pool identity and available competition context.
+  description: Pool identity and available competition context; the supplying operation determines access.
   additionalProperties: true
   properties:
     pool:
