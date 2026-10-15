@@ -1,0 +1,103 @@
+NotificationFamilyEnum:
+  type: string
+  description: Stable announcement composition, independent of later sporting corrections.
+  enum:
+    - result
+    - result-with-link
+    - live-link
+    - post-result-link
+NotificationResponse:
+  type: object
+  description: One current consultable owner notification; sporting content is read from current authorized facts.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Personal notification identity, unchanged by reading or correction.
+    createdAt:
+      type: string
+      format: date-time
+      description: Original inbox creation instant; consultation ends after 29 elapsed days.
+    family:
+      $ref: "#/NotificationFamilyEnum"
+    read:
+      type: boolean
+      description: Confirmed read state; once true it never returns to false.
+    title:
+      type: string
+      description: Current French editorial text; unavailable facts are not asserted.
+    match:
+      $ref: ../consultation/schemas.yaml#/MatchSummaryResponse
+    division:
+      $ref: ../consultation/schemas.yaml#/SportingDivisionResponse
+  required: [id, createdAt, family, read, title, match, division]
+NotificationsResponse:
+  type: object
+  description: Owner inbox ordered by original creation instant then UUID, both descending.
+  additionalProperties: true
+  properties:
+    notifications:
+      type: array
+      maxItems: 20
+      description: Current authorized entries; empty is a successful empty selection.
+      items:
+        $ref: "#/NotificationResponse"
+    nextCursor:
+      type: string
+      minLength: 1
+      description: Opaque continuation after this page; omitted when no continuation exists, never null.
+  required: [notifications]
+NotificationSummaryResponse:
+  type: object
+  description: Current all-page count and its next age-driven invalidation point, calculated from the same selection.
+  additionalProperties: true
+  properties:
+    unreadCount:
+      type: integer
+      format: int64
+      minimum: 0
+      description: All currently consultable unread entries, including unloaded pages; zero removes the badge.
+    nextExpiryAt:
+      type: string
+      format: date-time
+      description: Earliest 29-day expiry among the counted entries; present exactly when unreadCount is positive. Omitted at zero.
+  required: [unreadCount]
+MarkNotificationReadRequest:
+  type: object
+  description: Atomic read intent; repetition has no additional effect. Null and unknown properties are rejected.
+  additionalProperties: false
+  properties:
+    read:
+      type: boolean
+      enum: [true]
+      description: Must be true; marking unread is unsupported.
+  required: [read]
+ReplacePushSubscriptionRequest:
+  type: object
+  description: Complete destination association for this connection; neither field may be omitted or null.
+  additionalProperties: false
+  properties:
+    installationId:
+      type: string
+      format: uuid
+      description: Random installation identity independent of account and operating-system version; not authorization evidence.
+    expoPushToken:
+      type: string
+      minLength: 1
+      description: Current Expo push address supplied by the native SDK; not an identity or credential for account access.
+  required: [installationId, expoPushToken]
+PushSubscriptionResponse:
+  type: object
+  description: Registered connection association, without echoing its private delivery address.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: This connection association identity; use a new identity after a new sign-in.
+    installationId:
+      type: string
+      format: uuid
+      description: Associated installation identity.
+  required: [id, installationId]

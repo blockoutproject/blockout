@@ -3,7 +3,7 @@ TeamFollows:
     - $ref: ./parameters.yaml#/Account
     - $ref: ../access/parameters.yaml#/MaintenanceBypass
     - $ref: ./parameters.yaml#/Season
-    - $ref: ./parameters.yaml#/Page
+    - $ref: ./parameters.yaml#/FollowPage
   get:
     operationId: listTeamFollows
     tags:
@@ -144,7 +144,7 @@ PoolFollows:
     - $ref: ./parameters.yaml#/Account
     - $ref: ../access/parameters.yaml#/MaintenanceBypass
     - $ref: ./parameters.yaml#/Season
-    - $ref: ./parameters.yaml#/Page
+    - $ref: ./parameters.yaml#/FollowPage
   get:
     operationId: listPoolFollows
     tags:

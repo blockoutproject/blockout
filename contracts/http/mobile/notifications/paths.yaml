@@ -1,0 +1,201 @@
+Collection:
+  parameters:
+    - $ref: ./parameters.yaml#/NotificationAccount
+    - $ref: ./parameters.yaml#/NotificationCursor
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: listNotifications
+    tags: [Notifications]
+    summary: List my notifications
+    description: Returns twenty consultable entries at most. New entries appear on refresh; purged cursor anchors remain usable. No snapshot, total count or access to another account.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/NotificationsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Member:
+  parameters:
+    - $ref: ./parameters.yaml#/NotificationAccount
+    - $ref: ./parameters.yaml#/Notification
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: getNotification
+    tags: [Notifications]
+    summary: Read my notification
+    description: Returns current sporting presentation and read state for a retained, viewable owner entry.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/NotificationResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+  patch:
+    operationId: markNotificationRead
+    tags: [Notifications]
+    summary: Mark my notification read
+    description: Atomically marks the owner entry read. Repetition preserves true; missing, expired or hidden entries return 404 without recreation.
+    requestBody:
+      required: true
+      description: Read intent for this entry.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/MarkNotificationReadRequest
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Accept-Patch:
+            $ref: ../../common/headers.yaml#/AcceptPatchJson
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/NotificationResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Summary:
+  parameters:
+    - $ref: ./parameters.yaml#/NotificationAccount
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  get:
+    operationId: getNotificationSummary
+    tags: [Notifications]
+    summary: Read my unread notification total
+    description: Counts all consultable unread entries independently of loaded pages and excludes entries aged at least 29 elapsed days.
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/NotificationSummaryResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Subscription:
+  parameters:
+    - $ref: ./parameters.yaml#/NotificationAccount
+    - $ref: ./parameters.yaml#/Subscription
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+  put:
+    operationId: replacePushSubscription
+    tags: [Notifications]
+    summary: Register my push destination
+    description: Creates or completely replaces this connection association. Repetition creates no duplicate; the last accepted registration for an installation or delivery address replaces its former association. A new sign-in uses a new association identity.
+    requestBody:
+      required: true
+      description: Complete connection association.
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas.yaml#/ReplacePushSubscriptionRequest
+    responses:
+      "200":
+        description: Current authorized representation.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/PushSubscriptionResponse
+      "201":
+        description: Connection association created.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+          Location:
+            description: URI of the created connection association.
+            schema:
+              type: string
+              format: uri-reference
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/PushSubscriptionResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "409":
+        $ref: ../../common/problems.yaml#/responses/Conflict
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+  delete:
+    operationId: deletePushSubscription
+    tags: [Notifications]
+    summary: Remove my push destination association
+    description: Removes only this owner connection association. An absent association succeeds without effects; a later association, including for the same account, and other installations remain unchanged.
+    responses:
+      "204":
+        description: No content; exact association removed or already absent.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "404":
+        $ref: ../../common/problems.yaml#/responses/NotFound
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable

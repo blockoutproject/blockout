@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description:
     Backend API for application access, account lifecycle, public sporting consultation, discovery,
-    personal following and administration.
+    personal following, notifications and administration.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
@@ -21,9 +21,19 @@ tags:
     description: Personal team/pool follows, public counts and personal match selection.
   - name: StreamContributions
     description: Owned stream links, exact-version reports and authorized video moderation.
+  - name: Notifications
+    description: Private inbox, read state, unread totals and current push associations.
 security:
   - MobileToken: []
 paths:
+  /accounts/{accountId}/notifications:
+    $ref: ./notifications/paths.yaml#/Collection
+  /accounts/{accountId}/notifications/{notificationId}:
+    $ref: ./notifications/paths.yaml#/Member
+  /accounts/{accountId}/notification-summary:
+    $ref: ./notifications/paths.yaml#/Summary
+  /accounts/{accountId}/push-subscriptions/{subscriptionId}:
+    $ref: ./notifications/paths.yaml#/Subscription
   /accounts/{accountId}/team-follows:
     $ref: ./following/paths.yaml#/TeamFollows
   /accounts/{accountId}/team-follows/{teamId}:

@@ -82,7 +82,7 @@ Allow only the explicit exceptions: public access read, authenticated `GET /acco
 
 A maintenance refusal is 503 with a specific Problem Details type and current maintenance representation. It introduces a restriction; it never grants ordinary access or proves an update requirement. A generic dependency 503 remains a different problem. No Retry-After/end-time promise is invented. Future ordinary HTTP operations adopt this shared admission response in their owning contracts.
 
-F07 evaluates maintenance at each sporting-push admission immediately before provider handoff, including operator recipients; skip without replay when active. Inbox creation/purge and collection continue. An already admitted handoff can finish; this is not a cross-system atomic stop or recall guarantee. Existing purchases, erasure and fully received assistance retain their outcomes.
+[F07](../011-notifications-delivery/plan.md#expo-handoff-and-association-lifecycle) evaluates maintenance at each sporting-push admission immediately before provider handoff, including operator recipients; skip without replay when active. Inbox creation/purge and collection continue. An already admitted handoff can finish; this is not a cross-system atomic stop or recall guarantee. Existing purchases, erasure and fully received assistance retain their outcomes.
 
 ## Mobile state and native behavior
 

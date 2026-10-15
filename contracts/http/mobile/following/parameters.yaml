@@ -36,7 +36,7 @@ Season:
     type: string
     format: uuid
     description: Sporting season identity.
-Page:
+FollowPage:
   name: page
   in: query
   required: false
