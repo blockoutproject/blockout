@@ -31,6 +31,4 @@
 
 ## Notes
 
-- Reviewed against the existing accepted specification on 2026-10-12. This checklist assesses requirements quality, not implementation or design approval.
-
-- Reviewed for #42: [F12](../../013-administration-app-configuration/spec.md) suppresses in-app support routes during all three global gates. Ordinary authentication/loading failures outside these gates retain support access; private delivery and complete-receipt requirements are unchanged.
+The current F10 requirements integrate complete private sending, explicit retry without receipt lookup, ordinary manual GitHub handling and provider-owned support storage. F11 privacy and F13 backup/retry consumers are reconciled. F12 global gates still suppress support routes, while ordinary sign-in/loading failures retain access. This checklist assesses requirement quality; [plan.md](../plan.md) records the scoped design approvals and future qualification limits.

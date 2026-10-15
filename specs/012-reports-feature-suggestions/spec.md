@@ -1,28 +1,14 @@
 # Feature Specification: Reports and feature suggestions
 
-**Feature Branch**: `develop`
+**Feature Branch**: `tech/54-private-support-plan`
 
 **Created**: 2026-09-22
 
-**Status**: Accepted functional baseline; technical planning and implementation qualification remain pending.
+**Status**: Accepted functional baseline and scoped submission simplification; technical decisions are in [plan.md](plan.md), with implementation qualification still pending.
 
 **Input**: F10, [#268](https://github.com/blockoutproject/blockout-legacy/issues/268), Reports and suggestions in the [specification navigation](../../README.md#specifications). Enable a signed-in person or guest to send a complete, private request to support, without in-app conversation or resolution tracking.
 
 The actors are the person preparing a request and the staff authorized to handle it. Complete sending means that the content and all selected images are transmitted and attached to the same case accessible to authorized staff. Intermediate ticket creation does not constitute complete acceptance. V1 technical choices are historical evidence, not the V2 architecture.
-
-## Clarifications
-
-### Session 2026-10-05
-
-- Q: Must exceptional provider/network failures guarantee exactly one final GitHub issue? → A: No. Prevent ordinary double submissions, but accept a rare duplicate private issue and close it manually. Complete content/attachments, confidentiality and honest status remain required; no dedicated recovery system is needed.
-
-### Session 2026-10-06
-
-- Q: Does simpler support remove images or change storage? → A: No. Category, text and every selected image create the private GitHub issue with native attachments. Confirm only complete receipt; reconcile uncertain outcomes and handle rare exceptional duplicates manually. No new support portal, post-confirmation editor or S3 relocation is selected.
-
-### Session 2026-10-10
-
-- Q: Must support remain locked until every uncertain send is resolved? → A: No. Check what is available, then permit an explicit retry through the ordinary form. Avoid known accepted resubmission and ordinary duplicate taps; accept rare exceptional duplicates for manual closure.
 
 ## User Scenarios & Testing
 
@@ -74,12 +60,12 @@ The person receives either complete confirmation or ordinary actionable feedback
 1. **A14** — **Given** valid content and admissible images, **when** the content and all images are transmitted and attached to the same authorized case, **then** a single complete confirmation is shown, indicating that any exchanges use the supplied email address. (FR-016, FR-018, FR-024)
 2. **A15** — **Given** a submission with an image that cannot be transmitted, **when** failure is confirmed, **then** no completed submission is announced; the form remains available for correction or retry. No option to finish with missing images is offered. (FR-017–FR-019)
 3. **A16** — **Given** an intermediate private issue and an attachment failure, **when** processing is corrected or retried, **then** the incomplete issue is not represented as final and files remain authorized/private. Manual cleanup or closure is acceptable, including an exceptional duplicate under FR-021. (FR-018, FR-021, FR-026)
-4. **A17** — **Given** a lost response, **when** the submission is checked or retried, **then** known complete acceptance can be reported, otherwise explain that receipt could not be confirmed and allow an explicit retry after the available checks. A rare duplicate caused by the incident may be closed manually; automatic result recovery is not guaranteed. (FR-016, FR-020, FR-021)
-5. **A18** — **Given** an ordinary double tap or concurrent retry of the same submission, **when** processing succeeds, **then** only one final issue is intentionally created and changed form values do not alter the in-flight submission; after available checks, an explicit new attempt may use corrected input. Exceptional failure duplicates follow FR-021. (FR-021, FR-022)
+4. **A17** — **Given** a lost response, **when** complete receipt cannot be confirmed, **then** ordinary error feedback preserves the form and permits an explicit new attempt without a receipt lookup. A rare duplicate caused by the incident may be closed manually. (FR-016, FR-020, FR-021)
+5. **A18** — **Given** an ordinary double tap or concurrent retry of the same submission, **when** processing succeeds, **then** only one final issue is intentionally created and changed form values do not alter the in-flight submission; after an error, an explicit new attempt may use corrected input. Exceptional failure duplicates follow FR-021. (FR-021, FR-022)
 6. **A19** — **Given** a pending or uncertain submission, **when** the form closes or the app restarts, **then** this does not prove cancellation or failure. No automatic draft or result recovery is guaranteed; avoid deliberate resubmission of a known accepted request and handle exceptional duplicates manually. (FR-014, FR-020–FR-023)
 7. **A20** — **Given** a completely received request, **when** a secondary alert fails, **then** the request remains accepted; the alert failure is identifiable for operations without requiring a new submission. (FR-025)
 8. **A21** — **Given** complete confirmation, **when** the person notices a forgotten image, **then** no journey for editing or adding to the ticket is offered in the application. Any additional exchanges use email. (FR-024, FR-027)
-9. **A22** — **Given** no network, **when** the person attempts to send, **then** neither success nor guaranteed deferred sending is announced; input remains available during the journey. If transmission may already have occurred, do not claim cancellation; after available checks, allow an explicit retry under FR-020–FR-022. (FR-013, FR-020, FR-030)
+9. **A22** — **Given** no network, **when** the person attempts to send, **then** neither success nor guaranteed deferred sending is announced; input remains available during the journey. If transmission may already have occurred, do not claim cancellation; allow an explicit retry under FR-020–FR-022. (FR-013, FR-020, FR-030)
 
 ### User Story 4 — Handle the request within its authorized process (Priority: P1)
 
@@ -136,28 +122,28 @@ Staff have a complete, private case in GitHub, subject to the limits of their ro
 - **FR-016**: Sending MUST distinguish validation refusal, an operation in progress, confirmed failure, an uncertain outcome and complete acceptance; no intermediate state constitutes success confirmation.
 - **FR-017**: Validation refusal or confirmed failure MUST explain the problem and preserve the form during the current journey for correction or a new attempt. Prevent ordinary duplicate submissions; the exceptional provider-failure limit in FR-021 applies.
 - **FR-018**: Acceptance MUST cover the content and all selected images, transmitted and attached to the same case accessible to authorized staff. No selected image may be silently omitted; no incomplete case may be treated as a finalized request.
-- **FR-019**: The application MUST NOT offer to finish a submission with selected images that have not been transmitted. After confirmed failure, the person may correct their selection before retrying; this is not editing an accepted ticket.
-- **FR-020**: A lost response MUST use checks available through the existing submission/provider tools without claiming success, failure or cancellation that is not established. Return known complete acceptance without resubmission. When available checks cannot confirm receipt, allow an explicit new attempt using ordinary form error/retry feedback; do not lock the person indefinitely or require guaranteed automatic recovery. A rare duplicate is accepted for manual closure under FR-021.
+- **FR-019**: The application MUST NOT offer to finish a submission with selected images that have not been transmitted. After an error, the person may correct their selection before a new attempt; this is not editing an accepted ticket.
+- **FR-020**: A lost response MUST NOT be presented as established success, failure or cancellation. Show ordinary error feedback, retain the current input and allow an explicit new attempt. The mobile performs no receipt lookup, automatic resend or recovery after restart. A rare duplicate is accepted for manual closure under FR-021.
 - **FR-021**: Prevent ordinary double taps and concurrent retries from deliberately creating duplicate submissions. An exceptional provider/network failure may leave a duplicate private GitHub issue; authorized manual closure is acceptable. Incomplete issues and isolated files remain private and MUST NOT be presented or processed as fully accepted. No dedicated reconciliation or crash-recovery system is required to guarantee exactly one external issue.
-- **FR-022**: Prevent concurrent sends and preserve the submitted input while an attempt is in flight. After checks available through those existing tools fail to resolve a lost response, release the form for correction and explicit retry under FR-020. A new attempt MUST NOT mutate the previous transmitted content or a known accepted ticket. No dedicated receipt registry, recovery workflow or indefinite uncertain-form lock is required.
-- **FR-023**: Closing or restarting MUST NOT prove cancellation of a transmitted submission. The absence of draft restoration authorizes neither false failure nor duplication of an already accepted submission.
+- **FR-022**: Prevent concurrent sends and freeze the submitted input while an attempt is in flight. After an error, release the form for correction and explicit retry under FR-020. A new attempt MUST NOT mutate previously transmitted content or an accepted ticket. No receipt registry, recovery workflow or indefinite uncertain-form lock is required.
+- **FR-023**: Closing or restarting MUST NOT prove cancellation of a transmitted submission. The absence of draft restoration authorizes neither false failure nor deliberate resubmission of a known accepted request; exceptional duplicates remain governed by FR-021.
 - **FR-024**: After complete acceptance, an understandable confirmation MUST indicate that any exchanges use the supplied email address. The application MUST NOT offer ticket editing or adding a forgotten image after confirmation.
-- **FR-025**: A secondary operator alert MUST remain independent of complete acceptance. Its failure must be identifiable for operations without invalidating the case or requiring a new submission. It MUST NOT contain any copy of personal content, in accordance with F11; no notification mechanism is selected.
+- **FR-025**: After complete acceptance, attempt a generic signal to a private Discord destination with a link to the private request list. Include no submitted title, email, description, image or other personal content. Alert failure MUST remain identifiable for operations without invalidating the accepted case or requiring another submission.
 
 #### Handling and responsibilities
 
 - **FR-026**: The ticket, contact details and all attachments, even if stored separately, MUST remain accessible only to staff authorized for this purpose. A public space or file URL without access control does not satisfy this requirement; intermediate errors retain these protections.
-- **FR-027**: GitHub MUST remain the private handling tool and operator history; any replies use the supplied email address. No in-app dialogue, in-app resolution tracking, automatic email acknowledgement, guaranteed response time or promise to implement a suggestion is added.
+- **FR-027**: A dedicated private V2 GitHub repository MUST remain the sole durable storage of requests and their native attachments, and the operator handling tool and history. Repository access determines authorized handlers; application administration grants no implicit repository access. Staff reply by email and close the issue after handling. Ordinary closure deletes neither the case nor its images. No in-app dialogue, receipt lookup, resolution tracking, automatic email acknowledgement, guaranteed response time or promise to implement a suggestion is added.
 - **FR-028**: F10 MUST remain distinct from F08 moderation reporting: a support ticket does not count toward its thresholds or hide any link. Sporting, identity and Pro interventions remain subject to F02/F05/F09 decisions and permissions; the case does not bypass F02/F03 sporting visibility. F12 assigns permissions without implicit general moderator authorization.
-- **FR-029**: F11 MUST govern purposes, minimization, applicable erasure requests and retention of the ticket and files. Account deletion does not prove erasure of these copies; no periodic purge, post-closure deadline or unlimited retention is added.
+- **FR-029**: F11 MUST govern purposes, minimization, applicable erasure requests and retention of the ticket and files. Account deletion, issue closure or removal of an attachment link MUST NOT be presented as proof of file erasure. No periodic purge or automatic post-closure deletion is required; this does not authorize unlimited personal-data retention. Blockout organizes no independent backup of support cases or images: recovery depends on GitHub capabilities. These records are excluded from PostgreSQL backup coverage.
 - **FR-030**: The form and its states MUST apply F13: French language, accessibility, understandable errors, safe diagnostics and offline limits. Lack of network means neither success nor a commitment to deferred sending; no new offline action queue is required.
-- **FR-031**: The interface MUST cover the guided form, image selection and review, refusals, abandonment, sending in progress, ordinary error/retry after receipt checks, and confirmation as a whole. F10 declares no screen approved and does not impose the presentation of a third-party application.
+- **FR-031**: The interface MUST cover the guided form, image selection and review, refusals, abandonment, sending in progress, ordinary error and explicit retry, and confirmation as a whole. F10 declares no screen approved and does not impose the presentation of a third-party application.
 
 ### Key Entities
 
 - **Request**: type, optional subject, title, description, reply email address and reliable context; it does not constitute identity evidence.
 - **Image selection**: at most five optional, reviewable attachments, ready or in error before submission.
-- **Submission operation**: submitted content and outcome to establish; retrying it differs from a new request and from editing after acceptance.
+- **Submission operation**: immutable input for one bounded send attempt; no persistent receipt or mobile recovery record.
 - **Accepted case**: content and all images attached, usable only within the authorized process.
 - **Secondary alert**: an operational signal, independent of complete receipt and without unauthorized duplication of personal content.
 
@@ -174,7 +160,7 @@ Staff have a complete, private case in GitHub, subject to the limits of their ro
 
 ## Assumptions and limits
 
-- GitHub is an accepted operator choice; storage, secondary notifications, architecture and retry mechanisms remain to be determined from V2 requirements. Complete-sending guarantees will need qualification before service launch, not inference from a local transaction.
+- GitHub-native private issues and attachments are the sole support storage. A private Discord signal is independent of acceptance. Complete sending, attachment access and applicable provider erasure procedures require qualification before service launch; they are not inferred from issue creation or a local transaction.
 - No response SLA, public voting, suggestion catalog, in-app ticket status or F07 support notification is added. The operator handles requests case by case within their authorized process.
 - Input retention concerns the current journey; obligations concerning the effects of a transmitted submission persist independently of the draft. Safe retry does not require exposing a ticket history.
 - General quality and abuse-protection limits remain those of F13; no additional product quota, mandatory authentication or new email-verification journey is introduced.
@@ -210,3 +196,7 @@ Staff have a complete, private case in GitHub, subject to the limits of their ro
 | [F11](../004-advertising-privacy-legal/spec.md)                                                                                                                                                         | FR-028–FR-034, A20–A24: contact, context, privacy, GitHub, complete sending and safe retry; purposes, access and erasure remain shared. |
 | [F13](../003-shared-quality/spec.md), [F12](../013-administration-app-configuration/spec.md) / [#269](https://github.com/blockoutproject/blockout-legacy/issues/269)                                    | Quality, security and diagnostics; permission assignment according to purpose.                                                          |
 | Historical consistency review / [#271](https://github.com/blockoutproject/blockout-legacy/issues/271), Historical design review / [#272](https://github.com/blockoutproject/blockout-legacy/issues/272) | Cross-feature consistency followed by overall design of journeys and states; no visual approval is inferred from this spec.             |
+
+## Applicable design evidence
+
+The owner approved [prototype `14f88bb`](https://github.com/blockoutproject/product-prototype/commit/14f88bb) and its [Figma support reconciliation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1087-7) in this conversation on 2026-10-15 for #54: complete confirmation or ordinary error with retained editable input and explicit retry, without receipt lookup or recovery on return. [The plan](plan.md#design-and-qualification) identifies the affected screens. Unchanged interactions retain their existing approvals. These approvals establish the reviewed experience, not native or provider qualification.
