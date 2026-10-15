@@ -34,6 +34,8 @@ Use Testcontainers PostgreSQL 18.6 and synthetic fixtures to create the initial 
 
 Exercise the [schema lifecycle](plan.md#runtime-data-and-consistency): initial creation from the baseline, then data-preserving migrations once it is frozen. Verify recovery and compatible previous images without resetting retained data. Exercise owner-defined interrupted rebuilds and partial success: prior usable state survives until full replacement; current restrictions always apply; normal reruns preserve accepted results without a new recovery ledger.
 
+For the derived search infrastructure, run the [F04 projection/privacy scenarios](../008-search-discovery/quickstart.md#projection-and-privacy): environment isolation, current restrictions, interrupted replacement and reconstruction from restored PostgreSQL. No OpenSearch snapshot chain is added.
+
 ## Delivery and operations
 
 In isolated preproduction, prepare an exact server candidate, enable maintenance using an already usable authorized operator session, pull its images, stop both writers, run Liquibase once and start/wait for health. Deliberately fail a harmless migration fixture: startup must remain blocked, database volume unchanged and no cancellation/automatic rollback. Prove deployment serialization. Promote identical digests after source-content matching and required human/environment approval; never rebuild for promotion.

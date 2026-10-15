@@ -1,0 +1,104 @@
+SearchResourceTypeEnum:
+  type: string
+  description: Sporting resource type whose search choices are requested.
+  enum:
+    - team
+    - pool
+ClubSummaryResponse:
+  type: object
+  description: Public club identity with its currently permitted distinguishing city.
+  additionalProperties: true
+  properties:
+    club:
+      $ref: ../consultation/schemas.yaml#/SportingIdentityResponse
+    city:
+      type: string
+      description: Effective authorized city; omitted when unknown, intentionally absent or restricted.
+  required:
+    - club
+ClubSearchResponse:
+  type: object
+  description: Current eligible club examples or textual matches; no total or fixed snapshot is promised.
+  additionalProperties: true
+  properties:
+    clubs:
+      type: array
+      description: Up to five examples in retained or stable identity order, or twenty textual matches in relevance order. Empty means successful exhaustion for this request.
+      maxItems: 20
+      items:
+        $ref: "#/ClubSummaryResponse"
+    nextCursor:
+      type: string
+      description: Continuation for the same textual search; omitted when exhausted and always omitted for examples.
+      minLength: 1
+  required:
+    - clubs
+TeamSearchResponse:
+  type: object
+  description: Current eligible team examples or textual matches; no total or fixed snapshot is promised.
+  additionalProperties: true
+  properties:
+    teams:
+      type: array
+      description: Up to five examples in retained or stable identity order, or twenty textual matches in relevance order. Empty means successful exhaustion for this request.
+      maxItems: 20
+      items:
+        $ref: ../consultation/schemas.yaml#/TeamSummaryResponse
+    nextCursor:
+      type: string
+      description: Continuation for the same textual search; omitted when exhausted and always omitted for examples.
+      minLength: 1
+  required:
+    - teams
+PoolSearchResponse:
+  type: object
+  description: Current eligible pool examples or textual matches; no total or fixed snapshot is promised.
+  additionalProperties: true
+  properties:
+    pools:
+      type: array
+      description: Up to five examples in retained or stable identity order, or twenty textual matches in relevance order. Empty means successful exhaustion for this request.
+      maxItems: 20
+      items:
+        $ref: ../consultation/schemas.yaml#/PoolSummaryResponse
+    nextCursor:
+      type: string
+      description: Continuation for the same textual search; omitted when exhausted and always omitted for examples.
+      minLength: 1
+  required:
+    - pools
+SportingSearchOptionsResponse:
+  type: object
+  description: Current available choices, independent of the current text or filter combination.
+  additionalProperties: true
+  properties:
+    resourceType:
+      $ref: "#/SearchResourceTypeEnum"
+    seasons:
+      type: array
+      description: Seasons with viewable resources of the requested type, newest start year first then UUID. Empty means none is currently available.
+      items:
+        $ref: ../consultation/schemas.yaml#/SportingSeasonResponse
+    divisions:
+      type: array
+      description: Active divisions in effective-name then UUID order; an active choice need not have matches for every combination.
+      items:
+        $ref: ../consultation/schemas.yaml#/SportingDivisionResponse
+    formats:
+      type: array
+      description: Supported format choices in display order.
+      uniqueItems: true
+      items:
+        $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+    genders:
+      type: array
+      description: Supported gender classification choices in display order.
+      uniqueItems: true
+      items:
+        $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+  required:
+    - resourceType
+    - seasons
+    - divisions
+    - formats
+    - genders

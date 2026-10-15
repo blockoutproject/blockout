@@ -1,0 +1,67 @@
+Query:
+  name: q
+  in: query
+  required: false
+  description: Text to match; absent, empty or whitespace-only selects examples. Nonempty text selects paginated search.
+  schema:
+    type: string
+    description: At most 200 Unicode characters, without truncation or a separate token-count limit.
+    maxLength: 200
+Cursor:
+  name: cursor
+  in: query
+  required: false
+  description: Opaque continuation for the same nonempty text and filters; forbidden for examples.
+  schema:
+    type: string
+    description: Value returned by nextCursor; clients must not interpret or construct it.
+    minLength: 1
+ExampleIds:
+  name: exampleIds
+  in: query
+  required: false
+  description: Reread only these retained examples in supplied order, removing ineligible entries without replacement. Forbidden with nonempty text or cursor.
+  style: form
+  explode: true
+  schema:
+    type: array
+    description: Distinct retained resource identities; omission selects initial examples.
+    minItems: 1
+    maxItems: 5
+    uniqueItems: true
+    items:
+      type: string
+      description: Stable resource identity.
+      format: uuid
+Season:
+  name: seasonId
+  in: query
+  required: false
+  description: Restrict to this season; omission includes all viewable seasons. Unknown or ineligible identities yield no matches.
+  schema:
+    type: string
+    description: Stable sporting season identity.
+    format: uuid
+Division:
+  name: divisionId
+  in: query
+  required: false
+  description: Restrict to this active division; omission adds no division filter. Unknown or inactive identities yield no matches.
+  schema:
+    type: string
+    description: Stable division identity.
+    format: uuid
+Format:
+  name: format
+  in: query
+  required: false
+  description: Exact sporting format; omission adds no format filter.
+  schema:
+    $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+Gender:
+  name: gender
+  in: query
+  required: false
+  description: Exact sporting gender classification; omission adds no gender filter.
+  schema:
+    $ref: ../../common/sporting-enums.yaml#/SportGenderEnum

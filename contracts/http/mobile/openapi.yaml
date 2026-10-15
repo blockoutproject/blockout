@@ -3,7 +3,7 @@ info:
   title: Blockout mobile API
   version: 0.1.0
   description: >-
-    Backend API for application access, account lifecycle, public sporting consultation and administration.
+    Backend API for application access, account lifecycle, public sporting consultation, discovery and administration.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
@@ -20,6 +20,14 @@ tags:
 security:
   - MobileToken: []
 paths:
+  /clubs:
+    $ref: ./discovery/paths.yaml#/Clubs
+  /teams:
+    $ref: ./discovery/paths.yaml#/Teams
+  /pools:
+    $ref: ./discovery/paths.yaml#/Pools
+  /sporting-search-options:
+    $ref: ./discovery/paths.yaml#/Options
   /clubs/{clubId}:
     $ref: ./consultation/paths.yaml#/Club
   /clubs/{clubId}/teams:
