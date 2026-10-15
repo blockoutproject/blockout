@@ -1,0 +1,103 @@
+# Implementation Plan: Following and personal feed
+
+**Branch**: `tech/51-following-personal-feed` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
+
+**Input**: [#51](https://github.com/blockoutproject/blockout/issues/51), the owning specification and the owner-approved planning decisions in the task conversation.
+
+## Summary
+
+Provide account-owned team/pool follows, public counts and a personal sporting calendar through the existing backend. PostgreSQL relations are truth; ordinary reads compose the feed and count followers. Shared TanStack Query state makes the follow action agree across tabs, then reloads affected lists after confirmation. No materialized feed, counter synchronization, replay queue or new service.
+
+## Technical Context
+
+**Language/Version**: Java 25 / Spring Boot 4.1.1 and TypeScript / Expo 57 / React Native 0.86 / React 19.2.3, as selected by [F13](../003-shared-quality/plan.md).
+
+**Primary Dependencies**: Existing Spring Data JPA/Hibernate, TanStack Query and generated HTTP boundary. Query 5.104.2 is the inspected native-mechanism evidence, not permission for an implicit dependency upgrade.
+
+**Storage**: PostgreSQL 18.6; account–team and account–pool associations. Mobile memory only.
+
+**Testing**: JUnit, Spring MVC, Testcontainers PostgreSQL, Jest Expo and React Native Testing Library; existing documentation and OpenAPI checks.
+
+**Target Platform**: Existing Linux backend and native iOS/Android clients.
+
+**Project Type**: Mobile application with a modular backend.
+
+**Performance Goals**: No speculative throughput, load, capacity or monthly availability programme. Bounded ordinary reads and no N+1 traversal.
+
+**Constraints**: Owner isolation, original account identities, current sporting visibility, no automatic replay, no club follow or seasonal transfer. Preserve F13 baseline/migration and privacy policies.
+
+**Scale/Scope**: Team/pool follow state, alphabetical personal lists, shared seasonal selection, public counts and personal calendars. F07 notification delivery remains outside this plan.
+
+## Constitution Check
+
+Pre-research and post-design checks pass for the scoped documentary delivery:
+
+- F06 owns follows and personal selection; F02 owns sporting identities/visibility, F03 calendar semantics and F05 accounts/erasure. Consumer reconciliation is included below.
+- Existing [October 10 design acceptance](https://github.com/blockoutproject/blockout/issues/34#issuecomment-6102118765) covers season reconciliation and discreet follow reconciliation. Live inspection confirmed the ordinary follow button's loading variant and Home's existing list, empty, loading and error states. No new visual journey is introduced.
+- Relevant design references: [Home](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=888-8), [followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097), [no available follows](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4480-3901), [no matches](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4480-4201). These establish accepted presentation, not native qualification.
+- One canonical mobile OpenAPI source and the existing generation chain; no feature-local editable copy or new deployment.
+- Ordinary relations, counts, projections and Query mechanisms satisfy the need without recovery infrastructure. Runtime qualifications remain future evidence.
+
+## Project Structure
+
+### Documentation (this feature)
+
+```text
+specs/009-following-personal-feed/
+├── spec.md
+├── plan.md
+├── research.md
+├── data-model.md
+├── quickstart.md
+└── contracts/README.md
+```
+
+### Source Code (repository root)
+
+Planned integration locations; not initialized by this delivery:
+
+```text
+apps/backend/       # follow use cases, persistence projections and HTTP adapters
+apps/mobile/        # shared follow controls, personal selection and Query consumers
+contracts/http/     # canonical mobile routes and existing shared definitions
+```
+
+**Structure Decision**: Add cohesive F06 responsibilities inside F13's existing applications. Application ports return mapped values; persistence adapters may compose sporting and follow data without exposing managed entities. No feature-per-service split or generic feed engine.
+
+## Persistence and concurrency
+
+Use two association tables with UUID identity, account/target foreign keys and uniqueness on each account–target pair. Deletion removes the relation; recreating it assigns a new identity. Hidden targets retain relationships. Account erasure removes all relations atomically, including hidden ones. See [data model](data-model.md).
+
+Every write targets the authenticated owner's original usable account. Use F05's short account-row lock for follow writes and erasure; check sporting eligibility through F02-owned rules. Preserve the common lock order if an operation also requires sporting locks. No provider call or notification delivery occurs inside the transaction. A target that subsequently becomes hidden is filtered from reads without deleting the relation.
+
+The operation replaces desired follow state: repeating true keeps the same relation; repeating false leaves it absent. Between devices, last server-recorded state wins, including delayed requests. No gesture timestamp, optimistic version conflict, tombstone or request ledger. This deliberately narrows F06's obsolete-action wording without weakening session/response isolation.
+
+## Reads and boundaries
+
+The [canonical contracts](contracts/README.md) separate public counts from private state. Counts use the relationships directly, including retained hidden-target relations whenever the target itself is viewable. Failed reads never become zero. Public sporting pages remain usable without private account reads.
+
+Personal lists use Spring Data `Slice`, twenty entries per page, effective public name in native French alphabetical order then UUID. Use PostgreSQL's deterministic `fr-x-icu` collation for the ordering expression through Hibernate's supported `collate`, not a stored normalized-name copy. Lists return current F03 summaries, omit hidden resources and have no overall business cap or total. Concurrent renames/hiding can shift offset pages until refresh; deduplicate displayed identities.
+
+Season options combine viewable catalog seasons and seasons of viewable follows, without hidden-only choices. Return the newest followed season as default, otherwise newest catalog season, otherwise omit the default. Keep a still-valid mobile selection; only a successful options read proves it unavailable. All seasons is represented by absent seasonId, not a fabricated sporting identity.
+
+Compose the personal calendar using database existence predicates over eligible team/pool follows and F02 sporting data. Reuse F03's categories, ordering, seven complete nonempty days and exclusive nextDay. Evaluate hasAvailableFollows and the calendar in the same short repeatable-read transaction, so an empty calendar has an honest explanation. Do not fetch all matches/follows into mobile memory or manufacture a per-account feed table.
+
+F07 consumes confirmed account/target/relation identities through an in-process read boundary. The relation identity distinguishes a retained follow from one removed and recreated; F07 owns recipient selection, cancellation and delivery. No follow event broker, outbox or notification implementation is introduced. F05 owns erasure and session isolation; F12 owns admission; F11's existing advertising triggers remain unchanged.
+
+## Mobile state and failure handling
+
+Use one QueryClient with private keys including original account and session generation. Follow keys and mutation keys also identify target type/UUID, never the originating screen. The provisional requested value is observed through native useMutationState across tabs; the ordinary loading/busy button indicates that it is not yet confirmed. Guard one pending action per target through the shared mutation cache; do not queue subsequent taps. Other targets remain usable.
+
+Cancel obsolete reads before changing state. Successful mutation responses update the shared confirmed relation cache. Keep the mutation outcome separate from later invalidation failures. Shared mutation lifecycle callbacks, rather than screen-local callbacks that disappear on unmount, own reconciliation; reject callbacks from old sessions.
+
+After a confirmed change, reset affected personal list/calendar queries with native resetQueries, without old initialData/placeholderData. This cancels old traversal and reloads the first page of visible/enabled queries; inactive views load on next display. Query enablement follows the visible personal tab, rather than merely a mounted navigation screen. Preserve selected season/category, invalidate season options and the affected public count. No full-list optimistic rewrite or per-match origin metadata.
+
+Ordinary same-context refresh retains F03's native infiniteQuery first-page recipe: explicit stale fetch with pages: 1, replace only on success and retain authorized content on failure. After changed follows, ordinary loading/error/retry replaces the former selection. Additional-page failure retains loaded pages and its retry boundary. Return without a change preserves the existing context; no precise scroll guarantee after recomposition.
+
+Definite refusal preserves confirmed state. A lost write response causes one bounded read of current state, never a write retry loop. This is an observation, not proof that a delayed request can no longer complete. If reconciliation fails, ordinary action feedback/retry applies without claiming success or cancellation. Use F13's networkMode: 'always', disabled ordinary retries, no paused offline work, and F05 cancellation/removal on session changes. Known visibility restrictions override retained content.
+
+## Reconciliation and qualification
+
+F06 integrates the agreed immediate action, per-target pending guard, last-recorded cross-device result and first-page reload directly into current requirements. F03 references this deliberate follow-triggered reload alongside ordinary retained-calendar refresh; F05 points to F06's erasure participant; F07 retains ownership of notification semantics. No unrelated accepted dossier is rewritten.
+
+The [quickstart](quickstart.md) defines future database, mobile and generated-boundary qualifications. Present this dossier and the scoped specification/contracts in one draft PR for #51 after README checks. No tasks, product runtime, merge or automatic issue closure is included.

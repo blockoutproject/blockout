@@ -3,7 +3,7 @@ info:
   title: Blockout mobile API
   version: 0.1.0
   description: >-
-    Backend API for application access, account lifecycle, public sporting consultation, discovery and administration.
+    Backend API for application access, account lifecycle, public sporting consultation, discovery, personal following and administration.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
@@ -17,9 +17,27 @@ tags:
   - name: Sporting
     description: >-
       Sporting identities, presentation, classification and authorized corrections.
+  - name: Following
+    description: Personal team/pool follows, public counts and personal match selection.
 security:
   - MobileToken: []
 paths:
+  /accounts/{accountId}/team-follows:
+    $ref: ./following/paths.yaml#/TeamFollows
+  /accounts/{accountId}/team-follows/{teamId}:
+    $ref: ./following/paths.yaml#/TeamFollow
+  /teams/{teamId}/follower-count:
+    $ref: ./following/paths.yaml#/TeamFollowerCount
+  /accounts/{accountId}/pool-follows:
+    $ref: ./following/paths.yaml#/PoolFollows
+  /accounts/{accountId}/pool-follows/{poolId}:
+    $ref: ./following/paths.yaml#/PoolFollow
+  /pools/{poolId}/follower-count:
+    $ref: ./following/paths.yaml#/PoolFollowerCount
+  /accounts/{accountId}/follow-options:
+    $ref: ./following/paths.yaml#/Options
+  /accounts/{accountId}/matches:
+    $ref: ./following/paths.yaml#/Matches
   /clubs:
     $ref: ./discovery/paths.yaml#/Clubs
   /teams:

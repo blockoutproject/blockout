@@ -1,0 +1,38 @@
+Account:
+  name: accountId
+  in: path
+  required: true
+  description: Original owner account identity; never substitute a replacement account.
+  schema:
+    type: string
+    format: uuid
+    description: Account identity.
+Team:
+  name: teamId
+  in: path
+  required: true
+  description: Stable team identity; unknown or hidden targets are not found.
+  schema:
+    type: string
+    format: uuid
+    description: Team identity.
+Pool:
+  name: poolId
+  in: path
+  required: true
+  description: Stable pool identity; unknown or hidden targets are not found.
+  schema:
+    type: string
+    format: uuid
+    description: Pool identity.
+Season:
+  name: seasonId
+  in: query
+  required: false
+  description:
+    Restrict to this viewable sporting season; omission selects All seasons. Unknown or unavailable choices
+    return 404.
+  schema:
+    type: string
+    format: uuid
+    description: Sporting season identity.
