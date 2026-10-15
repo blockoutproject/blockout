@@ -5,8 +5,9 @@ Clubs:
       - Sporting
     summary: Discover or search clubs
     description: >-
+      Matches current public/source club names, applicable verified aliases and the currently permitted city.
       Empty text returns at most five examples; nonempty text returns up to twenty matches with continuation.
-      Every meaningful term and selected filter applies. Relevance favors direct matches; order may change
+      Every meaningful term applies. Relevance favors direct matches; order may change
       when data changes. Current visibility always applies. Public access requires no account;
       explicit maintenance bypass requires a valid authorized token. Invalid parameter combinations are rejected.
     security:
@@ -42,6 +43,7 @@ Teams:
       - Sporting
     summary: Discover or search teams
     description: >-
+      Matches current public/source full and short names, applicable verified aliases, club names and city when attached, division names and known abbreviations, format and gender.
       Empty text returns at most five examples; nonempty text returns up to twenty matches with continuation.
       Every meaningful term and selected filter applies. Relevance favors direct matches; order may change
       when data changes. Current visibility always applies. Public access requires no account;
@@ -83,6 +85,7 @@ Pools:
       - Sporting
     summary: Discover or search pools
     description: >-
+      Matches current public/source full and short names, applicable verified aliases, division names and known abbreviations, league, format and gender.
       Empty text returns at most five examples; nonempty text returns up to twenty matches with continuation.
       Every meaningful term and selected filter applies. Relevance favors direct matches; order may change
       when data changes. Current visibility always applies. Public access requires no account;

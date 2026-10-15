@@ -16,7 +16,7 @@ Read as guest, free, Pro and unknown entitlement. Exercise maintenance and expli
 
 ## Matching, choices and complete browsing
 
-Seed names/context spread across fields, accents/case, verified aliases, scoped division abbreviations, formats/genders and same-named distinct identities. Exercise `eag ly`, `Eagles Lyon` and `Volly Lyon`; verify direct matches are favored and every term counts. Combined typo/partial-word forms are not an acceptance promise. Check full and intermediate prefixes near the accepted length boundary through the real analyzer, including folding expansion such as `ﬃ` → `ffi`; nonempty punctuation-only input must not become examples. Strict filters never broaden to fill results.
+Seed names/context spread across fields, accents/case, verified aliases, scoped division abbreviations, formats/genders and same-named distinct identities. Exercise `eag ly`, `Eagles Lyon` and `Volly Lyon`; verify direct matches are favored and every term counts. Verify that query analysis retains whole normalized terms while index analysis produces prefixes: “Eagles Lyon” must not match an unrelated name/city merely because they start with E/L. Combined typo/partial-word forms are not an acceptance promise. Check full and intermediate prefixes near the accepted length boundary through the real analyzer, including folding expansion such as `ﬃ` → `ffi`; nonempty punctuation-only input must not become examples. Strict filters never broaden to fill results.
 
 Include old and future seasons, an inactive division, a club without teams and an unattached professional team. Expected: options/defaults and all-season selection follow F04; absent relationships are not invented. Remove a selected choice, then independently fail the choices read: only established removal resets it.
 
@@ -34,7 +34,7 @@ Restore authoritative PostgreSQL into isolation and rebuild the derived search s
 
 ## Mobile journey
 
-Using the existing Jest/native scenarios, change text/tabs/filters rapidly and deliver old requests late. Preserve independent filters, retained examples and valid scroll context. Fail refresh/next page, retry explicitly, reconnect and switch accounts. Expected: no mixed contexts, silent replay, private old-session data or false end; authorized previous content remains usable until successful replacement.
+Using the existing Jest/native scenarios, change text/tabs/filters rapidly and deliver old requests late. Preserve independent filters, retained examples and valid scroll context. Check that successive cursors populate one infinite-query entry through `pageParam`; explicit refresh requests only the first page and preserves the prior list on failure. Fail refresh/next page, retry explicitly, reconnect and switch accounts. Expected: no mixed contexts, silent replay, private old-session data or false end; authorized previous content remains usable until successful replacement.
 
 Open/close F03 sheets and exercise the existing F11 counter: filtering, scrolling, refresh and return add no advertising trigger. Check both themes, VoiceOver/TalkBack, enlarged text, selection/focus, retry and absent-context cards. No character counter, new index-lag screen or native-interface mockup is introduced.
 
