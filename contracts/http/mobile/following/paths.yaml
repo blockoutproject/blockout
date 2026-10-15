@@ -1,12 +1,9 @@
 TeamFollows:
   parameters:
-    - &id001
-      $ref: ./parameters.yaml#/Account
-    - &id002
-      $ref: ../access/parameters.yaml#/MaintenanceBypass
-    - &id004
-      $ref: ./parameters.yaml#/Season
-    - $ref: ../../common/parameters.yaml#/Page
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    - $ref: ./parameters.yaml#/Season
+    - $ref: ./parameters.yaml#/Page
   get:
     operationId: listTeamFollows
     tags:
@@ -14,7 +11,8 @@ TeamFollows:
     summary: List my followed teams
     description:
       Returns only the usable owner’s viewable follows in pages of twenty. Preserve the season for continuation;
-      concurrent changes can shift pages until refresh. No hidden-target placeholders or total count.
+      concurrent changes can shift pages until refresh. Unsupported page ranges or continuations return 400,
+      not a false end of results. No hidden-target placeholders or total count.
     responses:
       "200":
         description: Current authorized representation.
@@ -37,10 +35,9 @@ TeamFollows:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 TeamFollow:
   parameters:
-    - *id001
-    - &id003
-      $ref: ./parameters.yaml#/Team
-    - *id002
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ./parameters.yaml#/Team
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
   get:
     operationId: getTeamFollowState
     tags:
@@ -109,8 +106,8 @@ TeamFollow:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 TeamFollowerCount:
   parameters:
-    - *id003
-    - *id002
+    - $ref: ./parameters.yaml#/Team
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
   get:
     operationId: getTeamFollowerCount
     tags:
@@ -144,10 +141,10 @@ TeamFollowerCount:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 PoolFollows:
   parameters:
-    - *id001
-    - *id002
-    - *id004
-    - $ref: ../../common/parameters.yaml#/Page
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    - $ref: ./parameters.yaml#/Season
+    - $ref: ./parameters.yaml#/Page
   get:
     operationId: listPoolFollows
     tags:
@@ -155,7 +152,8 @@ PoolFollows:
     summary: List my followed pools
     description:
       Returns only the usable owner’s viewable follows in pages of twenty. Preserve the season for continuation;
-      concurrent changes can shift pages until refresh. No hidden-target placeholders or total count.
+      concurrent changes can shift pages until refresh. Unsupported page ranges or continuations return 400,
+      not a false end of results. No hidden-target placeholders or total count.
     responses:
       "200":
         description: Current authorized representation.
@@ -178,10 +176,9 @@ PoolFollows:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 PoolFollow:
   parameters:
-    - *id001
-    - &id005
-      $ref: ./parameters.yaml#/Pool
-    - *id002
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ./parameters.yaml#/Pool
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
   get:
     operationId: getPoolFollowState
     tags:
@@ -250,8 +247,8 @@ PoolFollow:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 PoolFollowerCount:
   parameters:
-    - *id005
-    - *id002
+    - $ref: ./parameters.yaml#/Pool
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
   get:
     operationId: getPoolFollowerCount
     tags:
@@ -285,8 +282,8 @@ PoolFollowerCount:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 Options:
   parameters:
-    - *id001
-    - *id002
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
   get:
     operationId: getFollowOptions
     tags:
@@ -317,9 +314,9 @@ Options:
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 Matches:
   parameters:
-    - *id001
-    - *id002
-    - *id004
+    - $ref: ./parameters.yaml#/Account
+    - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    - $ref: ./parameters.yaml#/Season
     - $ref: ../consultation/parameters.yaml#/Category
     - $ref: ../consultation/parameters.yaml#/TimeZone
     - $ref: ../consultation/parameters.yaml#/NextDay
