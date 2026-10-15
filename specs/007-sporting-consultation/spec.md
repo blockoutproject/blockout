@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Accepted functional baseline; technical planning and runtime qualification remain pending
+**Status**: Accepted functional baseline; technical planning is documented in [plan.md](plan.md), with implementation qualification pending.
 
 **Input**: [#263](https://github.com/blockoutproject/blockout-legacy/issues/263), F03 in the [specification navigation](../../README.md#specifications). Define club, team, pool and match pages, their calendars, standings, maps, stream links and official documents. [F02](../002-sporting-data/spec.md) owns data semantics and retention; F03 owns consultation. No new paid benefit or sporting editor is introduced.
 
