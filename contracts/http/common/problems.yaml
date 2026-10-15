@@ -132,8 +132,9 @@ responses:
           $ref: "#/schemas/ProblemResponse"
   ServiceUnavailable:
     description: >-
-      Processing unavailable (urn:blockout:problem:unavailable). An interrupted mutation may have committed; mobile clients read
-      current state before retrying, while ingestion resumes through the next ordinary collection.
+      Processing unavailable (urn:blockout:problem:unavailable). An interrupted mutation may have committed;
+      follow the operation’s documented retry behavior without automatic replay. Ingestion resumes
+      through the next ordinary collection.
     headers:
       Cache-Control:
         $ref: ./headers.yaml#/NoStore

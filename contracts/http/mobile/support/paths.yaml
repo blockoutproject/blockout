@@ -1,0 +1,71 @@
+Collection:
+  post:
+    operationId: createSupportRequest
+    tags:
+      - Support
+    summary: Send a private support request
+    description: >-
+      Accepts a problem or suggestion from a guest or signed-in person, including after sign-in
+      failure. Ordinary sending omits credentials; explicit maintenance bypass requires a valid
+      authorized mobile token. Supplied invalid credentials are rejected. Declared contact and
+      context prove no identity.
+      Current application access restrictions still apply. Confirms only content with every selected
+      image attached. After a lost response or service error, an explicit new attempt is allowed
+      without receipt lookup; an exceptional duplicate may be handled manually. Never resend automatically.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    requestBody:
+      required: true
+      description: Complete form snapshot and all selected prepared images; at most 27262976 bytes including multipart overhead. No partial acceptance.
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            description: Support metadata and optional prepared image files.
+            additionalProperties: false
+            required:
+              - metadata
+            properties:
+              metadata:
+                $ref: ./schemas.yaml#/CreateSupportRequestRequest
+              images:
+                type: array
+                description: >-
+                  Omit for a request without images. Each file must decode as PNG or JPEG and be
+                  at most 5242880 bytes. Invalid or missing selected content is never silently omitted.
+                maxItems: 5
+                items:
+                  type: string
+                  format: binary
+          encoding:
+            metadata:
+              contentType: application/json
+            images:
+              contentType: image/png, image/jpeg
+    responses:
+      "201":
+        description: Complete request accepted; any operator exchange uses the supplied email address.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/SupportRequestCreatedResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "413":
+        $ref: ../../common/problems.yaml#/responses/ContentTooLarge
+      "415":
+        $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
+      "422":
+        $ref: ../../common/problems.yaml#/responses/UnprocessableContent
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable

@@ -1,0 +1,158 @@
+CreateSupportRequestRequest:
+  type: object
+  description: Declared contact and content for one private request, never proof of identity or ownership.
+  additionalProperties: false
+  required:
+    - kind
+    - title
+    - description
+    - replyEmail
+    - context
+  properties:
+    kind:
+      $ref: "#/SupportRequestKindEnum"
+    subject:
+      $ref: "#/SupportRequestSubjectEnum"
+    title:
+      type: string
+      minLength: 1
+      maxLength: 200
+      pattern: '\S'
+      description: Required title; trim outer whitespace and reject blank text.
+    description:
+      type: string
+      minLength: 1
+      maxLength: 10000
+      pattern: '\S'
+      description: Required explanation of the problem or desired improvement; reject blank text.
+    replyEmail:
+      type: string
+      format: email
+      maxLength: 254
+      description: Editable reply address, trimmed and checked for syntax only.
+    context:
+      $ref: "#/SupportRequestContextRequest"
+SupportRequestKindEnum:
+  description: Whether the request reports a problem or proposes an improvement.
+  type: string
+  enum:
+    - problem
+    - suggestion
+SupportRequestSubjectEnum:
+  type: string
+  description: Optional classification; omit when none is selected. Empty string and null are invalid.
+  enum:
+    - application
+    - sporting-data
+    - account
+    - pro-subscription
+    - stream-links
+    - other
+SupportRequestContextRequest:
+  type: object
+  description: >-
+    Only known, useful context. Omit unknown values. No raw URL query, password, token,
+    payment proof, raw log or provider payload. Values remain client-declared.
+  additionalProperties: false
+  properties:
+    screen:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Known application screen, without a raw navigation URL.
+    action:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Action being attempted.
+    target:
+      $ref: "#/SupportRequestTargetRequest"
+    accountId:
+      type: string
+      format: uuid
+      description: Original business account reference when available; never an authorization claim.
+    appVersion:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Installed application version.
+    platform:
+      $ref: "#/SupportPlatformEnum"
+    osVersion:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Available operating-system version.
+    deviceModel:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Available device model, never a device advertising identifier.
+    signInFailure:
+      $ref: "#/SupportSignInFailureRequest"
+SupportRequestTargetRequest:
+  type: object
+  description: Known navigation target even when loading failed; no invented name.
+  additionalProperties: false
+  required:
+    - type
+    - id
+  properties:
+    type:
+      $ref: "#/SupportTargetTypeEnum"
+    id:
+      type: string
+      format: uuid
+      description: Target identity from the attempted navigation.
+SupportSignInFailureRequest:
+  type: object
+  description: Safe sign-in context only; omit unknown facts and raw provider details.
+  additionalProperties: false
+  properties:
+    method:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Sign-in method used.
+    stage:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Known failed stage.
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Safe reason without credentials or provider payloads.
+    reference:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: Safe diagnostic reference when available, never an access token.
+SupportRequestCreatedResponse:
+  type: object
+  description: Confirmation of complete private receipt, with no mobile ticket lookup or editing capability.
+  additionalProperties: true
+  required:
+    - requestId
+  properties:
+    requestId:
+      type: string
+      format: uuid
+      description: Opaque reference of the accepted request; never a private repository URL or access credential.
+
+SupportPlatformEnum:
+  type: string
+  description: Application platform reported in the support context.
+  enum:
+    - ios
+    - android
+SupportTargetTypeEnum:
+  type: string
+  description: Kind of known navigation target, independent of whether loading succeeded.
+  enum:
+    - club
+    - team
+    - pool
+    - match
+    - division

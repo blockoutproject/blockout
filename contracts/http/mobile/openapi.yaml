@@ -4,11 +4,13 @@ info:
   version: 0.1.0
   description:
     Backend API for application access, account lifecycle, public sporting consultation, discovery,
-    personal following, notifications and administration.
+    personal following, notifications, private support and administration.
 servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
 tags:
+  - name: Support
+    description: Private problems and suggestions from guests or signed-in people.
   - name: Collection
     description: Source qualification, collection control and current operational evidence.
   - name: ApplicationAccess
@@ -26,6 +28,8 @@ tags:
 security:
   - MobileToken: []
 paths:
+  /support-requests:
+    $ref: ./support/paths.yaml#/Collection
   /accounts/{accountId}/notifications:
     $ref: ./notifications/paths.yaml#/Collection
   /accounts/{accountId}/notifications/{notificationId}:

@@ -108,7 +108,7 @@ Use Expo `WebBrowser.openBrowserAsync`: iOS integrated browser and Android Custo
 
 F11 requires restricted club contacts to stay absent through collection, editing and restoration. Apply the [F02 field-restriction transaction](../002-sporting-data/data-model.md#presentation-and-privacy) through authorized manual operations; the existing contracts retain null representations and conflict semantics. No dedicated screen or privacy endpoint is added.
 
-Do not build generalized referee/person suppression. Other individual requests remain manual under F11; F05 deletion and F10 private support retain their own handling. Before restored data is reopened, manually reconcile current restrictions, erasures, rights and expiry under F13. Backup retention does not become a universal business/log retention rule.
+Do not build generalized referee/person suppression. Other individual requests remain manual under F11; F05 deletion and [F10 private support](../012-reports-feature-suggestions/plan.md) retain their own handling. F10 owns submission and retry behavior; its secondary signal contains no personal content. Support records have no independent Blockout backup; closure is not erasure. Before restored data is reopened, manually reconcile current restrictions, erasures, rights and expiry under F13. Backup retention does not become a universal business/log retention rule.
 
 ## Consumer and release reconciliation
 
