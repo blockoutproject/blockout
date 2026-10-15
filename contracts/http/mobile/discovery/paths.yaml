@@ -1,0 +1,161 @@
+Clubs:
+  get:
+    operationId: listClubs
+    tags:
+      - Sporting
+    summary: Discover or search clubs
+    description: >-
+      Matches current public/source club names, applicable verified aliases and the currently permitted city.
+      Empty text returns at most five examples; nonempty text returns up to twenty matches with continuation.
+      Every meaningful term applies. Relevance favors direct matches; order may change
+      when data changes. Current visibility always applies. Public access requires no account;
+      explicit maintenance bypass requires a valid authorized token. Invalid parameter combinations are rejected.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - $ref: ./parameters.yaml#/Query
+      - $ref: ./parameters.yaml#/Cursor
+      - $ref: ./parameters.yaml#/ExampleIds
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Eligible examples or textual matches; incomplete evaluation never returns a successful empty list or false end.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/ClubSearchResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Teams:
+  get:
+    operationId: listTeams
+    tags:
+      - Sporting
+    summary: Discover or search teams
+    description: >-
+      Matches current public/source full and short names, applicable verified aliases, club names and city when attached, division names and known abbreviations, format and gender.
+      Empty text returns at most five examples; nonempty text returns up to twenty matches with continuation.
+      Every meaningful term and selected filter applies. Relevance favors direct matches; order may change
+      when data changes. Current visibility always applies. Public access requires no account;
+      explicit maintenance bypass requires a valid authorized token. Invalid parameter combinations are rejected.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - $ref: ./parameters.yaml#/Query
+      - $ref: ./parameters.yaml#/Cursor
+      - $ref: ./parameters.yaml#/ExampleIds
+      - $ref: ./parameters.yaml#/Season
+      - $ref: ./parameters.yaml#/Division
+      - $ref: ./parameters.yaml#/Format
+      - $ref: ./parameters.yaml#/Gender
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Eligible examples or textual matches; incomplete evaluation never returns a successful empty list or false end.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/TeamSearchResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Pools:
+  get:
+    operationId: listPools
+    tags:
+      - Sporting
+    summary: Discover or search pools
+    description: >-
+      Matches current public/source full and short names, applicable verified aliases, division names and known abbreviations, league, format and gender.
+      Empty text returns at most five examples; nonempty text returns up to twenty matches with continuation.
+      Every meaningful term and selected filter applies. Relevance favors direct matches; order may change
+      when data changes. Current visibility always applies. Public access requires no account;
+      explicit maintenance bypass requires a valid authorized token. Invalid parameter combinations are rejected.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - $ref: ./parameters.yaml#/Query
+      - $ref: ./parameters.yaml#/Cursor
+      - $ref: ./parameters.yaml#/ExampleIds
+      - $ref: ./parameters.yaml#/Season
+      - $ref: ./parameters.yaml#/Division
+      - $ref: ./parameters.yaml#/Format
+      - $ref: ./parameters.yaml#/Gender
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Eligible examples or textual matches; incomplete evaluation never returns a successful empty list or false end.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/PoolSearchResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable
+Options:
+  get:
+    operationId: getSportingSearchOptions
+    tags:
+      - Sporting
+    summary: Read sporting search choices
+    description: >-
+      Returns current seasons with viewable resources of the requested type and active division choices.
+      A successful empty catalogue differs from a failed read. Public access requires no account;
+      explicit maintenance bypass requires a valid authorized token.
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - name: resourceType
+        in: query
+        required: true
+        description: Team or pool choices; clubs have no sporting filters.
+        schema:
+          $ref: ./schemas.yaml#/SearchResourceTypeEnum
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+    responses:
+      "200":
+        description: Current choices for the requested resource type.
+        headers:
+          Cache-Control:
+            $ref: ../../common/headers.yaml#/NoStore
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas.yaml#/SportingSearchOptionsResponse
+      "400":
+        $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
+      "503":
+        $ref: ../access/problems.yaml#/responses/AccessUnavailable

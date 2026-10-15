@@ -1,0 +1,67 @@
+# Research: search and discovery
+
+**Scope**: Decisions for [F04](spec.md) and [#50](https://github.com/blockoutproject/blockout/issues/50). Official documentation and scoped static code inspection inform this dossier. They do not establish integrated runtime behavior.
+
+## Search engine and client
+
+**Decision**: OpenSearch 3.9.0 with official `opensearch-java` 3.10.0 and the recommended Apache HttpClient 5 transport, called from the existing backend. Retain the F13 Java/Spring baseline; no Spring Data OpenSearch integration.
+
+**Rationale**: Native text analysis, word prefixes, typo tolerance, exact filters, relevance, bulk indexing, deep traversal and atomic aliases cover the accepted behavior without building a search engine in application SQL/code. [OpenSearch releases](https://opensearch.org/releases/) and the [Java client release](https://github.com/opensearch-project/opensearch-java/releases/tag/v3.10.0) establish the selected versions; [official Java client guidance](https://docs.opensearch.org/latest/clients/java/) recommends Apache HttpClient 5. Its [compatibility matrix](https://github.com/opensearch-project/opensearch-java/blob/v3.10.0/COMPATIBILITY.md) lists tested JDKs through 21, not Java 25. This is a qualification gap, not evidence of incompatibility or permission to change Java.
+
+**Alternatives considered**: PostgreSQL-only full-text/trigram search avoids another service but requires more application composition for the accepted multi-field prefix/fuzzy relevance semantics. Elasticsearch retains familiar V1 concepts but is not a continuity obligation. A second framework integration adds a dependency without a needed abstraction. The engine adds deployment, security and rebuild work; two isolated instances on the existing VPS are the accepted cost. No HA cluster, hosted-provider migration or capacity programme is selected.
+
+**Evidence limit**: Client TLS, serialization, native queries and bulk/alias operations must run under Java 25 before adoption. No engine container was started and no client compiled during this exploration.
+
+## Native matching rather than token orchestration
+
+**Decision**: Native aggregate fields via [`copy_to`](https://docs.opensearch.org/latest/mappings/mapping-parameters/copy-to/), standard tokenization/lowercase/accent folding, a prefix aggregate and a whole-word aggregate. Require a whole-query AND match through either branch; ordinary optional boosts favor direct names. Native [`match`](https://docs.opensearch.org/latest/query-dsl/full-text/match/) provides AND and `fuzziness: AUTO`; [`edge_ngram`](https://docs.opensearch.org/latest/analyzers/token-filters/edge-ngram/) supplies indexed prefixes with original-word preservation.
+
+**Rationale**: All query terms can match across fields of one resource. Separate complete branches keep prefix and typo behavior understandable without an application token parser. An explicit [search analyzer](https://docs.opensearch.org/latest/mappings/mapping-parameters/search-analyzer/) keeps whole query terms intact: OpenSearch otherwise reuses the index analyzer, whose prefix expansion could admit unrelated words sharing only a short beginning. `preserve_original` alone does not cover intermediate prefixes beyond `max_gram`; the [plan](plan.md#matching-and-current-data) therefore bounds native analysis for the entire accepted input, rather than truncating queries or adding a token-count restriction. Lucene’s [ASCII folding implementation](https://raw.githubusercontent.com/apache/lucene/main/lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/ASCIIFoldingFilter.java) allows expansion up to four characters, including ligatures; qualification covers the selected engine’s actual analyzer, not only this source inspection.
+
+**Alternatives considered**: One fuzzy clause per analyzed token, reissuing relaxed queries and broad synonym expansion create a query-composition subsystem. Fuzzy matching is not applied in the same way to synonym-expanded terms, so a synonym chain is not assumed to solve every combination. The accepted simpler behavior does not guarantee arbitrary mixed fragments, typos and abbreviations. No stemming, stop-word removal, scripts or custom ranking service.
+
+**Division terms and aliases**: Use known division-associated abbreviations and F02 identity-scoped aliases as indexed inputs. They are distinct meanings: `N2` describes a division, while a verified team alias identifies one contextual team. Format/gender use existing French labels and exact enum filters. Controlled technical maintenance suffices; no new editing journey or global similarity dictionary.
+
+## Complete traversal without retained snapshots
+
+**Decision**: Native [`search_after`](https://docs.opensearch.org/latest/search-plugins/searching-data/paginate/) on score descending and stable UUID ascending. One primary shard per resource index, opaque context-bound continuation and current-data checks. No PIT.
+
+**Rationale**: Deep traversal must not stop at the ordinary 10,000-result offset window. Stable ties and unchanged indexed data satisfy complete browsing. F04 already accepts order changes after data changes and ordinary refresh; it does not require a frozen result set. A one-primary, no-replica instance avoids selecting differently scored replicas on the single-host topology, without claiming high availability.
+
+**Alternatives considered**: Offset paging has a deep result window and changing boundaries. PIT plus `search_after` gives stronger consistency but introduces creation, identifiers, expiry and release/error handling for a snapshot guarantee not required here. Scroll is not the user pagination mechanism. No retained result table or cursor signing service is needed: the cursor is a validated position, never an authorization credential. Identity deduplication and a fresh traversal handle changed data; no permanent-omission guarantee is claimed during concurrent mutation.
+
+**Current-data filtering**: Bounded candidate iteration is required because an index may lag a restriction. Continue internally rather than ask users to traverse empty pages; return ordinary failure if no eligible results or actual exhaustion can be established within the bound. Hydrate only current public values. A simple indexed/current city comparison rejects stale candidates, accepting temporary omission instead of token attribution or a separate contact synchronization workflow.
+
+## Automatic refresh with one writer
+
+**Decision**: Relevant after-commit submissions and a full startup/fixed-delay rebuild run on one dedicated one-thread Spring scheduler. Start the next full run one hour after completion, configurable. Re-read current state for every targeted task. Create new generations, check all bulk items, refresh and atomically switch the three aliases only after complete success.
+
+**Rationale and documented capabilities**: Spring [transaction-bound events](https://docs.spring.io/spring-framework/reference/data-access/transaction/event.html) separate commit from projection work. [`ThreadPoolTaskScheduler`](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/scheduling/concurrent/ThreadPoolTaskScheduler.html) executes on its own threads and supports fixed delay and ordinary submissions. One thread serializes writes without distributed locks. OpenSearch [bulk responses](https://docs.opensearch.org/latest/api-reference/document-apis/bulk/) expose item failures, and [index aliases](https://docs.opensearch.org/latest/im-plugin/index-alias/) support atomic replacement. These primitives support the design; their complete combination remains untested here.
+
+**Alternatives considered**: Targeted updates alone lose work on process interruption. Manual reconstruction alone was not the retained recovery behavior. A durable outbox, broker, job ledger or per-item retry framework is unnecessary because the accepted full rebuild supplies automatic catch-up. Dropping active indexes before a rebuild creates avoidable unavailability; generation replacement preserves useful results. No long SQL snapshot, multiwriter coordination or global cross-resource freshness certificate is required.
+
+**Limits**: Events waiting in memory are lost on a crash. A full run reads successive current SQL batches, not one business snapshot. The next run and queued current-state updates restore freshness; current restrictions remain enforced in reads. Serving backend instances must not overlap within one environment; non-web operator invocations leave the index scheduler disabled. Native queueing and ordinary bounded I/O are used, without a custom queue manager. Unknown alias outcomes are resolved by a native alias read before deleting any generation.
+
+## Scoped V1 evidence
+
+At the [inspected V1 revision](https://github.com/blockoutproject/blockout-legacy/tree/e31d3105421ae1130d574af191ecdd94cb7308ea), the owner-authorized search-worker inspection found a [one-hour index scheduler](https://github.com/blockoutproject/blockout-legacy/blob/e31d3105421ae1130d574af191ecdd94cb7308ea/apps/backend/search-worker/src/main/java/com/blockout/workersearch/projection/infrastructure/scheduling/ProjectionIndexScheduler.java), targeted messaging and reconstruction from backend-owned data. Its startup/index replacement and delete-then-insert behavior are observations, not retained requirements. The worker's relationship caches, broker and separate deployment do not become V2 defaults.
+
+The [existing F04 evidence](spec.md#v1-sources) also identifies five examples, twenty-result reads, no complete pagination and errors reduced to empty results. V2 uses the same convenient page/example sizes while removing those completeness/error defects. V1 alias material associates known identities; it does not justify global lexical rewriting. Static source inspection proves neither production execution nor the new OpenSearch integration. Withdrawn technical dossiers were not inputs.
+
+## Public contracts, choices and mobile state
+
+**Decision**: Add ordinary public collection GETs and one resource-type-qualified search-options GET to the existing API. Reuse F03 summaries and F02 enums. Use current PostgreSQL data for filter catalogues. Keep five stable-ID examples in visit memory; use native TanStack Query for textual pagination and explicit fresh-first-page replacement.
+
+**Rationale**: Three collection resources retain actual sporting identities and open existing detail routes. A separate options representation has a distinct purpose and lifecycle. Empty text is explicitly examples rather than a second exhaustive mode. Retained IDs let the same examples be revalidated without storing a server session or resampling on each refresh. Native [TanStack infinite queries](https://tanstack.com/query/latest/docs/framework/react/guides/infinite-queries) retain all pages under one context key and advance through `pageParam`; separate cursor-based cache keys would require unnecessary page assembly.
+
+**Alternatives considered**: One generic mixed-type search union adds generated-model complexity and does not match the three independent tabs. A global filter/list endpoint, random sampling on refresh, a server search session or a persistent mobile cache supplies no needed behavior. Snapshot totals and custom transient-state protocols are not required. Existing errors/ordinary retry cover dependency loss without a new screen.
+
+**Evidence limit**: Canonical definitions can be linted now. Java/TypeScript generation, Unicode counting, array encoding, request cancellation, mobile memory behavior and native accessibility still require the [quickstart scenarios](quickstart.md).
+
+## Infrastructure and diagnostics
+
+**Decision**: Separate private production/preproduction instances, native verified TLS and scoped permissions, no replica on this single-host topology. Indexes are rebuildable derivatives rather than a second backup source. Use existing F13 private diagnostics for update/rebuild failure and latest useful success; no query text, contact values or engine payloads in logs.
+
+**Rationale**: Environment separation prevents accidental index mixing but not host loss. PostgreSQL recovery followed by reconstruction is sufficient for derived data. Native OpenSearch [security configuration](https://docs.opensearch.org/latest/security/configuration/index/) supplies the selected boundary; demo settings and disabled certificate verification are not acceptable deployment defaults.
+
+**Alternatives considered**: An HA deployment, Dashboards, another alerting platform, index snapshots or an operator rebuild screen add maintenance without an accepted requirement. Runtime provisioning, permissions, restoration and F13 alert qualification remain future work.

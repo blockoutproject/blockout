@@ -20,7 +20,7 @@ Provider observations and accepted data are distinct. Application values describ
 
 ## Corrections and provider references
 
-Normalize FFVB team comparison for case, excess spaces and straight/typographic apostrophes only. Preserve source labels, accents, digits, dots and hyphens. Verified aliases are scoped associations to known identities, never an approximate merge index. A confirmed native LNV reference can retain identity through a source-label change.
+Normalize FFVB team comparison for case, excess spaces and straight/typographic apostrophes only. Preserve source labels, accents, digits, dots and hyphens. Verified aliases are scoped associations to known identities, never an approximate merge index. Retain each current alias on its owning club/team/pool with its applicable provider/season/competition context, using owner foreign keys and uniqueness within that context. A technical correction replaces or removes the association; it does not build name history. Known division search terms are a separate owner-linked set, unique within the division, maintained by controlled technical correction without a new editor. They support [F04 discovery](../008-search-discovery/data-model.md) and never change a sporting identity or classification. A confirmed native LNV reference can retain identity through a source-label change.
 
 Classification corrections recompute the affected identity constraints while preserving UUIDs. Every shared participation must fit the requested scope and target key. Conflicts refuse the full command; no automatic team split/merge. A technical professional club attachment changes only its optional club relation and resulting read presentation; it cannot re-key a team or rewrite follows.
 

@@ -181,3 +181,9 @@ The observable availability and public-reading obligations remain owned by [F11]
 **Evidence and limits**:
 
 The final behavior, scoped approvals and exact design references are owned by [F12](../013-administration-app-configuration/spec.md#session-2026-10-12--f13-planning-reconciliation); F05 owns hosted sign-in.
+
+## Derived search infrastructure
+
+**Decision**: [F04 research](../008-search-discovery/research.md) owns OpenSearch/client selection, native matching and automatic reconstruction. Separate private instances isolate production/preproduction on the existing VPS without changing its common host-loss limit. PostgreSQL remains the authoritative backup source.
+
+**Rationale and limits**: Native indexing replaces application-built matching; after-commit work plus full reconstruction avoids a durable recovery platform. No extra business service, search backup chain or public operator UI. The Java 25/client combination and actual deployment/security/rebuild behavior require F04 qualification before adoption. Other F13 stack decisions remain unchanged.
