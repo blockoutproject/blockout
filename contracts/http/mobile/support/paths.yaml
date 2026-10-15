@@ -6,14 +6,20 @@ Collection:
     summary: Send a private support request
     description: >-
       Accepts a problem or suggestion from a guest or signed-in person, including after sign-in
-      failure. Authentication is not required; declared contact and context prove no identity.
+      failure. Ordinary sending omits credentials; explicit maintenance bypass requires a valid
+      authorized mobile token. Supplied invalid credentials are rejected. Declared contact and
+      context prove no identity.
       Current application access restrictions still apply. Confirms only content with every selected
       image attached. After a lost response or service error, an explicit new attempt is allowed
       without receipt lookup; an exceptional duplicate may be handled manually. Never resend automatically.
-    security: []
+    security:
+      - {}
+      - MobileToken: []
+    parameters:
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     requestBody:
       required: true
-      description: Complete form snapshot and all selected prepared images; no partial acceptance.
+      description: Complete form snapshot and all selected prepared images; at most 27262976 bytes including multipart overhead. No partial acceptance.
       content:
         multipart/form-data:
           schema:
@@ -51,6 +57,10 @@ Collection:
               $ref: ./schemas.yaml#/SupportRequestCreatedResponse
       "400":
         $ref: ../../common/problems.yaml#/responses/BadRequest
+      "401":
+        $ref: ../../common/problems.yaml#/responses/Unauthorized
+      "403":
+        $ref: ../../common/problems.yaml#/responses/Forbidden
       "413":
         $ref: ../../common/problems.yaml#/responses/ContentTooLarge
       "415":

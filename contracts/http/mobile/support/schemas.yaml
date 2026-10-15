@@ -16,16 +16,19 @@ CreateSupportRequestRequest:
     title:
       type: string
       minLength: 1
+      maxLength: 200
       pattern: '\S'
       description: Required title; trim outer whitespace and reject blank text.
     description:
       type: string
       minLength: 1
+      maxLength: 10000
       pattern: '\S'
       description: Required explanation of the problem or desired improvement; reject blank text.
     replyEmail:
       type: string
       format: email
+      maxLength: 254
       description: Editable reply address, trimmed and checked for syntax only.
     context:
       $ref: "#/SupportRequestContextRequest"
@@ -55,10 +58,12 @@ SupportRequestContextRequest:
     screen:
       type: string
       minLength: 1
+      maxLength: 256
       description: Known application screen, without a raw navigation URL.
     action:
       type: string
       minLength: 1
+      maxLength: 256
       description: Action being attempted.
     target:
       $ref: "#/SupportRequestTargetRequest"
@@ -69,16 +74,19 @@ SupportRequestContextRequest:
     appVersion:
       type: string
       minLength: 1
+      maxLength: 256
       description: Installed application version.
     platform:
       $ref: "#/SupportPlatformEnum"
     osVersion:
       type: string
       minLength: 1
+      maxLength: 256
       description: Available operating-system version.
     deviceModel:
       type: string
       minLength: 1
+      maxLength: 256
       description: Available device model, never a device advertising identifier.
     signInFailure:
       $ref: "#/SupportSignInFailureRequest"
@@ -104,18 +112,22 @@ SupportSignInFailureRequest:
     method:
       type: string
       minLength: 1
+      maxLength: 256
       description: Sign-in method used.
     stage:
       type: string
       minLength: 1
+      maxLength: 256
       description: Known failed stage.
     reason:
       type: string
       minLength: 1
+      maxLength: 256
       description: Safe reason without credentials or provider payloads.
     reference:
       type: string
       minLength: 1
+      maxLength: 256
       description: Safe diagnostic reference when available, never an access token.
 SupportRequestCreatedResponse:
   type: object
