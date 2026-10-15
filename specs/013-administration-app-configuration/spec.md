@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-23
 
-**Status**: Accepted functional baseline; technical planning and implementation qualification remain pending.
+**Status**: Accepted functional baseline; technical planning is documented in [plan.md](plan.md), with implementation qualification pending.
 
 **Input**: F12, [#269](https://github.com/blockoutproject/blockout-legacy/issues/269), shared administration and access in the [specification navigation](../../README.md#specifications). Define permissions, effective maintenance, minimum versions, configuration errors and operator recovery, without redefining commands owned by other domains.
 
@@ -250,7 +250,7 @@ F08 defines one complete stream-link moderation capability. It grants no other a
 
 | Domain                                          | Requirements  | Scenarios         | Criteria |
 | ----------------------------------------------- | ------------- | ----------------- | -------- |
-| and shared permissions                          | FR-001–FR-005 | A01–A05, A16      | SC-001   |
+| Ordinary and privileged permissions             | FR-001–FR-005 | A01–A05, A16      | SC-001   |
 | Preparation, field removal and saving           | FR-006–FR-011 | A06–A12           | SC-002   |
 | Maintenance, exceptions and launch verification | FR-012–FR-018 | A13–A20           | SC-003   |
 | Accepted actions and independent collection     | FR-019–FR-020 | A21–A22           | SC-004   |

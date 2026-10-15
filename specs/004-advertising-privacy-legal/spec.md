@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Accepted functional baseline; technical planning and implementation qualification remain pending.
+**Status**: Accepted functional baseline; technical planning is documented in [plan.md](plan.md), with implementation qualification pending.
 
 **Input**: Approved functional rules for [#260](https://github.com/blockoutproject/blockout-legacy/issues/260), F11 in the [specification navigation](../../README.md#specifications). Define age-appropriate advertising, its frequency and relationship with Pro, public consultation and versioned publication of legal documents, and shared privacy obligations. Detailed reporting journeys belong to F10; their shared constraints and decisions needed to write them are explicit here.
 
