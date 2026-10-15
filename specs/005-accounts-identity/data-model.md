@@ -38,7 +38,7 @@ The native Auth0 SDK holds credentials in its secure store. The application hold
 
 Authentication, business-profile availability and RevenueCat SDK entitlement state remain distinct. Known network failure does not imply revocation. No persistent business cache or write queue is added. F07's expiry and current permissions still restrict retained in-memory data.
 
-Onboarding and the F14 transition-welcome completion retain their accepted installation-specific purpose independently of account deletion. This is not a persistent private profile cache.
+V2 initialization and common-onboarding completion are distinct installation markers under [F14](../014-v1-v2-transition/data-model.md#installation-state), retained independently of account deletion. This is not a persistent private profile cache.
 
 ## Retained content, providers and restoration
 

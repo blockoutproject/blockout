@@ -34,6 +34,8 @@ Authentication/authorization failures use ordinary 401/403 and F13's Bearer/no-s
 
 ## Compatibility and coordination
 
+[F14](../../014-v1-v2-transition/contracts/README.md#legacy-mobile-access) adds the separate legacy status surface to this same backend. Its read-only deployment configuration supplies the qualified first V2 versions and existing store URLs in the already distributed flat JSON shape, with maintenance false for retired clients. This exception keeps the update action reachable and creates no old business API or additional writable settings group. Later ordinary minimum-version edits cannot readmit V1.
+
 F05 account responses acquire required `permissions` with optional boolean properties. Update provider responses and generated mobile consumers together; absence of a capability never grants it. All account response producers, including establishment/profile writes, return that projection. Old clients tolerating extra response fields remain compatible; deploying a new client before its provider supplies the required object is not supported. Future fields do not require a strict extensible enum or dynamic permission interpreter.
 
 F05 records the narrow maintenance-identification exception and preserves 404/no automatic creation. Its other ordinary calls receive the shared bypass intent and typed mobile unavailability profile. No existing operation is renamed. F02 action/resource validation retains its domain semantics with global grants and the common lock order. F13 generation/validation and compatibility rules remain authoritative; F14 controls admission of actual distributed versions, not an API version guessed from a route.

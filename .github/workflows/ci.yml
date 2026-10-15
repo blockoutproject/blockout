@@ -35,4 +35,4 @@ jobs:
       - name: Check contract formatting and structure
         run: |
           npx --yes prettier@3.9.6 --check "contracts/**/*.yaml"
-          npx --yes @redocly/cli@2.62.1 lint contracts/http/ingestion/openapi.yaml contracts/http/mobile/openapi.yaml --extends minimal
+          npx --yes @redocly/cli@2.62.1 lint contracts/http/ingestion/openapi.yaml contracts/http/mobile/openapi.yaml contracts/http/legacy-mobile/openapi.yaml --extends minimal

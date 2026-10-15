@@ -117,7 +117,7 @@ Do not build generalized referee/person suppression. Other individual requests r
 - **F09**: active Pro avoids unnecessary prompts; unknown state suppresses ads/purchase invitations. Qualify Pro offer availability alongside EU27 distribution without revoking existing rights.
 - **F12**: preserve all three global access gates; no legal/privacy/support route bypass.
 - **F13**: ordinary private diagnostics and manual restoration; existing stack, no new operational service or recovery programme.
-- **F14**: EU27 new-download availability, existing users abroad, store update/redownload and entitlements; new age declaration does not replay completed onboarding.
+- **F14**: EU27 new-download availability, existing users abroad, store update/redownload and entitlements; the mandatory age declaration stays independent of F14’s common first-V2 discovery, and does not replay completed V2 onboarding.
 
 Future provider/store activation must reconcile truthful audience, advertising and privacy declarations; EU27 app/offer availability; European UMP message/partner configuration; and the public `app-ads.txt`. Remove Equativ seller entries only when no still-supported V1 placement uses them. Preserve useful current provider identities. This dossier configures none of these services.
 
