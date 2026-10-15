@@ -55,7 +55,7 @@ Teams:
       - $ref: ./parameters.yaml#/Query
       - $ref: ./parameters.yaml#/Cursor
       - $ref: ./parameters.yaml#/ExampleIds
-      - $ref: ./parameters.yaml#/Season
+      - $ref: ./parameters.yaml#/DiscoverySeason
       - $ref: ./parameters.yaml#/Division
       - $ref: ./parameters.yaml#/Format
       - $ref: ./parameters.yaml#/Gender
@@ -97,7 +97,7 @@ Pools:
       - $ref: ./parameters.yaml#/Query
       - $ref: ./parameters.yaml#/Cursor
       - $ref: ./parameters.yaml#/ExampleIds
-      - $ref: ./parameters.yaml#/Season
+      - $ref: ./parameters.yaml#/DiscoverySeason
       - $ref: ./parameters.yaml#/Division
       - $ref: ./parameters.yaml#/Format
       - $ref: ./parameters.yaml#/Gender

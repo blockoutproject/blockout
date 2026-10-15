@@ -33,7 +33,7 @@ ExampleIds:
       type: string
       description: Stable resource identity.
       format: uuid
-Season:
+DiscoverySeason:
   name: seasonId
   in: query
   required: false
