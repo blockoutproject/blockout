@@ -1,0 +1,657 @@
+StreamPlatformEnum:
+  type: string
+  description: Locally recognized stream provider; recognition does not establish availability.
+  enum:
+    - youtube
+    - twitch
+    - facebook
+StreamContributionStateEnum:
+  type: string
+  description: Current lifecycle of one recorded contribution version.
+  enum:
+    - pending
+    - active
+    - rejected
+    - cancelled
+    - withdrawn
+    - hidden
+    - replaced
+    - superseded
+StreamModerationFilterEnum:
+  type: string
+  description:
+    Match selection; to-review includes pending proposals, unresolved report hiding or reported
+    active links.
+  enum:
+    - to-review
+    - active
+    - all
+    - pending
+    - hidden
+    - rejected
+    - cancelled
+    - withdrawn
+    - replaced
+    - superseded
+StreamOwnerActionEnum:
+  type: string
+  description: Desired owner transition for the exact version.
+  enum:
+    - cancel
+    - withdraw
+StreamModerationActionEnum:
+  type: string
+  description: Desired moderator transition for the exact version.
+  enum:
+    - approve
+    - reject
+    - withdraw
+StreamDecisionEnum:
+  type: string
+  description: Kind of a retained lifecycle decision affecting this version.
+  enum:
+    - publish
+    - approve
+    - reject
+    - cancel
+    - withdraw
+    - hide
+    - replace
+    - supersede
+    - reactivate
+CreateStreamContributionRequest:
+  type: object
+  description: Submit an address using the viewed match contribution revision.
+  additionalProperties: false
+  properties:
+    revision:
+      type: string
+      description:
+        Opaque current contribution revision for this match; stale revisions return 409 without
+        effects.
+      minLength: 1
+    url:
+      type: string
+      description:
+        HTTP(S) address on an authorized provider domain, without credentials; retained without
+        provider lookup.
+      format: uri
+      minLength: 1
+  required:
+    - revision
+    - url
+UpdateOwnStreamContributionRequest:
+  type: object
+  description: Atomic cancellation of a pending proposal or withdrawal of an active owned version.
+  additionalProperties: false
+  properties:
+    revision:
+      type: string
+      description:
+        Opaque current contribution revision for this match; stale revisions return 409 without
+        effects.
+      minLength: 1
+    action:
+      $ref: "#/StreamOwnerActionEnum"
+  required:
+    - revision
+    - action
+CreateModeratedStreamContributionRequest:
+  type: object
+  description: Directly publish an address and supersede other pending proposals.
+  additionalProperties: false
+  properties:
+    actorAccountId:
+      type: string
+      description:
+        Original acting account; must match the currently usable authenticated account, never a
+        recreated account.
+      format: uuid
+    revision:
+      type: string
+      description:
+        Opaque current contribution revision for this match; stale revisions return 409 without
+        effects.
+      minLength: 1
+    url:
+      type: string
+      description:
+        HTTP(S) address on an authorized provider domain, without credentials; retained without
+        provider lookup.
+      format: uri
+      minLength: 1
+  required:
+    - actorAccountId
+    - revision
+    - url
+UpdateModeratedStreamContributionRequest:
+  type: object
+  description: Apply one current moderation decision atomically.
+  additionalProperties: false
+  properties:
+    actorAccountId:
+      type: string
+      description:
+        Original acting account; must match the currently usable authenticated account, never a
+        recreated account.
+      format: uuid
+    revision:
+      type: string
+      description:
+        Opaque current contribution revision for this match; stale revisions return 409 without
+        effects.
+      minLength: 1
+    action:
+      $ref: "#/StreamModerationActionEnum"
+  required:
+    - actorAccountId
+    - revision
+    - action
+CreateStreamReactivationRequest:
+  type: object
+  description: Create a new version of a historical address with no inherited reports.
+  additionalProperties: false
+  properties:
+    actorAccountId:
+      type: string
+      description:
+        Original acting account; must match the currently usable authenticated account, never a
+        recreated account.
+      format: uuid
+    revision:
+      type: string
+      description:
+        Opaque current contribution revision for this match; stale revisions return 409 without
+        effects.
+      minLength: 1
+  required:
+    - actorAccountId
+    - revision
+CreateStreamReportRequest:
+  type: object
+  description: Report the exact displayed version; the first accepted reason remains authoritative.
+  additionalProperties: false
+  properties:
+    reason:
+      type: string
+      description: Trimmed nonempty reason; whitespace-only input is rejected.
+      minLength: 1
+  required:
+    - reason
+StreamReportStateResponse:
+  type: object
+  description: Current reporting state of the original account for this exact version.
+  additionalProperties: true
+  properties:
+    reported:
+      type: boolean
+      description: Whether this account already has an accepted report on this version.
+  required:
+    - reported
+OwnStreamContributionResponse:
+  type: object
+  description: An owned version, without another person’s proposals, report reasons or private decisions.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Contribution version identity.
+      format: uuid
+    url:
+      type: string
+      description:
+        HTTP(S) address on an authorized provider domain, without credentials; retained without
+        provider lookup.
+      format: uri
+      minLength: 1
+    platform:
+      $ref: "#/StreamPlatformEnum"
+    state:
+      $ref: "#/StreamContributionStateEnum"
+    submittedAt:
+      type: string
+      description: Creation instant of this version.
+      format: date-time
+    canCancel:
+      type: boolean
+      description: Current permission to cancel this pending proposal.
+    canWithdraw:
+      type: boolean
+      description: Current permission to withdraw this active version.
+  required:
+    - id
+    - url
+    - platform
+    - state
+    - submittedAt
+    - canCancel
+    - canWithdraw
+OwnStreamContributionDetailResponse:
+  type: object
+  description: Current owned version and match editing revision.
+  additionalProperties: true
+  properties:
+    revision:
+      type: string
+      description:
+        Opaque current contribution revision for this match; stale revisions return 409 without
+        effects.
+      minLength: 1
+    contribution:
+      $ref: "#/OwnStreamContributionResponse"
+  required:
+    - revision
+    - contribution
+StreamSubmissionEligibilityResponse:
+  type: object
+  description: Current submission eligibility; commands recheck every condition.
+  additionalProperties: true
+  properties:
+    canSubmit:
+      type: boolean
+      description: Whether a new ordinary submission is currently allowed.
+    requiresApproval:
+      type: boolean
+      description: Whether a permitted ordinary submission would await moderation.
+    reason:
+      type: string
+      description: Safe explanation when submission is unavailable; omitted when allowed.
+    eligibleAt:
+      type: string
+      description: Known earliest time boundary for retry, omitted when time cannot resolve the current refusal.
+      format: date-time
+  required:
+    - canSubmit
+    - requiresApproval
+StreamQuotaResponse:
+  type: object
+  description: Ordinary submission usage; moderation-created versions are excluded.
+  additionalProperties: true
+  properties:
+    versionsUsed:
+      type: integer
+      description: Consumed ordinary submissions for this account and match.
+      minimum: 0
+      maximum: 3
+    dailyMatchesUsed:
+      type: integer
+      description: Distinct matches submitted to during the current Paris day.
+      minimum: 0
+      maximum: 3
+    matchCountedToday:
+      type: boolean
+      description: Whether another ordinary submission to this match would consume no new daily match slot.
+    dayEndsAt:
+      type: string
+      description: Next Paris midnight as an instant; not a fixed 24-hour deadline.
+      format: date-time
+  required:
+    - versionsUsed
+    - dailyMatchesUsed
+    - matchCountedToday
+    - dayEndsAt
+OwnStreamContributionsResponse:
+  type: object
+  description: Owner context and one page of personal versions for a viewable match.
+  additionalProperties: true
+  properties:
+    revision:
+      type: string
+      description:
+        Opaque current contribution revision for this match; stale revisions return 409 without
+        effects.
+      minLength: 1
+    eligibility:
+      $ref: "#/StreamSubmissionEligibilityResponse"
+    quota:
+      $ref: "#/StreamQuotaResponse"
+    items:
+      type: array
+      description: Owned versions by creation instant descending, then UUID ascending.
+      items:
+        $ref: "#/OwnStreamContributionResponse"
+      maxItems: 20
+    nextPage:
+      type: integer
+      description:
+        Next zero-based page for the same context; omitted when exhausted. Concurrent changes may
+        shift items.
+      format: int64
+      minimum: 1
+      maximum: 107374182
+  required:
+    - revision
+    - eligibility
+    - quota
+    - items
+StreamDecisionResponse:
+  type: object
+  description: Useful lifecycle decision retained for this version, not an arbitrary technical audit event.
+  additionalProperties: true
+  properties:
+    kind:
+      $ref: "#/StreamDecisionEnum"
+    at:
+      type: string
+      description: Decision instant.
+      format: date-time
+    actorName:
+      type: string
+      description: Current permitted display name; omitted for automatic decisions or erased attribution.
+  required:
+    - kind
+    - at
+ModeratedStreamContributionResponse:
+  type: object
+  description: Private version representation for an authorized stream moderator.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Contribution version identity.
+      format: uuid
+    url:
+      type: string
+      description:
+        HTTP(S) address on an authorized provider domain, without credentials; retained without
+        provider lookup.
+      format: uri
+      minLength: 1
+    platform:
+      $ref: "#/StreamPlatformEnum"
+    state:
+      $ref: "#/StreamContributionStateEnum"
+    submittedAt:
+      type: string
+      description: Creation instant of this version.
+      format: date-time
+    authorName:
+      type: string
+      description: Current permitted owner display name; omitted when ownership was erased.
+    sourceVersionId:
+      type: string
+      description: Historical source of a reactivation; omitted for an ordinary submission.
+      format: uuid
+    replacedByVersionId:
+      type: string
+      description: Selected replacement version; omitted when no replacement occurred.
+      format: uuid
+    reportCount:
+      type: integer
+      description: All counted reports on this exact version, including anonymized reports.
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+    canApprove:
+      type: boolean
+      description: Current permission to approve this pending version.
+    canReject:
+      type: boolean
+      description: Current permission to reject this pending version.
+    canWithdraw:
+      type: boolean
+      description: Current permission to withdraw this active version.
+    canReactivate:
+      type: boolean
+      description: Current permission to create a new active version from this historical address.
+    decisions:
+      type: array
+      description:
+        Useful publication/approval and subsequent lifecycle decisions in chronological order. Erased
+        actor attribution is omitted.
+      items:
+        $ref: "#/StreamDecisionResponse"
+  required:
+    - id
+    - url
+    - platform
+    - state
+    - submittedAt
+    - reportCount
+    - canApprove
+    - canReject
+    - canWithdraw
+    - canReactivate
+    - decisions
+ModeratedStreamContributionDetailResponse:
+  type: object
+  description: Current private version and its match contribution revision.
+  additionalProperties: true
+  properties:
+    revision:
+      type: string
+      description:
+        Opaque current contribution revision for this match; stale revisions return 409 without
+        effects.
+      minLength: 1
+    contribution:
+      $ref: "#/ModeratedStreamContributionResponse"
+  required:
+    - revision
+    - contribution
+StreamModerationMatchResponse:
+  type: object
+  description: Private sporting context, including a match hidden from ordinary consultation.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Stable sporting match identity.
+      format: uuid
+    seasonId:
+      type: string
+      description: Owning sporting season.
+      format: uuid
+    home:
+      $ref: ../consultation/schemas.yaml#/SportingIdentityResponse
+    away:
+      $ref: ../consultation/schemas.yaml#/SportingIdentityResponse
+    pool:
+      $ref: ../consultation/schemas.yaml#/PoolSummaryResponse
+    schedule:
+      $ref: ../consultation/schemas.yaml#/MatchScheduleResponse
+    result:
+      $ref: ../consultation/schemas.yaml#/MatchResultResponse
+    publiclyViewable:
+      type: boolean
+      description: Whether ordinary match consultation is currently permitted; false never permits publication.
+  required:
+    - id
+    - seasonId
+    - home
+    - away
+    - pool
+    - publiclyViewable
+StreamModerationCountsResponse:
+  type: object
+  description: Match badges computed independently of the loaded page; historical reports remain available per version.
+  additionalProperties: true
+  properties:
+    active:
+      type: integer
+      description: Active version count, independently of sporting visibility.
+      minimum: 0
+      maximum: 1
+    pending:
+      type: integer
+      description: Pending proposals.
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+    hidden:
+      type: integer
+      description: Unresolved report-hidden version; zero after a moderator selects a retained link.
+      minimum: 0
+      maximum: 1
+    reports:
+      type: integer
+      description: Counted reports on the active version or the unresolved report-hidden version, including erased reporters.
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+    rejected:
+      type: integer
+      description: Rejected versions retained in history, independently of the loaded page.
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+  required:
+    - active
+    - pending
+    - hidden
+    - reports
+    - rejected
+StreamModerationItemResponse:
+  type: object
+  description: One match concerned by contributions.
+  additionalProperties: true
+  properties:
+    match:
+      $ref: "#/StreamModerationMatchResponse"
+    counts:
+      $ref: "#/StreamModerationCountsResponse"
+    approvalRequiredAfterReports:
+      type: boolean
+      description: An unresolved report-based hiding requires moderation approval.
+    lastActivityAt:
+      type: string
+      description:
+        Latest version creation, accepted decision or new report; simple reads and erasure do not
+        create activity.
+      format: date-time
+  required:
+    - match
+    - counts
+    - approvalRequiredAfterReports
+    - lastActivityAt
+StreamModerationResponse:
+  type: object
+  description: One page of distinct matches satisfying the requested moderation selection.
+  additionalProperties: true
+  properties:
+    items:
+      type: array
+      description: Last contribution activity descending, then match UUID ascending.
+      items:
+        $ref: "#/StreamModerationItemResponse"
+      maxItems: 20
+    nextPage:
+      type: integer
+      description:
+        Next zero-based page for the same context; omitted when exhausted. Concurrent changes may
+        shift items.
+      format: int64
+      minimum: 1
+      maximum: 107374182
+  required:
+    - items
+ModeratedStreamContributionsResponse:
+  type: object
+  description: Private match context, current active link and one filtered page of recorded versions.
+  additionalProperties: true
+  properties:
+    revision:
+      type: string
+      description:
+        Opaque current contribution revision for this match; stale revisions return 409 without
+        effects.
+      minLength: 1
+    match:
+      $ref: "#/StreamModerationMatchResponse"
+    counts:
+      $ref: "#/StreamModerationCountsResponse"
+    approvalRequiredAfterReports:
+      type: boolean
+      description: Whether report-based hiding still requires an explicit retained-link decision.
+    canPublish:
+      type: boolean
+      description: Whether the moderator may currently publish for this match.
+    activeContribution:
+      $ref: "#/ModeratedStreamContributionResponse"
+    items:
+      type: array
+      description:
+        Versions by creation instant descending, then UUID ascending; state can select pending or
+        historical entries.
+      items:
+        $ref: "#/ModeratedStreamContributionResponse"
+      maxItems: 20
+    nextPage:
+      type: integer
+      description:
+        Next zero-based page for the same context; omitted when exhausted. Concurrent changes may
+        shift items.
+      format: int64
+      minimum: 1
+      maximum: 107374182
+  required:
+    - revision
+    - match
+    - counts
+    - approvalRequiredAfterReports
+    - canPublish
+    - items
+StreamReportResponse:
+  type: object
+  description: Private counted report without reporter identity.
+  additionalProperties: true
+  properties:
+    id:
+      type: string
+      description: Report identity.
+      format: uuid
+    reportedAt:
+      type: string
+      description: Original report time.
+      format: date-time
+    reason:
+      type: string
+      description: Original reason; null after erasure of its author.
+      nullable: true
+  required:
+    - id
+    - reportedAt
+    - reason
+StreamReportsResponse:
+  type: object
+  description: One page of reports on one exact contribution version.
+  additionalProperties: true
+  properties:
+    count:
+      type: integer
+      description: All counted reports for this version, independently of the loaded page.
+      format: int64
+      minimum: 0
+      maximum: 9007199254740991
+    items:
+      type: array
+      description: Report time descending, then UUID ascending.
+      items:
+        $ref: "#/StreamReportResponse"
+      maxItems: 20
+    nextPage:
+      type: integer
+      description:
+        Next zero-based page for the same context; omitted when exhausted. Concurrent changes may
+        shift items.
+      format: int64
+      minimum: 1
+      maximum: 107374182
+  required:
+    - count
+    - items
+StreamVersionFilterEnum:
+  type: string
+  description:
+    Version-page selection; historical excludes active and pending without creating a lifecycle
+    state.
+  enum:
+    - historical
+    - pending
+    - active
+    - rejected
+    - cancelled
+    - withdrawn
+    - hidden
+    - replaced
+    - superseded

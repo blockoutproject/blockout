@@ -147,6 +147,8 @@ The person reaches the correct store; authorized operators manage configuration 
 
 ### Functional Requirements
 
+F08 defines one complete stream-link moderation capability. It grants no other administration power or implicit maintenance bypass; ordinary account capabilities remain distinct.
+
 #### Permissions and assignment
 
 - **FR-001**: A new usable account MUST automatically receive the ordinary capabilities provided by the specs, without manual assignment, preserving ownership, visibility, F08 account age, quotas and other business conditions. No administrative or moderation privilege must be granted automatically.
