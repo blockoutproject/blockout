@@ -33,4 +33,4 @@ The calendar response couples hasAvailableFollows for the selected season with t
 
 Query owns confirmed data and pending mutation state. Keys distinguish session/account/target and, for lists/calendar, season/category/time zone. One in-memory season choice belongs to the personal space, not to search or notifications. No persistent cache, per-match selection provenance, event log or private state inside public sporting DTOs.
 
-F07 may read account, target and relation identities to apply its trigger/send eligibility. It must not treat a recreated relation as the old subscription or use the displayed season as a delivery preference. Its notification records and lifecycle are not designed here.
+F07 may read account, target and relation identities to apply its trigger/send eligibility. It must not treat a recreated relation as the old subscription or use the displayed season as a delivery preference. Its notification records and lifecycle are defined by the [F07 model](../011-notifications-delivery/data-model.md). Relation IDs retained for a pending send remain transient; F06 adds no historical audience snapshot.
