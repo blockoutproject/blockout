@@ -41,10 +41,10 @@ components:
       required:
         - maintenance
         - message
-        - imageUrl
-        - lastUpdate
-        - minVersionIos
-        - minVersionAndroid
+        - image_url
+        - last_update
+        - min_version_ios
+        - min_version_android
       properties:
         maintenance:
           type: boolean
@@ -54,34 +54,34 @@ components:
           type: string
           nullable: true
           description: Historical maintenance message; null when unused.
-        imageUrl:
+        image_url:
           type: string
           nullable: true
           description: Historical maintenance image URL; null when unused.
-        lastUpdate:
+        last_update:
           type: string
           format: date-time
           nullable: true
           description: Last settings update instant, or null when no timestamp is supplied.
-        minVersionIos:
+        min_version_ios:
           type: string
           nullable: true
           description: Minimum iOS application version; historical null means no minimum. Retirement requires a non-null supported release version.
           example: 2.0.0
-        minVersionAndroid:
+        min_version_android:
           type: string
           nullable: true
           description: Minimum Android application version; historical null means no minimum. Retirement requires a non-null supported release version.
           example: 2.0.0
-        storeUrlIos:
+        store_url_ios:
           type: string
           nullable: true
           description: App Store update URL. Historically optional or null; retirement requires a usable URL.
-        storeUrlAndroid:
+        store_url_android:
           type: string
           nullable: true
           description: Google Play update URL. Historically optional or null; retirement requires a usable URL.
-        forceUpdateMessage:
+        force_update_message:
           type: string
           nullable: true
           description: Optional update explanation. Absent or null uses the installed application's fallback wording.
