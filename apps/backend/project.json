@@ -9,18 +9,18 @@
       "continuous": true
     },
     "build": {
-      "command": "./mvnw -B -ntp -pl apps/backend -am package -DskipTests"
+      "command": "./mvnw -B -ntp -pl apps/backend package -DskipTests"
     },
-    "test": { "command": "./mvnw -B -ntp -pl apps/backend -am verify" },
+    "test": { "command": "./mvnw -B -ntp -pl apps/backend verify" },
     "typecheck": {
-      "command": "./mvnw -B -ntp -pl apps/backend -am test-compile"
+      "command": "./mvnw -B -ntp -pl apps/backend test-compile"
     },
     "lint": {
-      "command": "./mvnw -B -ntp -pl apps/backend -am checkstyle:check"
+      "command": "./mvnw -B -ntp -pl apps/backend checkstyle:check"
     },
     "format-check": {
-      "command": "./mvnw -B -ntp -pl apps/backend -am spotless:check"
+      "command": "./mvnw -B -ntp -pl apps/backend spotless:check"
     },
-    "verify": { "command": "./mvnw -B -ntp -pl apps/backend -am verify" }
+    "verify": { "command": "./mvnw -B -ntp -pl apps/backend verify" }
   }
 }
