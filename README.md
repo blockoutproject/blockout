@@ -96,7 +96,7 @@ npx nx run collector:serve
 
 Backend starts on port 8080 with no business endpoints. Collector starts a non-web process and remains alive until stopped; it performs no source acquisition yet and has no database credentials. Database and ingestion settings in the examples are reserved for the next foundation lot.
 
-Expo automatically reads `apps/mobile/.env.local`. Build and launch with the Android SDK/emulator or Xcode 26.4+/iOS simulator:
+Expo automatically reads `apps/mobile/.env.local`. Use a separate JDK 21 for Android Gradle/CMake in the mobile terminal; keep Temurin 25 for Maven. Build and launch with the Android SDK/emulator or Xcode 26.4+/iOS simulator:
 
 ```sh
 cp apps/mobile/.env.example apps/mobile/.env.local
