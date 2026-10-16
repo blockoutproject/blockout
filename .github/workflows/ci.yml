@@ -43,11 +43,26 @@ jobs:
       - name: Install locked workspace dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Verify documentation, contracts and executable applications
+      - name: Verify contracts, generated consumers, HTTP boundaries and database roles
         env:
           CI: "true"
           NX_DAEMON: "false"
         run: npm run verify
+
+      - name: Verify deterministic regeneration and ignored outputs
+        env:
+          NX_DAEMON: "false"
+        shell: bash
+        run: |
+          generated=(contracts/http/.generated apps/mobile/.generated apps/backend/target/generated-sources/openapi apps/collector/target/generated-sources/openapi)
+          hash_generated() {
+            rg --files --hidden --no-ignore "${generated[@]}" | LC_ALL=C sort | xargs sha256sum
+          }
+          git check-ignore "${generated[@]}"
+          hash_generated > "$RUNNER_TEMP/generated-before.sha256"
+          npm run generate
+          hash_generated > "$RUNNER_TEMP/generated-after.sha256"
+          diff -u "$RUNNER_TEMP/generated-before.sha256" "$RUNNER_TEMP/generated-after.sha256"
 
       - name: Check diff hygiene
         run: git diff --check

@@ -6,20 +6,38 @@
   "targets": {
     "serve": {
       "command": "npm run start --workspace=@blockout/mobile",
-      "continuous": true
+      "continuous": true,
+      "dependsOn": ["generate"]
     },
-    "android": { "command": "npm run android --workspace=@blockout/mobile" },
-    "ios": { "command": "npm run ios --workspace=@blockout/mobile" },
-    "build": { "command": "npm run build --workspace=@blockout/mobile" },
-    "test": { "command": "npm run test --workspace=@blockout/mobile" },
+    "android": {
+      "command": "npm run android --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
+    },
+    "ios": {
+      "command": "npm run ios --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
+    },
+    "build": {
+      "command": "npm run build --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
+    },
+    "test": {
+      "command": "npm run test --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
+    },
     "typecheck": {
-      "command": "npm run typecheck --workspace=@blockout/mobile"
+      "command": "npm run typecheck --workspace=@blockout/mobile",
+      "dependsOn": ["generate"]
     },
-    "lint": { "command": "npm run lint --workspace=@blockout/mobile" },
+    "lint": {
+      "command": "npm run lint --workspace=@blockout/mobile"
+    },
     "format-check": {
       "command": "npm run format:check --workspace=@blockout/mobile"
     },
-    "doctor": { "command": "npm run doctor --workspace=@blockout/mobile" },
+    "doctor": {
+      "command": "npm run doctor --workspace=@blockout/mobile"
+    },
     "verify": {
       "executor": "nx:run-commands",
       "options": {
@@ -32,7 +50,19 @@
           "npm run build --workspace=@blockout/mobile",
           "npm run doctor --workspace=@blockout/mobile"
         ]
-      }
+      },
+      "dependsOn": ["generate"]
+    },
+    "generate": {
+      "command": "npm run generate --workspace=@blockout/mobile",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ],
+      "outputs": ["{projectRoot}/.generated"]
     }
-  }
+  },
+  "implicitDependencies": ["http-contracts"]
 }

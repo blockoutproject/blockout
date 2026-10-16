@@ -6,14 +6,40 @@
   "targets": {
     "serve": {
       "command": "./mvnw -B -ntp -pl apps/collector spring-boot:run",
-      "continuous": true
+      "continuous": true,
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ]
     },
     "build": {
-      "command": "./mvnw -B -ntp -pl apps/collector package -DskipTests"
+      "command": "./mvnw -B -ntp -pl apps/collector package -DskipTests",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ]
     },
-    "test": { "command": "./mvnw -B -ntp -pl apps/collector verify" },
+    "test": {
+      "command": "./mvnw -B -ntp -pl apps/collector verify",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ]
+    },
     "typecheck": {
-      "command": "./mvnw -B -ntp -pl apps/collector test-compile"
+      "command": "./mvnw -B -ntp -pl apps/collector test-compile",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ]
     },
     "lint": {
       "command": "./mvnw -B -ntp -pl apps/collector checkstyle:check"
@@ -21,6 +47,25 @@
     "format-check": {
       "command": "./mvnw -B -ntp -pl apps/collector spotless:check"
     },
-    "verify": { "command": "./mvnw -B -ntp -pl apps/collector verify" }
-  }
+    "verify": {
+      "command": "./mvnw -B -ntp -pl apps/collector verify",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ]
+    },
+    "generate": {
+      "command": "./mvnw -B -ntp -pl apps/collector generate-sources",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ],
+      "outputs": ["{projectRoot}/target/generated-sources/openapi"]
+    }
+  },
+  "implicitDependencies": ["http-contracts"]
 }

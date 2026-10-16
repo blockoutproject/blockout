@@ -1,3 +1,13 @@
 spring:
   application:
     name: blockout-backend
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: never
+  liquibase:
+    enabled: false
+    change-log: classpath:db/changelog/db.changelog-master.xml

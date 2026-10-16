@@ -2,9 +2,9 @@
 
 **Date**: 2026-10-16 | **Request**: [#42](https://github.com/blockoutproject/blockout/issues/42) | **Plan**: [plan.md](plan.md)
 
-The decisions below preserve the accepted direction and explain the relevant alternatives. Evidence comes from official documentation, bounded upstream source inspection and the authorized read-only Auth0 account inspection. Documented support and observed source behavior do not establish integrated Blockout runtime compatibility. No production-stack compilation, provider change, deployment or restoration was performed.
+The decisions below preserve the accepted direction and explain the relevant alternatives. Evidence comes from official documentation, bounded upstream source inspection and the authorized read-only Auth0 account inspection. Documented support and observed source behavior do not establish integrated Blockout runtime compatibility. Executable contract qualification is owned by the [boundary suites](../../README.md#verification); provider, deployment and restoration evidence remains separate.
 
-[Quickstart](quickstart.md) defines future validation. A failed qualification blocks affected adoption rather than weakening an invariant. Rejected alternatives are not a roadmap; no load/capacity or monthly-availability programme is introduced.
+[Quickstart](quickstart.md) defines the required validation. A failed qualification blocks affected adoption rather than weakening an invariant. Rejected alternatives are not a roadmap; no load/capacity or monthly-availability programme is introduced.
 
 ## Backend, collector and workspace
 
@@ -77,6 +77,10 @@ The decisions below preserve the accepted direction and explain the relevant alt
 The [8.41.0 fetch implementation](https://raw.githubusercontent.com/orval-labs/orval/v8.41.0/packages/fetch/src/index.ts) passes the schema only for eligible generated response shapes. Primitive/void responses and NDJSON streams skip the generated parse/schema path; named schema objects and eligible arrays use it. Query clients reuse this fetch path. Therefore the accepted statement means consumed JSON business object responses with a generated schema; it must not claim blanket coverage for every possible OpenAPI shape. If a feature actually needs primitive JSON, streams, or complex unions, it must qualify an appropriate generated schema invocation before adoption, not silently bypass validation. No current F13 operation requires those shapes. Preserve explicit 204/non-JSON handling and safe error parsing in the small transport adapter. A missing schema on an expected business JSON response is a qualification failure, never a successful unchecked cast.
 
 The [7.26.0 Spring implementation](https://raw.githubusercontent.com/OpenAPITools/openapi-generator/v7.26.0/modules/openapi-generator/src/main/java/org/openapitools/codegen/languages/SpringCodegen.java) has explicit Boot 4/Jackson 3 branches; enabling Boot 4 disables Boot 3 generation. Its null-annotation path warns about defaults and does not universally reject optional non-null fields under defaults. Explicit supported configuration and actual boundary tests must establish absent/null/empty distinctions. This is not evidence for a custom template fork.
+
+The integrated generators require native dereferenced bundles and operation-level query parameter references to avoid Orval 8.41.0’s missing aliases/parameter schemas. Orval 8.43.0 reproduces these errors and is not adopted. The source HTTP semantics remain unchanged; [interface decisions](contracts/README.md#source-composition-and-generated-outputs) own the resulting configuration.
+
+OpenAPI Generator 7.26.0 also accepts missing required nullable fields and scalar coercion on default client decoding. The [Atlassian OpenAPI Request Validator Spring client interceptor](https://github.com/atlassian/openapi-request-validator/tree/master/openapi-request-validator-spring-web-client) supplies validation from the same canonical bundle. This adds a maintained runtime dependency (3.0.0) instead of a handwritten schema walker or patched generator templates; its report is suppressed at the transport boundary because it may contain received values. [Expo Fetch](https://docs.expo.dev/versions/v57.0.0/sdk/expo/#expofetch-api) supplies explicit redirect handling; the named import prevents an environment flag from selecting React Native’s XHR Fetch polyfill. Jest exercises the adapter; native redirect and networking behavior still requires device evidence.
 
 ## Native UI projection and system appearance
 

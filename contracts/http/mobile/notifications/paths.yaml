@@ -1,9 +1,9 @@
 Collection:
-  parameters:
-    - $ref: ./parameters.yaml#/NotificationAccount
-    - $ref: ./parameters.yaml#/NotificationCursor
-    - $ref: ../access/parameters.yaml#/MaintenanceBypass
   get:
+    parameters:
+      - $ref: ./parameters.yaml#/NotificationAccount
+      - $ref: ./parameters.yaml#/NotificationCursor
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     operationId: listNotifications
     tags: [Notifications]
     summary: List my notifications
