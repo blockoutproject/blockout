@@ -77,7 +77,7 @@ Current manual classification changes cannot be overwritten by the cycle's start
 
 [F02 FR-024](spec.md) and [research](research.md#score-sets-and-notifications) define collection-order precedence and its supplier-publication limit.
 
-The [data model](data-model.md#results-and-temporal-precision) defines result/set compatibility, independent freshness and unresolved dates. Apply these rules before accepting a match transition.
+The [data model](data-model.md#results-and-temporal-precision) defines result/set compatibility, independent freshness and unresolved dates. Apply these rules before accepting a match transition. Its [current provenance and standings state](data-model.md#retained-relational-concepts) also preserve supplied publication timestamps and qualified non-publication through the existing ingestion operations; F01 supplies those observations and F03 consumes the accepted distinction, without changing logical ordering or recalculating standings.
 
 Qualified match documents use the same per-match acceptance/order rules. The [F03 plan](../007-sporting-consultation/plan.md#maps-and-documents) introduces only the document-reference exception to professional acquisition and the public read boundary; no PDF bytes, competing sporting authority or additional collection process are retained.
 

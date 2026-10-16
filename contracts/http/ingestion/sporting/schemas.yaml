@@ -18,6 +18,13 @@ ObservationContextInternalRequest:
       type: string
       description: UTC completion time of this provider read; freshness only, never ordering authority.
       format: date-time
+    providerPublishedAt:
+      type: string
+      description: >-
+        Publication instant explicitly supplied by the provider for this observation, when known.
+        Omission means unknown for newly accepted facts; never infer it from observedAt or match time.
+        Attribution only, not ordering authority. Retained facts keep their own existing attribution.
+      format: date-time
   required:
     - cycleId
     - readOrdinal
@@ -516,20 +523,30 @@ StandingRowInternalRequest:
   required:
     - sourceName
     - statistics
+StandingsPublicationStateEnum:
+  type: string
+  description: Qualified source publication state; acquisition failure is not a publication state.
+  enum:
+    - published
+    - not-published
 StandingsObservationInternalRequest:
   type: object
-  description:
-    Atomic replacement of one usable official table. A failed/unreadable table is not submitted
-    as an empty success.
+  description: >-
+    Atomically accept a qualified publication state under the pool's observation order.
+    Published replaces the usable table, including a genuinely empty table. Not-published requires
+    positive absence evidence and empty columns/rows; it preserves any still-usable retained table
+    and its freshness. A failed/unreadable table is not submitted as either state.
   additionalProperties: false
   properties:
     context:
       $ref: "#/ObservationContextInternalRequest"
+    publicationState:
+      $ref: "#/StandingsPublicationStateEnum"
     columns:
       type: array
       description:
         Published statistic column labels, in display order; every statistics key must
-        belong here.
+        belong here. Must be empty when publicationState is not-published.
       items:
         type: string
         description: Source statistic column label.
@@ -537,11 +554,12 @@ StandingsObservationInternalRequest:
       uniqueItems: true
     rows:
       type: array
-      description: Source order retained without local rank calculation.
+      description: Source order retained without local rank calculation; must be empty when publicationState is not-published.
       items:
         $ref: "#/StandingRowInternalRequest"
   required:
     - context
+    - publicationState
     - columns
     - rows
 ClubDetailsInternalRequest:
