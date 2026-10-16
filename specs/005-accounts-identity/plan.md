@@ -90,6 +90,8 @@ The single save sends an atomic multipart `PATCH /accounts/{accountId}` with JSO
 
 Trim outer username whitespace and validate 3–32 ASCII letters/digits/`.`/`_`/`-`; PostgreSQL case-insensitive uniqueness handles races. A refused field rejects the whole save. Lock the current account row while applying changes: the last accepted change to a supplied field wins, and omitted concurrent fields survive. No revision-token conflict journey is added. After an uncertain response, reread the original account before explicit retry; a credential renewal does not replay the write.
 
+Account screens, the guest invitation and account-erasure composition consume [F13 tokens/theme and shared controls](../003-shared-quality/plan.md#native-ui-and-approved-design) before their UI integration. F05 owns those patterns, copy and session behavior; the erasure sheet composes the shared sheet instead of implementing another shell. Profile editing additionally waits for the shared image field. Native/provider design exclusions remain under [design evidence](spec.md#design-evidence).
+
 ## Mobile session and shared consumers
 
 Use native Auth0 credential management and renewal. On first V2 use, finish the [F14 local initialization](../014-v1-v2-transition/plan.md#installation-initialization) before mounting Auth0Provider; subsequent launches use ordinary restoration. On sign-out, invoke normal browser-session closure without global federated logout, and independently clear local credentials even if that call fails or is cancelled. Rotate an in-memory session UUID on every account lifecycle boundary, cancel/clear private queries and discard callbacks from the previous UUID, including A → guest → A. A failed cancellation alone is not sufficient protection.
