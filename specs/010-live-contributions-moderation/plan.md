@@ -66,7 +66,7 @@ contracts/http/mobile/contributions/
 └── schemas.yaml
 ```
 
-Use existing feature boundaries inside the F13 applications. F08 adds no deployable or collector operation. Canonical source locations exist; application modules and tasks do not yet exist.
+Use existing feature boundaries inside the F13 applications. F08 adds no deployable or collector operation. Canonical source locations exist; application modules do not yet exist.
 
 ## Backend behavior and ownership
 

@@ -170,10 +170,11 @@ StandingsObservations:
     operationId: observePoolStandings
     tags:
       - Sporting
-    summary: Replace a usable official table
+    summary: Accept official standings publication state
     description:
-      Replace the table atomically, preserving source order and unmatched rows. Never create
-      sporting identities from standings.
+      Accept a qualified published table or absence of publication atomically. Preserve source
+      order and unmatched rows; qualified absence retains any still-usable prior table and its
+      freshness. Acquisition failure changes neither. Never create sporting identities from standings.
     responses:
       "415":
         $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
@@ -398,6 +399,14 @@ TeamLogoObservations:
         schema:
           type: string
           description: Freshness only.
+          format: date-time
+      - name: providerPublishedAt
+        in: query
+        required: false
+        description: Provider-supplied publication instant for these image bytes; omitted when unknown, never inferred from cache reuse or observation time.
+        schema:
+          type: string
+          description: Attribution only, not ordering authority.
           format: date-time
     requestBody:
       required: true
