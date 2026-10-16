@@ -83,6 +83,8 @@ Consume `CustomerInfo.entitlements.active["Blockout Pro"]` and the SDK's known s
 
 The [data model](data-model.md) separates current entitlement from operation outcome. Active rights suppress Blockout ads and enable existing subtle Pro chrome. SDK-inactive state permits F11 to decide advertising. No usable current-account state suppresses ads and purchase invitations, with retry/support in the Pro context. Never infer inactivity from a failed network request.
 
+Expose current eligible/ineligible presentation to [F13 shared UI](../003-shared-quality/plan.md#tokens-and-appearance) without a second entitlement cache. Subtle Pro accents apply only to the current active account; guest, inactive, unknown and old-session states supply none. System appearance and sporting context remain independent. Extend the existing session/entitlement tests and native qualification to verify accent removal and both appearances; provider-owned Paywall/Customer Center remain under the presentation boundaries below.
+
 Use native callbacks/errors for cancellation, payment pending, definite failure and completed purchase/restoration. Confirmation requires an active entitlement for the current account. A successful restore without it is not Pro activation. An uncertain or paid-but-unverified outcome offers verification, restoration where appropriate and support, without blindly repeating payment. These presentation states are transient; after restart, re-establish native SDK/store state rather than maintain a second transaction journal. Native SDK/store recovery remains provider-owned.
 
 ## Entry, offers and assistance

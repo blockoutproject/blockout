@@ -93,17 +93,19 @@ As an operator, I want actually restorable backups, with an explicit recovered s
 
 ### User Story 6 — Use the application with the phone’s capabilities (Priority: P2)
 
-As an iOS or Android user, I want French content, accessible actions and understandable waiting or error states.
+As an iOS or Android user, I want the approved Blockout interface in my phone’s light or dark appearance, with French content, accessible actions and understandable waiting or error states.
 
 **Why this priority**: A quick response is not useful if it is unreadable, inaccessible or misleading on failure.
 
-**Independent Test**: Browse representative screens on both platforms with screen reading, text enlargement, reduced motion and connection loss.
+**Independent Test**: Compare representative screens and states with their approved Figma references on both platforms; change the phone’s appearance during use and exercise screen reading, text enlargement, reduced motion and connection loss.
 
 **Acceptance Scenarios**:
 
 1. **A19** — **Given** a supported iOS or Android phone, **when** the user browses the application, **then** Blockout-owned content and errors are in French, without changing source names or sporting identifiers. Dates and times retain F02/F03 meaning. (FR-029)
 2. **A20** — **Given** screen reading, enlarged text or reduced motion enabled, **when** the user follows representative journeys, **then** actions have an understandable name, role and state; essential information remains readable and errors identifiable without depending on color or animation alone. Image selection, replacement and removal use the same control in profile, sporting and support forms while preserving their distinct rules. (FR-030, FR-033)
 3. **A21** — **Given** lost connectivity or failed loading, **when** the user views data or submits an action, **then** they can leave the waiting state and distinguish retained data, absent data, error and an uncertain outcome. A retry respects current rights and does not repeat indefinitely. No new offline editing capability is implicit. (FR-008, FR-016, FR-019, FR-031)
+4. **A23** — **Given** an approved Figma component or screen and its corresponding content, state, theme and reference width, **when** the native interface is compared with that source, **then** its dimensions, spacing, Outfit typography, colors, variants and useful composition relationships follow the approved design, with equivalent actions and states. Any necessary native adaptation is explained and qualified; a material design change follows the existing approval process, and accessibility is not silently weakened. (FR-030, FR-034)
+5. **A24** — **Given** a phone in light or dark appearance, **when** Blockout starts or the system appearance changes while a screen or sheet is open, including on return from background, **then** all Blockout-owned surfaces follow the current system appearance without restarting or losing the current input/navigation state. No theme selector or saved appearance preference exists; sporting identity and current Pro eligibility remain independent. (FR-035; F02/F09)
 
 ### User Story 7 — Preserve logo associations during transition (Priority: P1)
 
@@ -178,6 +180,8 @@ As an operator who has associated club logos, I want the authorized reset not to
 - **FR-031**: Journeys MUST retain consistent loading, absence, retained-data, error, refusal, action-in-progress and retry states with usable navigation. Retained information remains subject to current rights. Disconnection MUST NOT become an empty list or successful modification. Ordinary mobile business reads and writes MUST NOT retry automatically or replay on reconnection; recovery is explicit. Owner-approved navigation/foreground refreshes and standard identity-token renewal remain distinct and do not authorize replay of an uncertain mutation. This mobile-request rule does not disable required F01/F07 backend processing retries or F09 provider-owned entitlement/cache behavior. No complete offline mode, offline action queue or continuous result stream is required; F03–F10 own their specific journeys.
 - **FR-032**: Protection and restoration checks MUST account for club-logo associations and files whose continuity F02 requires. F14 MUST have evidence of their independent retention before any reset, explicitly distinguishing reapplied associations, associations awaiting a match and missing files. F02 identity rules prohibit automatic matching solely by name. FR-022 scheduled protection MUST NOT authorize deliberate loss of associations during this prepared transition. A reported missing file MUST NOT count as evidence of retention or authorization to reset. The approved manual recovery scope is limited to club logos; this specification executes neither exports, associations nor resets.
 - **FR-033**: In-app image selection, preview, replacement and removal MUST use one shared control across profile photos, sporting logos and support attachments. Labels, single/multiple selection, validation rules and removal versus automatic-logo restoration remain owned by the relevant feature. Reuse does not introduce file upload for URL-only media.
+- **FR-034**: Blockout-owned interfaces MUST faithfully reproduce the approved [UI Library](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/Blockout-UI-Library) foundations, components and variants, and [Product Design](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design) patterns and screen compositions. Their defined dimensions, spacing, Outfit typography, colors, interactive states and behaviors are authoritative, within the existing scoped approvals and provider-owned interface exclusions. Do not substitute arbitrary visual values. Necessary native adaptations MUST identify the source, constraint and verified outcome; material design changes retain the existing approval gate, and FR-030 remains required.
+- **FR-035**: Both approved light and dark themes MUST follow the phone’s system appearance at launch and during use, including foreground return and already open screens/sheets. A change MUST preserve current input and navigation. Add no theme selector or persisted user preference. Appearance remains independent of reduced motion, platform, F02 sporting context and F09 Pro eligibility; changing it grants no rights or previous-account Pro accent.
 
 ### Key Entities
 
@@ -199,6 +203,7 @@ As an operator who has associated club logos, I want the authorized reset not to
 - **SC-006**: A14–A18 verify the declared 30-minute data-and-image backup schedule, independent 30-day retention and one initial isolated manual restoration. There is no backup notification, dashboard, automatic verification or recurring drill requirement; failures and stopped schedules may go unnoticed. Report actual recovered scope, gaps and duration without a zero-loss guarantee. Every actual restore checks current rights, erasure, notification expiry and privacy before affected access resumes. These runtime qualifications are NOT EXECUTED.
 - **SC-007**: A19–A21 cover both platforms and declared accessibility modes, with zero essential actions inaccessible due to a missing label, truncated text or information conveyed solely by color/animation; offline states remain distinct from business outcomes.
 - **SC-008**: In A22, each logo association in the recovery scope has an explicit outcome and a retained file or reported absence; zero ambiguous associations are applied and zero unresolved associations are silently discarded. F14 requires verified retention before any reset.
+- **SC-009**: A23/A24 pass on both qualified native platforms: each compared state uses its exact approved Figma reference, with no unexplained visual discrepancy or unapproved material adaptation, and system appearance changes update all Blockout-owned surfaces while preserving current input/navigation. Actual devices, conditions and justified native limits are recorded; documentary or JavaScript checks alone do not establish this result.
 
 ## Assumptions
 
@@ -225,14 +230,14 @@ As an operator who has associated club logos, I want the authorized reset not to
 
 ### Inventory coverage
 
-| Assigned coverage                                            | Requirements                          | Scenarios        | Authority                                    |
-| ------------------------------------------------------------ | ------------------------------------- | ---------------- | -------------------------------------------- |
-| current authorised views and honest freshness                | FR-004–FR-005, FR-008                 | A02–A03, A21     | E01, E02, E05, E07                           |
-| operational visibility and recovery                          | FR-009–FR-014, FR-019–FR-021          | A05–A07, A10–A13 | E01–E04, E07                                 |
-| shared access and recovery guarantees                        | FR-015–FR-019, FR-027                 | A08–A10, A17     | E02; F05/F09/F11 retain their business rules |
-| protection and restoration                                   | FR-022–FR-028                         | A14–A18          | E01, E04, E06                                |
-| Shared quality: platforms, accessibility and degraded states | FR-008, FR-016, FR-029–FR-031, FR-033 | A19–A21          | E05; mobile foundation and scope decisions   |
-| Club-logo continuity: commitment handed to F14               | FR-024, FR-032                        | A22              | E01, E06; F02 FR-002, FR-043, FR-046         |
+| Assigned coverage                                                            | Requirements                                 | Scenarios        | Authority                                                                                               |
+| ---------------------------------------------------------------------------- | -------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------- |
+| current authorised views and honest freshness                                | FR-004–FR-005, FR-008                        | A02–A03, A21     | E01, E02, E05, E07                                                                                      |
+| operational visibility and recovery                                          | FR-009–FR-014, FR-019–FR-021                 | A05–A07, A10–A13 | E01–E04, E07                                                                                            |
+| shared access and recovery guarantees                                        | FR-015–FR-019, FR-027                        | A08–A10, A17     | E02; F05/F09/F11 retain their business rules                                                            |
+| protection and restoration                                                   | FR-022–FR-028                                | A14–A18          | E01, E04, E06                                                                                           |
+| Shared quality: native design, appearance, accessibility and degraded states | FR-008, FR-016, FR-029–FR-031, FR-033–FR-035 | A19–A21, A23–A24 | E05; mobile foundation; [UI clarification #101](https://github.com/blockoutproject/blockout/issues/101) |
+| Club-logo continuity: commitment handed to F14                               | FR-024, FR-032                               | A22              | E01, E06; F02 FR-002, FR-043, FR-046                                                                    |
 
 ## Cross-feature dependencies
 
