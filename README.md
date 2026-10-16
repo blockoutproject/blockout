@@ -2,7 +2,7 @@
 
 Blockout is a French mobile application for following volleyball teams, calendars and results, with community live links and an optional ad-free Pro offer.
 
-Blockout is a complete V2 rebuild of backend, ingestion and the iOS/Android application, including mobile internals. This repository contains accepted functional specifications, design references and governance. The [F13 technical plan](specs/003-shared-quality/plan.md) records the shared stack, boundaries, contract generation, delivery and operations decisions. Domain contracts and dependent technical plans remain with their owners; no production runtime or application dependencies are initialized.
+Blockout is a complete V2 rebuild of backend, ingestion and the iOS/Android application, including mobile internals. This repository contains accepted functional specifications, design references, governance and the initial executable workspace. The [F13 technical plan](specs/003-shared-quality/plan.md) records the shared stack, boundaries, contract generation, delivery and operations decisions. Backend, collector and mobile launchers are initialized; domain behavior and contract generation remain with the next owning lots.
 
 Start with the [constitution](.specify/memory/constitution.md), [agent guidance](AGENTS.md) and [design inputs](AGENTS.md#design-inputs). [GitHub issues](https://github.com/blockoutproject/blockout/issues) own planning requests, dependencies and acceptance. The official Spec Kit planning step decides the stack, architecture and shared contract/codegen approach within the relevant feature scope; dependent plans reference the agreed decisions.
 
@@ -35,15 +35,80 @@ Accepted product/design decisions and V1/V2 continuity remain applicable. Withdr
 
 ## Verification
 
-Documentation checks use the pinned formatter without installing application dependencies:
+Use Node 24, npm 12, Temurin Java 25 and Docker Compose v2. The committed Maven wrapper downloads and verifies Maven 3.9.16; no global Maven is needed. Install the npm lockfile, then run the same verification as CI:
 
 ```sh
-npx --yes prettier@3.9.6 --check README.md AGENTS.md "specs/**/*.md" ".github/**/*.{md,yml}" .prettierrc.json
-npx --yes prettier@3.9.6 --check "contracts/**/*.yaml"
-npx --yes @redocly/cli@2.62.1 lint contracts/http/ingestion/openapi.yaml contracts/http/mobile/openapi.yaml contracts/http/legacy-mobile/openapi.yaml --extends minimal
+npm ci --no-audit --no-fund
+npm run verify
 git diff --check
 ```
 
-Validate local links, anchors and source ownership against the final tree. [Documentation CI](.github/workflows/ci.yml) establishes no runtime, provider or visual qualification. Personal skills are copied from their authoritative bank; official Spec Kit imports remain unchanged except for authorized constitution amendments through the official procedure. Publication follows [the Git delivery policy](AGENTS.md#git-delivery).
+`verify` checks formatting, all three OpenAPI roots and the three applications through ordinary Nx npm/Maven targets. Java runs Checkstyle, Spotless, compilation, startup tests and packaging. Surefire discovers `*Test` (including `*UnitTest`, `*WebMvcTest`, `*JpaTest` and `*SmokeTest`); Failsafe alone discovers `*IntegrationTest` during `verify`. Testcontainers JUnit/PostgreSQL support uses the Spring Boot BOM. Database-bound suites use PostgreSQL 18.6 when introduced; setup has no application schema or database test yet.
+
+Mobile verification runs Prettier, ESLint, TypeScript, Jest Expo, native-platform JavaScript exports and Expo Doctor. Jest discovers co-located `__tests__/*.test.ts(x)` suites. The empty launch route has no behavior suite yet, so Jest explicitly permits no tests; this is not mobile behavior evidence. React Native Testing Library is available for meaningful feature tests. Exports prove bundling, not an installed native build.
+
+Useful focused commands:
+
+```sh
+npm run format:check
+npm run lint:contracts
+npx nx show projects
+npx nx show project mobile --json
+npx nx run backend:test
+npx nx run collector:test
+npx nx run mobile:verify
+./mvnw -B -ntp verify
+./mvnw -B -ntp spotless:apply
+```
+
+Validate local links, anchors and source ownership against the final tree. [CI](.github/workflows/ci.yml) retains the `verify` gate and develop-only promotion to main; it starts no deployment or EAS build. These checks establish no provider, device, visual or production qualification. Personal skills are copied from their authoritative bank; official Spec Kit imports remain unchanged except for authorized constitution amendments through the official procedure. Publication follows [the Git delivery policy](AGENTS.md#git-delivery).
+
+## Local development
+
+Compose runs only local PostgreSQL 18.6 infrastructure, bound to loopback on port 5432. Applications run on the host. Start the database explicitly:
+
+```sh
+docker compose config --quiet
+docker compose up -d --wait
+```
+
+If port 5432 is occupied, set `POSTGRES_PORT=55432` for the Compose command and use that port in the backend's local JDBC URL.
+
+The named volume retains local data. [Initialization SQL](infra/postgres/init-roles.sql) runs only on an empty volume: `blockout_migration` owns the database/schema, and `blockout_app` has data access without schema creation rights. Compose's fixed passwords are disposable local examples; never reuse them for hosted environments. Configuration edits do not update existing roles. No command here resets volumes. Explicit Liquibase execution, schema validation and application connections belong to F13 T015/T016.
+
+Each application owns a safe `.env.example`. Copy it to `.env.local` when local values are needed. Spring does not read dotenv files: export the chosen application's file in its launching shell. From the repository root, in separate terminals:
+
+```sh
+cp apps/backend/.env.example apps/backend/.env.local
+set -a
+. apps/backend/.env.local
+set +a
+npx nx run backend:serve
+```
+
+```sh
+cp apps/collector/.env.example apps/collector/.env.local
+set -a
+. apps/collector/.env.local
+set +a
+npx nx run collector:serve
+```
+
+Backend starts on port 8080 with no business endpoints. Collector starts a non-web process and remains alive until stopped; it performs no source acquisition yet and has no database credentials. Database and ingestion settings in the examples are reserved for the next foundation lot.
+
+Expo automatically reads `apps/mobile/.env.local`. Use a separate JDK 21 for Android Gradle/CMake in the mobile terminal; keep Temurin 25 for Maven. Build and launch with the Android SDK/emulator or Xcode 26.4+/iOS simulator:
+
+```sh
+cp apps/mobile/.env.example apps/mobile/.env.local
+npx nx run mobile:android
+# Or, on a Mac with Xcode:
+npx nx run mobile:ios
+# Start Metro for an already installed development build:
+npx nx run mobile:serve
+```
+
+Native projects are generated and ignored. After changing native dependencies or configuration, regenerate them with `npm exec --workspace=@blockout/mobile -- expo prebuild --clean` before launching. The `expo-build-properties` plugin enables the [UIKit scene lifecycle required by Xcode 27](https://docs.expo.dev/versions/v57.0.0/sdk/build-properties/#pluginconfigtypeios) while retaining Expo SDK 57.
+
+`Blockout Local` uses development-only `com.blockout.local` identifiers and a blank route. F14 owns retained store identities and production candidates. There is no web target or mock identity provider. Android emulators reach a host API through `10.0.2.2`; physical phones need the host's LAN address. `EXPO_PUBLIC_*` values are public bundle configuration, never secrets.
 
 The [F02 plan](specs/002-sporting-data/plan.md) introduces the [HTTP contract roots](specs/002-sporting-data/contracts/README.md) under the shared F13 conventions. The [F05 plan](specs/005-accounts-identity/plan.md) extends the mobile root with account lifecycle operations. The [F12 plan](specs/013-administration-app-configuration/plan.md) adds application-access settings and current account permissions. The [F01 plan](specs/001-source-acquisition/plan.md) extends both roots with source qualification, collection controls and current collector admission. The [F03 plan](specs/007-sporting-consultation/plan.md) adds public sporting reads, complete-day calendars and qualified document/image delivery. The [F04 plan](specs/008-search-discovery/plan.md) adds public discovery collections and current search choices. The [F14 plan](specs/014-v1-v2-transition/plan.md) adds the [legacy status root](contracts/http/legacy-mobile/openapi.yaml), preserving only the installed V1 update read. Redocly's minimal ruleset checks source structure and references without inferring a product license. Runtime generation, compilation and consumer behavior remain future qualifications.

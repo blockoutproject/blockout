@@ -1,0 +1,34 @@
+{
+  "name": "blockout",
+  "private": true,
+  "version": "0.0.0",
+  "engines": {
+    "node": "24.x",
+    "npm": "12.x"
+  },
+  "packageManager": "npm@12.0.1",
+  "workspaces": [
+    "apps/mobile"
+  ],
+  "scripts": {
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
+    "lint:contracts": "redocly lint contracts/http/ingestion/openapi.yaml contracts/http/mobile/openapi.yaml contracts/http/legacy-mobile/openapi.yaml --extends minimal",
+    "lint": "nx run-many -t lint",
+    "typecheck": "nx run-many -t typecheck",
+    "test": "nx run-many -t test",
+    "build": "nx run-many -t build",
+    "verify": "npm run format:check && npm run lint:contracts && nx run-many -t verify --output-style=static"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native-reanimated": "4.5.1",
+    "react-native-worklets": "0.10.1"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.62.1",
+    "nx": "23.3.0",
+    "prettier": "3.9.6"
+  }
+}

@@ -13,7 +13,7 @@ jobs:
   verify:
     name: verify
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Require develop as the main promotion source
         if: github.event_name == 'pull_request' && github.base_ref == 'main' && (github.head_ref != 'develop' || github.event.pull_request.head.repo.full_name != github.repository)
@@ -28,11 +28,26 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
+          cache: npm
 
-      - name: Check documentation formatting
-        run: npx --yes prettier@3.9.6 --check README.md AGENTS.md "specs/**/*.md" ".github/**/*.{md,yml}" .prettierrc.json
+      - name: Use the workspace npm version
+        run: npm install --global npm@12.0.1
 
-      - name: Check contract formatting and structure
-        run: |
-          npx --yes prettier@3.9.6 --check "contracts/**/*.yaml"
-          npx --yes @redocly/cli@2.62.1 lint contracts/http/ingestion/openapi.yaml contracts/http/mobile/openapi.yaml contracts/http/legacy-mobile/openapi.yaml --extends minimal
+      - name: Use Temurin Java 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Install locked workspace dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify documentation, contracts and executable applications
+        env:
+          CI: "true"
+          NX_DAEMON: "false"
+        run: npm run verify
+
+      - name: Check diff hygiene
+        run: git diff --check

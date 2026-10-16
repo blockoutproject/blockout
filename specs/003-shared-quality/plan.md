@@ -8,7 +8,7 @@
 
 Provide a small shared foundation for the V2 mobile app, ingestion and backend: one modular backend owns business writes, a separately deployed collector uses its HTTPS ingestion surface, and a native Expo app consumes its mobile surface. PostgreSQL holds authoritative relational data and accepted images together. Standard identity, contract generation, manual delivery, diagnostics and backup mechanisms preserve domain integrity without a generic recovery platform.
 
-This plan defines the common technical foundation. F05/F12 own the reconciled identity and access behavior and its design approvals. Runtime implementation and qualification remain future work.
+This plan defines the common technical foundation. F05/F12 own the reconciled identity and access behavior and its design approvals. The initial executable workspace provides application launchers and development checks; domain implementation and integrated qualification remain future work.
 
 ## Technical Context
 
@@ -28,7 +28,7 @@ This plan defines the common technical foundation. F05/F12 own the reconciled id
 
 **Constraints**: One backend business writer; no provider call held inside a SQL transaction; current authorization before effects; no automatic ordinary mobile business retries/reconnection replay; single Auth0 tenant with explicit shared-directory limits; manual release; initial mutable Liquibase baseline then data-preserving migrations; 30-minute backups/30-day retention with no backup alerts or recurring verification.
 
-**Scale/Scope**: F13 common foundation and explicit F01/F05/F10/F11/F12/F14 reconciliation. Feature boundaries are semantic responsibilities, not separate services. No production source tree currently exists; the paths below are planned, not initialized.
+**Scale/Scope**: F13 common foundation and explicit F01/F05/F10/F11/F12/F14 reconciliation. Feature boundaries are semantic responsibilities, not separate services. Setup initializes only the launchers, build/test configuration and local PostgreSQL; the remaining source structure below is planned.
 
 ## Constitution Check
 
@@ -79,7 +79,7 @@ contracts/http/
 └── common/                   # Referenced identical technical primitives
 ```
 
-**Structure Decision**: Maven owns Java modules and builds; npm workspaces own JavaScript packages; Nx invokes ordinary Maven/npm commands. No Nx Expo/Maven plugin or Nx Cloud. Introduce no empty shared package merely for hypothetical reuse. Generated code/bundles go into ignored build outputs; authored contracts/configuration remain tracked. The future root package/Maven/Nx files are not scaffolded by this planning task.
+**Structure Decision**: Maven owns Java modules and builds; npm workspaces own JavaScript packages; Nx invokes ordinary Maven/npm commands. No Nx Expo/Maven plugin or Nx Cloud. Introduce no empty shared package merely for hypothetical reuse. Generated code/bundles go into ignored build outputs; authored contracts/configuration remain tracked. Root package/Maven/Nx files are initialized by the implementation setup tasks.
 
 ## Ownership and reconciled dependencies
 

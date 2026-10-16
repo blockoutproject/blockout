@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: blockout-collector
+  main:
+    web-application-type: none
+    keep-alive: true
