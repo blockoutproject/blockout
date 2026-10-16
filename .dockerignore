@@ -1,0 +1,12 @@
+.git
+.agents
+.specify
+**/node_modules
+**/target
+**/dist
+**/build
+**/.expo
+**/.generated
+**/.env*
+**/coverage
+**/*.log

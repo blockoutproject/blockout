@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-These scenarios validate the future implementation. The production workspace and run commands do not exist yet; use the actual Maven/npm/Nx targets when the authorized implementation provides them. Documentary checks are listed in the [README](../../README.md#verification).
+The initial executable workspace and its Maven/npm/Nx commands are documented in the [README](../../README.md#verification). Setup provides application launchers, local PostgreSQL and development checks. The integrated scenarios below still require their owning implementation and actual qualification; startup and JavaScript exports alone do not satisfy them.
 
 Use the selected dependency versions, isolated test data and the required test environments/devices. Record resolved versions, image digests, build IDs and actual results in the relevant test or delivery tools. [Research](research.md) identifies documented capabilities and remaining qualification limits; the owning [F05](../005-accounts-identity/spec.md) and [F12](../013-administration-app-configuration/spec.md) specifications reference the approved experience.
 

@@ -11,7 +11,7 @@
 
 ## Repository context
 
-- V2 rebuilds backend, ingestion and mobile internals. Historical V1 technology is not a default; preserve accepted behavior and continuity obligations. No production stack or runtime is initialized.
+- V2 rebuilds backend, ingestion and mobile internals. Historical V1 technology is not a default; preserve accepted behavior and continuity obligations. The initial executable workspace contains backend, collector and native mobile launchers; owning feature lots implement business behavior.
 - This repository has independent history. Historical references retain their `blockout-legacy` identity; they authorize no inspection of other repositories or production/provider changes.
 - F10 requires a private support destination. Never put private diagnostics or attachments in this public repository.
 
@@ -48,6 +48,6 @@ On `develop` and `main`, administrator enforcement is enabled (`isAdminEnforced:
 
 ## Verification
 
-This foundation has no application runtime. Use the [README verification commands](README.md#verification) and committed [documentation CI](.github/workflows/ci.yml). Check structure, links, formatting and the intended behavior of changed guidance; do not invent application scripts or run unrelated runtimes.
+Use the actual [README verification commands](README.md#verification), Nx npm/Maven targets and committed [CI](.github/workflows/ci.yml). Check structure, links and formatting for guidance changes, and execute the affected application checks for source/configuration changes. Applications run on the host; local Compose owns PostgreSQL infrastructure. Keep generated outputs ignored and use native development builds for mobile runtime evidence.
 
-Validate affected boundaries proportionately and report passed, failed and unavailable evidence. Documentation checks do not establish design, native or provider approval. Preserve official Spec Kit imports; constitution changes use `speckit-constitution`, and personal skills are copied from their reviewed bank.
+Validate affected boundaries proportionately and report passed, failed and unavailable evidence. Documentation checks, application startup and mobile JavaScript exports do not establish design, native or provider approval. Preserve official Spec Kit imports; constitution changes use `speckit-constitution`, and personal skills are copied from their reviewed bank.

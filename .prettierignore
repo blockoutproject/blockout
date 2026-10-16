@@ -1,3 +1,19 @@
 # Preserve copied skills and official Spec Kit integration byte-for-byte.
 .agents/
 .specify/
+.git/
+.nx/
+node_modules/
+package-lock.json
+target/
+dist/
+build/
+coverage/
+.expo/
+.generated/
+apps/mobile/android/
+apps/mobile/ios/
+mvnw
+mvnw.cmd
+*.java
+*.xml

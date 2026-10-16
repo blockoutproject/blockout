@@ -2,6 +2,7 @@
 node_modules/
 .nx/
 dist/
+build/
 target/
 coverage/
 .expo/
@@ -12,6 +13,13 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 **/generated/
+.generated/
+apps/mobile/android/
+apps/mobile/ios/
+*.class
+*.tsbuildinfo
+apps/mobile/expo-env.d.ts
+*.log
 
 # Local environment and signing material
 .env

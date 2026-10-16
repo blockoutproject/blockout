@@ -1,0 +1,26 @@
+{
+  "name": "collector",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/collector/src",
+  "targets": {
+    "serve": {
+      "command": "./mvnw -B -ntp -pl apps/collector spring-boot:run",
+      "continuous": true
+    },
+    "build": {
+      "command": "./mvnw -B -ntp -pl apps/collector -am package -DskipTests"
+    },
+    "test": { "command": "./mvnw -B -ntp -pl apps/collector -am verify" },
+    "typecheck": {
+      "command": "./mvnw -B -ntp -pl apps/collector -am test-compile"
+    },
+    "lint": {
+      "command": "./mvnw -B -ntp -pl apps/collector -am checkstyle:check"
+    },
+    "format-check": {
+      "command": "./mvnw -B -ntp -pl apps/collector -am spotless:check"
+    },
+    "verify": { "command": "./mvnw -B -ntp -pl apps/collector -am verify" }
+  }
+}
