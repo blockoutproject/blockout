@@ -80,17 +80,20 @@ alone does not establish runtime compatibility.
 
 ### V. Proportionate Simplicity
 
-Choose the simplest solution that satisfies accepted intent. Material decisions
+Choose the simplest solution that satisfies accepted intent. Prefer supported
+library and platform mechanisms and ordinary configuration. Material decisions
 MUST state their rationale, relevant alternatives and verification in the owning
-native artifacts. Specialized recovery, automation and shared abstractions require
-a concrete current need. If simpler behavior changes an accepted requirement, make
-that product decision explicit before implementation; do not hide it in a plan.
+native artifacts. Custom mechanisms, including specialized recovery, automation
+and shared abstractions, require a concrete unmet need. If simpler behavior changes
+an accepted requirement, make that product decision explicit before implementation;
+do not hide it in a plan.
 
 Do not invent availability commitments, load/capacity programmes, performance
 benchmarks, automatic recovery or speculative roadmap items. Preserve actual
 domain timing, security, data integrity and continuity requirements. Verify the
 changed behavior proportionately; ordinary manual operations are acceptable where
-they meet the agreed need.
+they meet the agreed need. Task decomposition and implementation MUST preserve
+accepted failure and manual-recovery limits unless an explicit decision changes them.
 
 ## Project Constraints
 
@@ -134,4 +137,4 @@ ratification date. Use MAJOR for incompatible principle changes, MINOR for new o
 materially expanded principles, and PATCH for clarifications. Apply the official
 constitution checks and record any justified exception in the owning plan.
 
-**Version**: 9.0.1 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-10-12
+**Version**: 9.0.2 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-10-16
