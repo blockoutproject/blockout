@@ -56,7 +56,7 @@ jobs:
         run: |
           generated=(contracts/http/.generated apps/mobile/.generated apps/backend/target/generated-sources/openapi apps/collector/target/generated-sources/openapi)
           hash_generated() {
-            rg --files --hidden --no-ignore "${generated[@]}" | LC_ALL=C sort | xargs sha256sum
+            git ls-files --others --ignored --exclude-standard -- "${generated[@]}" | LC_ALL=C sort | xargs sha256sum
           }
           git check-ignore "${generated[@]}"
           hash_generated > "$RUNNER_TEMP/generated-before.sha256"
