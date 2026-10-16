@@ -1,6 +1,6 @@
 ---
 name: proportionate-design
-description: "Evaluate product behavior and technical choices during requirement clarification, planning, or implementation when custom mechanisms or tool limitations materially affect complexity. Propose simpler alternatives with explicit tradeoffs and scoped evidence."
+description: "Evaluate product behavior and technical choices during requirement clarification, planning, task decomposition, or implementation when custom mechanisms or tool limitations materially affect complexity. Propose simpler alternatives with explicit tradeoffs and scoped evidence."
 ---
 
 # Proportionate design
@@ -41,4 +41,4 @@ For structural friction, explain the evidence, affected requirement or decision,
 
 Give the user a recommendation with its practical benefit, cost, limitation and evidence. A small decision may need one sentence; a consequential alternative may need a short comparison. Avoid mandatory scoring systems, fixed numbers of options, repeated approval gates or a separate simplicity report for every task.
 
-Record accepted decisions in their owning specification, plan or existing tracker, using the project's applicable procedures. Keep those sources consistent and revalidate affected design when observable behavior changes. Do not duplicate official planning workflows, create a parallel roadmap or claim that a coherent plan has already been qualified in the runtime.
+Record accepted decisions in their owning specification, plan or existing tracker, using the project's applicable procedures. Keep those sources consistent and revalidate affected design when observable behavior changes. When decomposing an accepted plan into tasks, preserve its selected mechanisms and accepted failure/manual-recovery limits. Follow the project’s official procedure and artifact format; this skill adds no task workflow or approval gate. Do not create a parallel roadmap or claim that a coherent plan has already been qualified in the runtime.

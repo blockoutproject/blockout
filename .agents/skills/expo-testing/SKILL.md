@@ -7,8 +7,8 @@ description: "Test Expo and React Native behavior with jest-expo and React Nativ
 
 Read this before adding or changing Expo mobile tests, test selectors, mocks, or component behavior protected by Jest.
 
-Tests belong to the feature delivery. Test-first development is optional; a regression fix starts with a failing
-reproduction whenever practical. Use visible `// Given`, `// When` and `// Then` comments and blank lines between phases.
+Tests belong to the feature delivery. Follow the project’s required test order and workflow. A regression fix starts
+with a failing reproduction whenever practical. Use visible `// Given`, `// When` and `// Then` comments and blank lines between phases.
 
 ## Test Stack And Responsibilities
 

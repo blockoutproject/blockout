@@ -5,7 +5,7 @@ description: "Write readable pytest tests for new typed Python applications: use
 
 # Python testing
 
-These conventions target new Python applications. Use uv, Ruff, pytest and mypy strict on handwritten production code and tests from the start, with project-owned versions and check targets. Applying this skill to an existing repository does not authorize a general migration; its instructions and the authorized task scope remain applicable. Tests protect observable behavior and important boundaries; no universal coverage target or mandatory TDD ceremony. A regression starts with a failing reproduction when practical; a refactor characterizes the changed seam.
+These conventions target new Python applications. Use uv, Ruff, pytest and mypy strict on handwritten production code and tests from the start, with project-owned versions and check targets. Applying this skill to an existing repository does not authorize a general migration; its instructions and the authorized task scope remain applicable. Tests protect observable behavior and important boundaries; no universal coverage target. Follow the project’s required test order and workflow. A regression starts with a failing reproduction when practical; a refactor characterizes the changed seam.
 
 ## Location and readable shape
 

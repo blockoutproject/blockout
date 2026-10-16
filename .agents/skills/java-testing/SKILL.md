@@ -13,8 +13,8 @@ Protect supported behavior, service boundaries, generated-contract integration, 
 freezing incidental implementation details. Prefer small readable tests; every test must fail for a meaningful
 regression. Do not test a surface only because it exists in generated code, deleted legacy code, or architecture prose.
 
-Tests are part of the same delivery as the behavior they protect. Test-first development is optional; a regression
-fix starts with a failing reproduction whenever practical.
+Tests are part of the same delivery as the behavior they protect. Follow the project’s required test order and
+workflow. A regression fix starts with a failing reproduction whenever practical.
 
 ## Test Kinds And Names
 
