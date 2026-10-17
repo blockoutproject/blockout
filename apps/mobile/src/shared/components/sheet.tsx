@@ -14,25 +14,30 @@ import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { IconButton } from "./icon-button";
 
-/** Apply to the owning layout's Stack.Screen before navigation, as required by native presentation.
+/** Supplies native presentation and an opaque themed host to the owning layout's Stack.Screen before navigation.
+ * Deep-linkable hosts also export unstable_settings.anchor for their owning background route.
  * https://docs.expo.dev/router/advanced/stack/#statically-configure-route-options
  */
-export const sheetScreenOptions = {
-  presentation: "formSheet",
-  headerShown: false,
-  sheetAllowedDetents: "fitToContents",
-  sheetCornerRadius: tokens.radius.sheet,
-  sheetElevation: 0,
-} as const;
+export function useSheetScreenOptions() {
+  const { colors } = useTheme();
+  return {
+    presentation: "formSheet",
+    headerShown: false,
+    sheetAllowedDetents: "fitToContents",
+    sheetCornerRadius: tokens.radius.sheet,
+    sheetElevation: 0,
+    contentStyle: { backgroundColor: colors.surface },
+  } as const;
+}
 
-/** Dismissible route content; owners compose fields/footer and keep draft/commit decisions. */
+/** Dismissible route content in an anchored native stack; owners retain fields/footer and draft/commit decisions. */
 export interface SheetProps extends PropsWithChildren {
   title: string;
   message?: string;
   footer?: ReactNode;
 }
 
-/** Composes an approved sheet inside its native route; the owning layout configures sheetScreenOptions. */
+/** Composes sheet content inside its native route; the owning layout applies useSheetScreenOptions. */
 export function Sheet({ title, message, footer, children }: SheetProps) {
   const { colors } = useTheme();
   const router = useRouter();

@@ -1,8 +1,24 @@
-import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, type PressableProps } from "react-native";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
+
+// UI Library 156:5 and 156:79 SVG endpoints, with export shadow padding (10, 6) removed.
+const contentGradient = {
+  width: 102,
+  x1: 3.1135,
+  y1: -5.815698,
+  x2: 102.364,
+  y2: 47.3194,
+};
+const containerGradient = {
+  width: 320,
+  x1: 29.6077,
+  y1: -51.282,
+  x2: 290.392,
+  y2: 99.282,
+};
 
 /** Primary regular action: the caller owns effects, busy state and the full accessible label. */
 export interface ButtonProps {
@@ -13,7 +29,7 @@ export interface ButtonProps {
   fullWidth?: boolean;
 }
 
-/** Implements the approved regular primary family without a generic variant or request-state engine. */
+/** Presents a primary action with source-owned gradient geometry and native unavailable states. */
 export function Button({
   label,
   onPress,
@@ -22,6 +38,11 @@ export function Button({
   fullWidth = false,
 }: ButtonProps) {
   const { context } = useTheme();
+  const gradient = fullWidth ? containerGradient : contentGradient;
+  const background = `<svg xmlns="http://www.w3.org/2000/svg" width="${gradient.width}" height="48" viewBox="0 0 ${gradient.width} 48" preserveAspectRatio="none">
+    <defs><linearGradient id="fill" x1="${gradient.x1}" y1="${gradient.y1}" x2="${gradient.x2}" y2="${gradient.y2}" gradientUnits="userSpaceOnUse">
+    <stop stop-color="${context.actionStart}"/><stop offset="1" stop-color="${context.actionEnd}"/></linearGradient></defs>
+    <rect width="${gradient.width}" height="48" fill="url(#fill)"/></svg>`;
   return (
     <Pressable
       accessibilityRole="button"
@@ -33,6 +54,7 @@ export function Button({
         styles.action,
         fullWidth ? styles.container : styles.content,
         {
+          backgroundColor: context.primary,
           opacity: disabled
             ? tokens.opacity.disabled
             : pressed
@@ -52,10 +74,11 @@ export function Button({
         },
       ]}
     >
-      <LinearGradient
-        colors={[context.actionStart, context.actionEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <Image
+        accessible={false}
+        source={{ uri: `data:image/svg+xml;base64,${btoa(background)}` }}
+        recyclingKey={`${context.actionStart}/${context.actionEnd}`}
+        contentFit="fill"
         style={styles.gradient}
       />
       {loading && <LoadingIndicator color={context.onAction} />}

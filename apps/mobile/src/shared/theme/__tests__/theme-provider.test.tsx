@@ -6,6 +6,11 @@ import {
   userEvent,
 } from "@testing-library/react-native";
 import { useState } from "react";
+import {
+  DefaultTheme,
+  ThemeProvider as NavigationThemeProvider,
+  useTheme as useNavigationTheme,
+} from "expo-router";
 import { Appearance, Text, TextInput } from "react-native";
 import { ThemeProvider, useTheme } from "../theme-provider";
 
@@ -36,6 +41,16 @@ function ThemeConsumer() {
   );
 }
 
+/** Observes the public Router theme used by native navigation surfaces. */
+function NavigationSurfaces() {
+  const theme = useNavigationTheme();
+  return (
+    <Text accessibilityLabel="Surfaces natives">
+      {String(theme.colors.background)} {String(theme.colors.card)}
+    </Text>
+  );
+}
+
 it.each(["light", "dark", null, "unspecified"] as const)(
   "uses the native initial appearance %s with light as the absent-scheme fallback",
   async (scheme) => {
@@ -56,15 +71,21 @@ it.each(["light", "dark", null, "unspecified"] as const)(
   },
 );
 
-it("updates a mounted draft when the native appearance changes", async () => {
+it("updates navigation surfaces and preserves a mounted draft when native appearance changes", async () => {
   // Given
   jest.spyOn(Appearance, "getColorScheme").mockReturnValue("light");
   const subscribe = jest.spyOn(Appearance, "addChangeListener");
   const user = userEvent.setup();
   await render(
-    <ThemeProvider>
-      <ThemeConsumer />
-    </ThemeProvider>,
+    <NavigationThemeProvider value={DefaultTheme}>
+      <ThemeProvider>
+        <ThemeConsumer />
+        <NavigationSurfaces />
+      </ThemeProvider>
+    </NavigationThemeProvider>,
+  );
+  expect(screen.getByLabelText("Surfaces natives")).toHaveTextContent(
+    "#FCFCFD #FFFFFF",
   );
   await user.type(screen.getByLabelText("Brouillon"), "Valeur conservée");
 
@@ -77,6 +98,9 @@ it("updates a mounted draft when the native appearance changes", async () => {
 
   // Then
   expect(screen.getByText("dark")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Surfaces natives")).toHaveTextContent(
+    "#0D0D0E #19191A",
+  );
   expect(screen.getByDisplayValue("Valeur conservée")).toBeOnTheScreen();
 });
 

@@ -15,12 +15,7 @@ function Navigation() {
   return (
     <>
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.colors.canvas },
-        }}
-      />
+      <Stack screenOptions={{ headerShown: false }} />
     </>
   );
 }

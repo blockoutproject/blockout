@@ -26,7 +26,6 @@
     "expo-dev-client": "~57.0.15",
     "expo-font": "~57.0.4",
     "expo-image": "~57.0.5",
-    "expo-linear-gradient": "~57.0.2",
     "expo-linking": "57.0.13",
     "expo-router": "57.0.28",
     "expo-status-bar": "~57.0.1",

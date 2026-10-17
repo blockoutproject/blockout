@@ -1,6 +1,11 @@
 import { createContext, useContext, type PropsWithChildren } from "react";
 import { useColorScheme } from "react-native";
 import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider as NavigationThemeProvider,
+} from "expo-router";
+import {
   appearanceColors,
   membershipColors,
   neutralContext,
@@ -23,23 +28,39 @@ export interface ThemeProviderProps extends PropsWithChildren {
 
 const ThemeContext = createContext<Theme | null>(null);
 
-/** Follows native appearance without remounting descendants; light is the absent-scheme fallback. */
+/** Supplies app and native navigation colors from one system appearance; absent schemes fall back to light. */
 export function ThemeProvider({
   children,
   context = neutralContext,
   proAccent = false,
 }: ThemeProviderProps) {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const colors = appearanceColors[scheme];
+  const navigationTheme = scheme === "dark" ? DarkTheme : DefaultTheme;
   return (
     <ThemeContext
       value={{
         scheme,
-        colors: appearanceColors[scheme],
+        colors,
         context: context[scheme],
         membership: proAccent ? membershipColors.pro : membershipColors[scheme],
       }}
     >
-      {children}
+      <NavigationThemeProvider
+        value={{
+          ...navigationTheme,
+          colors: {
+            ...navigationTheme.colors,
+            primary: context[scheme].primary,
+            background: colors.canvas,
+            card: colors.surface,
+            text: colors.text,
+            border: colors.border,
+          },
+        }}
+      >
+        {children}
+      </NavigationThemeProvider>
     </ThemeContext>
   );
 }

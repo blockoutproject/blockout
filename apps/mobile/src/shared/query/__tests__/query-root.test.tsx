@@ -10,7 +10,10 @@ import type { ComponentType } from "react";
 import { Pressable, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 
-jest.mock("expo-router", () => ({ Stack: jest.fn() }));
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  Stack: jest.fn(),
+}));
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
   wrap: (component: ComponentType) => component,

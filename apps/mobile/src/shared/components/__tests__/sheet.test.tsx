@@ -10,7 +10,7 @@ import { userEvent } from "@testing-library/react-native";
 import { Appearance, Text } from "react-native";
 import { ThemeProvider, useTheme } from "../../theme/theme-provider";
 import { Button } from "../button";
-import { Sheet, sheetScreenOptions } from "../sheet";
+import { Sheet, useSheetScreenOptions } from "../sheet";
 import { TextField } from "../text-field";
 
 jest.unmock("react-native/Libraries/Utilities/useColorScheme");
@@ -24,10 +24,18 @@ afterEach(async () => {
 function Layout() {
   return (
     <ThemeProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="edit" options={sheetScreenOptions} />
-      </Stack>
+      <Routes />
     </ThemeProvider>
+  );
+}
+
+/** Configures the native host before opening the sheet, using the current semantic surface. */
+function Routes() {
+  const options = useSheetScreenOptions();
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="edit" options={options} />
+    </Stack>
   );
 }
 
@@ -94,6 +102,30 @@ it("leaves dismissal and return to the native navigation owner", async () => {
 
   // When
   await act(() => router.back());
+
+  // Then
+  expect(
+    screen.queryByRole("header", { name: "Modifier le club" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Ouvrir le formulaire" }),
+  ).toBeOnTheScreen();
+});
+
+it("returns a directly linked sheet to its anchored background route", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderRouter(
+    {
+      _layout: { default: Layout, unstable_settings: { anchor: "index" } },
+      index: Home,
+      edit: Edit,
+    },
+    { initialUrl: "/edit" },
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
 
   // Then
   expect(
