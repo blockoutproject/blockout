@@ -4,3 +4,35 @@ spring:
   main:
     web-application-type: none
     keep-alive: true
+
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+logging:
+  structured:
+    format:
+      console: ecs
+    json:
+      # Only backend account cleanup may carry the approved original-target references.
+      include:
+        - "@timestamp"
+        - log
+        - log.level
+        - log.logger
+        - service
+        - service.name
+        - service.environment
+        - error
+        - error.type
+        - operation
+        - stage
+        - scope
+        - outcome
+        - provider
+        - reason
+        - affected_count
+        - partial_count
+        - last_success_at

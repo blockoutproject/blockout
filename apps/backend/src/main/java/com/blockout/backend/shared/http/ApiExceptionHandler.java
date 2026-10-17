@@ -46,9 +46,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
    */
   @ExceptionHandler(Exception.class)
   ResponseEntity<Object> unexpectedFailure(Exception exception) {
-    LOG.error(
-        "HTTP boundary failed unexpectedly (exceptionType={})",
-        exception.getClass().getSimpleName());
+    LOG.atError()
+        .addKeyValue("operation", "http_request")
+        .addKeyValue("outcome", "failed")
+        .setCause(exception)
+        .log("HTTP boundary failed unexpectedly");
     return safeProblem(HttpStatus.INTERNAL_SERVER_ERROR, "about:blank", new HttpHeaders());
   }
 
