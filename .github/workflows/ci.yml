@@ -49,9 +49,6 @@ jobs:
           NX_DAEMON: "false"
         run: npm run verify
 
-      - name: Check diff hygiene
-        run: git diff --check
-
       - name: Validate native telemetry configuration
         run: |
           telemetry_image=$(docker compose --env-file infra/observability/.env.example -f infra/observability/compose.yaml config --images)

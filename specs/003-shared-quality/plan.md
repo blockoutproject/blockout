@@ -1,6 +1,6 @@
 # Implementation Plan: F13 shared quality, operations and delivery
 
-**Branch**: `develop` (Spec Kit feature `003-shared-quality`) | **Date**: 2026-10-16 | **Spec**: [spec.md](spec.md)
+**Branch**: `develop` (Spec Kit feature `003-shared-quality`) | **Date**: 2026-10-17 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `/specs/003-shared-quality/spec.md`; authorized [issue #42](https://github.com/blockoutproject/blockout/issues/42).
 
@@ -8,7 +8,7 @@
 
 Provide a small shared foundation for the V2 mobile app, ingestion and backend: one modular backend owns business writes, a separately deployed collector uses its HTTPS ingestion surface, and a native Expo app consumes its mobile surface. PostgreSQL holds authoritative relational data and accepted images together. Standard identity, contract generation, manual delivery, diagnostics and backup mechanisms preserve domain integrity without a generic recovery platform.
 
-This plan defines the common technical foundation. F05/F12 own the reconciled identity and access behavior and its design approvals. The initial executable workspace provides application launchers and development checks; domain implementation and integrated qualification remain future work.
+This plan defines the common technical foundation. F05/F12 own the reconciled identity and access behavior and its design approvals. The executable workspace provides launchers, generated HTTP boundaries, the mobile query foundation, readiness checks and prepared telemetry. The [README](../../README.md#verification) describes current checks; [tasks](tasks.md) track implementation and remaining domain, native/provider and operational qualifications.
 
 ## Technical Context
 
@@ -28,11 +28,11 @@ This plan defines the common technical foundation. F05/F12 own the reconciled id
 
 **Constraints**: One backend business writer; no provider call held inside a SQL transaction; current authorization before effects; no automatic ordinary mobile business retries/reconnection replay; single Auth0 tenant with explicit shared-directory limits; manual release; initial mutable Liquibase baseline then data-preserving migrations; 30-minute backups/30-day retention with no backup alerts or recurring verification.
 
-**Scale/Scope**: F13 common foundation and explicit F01/F05/F10/F11/F12/F14 reconciliation. Feature boundaries are semantic responsibilities, not separate services. Setup initializes only the launchers, build/test configuration and local PostgreSQL; the remaining source structure below is planned.
+**Scale/Scope**: F13 common foundation and explicit F01/F05/F10/F11/F12/F14 reconciliation. Feature boundaries are semantic responsibilities, not separate services. The shared workspace is implemented; domain modules are added by their owning features.
 
 ## Constitution Check
 
-The [constitution](../../.specify/memory/constitution.md) applies. The pre-Phase 0 check passed after the scoped design approvals; Phase 1 recheck passes for this documentary delivery.
+The [constitution](../../.specify/memory/constitution.md) applies. The planning checks passed after the scoped design approvals. These gates remain applicable to implementation; completed checks and remaining qualifications are tracked in the owning tasks.
 
 | Gate                         | Before research / after design                                                                                                                                                                                                                                                                                            |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -43,7 +43,7 @@ The [constitution](../../.specify/memory/constitution.md) applies. The pre-Phase
 | V — Proportionality          | Ordinary library/platform mechanisms, targeted transport adapter, manual operations; [research](research.md) records alternatives and costs. No speculative infrastructure or performance commitments.                                                                                                                    |
 | Inputs and prerequisites     | Current owning specifications, applicable design approvals and official technology sources support this plan. No unresolved upstream prerequisite prevents this scope.                                                                                                                                                    |
 
-Known limits do not waive gates: the Dokploy S3 masking fix must be verified before real V2 credential use; native, generated-contract, deployment and restoration qualifications remain unexecuted. A failed qualification blocks affected adoption rather than permitting an invented fallback.
+Known limits do not waive gates: the Dokploy S3 masking fix must be verified before real V2 credential use; local generated-contract checks are implemented, while provider activation, isolated deployment and restoration still require their owning qualifications. A failed qualification blocks affected adoption rather than permitting an invented fallback.
 
 ## Project Structure
 
@@ -66,7 +66,7 @@ These native Spec Kit artifacts describe the current feature. [Tasks](tasks.md) 
 
 ### Source Code (repository root)
 
-Planned structure for later authorized work:
+Current workspace boundaries; feature owners add their domain packages:
 
 ```text
 apps/
@@ -76,10 +76,11 @@ apps/
 contracts/http/
 ├── mobile/openapi.yaml       # Authoritative mobile surface
 ├── ingestion/openapi.yaml    # Authoritative collector surface
+├── legacy-mobile/openapi.yaml # Historical update read
 └── common/                   # Referenced identical technical primitives
 ```
 
-**Structure Decision**: Maven owns Java modules and builds; npm workspaces own JavaScript packages; Nx invokes ordinary Maven/npm commands. No Nx Expo/Maven plugin or Nx Cloud. Introduce no empty shared package merely for hypothetical reuse. Generated code/bundles go into ignored build outputs; authored contracts/configuration remain tracked. Root package/Maven/Nx files are initialized by the implementation setup tasks.
+**Structure Decision**: Maven owns Java modules and builds; npm workspaces own JavaScript packages; Nx invokes ordinary Maven/npm commands. No Nx Expo/Maven plugin or Nx Cloud. Introduce no empty shared package merely for hypothetical reuse. Generated code/bundles go into ignored build outputs; authored contracts/configuration remain tracked.
 
 ## Ownership and reconciled dependencies
 

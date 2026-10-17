@@ -12,24 +12,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfiguration;
-import org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointAutoConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.availability.ApplicationAvailabilityAutoConfiguration;
 import org.springframework.boot.availability.AvailabilityChangeEvent;
 import org.springframework.boot.availability.ReadinessState;
-import org.springframework.boot.health.autoconfigure.actuate.endpoint.AvailabilityProbesAutoConfiguration;
-import org.springframework.boot.health.autoconfigure.actuate.endpoint.HealthEndpointAutoConfiguration;
-import org.springframework.boot.health.autoconfigure.registry.HealthContributorRegistryAutoConfiguration;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
-import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
-import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
-import org.springframework.boot.webmvc.autoconfigure.actuate.endpoint.web.WebMvcHealthEndpointExtensionAutoConfiguration;
-import org.springframework.boot.webmvc.autoconfigure.actuate.web.WebMvcEndpointManagementContextConfiguration;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.json.JsonCompareMode;
@@ -38,24 +29,14 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * Exercises native Actuator mappings with controlled database health and real availability events.
+ * Exercises Boot's actual Actuator and security wiring with controlled database health. The
+ * separate HealthIntegrationTest owns the real PostgreSQL connection and failure boundary.
  */
-@WebMvcTest
-@Import(SecurityConfiguration.class)
-@ImportAutoConfiguration({
-  EndpointAutoConfiguration.class,
-  WebEndpointAutoConfiguration.class,
-  HealthContributorRegistryAutoConfiguration.class,
-  HealthEndpointAutoConfiguration.class,
-  ApplicationAvailabilityAutoConfiguration.class,
-  AvailabilityProbesAutoConfiguration.class,
-  WebMvcHealthEndpointExtensionAutoConfiguration.class,
-  WebMvcEndpointManagementContextConfiguration.class,
-  SecurityAutoConfiguration.class,
-  ServletWebSecurityAutoConfiguration.class
-})
+@SpringBootTest
+@AutoConfigureMockMvc
+@ImportAutoConfiguration(exclude = DataSourceAutoConfiguration.class)
 @DisplayName("Public native readiness boundary")
-class HealthWebMvcTest {
+class HealthEndpointIntegrationTest {
   @Autowired private MockMvc mvc;
   @Autowired private ApplicationContext context;
 

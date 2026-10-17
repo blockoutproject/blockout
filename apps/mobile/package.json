@@ -7,7 +7,7 @@
     "start": "expo start --dev-client",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "build": "expo export --platform ios --output-dir dist/ios && expo export --platform android --output-dir dist/android",
+    "build": "expo export",
     "format:check": "prettier --check --ignore-path ../../.prettierignore .",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
