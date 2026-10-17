@@ -4,107 +4,178 @@ import { initializeSentry } from "../sentry";
 
 jest.mock("@sentry/react-native", () => ({ init: jest.fn() }));
 
-it("keeps error type and bundle coordinates while excluding private event context", async () => {
-  // Given
-  const event: ErrorEvent = {
-    type: undefined,
-    event_id: "0123456789abcdef0123456789abcdef",
-    platform: "javascript",
-    release: "com.blockout.local@0.0.0+1",
-    sdk: { name: "sentry.javascript.react-native", version: "7.11.0" },
-    message: "private-provider-body",
-    user: { email: "private@example.invalid" },
-    request: { url: "https://example.invalid/private?token=harmless-secret" },
-    tags: { account: "private-account" },
-    extra: { authorization: "Bearer harmless-secret" },
-    contexts: { account: { email: "private@example.invalid" } },
-    breadcrumbs: [{ message: "private-provider-body" }],
-    exception: {
-      values: [
-        {
-          type: "TypeError",
-          value: "private-provider-body",
-          mechanism: {
-            type: "onerror",
-            handled: false,
-            data: { token: "harmless-secret" },
-          },
-          stacktrace: {
-            frames: [
-              {
-                filename: "app:///index.android.bundle?token=harmless-secret",
-                lineno: 1,
-                colno: 42,
-                in_app: true,
-                context_line: "private-provider-body",
-                vars: { email: "private@example.invalid" },
-              },
-              {
-                filename:
-                  "https://example.invalid/private-account?token=harmless-secret",
-              },
-            ],
-          },
-        },
-      ],
-    },
-    debug_meta: {
-      images: [
-        {
-          type: "sourcemap",
-          debug_id: "01234567-89ab-4cde-8123-456789abcdef",
-          code_file: "app:///index.android.bundle",
-        },
-      ],
-    },
-  };
-  initializeSentry();
-  const options = jest.mocked(Sentry.init).mock.calls[0][0];
+const originalDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
-  // When
-  const result = await options?.beforeSend?.(event, {});
-
-  // Then
-  expect(result).toMatchObject({
-    event_id: event.event_id,
-    release: event.release,
-    sdk: event.sdk,
-    exception: {
-      values: [
-        {
-          type: "TypeError",
-          mechanism: { type: "onerror", handled: false },
-          stacktrace: {
-            frames: [
-              {
-                filename: "app:///index.android.bundle",
-                lineno: 1,
-                colno: 42,
-                in_app: true,
-              },
-            ],
-          },
-        },
-      ],
-    },
-    debug_meta: event.debug_meta,
-  });
-  expect(JSON.stringify(result)).not.toMatch(
-    /private|harmless-secret|authorization|context_line/,
-  );
+afterEach(() => {
+  jest.restoreAllMocks();
+  if (originalDsn === undefined) {
+    delete process.env.EXPO_PUBLIC_SENTRY_DSN;
+  } else {
+    process.env.EXPO_PUBLIC_SENTRY_DSN = originalDsn;
+  }
 });
 
-it("keeps reporting disabled in ordinary local builds", () => {
-  // Given
-  // jest-expo uses the native development-build environment.
+it.each(["app:///index.android.bundle", "app:///main.jsbundle"])(
+  "keeps safe error context for %s",
+  async (filename) => {
+    // Given
+    const event: ErrorEvent = {
+      type: undefined,
+      event_id: "0123456789abcdef0123456789abcdef",
+      platform: "javascript",
+      release: "com.blockout.local@0.0.0+1",
+      sdk: { name: "sentry.javascript.react-native", version: "7.11.0" },
+      message: "private-provider-body",
+      user: { email: "private@example.invalid" },
+      request: { url: "https://example.invalid/private?token=harmless-secret" },
+      tags: { account: "private-account" },
+      extra: { authorization: "Bearer harmless-secret" },
+      contexts: { account: { email: "private@example.invalid" } },
+      breadcrumbs: [{ message: "private-provider-body" }],
+      exception: {
+        values: [
+          {
+            type: "TypeError",
+            value: "private-provider-body",
+            mechanism: {
+              type: "onerror",
+              handled: false,
+              data: { token: "harmless-secret" },
+            },
+            stacktrace: {
+              frames: [
+                {
+                  filename,
+                  lineno: 1,
+                  colno: 42,
+                  in_app: true,
+                  context_line: "private-provider-body",
+                  vars: { email: "private@example.invalid" },
+                },
+                {
+                  filename:
+                    "https://example.invalid/private-account?token=harmless-secret",
+                },
+              ],
+            },
+          },
+        ],
+      },
+      debug_meta: {
+        images: [
+          {
+            type: "sourcemap",
+            debug_id: "01234567-89ab-4cde-8123-456789abcdef",
+            code_file: filename,
+          },
+        ],
+      },
+    };
+    initializeSentry();
+    const options = jest.mocked(Sentry.init).mock.calls[0][0];
 
-  // When
-  initializeSentry();
-  const options = jest.mocked(Sentry.init).mock.calls[0][0];
+    // When
+    const result = await options?.beforeSend?.(event, {});
 
-  // Then
-  expect(options?.enabled).toBe(false);
-});
+    // Then
+    expect(result).toMatchObject({
+      event_id: event.event_id,
+      release: event.release,
+      sdk: event.sdk,
+      exception: {
+        values: [
+          {
+            type: "TypeError",
+            mechanism: { type: "onerror", handled: false },
+            stacktrace: {
+              frames: [
+                {
+                  filename,
+                  lineno: 1,
+                  colno: 42,
+                  in_app: true,
+                },
+              ],
+            },
+          },
+        ],
+      },
+      debug_meta: event.debug_meta,
+    });
+    expect(JSON.stringify(result)).not.toMatch(
+      /private|harmless-secret|authorization|context_line/,
+    );
+  },
+);
+
+it.each([
+  {
+    development: true,
+    dsn: "https://public@example.invalid/1",
+    enabled: false,
+  },
+  { development: false, dsn: "", enabled: false },
+  {
+    development: false,
+    dsn: "https://public@example.invalid/1",
+    enabled: true,
+  },
+])(
+  "sets reporting to $enabled with development=$development and DSN=$dsn",
+  ({ development, dsn, enabled }) => {
+    // Given
+    jest.replaceProperty(
+      globalThis as typeof globalThis & { __DEV__: boolean },
+      "__DEV__",
+      development,
+    );
+    process.env.EXPO_PUBLIC_SENTRY_DSN = dsn;
+
+    // When
+    initializeSentry();
+    const options = jest.mocked(Sentry.init).mock.calls[0][0];
+
+    // Then
+    expect(options?.enabled).toBe(enabled);
+  },
+);
+
+it.each([
+  "app:///index.android.bundle?token=harmless-secret",
+  "https://example.invalid/index.android.bundle",
+  "file:///private/main.jsbundle",
+])(
+  "rejects a bundle reference not normalized by the SDK: %s",
+  async (filename) => {
+    // Given
+    initializeSentry();
+    const options = jest.mocked(Sentry.init).mock.calls[0][0];
+    const event: ErrorEvent = {
+      type: undefined,
+      exception: {
+        values: [{ type: "Error", stacktrace: { frames: [{ filename }] } }],
+      },
+      debug_meta: {
+        images: [
+          {
+            type: "sourcemap",
+            debug_id: "01234567-89ab-4cde-8123-456789abcdef",
+            code_file: filename,
+          },
+        ],
+      },
+    };
+
+    // When
+    const result = await options?.beforeSend?.(event, {});
+
+    // Then
+    expect(result).toMatchObject({
+      exception: { values: [{ type: "Error", stacktrace: { frames: [] } }] },
+      debug_meta: { images: [] },
+    });
+  },
+);
 
 it("keeps standard native initialization with the error-only capture mode", () => {
   // Given

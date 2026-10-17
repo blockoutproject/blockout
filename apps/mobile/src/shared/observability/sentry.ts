@@ -1,11 +1,11 @@
 import * as Sentry from "@sentry/react-native";
 
-/** Keeps only canonical packaged bundle names; arbitrary URL paths and query values are omitted. */
+/** Accepts only Expo bundle names already normalized by Sentry's default integration. */
 function bundleFilename(filename: string | undefined) {
-  const match = filename?.match(
-    /(?:^|\/)(index(?:\.android|\.ios)?\.bundle|main\.jsbundle)(?:[?#].*)?$/,
-  );
-  return match ? `app:///${match[1]}` : undefined;
+  return filename === "app:///index.android.bundle" ||
+    filename === "app:///main.jsbundle"
+    ? filename
+    : undefined;
 }
 
 /** Preserves packaged source coordinates without source excerpts, local variables or raw URLs. */
