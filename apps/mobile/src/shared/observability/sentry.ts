@@ -25,7 +25,7 @@ function safeFrames(frames: Sentry.StackFrame[] | undefined) {
   });
 }
 
-/** Builds an error-only projection after scope enrichment; native crashes use the native callbacks. */
+/** Filters JavaScript errors after scope enrichment; native reports require Sentry project scrubbing. */
 function safeError(event: Sentry.ErrorEvent): Sentry.ErrorEvent | null {
   if (!event.exception?.values?.length) return null;
 
@@ -76,7 +76,6 @@ export function initializeSentry() {
     dsn,
     environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT,
     enabled: !__DEV__ && Boolean(dsn),
-    autoInitializeNativeSdk: false,
     sendDefaultPii: false,
     enableAutoSessionTracking: false,
     enableAutoPerformanceTracing: false,

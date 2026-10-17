@@ -106,7 +106,7 @@ it("keeps reporting disabled in ordinary local builds", () => {
   expect(options?.enabled).toBe(false);
 });
 
-it("restricts the SDK capture mode to filtered errors", () => {
+it("keeps standard native initialization with the error-only capture mode", () => {
   // Given
   // Default sampling options would install additional telemetry integrations.
 
@@ -122,7 +122,9 @@ it("restricts the SDK capture mode to filtered errors", () => {
   expect(options?.replaysSessionSampleRate).toBeUndefined();
   expect(options?.sendDefaultPii).toBe(false);
   expect(options?.enableLogs).toBe(false);
-  expect(options?.autoInitializeNativeSdk).toBe(false);
+  expect(options?.autoInitializeNativeSdk).toBeUndefined();
+  expect(options?.enableNativeCrashHandling).toBeUndefined();
+  expect(options?.enableNdk).toBeUndefined();
   expect(options?.enableAutoSessionTracking).toBe(false);
 });
 
