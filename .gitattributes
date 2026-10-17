@@ -1,2 +1,4 @@
 mvnw text eol=lf
 mvnw.cmd text eol=crlf
+# Keep the upstream font license byte-for-byte, including its original whitespace.
+apps/mobile/assets/fonts/OFL.txt -whitespace

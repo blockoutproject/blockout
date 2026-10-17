@@ -5,12 +5,12 @@ import {
   screen,
   userEvent,
 } from "@testing-library/react-native";
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import type { ComponentType } from "react";
 import { Pressable, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 
-jest.mock("expo-router", () => ({ Slot: jest.fn() }));
+jest.mock("expo-router", () => ({ Stack: jest.fn() }));
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
   wrap: (component: ComponentType) => component,
@@ -45,7 +45,7 @@ function CacheConsumer() {
 
 it("scopes the route cache to the lifetime of one root", async () => {
   // Given
-  jest.mocked(Slot).mockImplementation(CacheConsumer);
+  jest.mocked(Stack).mockImplementation(CacheConsumer);
   const user = userEvent.setup();
   const root = await render(<RootLayout />);
   expect(screen.getByText("Count: 3")).toBeOnTheScreen();
