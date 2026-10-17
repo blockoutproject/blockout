@@ -69,13 +69,12 @@ function safeError(event: Sentry.ErrorEvent): Sentry.ErrorEvent | null {
   };
 }
 
-/** Configures the SDK once at the native route entry; local builds send no reports. */
+/** Configures the SDK at the route entry; development is disabled and Sentry handles absent DSNs. */
 export function initializeSentry() {
-  const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
   Sentry.init({
-    dsn,
+    dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
     environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT,
-    enabled: !__DEV__ && Boolean(dsn),
+    enabled: !__DEV__,
     sendDefaultPii: false,
     enableAutoSessionTracking: false,
     enableAutoPerformanceTracing: false,

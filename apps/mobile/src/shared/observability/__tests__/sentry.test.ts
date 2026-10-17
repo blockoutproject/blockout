@@ -109,21 +109,13 @@ it.each(["app:///index.android.bundle", "app:///main.jsbundle"])(
 );
 
 it.each([
-  {
-    development: true,
-    dsn: "https://public@example.invalid/1",
-    enabled: false,
-  },
-  { development: false, dsn: "", enabled: false },
-  {
-    development: false,
-    dsn: "https://public@example.invalid/1",
-    enabled: true,
-  },
+  { development: true, enabled: false },
+  { development: false, enabled: true },
 ])(
-  "sets reporting to $enabled with development=$development and DSN=$dsn",
-  ({ development, dsn, enabled }) => {
+  "sets reporting to $enabled with development=$development",
+  ({ development, enabled }) => {
     // Given
+    const dsn = "https://public@example.invalid/1";
     jest.replaceProperty(
       globalThis as typeof globalThis & { __DEV__: boolean },
       "__DEV__",
@@ -136,7 +128,7 @@ it.each([
     const options = jest.mocked(Sentry.init).mock.calls[0][0];
 
     // Then
-    expect(options?.enabled).toBe(enabled);
+    expect(options).toMatchObject({ dsn, enabled });
   },
 );
 
