@@ -2,48 +2,32 @@ package com.blockout.backend.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.boot.Banner;
-import org.springframework.boot.WebApplicationType;
-import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Exercises the application's native console encoder without starting HTTP or persistence. */
 @ExtendWith(OutputCaptureExtension.class)
+@SpringBootTest(
+    classes = LoggingTest.LoggingConfiguration.class,
+    webEnvironment = SpringBootTest.WebEnvironment.NONE,
+    properties = {
+      "spring.main.banner-mode=off",
+      "spring.main.log-startup-info=false",
+      "spring.main.keep-alive=false"
+    })
 @DisplayName("Backend telemetry privacy")
 class LoggingTest {
   private static final Logger LOG = LoggerFactory.getLogger(LoggingTest.class);
-  private static ConfigurableApplicationContext context;
-
-  /** Loads the real application configuration through Boot's ordinary logging lifecycle. */
-  @BeforeAll
-  static void startLogging() {
-    context =
-        new SpringApplicationBuilder(LoggingConfiguration.class)
-            .web(WebApplicationType.NONE)
-            .bannerMode(Banner.Mode.OFF)
-            .logStartupInfo(false)
-            .registerShutdownHook(false)
-            .run();
-  }
-
-  /** Releases the minimal configuration context after this suite. */
-  @AfterAll
-  static void stopLogging() {
-    if (context != null) context.close();
-  }
 
   @Test
   @DisplayName("Keeps technical failure context while rejecting free-form sensitive data")
@@ -114,6 +98,6 @@ class LoggingTest {
   }
 
   /** Supplies only a configuration source; Boot itself owns logging initialization. */
-  @TestConfiguration(proxyBeanMethods = false)
+  @Configuration(proxyBeanMethods = false)
   static class LoggingConfiguration {}
 }
