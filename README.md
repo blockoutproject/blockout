@@ -47,6 +47,8 @@ git diff --check
 
 Root verification runs Prettier once for the whole repository, including mobile. `mobile:verify` runs ESLint, TypeScript, Jest Expo, native-platform JavaScript exports and Expo Doctor. Jest discovers co-located `__tests__/*.test.ts(x)` suites. The generated consumer suite exercises schema validation, error profiles, binary/204 responses, cancellation and timeout at the Fetch boundary; it does not qualify a native networking stack or a business screen. React Native Testing Library is available for meaningful feature tests. Exports prove bundling, not an installed native build.
 
+The shared Query suites exercise offline attempts without queuing, explicit recovery, retained data after failed refresh and cache lifetime under the root provider. Feature owners opt into their approved navigation/foreground refresh and freshness/expiry policies. The [integrated sporting scenarios](specs/003-shared-quality/quickstart.md#data-and-schema) remain pending their owning implementations; these controlled tests do not qualify account-session isolation or provider behavior.
+
 Useful focused commands:
 
 ```sh
