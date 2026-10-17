@@ -1,12 +1,11 @@
 package com.blockout.backend.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.BackendApplication;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.testsupport.persistence.StartupFixture;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -19,6 +18,8 @@ import liquibase.database.jvm.JdbcConnection;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -27,7 +28,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.MountableFile;
 
 /**
  * Proves startup and role separation against disposable PostgreSQL using the actual local role
@@ -36,17 +36,7 @@ import org.testcontainers.utility.MountableFile;
 @Testcontainers
 @DisplayName("Explicit database migration and application startup")
 class DatabaseConfigurationIntegrationTest {
-  @Container
-  private static final PostgreSQLContainer DATABASE =
-      new PostgreSQLContainer("postgres:18.6")
-          .withDatabaseName("postgres")
-          .withUsername("postgres")
-          .withPassword("harmless-admin")
-          .withEnv("BLOCKOUT_APP_PASSWORD", "harmless-app")
-          .withEnv("BLOCKOUT_MIGRATION_PASSWORD", "harmless-migration")
-          .withCopyFileToContainer(
-              MountableFile.forClasspathResource("init-roles.sql"),
-              "/docker-entrypoint-initdb.d/10-blockout.sql");
+  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
 
   @Test
   @DisplayName(
@@ -61,16 +51,27 @@ class DatabaseConfigurationIntegrationTest {
     try (ConfigurableApplicationContext context = startApplication("migrated")) {
       // Then
       assertThat(((WebServerApplicationContext) context).getWebServer().getPort()).isPositive();
-      try (Connection connection = applicationConnection("migrated");
-          Statement sql = connection.createStatement()) {
-        assertThat(
-                sql.executeUpdate(
-                    "INSERT INTO startup_fixture(id, label) VALUES (1, 'safe fixture')"))
-            .isEqualTo(1);
-        assertThat(sql.executeUpdate("UPDATE startup_fixture SET label = 'updated' WHERE id = 1"))
-            .isEqualTo(1);
-        assertThat(sql.executeUpdate("DELETE FROM startup_fixture WHERE id = 1")).isEqualTo(1);
-      }
+    }
+  }
+
+  @Test
+  @DisplayName("Allows application credentials to insert, update and delete migrated data")
+  void allowsApplicationDataWrites() throws Exception {
+    // Given
+    createSchema("writable");
+    migrate("writable", "db/changelog/database-fixture.xml");
+    try (Connection connection = applicationConnection("writable");
+        Statement sql = connection.createStatement()) {
+      // When
+      int inserted =
+          sql.executeUpdate("INSERT INTO startup_fixture(id, label) VALUES (1, 'safe fixture')");
+      int updated = sql.executeUpdate("UPDATE startup_fixture SET label = 'updated' WHERE id = 1");
+      int deleted = sql.executeUpdate("DELETE FROM startup_fixture WHERE id = 1");
+
+      // Then
+      assertThat(inserted).isEqualTo(1);
+      assertThat(updated).isEqualTo(1);
+      assertThat(deleted).isEqualTo(1);
     }
   }
 
@@ -80,8 +81,11 @@ class DatabaseConfigurationIntegrationTest {
     // Given
     createSchema("missing");
 
-    // When / Then
-    assertThatThrownBy(() -> startApplication("missing"))
+    // When
+    Throwable failure = catchThrowable(() -> startApplication("missing").close());
+
+    // Then
+    assertThat(failure)
         .hasStackTraceContaining("Schema validation: missing table [startup_fixture]");
     try (Connection connection = applicationConnection("missing");
         Statement sql = connection.createStatement();
@@ -93,24 +97,30 @@ class DatabaseConfigurationIntegrationTest {
     }
   }
 
-  @Test
-  @DisplayName("Application credentials cannot create or alter schema objects")
-  void refusesApplicationDdl() throws Exception {
+  @ParameterizedTest(name = "{0}")
+  @CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
+      create | CREATE TABLE forbidden(id bigint)
+      alter  | ALTER TABLE startup_fixture ADD COLUMN forbidden text
+      """)
+  @DisplayName("Denies application schema writes")
+  void refusesApplicationDdl(String operation, String statement) throws Exception {
     // Given
-    createSchema("restricted");
-    migrate("restricted", "db/changelog/database-fixture.xml");
-
-    // When / Then
-    try (Connection connection = applicationConnection("restricted");
+    String schema = "restricted_" + operation;
+    createSchema(schema);
+    migrate(schema, "db/changelog/database-fixture.xml");
+    try (Connection connection = applicationConnection(schema);
         Statement sql = connection.createStatement()) {
-      assertThatThrownBy(() -> sql.execute("CREATE TABLE forbidden(id bigint)"))
-          .isInstanceOf(SQLException.class)
-          .extracting("SQLState")
-          .isEqualTo("42501");
-      assertThatThrownBy(() -> sql.execute("ALTER TABLE startup_fixture ADD COLUMN forbidden text"))
-          .isInstanceOf(SQLException.class)
-          .extracting("SQLState")
-          .isEqualTo("42501");
+      // When
+      Throwable failure = catchThrowable(() -> sql.execute(statement));
+
+      // Then
+      assertThat(failure)
+          .isInstanceOfSatisfying(
+              SQLException.class,
+              sqlFailure -> assertThat(sqlFailure.getSQLState()).isEqualTo("42501"));
     }
   }
 
@@ -191,15 +201,4 @@ class DatabaseConfigurationIntegrationTest {
   @TestConfiguration(proxyBeanMethods = false)
   @EntityScan(basePackageClasses = StartupFixture.class)
   static class FixtureConfiguration {}
-
-  /** No production entity/table is introduced before its owning feature is implemented. */
-  @Entity
-  @Table(name = "startup_fixture")
-  static class StartupFixture {
-    @Id private Long id;
-    private String label;
-
-    /** Allows Hibernate to instantiate this isolated validation fixture. */
-    protected StartupFixture() {}
-  }
 }

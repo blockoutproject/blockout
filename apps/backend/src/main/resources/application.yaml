@@ -1,6 +1,15 @@
 spring:
   application:
     name: blockout-backend
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  datasource:
+    hikari:
+      connection-timeout: 3000
+      validation-timeout: 1000
+      data-source-properties:
+        # Actuator's JDBC check uses isValid(0), so pool timeouts alone cannot bound it.
+        socketTimeout: 5
   jpa:
     open-in-view: false
     hibernate:
@@ -8,3 +17,17 @@ spring:
   sql:
     init:
       mode: never
+
+management:
+  endpoint:
+    health:
+      status:
+        order: down,out-of-service,unknown,up
+        http-mapping:
+          down: 503
+          out-of-service: 503
+          unknown: 503
+      group:
+        readiness:
+          include: readinessState,db
+          additional-path: server:/health

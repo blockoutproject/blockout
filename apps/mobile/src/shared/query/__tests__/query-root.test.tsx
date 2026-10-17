@@ -38,7 +38,7 @@ function CacheConsumer() {
   );
 }
 
-it("preserves the route cache across root rerenders and starts empty for a new root", async () => {
+it("scopes the route cache to the lifetime of one root", async () => {
   // Given
   jest.mocked(Slot).mockImplementation(CacheConsumer);
   const user = userEvent.setup();

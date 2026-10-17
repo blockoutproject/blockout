@@ -190,8 +190,14 @@ it.each([false, true])(
     // When
     onlineManager.setOnline(true);
     await jest.advanceTimersByTimeAsync(0);
+
+    // Then
     expect(read).toHaveBeenCalledTimes(2);
+
+    // Given
     read.mockResolvedValue(refreshed);
+
+    // When
     const result = await observer.refetch();
 
     // Then

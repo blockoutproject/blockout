@@ -48,6 +48,8 @@ On `develop` and `main`, administrator enforcement is enabled (`isAdminEnforced:
 
 ## Verification
 
+Before delivery, review every added or modified handwritten test against the applicable testing skill and its canonical examples; passing checks alone do not establish compliance.
+
 Use the actual [README verification commands](README.md#verification), Nx npm/Maven targets and committed [CI](.github/workflows/ci.yml). Check structure, links and formatting for guidance changes, and execute the affected application checks for source/configuration changes. Applications run on the host; local Compose owns PostgreSQL infrastructure. Keep generated outputs ignored and use native development builds for mobile runtime evidence.
 
 Validate affected boundaries proportionately and report passed, failed and unavailable evidence. Documentation checks, application startup and mobile JavaScript exports do not establish design, native or provider approval. Preserve official Spec Kit imports; constitution changes use `speckit-constitution`, and personal skills are copied from their reviewed bank.
