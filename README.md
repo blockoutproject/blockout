@@ -73,6 +73,10 @@ Validate local links, anchors and source ownership against the final tree. [CI](
 
 Server telemetry uses native ECS logging and opt-in Micrometer OTLP export. See the [telemetry setup and investigation guide](infra/observability/README.md) for the permitted fields, private environment wiring and pending activation qualifications. CI validates the Alloy/Compose configuration without granting it Docker-engine access.
 
+Mobile crash reporting uses Expo's compatible Sentry SDK. Ordinary development builds and release builds without `EXPO_PUBLIC_SENTRY_DSN` send no reports. Supply the public DSN and `EXPO_PUBLIC_SENTRY_ENVIRONMENT` through the [mobile environment file](apps/mobile/.env.example), then regenerate both native projects; changing a native destination requires a new binary. Expo generates Cocoa and Java/Kotlin SDK privacy callbacks because JavaScript `beforeSend` cannot filter native events. Errors retain types, packaged source coordinates and symbolication metadata; messages, arbitrary scope, URLs, source excerpts, variables and breadcrumbs are omitted. Replay, tracing, profiling and Sentry Logs are not enabled. Android C/C++ minidump reporting is disabled; its separate envelope path needs a [coverage decision](specs/003-shared-quality/research.md#application-observability) before this lot is complete.
+
+Sentry's Metro/config plugins own source maps and native build integration. Authorized uploads use private build variables `SENTRY_ORG`, `SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN`; never expose the token through `EXPO_PUBLIC_` or app configuration. Set `SENTRY_DISABLE_AUTO_UPLOAD=true` for local unsigned builds. Native/provider activation, actual emitted crash data and symbolication remain subject to [T033 qualification](specs/003-shared-quality/tasks.md) and the [prepared mobile cases](specs/003-shared-quality/quickstart.md#delivery-and-operations). No project, credential, paid capability or remote setting is created by repository verification.
+
 Compose runs only local PostgreSQL 18.6 infrastructure, bound to loopback on port 5432. Applications run on the host. Start the database explicitly:
 
 ```sh

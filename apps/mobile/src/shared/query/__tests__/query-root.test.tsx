@@ -6,10 +6,15 @@ import {
   userEvent,
 } from "@testing-library/react-native";
 import { Slot } from "expo-router";
+import type { ComponentType } from "react";
 import { Pressable, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 
 jest.mock("expo-router", () => ({ Slot: jest.fn() }));
+jest.mock("@sentry/react-native", () => ({
+  init: jest.fn(),
+  wrap: (component: ComponentType) => component,
+}));
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(async () => {
