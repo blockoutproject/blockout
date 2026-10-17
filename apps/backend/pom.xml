@@ -107,12 +107,9 @@
           <configOptions>
             <useSpringBoot4>true</useSpringBoot4>
             <useJackson3>true</useJackson3>
-            <useBeanValidation>true</useBeanValidation>
             <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
             <hideGenerationTimestamp>true</hideGenerationTimestamp>
             <containerDefaultToNull>true</containerDefaultToNull>
-            <openApiNullable>true</openApiNullable>
-            <dateLibrary>java8</dateLibrary>
             <generateJsonIncludeAnnotations>true</generateJsonIncludeAnnotations>
             <generateJsonSetterNullsAnnotations>true</generateJsonSetterNullsAnnotations>
             <optionalNonNullPropertyJsonSetterNulls>FAIL</optionalNonNullPropertyJsonSetterNulls>

@@ -48,16 +48,6 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers-junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers-postgresql</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
   <build>
     <resources>
@@ -98,14 +88,11 @@
                 <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
                 <hideGenerationTimestamp>true</hideGenerationTimestamp>
                 <containerDefaultToNull>true</containerDefaultToNull>
-                <openApiNullable>true</openApiNullable>
-                <dateLibrary>java8</dateLibrary>
                 <generateJsonIncludeAnnotations>true</generateJsonIncludeAnnotations>
                 <generateJsonSetterNullsAnnotations>true</generateJsonSetterNullsAnnotations>
                 <optionalNonNullPropertyJsonSetterNulls>FAIL</optionalNonNullPropertyJsonSetterNulls>
                 <library>restclient</library>
                 <annotationLibrary>none</annotationLibrary>
-                <failOnUnknownProperties>false</failOnUnknownProperties>
                 <useJakartaEe>true</useJakartaEe>
               </configOptions>
             </configuration>
