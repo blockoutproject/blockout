@@ -5,7 +5,7 @@ on:
     inputs:
       preparation_run_id:
         description: Successful, manually qualified Prepare release run
-        type: string
+        type: number
         required: true
 
 permissions:
@@ -21,6 +21,8 @@ jobs:
   compare:
     runs-on: ubuntu-24.04
     steps:
+      - name: Require main
+        run: test "$GITHUB_REF" = refs/heads/main
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -30,11 +32,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PREPARATION_RUN_ID: ${{ inputs.preparation_run_id }}
         run: |
-          test "$GITHUB_REF" = refs/heads/main
-          [[ "$PREPARATION_RUN_ID" =~ ^[0-9]+$ ]]
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PREPARATION_RUN_ID" > "$RUNNER_TEMP/preparation.json"
-          jq -e '.event == "workflow_dispatch" and .path == ".github/workflows/prepare-release.yml" and .head_branch == "develop" and .conclusion == "success"' "$RUNNER_TEMP/preparation.json"
-          revision="$(jq -r .head_sha "$RUNNER_TEMP/preparation.json")"
+          revision="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PREPARATION_RUN_ID" --jq '
+            if .event == "workflow_dispatch" and .path == ".github/workflows/prepare-release.yml"
+              and .head_branch == "develop" and .conclusion == "success"
+            then .head_sha
+            else error("Expected a successful, manually qualified Prepare release run from develop")
+            end')"
           git diff --exit-code "$revision" "$GITHUB_SHA"
           printf 'Qualified source %s matches main %s.\n' "$revision" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
 
@@ -51,16 +54,12 @@ jobs:
           merge-multiple: true
           path: candidate
       - name: Hand off the identical image digests to the Dokploy operator
+        if: hashFiles('candidate/*.image') != ''
         run: |
-          if test -f candidate/backend.digest; then
-            printf 'Set these exact references in Dokploy, then execute the documented native deployment command:\n' >> "$GITHUB_STEP_SUMMARY"
-            for application in backend collector migration; do
-              printf 'ghcr.io/%s/%s@%s\n' "$GITHUB_REPOSITORY" "$application" "$(cat "candidate/$application.digest")" >> "$GITHUB_STEP_SUMMARY"
-            done
-          fi
+          printf 'Set these exact references in Dokploy, then execute the documented native deployment command:\n' >> "$GITHUB_STEP_SUMMARY"
+          cat candidate/backend.image candidate/collector.image candidate/migration.image >> "$GITHUB_STEP_SUMMARY"
       - name: Hand off the same qualified production builds to the store operator
+        if: hashFiles('candidate/production.json') != ''
         run: |
-          if test -f candidate/production.json; then
-            printf 'Explicitly release these qualified builds through the native store consoles:\n' >> "$GITHUB_STEP_SUMMARY"
-            jq -r '.[] | "\(.platform): \(.id)"' candidate/production.json >> "$GITHUB_STEP_SUMMARY"
-          fi
+          printf 'Explicitly release these qualified builds through the native store consoles:\n' >> "$GITHUB_STEP_SUMMARY"
+          jq -r '.[] | "\(.platform): \(.id)"' candidate/production.json >> "$GITHUB_STEP_SUMMARY"

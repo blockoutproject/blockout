@@ -5,6 +5,11 @@ const production = variant === "production";
 const preview = variant === "preview";
 const release = production || preview;
 const easSlug = process.env.EXPO_PROJECT_SLUG;
+const applicationId = production
+  ? "com.blockoutproject.blockout"
+  : preview
+    ? "com.blockoutproject.blockout.preproduction"
+    : "com.blockout.local";
 
 if (variant && !easSlug) {
   throw new Error("EAS profiles require the existing EXPO_PROJECT_SLUG.");
@@ -15,7 +20,7 @@ const config: ExpoConfig = {
   name: production
     ? "Blockout"
     : preview
-      ? "Blockout Préprod"
+      ? "Blockout Preprod"
       : "Blockout Local",
   slug: easSlug ?? "blockout-local",
   version: "0.0.0",
@@ -34,19 +39,11 @@ const config: ExpoConfig = {
     ],
   ],
   ios: {
-    bundleIdentifier: production
-      ? "com.blockoutproject.blockout"
-      : preview
-        ? "com.blockoutproject.blockout.preproduction"
-        : "com.blockout.local",
+    bundleIdentifier: applicationId,
     supportsTablet: false,
   },
   android: {
-    package: production
-      ? "com.blockoutproject.blockout"
-      : preview
-        ? "com.blockoutproject.blockout.preproduction"
-        : "com.blockout.local",
+    package: applicationId,
   },
   ...(easSlug
     ? { extra: { eas: { projectId: "10cdf86a-a81e-496a-bcaa-07c132678f6d" } } }
