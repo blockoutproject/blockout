@@ -10,7 +10,9 @@ Use the selected dependency versions, isolated test data and the required test e
 
 ## Contract boundary
 
-With the canonical roots and selected generator configuration present, lint and bundle each root using Redocly; generate backend interfaces/DTOs, collector RestClient and mobile Query/Zod output at the same revision. Run owning Maven compile/tests and mobile typecheck/Jest targets; regenerate from a clean output directory and compare normalized results. Expected: reproducible output, no generated source committed, no template patch and all actual consumers compile.
+With the canonical roots and selected generator configuration present, lint and bundle each root using Redocly; generate backend interfaces/DTOs, collector RestClient and mobile Query/Zod output at the same revision. CI runs the owning Maven compile/tests and mobile typecheck/Jest targets from a clean checkout.
+
+When introducing or changing a generator or its configuration, also regenerate from clean output directories, compare normalized results and verify that generated outputs remain ignored. Record the outcome in the PR. This targeted qualification avoids a second generation on every CI run. Expected: reproducible output, no generated source committed, no template patch and all actual consumers compile.
 
 Exercise the actual HTTP entry/decoding path, not only schemas in isolation: required/optional/nullable/empty values; nested unknown request rejection; additional response tolerance; wrong types, unknown enums and dates; safe Problem Details; malformed/partial JSON; 204/non-JSON; cancellation and bounded timeout. Expected: malformed business responses never resolve as success or enter Query cache, and valid response validation runs once. Inspect Orval schema passing and Java Bean Validation/Jackson behavior. A required unsupported shape blocks adoption until a supported path is proven; never replace this with a cast or silent weakening.
 
