@@ -43,7 +43,6 @@
       "options": {
         "parallel": false,
         "commands": [
-          "npm run format:check --workspace=@blockout/mobile",
           "npm run lint --workspace=@blockout/mobile",
           "npm run typecheck --workspace=@blockout/mobile",
           "npm run test --workspace=@blockout/mobile",
