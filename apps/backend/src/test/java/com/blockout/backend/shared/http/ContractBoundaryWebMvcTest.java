@@ -31,6 +31,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
@@ -48,8 +49,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Qualifies generated models and interface mappings with adapters confined to test sources. */
+/**
+ * Qualifies generated binding and error translation with test-only adapters. SecurityWebMvcTest
+ * separately exercises the real authentication filters; this slice isolates HTTP serialization.
+ */
 @WebMvcTest
+@AutoConfigureMockMvc(addFilters = false)
 @ExtendWith(OutputCaptureExtension.class)
 @Import({
   HttpConfiguration.class,

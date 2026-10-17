@@ -18,6 +18,8 @@ Exercise the actual HTTP entry/decoding path, not only schemas in isolation: req
 
 ## Authorization and session
 
+Run `npx nx run backend:test` and `npx nx run collector:test` for the shared security boundary. `SecurityWebMvcTest` verifies real JWT signatures, issuer/audience/expiry, client and scope refusals, safe 401/403 and public exceptions. `IngestionAuthenticationIntegrationTest` verifies the actual generated client, Boot registration and native OAuth cache against controlled token/business endpoints: reuse, shorter expiry, bounded renewal failure and no rejected/uncertain write replay. These fixtures establish shared framework wiring, not real Auth0 settings or owner-specific business authorization.
+
 Use controlled visitor, ordinary, authorized and different-owner identities across both environments. Call protected operations directly with missing/expired/wrong-issuer/wrong-audience/wrong-client/scope-limited tokens. Expected: missing or invalid credentials return 401 with a Bearer challenge; authenticated client/scope/permission refusals return 403, with no prohibited business effect or disclosure. Keep F05's explicitly accepted token-validity limits and F09 SDK entitlement authority; do not test invented instantaneous global revocation.
 
 Delay account A's response; sign out or switch to B; deliver the old result after attempted cancellation. Expected: A's private state cannot enter B's cache or become usable. Fail remote logout and verify local cleanup. Lose a mutation response, renew credentials or reconnect network: no automatic mutation replay. F03 accepted explicit/navigation/foreground refresh still works, and F07 expiration applies without network.
