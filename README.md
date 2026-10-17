@@ -71,6 +71,8 @@ Validate local links, anchors and source ownership against the final tree. [CI](
 
 ## Local development
 
+The [manual delivery guide](infra/dokploy/README.md) owns source-built images, separate release Compose configuration and the manual preparation/promotion workflows. Merges run CI only. Actual Dokploy deployments, EAS builds and store release require their explicit manual steps and environment qualification.
+
 Server telemetry uses native ECS logging and opt-in Micrometer OTLP export. See the [telemetry setup and investigation guide](infra/observability/README.md) for the permitted fields, private environment wiring and pending activation qualifications. CI validates the Alloy/Compose configuration without granting it Docker-engine access.
 
 Mobile crash reporting follows the [official Expo/Sentry integration](https://docs.sentry.io/platforms/react-native/guides/expo/): one JavaScript initialization configures the native SDKs, including Android C/C++ crash handling. Ordinary development builds and release builds without `EXPO_PUBLIC_SENTRY_DSN` send no reports. Supply the public DSN and `EXPO_PUBLIC_SENTRY_ENVIRONMENT` through the [mobile environment file](apps/mobile/.env.example) when building an authorized release. The JavaScript `beforeSend` filter retains technical types, packaged source coordinates and symbolication metadata while excluding free-form context. Breadcrumbs, replay, tracing, profiling and Sentry Logs are disabled. Native events bypass that JavaScript filter: their [standard Sentry scrubbing controls and limitations](specs/003-shared-quality/research.md#application-observability) must be qualified before activation.

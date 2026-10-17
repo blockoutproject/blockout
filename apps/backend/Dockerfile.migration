@@ -1,0 +1,14 @@
+FROM eclipse-temurin:25-jdk-noble AS driver
+RUN apt-get update && apt-get install -y --no-install-recommends unzip && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace
+COPY .mvn .mvn
+COPY mvnw pom.xml ./
+COPY apps/backend/pom.xml apps/backend/pom.xml
+COPY apps/collector/pom.xml apps/collector/pom.xml
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -ntp -pl apps/backend dependency:copy-dependencies -DincludeArtifactIds=postgresql -DoutputDirectory=/drivers
+
+# Keep the CLI aligned with the Spring Boot BOM; Maven supplies its managed JDBC driver.
+FROM liquibase/liquibase:5.0.3
+COPY --from=driver /drivers/postgresql-*.jar /liquibase/lib/
+COPY apps/backend/src/main/resources/db/changelog /liquibase/changelog
+CMD ["--changelog-file=db.changelog-master.xml", "update"]
