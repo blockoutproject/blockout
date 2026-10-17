@@ -4,6 +4,24 @@ spring:
   main:
     web-application-type: none
     keep-alive: true
+  security:
+    oauth2:
+      client:
+        registration:
+          ingestion:
+            provider: auth0
+            client-id: ${BLOCKOUT_INGESTION_CLIENT_ID}
+            client-secret: ${BLOCKOUT_INGESTION_CLIENT_SECRET}
+            authorization-grant-type: client_credentials
+            client-authentication-method: client_secret_post
+            scope: sporting:ingest
+        provider:
+          auth0:
+            token-uri: ${BLOCKOUT_INGESTION_TOKEN_URI}
+
+blockout:
+  ingestion:
+    audience: ${BLOCKOUT_INGESTION_AUDIENCE}
 
 management:
   otlp:

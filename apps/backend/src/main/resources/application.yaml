@@ -18,6 +18,14 @@ spring:
     init:
       mode: never
 
+blockout:
+  security:
+    issuer: ${BLOCKOUT_SECURITY_ISSUER}
+    mobile-audience: ${BLOCKOUT_SECURITY_MOBILE_AUDIENCE}
+    mobile-client-id: ${BLOCKOUT_SECURITY_MOBILE_CLIENT_ID}
+    ingestion-audience: ${BLOCKOUT_SECURITY_INGESTION_AUDIENCE}
+    ingestion-client-id: ${BLOCKOUT_SECURITY_INGESTION_CLIENT_ID}
+
 management:
   otlp:
     metrics:
