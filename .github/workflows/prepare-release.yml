@@ -1,0 +1,132 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Exact develop commit SHA to prepare (must match the selected workflow ref)
+        type: string
+        required: true
+      target:
+        description: Applications to prepare
+        type: choice
+        options: [Server, Mobile, Both]
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  source:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require the exact develop revision
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/develop
+          test "$REQUESTED_REVISION" = "$GITHUB_SHA"
+
+  server:
+    needs: [verify, source]
+    if: inputs.target != 'Mobile'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - application: backend
+            dockerfile: apps/backend/Dockerfile
+          - application: collector
+            dockerfile: apps/collector/Dockerfile
+          - application: migration
+            dockerfile: apps/backend/Dockerfile.migration
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        id: build
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.application }}:${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+      - name: Retain the native digest
+        env:
+          APPLICATION: ${{ matrix.application }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          printf '%s\n' "$DIGEST" > "$APPLICATION.digest"
+          printf 'ghcr.io/%s/%s@%s\n' "$GITHUB_REPOSITORY" "$APPLICATION" "$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ matrix.application }}-candidate
+          path: ${{ matrix.application }}.digest
+          if-no-files-found: error
+
+  mobile:
+    needs: [verify, source]
+    if: inputs.target != 'Server'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [preview, production]
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PROJECT_SLUG: ${{ vars.EXPO_PROJECT_SLUG }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm install --global npm@12.0.1
+      - run: npm ci --no-audit --no-fund
+      - uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # 9.0.0
+        with:
+          eas-version: 25.1.1
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Build both native platforms and retain only their identifiers
+        working-directory: apps/mobile
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          eas build --profile "$PROFILE" --platform all --non-interactive --wait --json > "$RUNNER_TEMP/eas-builds.json"
+          jq '[.[] | {id, platform}]' "$RUNNER_TEMP/eas-builds.json" > "$PROFILE.json"
+          jq -r '.[] | "\(.platform): \(.id)"' "$PROFILE.json" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ matrix.profile }}-candidate
+          path: apps/mobile/${{ matrix.profile }}.json
+          if-no-files-found: error
+
+  qualification:
+    name: Record manual preproduction qualification
+    needs: [verify, source, server, mobile]
+    if: >-
+      ${{ !cancelled() && needs.verify.result == 'success' && needs.source.result == 'success' &&
+          (needs.server.result == 'success' || needs.server.result == 'skipped') &&
+          (needs.mobile.result == 'success' || needs.mobile.result == 'skipped') }}
+    runs-on: ubuntu-24.04
+    environment: preproduction
+    steps:
+      # The reviewer first deploys/tests these exact artifacts using Dokploy and native store tools.
+      - name: Record the approved candidate
+        run: printf 'Preproduction qualification approved for %s. Native deployment/build records retain the evidence.\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
