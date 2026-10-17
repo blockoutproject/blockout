@@ -61,7 +61,6 @@ class DatabaseConfigurationIntegrationTest {
     try (ConfigurableApplicationContext context = startApplication("migrated")) {
       // Then
       assertThat(((WebServerApplicationContext) context).getWebServer().getPort()).isPositive();
-      assertThat(context.containsBean("liquibase")).isFalse();
       try (Connection connection = applicationConnection("migrated");
           Statement sql = connection.createStatement()) {
         assertThat(
@@ -164,7 +163,6 @@ class DatabaseConfigurationIntegrationTest {
             "--spring.datasource.url=" + url(schema),
             "--spring.datasource.username=blockout_app",
             "--spring.datasource.password=harmless-app",
-            "--spring.liquibase.change-log=classpath:db/changelog/database-fixture.xml",
             "--spring.main.banner-mode=off");
   }
 

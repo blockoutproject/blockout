@@ -84,7 +84,7 @@ LIQUIBASE_PASSWORD=local-migration-only \
 npx nx run backend:migrate
 ```
 
-The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-master.xml) is intentionally empty until domain owners add their real tables. Backend startup disables SQL initialization and Liquibase, and uses Hibernate validation. Freeze the mutable baseline at the first preproduction/production version; later changes are immutable migrations.
+The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-master.xml) is intentionally empty until domain owners add their real tables. Backend startup disables SQL initialization and uses Hibernate validation; Liquibase is confined to the migration plugin and integration tests, outside the application runtime. Freeze the mutable baseline at the first preproduction/production version; later changes are immutable migrations.
 
 Each application owns a safe `.env.example`. Copy it to `.env.local` when local values are needed. Spring does not read dotenv files: export the chosen application's file in its launching shell. From the repository root, in separate terminals:
 

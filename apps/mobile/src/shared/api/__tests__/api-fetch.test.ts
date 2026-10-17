@@ -39,7 +39,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   jest.restoreAllMocks();
-  jest.useRealTimers();
 });
 
 it("validates the generated response exactly once and accepts additive nested data", async () => {
@@ -280,8 +279,19 @@ it("does not send an already cancelled request", async () => {
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
+it.each([0, 0.5, Number.POSITIVE_INFINITY])(
+  "rejects an invalid timeout of %s before sending",
+  async (timeoutMs) => {
+    // Given / When / Then
+    await expect(getApplicationAccess({ timeoutMs })).rejects.toMatchObject({
+      kind: "configuration",
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  },
+);
+
 it("bounds an uncertain write without replay", async () => {
-  jest.useFakeTimers();
+  // Given
   mockFetch.mockImplementation(
     (_url, options) =>
       new Promise((_resolve, reject) =>
@@ -290,10 +300,13 @@ it("bounds an uncertain write without replay", async () => {
         ),
       ),
   );
-  const request = eraseAccount(accountId, { timeoutMs: 50 });
-  const assertion = expect(request).rejects.toMatchObject({ kind: "timeout" });
-  await jest.advanceTimersByTimeAsync(50);
-  await assertion;
+
+  // When / Then
+  await expect(
+    eraseAccount(accountId, { timeoutMs: 50 }),
+  ).rejects.toMatchObject({
+    kind: "timeout",
+  });
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 
@@ -331,4 +344,62 @@ it("rejects a response that arrives after caller cancellation", async () => {
   await expect(
     getApplicationAccess({ signal: controller.signal }),
   ).rejects.toMatchObject({ kind: "cancelled" });
+});
+
+it("rejects JSON read after caller cancellation", async () => {
+  // Given
+  const controller = new AbortController();
+  const response = new Response("{}", {
+    headers: { "Content-Type": "application/json" },
+  });
+  jest.spyOn(response, "json").mockImplementation(async () => {
+    controller.abort();
+    return accessResponse();
+  });
+  mockFetch.mockResolvedValue(response);
+
+  // When / Then
+  await expect(
+    getApplicationAccess({ signal: controller.signal }),
+  ).rejects.toMatchObject({ kind: "cancelled" });
+});
+
+it("rejects binary content read after caller cancellation", async () => {
+  // Given
+  const controller = new AbortController();
+  const response = new Response("image-bytes", {
+    headers: { "Content-Type": "image/png" },
+  });
+  jest.spyOn(response, "blob").mockImplementation(async () => {
+    controller.abort();
+    return new Blob(["image-bytes"]);
+  });
+  mockFetch.mockResolvedValue(response);
+
+  // When / Then
+  await expect(
+    getAccountPhoto(accountId, { signal: controller.signal }),
+  ).rejects.toMatchObject({ kind: "cancelled" });
+});
+
+it("rejects a response that arrives after the timeout", async () => {
+  // Given
+  mockFetch.mockImplementation(
+    (_url, options) =>
+      new Promise((resolve) =>
+        options?.signal?.addEventListener("abort", () =>
+          resolve(
+            new Response(JSON.stringify(accessResponse()), {
+              headers: { "Content-Type": "application/json" },
+            }),
+          ),
+        ),
+      ),
+  );
+
+  // When / Then
+  await expect(getApplicationAccess({ timeoutMs: 50 })).rejects.toMatchObject({
+    kind: "timeout",
+  });
+  expect(mockFetch).toHaveBeenCalledTimes(1);
 });
