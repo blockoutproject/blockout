@@ -269,14 +269,14 @@ OwnReport:
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 Moderation:
-  parameters:
-    - $ref: ./parameters.yaml#/StreamPage
-    - $ref: ./parameters.yaml#/StreamSeason
-    - $ref: ./parameters.yaml#/StreamQuery
-    - $ref: ./parameters.yaml#/StreamPlatform
-    - $ref: ./parameters.yaml#/StreamFilter
-    - $ref: ../access/parameters.yaml#/MaintenanceBypass
   get:
+    parameters:
+      - $ref: ./parameters.yaml#/StreamPage
+      - $ref: ./parameters.yaml#/StreamSeason
+      - $ref: ./parameters.yaml#/StreamQuery
+      - $ref: ./parameters.yaml#/StreamPlatform
+      - $ref: ./parameters.yaml#/StreamFilter
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     operationId: listStreamModeration
     tags:
       - StreamContributions
@@ -539,12 +539,12 @@ Reactivations:
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 Reports:
-  parameters:
-    - $ref: ./parameters.yaml#/StreamMatch
-    - $ref: ./parameters.yaml#/StreamContribution
-    - $ref: ./parameters.yaml#/StreamPage
-    - $ref: ../access/parameters.yaml#/MaintenanceBypass
   get:
+    parameters:
+      - $ref: ./parameters.yaml#/StreamMatch
+      - $ref: ./parameters.yaml#/StreamContribution
+      - $ref: ./parameters.yaml#/StreamPage
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
     operationId: listStreamReports
     tags:
       - StreamContributions

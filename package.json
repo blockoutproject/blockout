@@ -13,12 +13,14 @@
   "scripts": {
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "lint:contracts": "redocly lint contracts/http/ingestion/openapi.yaml contracts/http/mobile/openapi.yaml contracts/http/legacy-mobile/openapi.yaml --extends minimal",
+    "lint:contracts": "redocly lint --config .redocly.yaml",
     "lint": "nx run-many -t lint",
     "typecheck": "nx run-many -t typecheck",
     "test": "nx run-many -t test",
     "build": "nx run-many -t build",
-    "verify": "npm run format:check && npm run lint:contracts && nx run-many -t verify --output-style=static"
+    "verify": "npm run format:check && nx run-many -t verify --output-style=static",
+    "bundle:contracts": "npm run lint:contracts && redocly bundle --config .redocly.yaml --dereferenced",
+    "generate": "nx run-many -t generate --output-style=static"
   },
   "overrides": {
     "react": "19.2.3",

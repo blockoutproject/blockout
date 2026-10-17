@@ -6,14 +6,40 @@
   "targets": {
     "serve": {
       "command": "./mvnw -B -ntp -pl apps/backend spring-boot:run",
-      "continuous": true
+      "continuous": true,
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ]
     },
     "build": {
-      "command": "./mvnw -B -ntp -pl apps/backend package -DskipTests"
+      "command": "./mvnw -B -ntp -pl apps/backend package -DskipTests",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ]
     },
-    "test": { "command": "./mvnw -B -ntp -pl apps/backend verify" },
+    "test": {
+      "command": "./mvnw -B -ntp -pl apps/backend verify",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ]
+    },
     "typecheck": {
-      "command": "./mvnw -B -ntp -pl apps/backend test-compile"
+      "command": "./mvnw -B -ntp -pl apps/backend test-compile",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ]
     },
     "lint": {
       "command": "./mvnw -B -ntp -pl apps/backend checkstyle:check"
@@ -21,6 +47,28 @@
     "format-check": {
       "command": "./mvnw -B -ntp -pl apps/backend spotless:check"
     },
-    "verify": { "command": "./mvnw -B -ntp -pl apps/backend verify" }
-  }
+    "verify": {
+      "command": "./mvnw -B -ntp -pl apps/backend verify",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ]
+    },
+    "migrate": {
+      "command": "./mvnw -B -ntp -pl apps/backend liquibase:update"
+    },
+    "generate": {
+      "command": "./mvnw -B -ntp -pl apps/backend generate-sources",
+      "dependsOn": [
+        {
+          "target": "bundle",
+          "projects": ["http-contracts"]
+        }
+      ],
+      "outputs": ["{projectRoot}/target/generated-sources/openapi"]
+    }
+  },
+  "implicitDependencies": ["http-contracts"]
 }

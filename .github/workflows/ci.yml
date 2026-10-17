@@ -43,7 +43,7 @@ jobs:
       - name: Install locked workspace dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Verify documentation, contracts and executable applications
+      - name: Verify contracts, generated consumers, HTTP boundaries and database roles
         env:
           CI: "true"
           NX_DAEMON: "false"

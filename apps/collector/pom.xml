@@ -10,6 +10,28 @@
   <artifactId>collector</artifactId>
   <dependencies>
     <dependency>
+      <groupId>com.atlassian.oai</groupId>
+      <artifactId>openapi-request-validator-spring-web-client</artifactId>
+      <version>3.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents.client5</groupId>
+      <artifactId>httpclient5</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>jackson-databind-nullable</artifactId>
+      <version>0.2.12</version>
+    </dependency>
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter</artifactId>
     </dependency>
@@ -30,7 +52,58 @@
     </dependency>
   </dependencies>
   <build>
+    <resources>
+      <resource><directory>src/main/resources</directory></resource>
+      <resource>
+        <directory>${maven.multiModuleProjectDirectory}/contracts/http/.generated</directory>
+        <includes><include>ingestion.yaml</include></includes>
+        <targetPath>contracts</targetPath>
+      </resource>
+    </resources>
     <plugins>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.26.0</version>
+        <executions>
+          <execution>
+            <id>ingestion</id>
+            <goals><goal>generate</goal></goals>
+            <configuration>
+              <inputSpec>${maven.multiModuleProjectDirectory}/contracts/http/.generated/ingestion.yaml</inputSpec>
+              <cleanupOutput>true</cleanupOutput>
+              <generatorName>java</generatorName>
+              <output>${project.build.directory}/generated-sources/openapi/ingestion</output>
+              <apiPackage>com.blockout.collector.generated.ingestion.api</apiPackage>
+              <modelPackage>com.blockout.collector.generated.ingestion.model</modelPackage>
+              <invokerPackage>com.blockout.collector.generated.ingestion</invokerPackage>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+              <generateApiDocumentation>false</generateApiDocumentation>
+              <generateModelDocumentation>false</generateModelDocumentation>
+              <generateSupportingFiles>true</generateSupportingFiles>
+              <supportingFilesToGenerate>ApiClient.java,ServerConfiguration.java,ServerVariable.java,Authentication.java,HttpBearerAuth.java,OAuth.java,ApiKeyAuth.java,HttpBasicAuth.java,RFC3339DateFormat.java,ExceptionProvider.java,StringUtil.java,JavaTimeFormatter.java</supportingFilesToGenerate>
+              <configOptions>
+                <useSpringBoot4>true</useSpringBoot4>
+                <useJackson3>true</useJackson3>
+                <useBeanValidation>true</useBeanValidation>
+                <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
+                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                <containerDefaultToNull>true</containerDefaultToNull>
+                <openApiNullable>true</openApiNullable>
+                <dateLibrary>java8</dateLibrary>
+                <generateJsonIncludeAnnotations>true</generateJsonIncludeAnnotations>
+                <generateJsonSetterNullsAnnotations>true</generateJsonSetterNullsAnnotations>
+                <optionalNonNullPropertyJsonSetterNulls>FAIL</optionalNonNullPropertyJsonSetterNulls>
+                <library>restclient</library>
+                <annotationLibrary>none</annotationLibrary>
+                <failOnUnknownProperties>false</failOnUnknownProperties>
+                <useJakartaEe>true</useJakartaEe>
+              </configOptions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>

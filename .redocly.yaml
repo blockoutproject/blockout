@@ -1,0 +1,12 @@
+extends:
+  - minimal
+apis:
+  mobile:
+    root: contracts/http/mobile/openapi.yaml
+    output: contracts/http/.generated/mobile.yaml
+  ingestion:
+    root: contracts/http/ingestion/openapi.yaml
+    output: contracts/http/.generated/ingestion.yaml
+  legacy-mobile:
+    root: contracts/http/legacy-mobile/openapi.yaml
+    output: contracts/http/.generated/legacy-mobile.yaml

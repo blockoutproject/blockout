@@ -1,10 +1,10 @@
 TeamFollows:
-  parameters:
-    - $ref: ./parameters.yaml#/Account
-    - $ref: ../access/parameters.yaml#/MaintenanceBypass
-    - $ref: ./parameters.yaml#/Season
-    - $ref: ./parameters.yaml#/FollowPage
   get:
+    parameters:
+      - $ref: ./parameters.yaml#/Account
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+      - $ref: ./parameters.yaml#/Season
+      - $ref: ./parameters.yaml#/FollowPage
     operationId: listTeamFollows
     tags:
       - Following
@@ -140,12 +140,12 @@ TeamFollowerCount:
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 PoolFollows:
-  parameters:
-    - $ref: ./parameters.yaml#/Account
-    - $ref: ../access/parameters.yaml#/MaintenanceBypass
-    - $ref: ./parameters.yaml#/Season
-    - $ref: ./parameters.yaml#/FollowPage
   get:
+    parameters:
+      - $ref: ./parameters.yaml#/Account
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+      - $ref: ./parameters.yaml#/Season
+      - $ref: ./parameters.yaml#/FollowPage
     operationId: listPoolFollows
     tags:
       - Following
@@ -313,14 +313,14 @@ Options:
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
 Matches:
-  parameters:
-    - $ref: ./parameters.yaml#/Account
-    - $ref: ../access/parameters.yaml#/MaintenanceBypass
-    - $ref: ./parameters.yaml#/Season
-    - $ref: ../consultation/parameters.yaml#/Category
-    - $ref: ../consultation/parameters.yaml#/TimeZone
-    - $ref: ../consultation/parameters.yaml#/NextDay
   get:
+    parameters:
+      - $ref: ./parameters.yaml#/Account
+      - $ref: ../access/parameters.yaml#/MaintenanceBypass
+      - $ref: ./parameters.yaml#/Season
+      - $ref: ../consultation/parameters.yaml#/Category
+      - $ref: ../consultation/parameters.yaml#/TimeZone
+      - $ref: ../consultation/parameters.yaml#/NextDay
     operationId: listPersonalMatches
     tags:
       - Following

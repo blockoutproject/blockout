@@ -43,9 +43,9 @@ npm run verify
 git diff --check
 ```
 
-`verify` checks formatting, all three OpenAPI roots and the three applications through ordinary Nx npm/Maven targets. Java runs Checkstyle, Spotless, compilation, startup tests and packaging. Surefire discovers `*Test` (including `*UnitTest`, `*WebMvcTest`, `*JpaTest` and `*SmokeTest`); Failsafe alone discovers `*IntegrationTest` during `verify`. Testcontainers JUnit/PostgreSQL support uses the Spring Boot BOM. Database-bound suites use PostgreSQL 18.6 when introduced; setup has no application schema or database test yet.
+`verify` checks formatting, lints/bundles all three OpenAPI roots, regenerates their real Java/mobile consumers and verifies the three applications through ordinary Nx npm/Maven targets. Generated bundles and code stay under ignored `.generated/` and `target/generated-sources/` directories. Generator or generation-configuration changes also require the [targeted reproducibility qualification](specs/003-shared-quality/quickstart.md#contract-boundary). Java runs Checkstyle, Spotless, compilation, startup tests and packaging. Surefire discovers `*Test` (including `*UnitTest`, `*WebMvcTest`, `*JpaTest` and `*SmokeTest`); Failsafe alone discovers `*IntegrationTest` during `verify`. Testcontainers JUnit/PostgreSQL support uses the Spring Boot BOM. The database integration suite uses disposable PostgreSQL 18.6, the local role script and test-only mappings to prove explicit Liquibase execution, validation-only startup and denied application DDL. It requires a running Docker engine. No domain table is introduced.
 
-Mobile verification runs Prettier, ESLint, TypeScript, Jest Expo, native-platform JavaScript exports and Expo Doctor. Jest discovers co-located `__tests__/*.test.ts(x)` suites. The empty launch route has no behavior suite yet, so Jest explicitly permits no tests; this is not mobile behavior evidence. React Native Testing Library is available for meaningful feature tests. Exports prove bundling, not an installed native build.
+Root verification runs Prettier once for the whole repository, including mobile. `mobile:verify` runs ESLint, TypeScript, Jest Expo, native-platform JavaScript exports and Expo Doctor. Jest discovers co-located `__tests__/*.test.ts(x)` suites. The generated consumer suite exercises schema validation, error profiles, binary/204 responses, cancellation and timeout at the Fetch boundary; it does not qualify a native networking stack or a business screen. React Native Testing Library is available for meaningful feature tests. Exports prove bundling, not an installed native build.
 
 Useful focused commands:
 
@@ -57,6 +57,8 @@ npx nx show project mobile --json
 npx nx run backend:test
 npx nx run collector:test
 npx nx run mobile:verify
+npx nx run mobile:format-check
+npm run generate
 ./mvnw -B -ntp verify
 ./mvnw -B -ntp spotless:apply
 ```
@@ -74,7 +76,16 @@ docker compose up -d --wait
 
 If port 5432 is occupied, set `POSTGRES_PORT=55432` for the Compose command and use that port in the backend's local JDBC URL.
 
-The named volume retains local data. [Initialization SQL](infra/postgres/init-roles.sql) runs only on an empty volume: `blockout_migration` owns the database/schema, and `blockout_app` has data access without schema creation rights. Compose's fixed passwords are disposable local examples; never reuse them for hosted environments. Configuration edits do not update existing roles. No command here resets volumes. Explicit Liquibase execution, schema validation and application connections belong to F13 T015/T016.
+The named volume retains local data. [Initialization SQL](infra/postgres/init-roles.sql) runs only on an empty volume: `blockout_migration` owns the database/schema, and `blockout_app` has data access without schema creation rights. Compose's fixed passwords are disposable local examples; never reuse them for hosted environments. Configuration edits do not update existing roles. No command here resets volumes. Run migrations separately, supplying the migration role only to that command:
+
+```sh
+LIQUIBASE_URL=jdbc:postgresql://localhost:5432/blockout \
+LIQUIBASE_USERNAME=blockout_migration \
+LIQUIBASE_PASSWORD=local-migration-only \
+npx nx run backend:migrate
+```
+
+The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-master.xml) is intentionally empty until domain owners add their real tables. Backend startup disables SQL initialization and uses Hibernate validation; Liquibase is confined to the migration plugin and integration tests, outside the application runtime. Freeze the mutable baseline at the first preproduction/production version; later changes are immutable migrations.
 
 Each application owns a safe `.env.example`. Copy it to `.env.local` when local values are needed. Spring does not read dotenv files: export the chosen application's file in its launching shell. From the repository root, in separate terminals:
 
@@ -94,7 +105,7 @@ set +a
 npx nx run collector:serve
 ```
 
-Backend starts on port 8080 with no business endpoints. Collector starts a non-web process and remains alive until stopped; it performs no source acquisition yet and has no database credentials. Database and ingestion settings in the examples are reserved for the next foundation lot.
+Backend starts on port 8080 with no business endpoints. Collector starts a non-web process and remains alive until stopped; it performs no source acquisition yet and has no database credentials. Backend requires the configured PostgreSQL connection. The collector has a configured, bounded generated ingestion client; acquisition and credential ownership remain with their feature lots.
 
 Expo automatically reads `apps/mobile/.env.local`. Use a separate JDK 21 for Android Gradle/CMake in the mobile terminal; keep Temurin 25 for Maven. Build and launch with the Android SDK/emulator or Xcode 26.4+/iOS simulator:
 
