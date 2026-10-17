@@ -27,30 +27,27 @@ it("announces the complete action and activates it once", async () => {
   expect(onPress).toHaveBeenCalledTimes(1);
 });
 
-it.each([{ disabled: true }, { loading: true }])(
-  "prevents activation while unavailable: %j",
-  async (state) => {
-    // Given
-    const onPress = jest.fn();
-    const user = userEvent.setup();
-    await render(
-      <ThemeProvider>
-        <Button label="Enregistrer" onPress={onPress} {...state} />
-      </ThemeProvider>,
-    );
+it.each([
+  { disabled: true, loading: false },
+  { disabled: false, loading: true },
+])("prevents activation while unavailable: %j", async (state) => {
+  // Given
+  const onPress = jest.fn();
+  const user = userEvent.setup();
+  await render(
+    <ThemeProvider>
+      <Button label="Enregistrer" onPress={onPress} {...state} />
+    </ThemeProvider>,
+  );
 
-    // When
-    const action = screen.getByRole("button", {
-      name: "Enregistrer",
-      disabled: true,
-    });
-    await user.press(action);
+  // When
+  const action = screen.getByRole("button", {
+    name: "Enregistrer",
+    disabled: true,
+    busy: state.loading,
+  });
+  await user.press(action);
 
-    // Then
-    expect(onPress).not.toHaveBeenCalled();
-    if ("loading" in state)
-      expect(
-        screen.getByRole("button", { name: "Enregistrer", busy: true }),
-      ).toBe(action);
-  },
-);
+  // Then
+  expect(onPress).not.toHaveBeenCalled();
+});

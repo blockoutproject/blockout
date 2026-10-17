@@ -31,26 +31,30 @@ it("announces the caller's action independently of its decorative icon", async (
   expect(onPress).toHaveBeenCalledTimes(1);
 });
 
-it.each([{ disabled: true }, { loading: true }])(
-  "blocks an unavailable icon action: %j",
-  async (state) => {
-    // Given
-    const onPress = jest.fn();
-    const user = userEvent.setup();
-    await render(
-      <ThemeProvider>
-        <IconButton label="Actualiser" onPress={onPress} {...state}>
-          <Text>↻</Text>
-        </IconButton>
-      </ThemeProvider>,
-    );
+it.each([
+  { disabled: true, loading: false },
+  { disabled: false, loading: true },
+])("blocks an unavailable icon action: %j", async (state) => {
+  // Given
+  const onPress = jest.fn();
+  const user = userEvent.setup();
+  await render(
+    <ThemeProvider>
+      <IconButton label="Actualiser" onPress={onPress} {...state}>
+        <Text>↻</Text>
+      </IconButton>
+    </ThemeProvider>,
+  );
 
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Actualiser", disabled: true }),
-    );
+  // When
+  await user.press(
+    screen.getByRole("button", {
+      name: "Actualiser",
+      disabled: true,
+      busy: state.loading,
+    }),
+  );
 
-    // Then
-    expect(onPress).not.toHaveBeenCalled();
-  },
-);
+  // Then
+  expect(onPress).not.toHaveBeenCalled();
+});
