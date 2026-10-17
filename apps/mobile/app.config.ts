@@ -1,11 +1,30 @@
 import type { ExpoConfig } from "expo/config";
 
-/** Local development identity; F14 owns the later production/store identifiers. */
+const variant = process.env.APP_VARIANT;
+const production = variant === "production";
+const preview = variant === "preview";
+const release = production || preview;
+const easSlug = process.env.EXPO_PROJECT_SLUG;
+const applicationId = production
+  ? "com.blockoutproject.blockout"
+  : preview
+    ? "com.blockoutproject.blockout.preproduction"
+    : "com.blockout.local";
+
+if (variant && !easSlug) {
+  throw new Error("EAS profiles require the existing EXPO_PROJECT_SLUG.");
+}
+
+/** Uses Expo's build-time variants and F14's retained production identity; no runtime selector. */
 const config: ExpoConfig = {
-  name: "Blockout Local",
-  slug: "blockout-local",
+  name: production
+    ? "Blockout"
+    : preview
+      ? "Blockout Preprod"
+      : "Blockout Local",
+  slug: easSlug ?? "blockout-local",
   version: "0.0.0",
-  scheme: "blockout-local",
+  ...(!release ? { scheme: "blockout-local" } : {}),
   platforms: ["ios", "android"],
   plugins: [
     "expo-router",
@@ -19,8 +38,16 @@ const config: ExpoConfig = {
       },
     ],
   ],
-  ios: { bundleIdentifier: "com.blockout.local", supportsTablet: false },
-  android: { package: "com.blockout.local" },
+  ios: {
+    bundleIdentifier: applicationId,
+    supportsTablet: false,
+  },
+  android: {
+    package: applicationId,
+  },
+  ...(easSlug
+    ? { extra: { eas: { projectId: "10cdf86a-a81e-496a-bcaa-07c132678f6d" } } }
+    : {}),
 };
 
 export default config;

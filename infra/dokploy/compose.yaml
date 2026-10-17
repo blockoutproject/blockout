@@ -1,0 +1,68 @@
+name: blockout-${BLOCKOUT_ENVIRONMENT:?Select production or preproduction}
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE:?Supply the qualified GHCR digest reference}
+    restart: unless-stopped
+    stop_grace_period: 40s
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:?Supply this environment's JDBC URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:?Supply the application role}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?Supply its private password}
+      BLOCKOUT_SECURITY_ISSUER: ${BLOCKOUT_SECURITY_ISSUER:?Supply the Auth0 issuer}
+      BLOCKOUT_SECURITY_MOBILE_AUDIENCE: ${BLOCKOUT_SECURITY_MOBILE_AUDIENCE:?Supply the mobile audience}
+      BLOCKOUT_SECURITY_MOBILE_CLIENT_ID: ${BLOCKOUT_SECURITY_MOBILE_CLIENT_ID:?Supply the mobile client}
+      BLOCKOUT_SECURITY_INGESTION_AUDIENCE: ${BLOCKOUT_SECURITY_INGESTION_AUDIENCE:?Supply the ingestion audience}
+      BLOCKOUT_SECURITY_INGESTION_CLIENT_ID: ${BLOCKOUT_SECURITY_INGESTION_CLIENT_ID:?Supply the M2M client}
+    expose:
+      - "8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "--fail",
+          "--silent",
+          "--max-time",
+          "5",
+          "--output",
+          "/dev/null",
+          "http://localhost:8080/health",
+        ]
+      interval: 10s
+      timeout: 6s
+      start_period: 30s
+      retries: 6
+    networks:
+      - default
+      - database
+
+  collector:
+    image: ${COLLECTOR_IMAGE:?Supply the qualified GHCR digest reference}
+    restart: unless-stopped
+    stop_grace_period: 40s
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BLOCKOUT_INGESTION_BASE_URL: ${BLOCKOUT_INGESTION_BASE_URL:?Supply this environment's HTTPS API origin}
+      BLOCKOUT_INGESTION_TOKEN_URI: ${BLOCKOUT_INGESTION_TOKEN_URI:?Supply the Auth0 token endpoint}
+      BLOCKOUT_INGESTION_AUDIENCE: ${BLOCKOUT_INGESTION_AUDIENCE:?Supply the ingestion audience}
+      BLOCKOUT_INGESTION_CLIENT_ID: ${BLOCKOUT_INGESTION_CLIENT_ID:?Supply the M2M client}
+      BLOCKOUT_INGESTION_CLIENT_SECRET: ${BLOCKOUT_INGESTION_CLIENT_SECRET:?Supply its private secret}
+
+  migration:
+    image: ${MIGRATION_IMAGE:?Supply the qualified GHCR digest reference}
+    profiles: [migration]
+    environment:
+      LIQUIBASE_COMMAND_URL: ${SPRING_DATASOURCE_URL:?Supply this environment's JDBC URL}
+      LIQUIBASE_COMMAND_USERNAME: ${LIQUIBASE_USERNAME:?Supply the schema-owner role}
+      LIQUIBASE_COMMAND_PASSWORD: ${LIQUIBASE_PASSWORD:?Supply its private password}
+      LIQUIBASE_ANALYTICS_ENABLED: "false"
+    networks:
+      - database
+
+networks:
+  database:
+    external: true
+    name: ${BLOCKOUT_DATABASE_NETWORK:?Supply the independently managed PostgreSQL network}
