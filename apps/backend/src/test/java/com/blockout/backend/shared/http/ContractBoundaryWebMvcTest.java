@@ -1,6 +1,8 @@
 package com.blockout.backend.shared.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -19,6 +21,7 @@ import com.blockout.backend.generated.mobile.model.EstablishAccount200Response;
 import com.blockout.backend.generated.mobile.model.EstablishAccount200ResponsePermissions;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +36,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -68,9 +74,15 @@ class ContractBoundaryWebMvcTest {
       })
   @DisplayName("Rejects missing, invalid and unknown properties through HTTP binding")
   void rejectsInvalidInput(String body) throws Exception {
-    // Given / When
-    mvc.perform(post("/contract/versions").contentType(MediaType.APPLICATION_JSON).content(body))
-        // Then
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/contract/versions").contentType(MediaType.APPLICATION_JSON).content(body);
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isBadRequest())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"))
@@ -80,25 +92,33 @@ class ContractBoundaryWebMvcTest {
   @Test
   @DisplayName("Preserves an omitted nullable field as absent")
   void preservesOmission() throws Exception {
-    // Given / When
-    mvc.perform(
-            post("/contract/versions")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":0}"))
-        // Then
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.message").doesNotHaveJsonPath());
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/contract/versions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"revision\":0}");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isOk()).andExpect(jsonPath("$.message").doesNotHaveJsonPath());
   }
 
   @Test
   @DisplayName("Preserves explicit null for nullable fields")
   void preservesExplicitNull() throws Exception {
-    // Given / When
-    mvc.perform(
-            post("/contract/versions")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":0,\"message\":null}"))
-        // Then
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/contract/versions")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"revision\":0,\"message\":null}");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(content().json("{\"revision\":0,\"message\":null}"));
   }
@@ -109,13 +129,18 @@ class ContractBoundaryWebMvcTest {
   void rejectsInvalidDate(String date) throws Exception {
     // Given
     String body =
-        "{\"cycleId\":\"00000000-0000-4000-8000-000000000001\",\"readOrdinal\":1,\"observedAt\":\""
-            + date
-            + "\"}";
+        """
+        {"cycleId":"00000000-0000-4000-8000-000000000001","readOrdinal":1,"observedAt":"%s"}
+        """
+            .formatted(date);
 
-    // When / Then
-    mvc.perform(post("/contract/observation").contentType(MediaType.APPLICATION_JSON).content(body))
-        .andExpect(status().isBadRequest());
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/contract/observation").contentType(MediaType.APPLICATION_JSON).content(body));
+
+    // Then
+    response.andExpect(status().isBadRequest());
   }
 
   @ParameterizedTest
@@ -126,13 +151,13 @@ class ContractBoundaryWebMvcTest {
     // Given
     MockMultipartFile part =
         new MockMultipartFile(
-            "metadata",
-            "",
-            "application/json",
-            metadata.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            "metadata", "", "application/json", metadata.getBytes(StandardCharsets.UTF_8));
 
-    // When / Then
-    mvc.perform(multipart(HttpMethod.PATCH, ACCOUNT).file(part)).andExpect(status().isBadRequest());
+    // When
+    ResultActions response = mvc.perform(multipart(HttpMethod.PATCH, ACCOUNT).file(part));
+
+    // Then
+    response.andExpect(status().isBadRequest());
   }
 
   @Test
@@ -144,12 +169,16 @@ class ContractBoundaryWebMvcTest {
             "metadata",
             "",
             "application/json",
-            "{\"username\":\"Ada\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            "{\"username\":\"Ada\"}".getBytes(StandardCharsets.UTF_8));
     MockMultipartFile image =
         new MockMultipartFile("image", "photo.png", "image/png", new byte[] {1, 2});
 
-    // When / Then
-    mvc.perform(multipart(HttpMethod.PATCH, ACCOUNT).file(metadata).file(image))
+    // When
+    ResultActions response =
+        mvc.perform(multipart(HttpMethod.PATCH, ACCOUNT).file(metadata).file(image));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(header().string("Accept-Patch", "multipart/form-data"))
         .andExpect(header().string("Cache-Control", "no-store"));
@@ -158,62 +187,76 @@ class ContractBoundaryWebMvcTest {
   @Test
   @DisplayName("Returns safe Problem Details for unsupported media")
   void rejectsUnsupportedMedia() throws Exception {
-    // Given / When
-    mvc.perform(
-            post("/contract/versions").contentType(MediaType.TEXT_PLAIN).content("private payload"))
-        // Then
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/contract/versions").contentType(MediaType.TEXT_PLAIN).content("private payload");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isUnsupportedMediaType())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unsupported-media-type"))
-        .andExpect(
-            content()
-                .string(
-                    org.hamcrest.Matchers.not(
-                        org.hamcrest.Matchers.containsString("private payload"))));
+        .andExpect(content().string(not(containsString("private payload"))));
   }
 
   @Test
   @DisplayName("Keeps intentional 204 responses empty")
   void preservesNoContent() throws Exception {
-    // Given / When / Then
-    mvc.perform(delete(ACCOUNT)).andExpect(status().isNoContent()).andExpect(content().string(""));
+    // Given
+    MockHttpServletRequestBuilder request = delete(ACCOUNT);
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isNoContent()).andExpect(content().string(""));
   }
 
   @Test
   @DisplayName("Preserves a created resource location")
   void preservesLocation() throws Exception {
-    // Given / When / Then
-    mvc.perform(post("/accounts"))
-        .andExpect(status().isCreated())
-        .andExpect(header().string("Location", ACCOUNT));
+    // Given
+    MockHttpServletRequestBuilder request = post("/accounts");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isCreated()).andExpect(header().string("Location", ACCOUNT));
   }
 
   @Test
   @DisplayName("Keeps unexpected failures free of internal details")
   void sanitizesUnexpectedFailure() throws Exception {
-    // Given / When / Then
-    mvc.perform(get("/accounts/me"))
+    // Given
+    MockHttpServletRequestBuilder request = get("/accounts/me");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
         .andExpect(status().isInternalServerError())
         .andExpect(jsonPath("$.instance").doesNotExist())
-        .andExpect(
-            content()
-                .string(
-                    org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("private"))));
+        .andExpect(content().string(not(containsString("private"))));
   }
 
   @Test
   @DisplayName("Serializes and decodes valid additive root and nested response fields")
   void acceptsAdditiveResponse() throws Exception {
-    // Given / When
-    String json =
-        mvc.perform(get(ACCOUNT))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+    // Given
+    MockHttpServletRequestBuilder request = get(ACCOUNT);
+
+    // When
+    MvcResult result = mvc.perform(request).andReturn();
     EstablishAccount200Response response =
-        mapper.readValue(json, EstablishAccount200Response.class);
+        mapper.readValue(
+            result.getResponse().getContentAsString(), EstablishAccount200Response.class);
 
     // Then
+    assertThat(result.getResponse().getStatus()).isEqualTo(200);
     assertThat(response.getUsername()).isEqualTo("Ada");
     assertThat(response.getPrincipalCreatedAt().isPresent()).isTrue();
     assertThat(response.getPrincipalCreatedAt().get()).isNull();

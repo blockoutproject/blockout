@@ -1,17 +1,24 @@
 package com.blockout.collector.ingestion;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 
 import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
+import com.blockout.collector.generated.ingestion.model.GetCollectionWork200Response;
+import com.blockout.collector.generated.ingestion.model.GetCollectionWork200ResponseControlsInner;
 import com.blockout.collector.generated.ingestion.model.GetCollectorRuntime200Response;
 import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeRequest;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClientException;
 
 /** Exercises real generated serialization and decoding against an isolated HTTP server. */
@@ -31,11 +40,14 @@ class GeneratedClientTest {
   private final AtomicInteger calls = new AtomicInteger();
   private boolean disconnect;
   private boolean stall;
-  private final java.util.concurrent.CountDownLatch releaseResponse =
-      new java.util.concurrent.CountDownLatch(1);
-  private org.springframework.http.client.HttpComponentsClientHttpRequestFactory factory;
+  private final CountDownLatch releaseResponse = new CountDownLatch(1);
+  private HttpComponentsClientHttpRequestFactory factory;
 
-  /** Starts a local controlled endpoint; no supplier or business backend is contacted. */
+  /**
+   * Starts a local controlled endpoint; no supplier or business backend is contacted.
+   *
+   * @throws IOException if the loopback listener cannot be opened
+   */
   @BeforeEach
   void startServer() throws IOException {
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -46,7 +58,7 @@ class GeneratedClientTest {
           exchange.getRequestBody().readAllBytes();
           if (stall) {
             try {
-              releaseResponse.await(3, java.util.concurrent.TimeUnit.SECONDS);
+              releaseResponse.await(3, TimeUnit.SECONDS);
             } catch (InterruptedException exception) {
               Thread.currentThread().interrupt();
             }
@@ -66,17 +78,21 @@ class GeneratedClientTest {
         });
     server.start();
     IngestionClientConfiguration configuration = new IngestionClientConfiguration();
-    factory = configuration.ingestionRequestFactory(java.time.Duration.ofMillis(250));
+    factory = configuration.ingestionRequestFactory(Duration.ofMillis(250));
     ApiClient client =
         configuration.ingestionApiClient(
             factory,
             "http://127.0.0.1:" + server.getAddress().getPort(),
-            new org.springframework.core.io.ClassPathResource("contracts/ingestion.yaml"));
+            new ClassPathResource("contracts/ingestion.yaml"));
     client.setBearerToken("harmless-test-token");
     api = new CollectionApi(client);
   }
 
-  /** Releases the local HTTP listener after every independently controlled scenario. */
+  /**
+   * Releases the listener, stalled response and client pool after each scenario.
+   *
+   * @throws Exception if the client pool cannot be closed
+   */
   @AfterEach
   void stopServer() throws Exception {
     releaseResponse.countDown();
@@ -114,8 +130,11 @@ class GeneratedClientTest {
     // Given
     body = response;
 
-    // When / Then
-    assertThatThrownBy(() -> api.getCollectorRuntime()).isInstanceOf(RestClientException.class);
+    // When
+    Throwable failure = catchThrowable(() -> api.getCollectorRuntime());
+
+    // Then
+    assertThat(failure).isInstanceOf(RestClientException.class);
   }
 
   @ParameterizedTest
@@ -123,31 +142,68 @@ class GeneratedClientTest {
   @DisplayName("Rejects unknown enums or invalid nested dates")
   void rejectsInvalidNestedWork(String family, String date) {
     // Given
+    UUID incarnationId = UUID.fromString("00000000-0000-4000-8000-000000000001");
     body =
-        "{\"controls\":[{\"id\":\"00000000-0000-4000-8000-000000000001\",\"family\":\""
-            + family
-            + "\",\"revision\":0,\"enabled\":true,\"lastStartedAt\":\""
-            + date
-            + "\"}],\"validations\":[]}";
+        """
+        {
+          "controls": [{
+            "id": "00000000-0000-4000-8000-000000000002",
+            "family": "%s",
+            "revision": 0,
+            "enabled": true,
+            "lastStartedAt": "%s"
+          }],
+          "validations": []
+        }
+        """
+            .formatted(family, date);
 
-    // When / Then
-    assertThatThrownBy(
-            () -> api.getCollectionWork(UUID.fromString("00000000-0000-4000-8000-000000000001")))
-        .isInstanceOf(RestClientException.class);
+    // When
+    Throwable failure = catchThrowable(() -> api.getCollectionWork(incarnationId));
+
+    // Then
+    assertThat(failure).isInstanceOf(RestClientException.class);
   }
 
   @Test
   @DisplayName("Accepts valid nested fields and additive nested response data")
   void acceptsNestedWork() {
     // Given
+    UUID incarnationId = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    UUID controlId = UUID.fromString("00000000-0000-4000-8000-000000000002");
     body =
-        "{\"controls\":[{\"id\":\"00000000-0000-4000-8000-000000000001\",\"family\":\"ffvb\",\"revision\":0,\"enabled\":true,\"lastStartedAt\":\"2026-10-16T12:00:00Z\",\"future\":true}],\"validations\":[]}";
+        """
+        {
+          "controls": [{
+            "id": "%s",
+            "family": "ffvb",
+            "revision": 7,
+            "enabled": true,
+            "lastStartedAt": "2026-10-16T12:00:00Z",
+            "future": true
+          }],
+          "validations": []
+        }
+        """
+            .formatted(controlId);
 
-    // When / Then
-    assertThat(
-            api.getCollectionWork(UUID.fromString("00000000-0000-4000-8000-000000000001"))
-                .getControls())
-        .hasSize(1);
+    // When
+    GetCollectionWork200Response result = api.getCollectionWork(incarnationId);
+
+    // Then
+    assertThat(result.getControls())
+        .singleElement()
+        .satisfies(
+            control -> {
+              assertThat(control.getId()).isEqualTo(controlId);
+              assertThat(control.getFamily())
+                  .isEqualTo(GetCollectionWork200ResponseControlsInner.FamilyEnum.FFVB);
+              assertThat(control.getRevision()).isEqualTo(7L);
+              assertThat(control.getEnabled()).isTrue();
+              assertThat(control.getLastStartedAt())
+                  .isEqualTo(OffsetDateTime.parse("2026-10-16T12:00:00Z"));
+            });
+    assertThat(result.getValidations()).isEmpty();
   }
 
   @Test
@@ -160,12 +216,14 @@ class GeneratedClientTest {
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
-    // When / Then
-    org.junit.jupiter.api.Assertions.assertTimeout(
-        java.time.Duration.ofSeconds(2),
-        () ->
-            assertThatThrownBy(() -> api.registerCollectorRuntime(request))
-                .isInstanceOf(RestClientException.class));
+    // When
+    Throwable failure =
+        assertTimeout(
+            Duration.ofSeconds(2),
+            () -> catchThrowable(() -> api.registerCollectorRuntime(request)));
+
+    // Then
+    assertThat(failure).isInstanceOf(RestClientException.class);
     assertThat(calls).hasValue(1);
   }
 
@@ -179,9 +237,11 @@ class GeneratedClientTest {
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
-    // When / Then
-    assertThatThrownBy(() -> api.registerCollectorRuntime(request))
-        .isInstanceOf(RestClientException.class);
+    // When
+    Throwable failure = catchThrowable(() -> api.registerCollectorRuntime(request));
+
+    // Then
+    assertThat(failure).isInstanceOf(RestClientException.class);
     assertThat(calls).hasValue(1);
   }
 }

@@ -2,12 +2,10 @@ package com.blockout.backend.config;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,9 +30,12 @@ import org.springframework.boot.webmvc.autoconfigure.actuate.web.WebMvcEndpointM
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpMethod;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
  * Exercises native Actuator mappings with controlled database health and real availability events.
@@ -61,20 +62,19 @@ class HealthWebMvcTest {
   @MockitoBean(name = "dbHealthIndicator", answers = Answers.CALLS_REAL_METHODS)
   private HealthIndicator database;
 
-  /** Supplies a healthy database with deliberately private diagnostic details. */
-  @BeforeEach
-  void acceptsTraffic() {
-    when(database.health())
-        .thenReturn(Health.up().withDetail("private", "harmless internal fixture").build());
-    AvailabilityChangeEvent.publish(context, ReadinessState.ACCEPTING_TRAFFIC);
-  }
-
   @Test
   @DisplayName("Returns only aggregate UP to an anonymous main-path GET")
   void returnsMinimalHealthyState() throws Exception {
-    // Given / When
-    mvc.perform(get("/health").queryParam("showDetails", "true"))
-        // Then
+    // Given
+    AvailabilityChangeEvent.publish(context, ReadinessState.ACCEPTING_TRAFFIC);
+    when(database.health())
+        .thenReturn(Health.up().withDetail("private", "harmless internal fixture").build());
+
+    // When
+    ResultActions response = mvc.perform(get("/health").queryParam("showDetails", "true"));
+
+    // Then
+    response
         .andExpect(status().isOk())
         .andExpect(content().json("{\"status\":\"UP\"}", JsonCompareMode.STRICT));
   }
@@ -84,12 +84,15 @@ class HealthWebMvcTest {
   @DisplayName("Maps each non-UP database state to an aggregate-only 503")
   void refusesUnhealthyDatabase(String state) throws Exception {
     // Given
+    AvailabilityChangeEvent.publish(context, ReadinessState.ACCEPTING_TRAFFIC);
     when(database.health())
         .thenReturn(Health.status(state).withDetail("private", "harmless fixture").build());
 
     // When
-    mvc.perform(get("/health"))
-        // Then
+    ResultActions response = mvc.perform(get("/health"));
+
+    // Then
+    response
         .andExpect(status().isServiceUnavailable())
         .andExpect(content().json("{\"status\":\"" + state + "\"}", JsonCompareMode.STRICT));
   }
@@ -99,10 +102,13 @@ class HealthWebMvcTest {
   void refusesUnreadyApplication() throws Exception {
     // Given
     AvailabilityChangeEvent.publish(context, ReadinessState.REFUSING_TRAFFIC);
+    when(database.health()).thenReturn(Health.up().build());
 
     // When
-    mvc.perform(get("/health"))
-        // Then
+    ResultActions response = mvc.perform(get("/health"));
+
+    // Then
+    response
         .andExpect(status().isServiceUnavailable())
         .andExpect(content().json("{\"status\":\"OUT_OF_SERVICE\"}", JsonCompareMode.STRICT));
   }
@@ -120,17 +126,27 @@ class HealthWebMvcTest {
       })
   @DisplayName("Denies anonymous diagnostic and component paths")
   void deniesDiagnostics(String path) throws Exception {
-    // Given / When
-    mvc.perform(get(path))
-        // Then
-        .andExpect(status().isForbidden());
+    // Given
+    MockHttpServletRequestBuilder request = get(path);
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isForbidden());
   }
 
-  @Test
-  @DisplayName("Exposes the public probe only through GET")
-  void refusesOtherMethods() throws Exception {
-    // Given / When / Then
-    mvc.perform(head("/health")).andExpect(status().isForbidden());
-    mvc.perform(post("/health")).andExpect(status().isForbidden());
+  @ParameterizedTest
+  @ValueSource(strings = {"HEAD", "POST"})
+  @DisplayName("Denies non-GET probe methods")
+  void refusesOtherMethods(String method) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request = request(HttpMethod.valueOf(method), "/health");
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isForbidden());
   }
 }
