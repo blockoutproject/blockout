@@ -18,7 +18,7 @@ public class SecurityConfiguration {
    */
   @Bean
   SecurityFilterChain operationalSecurity(HttpSecurity http) throws Exception {
-    return http.securityMatcher("/health", "/health/**", "/actuator", "/actuator/**")
+    return http.securityMatcher("/health/**", "/actuator/**")
         .authorizeHttpRequests(
             requests ->
                 requests
