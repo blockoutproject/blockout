@@ -4,9 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.BackendApplication;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.blockout.testsupport.persistence.StartupFixture;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -27,7 +26,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.MountableFile;
 
 /**
  * Proves startup and role separation against disposable PostgreSQL using the actual local role
@@ -36,17 +34,7 @@ import org.testcontainers.utility.MountableFile;
 @Testcontainers
 @DisplayName("Explicit database migration and application startup")
 class DatabaseConfigurationIntegrationTest {
-  @Container
-  private static final PostgreSQLContainer DATABASE =
-      new PostgreSQLContainer("postgres:18.6")
-          .withDatabaseName("postgres")
-          .withUsername("postgres")
-          .withPassword("harmless-admin")
-          .withEnv("BLOCKOUT_APP_PASSWORD", "harmless-app")
-          .withEnv("BLOCKOUT_MIGRATION_PASSWORD", "harmless-migration")
-          .withCopyFileToContainer(
-              MountableFile.forClasspathResource("init-roles.sql"),
-              "/docker-entrypoint-initdb.d/10-blockout.sql");
+  @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
 
   @Test
   @DisplayName(
@@ -191,15 +179,4 @@ class DatabaseConfigurationIntegrationTest {
   @TestConfiguration(proxyBeanMethods = false)
   @EntityScan(basePackageClasses = StartupFixture.class)
   static class FixtureConfiguration {}
-
-  /** No production entity/table is introduced before its owning feature is implemented. */
-  @Entity
-  @Table(name = "startup_fixture")
-  static class StartupFixture {
-    @Id private Long id;
-    private String label;
-
-    /** Allows Hibernate to instantiate this isolated validation fixture. */
-    protected StartupFixture() {}
-  }
 }

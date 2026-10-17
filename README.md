@@ -49,6 +49,8 @@ Root verification runs Prettier once for the whole repository, including mobile.
 
 The shared Query suites exercise offline attempts without queuing, explicit recovery, retained data after failed refresh and cache lifetime under the root provider. Feature owners opt into their approved navigation/foreground refresh and freshness/expiry policies. The [integrated sporting scenarios](specs/003-shared-quality/quickstart.md#data-and-schema) remain pending their owning implementations; these controlled tests do not qualify account-session isolation or provider behavior.
 
+Backend exposes anonymous `GET /health` on its application port through the native Actuator readiness group. Only the aggregate status is public: application/database ready returns 200; down, out-of-service or unknown returns 503. Other Actuator paths, component reads and other probe methods are denied. Native Hikari waits are bounded to 3 seconds for a connection and 1 second for validation; PostgreSQL socket connect/read waits are 3/5 seconds. The health suites cover native mappings/security and real unresponsive PostgreSQL. External monitoring and the future F12 maintenance-filter integration remain separate qualifications.
+
 Useful focused commands:
 
 ```sh
