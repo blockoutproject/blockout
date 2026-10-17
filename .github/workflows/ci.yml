@@ -51,3 +51,10 @@ jobs:
 
       - name: Check diff hygiene
         run: git diff --check
+
+      - name: Validate native telemetry configuration
+        run: |
+          telemetry_image=$(docker compose --env-file infra/observability/.env.example -f infra/observability/compose.yaml config --images)
+          docker run --rm --env-file infra/observability/.env.example \
+            -v "$PWD/infra/observability/config.alloy:/etc/alloy/config.alloy:ro" \
+            "$telemetry_image" validate /etc/alloy/config.alloy

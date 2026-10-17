@@ -71,6 +71,8 @@ Validate local links, anchors and source ownership against the final tree. [CI](
 
 ## Local development
 
+Server telemetry uses native ECS logging and opt-in Micrometer OTLP export. See the [telemetry setup and investigation guide](infra/observability/README.md) for the permitted fields, private environment wiring and pending activation qualifications. CI validates the Alloy/Compose configuration without granting it Docker-engine access.
+
 Compose runs only local PostgreSQL 18.6 infrastructure, bound to loopback on port 5432. Applications run on the host. Start the database explicitly:
 
 ```sh

@@ -3,6 +3,7 @@ package com.blockout.collector.ingestion;
 import com.atlassian.oai.validator.OpenApiInteractionValidator;
 import com.atlassian.oai.validator.springweb.client.OpenApiValidationClientHttpRequestInterceptor;
 import com.blockout.collector.generated.ingestion.ApiClient;
+import io.micrometer.observation.ObservationRegistry;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -58,6 +59,7 @@ public class IngestionClientConfiguration {
    * native interceptor buffers the validated response for generated Jackson decoding.
    *
    * @param factory bounded HTTP transport
+   * @param observations native registry for low-cardinality HTTP metrics
    * @param baseUrl backend origin supplied by deployment configuration
    * @param contract generated bundle copied unchanged onto the runtime classpath
    * @return generated client ready for owner-supplied credentials
@@ -66,6 +68,7 @@ public class IngestionClientConfiguration {
   @Bean
   ApiClient ingestionApiClient(
       HttpComponentsClientHttpRequestFactory factory,
+      ObservationRegistry observations,
       @Value("${blockout.ingestion.base-url:http://localhost:8080}") String baseUrl,
       @Value("classpath:contracts/ingestion.yaml") Resource contract)
       throws IOException {
@@ -77,6 +80,7 @@ public class IngestionClientConfiguration {
     RestClient restClient =
         ApiClient.buildRestClientBuilder()
             .requestFactory(factory)
+            .observationRegistry(observations)
             .requestInterceptor(
                 (request, body, execution) -> {
                   try {

@@ -25,9 +25,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
@@ -47,6 +50,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** Qualifies generated models and interface mappings with adapters confined to test sources. */
 @WebMvcTest
+@ExtendWith(OutputCaptureExtension.class)
 @Import({
   HttpConfiguration.class,
   ApiExceptionHandler.class,
@@ -229,7 +233,7 @@ class ContractBoundaryWebMvcTest {
 
   @Test
   @DisplayName("Keeps unexpected failures free of internal details")
-  void sanitizesUnexpectedFailure() throws Exception {
+  void sanitizesUnexpectedFailure(CapturedOutput output) throws Exception {
     // Given
     MockHttpServletRequestBuilder request = get("/accounts/me");
 
@@ -241,6 +245,12 @@ class ContractBoundaryWebMvcTest {
         .andExpect(status().isInternalServerError())
         .andExpect(jsonPath("$.instance").doesNotExist())
         .andExpect(content().string(not(containsString("private"))));
+    assertThat(output.getOut())
+        .contains(
+            "\"operation\":\"http_request\"",
+            "\"outcome\":\"failed\"",
+            "\"type\":\"java.lang.IllegalStateException\"")
+        .doesNotContain("private provider payload");
   }
 
   @Test

@@ -1,0 +1,114 @@
+// Collect only explicitly admitted application containers from this environment.
+discovery.docker "applications" {
+	host = "unix:///var/run/docker.sock"
+
+	filter {
+		name   = "label"
+		values = ["blockout.telemetry=enabled"]
+	}
+}
+
+discovery.relabel "applications" {
+	targets = discovery.docker.applications.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_label_blockout_environment"]
+		regex         = sys.env("BLOCKOUT_ENVIRONMENT")
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_blockout_service"]
+		regex         = "blockout-(backend|collector)"
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_blockout_environment"]
+		target_label  = "environment"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_blockout_service"]
+		target_label  = "service_name"
+	}
+}
+
+loki.source.docker "applications" {
+	host       = "unix:///var/run/docker.sock"
+	targets    = discovery.relabel.applications.output
+	forward_to = [loki.process.applications.receiver]
+}
+
+loki.process "applications" {
+	stage.json {
+		expressions    = {level = "log.level"}
+		drop_malformed = true
+	}
+
+	stage.labels {
+		values = {level = ""}
+	}
+
+	stage.match {
+		selector = "{service_name=~\"blockout-(backend|collector)\",level!~\"TRACE|DEBUG|INFO|WARN|ERROR\"}"
+		action   = "drop"
+	}
+
+	stage.label_keep {
+		values = ["environment", "service_name", "level"]
+	}
+	forward_to = [loki.write.grafana.receiver]
+}
+
+loki.write "grafana" {
+	endpoint {
+		url = sys.env("GRAFANA_LOKI_URL")
+
+		basic_auth {
+			username = sys.env("GRAFANA_LOKI_USER")
+			password = sys.env("GRAFANA_TELEMETRY_TOKEN")
+		}
+	}
+}
+
+otelcol.receiver.otlp "applications" {
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+
+	output {
+		metrics = [otelcol.processor.transform.metrics.input]
+	}
+}
+
+// Resource identifiers and credentials are not metric dimensions.
+otelcol.processor.transform "metrics" {
+	metric_statements {
+		context    = "resource"
+		statements = ["keep_keys(attributes, [\"service.name\", \"deployment.environment.name\"])"]
+	}
+
+	metric_statements {
+		context    = "datapoint"
+		statements = [
+			"keep_keys(attributes, [\"method\", \"uri\", \"status\", \"outcome\", \"exception\", \"error\", \"client.name\", \"pool\", \"area\", \"id\", \"action\", \"cause\", \"state\", \"name\"])",
+		]
+	}
+
+	output {
+		metrics = [otelcol.exporter.otlphttp.grafana.input]
+	}
+}
+
+otelcol.auth.basic "grafana" {
+	username = sys.env("GRAFANA_OTLP_USER")
+	password = sys.env("GRAFANA_TELEMETRY_TOKEN")
+}
+
+otelcol.exporter.otlphttp "grafana" {
+	client {
+		endpoint = sys.env("GRAFANA_OTLP_URL")
+		auth     = otelcol.auth.basic.grafana.handler
+	}
+}

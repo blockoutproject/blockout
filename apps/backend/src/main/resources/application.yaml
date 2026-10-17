@@ -19,6 +19,10 @@ spring:
       mode: never
 
 management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
   endpoint:
     health:
       status:
@@ -31,3 +35,33 @@ management:
         readiness:
           include: readinessState,db
           additional-path: server:/health
+
+logging:
+  structured:
+    format:
+      console: ecs
+    json:
+      # Free-form messages, throwables and arbitrary MDC may contain private values.
+      include:
+        - "@timestamp"
+        - log
+        - log.level
+        - log.logger
+        - service
+        - service.name
+        - service.environment
+        - error
+        - error.type
+        - operation
+        - stage
+        - scope
+        - outcome
+        - provider
+        - reason
+        - affected_count
+        - partial_count
+        - last_success_at
+        - account_cleanup
+        - account_cleanup.original_account_id
+        - account_cleanup.auth0_subject
+        - account_cleanup.revenuecat_app_user_id

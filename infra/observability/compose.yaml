@@ -1,0 +1,29 @@
+services:
+  alloy:
+    image: grafana/alloy:v1.20.1
+    command:
+      - run
+      - --disable-reporting
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    restart: unless-stopped
+    environment:
+      BLOCKOUT_ENVIRONMENT: ${BLOCKOUT_ENVIRONMENT:?Select production or preproduction}
+      GRAFANA_LOKI_URL: ${GRAFANA_LOKI_URL:?Supply the stack Loki push URL}
+      GRAFANA_LOKI_USER: ${GRAFANA_LOKI_USER:?Supply the stack Loki user}
+      GRAFANA_OTLP_URL: ${GRAFANA_OTLP_URL:?Supply the stack OTLP base URL}
+      GRAFANA_OTLP_USER: ${GRAFANA_OTLP_USER:?Supply the stack OTLP user}
+      GRAFANA_TELEMETRY_TOKEN: ${GRAFANA_TELEMETRY_TOKEN:?Supply a private scoped token}
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    networks:
+      - telemetry
+
+networks:
+  telemetry:
+    name: blockout-telemetry-${BLOCKOUT_ENVIRONMENT:?Select production or preproduction}
+
+volumes:
+  alloy-data:

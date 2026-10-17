@@ -11,6 +11,10 @@ import com.blockout.collector.generated.ingestion.model.GetCollectionWork200Resp
 import com.blockout.collector.generated.ingestion.model.GetCollectorRuntime200Response;
 import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeRequest;
 import com.sun.net.httpserver.HttpServer;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +46,7 @@ class GeneratedClientTest {
   private boolean stall;
   private final CountDownLatch releaseResponse = new CountDownLatch(1);
   private HttpComponentsClientHttpRequestFactory factory;
+  private final SimpleMeterRegistry meters = new SimpleMeterRegistry();
 
   /**
    * Starts a local controlled endpoint; no supplier or business backend is contacted.
@@ -79,9 +84,12 @@ class GeneratedClientTest {
     server.start();
     IngestionClientConfiguration configuration = new IngestionClientConfiguration();
     factory = configuration.ingestionRequestFactory(Duration.ofMillis(250));
+    ObservationRegistry observations = ObservationRegistry.create();
+    observations.observationConfig().observationHandler(new DefaultMeterObservationHandler(meters));
     ApiClient client =
         configuration.ingestionApiClient(
             factory,
+            observations,
             "http://127.0.0.1:" + server.getAddress().getPort(),
             new ClassPathResource("contracts/ingestion.yaml"));
     client.setBearerToken("harmless-test-token");
@@ -89,7 +97,7 @@ class GeneratedClientTest {
   }
 
   /**
-   * Releases the listener, stalled response and client pool after each scenario.
+   * Releases the listener, stalled response, client pool and meter registry after each scenario.
    *
    * @throws Exception if the client pool cannot be closed
    */
@@ -98,6 +106,7 @@ class GeneratedClientTest {
     releaseResponse.countDown();
     server.stop(0);
     if (factory != null) factory.destroy();
+    meters.close();
   }
 
   @Test
@@ -112,6 +121,29 @@ class GeneratedClientTest {
     // Then
     assertThat(result.getRevision()).isZero();
     assertThat(result.getIncarnationId()).isNull();
+  }
+
+  @Test
+  @DisplayName("Records native HTTP metrics without query values or credentials as labels")
+  void observesSafeHttpMetrics() {
+    // Given
+    UUID incarnationId = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    body = "{\"controls\":[],\"validations\":[]}";
+
+    // When
+    api.getCollectionWork(incarnationId);
+
+    // Then
+    Timer request = meters.find("http.client.requests").timer();
+    assertThat(request).isNotNull();
+    assertThat(request.count()).isEqualTo(1);
+    assertThat(request.getId().getTag("method")).isEqualTo("GET");
+    assertThat(request.getId().getTag("status")).isEqualTo("200");
+    assertThat(request.getId().getTags())
+        .allSatisfy(
+            tag ->
+                assertThat(tag.getValue())
+                    .doesNotContain(incarnationId.toString(), "harmless-test-token"));
   }
 
   @ParameterizedTest

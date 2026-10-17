@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-17
 
-**Status**: Accepted functional baseline; shared technical dossier formalized in [plan.md](plan.md). Runtime implementation and qualification are not performed.
+**Status**: Accepted functional baseline; shared technical dossier formalized in [plan.md](plan.md).
 
 **Input**: Approved functional quality and operations for [#259](https://github.com/blockoutproject/blockout-legacy/issues/259), F13 in the [specification navigation](../../README.md#specifications). Preserve F01/F02 behavior, protect irreplaceable data/files and support ordinary manual operations. F14 owns V1 club/logo continuity. No performance/capacity qualification or monthly availability accounting is retained.
 
