@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.BackendApplication;
-import com.blockout.backend.sporting.infrastructure.SeasonEntity;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import com.blockout.testsupport.persistence.StartupFixture;
 import java.sql.Connection;
@@ -197,8 +196,8 @@ class DatabaseConfigurationIntegrationTest {
     return DATABASE.getJdbcUrl().replace("/postgres", "/blockout") + "&currentSchema=" + schema;
   }
 
-  /** Adds the fixture while retaining actual sporting mappings for their native repositories. */
+  /** Adds the fixture while retaining all application mappings for their native repositories. */
   @TestConfiguration(proxyBeanMethods = false)
-  @EntityScan(basePackageClasses = {StartupFixture.class, SeasonEntity.class})
+  @EntityScan(basePackageClasses = {StartupFixture.class, BackendApplication.class})
   static class FixtureConfiguration {}
 }

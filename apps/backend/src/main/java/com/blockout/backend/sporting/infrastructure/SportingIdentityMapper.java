@@ -1,6 +1,6 @@
 package com.blockout.backend.sporting.infrastructure;
 
-import com.blockout.backend.sporting.SportingMappingConfiguration;
+import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.sporting.application.PoolKey;
 import com.blockout.backend.sporting.application.SportingClassification;
 import com.blockout.backend.sporting.application.SportingViews.ClubView;
@@ -13,7 +13,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 /** Detaches persistence owners inside their transaction without exporting managed relationships. */
-@Mapper(config = SportingMappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class)
 interface SportingIdentityMapper {
   /**
    * Detaches the canonical season.

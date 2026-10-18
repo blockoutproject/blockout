@@ -1,12 +1,12 @@
 package com.blockout.backend.sporting.api;
 
+import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.ObserveMatchDetailRequest;
 import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFacts;
 import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsInformationSheet;
 import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsResult;
 import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsSetsInner;
 import com.blockout.backend.generated.ingestion.model.ObserveSportingCatalogRequestContext;
-import com.blockout.backend.sporting.SportingMappingConfiguration;
 import com.blockout.backend.sporting.application.MatchObservation;
 import java.util.List;
 import java.util.UUID;
@@ -14,7 +14,7 @@ import org.mapstruct.Mapper;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 /** Maps structurally validated generated observations without deciding accepted sporting state. */
-@Mapper(config = SportingMappingConfiguration.class)
+@Mapper(config = MappingConfiguration.class)
 public interface SportingObservationMapper {
   /**
    * Maps an existing match's submitted context and independent facts without losing presence.

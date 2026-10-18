@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <!-- Mutable F05 baseline while environments remain disposable; no reset is authorized. -->
+  <changeSet id="accounts" author="blockout">
+    <createTable tableName="account">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="issuer" type="TEXT"><constraints nullable="false"/></column>
+      <column name="subject" type="TEXT"><constraints nullable="false"/></column>
+      <column name="username" type="VARCHAR(32)"><constraints nullable="false"/></column>
+      <column name="email" type="TEXT"><constraints nullable="false"/></column>
+      <column name="principal_created_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="photo_bytes" type="BYTEA"/>
+      <column name="photo_media_type" type="VARCHAR(255)"/>
+      <column name="photo_dimension" type="INTEGER"/>
+    </createTable>
+    <addUniqueConstraint tableName="account" columnNames="issuer, subject" constraintName="uk_account_principal"/>
+    <createIndex tableName="account" indexName="uk_account_username" unique="true">
+      <column name="lower(username)" computed="true"/>
+    </createIndex>
+    <!-- Community Liquibase has no native CHECK change; PostgreSQL owns complete, bounded storage.
+         Actual image decoding and metadata removal belong to profile input validation. -->
+    <sql>
+      ALTER TABLE account ADD CONSTRAINT ck_account_photo CHECK (
+        (photo_bytes IS NULL AND photo_media_type IS NULL AND photo_dimension IS NULL)
+        OR (photo_bytes IS NOT NULL AND photo_media_type IS NOT NULL AND photo_dimension IS NOT NULL
+          AND octet_length(photo_bytes) BETWEEN 1 AND 5242880
+          AND photo_media_type IN ('image/png', 'image/jpeg')
+          AND photo_dimension BETWEEN 1 AND 1024)
+      );
+    </sql>
+  </changeSet>
+</databaseChangeLog>
