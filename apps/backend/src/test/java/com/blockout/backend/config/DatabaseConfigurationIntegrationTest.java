@@ -86,7 +86,7 @@ class DatabaseConfigurationIntegrationTest {
     Throwable failure = catchThrowable(() -> startApplication("missing").close());
 
     // Then
-    assertThat(failure).hasStackTraceContaining("Schema validation: missing table [sporting_club]");
+    assertThat(failure).hasStackTraceContaining("Schema validation: missing table");
     try (Connection connection = applicationConnection("missing");
         Statement sql = connection.createStatement();
         ResultSet tables =

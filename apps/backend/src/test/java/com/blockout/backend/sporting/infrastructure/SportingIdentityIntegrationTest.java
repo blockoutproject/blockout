@@ -31,6 +31,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -188,6 +190,34 @@ class SportingIdentityIntegrationTest {
                 java.time.LocalDate.class,
                 repeated.id()))
         .isNull();
+  }
+
+  @ParameterizedTest
+  @CsvSource(
+      nullValues = "NULL",
+      textBlock =
+          """
+      NULL, NULL
+      tour-1, NULL
+      NULL, group-1
+      tour-1, group-1
+      """)
+  @DisplayName("Reuses the native pool identity with present or absent tour and group")
+  void reusesOptionalPoolContext(String tour, String group) {
+    // Given
+    SeasonView season = seasons.getOrCreate(2026L);
+    PoolKey key =
+        new PoolKey(SportingProvider.FFVB, season.id(), "LIG", "competition", tour, group, "A");
+    SportingClassification classification =
+        new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MIXED);
+    PoolView existing = identities.establishPool(key, "pack", "Synthetic pool", classification);
+
+    // When
+    PoolView repeated = identities.establishPool(key, "pack", "Synthetic pool", classification);
+
+    // Then
+    assertThat(repeated).isEqualTo(existing);
+    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_pool", Long.class)).isEqualTo(1L);
   }
 
   @Test

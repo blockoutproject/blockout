@@ -28,8 +28,8 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
       select p from PoolEntity p where p.provider = :#{#key.provider} and p.season.id = :#{#key.seasonId}
       and p.organizerReference = :#{#key.organizerReference} and p.competitionReference = :#{#key.competitionReference}
       and p.reference = :#{#key.reference}
-      and (p.tourReference = :#{#key.tourReference} or (p.tourReference is null and :#{#key.tourReference} is null))
-      and (p.groupReference = :#{#key.groupReference} or (p.groupReference is null and :#{#key.groupReference} is null))
+      and p.tourReference is not distinct from :#{#key.tourReference}
+      and p.groupReference is not distinct from :#{#key.groupReference}
       """)
   Optional<PoolEntity> findByKey(PoolKey key);
 }
