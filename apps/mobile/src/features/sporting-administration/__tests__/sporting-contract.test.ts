@@ -79,27 +79,58 @@ it.each([
   },
 );
 
-it("retains explicit null customizations in the generated replacement request", async () => {
+it.each([
+  ["explicit null", { manualName: null, manualShortName: null }],
+  [
+    "supplied values",
+    { manualName: "Synthetic pool", manualShortName: "Pool A" },
+  ],
+])(
+  "retains %s in the generated replacement request",
+  async (_scenario, names) => {
+    // Given
+    const change = {
+      revision: "revision-1",
+      ...names,
+    };
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify(poolPresentation()), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    // When
+    await setPoolPresentation(poolId, change);
+
+    // Then
+    expect(mockFetch).toHaveBeenCalledWith(
+      `https://api.example.invalid/administration/pools/${poolId}/presentation`,
+      expect.objectContaining({ method: "PUT", body: JSON.stringify(change) }),
+    );
+  },
+);
+
+it("rejects an omitted required nullable name in a generated response", async () => {
   // Given
-  const change = {
-    revision: "revision-1",
-    manualName: null,
-    manualShortName: null,
-  };
+  const body = poolPresentation();
   mockFetch.mockResolvedValue(
-    new Response(JSON.stringify(poolPresentation()), {
-      headers: { "Content-Type": "application/json" },
-    }),
+    new Response(
+      JSON.stringify({
+        ...body,
+        names: {
+          sourceName: body.names.sourceName,
+          effectiveName: body.names.effectiveName,
+        },
+      }),
+      { headers: { "Content-Type": "application/json" } },
+    ),
   );
 
   // When
-  await setPoolPresentation(poolId, change);
+  const request = getPoolPresentation(poolId);
 
   // Then
-  expect(mockFetch).toHaveBeenCalledWith(
-    `https://api.example.invalid/administration/pools/${poolId}/presentation`,
-    expect.objectContaining({ method: "PUT", body: JSON.stringify(change) }),
-  );
+  await expect(request).rejects.toMatchObject({ kind: "schema" });
 });
 
 it("accepts additive sporting response fields before Query admission", async () => {

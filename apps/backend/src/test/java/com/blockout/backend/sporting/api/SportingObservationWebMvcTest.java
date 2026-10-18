@@ -15,7 +15,6 @@ import com.blockout.backend.sporting.application.MatchObservation;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -113,9 +112,10 @@ class SportingObservationWebMvcTest {
     response.andExpect(status().isBadRequest());
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(strings = {"null", "[]"})
   @DisplayName("Keeps omitted and withdrawn facts distinct through binding and mapping")
-  void preservesPresenceThroughHttp() throws Exception {
+  void preservesPresenceThroughHttp(String sets) throws Exception {
     // Given
     MockHttpServletRequestBuilder request =
         post(PATH)
@@ -123,8 +123,9 @@ class SportingObservationWebMvcTest {
             .content(
                 """
             {"context":{"cycleId":"00000000-0000-4000-8000-000000000002","readOrdinal":7,
-            "observedAt":"2026-10-18T18:00:00Z"},"facts":{"result":null,"sets":[]}}
-            """);
+            "observedAt":"2026-10-18T18:00:00Z"},"facts":{"result":null,"sets":%s,"referees":null}}
+            """
+                    .formatted(sets));
 
     // When
     ResultActions response = mvc.perform(request);
@@ -136,7 +137,8 @@ class SportingObservationWebMvcTest {
         .andExpect(jsonPath("$.context.readOrdinal").value(7))
         .andExpect(jsonPath("$.facts.localDate").doesNotHaveJsonPath())
         .andExpect(jsonPath("$.facts.result").value(org.hamcrest.Matchers.nullValue()))
-        .andExpect(jsonPath("$.facts.sets").isEmpty());
+        .andExpect(jsonPath("$.facts.referees").value(org.hamcrest.Matchers.nullValue()))
+        .andExpect(content().json("{\"facts\":{\"sets\":%s}}".formatted(sets)));
   }
 
   /** Binds only under /contract in test sources; no business route or acceptance is implemented. */

@@ -12,9 +12,10 @@ import tools.jackson.databind.MapperFeature;
 @Configuration(proxyBeanMethods = false)
 public class HttpConfiguration {
   /**
-   * Rejects unknown properties, scalar coercion and null collection contents. Current request
-   * contracts declare no nullable collection elements; whole-field nullable proposals remain valid.
-   * Generated response maps retain their explicit additional-property policy.
+   * Rejects missing generated constructor arguments, unknown properties, scalar coercion and null
+   * collection contents. Generated constructors bind required fields; nullable arguments still
+   * accept explicit null. Current request collections have non-nullable contents. Generated
+   * response maps retain their explicit additional-property policy.
    *
    * @return customizer applied to the MVC JSON converter
    */
@@ -24,6 +25,7 @@ public class HttpConfiguration {
         builder
             .addModule(new JsonNullableJackson3Module())
             .changeDefaultNullHandling(value -> value.withContentNulls(Nulls.FAIL))
+            .enable(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES)
             .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
             .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
             .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT);

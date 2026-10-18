@@ -9,6 +9,7 @@ import com.blockout.collector.generated.ingestion.api.SportingApi;
 import com.blockout.collector.generated.ingestion.model.GetCollectorRuntime200Response;
 import com.blockout.collector.generated.ingestion.model.ObserveMatchDetailRequest;
 import com.blockout.collector.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFacts;
+import com.blockout.collector.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsSetsInner;
 import com.blockout.collector.generated.ingestion.model.ObserveSportingCatalog200ResponseOutcomesInner;
 import com.blockout.collector.generated.ingestion.model.ObserveSportingCatalogRequestContext;
 import com.sun.net.httpserver.HttpServer;
@@ -125,6 +126,26 @@ class SportingContractTest {
         .isEqualTo(ObserveSportingCatalog200ResponseOutcomesInner.OutcomeEnum.ACCEPTED);
   }
 
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("setProposals")
+  @DisplayName("Preserves omitted, withdrawn, empty and supplied sets on the wire")
+  void serializesCollectionPresence(
+      String scenario,
+      JsonNullable<List<ObservePoolCalendarRequestMatchesInnerFactsSetsInner>> sets,
+      String expectedFacts) {
+    // Given
+    ObservePoolCalendarRequestMatchesInnerFacts facts =
+        new ObservePoolCalendarRequestMatchesInnerFacts();
+    facts.setSets_JsonNullable(sets);
+    ObserveMatchDetailRequest request = request(facts);
+
+    // When
+    api.observeMatchDetail(MATCH, request);
+
+    // Then
+    assertThat(received.get("facts")).isEqualTo(json.readTree(expectedFacts));
+  }
+
   @Test
   @DisplayName("Serializes supplied publication time independently from observation time")
   void preservesPublicationTime() {
@@ -219,6 +240,24 @@ class SportingContractTest {
             "supplied",
             JsonNullable.of(LocalDate.of(2026, 10, 18)),
             "{\"localDate\":\"2026-10-18\"}"));
+  }
+
+  /**
+   * Keeps whole-list absence distinct from an explicitly empty or populated collection.
+   *
+   * @return native collection proposals paired with their expected serialized facts
+   */
+  private static Stream<Arguments> setProposals() {
+    return Stream.of(
+        Arguments.of("omitted", JsonNullable.undefined(), "{}"),
+        Arguments.of("withdrawn", JsonNullable.of(null), "{\"sets\":null}"),
+        Arguments.of("empty", JsonNullable.of(List.of()), "{\"sets\":[]}"),
+        Arguments.of(
+            "supplied",
+            JsonNullable.of(
+                List.of(
+                    new ObservePoolCalendarRequestMatchesInnerFactsSetsInner().home(25).away(20))),
+            "{\"sets\":[{\"home\":25,\"away\":20}]}"));
   }
 
   /**
