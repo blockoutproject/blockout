@@ -10,8 +10,10 @@ Use Spring Data repositories, normally `JpaRepository`, and Spring Boot's manage
 
 - Use ordinary non-final entity classes and a protected no-argument constructor, commonly Lombok `@NoArgsConstructor(access = AccessLevel.PROTECTED)`.
 - Match table/column names, IDs, precision, lengths, nullability and relationships to the migration. HTTP camelCase does not choose SQL identifiers.
-- Use focused accessors, never ID/version setters or relationship-generated equality, hash code or recursive `toString`.
-- Preserve ID generation and equality semantics. Do not base hash codes on mutable relationships.
+- Use focused accessors; expose no setters for generated IDs or managed versions. Relationship changes must preserve the owning side and any aggregate invariants rather than opening blanket setters.
+- Keep owner-generated IDs, managed versions and initialized collections outside entity creation arguments. A no-argument persistence constructor does not replace the application's intended creation constructor; do not add class-level `@AllArgsConstructor` or `@Builder` mechanically.
+- Preserve ID generation and equality semantics. Define entity equality only for an actual identity requirement, accounting for transient, persisted and proxied instances; do not generate it from mutable fields or relationships. A generated ID alone does not establish a safe hash-code lifecycle.
+- Do not generate a relationship-traversing `toString`. If one is useful, include only explicitly selected safe scalar values, preserving lazy-loading and confidentiality boundaries.
 - Persist owned closed enums as stable strings rather than ordinals. Use a converter only for an actual storage representation need. Open provider keys remain strings.
 - Add auditing or `@Version` only with a mapped schema and a defined requirement/conflict outcome.
 - Model stable relational concepts relationally; test vendor-specific structured columns against the supported engine.
