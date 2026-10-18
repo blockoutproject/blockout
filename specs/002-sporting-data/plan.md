@@ -34,10 +34,10 @@ Keep one authoritative sporting model in the modular backend. The separate colle
 
 | Principle         | Assessment                                                                                                                                                                                                                                                       |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I — Specification | Owner decisions amend F02 first; consumer corrections remain in their owning specifications. No runtime implementation.                                                                                                                                          |
+| I — Specification | Owner decisions amend F02 first; consumer corrections remain in their owning specifications.                                                                                                                                                                     |
 | II — Ownership    | F01 acquires; F02 accepts sporting truth; F03/F04/F06/F07/F08/F11/F12/F14 keep their concepts. No feature-per-service mapping.                                                                                                                                   |
 | III — Design      | Existing accepted journeys remain inputs. The owner explicitly approved prototype `236e6a2`, then the corresponding Figma reconciliation on 2026-10-13. Both scoped design gates are satisfied; native accessibility and production behavior remain unqualified. |
-| IV — Contracts    | F13 canonical HTTP roots own authored schemas; native contracts reference them without editable duplicates. Integrated generation/serialization remains future qualification.                                                                                    |
+| IV — Contracts    | F13 canonical HTTP roots own authored schemas; native contracts reference them without editable duplicates. Boundary suites qualify generation/serialization; story tasks qualify business operations.                                                           |
 | V — Simplicity    | Per-match transactions, existing row locks and next ordinary collection replace whole-calendar atomicity, recovery journals and retries. No additional scheduler for logos.                                                                                      |
 | Prerequisites     | Native blocker #42 is closed. Scoped design approvals are recorded below; runtime qualifications remain prerequisites for implementation adoption.                                                                                                               |
 
@@ -49,7 +49,7 @@ Native artifacts: `plan.md`, `research.md`, `data-model.md`, `contracts/` and `q
 
 The authored `contracts/http/ingestion/openapi.yaml` and `contracts/http/mobile/openapi.yaml` reference shared Problem Details and F02-owned classification enums under `contracts/http/common/`. These are canonical planning sources, not executable application scaffolding or generated output. The native [contract overview](contracts/README.md) identifies operations, owners and consumer coordination.
 
-Future executable structure follows F13: `apps/backend` contains a `sporting` capability with `api`, `application`, useful `domain` values and `infrastructure`; `apps/collector` owns supplier adapters and generated-client integration; `apps/mobile` retains existing feature boundaries. Persistence ports express use cases rather than mirroring repositories. Generated code stays under ignored build output.
+Executable structure follows F13: `apps/backend` contains a `sporting` capability with `api`, `application`, useful `domain` values and `infrastructure`; `apps/collector` owns supplier adapters and generated-client integration; `apps/mobile` retains existing feature boundaries. Persistence ports express use cases rather than mirroring repositories. Generated code stays under ignored build output.
 
 ## Identity and retained data
 

@@ -6,7 +6,7 @@ description: "Implementation tasks for F02 sporting identity, integration and li
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#84](https://github.com/blockoutproject/blockout/issues/84) under [#82](https://github.com/blockoutproject/blockout/issues/82).
 
-**Prerequisites**: Accepted owning artifacts and [constitution](../../.specify/memory/constitution.md). [F13 tasks](../003-shared-quality/tasks.md) own workspace, generation, transport, schema lifecycle and shared controls. This breakdown prepares implementation; all runtime and native evidence is still outstanding.
+**Prerequisites**: Accepted owning artifacts and [constitution](../../.specify/memory/constitution.md). [F13 tasks](../003-shared-quality/tasks.md) own workspace, generation, transport, schema lifecycle and shared controls.
 
 **Tests**: The specification requests A01–A39 and SC-001–SC-007 qualification. Write the included automated tests first and demonstrate meaningful failures before the associated implementation. Prepare manual/native cases before running them with their actual authorized inputs. Test doubles establish only their controlled boundary.
 
@@ -31,8 +31,8 @@ The quoted data-model constraints below remain literal. Concrete Java classes gr
 
 **Purpose**: Consume the shared executable foundation without recreating it.
 
-- [ ] T001 Verify the F13 T001–T017 foundation through `README.md`, `apps/backend/pom.xml`, `apps/collector/pom.xml` and `apps/mobile/orval.config.ts`: generated canonical consumers compile, PostgreSQL tests run, migrations are explicit and generated output stays ignored. Wait only for this bounded foundation, not F13 deployment/restoration completion.
-- [ ] T002 Configure only the F02-required MapStruct mapping/annotation processing in `apps/backend/pom.xml` under F13's accepted versions and existing Maven conventions; keep application values, transport DTOs and JPA entities distinct, and update actual F02 test commands in `README.md` when executable work first lands.
+- [x] T001 Verify the F13 T001–T017 foundation through `README.md`, `apps/backend/pom.xml`, `apps/collector/pom.xml` and `apps/mobile/orval.config.ts`: generated canonical consumers compile, PostgreSQL tests run, migrations are explicit and generated output stays ignored. Wait only for this bounded foundation, not F13 deployment/restoration completion.
+- [x] T002 Configure only the F02-required MapStruct mapping/annotation processing in `apps/backend/pom.xml` under F13's accepted versions and existing Maven conventions; keep application values, transport DTOs and JPA entities distinct, and update actual F02 test commands in `README.md` when executable work first lands.
 
 ---
 
@@ -40,9 +40,9 @@ The quoted data-model constraints below remain literal. Concrete Java classes gr
 
 **Purpose**: Qualify the common F02 generated presence/mapping boundary before building sporting stories.
 
-- [ ] T003 [P] Write failing generated binding/mapping tests in `apps/backend/src/test/java/com/blockout/backend/sporting/api/SportingObservationMapperTest.java` for omitted/null/value, nested strict requests, additive responses, enums and dates using the existing ingestion schemas; preserve required identity/context separately from optional facts and use test-scoped adapters rather than production fixture endpoints.
-- [ ] T004 [P] Write failing real-consumer serialization cases in `apps/collector/src/test/java/com/blockout/collector/ingestion/SportingContractTest.java` and `apps/mobile/src/features/sporting-administration/__tests__/sporting-contract.test.ts` against the canonical generated consumers and a controlled transport; cover undefined versus explicit null, safe errors and malformed known fields before cache admission.
-- [ ] T005 Implement presence-aware boundary mapping in `apps/backend/src/main/java/com/blockout/backend/sporting/api/SportingObservationMapper.java` using the supported F13 mapper configuration and generated nullable support; make T003–T004 pass without generated-template edits, scalar state wrappers or default values turning omission into a proposal. Keep field decisions in the owning application use cases.
+- [x] T003 [P] Write failing generated binding/mapping tests in `apps/backend/src/test/java/com/blockout/backend/sporting/api/SportingObservationMapperTest.java` for omitted/null/value, nested strict requests, additive responses, enums and dates using the existing ingestion schemas; preserve required identity/context separately from optional facts and use test-scoped adapters rather than production fixture endpoints.
+- [x] T004 [P] Write failing real-consumer serialization cases in `apps/collector/src/test/java/com/blockout/collector/ingestion/SportingContractTest.java` and `apps/mobile/src/features/sporting-administration/__tests__/sporting-contract.test.ts` against the canonical generated consumers and a controlled transport; cover undefined versus explicit null, safe errors and malformed known fields before cache admission.
+- [x] T005 Implement presence-aware boundary mapping in `apps/backend/src/main/java/com/blockout/backend/sporting/api/SportingObservationMapper.java` using the supported F13 mapper configuration and generated nullable support; make T003–T004 pass without generated-template edits, scalar state wrappers or default values turning omission into a proposal. Keep field decisions in the owning application use cases.
 
 **Checkpoint**: F02's generated shapes and presence mapping are usable. Domain implementation can begin; integrated HTTP operations are qualified in their story, not inferred from these isolated checks.
 

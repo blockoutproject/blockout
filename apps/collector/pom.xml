@@ -88,9 +88,7 @@
                 <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
                 <hideGenerationTimestamp>true</hideGenerationTimestamp>
                 <containerDefaultToNull>true</containerDefaultToNull>
-                <generateJsonIncludeAnnotations>true</generateJsonIncludeAnnotations>
-                <generateJsonSetterNullsAnnotations>true</generateJsonSetterNullsAnnotations>
-                <optionalNonNullPropertyJsonSetterNulls>FAIL</optionalNonNullPropertyJsonSetterNulls>
+                <additionalModelTypeAnnotations>@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)</additionalModelTypeAnnotations>
                 <library>restclient</library>
                 <annotationLibrary>none</annotationLibrary>
                 <useJakartaEe>true</useJakartaEe>

@@ -62,6 +62,8 @@ npx nx run backend:test
 npx nx run collector:test
 npx nx run mobile:verify
 npx nx run mobile:format-check
+./mvnw -B -ntp -pl apps/backend,apps/collector test -Dtest='Sporting*Test'
+npm run test --workspace=@blockout/mobile -- --runInBand src/features/sporting-administration/__tests__/sporting-contract.test.ts
 npm run generate
 ./mvnw -B -ntp verify
 ./mvnw -B -ntp spotless:apply

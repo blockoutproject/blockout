@@ -2,7 +2,7 @@
 
 **Authority**: [plan](../plan.md), [data model](../data-model.md), [F13 HTTP conventions](../../003-shared-quality/contracts/README.md).
 
-**Status**: Authored planning contracts; no deployed API or generated runtime compatibility is claimed. The canonical [ingestion root](../../../contracts/http/ingestion/openapi.yaml), [mobile root](../../../contracts/http/mobile/openapi.yaml), [shared Problem Details](../../../contracts/http/common/problems.yaml) and [F02 classification enums](../../../contracts/http/common/sporting-enums.yaml) own their definitions.
+**Status**: Canonical sources for generated provider and consumer boundaries; owning story tasks implement the business operations. The canonical [ingestion root](../../../contracts/http/ingestion/openapi.yaml), [mobile root](../../../contracts/http/mobile/openapi.yaml), [shared Problem Details](../../../contracts/http/common/problems.yaml) and [F02 classification enums](../../../contracts/http/common/sporting-enums.yaml) own their definitions.
 
 Sporting operations and models live in the [mobile paths](../../../contracts/http/mobile/sporting/paths.yaml), [mobile schemas](../../../contracts/http/mobile/sporting/schemas.yaml), [ingestion paths](../../../contracts/http/ingestion/sporting/paths.yaml) and [ingestion schemas](../../../contracts/http/ingestion/sporting/schemas.yaml), referenced by those roots.
 
