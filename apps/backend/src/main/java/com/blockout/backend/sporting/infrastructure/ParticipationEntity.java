@@ -10,8 +10,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** Retained unique team/pool relation; later visibility rules govern its current use. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "sporting_participation")
 public class ParticipationEntity {
@@ -30,9 +35,6 @@ public class ParticipationEntity {
   @Column(nullable = false)
   private boolean current;
 
-  /** Allows Hibernate to instantiate the mapped participation. */
-  protected ParticipationEntity() {}
-
   /**
    * Establishes the supplied participation state without generating another owner model.
    *
@@ -44,21 +46,5 @@ public class ParticipationEntity {
     this.team = team;
     this.pool = pool;
     this.current = current;
-  }
-
-  public UUID getId() {
-    return id;
-  }
-
-  public TeamEntity getTeam() {
-    return team;
-  }
-
-  public PoolEntity getPool() {
-    return pool;
-  }
-
-  public boolean getCurrent() {
-    return current;
   }
 }

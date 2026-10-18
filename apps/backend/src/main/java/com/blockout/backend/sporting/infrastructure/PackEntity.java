@@ -13,8 +13,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** Native provider grouping within a season; it is not a division or a team identity. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "sporting_pack")
 public class PackEntity {
@@ -36,9 +41,6 @@ public class PackEntity {
   @Column(nullable = false)
   private String reference;
 
-  /** Allows Hibernate to instantiate the mapped pack. */
-  protected PackEntity() {}
-
   /**
    * Establishes the supplied pack state without generating another owner model.
    *
@@ -56,25 +58,5 @@ public class PackEntity {
     this.provider = provider;
     this.organizerReference = organizerReference;
     this.reference = reference;
-  }
-
-  public UUID getId() {
-    return id;
-  }
-
-  public SeasonEntity getSeason() {
-    return season;
-  }
-
-  public CollectionProviderEnum getProvider() {
-    return provider;
-  }
-
-  public String getOrganizerReference() {
-    return organizerReference;
-  }
-
-  public String getReference() {
-    return reference;
   }
 }

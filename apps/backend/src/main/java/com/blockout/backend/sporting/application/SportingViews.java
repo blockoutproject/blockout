@@ -3,12 +3,12 @@ package com.blockout.backend.sporting.application;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import java.util.Set;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /** Immutable owner reads; these values alone do not establish current public visibility. */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SportingViews {
-  /** Prevents construction of the value namespace. */
-  private SportingViews() {}
-
   /**
    * Canonical season identity, independent of F01 lifecycle and source labels.
    *

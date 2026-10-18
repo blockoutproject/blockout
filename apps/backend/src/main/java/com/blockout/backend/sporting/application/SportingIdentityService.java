@@ -8,6 +8,7 @@ import com.blockout.backend.sporting.application.SportingViews.TeamView;
 import com.blockout.backend.sporting.domain.TeamName;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,17 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
  * callers.
  */
 @Service
+@RequiredArgsConstructor
 public class SportingIdentityService {
   private final SportingStore store;
-
-  /**
-   * Injects the persistence boundary used by identity decisions.
-   *
-   * @param store use-case persistence, never a generated transport or provider client
-   */
-  public SportingIdentityService(SportingStore store) {
-    this.store = store;
-  }
 
   /**
    * Reuses a qualified native pool; classification corrections require their dedicated command.

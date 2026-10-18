@@ -14,6 +14,8 @@ import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.application.MatchObservation;
 import jakarta.validation.Valid;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -143,17 +145,9 @@ class SportingObservationWebMvcTest {
 
   /** Binds only under /contract in test sources; no business route or acceptance is implemented. */
   @RestController
+  @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
   static class BindingAdapter {
     private final SportingObservationMapper mapper;
-
-    /**
-     * Uses the real generated Spring mapper in the controlled HTTP adapter.
-     *
-     * @param mapper boundary mapper under test
-     */
-    BindingAdapter(SportingObservationMapper mapper) {
-      this.mapper = mapper;
-    }
 
     /**
      * Echoes mapped input solely to observe binding, not to accept or persist sporting data.

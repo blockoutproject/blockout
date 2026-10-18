@@ -19,8 +19,14 @@ import jakarta.persistence.Table;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /** Seasonal team; native professional identity stays independent of optional club attachment. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "sporting_team")
 public class TeamEntity {
@@ -44,6 +50,8 @@ public class TeamEntity {
 
   private String nativeReference;
 
+  /** Current source label; changing it preserves the established comparison key. */
+  @Setter
   @Column(nullable = false)
   private String sourceName;
 
@@ -68,10 +76,8 @@ public class TeamEntity {
 
   @ElementCollection
   @CollectionTable(name = "sporting_team_alias", joinColumns = @JoinColumn(name = "team_id"))
+  @Getter(AccessLevel.NONE)
   private Set<VerifiedName> aliases = new HashSet<>();
-
-  /** Allows Hibernate to instantiate the mapped team. */
-  protected TeamEntity() {}
 
   /**
    * Establishes the supplied team state without generating another owner model.
@@ -111,62 +117,5 @@ public class TeamEntity {
     this.division = division;
     this.format = format;
     this.gender = gender;
-  }
-
-  public UUID getId() {
-    return id;
-  }
-
-  public SeasonEntity getSeason() {
-    return season;
-  }
-
-  public CollectionProviderEnum getProvider() {
-    return provider;
-  }
-
-  public String getOrganizerReference() {
-    return organizerReference;
-  }
-
-  public String getCompetitionReference() {
-    return competitionReference;
-  }
-
-  public String getNativeReference() {
-    return nativeReference;
-  }
-
-  public String getSourceName() {
-    return sourceName;
-  }
-
-  public String getComparisonName() {
-    return comparisonName;
-  }
-
-  public ClubEntity getClub() {
-    return club;
-  }
-
-  public DivisionEntity getDivision() {
-    return division;
-  }
-
-  public SportFormatEnum getFormat() {
-    return format;
-  }
-
-  public SportGenderEnum getGender() {
-    return gender;
-  }
-
-  /**
-   * Refreshes attributable source presentation without changing the established identity key.
-   *
-   * @param sourceName new original supplier label
-   */
-  public void updateSourceName(String sourceName) {
-    this.sourceName = sourceName;
   }
 }

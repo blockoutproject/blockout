@@ -11,8 +11,13 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** Native encounter identity; neither date nor participant pair is a unique reference. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "sporting_match")
 public class MatchEntity {
@@ -35,10 +40,8 @@ public class MatchEntity {
   @JoinColumn(name = "away_team_id")
   private TeamEntity awayTeam;
 
+  @Getter(AccessLevel.NONE)
   private LocalDate localDate;
-
-  /** Allows Hibernate to instantiate the mapped match. */
-  protected MatchEntity() {}
 
   /**
    * Establishes the supplied match state without generating another owner model.
@@ -53,25 +56,5 @@ public class MatchEntity {
     this.reference = reference;
     this.homeTeam = homeTeam;
     this.awayTeam = awayTeam;
-  }
-
-  public UUID getId() {
-    return id;
-  }
-
-  public PoolEntity getPool() {
-    return pool;
-  }
-
-  public String getReference() {
-    return reference;
-  }
-
-  public TeamEntity getHomeTeam() {
-    return homeTeam;
-  }
-
-  public TeamEntity getAwayTeam() {
-    return awayTeam;
   }
 }

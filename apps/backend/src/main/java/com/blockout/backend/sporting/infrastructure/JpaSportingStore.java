@@ -14,10 +14,13 @@ import com.blockout.backend.sporting.application.TeamCandidate;
 import com.blockout.backend.sporting.application.UnresolvedSportingIdentityException;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 /** Native JPA identity adapter; caller-owned transactions retain locks through commit. */
 @Repository
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class JpaSportingStore implements SportingStore {
   private final SeasonRepository seasons;
   private final ClubRepository clubs;
@@ -28,40 +31,6 @@ public class JpaSportingStore implements SportingStore {
   private final ParticipationRepository participations;
   private final MatchRepository matches;
   private final SportingIdentityMapper mapper;
-
-  /**
-   * Wires native repositories for the actual retained identity owners.
-   *
-   * @param seasons canonical season access and row lock
-   * @param clubs persistent organizations
-   * @param divisions current classification owners
-   * @param packs provider groupings
-   * @param pools compound pool identities
-   * @param teams contextual team identities and verified aliases
-   * @param participations retained team/pool relations
-   * @param matches scoped encounter identities
-   * @param mapper generated entity-to-application conversion
-   */
-  JpaSportingStore(
-      SeasonRepository seasons,
-      ClubRepository clubs,
-      DivisionRepository divisions,
-      PackRepository packs,
-      PoolRepository pools,
-      TeamRepository teams,
-      ParticipationRepository participations,
-      MatchRepository matches,
-      SportingIdentityMapper mapper) {
-    this.seasons = seasons;
-    this.clubs = clubs;
-    this.divisions = divisions;
-    this.packs = packs;
-    this.pools = pools;
-    this.teams = teams;
-    this.participations = participations;
-    this.matches = matches;
-    this.mapper = mapper;
-  }
 
   /** {@inheritDoc} */
   @Override
@@ -230,7 +199,7 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   public void updateTeamSourceName(UUID id, String sourceName) {
-    teams.findById(id).orElseThrow().updateSourceName(sourceName);
+    teams.findById(id).orElseThrow().setSourceName(sourceName);
   }
 
   /** {@inheritDoc} */

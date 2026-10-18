@@ -19,8 +19,13 @@ import jakarta.persistence.Table;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** Contextual native pool and last accepted complete classification. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "sporting_pool")
 public class PoolEntity {
@@ -69,10 +74,8 @@ public class PoolEntity {
 
   @ElementCollection
   @CollectionTable(name = "sporting_pool_alias", joinColumns = @JoinColumn(name = "pool_id"))
+  @Getter(AccessLevel.NONE)
   private Set<VerifiedName> aliases = new HashSet<>();
-
-  /** Allows Hibernate to instantiate the mapped pool. */
-  protected PoolEntity() {}
 
   /**
    * Establishes the supplied pool state without generating another owner model.
@@ -115,57 +118,5 @@ public class PoolEntity {
     this.division = division;
     this.format = format;
     this.gender = gender;
-  }
-
-  public UUID getId() {
-    return id;
-  }
-
-  public SeasonEntity getSeason() {
-    return season;
-  }
-
-  public PackEntity getPack() {
-    return pack;
-  }
-
-  public CollectionProviderEnum getProvider() {
-    return provider;
-  }
-
-  public String getOrganizerReference() {
-    return organizerReference;
-  }
-
-  public String getCompetitionReference() {
-    return competitionReference;
-  }
-
-  public String getTourReference() {
-    return tourReference;
-  }
-
-  public String getGroupReference() {
-    return groupReference;
-  }
-
-  public String getReference() {
-    return reference;
-  }
-
-  public String getSourceName() {
-    return sourceName;
-  }
-
-  public DivisionEntity getDivision() {
-    return division;
-  }
-
-  public SportFormatEnum getFormat() {
-    return format;
-  }
-
-  public SportGenderEnum getGender() {
-    return gender;
   }
 }

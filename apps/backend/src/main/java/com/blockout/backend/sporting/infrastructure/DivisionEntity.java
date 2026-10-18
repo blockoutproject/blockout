@@ -12,8 +12,13 @@ import jakarta.persistence.Table;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** Minimal administered division identity and explicit state, without presentation commands. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "sporting_division")
 public class DivisionEntity {
@@ -32,9 +37,6 @@ public class DivisionEntity {
   @Column(name = "term", nullable = false)
   private Set<String> searchTerms = new HashSet<>();
 
-  /** Allows Hibernate to instantiate the mapped division. */
-  protected DivisionEntity() {}
-
   /**
    * Establishes the supplied division state without generating another owner model.
    *
@@ -44,21 +46,5 @@ public class DivisionEntity {
   public DivisionEntity(String name, boolean active) {
     this.name = name;
     this.active = active;
-  }
-
-  public UUID getId() {
-    return id;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public boolean getActive() {
-    return active;
-  }
-
-  public Set<String> getSearchTerms() {
-    return searchTerms;
   }
 }

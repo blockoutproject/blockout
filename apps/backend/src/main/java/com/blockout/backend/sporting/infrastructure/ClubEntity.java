@@ -15,8 +15,13 @@ import jakarta.persistence.Table;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /** Persistent provider-qualified organization; an unknown page label remains null. */
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "sporting_club")
 public class ClubEntity {
@@ -35,10 +40,8 @@ public class ClubEntity {
 
   @ElementCollection
   @CollectionTable(name = "sporting_club_alias", joinColumns = @JoinColumn(name = "club_id"))
+  @Getter(AccessLevel.NONE)
   private Set<VerifiedName> aliases = new HashSet<>();
-
-  /** Allows Hibernate to instantiate the mapped club. */
-  protected ClubEntity() {}
 
   /**
    * Establishes the supplied club state without generating another owner model.
@@ -51,21 +54,5 @@ public class ClubEntity {
     this.provider = provider;
     this.reference = reference;
     this.sourceName = sourceName;
-  }
-
-  public UUID getId() {
-    return id;
-  }
-
-  public CollectionProviderEnum getProvider() {
-    return provider;
-  }
-
-  public String getReference() {
-    return reference;
-  }
-
-  public String getSourceName() {
-    return sourceName;
   }
 }

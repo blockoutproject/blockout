@@ -8,23 +8,16 @@ import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Immutable owner reads for F01/F03/F04/F06; current public eligibility is added by its story. */
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class SportingReadService {
   private final SportingStore store;
-
-  /**
-   * Injects the identity persistence owner.
-   *
-   * @param store owner-controlled persistence
-   */
-  public SportingReadService(SportingStore store) {
-    this.store = store;
-  }
 
   /**
    * Reads a canonical season without lifecycle mutation.

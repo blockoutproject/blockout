@@ -7,14 +7,14 @@ import liquibase.LabelExpression;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.resource.ClassLoaderResourceAccessor;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.MountableFile;
 
 /** Supplies disposable PostgreSQL with the repository's actual application and migration roles. */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PostgresTestDatabase {
-  /** Prevents instantiation of this module-owned container setup. */
-  private PostgresTestDatabase() {}
-
   /**
    * Creates a container whose lifecycle is owned by the calling test's native Testcontainers
    * support.
