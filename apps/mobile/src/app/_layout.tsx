@@ -9,7 +9,7 @@ import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
 
 initializeSentry();
 
-/** Updates native route surfaces without replacing the navigation tree. */
+/** Keeps status-bar text aligned with the theme's light fallback, including the native unspecified scheme. */
 function Navigation() {
   const theme = useTheme();
   return (

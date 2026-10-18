@@ -5,6 +5,8 @@ import { tokens } from "../theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
 
 // UI Library 156:5 and 156:79 SVG endpoints, with export shadow padding (10, 6) removed.
+// The SVG preserves this paint when stretched; normalized native endpoints change it as the aspect ratio changes.
+// Expo LinearGradient comparison: specs/003-shared-quality/research.md#native-ui-projection-and-system-appearance.
 const contentGradient = {
   width: 102,
   x1: 3.1135,
