@@ -51,6 +51,8 @@ The shared Query suites exercise offline attempts without queuing, explicit reco
 
 Backend exposes anonymous `GET /health` on its application port through the native Actuator readiness group. Only the aggregate status is public: application/database ready returns 200; down, out-of-service or unknown returns 503. Other Actuator paths, component reads and other probe methods are denied. Native Hikari/JDBC settings bound database waiting; their application-wide effects are described in the [health decision](specs/003-shared-quality/research.md#application-observability). The health suites cover native mappings/security and real unresponsive PostgreSQL. External monitoring and the future F12 maintenance-filter integration remain separate qualifications.
 
+JWT checks use Spring Security's native resource server, with separate mobile/ingestion audiences and allowed Auth0 clients. Missing or invalid credentials return a safe Problem Details 401 and Bearer challenge; authenticated client/scope refusals return 403. Public contract reads, support submission, health and legal documents keep their intended access. The security suite verifies real signatures against an isolated JWKS server; contract-binding tests isolate authentication filters. Current account, resource, grant and maintenance checks remain with their owning implementations.
+
 Useful focused commands:
 
 ```sh
@@ -119,7 +121,9 @@ set +a
 npx nx run collector:serve
 ```
 
-Backend starts on port 8080 with no business endpoints. Collector starts a non-web process and remains alive until stopped; it performs no source acquisition yet and has no database credentials. Backend requires the configured PostgreSQL connection. The collector has a configured, bounded generated ingestion client; acquisition and credential ownership remain with their feature lots.
+Backend starts on port 8080 with no business endpoints. Collector starts a non-web process and remains alive until stopped; it performs no source acquisition yet and has no database credentials. Backend requires the configured PostgreSQL connection. The collector has a configured, bounded generated ingestion client; source acquisition and business behavior remain with their owning feature lots.
+
+The backend and collector environment examples contain reserved, unconfigured identity inputs. These required inputs must be supplied explicitly; the application has no fallback identity configuration. For an authorized environment, replace the examples with its issuer, distinct audiences/client IDs, token endpoint and private collector secret. The collector uses Boot's client registration and in-memory authorized-client service, with Spring's non-web client-credentials manager/interceptor. It requests `sporting:ingest` and the configured audience, reuses the provider's actual expiry with Spring's normal renewal skew, and bounds token requests through the existing no-retry/no-redirect transport. A refusal or lost business response is not replayed; later explicit calls may obtain new credentials. Actual Auth0 and native sign-in qualification remains with [T042](specs/003-shared-quality/tasks.md).
 
 Expo automatically reads `apps/mobile/.env.local`. Use a separate JDK 21 for Android Gradle/CMake in the mobile terminal; keep Temurin 25 for Maven. Build and launch with the Android SDK/emulator or Xcode 26.4+/iOS simulator:
 
