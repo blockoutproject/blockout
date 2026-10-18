@@ -86,7 +86,9 @@ class SportingContractTest {
             factory,
             ObservationRegistry.NOOP,
             "http://127.0.0.1:" + server.getAddress().getPort(),
-            new ClassPathResource("contracts/ingestion.yaml"));
+            new ClassPathResource("contracts/ingestion.yaml"),
+            // OAuth has its own real HTTP suite; this boundary supplies controlled credentials.
+            (request, body, execution) -> execution.execute(request, body));
     client.setBearerToken("harmless-test-token");
     api = new SportingApi(client);
   }
