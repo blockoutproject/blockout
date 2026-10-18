@@ -17,6 +17,11 @@ spring:
   sql:
     init:
       mode: never
+  http:
+    clients:
+      connect-timeout: 3s
+      read-timeout: 5s
+      redirects: dont-follow
 
 blockout:
   security:

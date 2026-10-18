@@ -29,8 +29,8 @@ description: "Implementation tasks for F05 accounts, sessions and erasure"
 
 **Purpose**: Consume the bounded [F13 foundation](../003-shared-quality/tasks.md), without duplicating it or waiting for every F13 business qualification.
 
-- [ ] T001 Integrate F05 dependencies in `apps/backend/pom.xml` and `apps/mobile/package.json` after F13 T001–T017 and shared JWT enforcement T038; reuse native Auth0, Expo ImagePicker/ImageManipulator, React Hook Form/Zod and existing test/generation tooling under the approved versions. Resolve compatible native package versions during implementation; add no new service, state library or shared package.
-- [ ] T002 Configure feature inputs in `apps/mobile/app.config.ts`, `apps/mobile/.env.example` and `apps/backend/src/main/resources/application.yaml`: separate native clients/audiences and callback/logout configuration for the existing Auth0 tenant, public mobile settings only, and server-side bounded Management API/RevenueCat access. Document secret names without values in `apps/backend/.env.example`; actual provider activation belongs to T015/T036.
+- [x] T001 Integrate F05 dependencies in `apps/backend/pom.xml` and `apps/mobile/package.json` after F13 T001–T017 and shared JWT enforcement T038; reuse native Auth0, Expo ImagePicker/ImageManipulator, React Hook Form/Zod and existing test/generation tooling under the approved versions. Resolve compatible native package versions during implementation; add no new service, state library or shared package.
+- [x] T002 Configure feature inputs in `apps/mobile/app.config.ts`, `apps/mobile/.env.example` and `apps/backend/src/main/resources/application.yaml`: separate native clients/audiences and callback/logout configuration for the existing Auth0 tenant, public mobile settings only, and server-side bounded Management API/RevenueCat access. Document secret names without values in `apps/backend/.env.example`; actual provider activation belongs to T015/T036.
 
 ---
 

@@ -29,6 +29,11 @@ const config: ExpoConfig = {
   platforms: ["ios", "android"],
   plugins: [
     "expo-router",
+    ["react-native-auth0", { domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN }],
+    [
+      "expo-image-picker",
+      { cameraPermission: false, microphonePermission: false },
+    ],
     [
       "expo-font",
       {
