@@ -96,8 +96,20 @@ export async function apiFetch(
           const result = (
             response.status === 503 ? AccessProblemResponse : ProblemResponse
           ).safeParse(await response.json());
-          if (result.success && result.data.status === response.status)
-            problem = result.data;
+          if (result.success && result.data.status === response.status) {
+            const maintenance =
+              "maintenance" in result.data
+                ? result.data.maintenance
+                : undefined;
+            if (
+              result.data.type !== "urn:blockout:problem:maintenance" ||
+              (response.status === 503 &&
+                maintenance?.active === true &&
+                maintenance.message?.trim())
+            ) {
+              problem = result.data;
+            }
+          }
         } catch {
           // Malformed upstream content never replaces the safe HTTP failure.
         }

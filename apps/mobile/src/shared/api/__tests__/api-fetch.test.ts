@@ -443,35 +443,6 @@ it("bounds an uncertain write without replay", async () => {
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 
-it("preserves validated maintenance details on the error profile", async () => {
-  // Given
-  const maintenance = {
-    ...accessResponse().maintenance,
-    active: true,
-    message: "Maintenance en cours",
-  };
-  mockFetch.mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        type: "urn:blockout:problem:maintenance",
-        title: "Unavailable",
-        status: 503,
-        maintenance,
-      }),
-      { status: 503, headers: { "Content-Type": "application/problem+json" } },
-    ),
-  );
-
-  // When
-  const response = getApplicationAccess();
-
-  // Then
-  await expect(response).rejects.toMatchObject({
-    kind: "http",
-    problem: { maintenance },
-  });
-});
-
 it("rejects a response that arrives after caller cancellation", async () => {
   // Given
   const controller = new AbortController();

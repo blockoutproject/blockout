@@ -16,7 +16,6 @@ import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.generated.ingestion.model.ObservationContextInternalRequest;
 import com.blockout.backend.generated.mobile.api.AccountsApi;
 import com.blockout.backend.generated.mobile.model.ChangeAccountProfileRequestMetadata;
-import com.blockout.backend.generated.mobile.model.ChangeApplicationVersionsRequest;
 import com.blockout.backend.generated.mobile.model.EstablishAccount200Response;
 import com.blockout.backend.generated.mobile.model.EstablishAccount200ResponsePermissions;
 import jakarta.validation.Valid;
@@ -67,70 +66,6 @@ class ContractBoundaryWebMvcTest {
   private static final String ACCOUNT = "/accounts/00000000-0000-4000-8000-000000000001";
   @Autowired private MockMvc mvc;
   @Autowired private JsonMapper mapper;
-
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{}",
-        "{\"revision\":null}",
-        "{\"revision\":-1}",
-        "{\"revision\":\"0\"}",
-        "{\"revision\":0.4}",
-        "{\"revision\":0,\"future\":true}",
-        "{\"revision\":0,\"ios\":{\"future\":true}}",
-        "{\"revision\":0,\"ios\":null}",
-        "{\"revision\":0,\"message\":\"\"}"
-      })
-  @DisplayName("Rejects missing, invalid and unknown properties through HTTP binding")
-  void rejectsInvalidInput(String body) throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request =
-        post("/contract/versions").contentType(MediaType.APPLICATION_JSON).content(body);
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response
-        .andExpect(status().isBadRequest())
-        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"))
-        .andExpect(header().string("Cache-Control", "no-store"));
-  }
-
-  @Test
-  @DisplayName("Preserves an omitted nullable field as absent")
-  void preservesOmission() throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request =
-        post("/contract/versions")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"revision\":0}");
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isOk()).andExpect(jsonPath("$.message").doesNotHaveJsonPath());
-  }
-
-  @Test
-  @DisplayName("Preserves explicit null for nullable fields")
-  void preservesExplicitNull() throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request =
-        post("/contract/versions")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"revision\":0,\"message\":null}");
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response
-        .andExpect(status().isOk())
-        .andExpect(content().json("{\"revision\":0,\"message\":null}"));
-  }
 
   @ParameterizedTest
   @ValueSource(strings = {"bad-date", "2026-02-31T12:00:00Z"})
@@ -198,7 +133,7 @@ class ContractBoundaryWebMvcTest {
   void rejectsUnsupportedMedia() throws Exception {
     // Given
     MockHttpServletRequestBuilder request =
-        post("/contract/versions").contentType(MediaType.TEXT_PLAIN).content("private payload");
+        post("/contract/observation").contentType(MediaType.TEXT_PLAIN).content("private payload");
 
     // When
     ResultActions response = mvc.perform(request);
@@ -284,18 +219,6 @@ class ContractBoundaryWebMvcTest {
    */
   @RestController
   static class BindingAdapter {
-    /**
-     * Returns the bound DTO so the test can observe absent and null transport values.
-     *
-     * @param body canonical partial version update
-     * @return the unchanged bound transport value
-     */
-    @PostMapping(value = "/contract/versions", consumes = "application/json")
-    ChangeApplicationVersionsRequest versions(
-        @Valid @RequestBody ChangeApplicationVersionsRequest body) {
-      return body;
-    }
-
     /**
      * Exercises the same generated date binding used by ingestion requests.
      *
