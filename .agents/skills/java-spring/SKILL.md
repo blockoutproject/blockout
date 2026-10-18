@@ -44,7 +44,17 @@ Use records for immutable commands and views, and constructor injection for depe
 
 Put mappers at the boundary they translate. Mechanical mapping defaults to MapStruct; decisions, aggregation, union dispatch and exceptional construction stay explicit. Read [mapping](references/mapping.md) when adding or changing a mapper.
 
-Use standard Bean Validation for boundary shapes and typed validated `@ConfigurationProperties` for startup settings. Do not repeat generated constraints manually. Cross-field and domain decisions remain explicit. Avoid application-context lookup, field injection and custom framework extensions without an actual unmet need.
+Use standard Bean Validation for boundary shapes. Do not repeat generated constraints manually. Cross-field and domain decisions remain explicit. Avoid application-context lookup, field injection and custom framework extensions without an actual unmet need.
+
+## Startup configuration
+
+Centralize application-owned external settings in cohesive typed `*Properties` classes or records using Spring Boot `@ConfigurationProperties`. Group them by responsibility and prefix, register them through native scanning or `@EnableConfigurationProperties`, and inject them through constructors or bean method parameters. Use these types instead of scattered Spring `@Value` injections or repeated `Environment` lookups. This is the pack's convention; Spring still supports those alternatives. It does not concern Lombok's unrelated `@Value` annotation.
+
+Keep defaults and environment aliases in the existing `application.properties` or YAML configuration, with one owner for each default. Preserve supported keys, aliases, units, profile behavior and precedence when replacing existing injections; relaxed binding does not guarantee compatibility with every historical environment-variable spelling. Keep framework-owned settings, such as datasource or OAuth client configuration, in their native namespaces and mechanisms. Do not duplicate them in an application settings registry or add a custom loader. Fixed constants and classpath resources do not become operator settings; use the appropriate native resource API.
+
+Validate required settings at startup with `@Validated` and suitable Bean Validation constraints. Preserve optional settings and legitimate defaults. Verify the changed binding boundary with actual configuration data: required values absent, blank or invalid as applicable, plus supported overrides and defaults. An unresolved placeholder can remain nonblank text under binding; `@NotBlank` alone does not prove absence is rejected. Where needed, use a native empty placeholder fallback with the relevant constraint rather than a custom placeholder scanner. Do not duplicate native validation in consuming services.
+
+Check [Spring Boot externalized configuration](https://docs.spring.io/spring-boot/reference/features/external-config.html) for the project's installed version before relying on binding, conversion or validation behavior.
 
 ## Focused Lombok conventions
 
