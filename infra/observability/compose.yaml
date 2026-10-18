@@ -23,6 +23,7 @@ services:
 
 networks:
   telemetry:
+    external: true
     name: blockout-telemetry-${BLOCKOUT_ENVIRONMENT:?Select production or preproduction}
 
 volumes:
