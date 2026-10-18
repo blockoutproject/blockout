@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.PoolKey;
 import com.blockout.backend.sporting.application.SportingClassification;
 import com.blockout.backend.sporting.application.SportingStore;
@@ -11,7 +12,6 @@ import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.TeamCandidate;
 import com.blockout.backend.sporting.application.UnresolvedSportingIdentityException;
-import com.blockout.backend.sporting.domain.SportingProvider;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -149,7 +149,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<ClubView> club(SportingProvider provider, String reference) {
+  public Optional<ClubView> club(CollectionProviderEnum provider, String reference) {
     return clubs.findByProviderAndReference(provider, reference).map(mapper::toView);
   }
 
@@ -161,7 +161,7 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public ClubView createClub(SportingProvider provider, String reference, String sourceName) {
+  public ClubView createClub(CollectionProviderEnum provider, String reference, String sourceName) {
     return mapper.toView(clubs.save(new ClubEntity(provider, reference, sourceName)));
   }
 
@@ -171,7 +171,7 @@ public class JpaSportingStore implements SportingStore {
       UUID seasonId, UUID clubId, SportingClassification classification, String name) {
     return teams
         .findByProviderAndSeasonIdAndClubIdAndDivisionIdAndFormatAndGenderAndComparisonName(
-            SportingProvider.FFVB,
+            CollectionProviderEnum.FFVB,
             seasonId,
             clubId,
             classification.divisionId(),
@@ -192,7 +192,7 @@ public class JpaSportingStore implements SportingStore {
   public Optional<TeamView> lnvTeam(PoolView pool, String reference) {
     return teams
         .findByProviderAndSeasonIdAndOrganizerReferenceAndCompetitionReferenceAndNativeReference(
-            SportingProvider.LNV,
+            CollectionProviderEnum.LNV,
             pool.key().seasonId(),
             pool.key().organizerReference(),
             pool.key().competitionReference(),

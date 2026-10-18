@@ -1,6 +1,6 @@
 package com.blockout.backend.sporting.infrastructure;
 
-import com.blockout.backend.sporting.domain.SportingProvider;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -28,7 +28,7 @@ public class PackEntity {
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  private SportingProvider provider;
+  private CollectionProviderEnum provider;
 
   @Column(nullable = false)
   private String organizerReference;
@@ -48,7 +48,10 @@ public class PackEntity {
    * @param reference exact native reference, preserving its original spelling
    */
   public PackEntity(
-      SeasonEntity season, SportingProvider provider, String organizerReference, String reference) {
+      SeasonEntity season,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      String reference) {
     this.season = season;
     this.provider = provider;
     this.organizerReference = organizerReference;
@@ -63,7 +66,7 @@ public class PackEntity {
     return season;
   }
 
-  public SportingProvider getProvider() {
+  public CollectionProviderEnum getProvider() {
     return provider;
   }
 

@@ -1,8 +1,8 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
-import com.blockout.backend.sporting.domain.SportingProvider;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -34,7 +34,7 @@ public class TeamEntity {
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  private SportingProvider provider;
+  private CollectionProviderEnum provider;
 
   @Column(nullable = false)
   private String organizerReference;
@@ -81,7 +81,7 @@ public class TeamEntity {
    * @param organizerReference qualified organizer or source-binding context
    * @param competitionReference qualified competition or championship reference
    * @param nativeReference native LNV TeamID or optional FFVB reference
-   * @param sourceName available original source label, or null when unknown
+   * @param sourceName required original source label
    * @param comparisonName established narrow FFVB comparison key
    * @param club required FFVB club or optional professional association
    * @param division established sporting division owner
@@ -90,7 +90,7 @@ public class TeamEntity {
    */
   public TeamEntity(
       SeasonEntity season,
-      SportingProvider provider,
+      CollectionProviderEnum provider,
       String organizerReference,
       String competitionReference,
       String nativeReference,
@@ -121,7 +121,7 @@ public class TeamEntity {
     return season;
   }
 
-  public SportingProvider getProvider() {
+  public CollectionProviderEnum getProvider() {
     return provider;
   }
 

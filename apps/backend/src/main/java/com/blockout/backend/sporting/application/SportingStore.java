@@ -1,12 +1,12 @@
 package com.blockout.backend.sporting.application;
 
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
-import com.blockout.backend.sporting.domain.SportingProvider;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -94,7 +94,7 @@ public interface SportingStore {
    * @param reference exact native reference
    * @return persistent club
    */
-  Optional<ClubView> club(SportingProvider provider, String reference);
+  Optional<ClubView> club(CollectionProviderEnum provider, String reference);
 
   /**
    * Reads the persistent organization.
@@ -112,7 +112,7 @@ public interface SportingStore {
    * @param sourceName available label
    * @return new club
    */
-  ClubView createClub(SportingProvider provider, String reference, String sourceName);
+  ClubView createClub(CollectionProviderEnum provider, String reference, String sourceName);
 
   /**
    * Finds the existing FFVB club/classification/name identity.

@@ -1,6 +1,6 @@
 package com.blockout.backend.sporting.application;
 
-import com.blockout.backend.sporting.domain.SportingProvider;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import java.util.UUID;
 
 /**
@@ -15,7 +15,7 @@ import java.util.UUID;
  * @param reference native pool or phase reference
  */
 public record PoolKey(
-    SportingProvider provider,
+    CollectionProviderEnum provider,
     UUID seasonId,
     String organizerReference,
     String competitionReference,

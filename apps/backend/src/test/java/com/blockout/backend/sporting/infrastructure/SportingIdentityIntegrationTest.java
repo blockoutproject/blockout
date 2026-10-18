@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doAnswer;
 
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.PoolKey;
@@ -17,7 +18,6 @@ import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.TeamCandidate;
 import com.blockout.backend.sporting.application.UnresolvedSportingIdentityException;
-import com.blockout.backend.sporting.domain.SportingProvider;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.util.List;
 import java.util.UUID;
@@ -102,8 +102,8 @@ class SportingIdentityIntegrationTest {
     // Given
     SeasonView first = seasons.getOrCreate(2026L);
     SeasonView next = seasons.getOrCreate(2027L);
-    PoolView firstPool = pool(first, "A", null, SportingProvider.FFVB);
-    PoolView nextPool = pool(next, "A", null, SportingProvider.FFVB);
+    PoolView firstPool = pool(first, "A", null, CollectionProviderEnum.FFVB);
+    PoolView nextPool = pool(next, "A", null, CollectionProviderEnum.FFVB);
 
     // When
     MatchView firstMatch =
@@ -131,8 +131,8 @@ class SportingIdentityIntegrationTest {
   void sharesCompatibleTeams() {
     // Given
     SeasonView season = seasons.getOrCreate(2026L);
-    PoolView first = pool(season, "A", null, SportingProvider.FFVB);
-    PoolView second = pool(season, "B", null, SportingProvider.FFVB);
+    PoolView first = pool(season, "A", null, CollectionProviderEnum.FFVB);
+    PoolView second = pool(season, "B", null, CollectionProviderEnum.FFVB);
 
     // When
     MatchView one =
@@ -160,8 +160,8 @@ class SportingIdentityIntegrationTest {
   void scopesMatchReferences() {
     // Given
     SeasonView season = seasons.getOrCreate(2026L);
-    PoolView first = pool(season, "A", null, SportingProvider.FFVB);
-    PoolView second = pool(season, "A", "tour-2", SportingProvider.FFVB);
+    PoolView first = pool(season, "A", null, CollectionProviderEnum.FFVB);
+    PoolView second = pool(season, "A", "tour-2", CollectionProviderEnum.FFVB);
     MatchView match =
         identities.identifyMatch(first.id(), "M1", ffvb("Home", "0001"), ffvb("Away", "0002"));
     sql.update("UPDATE sporting_match SET local_date = DATE '2027-02-01' WHERE id = ?", match.id());
@@ -207,7 +207,8 @@ class SportingIdentityIntegrationTest {
     // Given
     SeasonView season = seasons.getOrCreate(2026L);
     PoolKey key =
-        new PoolKey(SportingProvider.FFVB, season.id(), "LIG", "competition", tour, group, "A");
+        new PoolKey(
+            CollectionProviderEnum.FFVB, season.id(), "LIG", "competition", tour, group, "A");
     SportingClassification classification =
         new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MIXED);
     PoolView existing = identities.establishPool(key, "pack", "Synthetic pool", classification);
@@ -224,7 +225,7 @@ class SportingIdentityIntegrationTest {
   @DisplayName("Preserves known matches when an FFVB participant cannot be associated")
   void refusesUnrecognizedReplacement() {
     // Given
-    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, SportingProvider.FFVB);
+    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
     MatchView match =
         identities.identifyMatch(pool.id(), "M1", ffvb("Home 1", "0001"), ffvb("Away", "0002"));
 
@@ -244,7 +245,7 @@ class SportingIdentityIntegrationTest {
   @DisplayName("Uses scoped verified aliases without merging a similarly named club")
   void resolvesVerifiedAlias() {
     // Given
-    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, SportingProvider.FFVB);
+    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
     MatchView match =
         identities.identifyMatch(pool.id(), "M1", ffvb("Home 1", "0001"), ffvb("Away", "0002"));
     sql.update(
@@ -270,7 +271,7 @@ class SportingIdentityIntegrationTest {
   @DisplayName("Keeps qualified LNV teams through labels and optional club association")
   void preservesProfessionalIdentity() {
     // Given
-    PoolView pool = pool(seasons.getOrCreate(2026L), "phase", null, SportingProvider.LNV);
+    PoolView pool = pool(seasons.getOrCreate(2026L), "phase", null, CollectionProviderEnum.LNV);
     MatchView match =
         identities.identifyMatch(
             pool.id(),
@@ -297,7 +298,7 @@ class SportingIdentityIntegrationTest {
   @DisplayName("Rolls back a complete encounter when the other FFVB club cannot be identified")
   void rollsBackUnidentifiedClub() {
     // Given
-    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, SportingProvider.FFVB);
+    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable identify =
@@ -315,11 +316,17 @@ class SportingIdentityIntegrationTest {
   void confinesAliasContext() {
     // Given
     SeasonView season = seasons.getOrCreate(2026L);
-    PoolView first = pool(season, "A", null, SportingProvider.FFVB);
+    PoolView first = pool(season, "A", null, CollectionProviderEnum.FFVB);
     PoolView other =
         identities.establishPool(
             new PoolKey(
-                SportingProvider.FFVB, season.id(), "LIG", "other-competition", null, null, "A"),
+                CollectionProviderEnum.FFVB,
+                season.id(),
+                "LIG",
+                "other-competition",
+                null,
+                null,
+                "A"),
             "pack",
             "Synthetic pool",
             first.classification());
@@ -349,7 +356,7 @@ class SportingIdentityIntegrationTest {
       "Retains a technical professional club association without transferring it to another season")
   void retainsOptionalProfessionalClub() {
     // Given
-    PoolView pool = pool(seasons.getOrCreate(2026L), "phase", null, SportingProvider.LNV);
+    PoolView pool = pool(seasons.getOrCreate(2026L), "phase", null, CollectionProviderEnum.LNV);
     MatchView match =
         identities.identifyMatch(
             pool.id(),
@@ -360,7 +367,7 @@ class SportingIdentityIntegrationTest {
     sql.update(
         "INSERT INTO sporting_club(id, provider, reference) VALUES (?, 'FFVB', '0001')", club);
     sql.update("UPDATE sporting_team SET club_id = ? WHERE id = ?", club, match.homeTeamId());
-    PoolView next = pool(seasons.getOrCreate(2027L), "phase", null, SportingProvider.LNV);
+    PoolView next = pool(seasons.getOrCreate(2027L), "phase", null, CollectionProviderEnum.LNV);
 
     // When
     MatchView current =
@@ -387,7 +394,7 @@ class SportingIdentityIntegrationTest {
   @DisplayName("Enforces FFVB uniqueness at database commit, independently from lookup")
   void enforcesTeamUniqueness() {
     // Given
-    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, SportingProvider.FFVB);
+    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
     MatchView match =
         identities.identifyMatch(pool.id(), "M1", ffvb("Home", "0001"), ffvb("Away", "0002"));
     TeamView home = reads.team(match.homeTeamId()).orElseThrow();
@@ -411,7 +418,7 @@ class SportingIdentityIntegrationTest {
       "Enforces LNV uniqueness by championship and native TeamID independently from label or club")
   void enforcesProfessionalUniqueness() {
     // Given
-    PoolView pool = pool(seasons.getOrCreate(2026L), "phase", null, SportingProvider.LNV);
+    PoolView pool = pool(seasons.getOrCreate(2026L), "phase", null, CollectionProviderEnum.LNV);
     identities.identifyMatch(
         pool.id(),
         "M1",
@@ -441,7 +448,7 @@ class SportingIdentityIntegrationTest {
   @DisplayName("Treats absent tour and group as one unique native pool context")
   void enforcesOptionalPoolContextUniqueness() {
     // Given
-    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, SportingProvider.FFVB);
+    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When
@@ -521,7 +528,7 @@ class SportingIdentityIntegrationTest {
   @DisplayName("Rejects a participation whose team owner does not exist")
   void enforcesOwnerForeignKeys() {
     // Given
-    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, SportingProvider.FFVB);
+    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable orphan =
@@ -543,8 +550,8 @@ class SportingIdentityIntegrationTest {
       "Rolls back the losing cross-season club creation without replay or partial identities")
   void isolatesConcurrentClubCreation() throws Exception {
     // Given
-    PoolView first = pool(seasons.getOrCreate(2026L), "A", null, SportingProvider.FFVB);
-    PoolView second = pool(seasons.getOrCreate(2027L), "A", null, SportingProvider.FFVB);
+    PoolView first = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
+    PoolView second = pool(seasons.getOrCreate(2027L), "A", null, CollectionProviderEnum.FFVB);
     CyclicBarrier bothRead = new CyclicBarrier(2);
     doAnswer(
             invocation -> {
@@ -553,7 +560,7 @@ class SportingIdentityIntegrationTest {
               return existing;
             })
         .when(store)
-        .club(SportingProvider.FFVB, "race-club");
+        .club(CollectionProviderEnum.FFVB, "race-club");
 
     try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
       // When
@@ -586,7 +593,7 @@ class SportingIdentityIntegrationTest {
   @DisplayName("Reads the committed classification only after acquiring the season lock")
   void readsClassificationAfterLock() throws Exception {
     // Given
-    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, SportingProvider.FFVB);
+    PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
     CompletableFuture<Void> attempted = new CompletableFuture<>();
     doAnswer(
             invocation -> {
@@ -648,7 +655,7 @@ class SportingIdentityIntegrationTest {
    * @return persisted pool with the test's established classification
    */
   private PoolView pool(
-      SeasonView season, String reference, String tour, SportingProvider provider) {
+      SeasonView season, String reference, String tour, CollectionProviderEnum provider) {
     return identities.establishPool(
         new PoolKey(provider, season.id(), "LIG", "competition", tour, null, reference),
         "pack",

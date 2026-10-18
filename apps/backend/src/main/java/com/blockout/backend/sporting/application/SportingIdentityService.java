@@ -1,10 +1,10 @@
 package com.blockout.backend.sporting.application;
 
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
-import com.blockout.backend.sporting.domain.SportingProvider;
 import com.blockout.backend.sporting.domain.TeamName;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,6 +20,8 @@ public class SportingIdentityService {
   private final SportingStore store;
 
   /**
+   * Injects the persistence boundary used by identity decisions.
+   *
    * @param store use-case persistence, never a generated transport or provider client
    */
   public SportingIdentityService(SportingStore store) {
@@ -34,6 +36,8 @@ public class SportingIdentityService {
    * @param sourceName attributable label
    * @param classification established complete sporting classification
    * @return existing or newly established pool
+   * @throws UnresolvedSportingIdentityException if the season or division is unknown, a new
+   *     classification uses an inactive division, or an existing classification would change
    */
   @Transactional
   public PoolView establishPool(
@@ -68,6 +72,8 @@ public class SportingIdentityService {
    * @param home identified home participant; null represents no identifiable encounter
    * @param away identified away participant; null represents no identifiable encounter
    * @return stable match identity
+   * @throws UnresolvedSportingIdentityException if the pool or participants cannot be identified,
+   *     participants coincide, or their classification is incompatible
    */
   @Transactional
   public MatchView identifyMatch(
@@ -105,11 +111,12 @@ public class SportingIdentityService {
     String name = new TeamName(candidate.sourceName()).comparisonKey();
     UUID clubId = null;
     Optional<TeamView> known;
-    if (pool.key().provider() == SportingProvider.FFVB) {
+    if (pool.key().provider() == CollectionProviderEnum.FFVB) {
       if (candidate.clubReference() == null || candidate.clubReference().isBlank()) {
         throw new UnresolvedSportingIdentityException("FFVB participant has no attributable club");
       }
-      ClubView club = store.club(SportingProvider.FFVB, candidate.clubReference()).orElse(null);
+      ClubView club =
+          store.club(CollectionProviderEnum.FFVB, candidate.clubReference()).orElse(null);
       if (club == null && expectedTeam != null) {
         throw new UnresolvedSportingIdentityException(
             "Known participant has an unrecognized club reference");
@@ -117,7 +124,7 @@ public class SportingIdentityService {
       if (club == null)
         club =
             store.createClub(
-                SportingProvider.FFVB, candidate.clubReference(), candidate.clubSourceName());
+                CollectionProviderEnum.FFVB, candidate.clubReference(), candidate.clubSourceName());
       clubId = club.id();
       known = store.ffvbTeam(pool.key().seasonId(), clubId, pool.classification(), name);
       if (known.isEmpty()) known = store.teamAlias(pool, clubId, name);

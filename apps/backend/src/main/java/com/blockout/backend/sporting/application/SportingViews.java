@@ -1,6 +1,6 @@
 package com.blockout.backend.sporting.application;
 
-import com.blockout.backend.sporting.domain.SportingProvider;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,7 +26,8 @@ public final class SportingViews {
    * @param reference exact reference, retaining leading zeros
    * @param sourceName attributable source label, or null when unknown
    */
-  public record ClubView(UUID id, SportingProvider provider, String reference, String sourceName) {}
+  public record ClubView(
+      UUID id, CollectionProviderEnum provider, String reference, String sourceName) {}
 
   /**
    * Minimal division state used by classification and discovery owners.
@@ -83,7 +84,7 @@ public final class SportingViews {
   public record TeamView(
       UUID id,
       UUID seasonId,
-      SportingProvider provider,
+      CollectionProviderEnum provider,
       String organizerReference,
       String competitionReference,
       String nativeReference,

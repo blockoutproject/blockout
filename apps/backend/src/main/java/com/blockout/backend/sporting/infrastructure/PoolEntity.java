@@ -1,8 +1,8 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
-import com.blockout.backend.sporting.domain.SportingProvider;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -38,7 +38,7 @@ public class PoolEntity {
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  private SportingProvider provider;
+  private CollectionProviderEnum provider;
 
   @Column(nullable = false)
   private String organizerReference;
@@ -85,7 +85,7 @@ public class PoolEntity {
    * @param tourReference separately published tour, or null
    * @param groupReference separately qualified group, or null
    * @param reference exact native reference, preserving its original spelling
-   * @param sourceName available original source label, or null when unknown
+   * @param sourceName required original source label
    * @param division established sporting division owner
    * @param format accepted sporting format
    * @param gender accepted sporting gender
@@ -93,7 +93,7 @@ public class PoolEntity {
   public PoolEntity(
       SeasonEntity season,
       PackEntity pack,
-      SportingProvider provider,
+      CollectionProviderEnum provider,
       String organizerReference,
       String competitionReference,
       String tourReference,
@@ -129,7 +129,7 @@ public class PoolEntity {
     return pack;
   }
 
-  public SportingProvider getProvider() {
+  public CollectionProviderEnum getProvider() {
     return provider;
   }
 

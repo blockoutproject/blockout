@@ -1,9 +1,9 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.SportingViews.PoolView;
-import com.blockout.backend.sporting.domain.SportingProvider;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,7 +25,7 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
    */
   Optional<TeamEntity>
       findByProviderAndSeasonIdAndClubIdAndDivisionIdAndFormatAndGenderAndComparisonName(
-          SportingProvider provider,
+          CollectionProviderEnum provider,
           UUID seasonId,
           UUID clubId,
           UUID divisionId,
@@ -45,7 +45,7 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
    */
   Optional<TeamEntity>
       findByProviderAndSeasonIdAndOrganizerReferenceAndCompetitionReferenceAndNativeReference(
-          SportingProvider provider,
+          CollectionProviderEnum provider,
           UUID seasonId,
           String organizerReference,
           String competitionReference,

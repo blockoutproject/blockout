@@ -56,7 +56,7 @@ The quoted data-model constraints below remain literal. Concrete Java classes gr
 
 ### Tests for User Story 1
 
-- [x] T006 [P] [US1] Write failing identity cases in `apps/backend/src/test/java/com/blockout/backend/sporting/application/SportingIdentityServiceTest.java`; cover A01–A05, contextual aliases, normalization limited to case/spaces/apostrophes, meaningful accents/digits/dots/hyphens, established LNV references through label changes and no team creation from standings or future places.
+- [x] T006 [P] [US1] Write failing identity cases in `apps/backend/src/test/java/com/blockout/backend/sporting/domain/TeamNameTest.java` and `apps/backend/src/test/java/com/blockout/backend/sporting/application/SportingIdentityServiceTest.java`; cover A01–A05, contextual aliases, normalization limited to case/spaces/apostrophes, meaningful accents/digits/dots/hyphens, established LNV references through label changes and no team creation from standings or future places.
 - [x] T007 [P] [US1] Write failing PostgreSQL identity tests in `apps/backend/src/test/java/com/blockout/backend/sporting/infrastructure/SportingIdentityIntegrationTest.java`; verify unique qualified season start years, compound provider keys, leading-zero club references, compatible multi-pool participation, postponed/repeated encounters and concurrent club-creation conflict rollback without inferred merges.
 
 ### Implementation for User Story 1

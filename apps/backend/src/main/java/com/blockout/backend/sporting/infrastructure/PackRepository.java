@@ -1,6 +1,6 @@
 package com.blockout.backend.sporting.infrastructure;
 
-import com.blockout.backend.sporting.domain.SportingProvider;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,5 +17,5 @@ interface PackRepository extends JpaRepository<PackEntity, UUID> {
    * @return existing pack
    */
   Optional<PackEntity> findByProviderAndSeasonIdAndOrganizerReferenceAndReference(
-      SportingProvider provider, UUID seasonId, String organizerReference, String reference);
+      CollectionProviderEnum provider, UUID seasonId, String organizerReference, String reference);
 }
