@@ -33,7 +33,11 @@ The Java `disallowAdditionalPropertiesIfNotPresent=false` option lets explicit O
 
 For normal business JSON responses, use generated named object/array schemas whose validation path is qualified. Orval's inspected path skips primitive, void and NDJSON schema passing: 204/non-JSON are handled intentionally; any later required primitive/stream shape needs a supported qualified schema path before adoption. An unexpectedly absent success schema is a failing boundary qualification, never a cast. Do not invent wrapper objects solely to conceal unsupported domain semantics.
 
+Collector model types use the generator's supported [`additionalModelTypeAnnotations`](https://github.com/OpenAPITools/openapi-generator/blob/v7.26.0/docs/generators/java.md) option with Jackson `@JsonInclude(NON_NULL)`: omitted optional non-nullable fields must not become forbidden nulls on the wire. Generated property-level `ALWAYS` annotations retain required nulls, while `JsonNullable` retains explicit nullable proposals. The consumer suites qualify these distinctions without a custom serializer or template patch.
+
 ## Shared HTTP behavior
+
+Current request collections have non-nullable elements/values. The backend's [native Jackson null-content setting](https://github.com/FasterXML/jackson-databind/blob/jackson-databind-3.1.5/src/main/java/tools/jackson/databind/cfg/MapperBuilder.java) rejects null entries during binding, independently of nullable whole-field proposals. Introducing nullable collection contents requires reconciling that setting with the source contract.
 
 These are resource-oriented HTTP contracts for generated, known mobile/collector consumers. Clients use the agreed operation catalogue; no hypermedia-driven action discovery is selected, so full REST conformance is not claimed. Preserve existing route vocabulary; collections use plural nouns and compound literal segments use kebab-case. The owning operation selects GET for reading, PUT for replacement, PATCH for atomic changes and POST for creation or processing, without automatic CRUD or a generic batch protocol.
 

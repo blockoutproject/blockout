@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-These are future implementation scenarios. The Blockout runtime and its executable targets do not exist yet; use the actual owning Maven/npm targets once implemented, not invented commands. Run the current [README documentation checks](../../README.md#verification) for this documentary delivery.
+Use the executable Maven/npm targets and focused sporting test commands in [README verification](../../README.md#verification). The boundary suites exercise generated MVC binding/mapping, collector serialization and mobile response validation before Query admission. They use controlled HTTP peers and synthetic data; the business, database and native journeys below require their owning implementations.
 
 Use isolated PostgreSQL at the [F13-selected version](../003-shared-quality/plan.md#technical-context), the F13 contract toolchain and synthetic/minimized supplier observations. Keep raw supplier documents and personal contact data outside public fixtures. Prototype/browser evidence does not establish native or provider behavior.
 
