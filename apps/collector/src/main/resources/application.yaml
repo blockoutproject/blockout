@@ -22,7 +22,8 @@ spring:
 blockout:
   ingestion:
     base-url: ${BLOCKOUT_INGESTION_BASE_URL:http://localhost:8080}
-    audience: ${BLOCKOUT_INGESTION_AUDIENCE}
+    # Empty fallback lets Bean Validation reject an absent audience instead of placeholder text.
+    audience: ${BLOCKOUT_INGESTION_AUDIENCE:}
     timeout: ${BLOCKOUT_INGESTION_TIMEOUT:15s}
 
 management:

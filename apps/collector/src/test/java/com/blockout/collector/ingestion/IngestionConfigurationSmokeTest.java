@@ -21,6 +21,42 @@ import org.springframework.core.env.SystemEnvironmentPropertySource;
 /** Exercises actual Boot startup, configuration aliases and validation without provider calls. */
 @DisplayName("Collector ingestion startup configuration")
 class IngestionConfigurationSmokeTest {
+  @Test
+  @DisplayName("Refuses an absent audience environment variable")
+  void rejectsAbsentAudience() {
+    // Given
+    StandardEnvironment environment = new StandardEnvironment();
+    environment
+        .getPropertySources()
+        .remove(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
+    environment
+        .getPropertySources()
+        .remove(StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
+    SpringApplicationBuilder application =
+        new SpringApplicationBuilder(CollectorApplication.class)
+            .web(WebApplicationType.NONE)
+            .environment(environment);
+
+    // When
+    Throwable failure =
+        catchThrowable(
+            () -> {
+              try (ConfigurableApplicationContext context =
+                  application.run(
+                      "--spring.main.keep-alive=false",
+                      "--spring.config.location=classpath:/application.yaml",
+                      "--spring.security.oauth2.client.registration.ingestion.client-id=collector-test",
+                      "--spring.security.oauth2.client.registration.ingestion.client-secret=harmless-test-secret",
+                      "--spring.security.oauth2.client.provider.auth0.token-uri=https://identity.example.invalid/oauth/token")) {
+                // The actual YAML is loaded without the test properties or a host-provided
+                // audience.
+              }
+            });
+
+    // Then
+    assertThat(failure).hasRootCauseInstanceOf(BindValidationException.class);
+  }
+
   @ParameterizedTest
   @ValueSource(
       strings = {
