@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 /** Native Spring Data queries for exact account identities and original-row locking. */
-interface AccountJpaRepository extends JpaRepository<AccountEntity, UUID> {
+interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
   /**
    * Finds only the exact provider principal, never an email-derived identity.
    *

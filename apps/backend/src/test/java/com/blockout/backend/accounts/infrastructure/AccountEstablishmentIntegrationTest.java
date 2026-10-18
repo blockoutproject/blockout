@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import com.blockout.backend.accounts.application.AccountAccess;
-import com.blockout.backend.accounts.application.AccountRepository;
+import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.validation.ConstraintViolationException;
@@ -50,7 +50,7 @@ class AccountEstablishmentIntegrationTest {
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final Instant PRINCIPAL_CREATED = Instant.parse("2020-01-02T03:04:05Z");
   @Autowired private JdbcTemplate sql;
-  @Autowired private AccountRepository accounts;
+  @Autowired private AccountStore accounts;
   @Autowired private AccountAccess access;
   @Autowired private PlatformTransactionManager transactions;
   private TransactionTemplate transaction;

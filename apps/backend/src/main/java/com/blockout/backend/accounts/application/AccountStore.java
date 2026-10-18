@@ -9,7 +9,7 @@ import java.util.UUID;
  * Account-owned persistence operations; mutations and locks participate in the caller's
  * transaction.
  */
-public interface AccountRepository {
+public interface AccountStore {
   /**
    * Reads the current mapping without creating an account or consulting a provider.
    *

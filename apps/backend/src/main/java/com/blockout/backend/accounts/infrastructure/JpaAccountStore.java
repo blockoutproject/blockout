@@ -1,6 +1,6 @@
 package com.blockout.backend.accounts.infrastructure;
 
-import com.blockout.backend.accounts.application.AccountRepository;
+import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.domain.Account;
 import java.time.Instant;
 import java.util.Optional;
@@ -14,8 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 /** JPA account adapter; write and lock operations require the caller's transaction. */
 @Repository
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
-public class JpaAccountRepository implements AccountRepository {
-  private final AccountJpaRepository accounts;
+public class JpaAccountStore implements AccountStore {
+  private final AccountRepository accounts;
   private final AccountPersistenceMapper mapper;
 
   /** {@inheritDoc} */

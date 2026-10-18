@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AccountAccess {
-  private final AccountRepository accounts;
+  private final AccountStore accounts;
 
   /**
    * Resolves a validated principal locally without exposing personal profile data.
