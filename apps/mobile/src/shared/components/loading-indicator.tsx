@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
-import { useEffect } from "react";
-import { StyleSheet } from "react-native";
+import { useEffect, useState } from "react";
+import { AccessibilityInfo, StyleSheet } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -12,27 +12,40 @@ import Animated, {
 } from "react-native-reanimated";
 import { tokens } from "../theme/tokens";
 
-/** Reuses the approved 20 px action glyph; Reanimated's native System policy keeps reduced motion static. */
+/** Keeps the approved action glyph static whenever the current native reduced-motion setting is enabled. */
 export function LoadingIndicator({ color }: { color: string }) {
+  const [reducedMotion, setReducedMotion] = useState(true);
   const rotation = useSharedValue(0);
   const style = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
 
   useEffect(() => {
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setReducedMotion,
+    );
+    void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    rotation.value = 0;
+    if (reducedMotion) return;
+
     rotation.value = withRepeat(
       withTiming(360, {
         duration: tokens.motion.slow,
         easing: Easing.linear,
-        reduceMotion: ReduceMotion.System,
+        reduceMotion: ReduceMotion.Never,
       }),
       -1,
       false,
       undefined,
-      ReduceMotion.System,
+      ReduceMotion.Never,
     );
     return () => cancelAnimation(rotation);
-  }, [rotation]);
+  }, [reducedMotion, rotation]);
 
   return (
     <Animated.View style={[styles.slot, style]} accessible={false}>

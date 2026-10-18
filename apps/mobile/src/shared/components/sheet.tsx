@@ -2,7 +2,6 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import type { PropsWithChildren, ReactNode } from "react";
 import {
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,6 +23,7 @@ export function useSheetScreenOptions() {
     presentation: "formSheet",
     headerShown: false,
     sheetAllowedDetents: "fitToContents",
+    sheetGrabberVisible: true,
     sheetCornerRadius: tokens.radius.sheet,
     sheetElevation: 0,
     contentStyle: { backgroundColor: colors.surface },
@@ -37,57 +37,50 @@ export interface SheetProps extends PropsWithChildren {
   footer?: ReactNode;
 }
 
-/** Composes sheet content inside its native route; the owning layout applies useSheetScreenOptions. */
+/** Keeps form and footer in the native host's root ScrollView; the owning layout applies useSheetScreenOptions. */
 export function Sheet({ title, message, footer, children }: SheetProps) {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   return (
-    <View
+    <ScrollView
       style={[
         styles.sheet,
         { backgroundColor: colors.surface, maxHeight: height - insets.top },
       ]}
+      nestedScrollEnabled
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={[
+        styles.body,
+        { paddingBottom: footer ? 0 : tokens.spacing.section },
+      ]}
     >
-      {Platform.OS === "ios" && (
-        <View style={styles.handleArea} accessible={false}>
-          <View
-            style={[styles.handle, { backgroundColor: colors.secondaryText }]}
-          />
+      <View style={styles.introduction}>
+        <View style={styles.titleRow}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.title, { color: colors.text }]}
+          >
+            {title}
+          </Text>
+          <IconButton label="Fermer" onPress={() => router.back()}>
+            <Image
+              source={require("../../../assets/icons/close.svg")}
+              style={styles.closeIcon}
+              tintColor={colors.icon}
+              contentFit="contain"
+            />
+          </IconButton>
         </View>
-      )}
-      <ScrollView
-        style={styles.scroll}
-        automaticallyAdjustKeyboardInsets
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.body}
-      >
-        <View style={styles.introduction}>
-          <View style={styles.titleRow}>
-            <Text
-              accessibilityRole="header"
-              style={[styles.title, { color: colors.text }]}
-            >
-              {title}
-            </Text>
-            <IconButton label="Fermer" onPress={() => router.back()}>
-              <Image
-                source={require("../../../assets/icons/close.svg")}
-                style={styles.closeIcon}
-                tintColor={colors.icon}
-                contentFit="contain"
-              />
-            </IconButton>
-          </View>
-          {message && (
-            <Text style={[styles.message, { color: colors.secondaryText }]}>
-              {message}
-            </Text>
-          )}
-        </View>
-        {children}
-      </ScrollView>
+        {message && (
+          <Text style={[styles.message, { color: colors.secondaryText }]}>
+            {message}
+          </Text>
+        )}
+      </View>
+      {children}
       {footer && (
         <View
           style={[
@@ -98,19 +91,15 @@ export function Sheet({ title, message, footer, children }: SheetProps) {
           {footer}
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   sheet: { flexShrink: 1 },
-  scroll: { flexShrink: 1 },
-  handleArea: { height: 24, alignItems: "center", justifyContent: "center" },
-  handle: { width: 40, height: 4, borderRadius: tokens.radius.full },
   body: {
     paddingTop: tokens.spacing.sm,
     paddingHorizontal: tokens.spacing.lg,
-    paddingBottom: tokens.spacing.section,
     gap: tokens.spacing.section,
   },
   introduction: { gap: tokens.spacing.xs },
@@ -124,6 +113,5 @@ const styles = StyleSheet.create({
   message: tokens.typography.body,
   footer: {
     paddingTop: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.lg,
   },
 });
