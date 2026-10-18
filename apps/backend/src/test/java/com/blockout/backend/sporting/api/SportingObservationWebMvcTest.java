@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -30,8 +31,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Uses a test-only adapter to qualify real MVC binding and the Spring-managed generated mapper. */
+/**
+ * Qualifies binding and mapping through a test-only adapter. Authentication filters belong to the
+ * dedicated security suite, independently from these serialization cases.
+ */
 @WebMvcTest
+@AutoConfigureMockMvc(addFilters = false)
 @Import({
   HttpConfiguration.class,
   ApiExceptionHandler.class,
