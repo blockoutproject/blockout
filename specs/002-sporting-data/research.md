@@ -12,6 +12,8 @@
 
 **Evidence**: Official [women's competition](https://www.lnv.fr/competitions/saforelle-volstar), [men's first division](https://www.lnv.fr/competitions/alterna-volstar), [men's second division](https://www.lnv.fr/competitions/volstar-masculine-2), and the [Data Project calendar](https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=135&PID=193). Native championship IDs do not encode a season; F01's qualified binding remains required. Server-rendered HTML was observed, not a promised stable API. No complete historical reconstruction was executed.
 
+The identity foundation uses ordinary JPA UUID generation, Spring Data repositories and a native pessimistic season row lock. PostgreSQL uniqueness owns canonical years, provider references and scoped encounters. Its [partial indexes](https://www.postgresql.org/docs/18/indexes-partial.html) express the distinct FFVB and LNV team keys; [`NULLS NOT DISTINCT`](https://www.postgresql.org/docs/18/indexes-unique.html) preserves absent optional pool context without replacing null with a sentinel. Liquibase 5.0.3 has no native attributes for these two index forms, so the owning baseline uses scoped PostgreSQL DDL for them. Other tables, relationships and uniqueness use native XML changes. The application-role PostgreSQL suite qualifies these constraints and whole-item rollback on a concurrent club creation; complete ingestion admission and public visibility remain later story work.
+
 ## Partial integration and stale observations
 
 **Decision**: One bounded calendar submission, independent match transactions, then guarded absence finalization. Use backend cycle order plus a pre-read ordinal, per-match accepted order and current pool calendar order.

@@ -1,5 +1,12 @@
 package com.blockout.backend.testsupport;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import liquibase.Contexts;
+import liquibase.LabelExpression;
+import liquibase.Liquibase;
+import liquibase.database.jvm.JdbcConnection;
+import liquibase.resource.ClassLoaderResourceAccessor;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.MountableFile;
 
@@ -24,5 +31,26 @@ public final class PostgresTestDatabase {
         .withCopyFileToContainer(
             MountableFile.forClasspathResource("init-roles.sql"),
             "/docker-entrypoint-initdb.d/10-blockout.sql");
+  }
+
+  /**
+   * Applies the real disposable baseline explicitly before application startup.
+   *
+   * @param database caller-owned running test container
+   * @throws Exception if migration credentials or the actual changelog fail
+   */
+  public static void migrate(PostgreSQLContainer database) throws Exception {
+    try (Connection connection =
+            DriverManager.getConnection(
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
+                "blockout_migration",
+                "harmless-migration");
+        Liquibase liquibase =
+            new Liquibase(
+                "db/changelog/db.changelog-master.xml",
+                new ClassLoaderResourceAccessor(),
+                new JdbcConnection(connection))) {
+      liquibase.update(new Contexts(), new LabelExpression());
+    }
   }
 }

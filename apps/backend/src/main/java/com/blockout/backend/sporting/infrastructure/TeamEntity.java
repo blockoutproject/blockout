@@ -1,0 +1,172 @@
+package com.blockout.backend.sporting.infrastructure;
+
+import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
+import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import com.blockout.backend.sporting.domain.SportingProvider;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
+/** Seasonal team; native professional identity stays independent of optional club attachment. */
+@Entity
+@Table(name = "sporting_team")
+public class TeamEntity {
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "season_id")
+  private SeasonEntity season;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private SportingProvider provider;
+
+  @Column(nullable = false)
+  private String organizerReference;
+
+  @Column(nullable = false)
+  private String competitionReference;
+
+  private String nativeReference;
+
+  @Column(nullable = false)
+  private String sourceName;
+
+  @Column(nullable = false)
+  private String comparisonName;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "club_id")
+  private ClubEntity club;
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "division_id")
+  private DivisionEntity division;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private SportFormatEnum format;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private SportGenderEnum gender;
+
+  @ElementCollection
+  @CollectionTable(name = "sporting_team_alias", joinColumns = @JoinColumn(name = "team_id"))
+  private Set<VerifiedName> aliases = new HashSet<>();
+
+  /** Allows Hibernate to instantiate the mapped team. */
+  protected TeamEntity() {}
+
+  /**
+   * Establishes the supplied team state without generating another owner model.
+   *
+   * @param season existing canonical season owner
+   * @param provider designated native authority
+   * @param organizerReference qualified organizer or source-binding context
+   * @param competitionReference qualified competition or championship reference
+   * @param nativeReference native LNV TeamID or optional FFVB reference
+   * @param sourceName available original source label, or null when unknown
+   * @param comparisonName established narrow FFVB comparison key
+   * @param club required FFVB club or optional professional association
+   * @param division established sporting division owner
+   * @param format accepted sporting format
+   * @param gender accepted sporting gender
+   */
+  public TeamEntity(
+      SeasonEntity season,
+      SportingProvider provider,
+      String organizerReference,
+      String competitionReference,
+      String nativeReference,
+      String sourceName,
+      String comparisonName,
+      ClubEntity club,
+      DivisionEntity division,
+      SportFormatEnum format,
+      SportGenderEnum gender) {
+    this.season = season;
+    this.provider = provider;
+    this.organizerReference = organizerReference;
+    this.competitionReference = competitionReference;
+    this.nativeReference = nativeReference;
+    this.sourceName = sourceName;
+    this.comparisonName = comparisonName;
+    this.club = club;
+    this.division = division;
+    this.format = format;
+    this.gender = gender;
+  }
+
+  public UUID getId() {
+    return id;
+  }
+
+  public SeasonEntity getSeason() {
+    return season;
+  }
+
+  public SportingProvider getProvider() {
+    return provider;
+  }
+
+  public String getOrganizerReference() {
+    return organizerReference;
+  }
+
+  public String getCompetitionReference() {
+    return competitionReference;
+  }
+
+  public String getNativeReference() {
+    return nativeReference;
+  }
+
+  public String getSourceName() {
+    return sourceName;
+  }
+
+  public String getComparisonName() {
+    return comparisonName;
+  }
+
+  public ClubEntity getClub() {
+    return club;
+  }
+
+  public DivisionEntity getDivision() {
+    return division;
+  }
+
+  public SportFormatEnum getFormat() {
+    return format;
+  }
+
+  public SportGenderEnum getGender() {
+    return gender;
+  }
+
+  /**
+   * Refreshes attributable source presentation without changing the established identity key.
+   *
+   * @param sourceName new original supplier label
+   */
+  public void updateSourceName(String sourceName) {
+    this.sourceName = sourceName;
+  }
+}
