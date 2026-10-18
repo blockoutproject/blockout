@@ -138,6 +138,10 @@ npx nx run mobile:serve
 
 Native projects are generated and ignored. After changing native dependencies or configuration, regenerate them with `npm exec --workspace=@blockout/mobile -- expo prebuild --clean` before launching. The `expo-build-properties` plugin enables the [UIKit scene lifecycle required by Xcode 27](https://docs.expo.dev/versions/v57.0.0/sdk/build-properties/#pluginconfigtypeios) while retaining Expo SDK 57.
 
+Shared native UI follows the [F13 theme and component boundaries](specs/003-shared-quality/plan.md#native-ui-and-approved-design). The [native validation guide](specs/003-shared-quality/quickstart.md#native-mobile-and-approved-design) owns Figma comparison and accessibility scenarios.
+
+Bundled Outfit files come unchanged from [`@expo-google-fonts/outfit` 0.4.3](https://www.npmjs.com/package/@expo-google-fonts/outfit/v/0.4.3), under the included [OFL license](apps/mobile/assets/fonts/OFL.txt). SVG icons come from the UI Library sources linked in the native validation guide.
+
 `Blockout Local` uses development-only `com.blockout.local` identifiers and a blank route. F14 owns retained store identities and production candidates. There is no web target or mock identity provider. Android emulators reach a host API through `10.0.2.2`; physical phones need the host's LAN address. `EXPO_PUBLIC_*` values are public bundle configuration, never secrets.
 
 The [canonical HTTP roots](specs/003-shared-quality/contracts/README.md) cover mobile, ingestion and the legacy update read. Redocly's minimal ruleset checks source structure and references without inferring a product license; generation and current consumer checks run through [verification](#verification). Integrated business and provider qualifications remain with the owning feature tasks.

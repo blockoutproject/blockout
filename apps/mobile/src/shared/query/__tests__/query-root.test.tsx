@@ -1,16 +1,14 @@
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  cleanup,
-  render,
-  screen,
-  userEvent,
-} from "@testing-library/react-native";
-import { Slot } from "expo-router";
+import { render, screen, userEvent } from "@testing-library/react-native";
+import { Stack } from "expo-router";
 import type { ComponentType } from "react";
 import { Pressable, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 
-jest.mock("expo-router", () => ({ Slot: jest.fn() }));
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  Stack: jest.fn(),
+}));
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
   wrap: (component: ComponentType) => component,
@@ -18,7 +16,6 @@ jest.mock("@sentry/react-native", () => ({
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(async () => {
-  await cleanup();
   await jest.runOnlyPendingTimersAsync();
   jest.useRealTimers();
 });
@@ -45,7 +42,7 @@ function CacheConsumer() {
 
 it("scopes the route cache to the lifetime of one root", async () => {
   // Given
-  jest.mocked(Slot).mockImplementation(CacheConsumer);
+  jest.mocked(Stack).mockImplementation(CacheConsumer);
   const user = userEvent.setup();
   const root = await render(<RootLayout />);
   expect(screen.getByText("Count: 3")).toBeOnTheScreen();

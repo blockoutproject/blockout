@@ -13,6 +13,9 @@ coverage/
 .generated/
 apps/mobile/android/
 apps/mobile/ios/
+# Preserve upstream font licenses and original Figma SVG exports.
+apps/mobile/assets/fonts/
+apps/mobile/assets/icons/
 mvnw
 mvnw.cmd
 *.java
