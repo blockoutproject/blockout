@@ -1,5 +1,4 @@
 import {
-  cleanup,
   fireEvent,
   render,
   screen,
@@ -8,8 +7,6 @@ import {
 import { useState } from "react";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { TextField } from "../text-field";
-
-afterEach(cleanup);
 
 /** Owns editable data exactly as a feature form does; the control owns no business value. */
 function FormField() {
@@ -88,7 +85,33 @@ it("forwards native focus and blur to the owning form", async () => {
   expect(onBlur).toHaveBeenCalledTimes(1);
 });
 
-it("prevents editing an unavailable field", async () => {
+it.each([{ editable: false }, { editable: true, readOnly: true }])(
+  "prevents editing an unavailable field: %j",
+  async (availability) => {
+    // Given
+    const onChangeText = jest.fn();
+    const user = userEvent.setup();
+    await render(
+      <ThemeProvider>
+        <TextField
+          label="Nom du club"
+          value="Volley"
+          {...availability}
+          onChangeText={onChangeText}
+        />
+      </ThemeProvider>,
+    );
+
+    // When
+    await user.type(screen.getByLabelText("Nom du club"), " autre");
+
+    // Then
+    expect(onChangeText).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue("Volley")).toBeDisabled();
+  },
+);
+
+it("honors native readOnly precedence when editing remains allowed", async () => {
   // Given
   const onChangeText = jest.fn();
   const user = userEvent.setup();
@@ -96,17 +119,18 @@ it("prevents editing an unavailable field", async () => {
     <ThemeProvider>
       <TextField
         label="Nom du club"
-        value="Volley"
+        value=""
         editable={false}
+        readOnly={false}
         onChangeText={onChangeText}
       />
     </ThemeProvider>,
   );
 
   // When
-  await user.type(screen.getByLabelText("Nom du club"), " autre");
+  await user.type(screen.getByLabelText("Nom du club"), "V");
 
   // Then
-  expect(onChangeText).not.toHaveBeenCalled();
-  expect(screen.getByDisplayValue("Volley")).toBeDisabled();
+  expect(onChangeText).toHaveBeenCalledWith("V");
+  expect(screen.getByLabelText("Nom du club")).toBeEnabled();
 });

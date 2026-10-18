@@ -1,14 +1,7 @@
-import {
-  cleanup,
-  render,
-  screen,
-  userEvent,
-} from "@testing-library/react-native";
+import { render, screen, userEvent } from "@testing-library/react-native";
 import { Text } from "react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { IconButton } from "../icon-button";
-
-afterEach(cleanup);
 
 it("announces the caller's action independently of its decorative icon", async () => {
   // Given

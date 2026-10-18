@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { Stack, router } from "expo-router";
-import {
-  act,
-  cleanup,
-  renderRouter,
-  screen,
-} from "expo-router/testing-library";
+import { act, renderRouter, screen } from "expo-router/testing-library";
 import { userEvent } from "@testing-library/react-native";
 import { Appearance, Text } from "react-native";
 import { ThemeProvider, useTheme } from "../../theme/theme-provider";
@@ -15,8 +10,7 @@ import { TextField } from "../text-field";
 
 jest.unmock("react-native/Libraries/Utilities/useColorScheme");
 
-afterEach(async () => {
-  await cleanup();
+afterEach(() => {
   jest.restoreAllMocks();
 });
 

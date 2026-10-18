@@ -1,13 +1,6 @@
-import {
-  cleanup,
-  render,
-  screen,
-  userEvent,
-} from "@testing-library/react-native";
+import { render, screen, userEvent } from "@testing-library/react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { Button } from "../button";
-
-afterEach(cleanup);
 
 it("announces the complete action and activates it once", async () => {
   // Given

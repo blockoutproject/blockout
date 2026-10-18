@@ -23,6 +23,7 @@ export function TextField({
   helper,
   error,
   editable = true,
+  readOnly,
   multiline = false,
   onFocus,
   onBlur,
@@ -32,16 +33,17 @@ export function TextField({
 }: TextFieldProps) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
+  const isEditable = readOnly !== undefined ? !readOnly : editable;
   return (
-    <View style={[styles.field, !editable && styles.disabled]}>
+    <View style={[styles.field, !isEditable && styles.disabled]}>
       <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
       <TextInput
         {...input}
         ref={ref}
         accessibilityLabel={label}
         accessibilityHint={error ?? helper}
-        accessibilityState={{ disabled: !editable }}
-        editable={editable}
+        accessibilityState={{ disabled: !isEditable }}
+        editable={isEditable}
         multiline={multiline}
         placeholderTextColor={colors.secondaryText}
         onFocus={(event) => {

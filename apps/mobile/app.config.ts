@@ -29,8 +29,6 @@ const config: ExpoConfig = {
   platforms: ["ios", "android"],
   plugins: [
     "expo-router",
-    "expo-image",
-    "expo-status-bar",
     [
       "expo-font",
       {

@@ -1,10 +1,5 @@
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  cleanup,
-  render,
-  screen,
-  userEvent,
-} from "@testing-library/react-native";
+import { render, screen, userEvent } from "@testing-library/react-native";
 import { Stack } from "expo-router";
 import type { ComponentType } from "react";
 import { Pressable, Text } from "react-native";
@@ -21,7 +16,6 @@ jest.mock("@sentry/react-native", () => ({
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(async () => {
-  await cleanup();
   await jest.runOnlyPendingTimersAsync();
   jest.useRealTimers();
 });

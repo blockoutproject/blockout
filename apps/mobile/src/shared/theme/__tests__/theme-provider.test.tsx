@@ -1,10 +1,4 @@
-import {
-  act,
-  cleanup,
-  render,
-  screen,
-  userEvent,
-} from "@testing-library/react-native";
+import { act, render, screen, userEvent } from "@testing-library/react-native";
 import { useState } from "react";
 import {
   DefaultTheme,
@@ -16,8 +10,7 @@ import { ThemeProvider, useTheme } from "../theme-provider";
 
 jest.unmock("react-native/Libraries/Utilities/useColorScheme");
 
-afterEach(async () => {
-  await cleanup();
+afterEach(() => {
   jest.restoreAllMocks();
 });
 
