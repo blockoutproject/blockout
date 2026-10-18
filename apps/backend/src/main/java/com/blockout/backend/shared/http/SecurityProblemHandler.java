@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,20 +20,12 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Writes the canonical safe problem profile for failures occurring before MVC dispatch. */
+@RequiredArgsConstructor
 public class SecurityProblemHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
   private final JsonMapper mapper;
   private final BearerTokenAuthenticationEntryPoint authentication =
       new BearerTokenAuthenticationEntryPoint();
   private final BearerTokenAccessDeniedHandler authorization = new BearerTokenAccessDeniedHandler();
-
-  /**
-   * Uses the application's configured JSON mapping at the security filter boundary.
-   *
-   * @param mapper native Jackson mapper, including generated-model modules
-   */
-  public SecurityProblemHandler(JsonMapper mapper) {
-    this.mapper = mapper;
-  }
 
   /** {@inheritDoc} */
   @Override

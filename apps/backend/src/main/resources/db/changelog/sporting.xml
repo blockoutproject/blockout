@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <!-- Mutable F02 baseline while environments remain disposable; no reset is authorized. -->
+  <changeSet id="sporting-identities" author="blockout">
+    <createTable tableName="sporting_season">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="start_year" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="label" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="sporting_division">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="name" type="TEXT"><constraints nullable="false"/></column>
+      <column name="active" type="BOOLEAN"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="sporting_club">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="source_name" type="TEXT"><constraints nullable="true"/></column>
+    </createTable>
+    <createTable tableName="sporting_pack">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="reference" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="sporting_pool">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="pack_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="competition_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="tour_reference" type="TEXT"><constraints nullable="true"/></column>
+      <column name="group_reference" type="TEXT"><constraints nullable="true"/></column>
+      <column name="reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="source_name" type="TEXT"><constraints nullable="false"/></column>
+      <column name="division_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="format" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="gender" type="VARCHAR(255)"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="sporting_team">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="competition_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="native_reference" type="TEXT"><constraints nullable="true"/></column>
+      <column name="source_name" type="TEXT"><constraints nullable="false"/></column>
+      <column name="comparison_name" type="TEXT"><constraints nullable="false"/></column>
+      <column name="club_id" type="UUID"><constraints nullable="true"/></column>
+      <column name="division_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="format" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="gender" type="VARCHAR(255)"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="sporting_participation">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="team_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="current" type="BOOLEAN"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="sporting_match">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="home_team_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="away_team_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="local_date" type="DATE"><constraints nullable="true"/></column>
+    </createTable>
+    <createTable tableName="sporting_club_alias">
+      <column name="club_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="competition_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="comparison_name" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_club_alias" columnNames="club_id, season_id, organizer_reference, competition_reference, comparison_name" constraintName="pk_club_alias"/>
+    <addForeignKeyConstraint baseTableName="sporting_club_alias" baseColumnNames="club_id" referencedTableName="sporting_club" referencedColumnNames="id" constraintName="fk_club_alias_owner"/>
+    <addForeignKeyConstraint baseTableName="sporting_club_alias" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_club_alias_season"/>
+    <createTable tableName="sporting_team_alias">
+      <column name="team_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="competition_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="comparison_name" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_team_alias" columnNames="team_id, season_id, organizer_reference, competition_reference, comparison_name" constraintName="pk_team_alias"/>
+    <addForeignKeyConstraint baseTableName="sporting_team_alias" baseColumnNames="team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_team_alias_owner"/>
+    <addForeignKeyConstraint baseTableName="sporting_team_alias" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_team_alias_season"/>
+    <createTable tableName="sporting_pool_alias">
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="competition_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="comparison_name" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_pool_alias" columnNames="pool_id, season_id, organizer_reference, competition_reference, comparison_name" constraintName="pk_pool_alias"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool_alias" baseColumnNames="pool_id" referencedTableName="sporting_pool" referencedColumnNames="id" constraintName="fk_pool_alias_owner"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool_alias" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_pool_alias_season"/>
+    <createTable tableName="sporting_division_term">
+      <column name="division_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="term" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_division_term" columnNames="division_id, term" constraintName="pk_division_term"/>
+    <addForeignKeyConstraint baseTableName="sporting_division_term" baseColumnNames="division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_division_term_owner"/>
+    <addForeignKeyConstraint baseTableName="sporting_pack" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_pack_season_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_pool_season_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool" baseColumnNames="pack_id" referencedTableName="sporting_pack" referencedColumnNames="id" constraintName="fk_pool_pack_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool" baseColumnNames="division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_pool_division_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_team" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_team_season_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_team" baseColumnNames="club_id" referencedTableName="sporting_club" referencedColumnNames="id" constraintName="fk_team_club_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_team" baseColumnNames="division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_team_division_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_participation" baseColumnNames="team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_participation_team_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_participation" baseColumnNames="pool_id" referencedTableName="sporting_pool" referencedColumnNames="id" constraintName="fk_participation_pool_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_match" baseColumnNames="pool_id" referencedTableName="sporting_pool" referencedColumnNames="id" constraintName="fk_match_pool_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_match" baseColumnNames="home_team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_match_home_team_id"/>
+    <addForeignKeyConstraint baseTableName="sporting_match" baseColumnNames="away_team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_match_away_team_id"/>
+    <addUniqueConstraint tableName="sporting_season" columnNames="start_year" constraintName="uk_season_identity"/>
+    <addUniqueConstraint tableName="sporting_club" columnNames="provider, reference" constraintName="uk_club_identity"/>
+    <addUniqueConstraint tableName="sporting_pack" columnNames="provider, season_id, organizer_reference, reference" constraintName="uk_pack_identity"/>
+    <addUniqueConstraint tableName="sporting_participation" columnNames="team_id, pool_id" constraintName="uk_participation_identity"/>
+    <addUniqueConstraint tableName="sporting_match" columnNames="pool_id, reference" constraintName="uk_match_identity"/>
+    <createIndex tableName="sporting_division" indexName="uk_division_name" unique="true">
+      <column name="lower(name)" computed="true"/>
+    </createIndex>
+    <!-- Liquibase's native unique/index changes do not express PostgreSQL NULLS NOT DISTINCT
+         or partial indexes. These preserve optional context and the two actual team keys. -->
+    <sql dbms="postgresql"><![CDATA[
+      CREATE UNIQUE INDEX uk_pool_identity ON sporting_pool
+        (provider, season_id, organizer_reference, competition_reference, tour_reference, group_reference, reference)
+        NULLS NOT DISTINCT;
+      CREATE UNIQUE INDEX uk_team_ffvb ON sporting_team
+        (season_id, club_id, division_id, format, gender, comparison_name) WHERE provider = 'FFVB';
+      CREATE UNIQUE INDEX uk_team_lnv ON sporting_team
+        (season_id, organizer_reference, competition_reference, native_reference) WHERE provider = 'LNV';
+      ALTER TABLE sporting_team ADD CONSTRAINT ck_team_ffvb_club CHECK (provider != 'FFVB' OR club_id IS NOT NULL);
+      ALTER TABLE sporting_team ADD CONSTRAINT ck_team_lnv_reference CHECK (provider != 'LNV' OR native_reference IS NOT NULL);
+      ALTER TABLE sporting_match ADD CONSTRAINT ck_match_distinct_teams CHECK (home_team_id != away_team_id);
+    ]]></sql>
+  </changeSet>
+</databaseChangeLog>
