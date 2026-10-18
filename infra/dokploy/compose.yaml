@@ -14,6 +14,14 @@ services:
       BLOCKOUT_SECURITY_MOBILE_CLIENT_ID: ${BLOCKOUT_SECURITY_MOBILE_CLIENT_ID:?Supply the mobile client}
       BLOCKOUT_SECURITY_INGESTION_AUDIENCE: ${BLOCKOUT_SECURITY_INGESTION_AUDIENCE:?Supply the ingestion audience}
       BLOCKOUT_SECURITY_INGESTION_CLIENT_ID: ${BLOCKOUT_SECURITY_INGESTION_CLIENT_ID:?Supply the M2M client}
+      MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED: ${MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED:-false}
+      MANAGEMENT_OTLP_METRICS_EXPORT_URL: http://alloy:4318/v1/metrics
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=${BLOCKOUT_ENVIRONMENT}
+      LOGGING_STRUCTURED_ECS_SERVICE_ENVIRONMENT: ${BLOCKOUT_ENVIRONMENT}
+    labels:
+      blockout.telemetry: enabled
+      blockout.environment: ${BLOCKOUT_ENVIRONMENT}
+      blockout.service: blockout-backend
     expose:
       - "8080"
     healthcheck:
@@ -36,6 +44,7 @@ services:
     networks:
       - default
       - database
+      - telemetry
 
   collector:
     image: ${COLLECTOR_IMAGE:?Supply the qualified GHCR digest reference}
@@ -50,6 +59,17 @@ services:
       BLOCKOUT_INGESTION_AUDIENCE: ${BLOCKOUT_INGESTION_AUDIENCE:?Supply the ingestion audience}
       BLOCKOUT_INGESTION_CLIENT_ID: ${BLOCKOUT_INGESTION_CLIENT_ID:?Supply the M2M client}
       BLOCKOUT_INGESTION_CLIENT_SECRET: ${BLOCKOUT_INGESTION_CLIENT_SECRET:?Supply its private secret}
+      MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED: ${MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED:-false}
+      MANAGEMENT_OTLP_METRICS_EXPORT_URL: http://alloy:4318/v1/metrics
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=${BLOCKOUT_ENVIRONMENT}
+      LOGGING_STRUCTURED_ECS_SERVICE_ENVIRONMENT: ${BLOCKOUT_ENVIRONMENT}
+    labels:
+      blockout.telemetry: enabled
+      blockout.environment: ${BLOCKOUT_ENVIRONMENT}
+      blockout.service: blockout-collector
+    networks:
+      - default
+      - telemetry
 
   migration:
     image: ${MIGRATION_IMAGE:?Supply the qualified GHCR digest reference}
@@ -63,6 +83,9 @@ services:
       - database
 
 networks:
+  telemetry:
+    external: true
+    name: blockout-telemetry-${BLOCKOUT_ENVIRONMENT}
   database:
     external: true
     name: ${BLOCKOUT_DATABASE_NETWORK:?Supply the independently managed PostgreSQL network}

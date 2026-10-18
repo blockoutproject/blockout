@@ -40,6 +40,7 @@ export type ErrorType<TProblem> = ApiError<TProblem>;
  * Resolves backend references and validates JSON once before a generated consumer succeeds.
  * Cancellation and timeout stop waiting; neither proves that a mutation was rolled back.
  * The adapter never retries requests and rejects redirects that could forward caller credentials.
+ * Empty 204 responses succeed only when the caller expects no JSON or binary representation.
  */
 export function apiFetch<T>(url: string, options?: ApiFetchOptions): Promise<T>;
 export async function apiFetch(
@@ -105,7 +106,10 @@ export async function apiFetch(
     }
     if (requestSignal.aborted)
       throw new ApiError(deadline.aborted ? "timeout" : "cancelled");
-    if (response.status === 204) return undefined;
+    if (response.status === 204) {
+      if (schema || responseType) throw new ApiError("schema");
+      return undefined;
+    }
     if (responseType === "blob" && !schema) {
       const blob = await response.blob();
       if (requestSignal.aborted)

@@ -1,7 +1,6 @@
 package com.blockout.collector.ingestion;
 
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -26,17 +25,16 @@ public class IngestionAuthenticationConfiguration {
    * Adds Auth0's audience parameter to standard token requests over the bounded no-retry transport.
    *
    * @param factory shared connect, lease and response limits, with retries and redirects disabled
-   * @param audience intended environment-specific ingestion API
+   * @param properties validated audience for the environment-specific ingestion API
    * @return native provider with its standard expiry/skew behavior
    */
   @Bean
   ClientCredentialsOAuth2AuthorizedClientProvider ingestionCredentialsProvider(
-      HttpComponentsClientHttpRequestFactory factory,
-      @Value("${blockout.ingestion.audience}") String audience) {
+      HttpComponentsClientHttpRequestFactory factory, IngestionProperties properties) {
     RestClientClientCredentialsTokenResponseClient tokens =
         new RestClientClientCredentialsTokenResponseClient();
     tokens.setParametersCustomizer(
-        parameters -> parameters.set(OAuth2ParameterNames.AUDIENCE, audience));
+        parameters -> parameters.set(OAuth2ParameterNames.AUDIENCE, properties.audience()));
     tokens.setRestClient(
         RestClient.builder()
             .requestFactory(factory)

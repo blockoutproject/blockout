@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClientException;
 
@@ -83,15 +82,19 @@ class GeneratedClientTest {
         });
     server.start();
     IngestionClientConfiguration configuration = new IngestionClientConfiguration();
-    factory = configuration.ingestionRequestFactory(Duration.ofMillis(250));
+    IngestionProperties properties =
+        new IngestionProperties(
+            "http://127.0.0.1:" + server.getAddress().getPort(),
+            "ingestion-test",
+            Duration.ofMillis(250));
+    factory = configuration.ingestionRequestFactory(properties);
     ObservationRegistry observations = ObservationRegistry.create();
     observations.observationConfig().observationHandler(new DefaultMeterObservationHandler(meters));
     ApiClient client =
         configuration.ingestionApiClient(
             factory,
             observations,
-            "http://127.0.0.1:" + server.getAddress().getPort(),
-            new ClassPathResource("contracts/ingestion.yaml"),
+            properties,
             // OAuth has its own real HTTP suite; this boundary supplies controlled credentials.
             (request, body, execution) -> execution.execute(request, body));
     client.setBearerToken("harmless-test-token");
