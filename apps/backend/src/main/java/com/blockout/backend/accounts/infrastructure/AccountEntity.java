@@ -16,7 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Minimal local account; provider identity is immutable and optional photo storage stays local. */
+/** Minimal local account identity and provider evidence; the principal remains immutable. */
 @Entity
 @Table(name = "account")
 @Getter
@@ -47,17 +47,6 @@ public class AccountEntity {
 
   @Setter(AccessLevel.PACKAGE)
   private Instant principalCreatedAt;
-
-  // Photo validation and metadata-free encoding belong to the later profile boundary.
-  // Byte length is intrinsic to bytea; one dimension represents the required square.
-  @Getter(AccessLevel.NONE)
-  private byte[] photoBytes;
-
-  @Getter(AccessLevel.NONE)
-  private String photoMediaType;
-
-  @Getter(AccessLevel.NONE)
-  private Integer photoDimension;
 
   /**
    * Creates a lifecycle from validated identity evidence; native validation runs before

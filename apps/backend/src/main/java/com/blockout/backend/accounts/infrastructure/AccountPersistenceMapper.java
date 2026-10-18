@@ -1,18 +1,11 @@
 package com.blockout.backend.accounts.infrastructure;
 
 import com.blockout.backend.accounts.domain.Account;
-import org.mapstruct.InjectionStrategy;
+import com.blockout.backend.config.MappingConfiguration;
 import org.mapstruct.Mapper;
-import org.mapstruct.MappingConstants;
-import org.mapstruct.NullValueCheckStrategy;
-import org.mapstruct.ReportingPolicy;
 
 /** Mechanical account snapshot mapping; provider-preservation decisions stay in the domain. */
-@Mapper(
-    componentModel = MappingConstants.ComponentModel.SPRING,
-    injectionStrategy = InjectionStrategy.CONSTRUCTOR,
-    nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS,
-    unmappedTargetPolicy = ReportingPolicy.ERROR)
+@Mapper(config = MappingConfiguration.class)
 interface AccountPersistenceMapper {
   /**
    * Detaches the account's identity and minimal profile without exporting persistence state.
