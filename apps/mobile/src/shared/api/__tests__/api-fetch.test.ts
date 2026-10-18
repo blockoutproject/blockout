@@ -6,6 +6,7 @@ import {
   listNotifications,
   eraseAccount,
   getAccountPhoto,
+  setPoolPresentation,
 } from "../../../../.generated/mobile";
 import { GetApplicationAccess200 } from "../../../../.generated/schemas/index.zod";
 import { apiFetch, type ApiFetchOptions } from "../api-fetch";
@@ -272,6 +273,34 @@ it("handles the generated 204 mutation without JSON or replay", async () => {
 
   // Then
   expect(response).toBeUndefined();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+});
+
+it("rejects an unexpected 204 for a generated JSON mutation without replay", async () => {
+  // Given
+  mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
+
+  // When
+  const response = setPoolPresentation(accountId, {
+    revision: "revision-1",
+    manualName: null,
+    manualShortName: null,
+  });
+
+  // Then
+  await expect(response).rejects.toMatchObject({ kind: "schema" });
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+});
+
+it("rejects an unexpected 204 for a generated binary request", async () => {
+  // Given
+  mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
+
+  // When
+  const response = getAccountPhoto(accountId);
+
+  // Then
+  await expect(response).rejects.toMatchObject({ kind: "schema" });
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 
