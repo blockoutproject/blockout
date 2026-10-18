@@ -27,12 +27,14 @@ class HealthIntegrationTest {
   @LocalServerPort private int port;
 
   /**
-   * Supplies only disposable application-role credentials; production health settings stay active.
+   * Migrates the disposable baseline, then supplies application-role credentials for startup.
    *
    * @param properties test context's native external configuration registry
+   * @throws Exception if the explicit migration fails
    */
   @DynamicPropertySource
-  static void databaseProperties(DynamicPropertyRegistry properties) {
+  static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
+    PostgresTestDatabase.migrate(DATABASE);
     properties.add(
         "spring.datasource.url", () -> DATABASE.getJdbcUrl().replace("/postgres", "/blockout"));
     properties.add("spring.datasource.username", () -> "blockout_app");

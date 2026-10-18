@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.BackendApplication;
+import com.blockout.backend.sporting.infrastructure.SeasonEntity;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import com.blockout.testsupport.persistence.StartupFixture;
 import java.sql.Connection;
@@ -85,8 +86,7 @@ class DatabaseConfigurationIntegrationTest {
     Throwable failure = catchThrowable(() -> startApplication("missing").close());
 
     // Then
-    assertThat(failure)
-        .hasStackTraceContaining("Schema validation: missing table [startup_fixture]");
+    assertThat(failure).hasStackTraceContaining("Schema validation: missing table");
     try (Connection connection = applicationConnection("missing");
         Statement sql = connection.createStatement();
         ResultSet tables =
@@ -197,8 +197,8 @@ class DatabaseConfigurationIntegrationTest {
     return DATABASE.getJdbcUrl().replace("/postgres", "/blockout") + "&currentSchema=" + schema;
   }
 
-  /** Adds a fixture mapping exclusively to the explicitly constructed test application contexts. */
+  /** Adds the fixture while retaining actual sporting mappings for their native repositories. */
   @TestConfiguration(proxyBeanMethods = false)
-  @EntityScan(basePackageClasses = StartupFixture.class)
+  @EntityScan(basePackageClasses = {StartupFixture.class, SeasonEntity.class})
   static class FixtureConfiguration {}
 }
