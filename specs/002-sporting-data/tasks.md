@@ -6,7 +6,7 @@ description: "Implementation tasks for F02 sporting identity, integration and li
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#84](https://github.com/blockoutproject/blockout/issues/84) under [#82](https://github.com/blockoutproject/blockout/issues/82).
 
-**Prerequisites**: Accepted owning artifacts and [constitution](../../.specify/memory/constitution.md). [F13 tasks](../003-shared-quality/tasks.md) own workspace, generation, transport, schema lifecycle and shared controls. This breakdown prepares implementation; all runtime and native evidence is still outstanding.
+**Prerequisites**: Accepted owning artifacts and [constitution](../../.specify/memory/constitution.md). [F13 tasks](../003-shared-quality/tasks.md) own workspace, generation, transport, schema lifecycle and shared controls.
 
 **Tests**: The specification requests A01–A39 and SC-001–SC-007 qualification. Write the included automated tests first and demonstrate meaningful failures before the associated implementation. Prepare manual/native cases before running them with their actual authorized inputs. Test doubles establish only their controlled boundary.
 
