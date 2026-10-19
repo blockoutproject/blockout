@@ -1,6 +1,6 @@
 # Validation guide: acquisition and source operations
 
-This repository has no product runtime. The scenarios below are the end-to-end qualification guide for implementation; they are not claimed as executed. Run the existing [repository verification commands](../../README.md#verification) for this planning delivery. Add actual application setup/run commands when those applications exist, rather than inventing them here.
+The executable F13 workspace and F01 admission/transport foundations are available. Use the [README verification commands](../../README.md#verification) for implemented boundaries and [tasks.md](tasks.md) for completion state. The scenarios below define end-to-end qualification as their owning implementations become available; passing foundation checks does not establish provider coverage or complete acquisition/integration.
 
 ## Prerequisites
 

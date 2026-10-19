@@ -1,6 +1,6 @@
 # Quickstart: Qualify notifications, inbox and push
 
-This repository has no application runtime. Its current [verification commands](../../README.md#verification) check documentation and OpenAPI. The scenarios below become executable after the authorized backend/mobile implementation and native provider setup; no application command or completed native result is invented here.
+The executable F13 workspace provides application, database and generated-contract checks through the [README verification commands](../../README.md#verification). The scenarios below require the notification implementations tracked in [tasks.md](tasks.md) and native provider setup; shared foundation checks do not qualify inbox or push behavior.
 
 ## Prerequisites
 

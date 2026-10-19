@@ -1,6 +1,6 @@
 # Quickstart: qualify Pro integration
 
-This is a future integration guide. The repository currently has no mobile runtime or executable Pro tests; documentation checks and browser simulations do not qualify RevenueCat or the stores.
+The native mobile workspace is initialized; Pro implementation and qualification remain tracked in [tasks.md](tasks.md). Use the [README verification commands](../../README.md#verification) for existing mobile and contract checks. Those checks and browser simulations do not qualify RevenueCat or the stores.
 
 ## Prerequisites and setup
 
@@ -9,7 +9,7 @@ This is a future integration guide. The repository currently has no mobile runti
 - Use Test Store for routine development, then native platform keys, products and Apple/Google sandbox accounts for store qualification. Never ship a Test Store key in a production candidate. Provider changes require their own authorization.
 - Prepare physical iPhone and Android devices, including the minimum supported OS matrix. Use the established native development and EAS/store candidate workflow; Expo Go is insufficient.
 
-Run the mobile feature tests through the ordinary F13 Jest Expo/React Native Testing Library target once initialized. No unimplemented Nx target or synthetic command is prescribed here. Then exercise the following native scenarios; use controllable SDK doubles for deterministic callback ordering in unit/component tests.
+Run Pro feature tests through the existing F13 Jest Expo/React Native Testing Library target as they are implemented. Then exercise the following native scenarios; use controllable SDK doubles for deterministic callback ordering in unit/component tests.
 
 ## Scenarios and expected outcomes
 
@@ -34,4 +34,4 @@ Run the mobile feature tests through the ordinary F13 Jest Expo/React Native Tes
 
 Record actual platform/build, tested scenario and outcome in the normal delivery evidence. Keep receipts, customer IDs and diagnostics private. Test Store, mocked callbacks or one successful purchase do not establish native lifecycle, complete continuity or store approval.
 
-Unavailable evidence remains a release qualification, not a passing test. Resolve a failed required native behavior before release; do not add a custom recovery system as an unreviewed workaround. The current dossier only runs the [repository documentation checks](../../README.md#verification).
+Unavailable evidence remains a release qualification, not a passing test. Resolve a failed required native behavior before release; do not add a custom recovery system as an unreviewed workaround.

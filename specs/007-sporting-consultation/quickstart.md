@@ -2,7 +2,7 @@
 
 ## Prerequisites and current scope
 
-This repository contains the technical dossier and canonical contracts, not an initialized application. Use the [README verification commands](../../README.md#verification) for current documentation and OpenAPI checks. No application command is asserted to exist yet.
+The F13 workspace and contract generation are executable. Use the [README verification commands](../../README.md#verification) for available application and contract checks; [tasks.md](tasks.md) tracks consultation implementation and remaining qualification. Shared foundation checks do not establish the feature behavior or native/provider results required below.
 
 After implementation, qualify the selected F13 workspace with PostgreSQL fixtures, generated Java/TypeScript consumers, native Expo development builds and iOS/Android devices. Use fictional accounts, sporting data and controlled provider responses. Real source reads require their applicable authorization; never commit raw PDFs or personal source records. Configure restricted Android map credentials in the intended environment before native map checks.
 
