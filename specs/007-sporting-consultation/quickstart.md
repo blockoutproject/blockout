@@ -1,10 +1,10 @@
 # Validation guide: Sporting consultation
 
-## Prerequisites and current scope
+## Prerequisites and setup
 
-This repository contains the technical dossier and canonical contracts, not an initialized application. Use the [README verification commands](../../README.md#verification) for current documentation and OpenAPI checks. No application command is asserted to exist yet.
+Follow the [local development setup](../../README.md#local-development) and run the [repository verification commands](../../README.md#verification). Use the scenarios below to qualify sporting consultation; shared checks alone do not establish the feature behavior or native/provider results required here.
 
-After implementation, qualify the selected F13 workspace with PostgreSQL fixtures, generated Java/TypeScript consumers, native Expo development builds and iOS/Android devices. Use fictional accounts, sporting data and controlled provider responses. Real source reads require their applicable authorization; never commit raw PDFs or personal source records. Configure restricted Android map credentials in the intended environment before native map checks.
+Qualify sporting consultation with PostgreSQL fixtures, generated Java/TypeScript consumers, native Expo development builds and iOS/Android devices. Use fictional accounts, sporting data and controlled provider responses. Real source reads require their applicable authorization; never commit raw PDFs or personal source records. Configure restricted Android map credentials in the intended environment before native map checks.
 
 ## Scenarios and expected outcomes
 

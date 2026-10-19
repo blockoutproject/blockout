@@ -1,10 +1,10 @@
 # Validation guide: acquisition and source operations
 
-This repository has no product runtime. The scenarios below are the end-to-end qualification guide for implementation; they are not claimed as executed. Run the existing [repository verification commands](../../README.md#verification) for this planning delivery. Add actual application setup/run commands when those applications exist, rather than inventing them here.
+Follow the [local development setup](../../README.md#local-development) and run the [repository verification commands](../../README.md#verification). Use the prerequisites and scenarios below to qualify acquisition end-to-end; shared checks alone do not establish provider coverage or complete acquisition/integration.
 
 ## Prerequisites
 
-Use an isolated environment with the F13 backend, PostgreSQL and single collector instance, generated consumers from the same [canonical contracts](contracts/README.md), a collection-authorized operator and accounts without that right. Prepare deterministic sanitized/synthetic FFVB, LNV and IGN fixtures, controlled transport responses and a controllable test clock. No personal provider payload belongs in Git. Live-source qualification requires its own authorized scope and is not a CI dependency.
+Use an isolated environment with the backend, PostgreSQL and single collector instance, generated consumers from the same [canonical contracts](contracts/README.md), a collection-authorized operator and accounts without that right. Prepare deterministic sanitized/synthetic FFVB, LNV and IGN fixtures, controlled transport responses and a controllable test clock. No personal provider payload belongs in Git. Live-source qualification requires its own authorized scope and is not a CI dependency.
 
 ## Core scenarios
 
