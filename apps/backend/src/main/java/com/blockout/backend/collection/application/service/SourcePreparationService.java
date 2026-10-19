@@ -373,7 +373,7 @@ public class SourcePreparationService {
    * Prevents obsolete pending work from appearing active without changing persisted state.
    *
    * @param source persisted current source
-   * @return unvalidated projection only for interrupted, unfinished validation
+   * @return unvalidated projection for interrupted or concurrently replaced validation
    */
   private Source project(Source source) {
     return obsolete(source)
@@ -382,19 +382,19 @@ public class SourcePreparationService {
   }
 
   /**
-   * Checks retained execution state, leaving never-admitted requests pending.
+   * Checks retained execution state; renewal may remove the loaded cycle between read queries.
    *
    * @param source current binding
-   * @return whether its unfinished validation belongs to a replaced runtime
+   * @return whether an admitted validation was interrupted or replaced; never-admitted intent stays
+   *     pending
    */
   private boolean obsolete(Source source) {
     return source.validationState() == SourceValidationStateEnum.PENDING
         && source.currentCycleId() != null
         && store
-                .cycle(source.currentCycleId())
-                .orElseThrow(CollectionNotFoundException::new)
-                .state()
-            == CollectionCycleStateEnum.INTERRUPTED;
+            .cycle(source.currentCycleId())
+            .map(cycle -> cycle.state() == CollectionCycleStateEnum.INTERRUPTED)
+            .orElse(true);
   }
 
   /**

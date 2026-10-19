@@ -2,6 +2,7 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
@@ -9,6 +10,7 @@ import com.blockout.backend.collection.application.exception.InvalidSourceExcept
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.model.CollectionState.SourceValidation;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
+import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
 import com.blockout.backend.collection.application.service.SourcePreparationService;
@@ -41,11 +43,18 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/** Real committed preparation transactions; only time is controlled and fixtures use direct SQL. */
+/**
+ * Real committed preparation transactions with controlled time, interleaving and direct SQL
+ * fixtures.
+ */
 @SpringBootTest
 @Testcontainers
 @DisplayName("Source preparation and qualified launch")
@@ -64,6 +73,8 @@ class SourcePreparationIntegrationTest {
   @Autowired private CollectorRuntimeService runtimes;
   @Autowired private CollectionCycleService cycles;
   @Autowired private JdbcTemplate sql;
+  @Autowired private PlatformTransactionManager transactions;
+  @MockitoSpyBean private CollectionStore store;
   @MockitoBean private Clock clock;
   private UUID season;
 
@@ -249,6 +260,41 @@ class SourcePreparationIntegrationTest {
     Source renewed = preparation.requestValidation(ACCOUNT, SOURCE, projected.revision());
     assertThat(renewed.revision()).isGreaterThan(pending.revision());
     assertThat(cycles.work(replacement).validations()).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("A source read remains available when renewal removes its loaded cycle")
+  void readsSourceAfterCycleReplacement() {
+    // Given
+    Source pending = preparation.requestValidation(ACCOUNT, SOURCE, 0);
+    cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, pending.revision(), null));
+    UUID replacement = UUID.fromString("00000000-0000-4000-8000-000000000171");
+    runtimes.register(runtimes.current().revision(), replacement);
+    TransactionTemplate renewal = new TransactionTemplate(transactions);
+    renewal.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    doAnswer(
+            invocation -> {
+              Object loaded = invocation.callRealMethod();
+              // Commit renewal between the two reads, without timing-dependent threads.
+              renewal.executeWithoutResult(
+                  status -> preparation.requestValidation(ACCOUNT, SOURCE, pending.revision()));
+              return loaded;
+            })
+        .when(store)
+        .source(SOURCE);
+
+    // When
+    Source projected = preparation.get(ACCOUNT, SOURCE);
+
+    // Then
+    assertThat(projected.id()).isEqualTo(SOURCE);
+    assertThat(projected.validationState()).isEqualTo(SourceValidationStateEnum.UNVALIDATED);
+    assertThat(projected.revision()).isEqualTo(pending.revision());
+    assertThat(store.cycle(CYCLE)).isEmpty();
+    assertThat(cycles.work(replacement).validations())
+        .singleElement()
+        .satisfies(
+            candidate -> assertThat(candidate.revision()).isGreaterThan(projected.revision()));
   }
 
   @Test
