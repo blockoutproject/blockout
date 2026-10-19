@@ -83,19 +83,9 @@ SportingDivisionResponse:
       description: Backend image resource; omitted when unavailable.
       format: uri-reference
     color:
-      type: string
-      description: Accepted division sRGB color.
-      pattern: ^#[0-9A-Fa-f]{6}$
+      $ref: ../../common/scalars.yaml#/SrgbColor
     gradient:
-      type: array
-      description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
-      nullable: true
-      minItems: 3
-      maxItems: 3
-      items:
-        type: string
-        description: sRGB hexadecimal color.
-        pattern: ^#[0-9A-Fa-f]{6}$
+      $ref: ../../common/scalars.yaml#/ThreeColorGradient
   required:
     - id
     - name

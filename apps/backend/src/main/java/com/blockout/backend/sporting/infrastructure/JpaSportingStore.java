@@ -285,14 +285,14 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   public void setPackClassification(UUID id, SportingClassification setting) {
-    packs.findById(id).orElseThrow().setSetting(setting(setting));
+    packs.findById(id).orElseThrow().setSetting(mapper.toSetting(setting));
     packs.flush();
   }
 
   /** {@inheritDoc} */
   @Override
   public void setPoolClassification(UUID id, SportingClassification setting) {
-    pools.findById(id).orElseThrow().setSetting(setting(setting));
+    pools.findById(id).orElseThrow().setSetting(mapper.toSetting(setting));
     pools.flush();
   }
 
@@ -322,13 +322,13 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   public Optional<DivisionDetail> divisionDetail(UUID id) {
-    return divisions.findById(id).map(this::divisionDetail);
+    return divisions.findById(id).map(mapper::toDetail);
   }
 
   /** {@inheritDoc} */
   @Override
   public List<DivisionDetail> divisions(boolean includeInactive) {
-    return divisions.findConfigured(includeInactive).stream().map(this::divisionDetail).toList();
+    return divisions.findConfigured(includeInactive).stream().map(mapper::toDetail).toList();
   }
 
   /** {@inheritDoc} */
@@ -336,7 +336,7 @@ public class JpaSportingStore implements SportingStore {
   public DivisionDetail createDivision(
       String name, String color, List<String> gradient, byte[] image, String mediaType) {
     try {
-      return divisionDetail(
+      return mapper.toDetail(
           divisions.saveAndFlush(new DivisionEntity(name, color, gradient, image, mediaType)));
     } catch (DataIntegrityViolationException failure) {
       if (failure.getCause() instanceof ConstraintViolationException constraint
@@ -353,44 +353,7 @@ public class JpaSportingStore implements SportingStore {
     DivisionEntity division = divisions.findById(id).orElseThrow();
     division.setActive(active);
     divisions.flush();
-    return divisionDetail(division);
-  }
-
-  /**
-   * Preserves absence as a missing embeddable rather than a sentinel classification.
-   *
-   * @param classification complete application setting, or null
-   * @return the relational setting, or null
-   */
-  private ClassificationSetting setting(SportingClassification classification) {
-    return classification == null
-        ? null
-        : new ClassificationSetting(
-            classification.divisionId(), classification.format(), classification.gender());
-  }
-
-  /**
-   * Combines relational gradient columns and projects image presence without exposing bytes.
-   *
-   * @param division current managed owner inside the transaction
-   * @return detached editor state
-   */
-  private DivisionDetail divisionDetail(DivisionEntity division) {
-    List<String> gradient =
-        division.getGradientStart() == null
-            ? null
-            : List.of(
-                division.getGradientStart(),
-                division.getGradientMiddle(),
-                division.getGradientEnd());
-    return new DivisionDetail(
-        division.getId(),
-        division.getRevision(),
-        division.getName(),
-        division.getColor(),
-        gradient,
-        division.getLogo() != null,
-        division.isActive());
+    return mapper.toDetail(division);
   }
 
   /** {@inheritDoc} */

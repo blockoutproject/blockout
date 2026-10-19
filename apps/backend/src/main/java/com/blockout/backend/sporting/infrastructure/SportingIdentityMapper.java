@@ -4,6 +4,7 @@ import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.sporting.application.PoolKey;
 import com.blockout.backend.sporting.application.SportingClassification;
 import com.blockout.backend.sporting.application.SportingViews.ClubView;
+import com.blockout.backend.sporting.application.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.SportingViews.PackView;
@@ -12,10 +13,11 @@ import com.blockout.backend.sporting.application.SportingViews.PoolClassificatio
 import com.blockout.backend.sporting.application.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
+import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-/** Detaches persistence owners inside their transaction without exporting managed relationships. */
+/** Maps persistence values inside their transaction without exporting managed relationships. */
 @Mapper(config = MappingConfiguration.class)
 interface SportingIdentityMapper {
   /**
@@ -41,6 +43,28 @@ interface SportingIdentityMapper {
    * @return detached identity and search terms
    */
   DivisionView toView(DivisionEntity source);
+
+  /**
+   * Projects division presentation without exposing stored image bytes.
+   *
+   * @param source current managed division inside the transaction
+   * @return detached editor state
+   */
+  @Mapping(target = "gradient", source = "source")
+  @Mapping(target = "hasLogo", expression = "java(source.getLogo() != null)")
+  DivisionDetail toDetail(DivisionEntity source);
+
+  /**
+   * Combines the ordered relational gradient columns, preserving an absent explicit gradient.
+   *
+   * @param source current managed division
+   * @return the three explicit colors, or null for the color-derived treatment
+   */
+  default List<String> toGradient(DivisionEntity source) {
+    return source.getGradientStart() == null
+        ? null
+        : List.of(source.getGradientStart(), source.getGradientMiddle(), source.getGradientEnd());
+  }
 
   /**
    * Detaches the pool identity and classification.
@@ -112,6 +136,14 @@ interface SportingIdentityMapper {
   @Mapping(target = "format", source = "settingFormat")
   @Mapping(target = "gender", source = "settingGender")
   SportingClassification toClassification(ClassificationSetting source);
+
+  /**
+   * Preserves absence as a missing embeddable rather than a sentinel classification.
+   *
+   * @param source complete application setting, or null
+   * @return the relational setting, or null
+   */
+  ClassificationSetting toSetting(SportingClassification source);
 
   /**
    * Extracts a pack's canonical season and current default.

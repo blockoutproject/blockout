@@ -2,14 +2,12 @@ package com.blockout.backend.accounts.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.validation.ConstraintViolationException;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -64,10 +62,7 @@ class AccountEstablishmentIntegrationTest {
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
-    properties.add(
-        "spring.datasource.url", () -> DATABASE.getJdbcUrl().replace("/postgres", "/blockout"));
-    properties.add("spring.datasource.username", () -> "blockout_app");
-    properties.add("spring.datasource.password", () -> "harmless-app");
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
   }
 
   /** Clears only this suite's disposable accounts and uses ordinary caller-owned transactions. */
@@ -332,16 +327,7 @@ class AccountEstablishmentIntegrationTest {
                                   return accounts.synchronize(
                                       original.id(), "late@example.invalid", null);
                                 }));
-                int pid = synchronizingPid.orTimeout(10, TimeUnit.SECONDS).join();
-                await()
-                    .atMost(Duration.ofSeconds(10))
-                    .until(
-                        () ->
-                            Boolean.TRUE.equals(
-                                sql.queryForObject(
-                                    "SELECT cardinality(pg_blocking_pids(?)) > 0",
-                                    Boolean.class,
-                                    pid)));
+                PostgresTestDatabase.awaitBlocked(sql, synchronizingPid);
                 sql.update("DELETE FROM account WHERE id = ?", original.id());
                 if (recreate) {
                   accounts.create(

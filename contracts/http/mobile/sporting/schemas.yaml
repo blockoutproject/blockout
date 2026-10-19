@@ -361,21 +361,9 @@ CreateDivisionRequest:
       description: Nonempty display name, unique ignoring case.
       minLength: 1
     color:
-      type: string
-      description: sRGB hexadecimal color.
-      pattern: ^#[0-9A-Fa-f]{6}$
-      example: "#F0AA00"
+      $ref: ../../common/scalars.yaml#/SrgbColor
     gradient:
-      type: array
-      description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
-      items:
-        type: string
-        description: sRGB hexadecimal color.
-        pattern: ^#[0-9A-Fa-f]{6}$
-        example: "#F0AA00"
-      minItems: 3
-      maxItems: 3
-      nullable: true
+      $ref: ../../common/scalars.yaml#/ThreeColorGradient
     logoAction:
       $ref: "#/LogoActionEnum"
   required:
@@ -400,21 +388,9 @@ SetDivisionPresentationRequest:
       description: Nonempty display name, unique ignoring case.
       minLength: 1
     color:
-      type: string
-      description: sRGB hexadecimal color.
-      pattern: ^#[0-9A-Fa-f]{6}$
-      example: "#F0AA00"
+      $ref: ../../common/scalars.yaml#/SrgbColor
     gradient:
-      type: array
-      description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
-      items:
-        type: string
-        description: sRGB hexadecimal color.
-        pattern: ^#[0-9A-Fa-f]{6}$
-        example: "#F0AA00"
-      minItems: 3
-      maxItems: 3
-      nullable: true
+      $ref: ../../common/scalars.yaml#/ThreeColorGradient
     logoAction:
       $ref: "#/LogoActionEnum"
   required:
@@ -441,21 +417,9 @@ DivisionResponse:
       description: Nonempty display name, unique ignoring case.
       minLength: 1
     color:
-      type: string
-      description: sRGB hexadecimal color.
-      pattern: ^#[0-9A-Fa-f]{6}$
-      example: "#F0AA00"
+      $ref: ../../common/scalars.yaml#/SrgbColor
     gradient:
-      type: array
-      description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
-      items:
-        type: string
-        description: sRGB hexadecimal color.
-        pattern: ^#[0-9A-Fa-f]{6}$
-        example: "#F0AA00"
-      minItems: 3
-      maxItems: 3
-      nullable: true
+      $ref: ../../common/scalars.yaml#/ThreeColorGradient
     logo:
       $ref: "#/LogoPresentationResponse"
     active:

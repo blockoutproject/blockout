@@ -1,15 +1,26 @@
 import {
+  getDivision,
   getPoolPresentation,
   getGetPoolStandingsQueryOptions,
   setPoolPresentation,
 } from "../../../../.generated/mobile";
 import type {
+  DivisionResponse,
   PoolPresentationResponse,
   PoolStandingsResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
 
 const poolId = "00000000-0000-4000-8000-000000000001";
+const division: DivisionResponse = {
+  id: "00000000-0000-4000-8000-000000000002",
+  revision: "0",
+  name: "Synthetic division",
+  color: "#112233",
+  gradient: null,
+  logo: { effectiveUrl: null, manualUrl: null, automaticUrl: null },
+  active: true,
+};
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
 const mockFetch = jest.fn<
   Promise<Response>,
@@ -53,6 +64,48 @@ afterEach(() => {
   jest.restoreAllMocks();
   if (originalApiUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
   else process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+});
+
+it.each([
+  ["explicit null", null],
+  ["three colors", ["#112233", "#aAbBcC", "#778899"]],
+])("preserves a division gradient with %s", async (_scenario, gradient) => {
+  // Given
+  const body = { ...division, gradient };
+  mockFetch.mockResolvedValue(
+    new Response(JSON.stringify(body), {
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+
+  // When
+  const result = await getDivision(division.id);
+
+  // Then
+  expect(result).toStrictEqual(body);
+});
+
+it.each([
+  ["invalid color", { color: "blue" }],
+  ["null color", { color: null }],
+  ["omitted gradient", { gradient: undefined }],
+  ["short gradient", { gradient: ["#112233", "#445566"] }],
+  ["long gradient", { gradient: ["#112233", "#445566", "#778899", "#AABBCC"] }],
+  ["null gradient color", { gradient: ["#112233", null, "#778899"] }],
+  ["invalid gradient color", { gradient: ["#112233", "blue", "#778899"] }],
+])("rejects a division response with %s", async (_scenario, invalid) => {
+  // Given
+  mockFetch.mockResolvedValue(
+    new Response(JSON.stringify({ ...division, ...invalid }), {
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+
+  // When
+  const request = getDivision(division.id);
+
+  // Then
+  await expect(request).rejects.toMatchObject({ kind: "schema" });
 });
 
 it.each([

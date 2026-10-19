@@ -83,15 +83,14 @@ export async function apiFetch(
       signal: requestSignal,
       redirect: "error",
     });
+    const contentType = response.headers
+      .get("Content-Type")
+      ?.split(";")[0]
+      .trim()
+      .toLowerCase();
     if (!response.ok) {
       let problem: ProblemResponse | AccessProblemResponse | undefined;
-      if (
-        response.headers
-          .get("Content-Type")
-          ?.split(";")[0]
-          .trim()
-          .toLowerCase() === "application/problem+json"
-      ) {
+      if (contentType === "application/problem+json") {
         try {
           const result = (
             response.status === 503 ? AccessProblemResponse : ProblemResponse
@@ -116,11 +115,6 @@ export async function apiFetch(
         throw new ApiError(deadline.aborted ? "timeout" : "cancelled");
       return blob;
     }
-    const contentType = response.headers
-      .get("Content-Type")
-      ?.split(";")[0]
-      .trim()
-      .toLowerCase();
     if (!schema || contentType !== "application/json")
       throw new ApiError("schema");
     try {

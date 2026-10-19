@@ -2,7 +2,6 @@ package com.blockout.backend.sporting.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
@@ -12,7 +11,6 @@ import com.blockout.backend.sporting.application.SportingViews.ClassificationVie
 import com.blockout.backend.sporting.application.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.SportingViews.PoolView;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
-import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -53,17 +51,23 @@ class ClassificationIntegrationTest {
   private UUID account;
   private UUID season;
 
-  /** Configures application-role access after the actual disposable migration. */
+  /**
+   * Configures application-role access after the actual disposable migration.
+   *
+   * @param properties native test configuration registry
+   * @throws Exception if the disposable baseline cannot be migrated
+   */
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
-    properties.add(
-        "spring.datasource.url", () -> DATABASE.getJdbcUrl().replace("/postgres", "/blockout"));
-    properties.add("spring.datasource.username", () -> "blockout_app");
-    properties.add("spring.datasource.password", () -> "harmless-app");
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
   }
 
-  /** Recreates synthetic owners and grants without any provider operation. */
+  /**
+   * Recreates synthetic owners and grants without any provider operation.
+   *
+   * @throws Exception if isolated fixture cleanup fails
+   */
   @BeforeEach
   void prepareOwners() throws Exception {
     try (java.sql.Connection connection =
@@ -290,7 +294,7 @@ class ClassificationIntegrationTest {
                                       before.revision(),
                                       classification(TARGET));
                                 }));
-                awaitBlocked(pid);
+                PostgresTestDatabase.awaitBlocked(sql, pid);
                 match(outside, "Shared", "Outside away");
                 return pending;
               });
@@ -328,7 +332,7 @@ class ClassificationIntegrationTest {
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   return match(pool, "Home", "Away");
                                 }));
-                awaitBlocked(pid);
+                PostgresTestDatabase.awaitBlocked(sql, pid);
                 return pending;
               });
 
@@ -367,7 +371,7 @@ class ClassificationIntegrationTest {
                                       before.revision(),
                                       classification(TARGET));
                                 }));
-                awaitBlocked(pid);
+                PostgresTestDatabase.awaitBlocked(sql, pid);
                 sql.update("DELETE FROM account_permission WHERE account_id = ?", account);
                 return pending;
               });
@@ -384,19 +388,14 @@ class ClassificationIntegrationTest {
     }
   }
 
-  /** Observes actual PostgreSQL exclusion; no timing assumption establishes the race. */
-  private void awaitBlocked(CompletableFuture<Integer> backendPid) {
-    int pid = backendPid.orTimeout(10, TimeUnit.SECONDS).join();
-    await()
-        .atMost(Duration.ofSeconds(10))
-        .until(
-            () ->
-                Boolean.TRUE.equals(
-                    sql.queryForObject(
-                        "SELECT cardinality(pg_blocking_pids(?)) > 0", Boolean.class, pid)));
-  }
-
-  /** Establishes a classified identity with no administrative acquisition setting. */
+  /**
+   * Establishes a classified identity with no administrative acquisition setting.
+   *
+   * @param reference native pool reference in the scenario's season
+   * @param pack acquisition grouping reference
+   * @param division accepted classification owner
+   * @return persisted pool with the scenario's initial classification
+   */
   private PoolView pool(String reference, String pack, UUID division) {
     return identities.establishPool(
         new PoolKey(
@@ -406,7 +405,14 @@ class ClassificationIntegrationTest {
         classification(division));
   }
 
-  /** Establishes two exact synthetic club/name keys and their participation. */
+  /**
+   * Establishes two exact synthetic club/name keys and their participation.
+   *
+   * @param pool encounter's pool and classification owner
+   * @param home exact home team label
+   * @param away exact away team label
+   * @return identified encounter and participant references
+   */
   private MatchView match(PoolView pool, String home, String away) {
     return identities.identifyMatch(
         pool.id(),
@@ -415,7 +421,12 @@ class ClassificationIntegrationTest {
         new TeamCandidate(null, away, "0002", null));
   }
 
-  /** Supplies the complete scenario-owned classification. */
+  /**
+   * Supplies the complete scenario-owned classification.
+   *
+   * @param division target division identity
+   * @return complete female six-a-side classification
+   */
   private SportingClassification classification(UUID division) {
     return new SportingClassification(division, SportFormatEnum._6X6, SportGenderEnum.FEMALE);
   }

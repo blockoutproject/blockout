@@ -2,7 +2,6 @@ package com.blockout.backend.sporting.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
@@ -14,7 +13,6 @@ import com.blockout.backend.sporting.application.SportingViews.PoolView;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -56,17 +54,23 @@ class DivisionIntegrationTest {
   @Autowired private PlatformTransactionManager transactions;
   private UUID account;
 
-  /** Migrates a disposable PostgreSQL database before application-role validation. */
+  /**
+   * Migrates a disposable PostgreSQL database before application-role validation.
+   *
+   * @param properties native test configuration registry
+   * @throws Exception if the disposable baseline cannot be migrated
+   */
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
-    properties.add(
-        "spring.datasource.url", () -> DATABASE.getJdbcUrl().replace("/postgres", "/blockout"));
-    properties.add("spring.datasource.username", () -> "blockout_app");
-    properties.add("spring.datasource.password", () -> "harmless-app");
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
   }
 
-  /** Isolates synthetic division, sporting and account fixtures. */
+  /**
+   * Isolates synthetic division, sporting and account fixtures.
+   *
+   * @throws Exception if isolated fixture cleanup fails
+   */
   @BeforeEach
   void prepareOwners() throws Exception {
     try (java.sql.Connection connection =
@@ -207,16 +211,7 @@ class DivisionIntegrationTest {
                                           SportFormatEnum._6X6,
                                           SportGenderEnum.FEMALE));
                                 }));
-                int backend = pid.orTimeout(10, TimeUnit.SECONDS).join();
-                await()
-                    .atMost(Duration.ofSeconds(10))
-                    .until(
-                        () ->
-                            Boolean.TRUE.equals(
-                                sql.queryForObject(
-                                    "SELECT cardinality(pg_blocking_pids(?)) > 0",
-                                    Boolean.class,
-                                    backend)));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
                 return pending;
               });
       // Then
