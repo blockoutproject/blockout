@@ -170,6 +170,34 @@ class DivisionIntegrationTest {
   }
 
   @Test
+  @DisplayName("Lists ordered division metadata with image presence and optional inactive entries")
+  void listsDivisionMetadata() {
+    // Given
+    DivisionDetail beta = divisions.create(account, "Beta", "#445566", null, null, null);
+    // Synthetic stored bytes qualify presence only; the shared validator owns image decoding.
+    DivisionDetail alpha =
+        divisions.create(
+            account,
+            "alpha",
+            "#112233",
+            List.of("#112233", "#445566", "#778899"),
+            new byte[] {1, 2, 3},
+            "image/png");
+    DivisionDetail gamma = divisions.create(account, "gamma", "#778899", null, null, null);
+    DivisionDetail inactive = divisions.setActive(account, gamma.id(), "0", false);
+
+    // When
+    List<DivisionDetail> active = divisions.list(account, false);
+    List<DivisionDetail> all = divisions.list(account, true);
+
+    // Then
+    assertThat(active).containsExactly(alpha, beta);
+    assertThat(all).containsExactly(alpha, beta, inactive);
+    assertThat(active.getFirst().hasLogo()).isTrue();
+    assertThat(active.getLast().hasLogo()).isFalse();
+  }
+
+  @Test
   @DisplayName(
       "A correction waiting on a deactivation refuses the now-inactive target without effects")
   void serializesDeactivationAndAssignment() throws Exception {

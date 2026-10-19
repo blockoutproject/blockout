@@ -50,20 +50,35 @@ interface SportingIdentityMapper {
    * @param source current managed division inside the transaction
    * @return detached editor state
    */
-  @Mapping(target = "gradient", source = "source")
+  @Mapping(
+      target = "gradient",
+      expression =
+          "java(toGradient(source.getGradientStart(), source.getGradientMiddle(), source.getGradientEnd()))")
   @Mapping(target = "hasLogo", expression = "java(source.getLogo() != null)")
   DivisionDetail toDetail(DivisionEntity source);
 
   /**
+   * Maps list metadata and the database-computed image presence without materializing an entity.
+   *
+   * @param source projected division metadata
+   * @return detached editor state
+   */
+  @Mapping(
+      target = "gradient",
+      expression =
+          "java(toGradient(source.getGradientStart(), source.getGradientMiddle(), source.getGradientEnd()))")
+  DivisionDetail toDetail(DivisionSummary source);
+
+  /**
    * Combines the ordered relational gradient columns, preserving an absent explicit gradient.
    *
-   * @param source current managed division
+   * @param start first explicit color, or null when no gradient is configured
+   * @param middle second explicit color when a gradient is configured
+   * @param end third explicit color when a gradient is configured
    * @return the three explicit colors, or null for the color-derived treatment
    */
-  default List<String> toGradient(DivisionEntity source) {
-    return source.getGradientStart() == null
-        ? null
-        : List.of(source.getGradientStart(), source.getGradientMiddle(), source.getGradientEnd());
+  default List<String> toGradient(String start, String middle, String end) {
+    return start == null ? null : List.of(start, middle, end);
   }
 
   /**
