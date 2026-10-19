@@ -21,7 +21,11 @@ config/                # executable application's wiring and typed settings
 shared/                # stable technical semantics used by active features
 ```
 
-A small single-feature service can keep the same roles flat. Avoid generic `impl`, `utils`, `helpers`, `common` and `records` packages. One application service owns a coherent use-case family; do not require one class per endpoint. Cross-feature calls use an explicit application API, never another feature's entity, repository or private implementation.
+Keep small cohesive role packages flat. Add occupied subpackages when they separate current responsibilities, such as persistence from HTTP adapters or distinct application use-case families. Keep closely collaborating types together; do not impose a directory per class suffix, a file-count threshold or an identical depth for every feature. A package move must not create new services, ports or models merely to populate the structure. Avoid generic `impl`, `utils`, `helpers`, `common` and `records` packages. One application service owns a coherent use-case family; do not require one class per endpoint. Cross-feature calls use an explicit application API, never another feature's entity, repository or private implementation.
+
+Before splitting a package, inspect Java visibility and actual callers: subpackages do not inherit package-private access. Preserve narrow access where possible; a new public type needs a meaningful boundary, not just a tidier folder. Move corresponding tests and update imports, documented paths and framework-specific package references. Verify discovery and generated mapper compilation with the existing build; add no custom scanning or architecture framework solely for a move.
+
+These subdivisions are personal conventions. [Spring Boot's layout guidance](https://docs.spring.io/spring-boot/reference/using/structuring-your-code.html) imposes no fixed hierarchy; [Spring Modulith's package discussion](https://docs.spring.io/spring-modulith/reference/fundamentals.html#advanced) explains the visibility tradeoff without requiring that library.
 
 - Keep controllers and adapters thin. Application code owns decisions and orchestration.
 - Always place persistence behind an application-owned port and an infrastructure adapter, including basic CRUD. Design the port around needed reads and writes, not a copy of `JpaRepository`.
