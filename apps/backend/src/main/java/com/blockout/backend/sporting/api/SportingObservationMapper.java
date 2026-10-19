@@ -1,16 +1,27 @@
 package com.blockout.backend.sporting.api;
 
 import com.blockout.backend.config.MappingConfiguration;
+import com.blockout.backend.generated.ingestion.model.CalendarObservationInternalRequest;
+import com.blockout.backend.generated.ingestion.model.CalendarOutcomeInternalResponse;
+import com.blockout.backend.generated.ingestion.model.CatalogObservationInternalRequest;
+import com.blockout.backend.generated.ingestion.model.CatalogOutcomeInternalResponse;
 import com.blockout.backend.generated.ingestion.model.InformationSheetInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchDetailObservationInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchSetScoreInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ObservationContextInternalRequest;
+import com.blockout.backend.generated.ingestion.model.ObservationOutcomeInternalResponse;
+import com.blockout.backend.generated.ingestion.model.TeamCandidateInternalRequest;
+import com.blockout.backend.sporting.application.model.CalendarObservation;
+import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.ObservationOutcome;
+import com.blockout.backend.sporting.application.model.TeamCandidate;
 import java.util.List;
 import java.util.UUID;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 /** Maps structurally validated generated observations without deciding accepted sporting state. */
@@ -97,4 +108,56 @@ public interface SportingObservationMapper {
    * @return application locator, or null for withdrawal
    */
   MatchObservation.InformationSheet toInformationSheet(InformationSheetInternalRequest source);
+
+  /**
+   * Maps the bounded calendar without interpreting or deduplicating its candidates.
+   *
+   * @param source validated generated request
+   * @return immutable application envelope
+   */
+  CalendarObservation toObservation(CalendarObservationInternalRequest source);
+
+  /**
+   * Maps qualified catalog references in positional order.
+   *
+   * @param source validated generated request
+   * @return immutable application discovery
+   */
+  CatalogObservation toObservation(CatalogObservationInternalRequest source);
+
+  /**
+   * Preserves the provider-native participant reference without inventing a club.
+   *
+   * @param source submitted participant
+   * @return immutable candidate
+   */
+  @Mapping(target = "nativeReference", source = "nativeTeamReference")
+  TeamCandidate toCandidate(TeamCandidateInternalRequest source);
+
+  /**
+   * Projects actual per-item calendar outcomes.
+   *
+   * @param source independently committed result
+   * @return canonical generated response
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  CalendarOutcomeInternalResponse toDto(ObservationOutcome.Calendar source);
+
+  /**
+   * Preserves positional catalog outcomes.
+   *
+   * @param source atomic catalog result
+   * @return canonical generated response
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  CatalogOutcomeInternalResponse toDto(ObservationOutcome.Catalog source);
+
+  /**
+   * Projects one safe outcome without provider payloads.
+   *
+   * @param source application result
+   * @return canonical generated outcome
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  ObservationOutcomeInternalResponse toDto(ObservationOutcome source);
 }

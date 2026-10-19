@@ -11,6 +11,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.domain.TeamName;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,7 @@ public class SportingIdentityService {
     store.lockSeason(key.seasonId());
     PoolView existing = store.pool(key).orElse(null);
     if (existing != null) {
-      if (!existing.classification().equals(classification)) {
+      if (!Objects.equals(existing.classification(), classification)) {
         throw new UnresolvedSportingIdentityException(
             "Classification requires an explicit correction");
       }
@@ -82,6 +83,8 @@ public class SportingIdentityService {
     }
     store.lockPoolSeason(poolId);
     PoolView pool = store.pool(poolId).orElseThrow();
+    if (pool.classification() == null)
+      throw new UnresolvedSportingIdentityException("Pool has no accepted classification");
     MatchView existing = store.match(poolId, reference).orElse(null);
     TeamView homeTeam = resolveTeam(pool, home, existing == null ? null : existing.homeTeamId());
     TeamView awayTeam = resolveTeam(pool, away, existing == null ? null : existing.awayTeamId());

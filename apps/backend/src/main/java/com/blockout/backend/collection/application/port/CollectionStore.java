@@ -278,4 +278,14 @@ public interface CollectionStore {
    * @param completedAt actual end of selected work
    */
   void complete(Cycle cycle, Instant completedAt);
+
+  /**
+   * Reads one exact admitted role in a transaction already holding its runtime fence.
+   *
+   * @param cycleId current admitted cycle
+   * @param scopeId exact target identity
+   * @param kind required acquisition role
+   * @return frozen target, or empty when that role was not admitted
+   */
+  Optional<Target> target(UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind);
 }

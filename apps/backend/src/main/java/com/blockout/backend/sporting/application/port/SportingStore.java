@@ -4,7 +4,12 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
+import com.blockout.backend.sporting.application.model.CalendarState;
+import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.MatchSchedule;
+import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews;
@@ -23,6 +28,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /** Application-owned identity operations; managed entities never cross this port. */
@@ -268,6 +274,14 @@ public interface SportingStore {
   Optional<MatchView> match(UUID id);
 
   /**
+   * Resolves the immutable pool reference without loading mutable match state before fencing.
+   *
+   * @param id existing match identity
+   * @return owning pool identity, or empty when the match is absent
+   */
+  Optional<UUID> matchPoolId(UUID id);
+
+  /**
    * Creates the encounter from already established participants.
    *
    * @param poolId qualified pool
@@ -408,4 +422,92 @@ public interface SportingStore {
    * @return conflicting existing team identities
    */
   List<UUID> classificationCollisions(List<UUID> teamIds, SportingClassification target);
+
+  /**
+   * Reads the latest admitted/completed calendar tokens under the season lock.
+   *
+   * @param poolId qualified pool
+   * @return current and completed tokens, possibly absent
+   */
+  CalendarState calendarState(UUID poolId);
+
+  /**
+   * Advances the currently admitted calendar without marking it complete.
+   *
+   * @param poolId qualified pool
+   * @param order backend-resolved logical token
+   */
+  void beginCalendar(UUID poolId, ObservationOrder order);
+
+  /**
+   * Marks an eligible complete calendar; visibility reconciliation is owned by the lifecycle
+   * increment.
+   *
+   * @param poolId qualified pool
+   * @param order still-current token
+   */
+  void completeCalendar(UUID poolId, ObservationOrder order);
+
+  /**
+   * Reads accepted match order before any identity or fact mutation.
+   *
+   * @param poolId contextual owner
+   * @param reference native match reference
+   * @return accepted order, or null before first acceptance
+   */
+  ObservationOrder matchOrder(UUID poolId, String reference);
+
+  /**
+   * Locks an existing match after runtime, season and cycle locks and detaches its owned facts.
+   *
+   * @param matchId known encounter
+   * @return current schedule and provenance
+   */
+  MatchSchedule lockMatchSchedule(UUID matchId);
+
+  /**
+   * Stores application-decided schedule/reference state within the current match transaction.
+   *
+   * @param schedule immutable accepted state; identity and participants are unchanged
+   */
+  void saveMatchSchedule(MatchSchedule schedule);
+
+  /**
+   * Reads catalog replacement order under its canonical season lock.
+   *
+   * @param sourceId authorized source-season identity
+   * @return current order, or null before first acceptance
+   */
+  ObservationOrder catalogOrder(UUID sourceId);
+
+  /**
+   * Stores qualified native presence without inventing a classification or any team.
+   *
+   * @param key complete source-season native identity
+   * @param candidate qualified native reference and label
+   * @return stable pool identity
+   */
+  UUID acceptCatalogPool(PoolKey key, CatalogObservation.Pool candidate);
+
+  /**
+   * Atomically finalizes catalog provenance and eligible source-scoped absence.
+   *
+   * @param sourceId authorized source-season binding
+   * @param seasonId canonical season
+   * @param provider designated source
+   * @param organizer source organizer
+   * @param presentIds unique accepted pool identities
+   * @param complete whether discovery positively establishes absence
+   * @param order backend-resolved token
+   * @param context independent source timestamps
+   */
+  void finishCatalog(
+      UUID sourceId,
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizer,
+      Set<UUID> presentIds,
+      boolean complete,
+      ObservationOrder order,
+      MatchObservation.Context context);
 }

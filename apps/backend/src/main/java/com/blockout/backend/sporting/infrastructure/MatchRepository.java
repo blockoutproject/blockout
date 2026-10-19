@@ -1,11 +1,13 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 /** Native Spring Data access to the sporting match owner. */
@@ -47,4 +49,23 @@ interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
    * @return established encounter
    */
   Optional<MatchEntity> findByPoolIdAndReference(UUID poolId, String reference);
+
+  /**
+   * Projects the immutable parent without attaching the match to the persistence context.
+   *
+   * @param id existing match identity
+   * @return owning pool identity, or empty when the match is absent
+   */
+  @Query("SELECT m.pool.id FROM MatchEntity m WHERE m.id = :id")
+  Optional<UUID> findPoolId(UUID id);
+
+  /**
+   * Serializes schedule and future same-match transitions after the season/cycle locks.
+   *
+   * @param id established match
+   * @return locked current match
+   */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT m FROM MatchEntity m WHERE m.id = :id")
+  Optional<MatchEntity> lockById(UUID id);
 }

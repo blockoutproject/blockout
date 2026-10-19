@@ -60,9 +60,9 @@
       <column name="group_reference" type="TEXT"><constraints nullable="true"/></column>
       <column name="reference" type="TEXT"><constraints nullable="false"/></column>
       <column name="source_name" type="TEXT"><constraints nullable="false"/></column>
-      <column name="division_id" type="UUID"><constraints nullable="false"/></column>
-      <column name="format" type="VARCHAR(255)"><constraints nullable="false"/></column>
-      <column name="gender" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="division_id" type="UUID"><constraints nullable="true"/></column>
+      <column name="format" type="VARCHAR(255)"><constraints nullable="true"/></column>
+      <column name="gender" type="VARCHAR(255)"><constraints nullable="true"/></column>
       <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
       <column name="setting_division_id" type="UUID"/>
       <column name="setting_format" type="VARCHAR(255)"/>
@@ -170,5 +170,33 @@
       ALTER TABLE sporting_team ADD CONSTRAINT ck_team_lnv_reference CHECK (provider != 'LNV' OR native_reference IS NOT NULL);
       ALTER TABLE sporting_match ADD CONSTRAINT ck_match_distinct_teams CHECK (home_team_id != away_team_id);
     ]]></sql>
+  </changeSet>
+
+  <changeSet id="sporting-ingestion" author="blockout">
+    <addColumn tableName="sporting_pool">
+      <column name="calendar_cycle_order" type="BIGINT"/>
+      <column name="calendar_read_ordinal" type="BIGINT"/>
+      <column name="completed_cycle_order" type="BIGINT"/>
+      <column name="completed_read_ordinal" type="BIGINT"/>
+    </addColumn>
+    <addColumn tableName="sporting_match">
+      <column name="accepted_cycle_order" type="BIGINT"/>
+      <column name="accepted_read_ordinal" type="BIGINT"/>
+    </addColumn>
+    <addColumn tableName="sporting_match">
+      <column name="local_time" type="VARCHAR(5)"/>
+      <column name="time_zone" type="VARCHAR(255)"/>
+      <column name="schedule_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="schedule_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="reference_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="reference_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+    <createTable tableName="sporting_catalog">
+      <column name="source_id" type="UUID"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="cycle_order" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="read_ordinal" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="observed_at" type="TIMESTAMP WITH TIME ZONE"><constraints nullable="false"/></column>
+      <column name="provider_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+    </createTable>
   </changeSet>
 </databaseChangeLog>

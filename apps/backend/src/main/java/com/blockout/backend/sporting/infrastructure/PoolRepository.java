@@ -69,4 +69,15 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
    * @return its current pools, including overrides
    */
   List<PoolEntity> findByPackId(UUID packId);
+
+  /**
+   * Loads only the catalog's source-season scope for qualified absence reconciliation.
+   *
+   * @param seasonId canonical season
+   * @param provider designated authority
+   * @param organizerReference exact source organizer
+   * @return retained pools in that source-season scope
+   */
+  List<PoolEntity> findBySeasonIdAndProviderAndOrganizerReference(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
 }
