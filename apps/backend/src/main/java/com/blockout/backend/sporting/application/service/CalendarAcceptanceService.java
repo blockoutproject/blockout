@@ -50,8 +50,8 @@ public class CalendarAcceptanceService {
       } catch (RuntimeException failure) {
         log.atWarn()
             .addKeyValue("operation", "sporting_match_acceptance")
-            .addKeyValue("poolId", poolId)
-            .addKeyValue("failureType", failure.getClass().getSimpleName())
+            .addKeyValue("scope", poolId)
+            .addKeyValue("reason", failure.getClass().getSimpleName())
             .log("Match refused; earlier commits remain accepted");
         outcomes.add(ObservationOutcome.refused(candidate.nativeMatchReference(), false));
       }
@@ -72,8 +72,8 @@ public class CalendarAcceptanceService {
       } catch (RuntimeException failure) {
         log.atWarn()
             .addKeyValue("operation", "sporting_calendar_completion")
-            .addKeyValue("poolId", poolId)
-            .addKeyValue("failureType", failure.getClass().getSimpleName())
+            .addKeyValue("scope", poolId)
+            .addKeyValue("reason", failure.getClass().getSimpleName())
             .log("Calendar completion refused; earlier commits remain accepted");
       }
     }

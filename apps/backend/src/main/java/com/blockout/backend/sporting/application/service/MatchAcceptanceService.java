@@ -93,8 +93,9 @@ public class MatchAcceptanceService {
         store.match(poolId, candidate.nativeMatchReference()).orElse(null);
     boolean created = existing == null;
     boolean namesChanged = false;
+    MatchSchedule schedule = null;
     if (existing != null) {
-      store.lockMatchSchedule(existing.id());
+      schedule = store.lockMatchSchedule(existing.id());
       SportingViews.TeamView home = store.team(existing.homeTeamId()).orElseThrow();
       SportingViews.TeamView away = store.team(existing.awayTeamId()).orElseThrow();
       namesChanged =
@@ -104,8 +105,9 @@ public class MatchAcceptanceService {
     SportingViews.MatchView match =
         identities.identifyMatch(
             poolId, candidate.nativeMatchReference(), candidate.home(), candidate.away());
+    if (created) schedule = store.lockMatchSchedule(match.id());
     boolean changed =
-        acceptSchedule(match.id(), expected, context, candidate.facts(), candidate.detailUrl());
+        acceptSchedule(schedule, expected, context, candidate.facts(), candidate.detailUrl());
     return success(match, created || namesChanged || changed);
   }
 
@@ -162,7 +164,7 @@ public class MatchAcceptanceService {
   /**
    * Applies only supplied schedule/reference groups; retained groups retain their old attribution.
    *
-   * @param id established locked encounter
+   * @param previous current schedule obtained under the retained match lock
    * @param order authoritative token
    * @param context actual source timestamps
    * @param facts independent submitted proposals
@@ -170,12 +172,11 @@ public class MatchAcceptanceService {
    * @return whether sporting schedule/reference values changed
    */
   private boolean acceptSchedule(
-      UUID id,
+      MatchSchedule previous,
       ObservationOrder order,
       MatchObservation.Context context,
       MatchObservation.Facts facts,
       URI detailUrl) {
-    MatchSchedule previous = store.lockMatchSchedule(id);
     MatchSchedule.MatchScheduleBuilder next =
         previous.toBuilder()
             .acceptedCycleOrder(order.cycleOrder())
@@ -238,11 +239,15 @@ public class MatchAcceptanceService {
    */
   @Transactional
   public ObservationOutcome detail(MatchObservation observation) {
-    // This first read resolves immutable parent identity only; no sporting mutation precedes F01.
+    // Project only the immutable parent so a wait on F01 cannot leave cached mutable match state.
+    UUID poolId =
+        store
+            .matchPoolId(observation.matchId())
+            .orElseThrow(SportingResourceNotFoundException::new);
+    CollectionState.Target target =
+        cycles.requireDetail(observation.context().cycleId(), observation.matchId(), poolId);
     SportingViews.MatchView match =
         store.match(observation.matchId()).orElseThrow(SportingResourceNotFoundException::new);
-    CollectionState.Target target =
-        cycles.requireDetail(observation.context().cycleId(), match.id(), match.poolId());
     ObservationOrder expected = order(observation.context());
     ObservationOrder current = store.calendarState(match.poolId()).current();
     ObservationOrder previous = store.matchOrder(match.poolId(), match.reference());
@@ -254,7 +259,12 @@ public class MatchAcceptanceService {
     if (expected.equals(previous)) return success(match, false);
     return success(
         match,
-        acceptSchedule(match.id(), expected, observation.context(), observation.facts(), null));
+        acceptSchedule(
+            store.lockMatchSchedule(match.id()),
+            expected,
+            observation.context(),
+            observation.facts(),
+            null));
   }
 
   /**

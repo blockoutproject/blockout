@@ -274,6 +274,14 @@ public interface SportingStore {
   Optional<MatchView> match(UUID id);
 
   /**
+   * Resolves the immutable pool reference without loading mutable match state before fencing.
+   *
+   * @param id existing match identity
+   * @return owning pool identity, or empty when the match is absent
+   */
+  Optional<UUID> matchPoolId(UUID id);
+
+  /**
    * Creates the encounter from already established participants.
    *
    * @param poolId qualified pool

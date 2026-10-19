@@ -422,6 +422,68 @@ class CalendarAcceptanceIntegrationTest {
   }
 
   @Test
+  @DisplayName("A concurrent older detail cannot overwrite the newer committed observation")
+  void preservesNewerConcurrentDetail() throws Exception {
+    // Given
+    calendars.accept(
+        pool, calendar(1, List.of(candidate("M1", "Home", LocalDate.of(2026, 10, 1)))));
+    UUID id = sql.queryForObject("SELECT id FROM sporting_match WHERE reference='M1'", UUID.class);
+    MatchObservation newer =
+        new MatchObservation(
+            id, context(3), candidate("M1", "Home", LocalDate.of(2026, 10, 3)).facts());
+    MatchObservation older =
+        new MatchObservation(
+            id, context(2), candidate("M1", "Home", LocalDate.of(2026, 10, 2)).facts());
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    CountDownLatch newerWritten = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    CompletableFuture<Integer> olderPid = new CompletableFuture<>();
+    try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      Future<?> accepting =
+          workers.submit(
+              () ->
+                  transaction.executeWithoutResult(
+                      status -> {
+                        matches.detail(newer);
+                        newerWritten.countDown();
+                        try {
+                          assertThat(release.await(10, TimeUnit.SECONDS)).isTrue();
+                        } catch (InterruptedException interrupted) {
+                          Thread.currentThread().interrupt();
+                          throw new IllegalStateException(interrupted);
+                        }
+                      }));
+      assertThat(newerWritten.await(10, TimeUnit.SECONDS)).isTrue();
+      Future<ObservationOutcome> waiting =
+          workers.submit(
+              () ->
+                  transaction.execute(
+                      status -> {
+                        olderPid.complete(
+                            sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                        return matches.detail(older);
+                      }));
+
+      // When
+      try {
+        PostgresTestDatabase.awaitBlocked(sql, olderPid);
+      } finally {
+        release.countDown();
+      }
+      accepting.get(10, TimeUnit.SECONDS);
+      ObservationOutcome outcome = waiting.get(10, TimeUnit.SECONDS);
+
+      // Then
+      assertThat(outcome.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
+      assertThat(date("M1")).isEqualTo(LocalDate.of(2026, 10, 3));
+      assertThat(
+              sql.queryForObject(
+                  "SELECT accepted_read_ordinal FROM sporting_match WHERE id=?", Long.class, id))
+          .isEqualTo(3);
+    }
+  }
+
+  @Test
   @DisplayName("Explicit schedule withdrawal clears the persisted date")
   void withdrawsDate() {
     // Given

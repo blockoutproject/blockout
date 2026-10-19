@@ -51,6 +51,15 @@ interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
   Optional<MatchEntity> findByPoolIdAndReference(UUID poolId, String reference);
 
   /**
+   * Projects the immutable parent without attaching the match to the persistence context.
+   *
+   * @param id existing match identity
+   * @return owning pool identity, or empty when the match is absent
+   */
+  @Query("SELECT m.pool.id FROM MatchEntity m WHERE m.id = :id")
+  Optional<UUID> findPoolId(UUID id);
+
+  /**
    * Serializes schedule and future same-match transitions after the season/cycle locks.
    *
    * @param id established match

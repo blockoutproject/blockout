@@ -410,6 +410,12 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  public Optional<UUID> matchPoolId(UUID id) {
+    return matches.findPoolId(id);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public MatchView createMatch(UUID poolId, String reference, UUID homeTeamId, UUID awayTeamId) {
     return mapper.toView(
         matches.save(
