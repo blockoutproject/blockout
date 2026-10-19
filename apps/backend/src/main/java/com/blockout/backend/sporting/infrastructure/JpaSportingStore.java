@@ -6,7 +6,12 @@ import com.blockout.backend.sporting.application.exception.SportingConflictExcep
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.exception.UnresolvedSportingIdentityException;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
+import com.blockout.backend.sporting.application.model.CalendarState;
+import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.MatchSchedule;
+import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews;
@@ -28,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
@@ -41,6 +47,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class JpaSportingStore implements SportingStore {
+  private final CatalogRepository catalogs;
   private final SeasonRepository seasons;
   private final ClubRepository clubs;
   private final DivisionRepository divisions;
@@ -287,9 +294,11 @@ public class JpaSportingStore implements SportingStore {
                 key.groupReference(),
                 key.reference(),
                 sourceName,
-                divisions.getReferenceById(classification.divisionId()),
-                classification.format(),
-                classification.gender())));
+                classification == null
+                    ? null
+                    : divisions.getReferenceById(classification.divisionId()),
+                classification == null ? null : classification.format(),
+                classification == null ? null : classification.gender())));
   }
 
   /** {@inheritDoc} */
@@ -529,5 +538,115 @@ public class JpaSportingStore implements SportingStore {
   @Override
   public List<UUID> classificationCollisions(List<UUID> teamIds, SportingClassification target) {
     return teamIds.isEmpty() ? List.of() : teams.findClassificationCollisions(teamIds, target);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public CalendarState calendarState(UUID poolId) {
+    PoolEntity pool = pools.findById(poolId).orElseThrow();
+    return new CalendarState(
+        order(pool.getCalendarCycleOrder(), pool.getCalendarReadOrdinal()),
+        order(pool.getCompletedCycleOrder(), pool.getCompletedReadOrdinal()));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void beginCalendar(UUID poolId, ObservationOrder order) {
+    PoolEntity pool = pools.findById(poolId).orElseThrow();
+    pool.setCalendarCycleOrder(order.cycleOrder());
+    pool.setCalendarReadOrdinal(order.readOrdinal());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void completeCalendar(UUID poolId, ObservationOrder order) {
+    PoolEntity pool = pools.findById(poolId).orElseThrow();
+    pool.setCompletedCycleOrder(order.cycleOrder());
+    pool.setCompletedReadOrdinal(order.readOrdinal());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ObservationOrder matchOrder(UUID poolId, String reference) {
+    return matches
+        .findByPoolIdAndReference(poolId, reference)
+        .map(match -> order(match.getAcceptedCycleOrder(), match.getAcceptedReadOrdinal()))
+        .orElse(null);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public MatchSchedule lockMatchSchedule(UUID matchId) {
+    return mapper.toSchedule(
+        matches.lockById(matchId).orElseThrow(SportingResourceNotFoundException::new));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void saveMatchSchedule(MatchSchedule schedule) {
+    mapper.updateSchedule(schedule, matches.findById(schedule.id()).orElseThrow());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ObservationOrder catalogOrder(UUID sourceId) {
+    return catalogs
+        .findById(sourceId)
+        .map(value -> new ObservationOrder(value.getCycleOrder(), value.getReadOrdinal()))
+        .orElse(null);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public UUID acceptCatalogPool(PoolKey key, CatalogObservation.Pool candidate) {
+    PoolEntity pool = pools.findByKey(key).orElse(null);
+    if (pool == null) {
+      UUID id = createPool(key, candidate.packReference(), candidate.sourceName(), null).id();
+      pool = pools.findById(id).orElseThrow();
+    }
+    if (!pool.getPack().getReference().equals(candidate.packReference()))
+      throw new SportingConflictException("identity-conflict", List.of());
+    pool.setSourceName(candidate.sourceName());
+    pool.setCatalogEligible(true);
+    if (candidate.calendarUrl() != null) pool.setCalendarUrl(candidate.calendarUrl().toString());
+    if (candidate.standingsUrl() != null) pool.setStandingsUrl(candidate.standingsUrl().toString());
+    return pool.getId();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void finishCatalog(
+      UUID sourceId,
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizer,
+      Set<UUID> presentIds,
+      boolean complete,
+      ObservationOrder order,
+      MatchObservation.Context context) {
+    if (complete)
+      for (PoolEntity pool :
+          pools.findBySeasonIdAndProviderAndOrganizerReference(seasonId, provider, organizer))
+        if (!presentIds.contains(pool.getId())) pool.setCatalogEligible(false);
+    CatalogEntity catalog = catalogs.findById(sourceId).orElse(null);
+    boolean created = catalog == null;
+    if (created) catalog = new CatalogEntity(sourceId);
+    catalog.setCycleOrder(order.cycleOrder());
+    catalog.setReadOrdinal(order.readOrdinal());
+    catalog.setObservedAt(context.observedAt().toInstant());
+    catalog.setProviderPublishedAt(
+        context.providerPublishedAt() == null ? null : context.providerPublishedAt().toInstant());
+    if (created) catalogs.save(catalog);
+  }
+
+  /**
+   * Preserves absence before first acceptance without a sentinel order.
+   *
+   * @param cycle backend cycle order, null before acceptance
+   * @param ordinal pre-read ordinal paired with that cycle
+   * @return logical token, or null before acceptance
+   */
+  private ObservationOrder order(Long cycle, Long ordinal) {
+    return cycle == null ? null : new ObservationOrder(cycle, ordinal);
   }
 }

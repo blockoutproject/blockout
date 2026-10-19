@@ -3,6 +3,7 @@ package com.blockout.backend.collection.api;
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
 import com.blockout.backend.generated.ingestion.model.ProblemResponse;
+import com.blockout.backend.sporting.api.SportingIngestionController;
 import java.net.URI;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.CacheControl;
@@ -12,7 +13,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /** Safe current-state refusals; unexpected infrastructure failures keep the shared HTTP owner. */
-@RestControllerAdvice(basePackageClasses = CollectorOperationsController.class)
+@RestControllerAdvice(
+    basePackageClasses = {CollectorOperationsController.class, SportingIngestionController.class})
 @Order(0)
 public class CollectionExceptionHandler {
   /**

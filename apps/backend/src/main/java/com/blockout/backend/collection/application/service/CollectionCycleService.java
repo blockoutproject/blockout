@@ -2,6 +2,7 @@ package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
+import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Admission;
 import com.blockout.backend.collection.application.model.CollectionState.Candidate;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
@@ -18,6 +19,7 @@ import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.SeasonService;
@@ -309,5 +311,51 @@ public class CollectionCycleService {
    */
   private CollectionConflictException invalidContext() {
     return new CollectionConflictException("invalid-cycle-context");
+  }
+
+  /**
+   * Authorizes one exact sporting role while retaining runtime, season and cycle locks through
+   * commit.
+   *
+   * @param id current control cycle
+   * @param scopeId addressed source or pool identity
+   * @param kind required acquisition role
+   * @return frozen admitted target
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public CollectionState.Target requireTarget(
+      UUID id, UUID scopeId, CollectionTargetKindEnum kind) {
+    requireRunningControl(id);
+    return store.target(id, scopeId, kind).orElseThrow(this::invalidContext);
+  }
+
+  /**
+   * Resolves an admitted catalog's canonical source after its runtime and season are fenced.
+   *
+   * @param id current control cycle
+   * @param sourceId exact source-season binding
+   * @return current source identity; caller retains the transaction fence
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Source requireCatalogSource(UUID id, UUID sourceId) {
+    requireTarget(id, sourceId, CollectionTargetKindEnum.DISCOVERY);
+    return store.source(sourceId).orElseThrow(this::invalidContext);
+  }
+
+  /**
+   * Authorizes an existing match through its exact detail role or its admitted parent calendar.
+   *
+   * @param id current cycle
+   * @param matchId known match identity resolved by the sporting owner
+   * @param poolId immutable owning pool resolved by the sporting owner
+   * @return frozen detail or parent calendar context, never caller-supplied parent authority
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public CollectionState.Target requireDetail(UUID id, UUID matchId, UUID poolId) {
+    requireRunningControl(id);
+    return store
+        .target(id, matchId, CollectionTargetKindEnum.DETAILS)
+        .or(() -> store.target(id, poolId, CollectionTargetKindEnum.CALENDAR))
+        .orElseThrow(this::invalidContext);
   }
 }

@@ -45,8 +45,15 @@ public class MatchEntity {
   @JoinColumn(name = "away_team_id")
   private TeamEntity awayTeam;
 
-  @Getter(AccessLevel.NONE)
-  private LocalDate localDate;
+  @Setter private LocalDate localDate;
+  @Setter private String localTime;
+  @Setter private String timeZone;
+  @Setter private Long acceptedCycleOrder;
+  @Setter private Long acceptedReadOrdinal;
+  @Setter private Instant scheduleObservedAt;
+  @Setter private Instant schedulePublishedAt;
+  @Setter private Instant referenceObservedAt;
+  @Setter private Instant referencePublishedAt;
 
   /**
    * Establishes the supplied match state without generating another owner model.

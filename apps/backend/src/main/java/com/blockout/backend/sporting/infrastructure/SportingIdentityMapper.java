@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.config.MappingConfiguration;
+import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews;
@@ -17,6 +18,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 /** Maps persistence values inside their transaction without exporting managed relationships. */
 @Mapper(config = MappingConfiguration.class)
@@ -116,8 +118,12 @@ interface SportingIdentityMapper {
    * @param source pool classification owner
    * @return complete accepted classification
    */
-  @Mapping(target = "divisionId", source = "division.id")
-  SportingClassification toClassification(PoolEntity source);
+  default SportingClassification toClassification(PoolEntity source) {
+    return source == null || source.getDivision() == null
+        ? null
+        : new SportingClassification(
+            source.getDivision().getId(), source.getFormat(), source.getGender());
+  }
 
   /**
    * Extracts the accepted team classification.
@@ -197,4 +203,20 @@ interface SportingIdentityMapper {
   @Mapping(target = "poolId", source = "pool.id")
   @Mapping(target = "classification", source = "pool")
   ParticipationView toView(ParticipationEntity source);
+
+  /**
+   * Detaches the currently accepted schedule under its match lock.
+   *
+   * @param source current match entity
+   * @return immutable schedule and independent attribution
+   */
+  MatchSchedule toSchedule(MatchEntity source);
+
+  /**
+   * Copies already-decided facts without changing match identity or participants.
+   *
+   * @param source application-decided schedule state
+   * @param target existing managed match
+   */
+  void updateSchedule(MatchSchedule source, @MappingTarget MatchEntity target);
 }

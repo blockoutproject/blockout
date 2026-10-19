@@ -24,6 +24,7 @@
       <column name="launched" type="BOOLEAN"><constraints nullable="false"/></column>
       <column name="current_cycle_id" type="UUID"></column>
     </createTable>
+    <addForeignKeyConstraint baseTableName="sporting_catalog" baseColumnNames="source_id" referencedTableName="collection_source_binding" referencedColumnNames="id" constraintName="fk_sporting_catalog_source"/>
     <createTable tableName="collection_control">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
       <column name="season_id" type="UUID"></column>

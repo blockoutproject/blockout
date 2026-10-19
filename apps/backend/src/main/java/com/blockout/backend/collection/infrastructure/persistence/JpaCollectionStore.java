@@ -265,4 +265,13 @@ class JpaCollectionStore implements CollectionStore {
   public boolean containsTarget(UUID cycleId, UUID scopeId) {
     return targets.existsByCycleIdAndScopeId(cycleId, scopeId);
   }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<CollectionState.Target> target(
+      UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind) {
+    return targets
+        .findById(new CollectionTargetEntity.Key(cycleId, scopeId, kind))
+        .map(mapper::toView);
+  }
 }

@@ -32,6 +32,10 @@ import lombok.Setter;
 @Entity
 @Table(name = "sporting_pool")
 public class PoolEntity {
+  @Setter private Long calendarCycleOrder;
+  @Setter private Long calendarReadOrdinal;
+  @Setter private Long completedCycleOrder;
+  @Setter private Long completedReadOrdinal;
   @Setter private String calendarUrl;
   @Setter private String standingsUrl;
   @Setter private boolean catalogEligible = true;
@@ -65,20 +69,19 @@ public class PoolEntity {
   private String reference;
 
   @Column(nullable = false)
+  @Setter
   private String sourceName;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "division_id")
   @Setter
   private DivisionEntity division;
 
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
   @Setter
   private SportFormatEnum format;
 
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
   @Setter
   private SportGenderEnum gender;
 
