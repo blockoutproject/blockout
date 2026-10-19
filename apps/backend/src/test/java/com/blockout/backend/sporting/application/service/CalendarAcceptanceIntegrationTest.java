@@ -1,5 +1,9 @@
 package com.blockout.backend.sporting.application.service;
 
+import static com.blockout.backend.sporting.support.SportingIngestionFixture.CONTROL;
+import static com.blockout.backend.sporting.support.SportingIngestionFixture.DIVISION;
+import static com.blockout.backend.sporting.support.SportingIngestionFixture.SOURCE;
+import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -7,24 +11,16 @@ import com.blockout.backend.collection.application.exception.CollectionConflictE
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
-import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
-import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
-import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
-import com.blockout.backend.sporting.application.model.PoolKey;
-import com.blockout.backend.sporting.application.model.SportingClassification;
-import com.blockout.backend.sporting.application.model.TeamCandidate;
+import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -59,9 +55,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @DisplayName("Contextual catalog and independently committed calendars")
 class CalendarAcceptanceIntegrationTest {
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
-  private static final UUID CONTROL = UUID.fromString("00000000-0000-4000-8000-000000000160");
-  private static final UUID SOURCE = UUID.fromString("00000000-0000-4000-8000-000000000161");
-  private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000162");
   private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-19T12:00:00Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
@@ -93,48 +86,12 @@ class CalendarAcceptanceIntegrationTest {
    */
   @BeforeEach
   void admit() throws Exception {
-    try (Connection connection =
-            DriverManager.getConnection(
-                DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
-                "blockout_migration",
-                "harmless-migration");
-        Statement fixture = connection.createStatement()) {
-      fixture.execute(
-          "TRUNCATE sporting_season, sporting_division, sporting_club, collection_source_binding, sporting_catalog CASCADE");
-    }
-    season = seasons.getOrCreate(2026).id();
-    sql.update("UPDATE sporting_season SET collection_state='ACTIVE' WHERE id=?", season);
-    sql.update(
-        "INSERT INTO sporting_division(id,name,active,color) VALUES (?,'Synthetic',TRUE,'#112233')",
-        DIVISION);
-    pool =
-        identities
-            .establishPool(
-                new PoolKey(
-                    CollectionProviderEnum.FFVB, season, "SYNTHETIC", "COMP", null, null, "POOL"),
-                "PACK",
-                "Synthetic pool",
-                new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE))
-            .id();
-    sql.update(
-        "UPDATE sporting_pool SET calendar_url='https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php', setting_division_id=?, setting_format='_6X6', setting_gender='MALE' WHERE id=?",
-        DIVISION,
-        pool);
-    sql.update(
-        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,accepted_url,validation_state,locked,launched) VALUES (?,?,'FFVB','SYNTHETIC','https://www.ffvbbeach.org/ffvbapp/resu/', 'QUALIFIED',FALSE,TRUE)",
-        SOURCE,
-        season);
-    sql.update(
-        "INSERT INTO collection_control(id,season_id,family,enabled) VALUES (?,?,'FFVB',TRUE)",
-        CONTROL,
-        season);
-    UUID startup = UUID.randomUUID();
-    runtimes.register(runtimes.current().revision(), startup);
-    cycle =
-        cycles
-            .admit(
-                new CollectionState.StartCycle(UUID.randomUUID(), startup, CONTROL, null, 0, null))
-            .cycle();
+    SportingIngestionFixture.reset(DATABASE);
+    SportingIngestionFixture.Scope scope =
+        SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);
+    season = scope.season();
+    pool = scope.pool();
+    cycle = scope.cycle();
   }
 
   @Test
@@ -698,37 +655,6 @@ class CalendarAcceptanceIntegrationTest {
    */
   private CalendarObservation calendar(long ordinal, List<CalendarObservation.Match> candidates) {
     return new CalendarObservation(context(ordinal), true, candidates, List.of(), List.of());
-  }
-
-  /**
-   * Supplies identity and optional schedule while leaving other fact groups omitted.
-   *
-   * @param reference native encounter identity
-   * @param home scenario-defining participant label
-   * @param date proposed date; null represents omission
-   * @return immutable candidate with exact club references
-   */
-  private CalendarObservation.Match candidate(String reference, String home, LocalDate date) {
-    MatchObservation.Facts facts =
-        new MatchObservation.Facts(
-            date == null ? JsonNullable.undefined() : JsonNullable.of(date),
-            JsonNullable.undefined(),
-            null,
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined(),
-            JsonNullable.undefined());
-    return new CalendarObservation.Match(
-        reference,
-        new TeamCandidate(null, home, "000160", null),
-        new TeamCandidate(null, "Away", "000161", null),
-        facts,
-        null);
   }
 
   /**

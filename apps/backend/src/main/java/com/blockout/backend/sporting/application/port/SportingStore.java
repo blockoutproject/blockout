@@ -7,6 +7,7 @@ import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.CalendarState;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.MatchDetails;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
@@ -23,6 +24,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.PoolClassif
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
+import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import java.time.Instant;
 import java.util.List;
@@ -510,4 +512,42 @@ public interface SportingStore {
       boolean complete,
       ObservationOrder order,
       MatchObservation.Context context);
+
+  /**
+   * Reads current enrichment within the retained match transaction.
+   *
+   * @param matchId already locked match
+   * @return detached facts and attribution
+   */
+  MatchDetails matchDetails(UUID matchId);
+
+  /**
+   * Stores decided enrichment without altering the match's identity or schedule.
+   *
+   * @param details decided current state under the match lock
+   */
+  void saveMatchDetails(MatchDetails details);
+
+  /**
+   * Reads current publication evidence and its retained table within the owning transaction.
+   *
+   * @param poolId known pool
+   * @return current scope, or empty before any qualified observation
+   */
+  Optional<StandingsView> standings(UUID poolId);
+
+  /**
+   * Replaces the current publication scope atomically under the season fence.
+   *
+   * @param standings accepted state, including independently retained table freshness
+   */
+  void saveStandings(StandingsView standings);
+
+  /**
+   * Reads only current participants for conservative standings association.
+   *
+   * @param poolId qualified table scope
+   * @return existing current participants; no identity or presence mutation
+   */
+  List<TeamView> currentPoolTeams(UUID poolId);
 }

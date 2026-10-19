@@ -2,6 +2,9 @@ package com.blockout.backend.sporting.api;
 
 import com.blockout.backend.generated.ingestion.model.CalendarObservationInternalRequest;
 import com.blockout.backend.generated.ingestion.model.CatalogObservationInternalRequest;
+import com.blockout.backend.generated.ingestion.model.StandingsObservationInternalRequest;
+import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
+import com.blockout.backend.sporting.domain.SportingReferences;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -44,11 +47,21 @@ public class SportingObservationValidator {
    * @param value optional submitted native entry reference
    */
   private void reference(URI value) {
-    if (value != null
-        && (value.getHost() == null
-            || value.getUserInfo() != null
-            || !("https".equalsIgnoreCase(value.getScheme())
-                || "http".equalsIgnoreCase(value.getScheme()))))
+    if (!SportingReferences.qualified(value))
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+  }
+
+  /**
+   * Rejects contradictory absence and statistics outside the declared official columns.
+   *
+   * @param request generated structurally valid standings envelope
+   */
+  public void standings(StandingsObservationInternalRequest request) {
+    if (request.getPublicationState() == StandingsPublicationStateEnum.NOT_PUBLISHED
+        && (!request.getColumns().isEmpty() || !request.getRows().isEmpty()))
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    if (request.getRows().stream()
+        .anyMatch(row -> !request.getColumns().containsAll(row.getStatistics().keySet())))
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
   }
 }

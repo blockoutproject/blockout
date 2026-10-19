@@ -3,9 +3,11 @@ package com.blockout.backend.sporting.application.service;
 import com.blockout.backend.access.application.ActionAuthorization;
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
+import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.model.SportingViews.PackView;
@@ -21,6 +23,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Complete, season-serialized classification corrections preserving sporting identities. */
@@ -239,5 +242,28 @@ public class ClassificationService {
     PoolClassificationView pool =
         store.poolClassification(poolId).orElseThrow(SportingResourceNotFoundException::new);
     return detail(pool, store.pack(pool.pool().packId()).orElseThrow());
+  }
+
+  /**
+   * Checks current acquisition classification against the admitted snapshot without restoring it.
+   *
+   * @param poolId existing pool
+   * @param target backend-frozen acquisition classification
+   * @return whether this observation remains compatible with current manual settings
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public boolean acceptsObservation(UUID poolId, CollectionState.Target target) {
+    SportingViews.PoolClassificationView classification =
+        store.poolClassification(poolId).orElseThrow();
+    SportingClassification current =
+        classification.setting() == null
+            ? store.pack(classification.pool().packId()).orElseThrow().setting()
+            : classification.setting();
+    SportingClassification admitted =
+        new SportingClassification(target.divisionId(), target.format(), target.gender());
+    return current != null
+        && current.equals(admitted)
+        && (classification.pool().classification() == null
+            || current.equals(classification.pool().classification()));
   }
 }

@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.application.model;
 
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
+import com.blockout.backend.sporting.domain.MatchFacts.SetScore;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -80,14 +81,6 @@ public record MatchObservation(UUID matchId, Context context, Facts facts) {
    */
   public record Result(
       ResultStateEnum state, Integer homeSets, Integer awaySets, String specialLabel) {}
-
-  /**
-   * One interpreted set in source order; it does not establish a match result.
-   *
-   * @param home home points
-   * @param away away points
-   */
-  public record SetScore(int home, int away) {}
 
   /**
    * Qualified information-sheet locator, independent of match identity and accepted result.

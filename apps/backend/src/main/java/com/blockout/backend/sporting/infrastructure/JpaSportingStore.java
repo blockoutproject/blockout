@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
+import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.exception.UnresolvedSportingIdentityException;
@@ -9,6 +10,7 @@ import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.CalendarState;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.MatchDetails;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
@@ -25,6 +27,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.PoolClassif
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
+import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import java.time.Duration;
@@ -48,6 +51,7 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class JpaSportingStore implements SportingStore {
   private final CatalogRepository catalogs;
+  private final StandingsRepository standings;
   private final SeasonRepository seasons;
   private final ClubRepository clubs;
   private final DivisionRepository divisions;
@@ -654,5 +658,45 @@ public class JpaSportingStore implements SportingStore {
    */
   private ObservationOrder order(Long cycle, Long ordinal) {
     return cycle == null ? null : new ObservationOrder(cycle, ordinal);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public MatchDetails matchDetails(UUID matchId) {
+    return mapper.toDetails(matches.findById(matchId).orElseThrow());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void saveMatchDetails(MatchDetails details) {
+    mapper.updateDetails(details, matches.findById(details.id()).orElseThrow());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<StandingsView> standings(UUID poolId) {
+    return standings.findById(poolId).map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void saveStandings(StandingsView value) {
+    StandingsEntity entity = standings.findById(value.poolId()).orElse(null);
+    boolean created = entity == null;
+    if (created) entity = new StandingsEntity(value.poolId());
+    mapper.updateStandings(value, entity);
+    if (value.publicationState() == StandingsPublicationStateEnum.PUBLISHED) {
+      entity.getColumns().clear();
+      entity.getColumns().addAll(value.columns());
+      entity.getRows().clear();
+      entity.getRows().addAll(mapper.toRows(value.rows()));
+    }
+    if (created) standings.save(entity);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<TeamView> currentPoolTeams(UUID poolId) {
+    return teams.findCurrentIn(poolId).stream().map(mapper::toView).toList();
   }
 }

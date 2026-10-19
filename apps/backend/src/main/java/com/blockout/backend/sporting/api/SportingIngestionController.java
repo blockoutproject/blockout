@@ -13,6 +13,7 @@ import com.blockout.backend.generated.ingestion.model.StandingsObservationIntern
 import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
 import com.blockout.backend.sporting.application.service.CatalogAcceptanceService;
 import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
+import com.blockout.backend.sporting.application.service.StandingsService;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class SportingIngestionController implements SportingApi {
   private final MatchAcceptanceService matches;
   private final CalendarAcceptanceService calendars;
   private final CatalogAcceptanceService catalogs;
+  private final StandingsService standings;
   private final SportingObservationMapper mapper;
   private final SportingObservationValidator validator;
 
@@ -69,8 +71,11 @@ public class SportingIngestionController implements SportingApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<ObservationOutcomeInternalResponse> observePoolStandings(
-      UUID poolId, StandingsObservationInternalRequest standingsObservationInternalRequest) {
-    throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+      UUID poolId, StandingsObservationInternalRequest request) {
+    validator.standings(request);
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(standings.accept(poolId, mapper.toObservation(request))));
   }
 
   /** {@inheritDoc} */
