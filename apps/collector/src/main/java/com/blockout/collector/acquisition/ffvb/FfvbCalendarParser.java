@@ -63,7 +63,8 @@ public class FfvbCalendarParser {
         if (!row.isConsistent()) {
           String reference = row.size() > 2 ? row.get(2).strip() : "row-" + row.getRecordNumber();
           if (page.references().contains(reference)) malformed.add(reference);
-          else failures.add(failure(reference, "invalid-row"));
+          else if (!page.allReferences().contains(reference))
+            failures.add(failure(reference, "invalid-row"));
           continue;
         }
         if (page.qualifiedEmpty())

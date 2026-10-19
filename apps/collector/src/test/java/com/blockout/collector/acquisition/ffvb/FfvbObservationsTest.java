@@ -25,9 +25,11 @@ class FfvbObservationsTest {
   private final FfvbCalendarParser calendars = new FfvbCalendarParser();
   private final FfvbStandingsParser standings = new FfvbStandingsParser();
 
-  @Test
-  @DisplayName("Selects published round groups without interpreting Jo or match-code prefixes")
-  void followsPublishedGroups() throws IOException {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName(
+      "Keeps published round groups independent even when another group's row is malformed")
+  void followsPublishedGroups(boolean invalidOtherGroup) throws IOException {
     // Given
     String form =
         fixture("calendar.html")
@@ -43,6 +45,11 @@ class FfvbObservationsTest {
             + "<table><tr><td>Tour 02</td></tr><tr><td>TST001</td><td></td><td></td><td>A</td><td></td><td>B</td></tr></table></body></html>";
     FfvbScope scope = new FfvbScope("2026/2027", "ABCCS", "TEST", "GROUP-A", "02", "GROUP-A");
     String csv = fixture("calendar.csv").replace("ABCCS;02;", "ABCCS;01;");
+    if (invalidOtherGroup) {
+      String otherRow =
+          csv.lines().filter(line -> line.contains(";TST001;")).findFirst().orElseThrow();
+      csv = csv.replace(otherRow, "ABCCS;01;TST001;malformed");
+    }
 
     // When
     SportingObservation.Calendar result =
