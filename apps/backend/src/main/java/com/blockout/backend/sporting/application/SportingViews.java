@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.application;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -18,6 +19,10 @@ public final class SportingViews {
    * @param label canonical display/confirmation label
    */
   public record SeasonView(UUID id, long startYear, String label) {}
+
+  /** Canonical season's F01 lifecycle, read under the existing owner transaction. */
+  public record CollectionSeasonView(
+      UUID id, String label, CollectionSeasonStateEnum collectionState, long collectionRevision) {}
 
   /**
    * Persistent organization, even before a club-page read succeeds.

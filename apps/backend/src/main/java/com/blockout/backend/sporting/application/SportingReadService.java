@@ -1,11 +1,14 @@
 package com.blockout.backend.sporting.application;
 
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +21,61 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SportingReadService {
   private final SportingStore store;
+
+  /**
+   * Reads eligible pool references in bounded owner pages.
+   *
+   * @param seasonId canonical season held by the admission transaction
+   * @param provider designated provider
+   * @param initialImport permits qualified historical references absent from the current catalog
+   * @param organizerReference qualified source binding
+   * @param now admission instant
+   * @param page bounded pool page
+   * @return eligible current acquisition references, not published classification fallbacks
+   */
+  public List<AcquisitionReference> acquisitionPools(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      boolean initialImport,
+      Instant now,
+      int page) {
+    return store.acquisitionPools(seasonId, provider, organizerReference, initialImport, now, page);
+  }
+
+  /**
+   * Reads qualified detail references in bounded owner pages.
+   *
+   * @param poolId eligible admitted pool
+   * @param now admission instant
+   * @param page bounded detail page
+   * @return qualified LNV detail references
+   */
+  public List<AcquisitionReference> acquisitionDetails(UUID poolId, Instant now, int page) {
+    return store.acquisitionDetails(poolId, now, page);
+  }
+
+  /**
+   * Reads seasonless acquisition identities without personal locality.
+   *
+   * @param geocoding selects municipal needs rather than club sheets
+   * @param manual explicit family rerun may revisit ordinary no-result localities
+   * @param page bounded owner page
+   * @return identities only; permitted locality is resolved when serving targets
+   */
+  public List<AcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, int page) {
+    return store.acquisitionClubs(geocoding, manual, page);
+  }
+
+  /**
+   * Resolves the currently permitted organization locality.
+   *
+   * @param clubId current organization
+   * @return current permitted context, or empty after owner removal
+   */
+  public Optional<ClubLocalityView> clubLocality(UUID clubId) {
+    return store.clubLocality(clubId);
+  }
 
   /**
    * Reads a canonical season without lifecycle mutation.

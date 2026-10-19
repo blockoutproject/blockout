@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.collector.generated.ingestion.ApiClient;
-import com.blockout.collector.generated.ingestion.api.CollectionApi;
+import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
 import com.blockout.collector.generated.ingestion.model.CollectorRuntimeInternalResponse;
 import com.blockout.collector.generated.ingestion.model.MatchDetailObservationInternalRequest;
@@ -219,7 +219,7 @@ class SportingContractTest {
     CollectorRuntimeInternalResponse body =
         new CollectorRuntimeInternalResponse().revision(1L).incarnationId(null);
     responseBody = api.getApiClient().getJsonMapper().writeValueAsString(body);
-    CollectionApi runtime = new CollectionApi(api.getApiClient());
+    CollectorOperationsApi runtime = new CollectorOperationsApi(api.getApiClient());
 
     // When
     CollectorRuntimeInternalResponse result = runtime.getCollectorRuntime();

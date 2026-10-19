@@ -4,8 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 
+import com.blockout.collector.acquisition.infrastructure.CollectorStartup;
 import com.blockout.collector.generated.ingestion.ApiClient;
-import com.blockout.collector.generated.ingestion.api.CollectionApi;
+import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
@@ -33,12 +34,16 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 
 /** Exercises the actual generated client and native OAuth cache against controlled HTTP peers. */
 @SpringBootTest(properties = "spring.main.keep-alive=false")
 @DisplayName("Collector client credentials and bounded recovery")
 class IngestionAuthenticationIntegrationTest {
+  @MockitoBean private CollectorStartup startup;
+
   private static HttpServer server;
   private static final AtomicInteger tokens = new AtomicInteger();
   private static final AtomicInteger writes = new AtomicInteger();
@@ -183,7 +188,7 @@ class IngestionAuthenticationIntegrationTest {
   @DisplayName("Requests the selected audience and scope then reuses the provider's 24-hour token")
   void reusesToken() {
     // Given
-    CollectionApi api = new CollectionApi(client);
+    CollectorOperationsApi api = new CollectorOperationsApi(client);
     RegisterCollectorRuntimeInternalRequest request =
         new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
@@ -216,7 +221,7 @@ class IngestionAuthenticationIntegrationTest {
   void renewsExpiredToken() {
     // Given
     lifetime = 3600;
-    CollectionApi api = new CollectionApi(client);
+    CollectorOperationsApi api = new CollectorOperationsApi(client);
     RegisterCollectorRuntimeInternalRequest request =
         new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
@@ -238,7 +243,7 @@ class IngestionAuthenticationIntegrationTest {
   void refusesFailedRenewal() {
     // Given
     lifetime = 3600;
-    CollectionApi api = new CollectionApi(client);
+    CollectorOperationsApi api = new CollectorOperationsApi(client);
     RegisterCollectorRuntimeInternalRequest request =
         new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
@@ -261,7 +266,7 @@ class IngestionAuthenticationIntegrationTest {
   void boundsTokenFailure() {
     // Given
     stallToken = true;
-    CollectionApi api = new CollectionApi(client);
+    CollectorOperationsApi api = new CollectorOperationsApi(client);
     RegisterCollectorRuntimeInternalRequest request =
         new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
@@ -285,7 +290,7 @@ class IngestionAuthenticationIntegrationTest {
   void doesNotReplayUnauthorizedWrite() {
     // Given
     refuseWrite = true;
-    CollectionApi api = new CollectionApi(client);
+    CollectorOperationsApi api = new CollectorOperationsApi(client);
     RegisterCollectorRuntimeInternalRequest request =
         new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
@@ -316,7 +321,7 @@ class IngestionAuthenticationIntegrationTest {
   void preservesUncertainWrite() {
     // Given
     disconnectWrite = true;
-    CollectionApi api = new CollectionApi(client);
+    CollectorOperationsApi api = new CollectorOperationsApi(client);
     RegisterCollectorRuntimeInternalRequest request =
         new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
@@ -326,7 +331,7 @@ class IngestionAuthenticationIntegrationTest {
     Throwable failure = catchThrowable(() -> api.registerCollectorRuntime(request));
 
     // Then
-    assertThat(failure).isInstanceOf(org.springframework.web.client.ResourceAccessException.class);
+    assertThat(failure).isInstanceOf(ResourceAccessException.class);
     assertThat(tokens).hasValue(1);
     assertThat(writes).hasValue(1);
   }

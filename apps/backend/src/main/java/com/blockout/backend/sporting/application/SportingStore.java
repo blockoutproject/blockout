@@ -11,12 +11,68 @@ import com.blockout.backend.sporting.application.SportingViews.PoolClassificatio
 import com.blockout.backend.sporting.application.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 /** Application-owned identity operations; managed entities never cross this port. */
 public interface SportingStore {
+  /**
+   * Reads eligible pool references in bounded owner pages.
+   *
+   * @param seasonId canonical seasonal scope
+   * @param provider supported source owner
+   * @param initialImport permits qualified historical references absent from the current catalog
+   * @param organizerReference exact binding context
+   * @param now admission instant for reliable fast windows
+   * @param page bounded pool page
+   * @return qualified calendar/standings references for at most 200 selected pools
+   */
+  List<AcquisitionReference> acquisitionPools(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      boolean initialImport,
+      Instant now,
+      int page);
+
+  /**
+   * Reads qualified detail references in bounded owner pages.
+   *
+   * @param poolId already eligible contextual pool
+   * @param now admission instant
+   * @param page bounded match page
+   * @return current professional detail references
+   */
+  List<AcquisitionReference> acquisitionDetails(UUID poolId, Instant now, int page);
+
+  /**
+   * Reads seasonless identities without personal locality.
+   *
+   * @param geocoding select current geocoding needs rather than club-sheet references
+   * @param manual whether to revisit ordinary no-result localities
+   * @param page bounded club page
+   * @return stable current club references without personal values
+   */
+  List<AcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, int page);
+
+  /**
+   * Resolves currently permitted locality.
+   *
+   * @param clubId current organization
+   * @return currently permitted locality and its revision
+   */
+  Optional<ClubLocalityView> clubLocality(UUID clubId);
+
+  /**
+   * Reads acquisition lifecycle on the canonical season.
+   *
+   * @param id canonical season identity
+   * @return its current acquisition lifecycle without exposing persistence
+   */
+  Optional<SportingViews.CollectionSeasonView> collectionSeason(UUID id);
+
   /**
    * Finds a canonical season by its qualified start year.
    *

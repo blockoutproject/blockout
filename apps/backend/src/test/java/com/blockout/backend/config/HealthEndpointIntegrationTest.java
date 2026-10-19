@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.blockout.backend.access.application.PermissionStore;
 import com.blockout.backend.accounts.application.AccountStore;
+import com.blockout.backend.collection.application.CollectionStore;
 import com.blockout.backend.sporting.application.SportingStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,7 @@ class HealthEndpointIntegrationTest {
 
   // Business persistence is outside the operational HTTP boundary qualified by this context.
   @MockitoBean private SportingStore sportingStore;
+  @MockitoBean private CollectionStore collectionStore;
   @MockitoBean private AccountStore accounts;
   @MockitoBean private PermissionStore permissions;
 

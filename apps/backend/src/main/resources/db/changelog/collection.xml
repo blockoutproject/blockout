@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <!-- Mutable current-state baseline; all environments remain disposable. No reset is implied. -->
+  <changeSet id="collection-foundation" author="blockout">
+    <createSequence sequenceName="collection_cycle_order" startValue="1" incrementBy="1" maxValue="9007199254740991" cycle="false"/>
+    <createTable tableName="collector_runtime">
+      <column name="id" type="INTEGER"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="incarnation_id" type="UUID"></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+    </createTable>
+    <createTable tableName="collection_source_binding">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="season_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="candidate_url" type="TEXT"></column>
+      <column name="accepted_url" type="TEXT"></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="validation_state" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="validated_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="season_evidence" type="TEXT"></column>
+      <column name="season_confirmed" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="locked" type="BOOLEAN"><constraints nullable="false"/></column>
+      <column name="launched" type="BOOLEAN"><constraints nullable="false"/></column>
+      <column name="current_cycle_id" type="UUID"></column>
+    </createTable>
+    <createTable tableName="collection_control">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="season_id" type="UUID"></column>
+      <column name="family" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="enabled" type="BOOLEAN"><constraints nullable="false"/></column>
+      <column name="request_id" type="UUID"></column>
+      <column name="requested_mode" type="VARCHAR(255)"></column>
+      <column name="current_cycle_id" type="UUID"></column>
+      <column name="last_attempt_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="last_started_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="last_success_at" type="TIMESTAMP WITH TIME ZONE"></column>
+    </createTable>
+    <createTable tableName="collection_request_source">
+      <column name="control_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="source_binding_id" type="UUID"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="collection_request_source" columnNames="control_id,source_binding_id"/>
+    <addForeignKeyConstraint baseTableName="collection_request_source" baseColumnNames="control_id" referencedTableName="collection_control" referencedColumnNames="id" constraintName="fk_collection_request_source_control" onDelete="CASCADE"/>
+    <createTable tableName="collection_request_scope">
+      <column name="control_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="scope_id" type="UUID"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="collection_request_scope" columnNames="control_id,scope_id"/>
+    <addForeignKeyConstraint baseTableName="collection_request_scope" baseColumnNames="control_id" referencedTableName="collection_control" referencedColumnNames="id" constraintName="fk_collection_request_scope_control" onDelete="CASCADE"/>
+    <createTable tableName="collection_cycle">
+      <column name="cycle_order" type="BIGINT"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="id" type="UUID"><constraints nullable="false"/></column>
+      <column name="incarnation_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="control_id" type="UUID"></column>
+      <column name="source_binding_id" type="UUID"></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="request_id" type="UUID"></column>
+      <column name="mode" type="VARCHAR(255)"></column>
+      <column name="started_at" type="TIMESTAMP WITH TIME ZONE"><constraints nullable="false"/></column>
+      <column name="completed_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="candidate_url" type="TEXT"></column>
+      <column name="season_label" type="TEXT"></column>
+      <column name="provider" type="VARCHAR(255)"></column>
+      <column name="organizer_reference" type="TEXT"></column>
+    </createTable>
+    <addUniqueConstraint tableName="collection_cycle" columnNames="id" constraintName="uq_collection_cycle_id"/>
+    <createTable tableName="collection_target">
+      <column name="cycle_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="scope_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="kind" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="source_binding_id" type="UUID"></column>
+      <column name="url" type="TEXT"></column>
+      <column name="season_label" type="TEXT"></column>
+      <column name="competition_reference" type="TEXT"></column>
+      <column name="pack_reference" type="TEXT"></column>
+      <column name="pool_reference" type="TEXT"></column>
+      <column name="tour_reference" type="TEXT"></column>
+      <column name="group_reference" type="TEXT"></column>
+      <column name="pool_id" type="UUID"></column>
+      <column name="match_id" type="UUID"></column>
+      <column name="club_id" type="UUID"></column>
+      <column name="club_reference" type="TEXT"></column>
+      <column name="division_id" type="UUID"></column>
+      <column name="format" type="VARCHAR(255)"></column>
+      <column name="gender" type="VARCHAR(255)"></column>
+      <column name="last_attempt_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="last_success_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="fast_window_ends_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="provider" type="VARCHAR(255)"></column>
+      <column name="organizer_reference" type="TEXT"></column>
+      <column name="native_match_reference" type="TEXT"></column>
+    </createTable>
+    <addPrimaryKey tableName="collection_target" columnNames="cycle_id,kind,scope_id" constraintName="pk_collection_target"/>
+    <addForeignKeyConstraint baseTableName="collection_target" baseColumnNames="cycle_id" referencedTableName="collection_cycle" referencedColumnNames="id" constraintName="fk_collection_target_cycle" onDelete="CASCADE"/>
+    <addUniqueConstraint tableName="collection_source_binding" columnNames="season_id,provider,organizer_reference" constraintName="uq_collection_source_root"/>
+    <!-- PostgreSQL NULLS NOT DISTINCT also enforces the singleton seasonless family; Liquibase's native unique change does not expose it. -->
+    <sql>ALTER TABLE collection_control ADD CONSTRAINT uq_collection_control_scope UNIQUE NULLS NOT DISTINCT (season_id, family)</sql>
+    <addForeignKeyConstraint baseTableName="collection_control" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_collection_control_season"/>
+    <addForeignKeyConstraint baseTableName="collection_source_binding" baseColumnNames="season_id" referencedTableName="sporting_season" referencedColumnNames="id" constraintName="fk_collection_source_season"/>
+    <createTable tableName="collection_result">
+      <column name="control_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="scope_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="stage" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="phase" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="last_attempt_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="last_success_at" type="TIMESTAMP WITH TIME ZONE"/>
+    </createTable>
+    <addPrimaryKey tableName="collection_result" columnNames="control_id,scope_id,stage,phase" constraintName="pk_collection_result"/>
+    <addForeignKeyConstraint baseTableName="collection_result" baseColumnNames="control_id" referencedTableName="collection_control" referencedColumnNames="id" constraintName="fk_collection_result_control" onDelete="CASCADE"/>
+    <insert tableName="collector_runtime"><column name="id" valueNumeric="1"/><column name="revision" valueNumeric="0"/></insert>
+    <insert tableName="collection_control"><column name="id" value="00000000-0000-4000-8000-000000000001"/><column name="family" value="CLUB_SHEETS"/><column name="enabled" valueBoolean="false"/></insert>
+    <insert tableName="collection_control"><column name="id" value="00000000-0000-4000-8000-000000000002"/><column name="family" value="GEOCODING"/><column name="enabled" valueBoolean="false"/></insert>
+  </changeSet>
+</databaseChangeLog>

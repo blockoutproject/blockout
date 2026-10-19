@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 
 import com.blockout.collector.generated.ingestion.ApiClient;
-import com.blockout.collector.generated.ingestion.api.CollectionApi;
+import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionWorkInternalResponse;
 import com.blockout.collector.generated.ingestion.model.CollectorRuntimeInternalResponse;
@@ -38,7 +38,7 @@ import org.springframework.web.client.RestClientException;
 @DisplayName("Generated ingestion client boundary")
 class GeneratedClientTest {
   private HttpServer server;
-  private CollectionApi api;
+  private CollectorOperationsApi api;
   private String body;
   private final AtomicInteger calls = new AtomicInteger();
   private boolean disconnect;
@@ -98,7 +98,7 @@ class GeneratedClientTest {
             // OAuth has its own real HTTP suite; this boundary supplies controlled credentials.
             (request, body, execution) -> execution.execute(request, body));
     client.setBearerToken("harmless-test-token");
-    api = new CollectionApi(client);
+    api = new CollectorOperationsApi(client);
   }
 
   /**
@@ -159,6 +159,7 @@ class GeneratedClientTest {
         "{\"revision\":null,\"incarnationId\":null}",
         "{\"revision\":\"0\",\"incarnationId\":null}",
         "{\"revision\":-1,\"incarnationId\":null}",
+        "{\"revision\":9007199254740992,\"incarnationId\":null}",
         "{\"revision\":0,\"incarnationId\":\"bad-uuid\"}",
         "{"
       })

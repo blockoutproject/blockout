@@ -139,6 +139,10 @@ class DatabaseConfigurationIntegrationTest {
           "ALTER DEFAULT PRIVILEGES IN SCHEMA "
               + schema
               + " GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO blockout_app");
+      sql.execute(
+          "ALTER DEFAULT PRIVILEGES IN SCHEMA "
+              + schema
+              + " GRANT USAGE, SELECT ON SEQUENCES TO blockout_app");
     }
   }
 

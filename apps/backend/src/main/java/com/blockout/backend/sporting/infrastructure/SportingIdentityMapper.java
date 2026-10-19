@@ -3,6 +3,7 @@ package com.blockout.backend.sporting.infrastructure;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.sporting.application.PoolKey;
 import com.blockout.backend.sporting.application.SportingClassification;
+import com.blockout.backend.sporting.application.SportingViews;
 import com.blockout.backend.sporting.application.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.SportingViews.DivisionView;
@@ -20,6 +21,14 @@ import org.mapstruct.Mapping;
 /** Maps persistence values inside their transaction without exporting managed relationships. */
 @Mapper(config = MappingConfiguration.class)
 interface SportingIdentityMapper {
+  /**
+   * Projects acquisition lifecycle without exposing the managed season.
+   *
+   * @param source canonical managed season
+   * @return detached acquisition lifecycle
+   */
+  SportingViews.CollectionSeasonView toCollectionView(SeasonEntity source);
+
   /**
    * Detaches the canonical season.
    *

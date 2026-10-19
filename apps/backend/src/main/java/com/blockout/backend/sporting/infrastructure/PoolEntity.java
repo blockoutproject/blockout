@@ -32,6 +32,10 @@ import lombok.Setter;
 @Entity
 @Table(name = "sporting_pool")
 public class PoolEntity {
+  @Setter private String calendarUrl;
+  @Setter private String standingsUrl;
+  @Setter private boolean catalogEligible = true;
+
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;

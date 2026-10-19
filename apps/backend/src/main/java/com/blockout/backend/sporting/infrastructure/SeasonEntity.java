@@ -1,11 +1,15 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -20,6 +24,11 @@ public class SeasonEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
+
+  @Enumerated(EnumType.STRING)
+  private CollectionSeasonStateEnum collectionState = CollectionSeasonStateEnum.PREPARING;
+
+  @Version private long collectionRevision;
 
   @Column(nullable = false, unique = true)
   private long startYear;

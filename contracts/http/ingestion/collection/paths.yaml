@@ -2,7 +2,7 @@ Runtime:
   get:
     operationId: getCollectorRuntime
     tags:
-      - Collection
+      - CollectorOperations
     summary: Read current collector incarnation
     description: Requires the environment collector credential. Returns current registration only.
     responses:
@@ -26,7 +26,7 @@ Runtime:
   put:
     operationId: registerCollectorRuntime
     tags:
-      - Collection
+      - CollectorOperations
     summary: Register a collector startup
     description:
       Requires the environment collector credential. Atomically replaces the expected incarnation
@@ -69,7 +69,7 @@ Work:
   get:
     operationId: getCollectionWork
     tags:
-      - Collection
+      - CollectorOperations
     summary: Read current scheduling context
     description:
       Requires the current incarnation and collector credential. Returns current controls and
@@ -107,7 +107,7 @@ Cycles:
   post:
     operationId: startCollectionCycle
     tags:
-      - Collection
+      - CollectorOperations
     summary: Admit a collection cycle
     description:
       Requires the current collector incarnation. Checks the selected control/candidate revision,
@@ -167,7 +167,7 @@ Cycle:
   get:
     operationId: getCollectionCycle
     tags:
-      - Collection
+      - CollectorOperations
     summary: Read a current cycle
     description:
       Requires collector credentials. Returns retained current context after uncertain admission/completion;
@@ -205,7 +205,7 @@ Targets:
   get:
     operationId: listCollectionCycleTargets
     tags:
-      - Collection
+      - CollectorOperations
     summary: Read admitted acquisition targets
     description:
       Requires the current collector and a running cycle. Frozen authorized references and
