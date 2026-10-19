@@ -1,15 +1,15 @@
 # Quickstart: qualify Pro integration
 
-The native mobile workspace is initialized; Pro implementation and qualification remain tracked in [tasks.md](tasks.md). Use the [README verification commands](../../README.md#verification) for existing mobile and contract checks. Those checks and browser simulations do not qualify RevenueCat or the stores.
+Follow the [local development setup](../../README.md#local-development) and run the [repository verification commands](../../README.md#verification). Use the native scenarios below to qualify Pro integration; shared checks and browser simulations do not qualify RevenueCat or the stores.
 
 ## Prerequisites and setup
 
-- Implement the [plan](plan.md) in the F13 native workspace with paired purchases/UI 10.13.0 packages and the existing F05 account session.
+- Implement the [plan](plan.md) in the native mobile application with paired purchases/UI 10.13.0 packages and the existing F05 account session.
 - Use dedicated test accounts in the existing RevenueCat project. Select the V2 offering with existing products and simple Customer Center actions. Keep sandbox access `Anybody`; never test destructive cleanup against a real customer.
 - Use Test Store for routine development, then native platform keys, products and Apple/Google sandbox accounts for store qualification. Never ship a Test Store key in a production candidate. Provider changes require their own authorization.
 - Prepare physical iPhone and Android devices, including the minimum supported OS matrix. Use the established native development and EAS/store candidate workflow; Expo Go is insufficient.
 
-Run Pro feature tests through the existing F13 Jest Expo/React Native Testing Library target as they are implemented. Then exercise the following native scenarios; use controllable SDK doubles for deterministic callback ordering in unit/component tests.
+Run Pro feature tests through the mobile verification target documented in the README. Then exercise the following native scenarios; use controllable SDK doubles for deterministic callback ordering in unit/component tests.
 
 ## Scenarios and expected outcomes
 

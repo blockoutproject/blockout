@@ -1,10 +1,10 @@
 # Validation guide: Sporting consultation
 
-## Prerequisites and current scope
+## Prerequisites and setup
 
-The F13 workspace and contract generation are executable. Use the [README verification commands](../../README.md#verification) for available application and contract checks; [tasks.md](tasks.md) tracks consultation implementation and remaining qualification. Shared foundation checks do not establish the feature behavior or native/provider results required below.
+Follow the [local development setup](../../README.md#local-development) and run the [repository verification commands](../../README.md#verification). Use the scenarios below to qualify sporting consultation; shared checks alone do not establish the feature behavior or native/provider results required here.
 
-After implementation, qualify the selected F13 workspace with PostgreSQL fixtures, generated Java/TypeScript consumers, native Expo development builds and iOS/Android devices. Use fictional accounts, sporting data and controlled provider responses. Real source reads require their applicable authorization; never commit raw PDFs or personal source records. Configure restricted Android map credentials in the intended environment before native map checks.
+Qualify sporting consultation with PostgreSQL fixtures, generated Java/TypeScript consumers, native Expo development builds and iOS/Android devices. Use fictional accounts, sporting data and controlled provider responses. Real source reads require their applicable authorization; never commit raw PDFs or personal source records. Configure restricted Android map credentials in the intended environment before native map checks.
 
 ## Scenarios and expected outcomes
 
