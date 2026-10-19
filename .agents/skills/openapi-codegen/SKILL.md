@@ -16,7 +16,7 @@ Edit the owning source first, generate next, then adapt handwritten code. A new 
 - Define object roles and `required` explicitly; omit `required` for an all-optional object. For new contracts, reject unknown request properties (`additionalProperties: false` on request objects) and allow additive response properties. Apply this distinction to nested objects too; intentional request maps declare their value schema. Preserve existing contracts until an evolution is authorized.
 - Document objects, operations **and properties**, including meaning, units, relevant examples, bounds and supported absence/null semantics. Required, absent, null and empty are not interchangeable.
 - Separate request and response shapes. Do not reuse a mutation request as a read projection.
-- Name DTOs by role: `CreateResourceRequest`, `ResourceDetailResponse`; internal service shapes use `ResourceInternalResponse` or `CreateResourceInternalRequest`, with `Internal` immediately before the shape suffix.
+- Name DTOs by role: `CreateResourceRequest`, `ResourceDetailResponse`; internal service shapes use `ResourceInternalResponse` or `CreateResourceInternalRequest`, with `Internal` immediately before the shape suffix. Name nested model shapes at their semantic owner when anonymous generation obscures their meaning; intentional maps remain maps.
 - Use `Upsert` only for true upsert semantics. Choose collection names and fields for their actual shape, not a universal pagination vocabulary.
 - Define stable finite wire concepts as named reusable `*Enum` components and reference them. Shared contract-owned enums have one owner; provider vocabularies stay local to their boundary. Preserve serialized values.
 - Java and Python generated object DTOs stay at transport/adaptation boundaries and map to application/domain values. An exact contract-owned generated enum may cross into application code, never the pure domain. Frontend code may reuse a validated generated object type or enum directly when its meaning fits; introduce a form/view model and mapping only for different editing or presentation semantics.
@@ -27,7 +27,7 @@ Use named `oneOf` components, an explicit discriminator property and mapping, an
 
 ## REST and errors
 
-Every endpoint needs a stable operationId, focused tags, concise summary and description, concrete success schema or intentional 204, expected errors and explicit security where not inherited. OpenAPI validity describes a contract; it does not establish REST conformance.
+Every endpoint needs a stable operationId, focused tags, concise summary and description, concrete success schema or intentional 204, expected errors and explicit security where not inherited. For new operation IDs without an existing convention, use `get…` for a resource read and `list…` for a collection read. Name reusable response components descriptively; HTTP status codes belong in operation responses, not semantic component names. OpenAPI validity describes a contract; it does not establish REST conformance.
 
 Use [HTTP semantics, RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html) and [PATCH, RFC 5789](https://www.rfc-editor.org/rfc/rfc5789.html) as normative references:
 

@@ -2,6 +2,8 @@
 
 Apply only the sections matching the approved stack. Generator/framework names below describe candidate integrations and their obligations, not mandatory technology selections. Use the project's selected tools and versions; verify their documented capabilities and actual output before relying on them.
 
+Keep semantic model names in the authored contract and use supported generator naming options when composition would lose them. Preserve native generated names when consumers depend on them; do not add handwritten aliases or post-processing solely to hide a name.
+
 ## Java
 
 Generate server interfaces and DTOs into the configured build output. Implement interfaces in API adapters. Keep generated client models in infrastructure adapters and map object DTOs immediately to application/domain values. Contract-owned generated enums may be used directly in application APIs only when they carry exactly the intended concept; they never enter pure domain code.
@@ -14,7 +16,7 @@ When the project selects OpenAPI Generator with asynchronous HTTPX, use its pinn
 
 ## Runtime validation guarantees
 
-Own generation and transport-validation mechanics here; language policies own placement and application adaptation. Verify the installed generator's actual output and invocation path. An annotation, Pydantic dependency or generated type alone does not prove that received data is validated. Generated constraints must actually run at the entry boundary; Java server validation wiring and Python response deserialization require their own evidence.
+Own generation and transport-validation mechanics here; language policies own placement and application adaptation. Verify the installed generator's actual output and invocation path. An annotation, Pydantic dependency or generated type alone does not prove that received data is validated. Generated constraints must actually run at the entry boundary; Java server validation wiring and Python response deserialization require their own evidence. Tests qualifying generated-client validation exercise its entry point and the validator it actually calls; validating an equivalent separately generated schema does not establish that integration.
 
 For new contracts, prove unknown request properties are rejected and an older response consumer still accepts additional properties, including nested additions. Ignoring or stripping extra response properties is acceptable; stripping unknown request properties is not rejection. Preserve explicitly closed existing contracts unless an evolution is authorized.
 
