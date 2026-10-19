@@ -3,6 +3,7 @@ package com.blockout.backend.legacy.api;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,9 +12,12 @@ import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpMethod;
 import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -65,6 +69,52 @@ class LegacyApplicationStatusWebMvcTest {
                     }
                     """,
                     JsonCompareMode.STRICT));
+  }
+
+  @Test
+  @DisplayName("Returns public update status despite a malformed bearer")
+  void ignoresMalformedBearer() throws Exception {
+    // Given
+    String path = "/api/v1/mobile/public/config/app-status";
+
+    // When
+    ResultActions response = mvc.perform(get(path).header("Authorization", "Bearer not-a-jwt"));
+
+    // Then
+    response.andExpect(status().isOk());
+  }
+
+  @Test
+  @DisplayName("Returns public update status for an old authenticated client")
+  void ignoresOldClientIdentity() throws Exception {
+    // Given
+    String path = "/api/v1/mobile/public/config/app-status";
+
+    // When
+    ResultActions response =
+        mvc.perform(get(path).with(jwt().jwt(token -> token.claim("azp", "old-client"))));
+
+    // Then
+    response.andExpect(status().isOk());
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "POST, /api/v1/mobile/public/config/app-status",
+    "GET, /api/v1/mobile/public/config/app-status/other",
+    "GET, /application-access"
+  })
+  @DisplayName("Rejects malformed bearers outside the exact legacy status GET")
+  void rejectsMalformedBearerOutsideStatusRead(String method, String path) throws Exception {
+    // Given
+    HttpMethod httpMethod = HttpMethod.valueOf(method);
+
+    // When
+    ResultActions response =
+        mvc.perform(request(httpMethod, path).header("Authorization", "Bearer not-a-jwt"));
+
+    // Then
+    response.andExpect(status().isUnauthorized());
   }
 
   @Test

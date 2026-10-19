@@ -24,10 +24,9 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
-/**
- * Separates operational, collector and mobile trust; domain owners retain current business checks.
- */
+/** Separates operational, collector and mobile trust from the public legacy update read. */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(SecurityProperties.class)
 @Import(SecurityProblemHandler.class)
@@ -89,6 +88,25 @@ public class SecurityConfiguration {
   }
 
   /**
+   * Keeps the exact legacy update read public even when V1 sends obsolete bearer credentials.
+   *
+   * @param http native security builder without resource-server authentication on this read
+   * @return stateless chain limited to the legacy status GET; other routes retain their own checks
+   * @throws Exception if Spring cannot build the filters
+   */
+  @Bean
+  @Order(2)
+  SecurityFilterChain legacyStatusSecurity(HttpSecurity http) throws Exception {
+    return http.securityMatcher(
+            PathPatternRequestMatcher.withDefaults()
+                .matcher(HttpMethod.GET, "/api/v1/mobile/public/config/app-status"))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
+        .build();
+  }
+
+  /**
    * Authenticates private mobile routes and preserves the exact public contract methods/resources.
    *
    * @param http native security builder
@@ -98,7 +116,7 @@ public class SecurityConfiguration {
    * @throws Exception if Spring cannot build the filters
    */
   @Bean
-  @Order(2)
+  @Order(3)
   SecurityFilterChain mobileSecurity(
       HttpSecurity http, SecurityProperties properties, SecurityProblemHandler problems)
       throws Exception {
@@ -115,7 +133,6 @@ public class SecurityConfiguration {
                     .requestMatchers(
                         HttpMethod.GET,
                         "/application-access",
-                        "/api/v1/mobile/public/config/app-status",
                         "/legals/imprint",
                         "/legals/privacy",
                         "/legals/terms",
