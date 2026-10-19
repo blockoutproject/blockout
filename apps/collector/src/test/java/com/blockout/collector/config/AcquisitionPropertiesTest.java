@@ -2,31 +2,30 @@ package com.blockout.collector.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.collector.CollectorApplication;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
 
-/** Qualifies actual collector configuration binding without contacting source providers. */
+/** Loads the shipped acquisition YAML through native binding, isolated from host configuration. */
 @DisplayName("Collector acquisition configuration")
-class AcquisitionConfigurationSmokeTest {
-  private final ApplicationContextRunner application =
-      new ApplicationContextRunner()
-          .withInitializer(new ConfigDataApplicationContextInitializer())
-          .withUserConfiguration(CollectorApplication.class);
+class AcquisitionPropertiesTest {
+  private final ApplicationContextRunner application = application(Map.of());
 
   @Test
   @DisplayName("Starts with conservative shared provider limits and no document associations")
   void bindsDefaults() {
     // Given
-    // The runner loads the committed application YAML and harmless test OAuth registration.
+    // The runner loads only the committed application YAML in a controlled environment.
 
     // When
     application.run(
@@ -59,19 +58,11 @@ class AcquisitionConfigurationSmokeTest {
   void bindsEnvironmentOverrides() {
     // Given
     ApplicationContextRunner configured =
-        application.withInitializer(
-            context ->
-                context
-                    .getEnvironment()
-                    .getPropertySources()
-                    .addFirst(
-                        new SystemEnvironmentPropertySource(
-                            "acquisitionTestEnvironment",
-                            Map.of(
-                                "BLOCKOUT_ACQUISITION_TIMEOUT", "250ms",
-                                "BLOCKOUT_ACQUISITION_CONCURRENCY", "1",
-                                "BLOCKOUT_ACQUISITION_FFVB_ORIGINS",
-                                    "https://source.example.invalid"))));
+        application(
+            Map.of(
+                "BLOCKOUT_ACQUISITION_TIMEOUT", "250ms",
+                "BLOCKOUT_ACQUISITION_CONCURRENCY", "1",
+                "BLOCKOUT_ACQUISITION_FFVB_ORIGINS", "https://source.example.invalid"));
 
     // When
     configured.run(
@@ -180,4 +171,37 @@ class AcquisitionConfigurationSmokeTest {
               .hasStackTraceContaining("championshipReference");
         });
   }
+
+  /**
+   * Prepares native binding against the shipped YAML without unrelated application components.
+   *
+   * @param environment scenario-owned variables replacing the host environment
+   * @return an unstarted configuration context isolated from system properties and local files
+   */
+  private static ApplicationContextRunner application(Map<String, Object> environment) {
+    return new ApplicationContextRunner()
+        .withPropertyValues("spring.config.location=classpath:/application.yaml")
+        .withInitializer(
+            context -> {
+              context
+                  .getEnvironment()
+                  .getPropertySources()
+                  .replace(
+                      StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                      new SystemEnvironmentPropertySource(
+                          StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                          environment));
+              context
+                  .getEnvironment()
+                  .getPropertySources()
+                  .remove(StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
+            })
+        .withInitializer(new ConfigDataApplicationContextInitializer())
+        .withUserConfiguration(BindingConfiguration.class);
+  }
+
+  /** Enables only native binding and validation for the acquisition settings. */
+  @Configuration(proxyBeanMethods = false)
+  @EnableConfigurationProperties(AcquisitionProperties.class)
+  static class BindingConfiguration {}
 }
