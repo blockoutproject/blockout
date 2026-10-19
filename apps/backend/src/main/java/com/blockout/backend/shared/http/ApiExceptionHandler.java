@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -39,13 +40,17 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
-   * Keeps unexpected failures opaque; domain-specific translations remain with their owner.
+   * Keeps unexpected failures opaque and leaves access refusals to the native security chain.
    *
-   * @param exception unexpected failure; only its class name is logged
+   * @param exception failure; authorization refusals are propagated without logging
    * @return a generic RFC 9457 response without the exception payload
+   * @throws AccessDeniedException for the existing Bearer authorization handler to translate
    */
   @ExceptionHandler(Exception.class)
   ResponseEntity<Object> unexpectedFailure(Exception exception) {
+    if (exception instanceof AccessDeniedException denied) {
+      throw denied;
+    }
     LOG.atError()
         .addKeyValue("operation", "http_request")
         .addKeyValue("outcome", "failed")

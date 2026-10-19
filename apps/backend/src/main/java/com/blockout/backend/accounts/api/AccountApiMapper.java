@@ -1,0 +1,64 @@
+package com.blockout.backend.accounts.api;
+
+import com.blockout.backend.access.domain.Permission;
+import com.blockout.backend.accounts.domain.Account;
+import com.blockout.backend.config.MappingConfiguration;
+import com.blockout.backend.generated.mobile.model.EstablishAccount200Response;
+import com.blockout.backend.generated.mobile.model.EstablishAccount200ResponsePermissions;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Set;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.NullValueCheckStrategy;
+import org.openapitools.jackson.nullable.JsonNullable;
+
+/** Common generated account representation for reads, establishment and profile changes. */
+@Mapper(config = MappingConfiguration.class)
+public interface AccountApiMapper {
+  /**
+   * Maps already-loaded account data and the current in-process grant projection without I/O.
+   *
+   * @param account current usable profile
+   * @param hasPhoto current accepted-photo presence supplied by the account owner
+   * @param permissions current grants from CurrentPermissions
+   * @return the generated response used by every AccountsApi profile operation
+   */
+  @Mapping(target = "accountId", source = "account.id")
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(
+      target = "principalCreatedAt",
+      source = "account.principalCreatedAt",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  EstablishAccount200Response toDto(Account account, boolean hasPhoto, Set<Permission> permissions);
+
+  /**
+   * Projects independent grants into all known canonical capability fields.
+   *
+   * @param permissions current grants, never inferred from a role or Pro entitlement
+   * @return explicit booleans for presentation; resource eligibility remains owner-controlled
+   */
+  default EstablishAccount200ResponsePermissions toDto(Set<Permission> permissions) {
+    return new EstablishAccount200ResponsePermissions()
+        .manageMaintenance(permissions.contains(Permission.MANAGE_MAINTENANCE))
+        .manageApplicationVersions(permissions.contains(Permission.MANAGE_APPLICATION_VERSIONS))
+        .bypassMaintenance(permissions.contains(Permission.BYPASS_MAINTENANCE))
+        .manageSportingPresentation(permissions.contains(Permission.MANAGE_SPORTING_PRESENTATION))
+        .manageSportingClassification(
+            permissions.contains(Permission.MANAGE_SPORTING_CLASSIFICATION))
+        .manageDivisionLifecycle(permissions.contains(Permission.MANAGE_DIVISION_LIFECYCLE))
+        .manageCollection(permissions.contains(Permission.MANAGE_COLLECTION))
+        .moderateStreamLinks(permissions.contains(Permission.MODERATE_STREAM_LINKS));
+  }
+
+  /**
+   * Preserves the required nullable principal date; unknown is explicit null, not omission.
+   *
+   * @param instant trustworthy provider instant or null
+   * @return the corresponding UTC date, including a present null when unknown
+   */
+  default JsonNullable<OffsetDateTime> toNullableDate(Instant instant) {
+    return JsonNullable.of(instant == null ? null : instant.atOffset(ZoneOffset.UTC));
+  }
+}

@@ -37,6 +37,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -370,6 +371,26 @@ class SecurityWebMvcTest {
     response.andExpect(status().isOk());
   }
 
+  @Test
+  @DisplayName("Keeps a business access denial on the native Bearer 403 boundary")
+  void translatesBusinessDenial() throws Exception {
+    // Given
+    String token = signed(claims("mobile-preproduction", "mobile-client").build(), trusted);
+
+    // When
+    ResultActions response =
+        mvc.perform(get("/test/business-denial").header("Authorization", "Bearer " + token));
+
+    // Then
+    response
+        .andExpect(status().isForbidden())
+        .andExpect(header().string("WWW-Authenticate", startsWith("Bearer")))
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:forbidden"))
+        .andExpect(jsonPath("$.status").value(403))
+        .andExpect(jsonPath("$.detail").doesNotExist());
+  }
+
   /**
    * Builds valid secondary claims; each scenario explicitly supplies audience and client.
    *
@@ -462,6 +483,15 @@ class SecurityWebMvcTest {
     @GetMapping(CollectionApi.PATH_GET_COLLECTOR_RUNTIME)
     GetCollectorRuntime200Response runtime() {
       return new GetCollectorRuntime200Response().revision(0L).incarnationId(null);
+    }
+
+    /**
+     * Exercises a service-level refusal after successful authentication, without a product
+     * endpoint.
+     */
+    @GetMapping("/test/business-denial")
+    void denied() {
+      throw new AccessDeniedException("Private refusal context");
     }
 
     /** Stands in for the three static legal documents owned by F11. */
