@@ -2,12 +2,12 @@ package com.blockout.backend.sporting.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.blockout.backend.generated.ingestion.model.ObserveMatchDetailRequest;
-import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFacts;
-import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsInformationSheet;
-import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsResult;
-import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsSetsInner;
-import com.blockout.backend.generated.ingestion.model.ObserveSportingCatalogRequestContext;
+import com.blockout.backend.generated.ingestion.model.InformationSheetInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchDetailObservationInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchSetScoreInternalRequest;
+import com.blockout.backend.generated.ingestion.model.ObservationContextInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.sporting.application.MatchObservation;
 import java.net.URI;
@@ -32,7 +32,7 @@ class SportingObservationMapperTest {
   @DisplayName("Preserves omitted facts without supplying defaults")
   void preservesOmittedFacts() {
     // Given
-    ObserveMatchDetailRequest request = request(new ObservePoolCalendarRequestMatchesInnerFacts());
+    MatchDetailObservationInternalRequest request = request(new MatchFactsInternalRequest());
 
     // When
     MatchObservation result = mapper.toObservation(MATCH, request);
@@ -50,9 +50,9 @@ class SportingObservationMapperTest {
   @DisplayName("Preserves explicit withdrawals separately from omission")
   void preservesExplicitNull() {
     // Given
-    ObserveMatchDetailRequest request =
+    MatchDetailObservationInternalRequest request =
         request(
-            new ObservePoolCalendarRequestMatchesInnerFacts()
+            new MatchFactsInternalRequest()
                 ._localDate(null)
                 .result(null)
                 .sets(null)
@@ -72,25 +72,20 @@ class SportingObservationMapperTest {
   @DisplayName("Maps supplied facts with their original identity and attribution")
   void mapsSuppliedFacts() {
     // Given
-    ObserveMatchDetailRequest request =
+    MatchDetailObservationInternalRequest request =
         request(
-            new ObservePoolCalendarRequestMatchesInnerFacts()
+            new MatchFactsInternalRequest()
                 ._localDate(LocalDate.of(2026, 10, 18))
                 ._localTime("19:30")
                 .timeZone("Europe/Paris")
                 .result(
-                    new ObservePoolCalendarRequestMatchesInnerFactsResult(
-                            ObservePoolCalendarRequestMatchesInnerFactsResult.StateEnum.FINAL)
-                        .homeSets(3)
-                        .awaySets(1))
-                .sets(List.of(new ObservePoolCalendarRequestMatchesInnerFactsSetsInner(25, 20)))
+                    new MatchResultInternalRequest(ResultStateEnum.FINAL).homeSets(3).awaySets(1))
+                .sets(List.of(new MatchSetScoreInternalRequest(25, 20)))
                 .venueName("Synthetic venue")
                 .venueAddress("Synthetic address")
                 .referees(List.of("Synthetic referee"))
                 .professionalStreamUrl(URI.create("https://example.invalid/stream"))
-                .informationSheet(
-                    new ObservePoolCalendarRequestMatchesInnerFactsInformationSheet(
-                        "2026/2027", "LIG", "M42"))
+                .informationSheet(new InformationSheetInternalRequest("2026/2027", "LIG", "M42"))
                 .scoresheetUrl(URI.create("https://example.invalid/scoresheet.pdf"))
                 .statisticsUrl(URI.create("https://example.invalid/statistics.pdf")));
     request.getContext().providerPublishedAt(OffsetDateTime.parse("2026-10-18T17:00:00Z"));
@@ -129,9 +124,8 @@ class SportingObservationMapperTest {
   @DisplayName("Keeps explicit empty collections distinct from withdrawal")
   void preservesEmptyCollections() {
     // Given
-    ObserveMatchDetailRequest request =
-        request(
-            new ObservePoolCalendarRequestMatchesInnerFacts().sets(List.of()).referees(List.of()));
+    MatchDetailObservationInternalRequest request =
+        request(new MatchFactsInternalRequest().sets(List.of()).referees(List.of()));
 
     // When
     MatchObservation result = mapper.toObservation(MATCH, request);
@@ -145,11 +139,9 @@ class SportingObservationMapperTest {
   @DisplayName("Detaches application collections from mutable generated input")
   void detachesInputCollections() {
     // Given
-    ObservePoolCalendarRequestMatchesInnerFacts facts =
-        new ObservePoolCalendarRequestMatchesInnerFacts()
-            .sets(
-                new ArrayList<>(
-                    List.of(new ObservePoolCalendarRequestMatchesInnerFactsSetsInner(25, 20))))
+    MatchFactsInternalRequest facts =
+        new MatchFactsInternalRequest()
+            .sets(new ArrayList<>(List.of(new MatchSetScoreInternalRequest(25, 20))))
             .referees(new ArrayList<>(List.of("Synthetic referee")));
     MatchObservation observation = mapper.toObservation(MATCH, request(facts));
 
@@ -170,10 +162,9 @@ class SportingObservationMapperTest {
    * @param facts scenario-owned proposals
    * @return a generated request with synthetic, fixed collection context
    */
-  private static ObserveMatchDetailRequest request(
-      ObservePoolCalendarRequestMatchesInnerFacts facts) {
-    return new ObserveMatchDetailRequest(
-        new ObserveSportingCatalogRequestContext(
+  private static MatchDetailObservationInternalRequest request(MatchFactsInternalRequest facts) {
+    return new MatchDetailObservationInternalRequest(
+        new ObservationContextInternalRequest(
             UUID.fromString("00000000-0000-4000-8000-000000000002"),
             7L,
             OffsetDateTime.parse("2026-10-18T18:00:00Z")),

@@ -6,12 +6,13 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
-import com.blockout.collector.generated.ingestion.model.GetCollectorRuntime200Response;
-import com.blockout.collector.generated.ingestion.model.ObserveMatchDetailRequest;
-import com.blockout.collector.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFacts;
-import com.blockout.collector.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsSetsInner;
-import com.blockout.collector.generated.ingestion.model.ObserveSportingCatalog200ResponseOutcomesInner;
-import com.blockout.collector.generated.ingestion.model.ObserveSportingCatalogRequestContext;
+import com.blockout.collector.generated.ingestion.model.CollectorRuntimeInternalResponse;
+import com.blockout.collector.generated.ingestion.model.MatchDetailObservationInternalRequest;
+import com.blockout.collector.generated.ingestion.model.MatchFactsInternalRequest;
+import com.blockout.collector.generated.ingestion.model.MatchSetScoreInternalRequest;
+import com.blockout.collector.generated.ingestion.model.ObservationContextInternalRequest;
+import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
+import com.blockout.collector.generated.ingestion.model.ObservationOutcomeInternalResponse;
 import com.sun.net.httpserver.HttpServer;
 import io.micrometer.observation.ObservationRegistry;
 import java.io.IOException;
@@ -112,13 +113,12 @@ class SportingContractTest {
   @DisplayName("Preserves omitted, withdrawn and supplied dates on the wire")
   void serializesDatePresence(String scenario, JsonNullable<LocalDate> date, String expectedFacts) {
     // Given
-    ObservePoolCalendarRequestMatchesInnerFacts facts =
-        new ObservePoolCalendarRequestMatchesInnerFacts();
+    MatchFactsInternalRequest facts = new MatchFactsInternalRequest();
     facts.setLocalDate_JsonNullable(date);
-    ObserveMatchDetailRequest request = request(facts);
+    MatchDetailObservationInternalRequest request = request(facts);
 
     // When
-    ObserveSportingCatalog200ResponseOutcomesInner result = api.observeMatchDetail(MATCH, request);
+    ObservationOutcomeInternalResponse result = api.observeMatchDetail(MATCH, request);
 
     // Then
     assertThat(receivedPath).isEqualTo("/ingestion/matches/" + MATCH + "/detail-observations");
@@ -127,8 +127,7 @@ class SportingContractTest {
         .isEqualTo("2026-10-18T18:00:00Z");
     assertThat(received.get("context").has("providerPublishedAt")).isFalse();
     assertThat(result.getSourceReference()).isEqualTo("M42");
-    assertThat(result.getOutcome())
-        .isEqualTo(ObserveSportingCatalog200ResponseOutcomesInner.OutcomeEnum.ACCEPTED);
+    assertThat(result.getOutcome()).isEqualTo(ObservationOutcomeEnum.ACCEPTED);
   }
 
   @ParameterizedTest(name = "{0}")
@@ -136,13 +135,12 @@ class SportingContractTest {
   @DisplayName("Preserves omitted, withdrawn, empty and supplied sets on the wire")
   void serializesCollectionPresence(
       String scenario,
-      JsonNullable<List<ObservePoolCalendarRequestMatchesInnerFactsSetsInner>> sets,
+      JsonNullable<List<MatchSetScoreInternalRequest>> sets,
       String expectedFacts) {
     // Given
-    ObservePoolCalendarRequestMatchesInnerFacts facts =
-        new ObservePoolCalendarRequestMatchesInnerFacts();
+    MatchFactsInternalRequest facts = new MatchFactsInternalRequest();
     facts.setSets_JsonNullable(sets);
-    ObserveMatchDetailRequest request = request(facts);
+    MatchDetailObservationInternalRequest request = request(facts);
 
     // When
     api.observeMatchDetail(MATCH, request);
@@ -155,8 +153,8 @@ class SportingContractTest {
   @DisplayName("Serializes supplied publication time independently from observation time")
   void preservesPublicationTime() {
     // Given
-    ObserveMatchDetailRequest request =
-        request(new ObservePoolCalendarRequestMatchesInnerFacts().result(null).sets(List.of()));
+    MatchDetailObservationInternalRequest request =
+        request(new MatchFactsInternalRequest().result(null).sets(List.of()));
     request.getContext().providerPublishedAt(OffsetDateTime.parse("2026-10-18T17:00:00Z"));
 
     // When
@@ -180,7 +178,7 @@ class SportingContractTest {
   void rejectsInvalidOutcome(String response) {
     // Given
     responseBody = response;
-    ObserveMatchDetailRequest request = request(new ObservePoolCalendarRequestMatchesInnerFacts());
+    MatchDetailObservationInternalRequest request = request(new MatchFactsInternalRequest());
 
     // When
     Throwable failure = catchThrowable(() -> api.observeMatchDetail(MATCH, request));
@@ -198,7 +196,7 @@ class SportingContractTest {
     status = 503;
     responseBody =
         "{\"type\":\"urn:blockout:problem:unavailable\",\"title\":\"Service Unavailable\",\"status\":503}";
-    ObserveMatchDetailRequest request = request(new ObservePoolCalendarRequestMatchesInnerFacts());
+    MatchDetailObservationInternalRequest request = request(new MatchFactsInternalRequest());
 
     // When
     Throwable failure = catchThrowable(() -> api.observeMatchDetail(MATCH, request));
@@ -218,13 +216,13 @@ class SportingContractTest {
   @DisplayName("Retains required nulls under the shared model inclusion default")
   void retainsRequiredNull() {
     // Given
-    GetCollectorRuntime200Response body =
-        new GetCollectorRuntime200Response().revision(1L).incarnationId(null);
+    CollectorRuntimeInternalResponse body =
+        new CollectorRuntimeInternalResponse().revision(1L).incarnationId(null);
     responseBody = api.getApiClient().getJsonMapper().writeValueAsString(body);
     CollectionApi runtime = new CollectionApi(api.getApiClient());
 
     // When
-    GetCollectorRuntime200Response result = runtime.getCollectorRuntime();
+    CollectorRuntimeInternalResponse result = runtime.getCollectorRuntime();
 
     // Then
     assertThat(json.readTree(responseBody).has("incarnationId")).isTrue();
@@ -259,9 +257,7 @@ class SportingContractTest {
         Arguments.of("empty", JsonNullable.of(List.of()), "{\"sets\":[]}"),
         Arguments.of(
             "supplied",
-            JsonNullable.of(
-                List.of(
-                    new ObservePoolCalendarRequestMatchesInnerFactsSetsInner().home(25).away(20))),
+            JsonNullable.of(List.of(new MatchSetScoreInternalRequest().home(25).away(20))),
             "{\"sets\":[{\"home\":25,\"away\":20}]}"));
   }
 
@@ -271,11 +267,10 @@ class SportingContractTest {
    * @param facts independent facts under test
    * @return generated request for the isolated sporting endpoint
    */
-  private static ObserveMatchDetailRequest request(
-      ObservePoolCalendarRequestMatchesInnerFacts facts) {
-    return new ObserveMatchDetailRequest()
+  private static MatchDetailObservationInternalRequest request(MatchFactsInternalRequest facts) {
+    return new MatchDetailObservationInternalRequest()
         .context(
-            new ObserveSportingCatalogRequestContext()
+            new ObservationContextInternalRequest()
                 .cycleId(UUID.fromString("00000000-0000-4000-8000-000000000002"))
                 .readOrdinal(7L)
                 .observedAt(OffsetDateTime.parse("2026-10-18T18:00:00Z")))

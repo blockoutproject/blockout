@@ -35,6 +35,7 @@ paths:
 components:
   schemas:
     LegacyApplicationStatusResponse:
+      title: LegacyApplicationStatusResponse
       type: object
       description: Historical application-status representation with additive response compatibility.
       additionalProperties: true

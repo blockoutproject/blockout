@@ -15,9 +15,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.generated.ingestion.model.ObservationContextInternalRequest;
 import com.blockout.backend.generated.mobile.api.AccountsApi;
-import com.blockout.backend.generated.mobile.model.ChangeAccountProfileRequestMetadata;
-import com.blockout.backend.generated.mobile.model.EstablishAccount200Response;
-import com.blockout.backend.generated.mobile.model.EstablishAccount200ResponsePermissions;
+import com.blockout.backend.generated.mobile.model.AccountPermissionsResponse;
+import com.blockout.backend.generated.mobile.model.AccountResponse;
+import com.blockout.backend.generated.mobile.model.ChangeAccountProfileRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -201,9 +201,8 @@ class ContractBoundaryWebMvcTest {
 
     // When
     MvcResult result = mvc.perform(request).andReturn();
-    EstablishAccount200Response response =
-        mapper.readValue(
-            result.getResponse().getContentAsString(), EstablishAccount200Response.class);
+    AccountResponse response =
+        mapper.readValue(result.getResponse().getContentAsString(), AccountResponse.class);
 
     // Then
     assertThat(result.getResponse().getStatus()).isEqualTo(200);
@@ -237,11 +236,8 @@ class ContractBoundaryWebMvcTest {
   static class AccountAdapter implements AccountsApi {
     /** {@inheritDoc} */
     @Override
-    public ResponseEntity<EstablishAccount200Response> changeAccountProfile(
-        UUID accountId,
-        ChangeAccountProfileRequestMetadata metadata,
-        Boolean bypass,
-        MultipartFile image) {
+    public ResponseEntity<AccountResponse> changeAccountProfile(
+        UUID accountId, ChangeAccountProfileRequest metadata, Boolean bypass, MultipartFile image) {
       return ResponseEntity.ok()
           .header("Accept-Patch", "multipart/form-data")
           .header("Cache-Control", "no-store")
@@ -256,26 +252,25 @@ class ContractBoundaryWebMvcTest {
 
     /** {@inheritDoc} */
     @Override
-    public ResponseEntity<EstablishAccount200Response> establishAccount(Boolean bypass) {
+    public ResponseEntity<AccountResponse> establishAccount(Boolean bypass) {
       return ResponseEntity.created(URI.create(ACCOUNT)).body(account());
     }
 
     /** {@inheritDoc} */
     @Override
-    public ResponseEntity<EstablishAccount200Response> getAccount(UUID accountId, Boolean bypass) {
+    public ResponseEntity<AccountResponse> getAccount(UUID accountId, Boolean bypass) {
       return ResponseEntity.ok(account());
     }
 
     /** Builds a complete harmless owner profile, including permitted additive properties. */
-    private static EstablishAccount200Response account() {
-      return new EstablishAccount200Response()
+    private static AccountResponse account() {
+      return new AccountResponse()
           .accountId(UUID.fromString("00000000-0000-4000-8000-000000000001"))
           .username("Ada")
           .email("fixture@example.invalid")
           .principalCreatedAt(null)
           .hasPhoto(false)
-          .permissions(
-              new EstablishAccount200ResponsePermissions().putAdditionalProperty("future", true))
+          .permissions(new AccountPermissionsResponse().putAdditionalProperty("future", true))
           .putAdditionalProperty("future", true);
     }
 
@@ -287,7 +282,7 @@ class ContractBoundaryWebMvcTest {
 
     /** {@inheritDoc} */
     @Override
-    public ResponseEntity<EstablishAccount200Response> getMyAccount() {
+    public ResponseEntity<AccountResponse> getMyAccount() {
       throw new IllegalStateException("private provider payload");
     }
   }

@@ -1,4 +1,5 @@
 AccountResponse:
+  title: AccountResponse
   type: object
   description: Private usable profile returned only to its owner.
   additionalProperties: true
@@ -37,6 +38,7 @@ AccountResponse:
       type: boolean
       description: Whether this account currently has an accepted private photo.
 ChangeAccountProfileRequest:
+  title: ChangeAccountProfileRequest
   type: object
   description:
     Supply username, photoAction, or both. Omission preserves the current field; null is invalid.
@@ -51,6 +53,7 @@ ChangeAccountProfileRequest:
     photoAction:
       $ref: "#/ProfilePhotoActionEnum"
 ProfilePhotoActionEnum:
+  title: ProfilePhotoActionEnum
   type: string
   description:
     replace requires one image part; remove deletes the photo and forbids an image.

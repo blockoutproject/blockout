@@ -1,4 +1,5 @@
 ReplaceFollowStateRequest:
+  title: ReplaceFollowStateRequest
   type: object
   description: Complete desired follow state; repeated identical state has no additional effect.
   additionalProperties: false
@@ -9,6 +10,7 @@ ReplaceFollowStateRequest:
   required:
     - following
 FollowStateResponse:
+  title: FollowStateResponse
   type: object
   description: Current owner relationship state for a viewable target; false does not imply a stored relation.
   additionalProperties: true
@@ -19,6 +21,7 @@ FollowStateResponse:
   required:
     - following
 FollowerCountResponse:
+  title: FollowerCountResponse
   type: object
   description: Public count of existing relationships, without follower identities.
   additionalProperties: true
@@ -32,6 +35,7 @@ FollowerCountResponse:
   required:
     - count
 FollowOptionsResponse:
+  title: FollowOptionsResponse
   type: object
   description: Viewable seasons and the ordinary personal-space default.
   additionalProperties: true
@@ -48,6 +52,7 @@ FollowOptionsResponse:
   required:
     - seasons
 PersonalMatchCalendarResponse:
+  title: PersonalMatchCalendarResponse
   type: object
   description: Personal match selection and its calendar evaluated together.
   additionalProperties: true
@@ -63,6 +68,7 @@ PersonalMatchCalendarResponse:
     - hasAvailableFollows
     - calendar
 TeamFollowsResponse:
+  title: TeamFollowsResponse
   type: object
   description: One page of viewable followed teams.
   additionalProperties: true
@@ -84,6 +90,7 @@ TeamFollowsResponse:
   required:
     - items
 PoolFollowsResponse:
+  title: PoolFollowsResponse
   type: object
   description: One page of viewable followed pools.
   additionalProperties: true

@@ -8,10 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.config.HttpConfiguration;
+import com.blockout.backend.generated.mobile.model.AccountResponse;
+import com.blockout.backend.generated.mobile.model.ApplicationAccessResponse;
 import com.blockout.backend.generated.mobile.model.ChangeApplicationVersionsRequest;
 import com.blockout.backend.generated.mobile.model.ChangeMaintenanceRequest;
-import com.blockout.backend.generated.mobile.model.EstablishAccount200Response;
-import com.blockout.backend.generated.mobile.model.GetApplicationAccess200Response;
 import com.blockout.backend.generated.mobile.model.SetMaintenanceActivationRequest;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import jakarta.validation.Valid;
@@ -144,8 +144,7 @@ class AccessContractWebMvcTest {
         }
         """;
 
-    GetApplicationAccess200Response response =
-        mapper.readValue(body, GetApplicationAccess200Response.class);
+    ApplicationAccessResponse response = mapper.readValue(body, ApplicationAccessResponse.class);
 
     // When
     String serialized = mapper.writeValueAsString(response);
@@ -165,8 +164,7 @@ class AccessContractWebMvcTest {
   void preservesPermissions(String permissions) throws Exception {
     // Given
     String body = accountWithPermissions(permissions);
-    EstablishAccount200Response response =
-        mapper.readValue(body, EstablishAccount200Response.class);
+    AccountResponse response = mapper.readValue(body, AccountResponse.class);
 
     // When
     String serialized = mapper.writeValueAsString(response);

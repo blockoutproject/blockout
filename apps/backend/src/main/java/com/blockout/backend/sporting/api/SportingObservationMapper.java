@@ -1,12 +1,12 @@
 package com.blockout.backend.sporting.api;
 
 import com.blockout.backend.config.MappingConfiguration;
-import com.blockout.backend.generated.ingestion.model.ObserveMatchDetailRequest;
-import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFacts;
-import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsInformationSheet;
-import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsResult;
-import com.blockout.backend.generated.ingestion.model.ObservePoolCalendarRequestMatchesInnerFactsSetsInner;
-import com.blockout.backend.generated.ingestion.model.ObserveSportingCatalogRequestContext;
+import com.blockout.backend.generated.ingestion.model.InformationSheetInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchDetailObservationInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
+import com.blockout.backend.generated.ingestion.model.MatchSetScoreInternalRequest;
+import com.blockout.backend.generated.ingestion.model.ObservationContextInternalRequest;
 import com.blockout.backend.sporting.application.MatchObservation;
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +23,7 @@ public interface SportingObservationMapper {
    * @param request structurally validated generated request
    * @return immutable application input, still subject to current cycle and sporting checks
    */
-  MatchObservation toObservation(UUID matchId, ObserveMatchDetailRequest request);
+  MatchObservation toObservation(UUID matchId, MatchDetailObservationInternalRequest request);
 
   /**
    * Copies submitted attribution without treating it as authorization.
@@ -31,7 +31,7 @@ public interface SportingObservationMapper {
    * @param source validated collection context
    * @return application attribution, or null for a null source
    */
-  MatchObservation.Context toContext(ObserveSportingCatalogRequestContext source);
+  MatchObservation.Context toContext(ObservationContextInternalRequest source);
 
   /**
    * Maps independent facts without unwrapping away their presence.
@@ -39,7 +39,7 @@ public interface SportingObservationMapper {
    * @param source validated fact proposals
    * @return detached application proposals, or null for a null source
    */
-  MatchObservation.Facts toFacts(ObservePoolCalendarRequestMatchesInnerFacts source);
+  MatchObservation.Facts toFacts(MatchFactsInternalRequest source);
 
   /**
    * Converts a supplied result while preserving undefined and explicit null through the library.
@@ -48,7 +48,7 @@ public interface SportingObservationMapper {
    * @return the same presence carrying an application result
    */
   default JsonNullable<MatchObservation.Result> toResult(
-      JsonNullable<ObservePoolCalendarRequestMatchesInnerFactsResult> source) {
+      JsonNullable<MatchResultInternalRequest> source) {
     return source.map(this::toResult);
   }
 
@@ -58,7 +58,7 @@ public interface SportingObservationMapper {
    * @param source supplied result, possibly null for withdrawal
    * @return application result, or null for withdrawal
    */
-  MatchObservation.Result toResult(ObservePoolCalendarRequestMatchesInnerFactsResult source);
+  MatchObservation.Result toResult(MatchResultInternalRequest source);
 
   /**
    * Preserves undefined, explicit null and a supplied list as different set proposals.
@@ -67,7 +67,7 @@ public interface SportingObservationMapper {
    * @return the same presence with mapped sets
    */
   default JsonNullable<List<MatchObservation.SetScore>> toSets(
-      JsonNullable<List<ObservePoolCalendarRequestMatchesInnerFactsSetsInner>> source) {
+      JsonNullable<List<MatchSetScoreInternalRequest>> source) {
     return source.map(this::toSets);
   }
 
@@ -77,8 +77,7 @@ public interface SportingObservationMapper {
    * @param source supplied sets, possibly null for withdrawal
    * @return mapped sets in source order, or null for withdrawal
    */
-  List<MatchObservation.SetScore> toSets(
-      List<ObservePoolCalendarRequestMatchesInnerFactsSetsInner> source);
+  List<MatchObservation.SetScore> toSets(List<MatchSetScoreInternalRequest> source);
 
   /**
    * Maps a qualified locator while preserving undefined and explicit null.
@@ -87,7 +86,7 @@ public interface SportingObservationMapper {
    * @return the same presence with an application locator
    */
   default JsonNullable<MatchObservation.InformationSheet> toInformationSheet(
-      JsonNullable<ObservePoolCalendarRequestMatchesInnerFactsInformationSheet> source) {
+      JsonNullable<InformationSheetInternalRequest> source) {
     return source.map(this::toInformationSheet);
   }
 
@@ -97,6 +96,5 @@ public interface SportingObservationMapper {
    * @param source supplied locator, possibly null for withdrawal
    * @return application locator, or null for withdrawal
    */
-  MatchObservation.InformationSheet toInformationSheet(
-      ObservePoolCalendarRequestMatchesInnerFactsInformationSheet source);
+  MatchObservation.InformationSheet toInformationSheet(InformationSheetInternalRequest source);
 }

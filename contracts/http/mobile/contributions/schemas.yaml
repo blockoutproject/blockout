@@ -1,4 +1,5 @@
 StreamPlatformEnum:
+  title: StreamPlatformEnum
   type: string
   description: Locally recognized stream provider; recognition does not establish availability.
   enum:
@@ -6,6 +7,7 @@ StreamPlatformEnum:
     - twitch
     - facebook
 StreamContributionStateEnum:
+  title: StreamContributionStateEnum
   type: string
   description: Current lifecycle of one recorded contribution version.
   enum:
@@ -18,6 +20,7 @@ StreamContributionStateEnum:
     - replaced
     - superseded
 StreamModerationFilterEnum:
+  title: StreamModerationFilterEnum
   type: string
   description:
     Match selection; to-review includes pending proposals, unresolved report hiding or reported
@@ -34,12 +37,14 @@ StreamModerationFilterEnum:
     - replaced
     - superseded
 StreamOwnerActionEnum:
+  title: StreamOwnerActionEnum
   type: string
   description: Desired owner transition for the exact version.
   enum:
     - cancel
     - withdraw
 StreamModerationActionEnum:
+  title: StreamModerationActionEnum
   type: string
   description: Desired moderator transition for the exact version.
   enum:
@@ -47,6 +52,7 @@ StreamModerationActionEnum:
     - reject
     - withdraw
 StreamDecisionEnum:
+  title: StreamDecisionEnum
   type: string
   description: Kind of a retained lifecycle decision affecting this version.
   enum:
@@ -60,6 +66,7 @@ StreamDecisionEnum:
     - supersede
     - reactivate
 CreateStreamContributionRequest:
+  title: CreateStreamContributionRequest
   type: object
   description: Submit an address using the viewed match contribution revision.
   additionalProperties: false
@@ -81,6 +88,7 @@ CreateStreamContributionRequest:
     - revision
     - url
 UpdateOwnStreamContributionRequest:
+  title: UpdateOwnStreamContributionRequest
   type: object
   description: Atomic cancellation of a pending proposal or withdrawal of an active owned version.
   additionalProperties: false
@@ -97,6 +105,7 @@ UpdateOwnStreamContributionRequest:
     - revision
     - action
 CreateModeratedStreamContributionRequest:
+  title: CreateModeratedStreamContributionRequest
   type: object
   description: Directly publish an address and supersede other pending proposals.
   additionalProperties: false
@@ -125,6 +134,7 @@ CreateModeratedStreamContributionRequest:
     - revision
     - url
 UpdateModeratedStreamContributionRequest:
+  title: UpdateModeratedStreamContributionRequest
   type: object
   description: Apply one current moderation decision atomically.
   additionalProperties: false
@@ -148,6 +158,7 @@ UpdateModeratedStreamContributionRequest:
     - revision
     - action
 CreateStreamReactivationRequest:
+  title: CreateStreamReactivationRequest
   type: object
   description: Create a new version of a historical address with no inherited reports.
   additionalProperties: false
@@ -168,6 +179,7 @@ CreateStreamReactivationRequest:
     - actorAccountId
     - revision
 CreateStreamReportRequest:
+  title: CreateStreamReportRequest
   type: object
   description: Report the exact displayed version; the first accepted reason remains authoritative.
   additionalProperties: false
@@ -179,6 +191,7 @@ CreateStreamReportRequest:
   required:
     - reason
 StreamReportStateResponse:
+  title: StreamReportStateResponse
   type: object
   description: Current reporting state of the original account for this exact version.
   additionalProperties: true
@@ -189,6 +202,7 @@ StreamReportStateResponse:
   required:
     - reported
 OwnStreamContributionResponse:
+  title: OwnStreamContributionResponse
   type: object
   description: An owned version, without another person’s proposals, report reasons or private decisions.
   additionalProperties: true
@@ -227,6 +241,7 @@ OwnStreamContributionResponse:
     - canCancel
     - canWithdraw
 OwnStreamContributionDetailResponse:
+  title: OwnStreamContributionDetailResponse
   type: object
   description: Current owned version and match editing revision.
   additionalProperties: true
@@ -243,6 +258,7 @@ OwnStreamContributionDetailResponse:
     - revision
     - contribution
 StreamSubmissionEligibilityResponse:
+  title: StreamSubmissionEligibilityResponse
   type: object
   description: Current submission eligibility; commands recheck every condition.
   additionalProperties: true
@@ -264,6 +280,7 @@ StreamSubmissionEligibilityResponse:
     - canSubmit
     - requiresApproval
 StreamQuotaResponse:
+  title: StreamQuotaResponse
   type: object
   description: Ordinary submission usage; moderation-created versions are excluded.
   additionalProperties: true
@@ -291,6 +308,7 @@ StreamQuotaResponse:
     - matchCountedToday
     - dayEndsAt
 OwnStreamContributionsResponse:
+  title: OwnStreamContributionsResponse
   type: object
   description: Owner context and one page of personal versions for a viewable match.
   additionalProperties: true
@@ -325,6 +343,7 @@ OwnStreamContributionsResponse:
     - quota
     - items
 StreamDecisionResponse:
+  title: StreamDecisionResponse
   type: object
   description: Useful lifecycle decision retained for this version, not an arbitrary technical audit event.
   additionalProperties: true
@@ -342,6 +361,7 @@ StreamDecisionResponse:
     - kind
     - at
 ModeratedStreamContributionResponse:
+  title: ModeratedStreamContributionResponse
   type: object
   description: Private version representation for an authorized stream moderator.
   additionalProperties: true
@@ -414,6 +434,7 @@ ModeratedStreamContributionResponse:
     - canReactivate
     - decisions
 ModeratedStreamContributionDetailResponse:
+  title: ModeratedStreamContributionDetailResponse
   type: object
   description: Current private version and its match contribution revision.
   additionalProperties: true
@@ -430,6 +451,7 @@ ModeratedStreamContributionDetailResponse:
     - revision
     - contribution
 StreamModerationMatchResponse:
+  title: StreamModerationMatchResponse
   type: object
   description: Private sporting context, including a match hidden from ordinary consultation.
   additionalProperties: true
@@ -463,6 +485,7 @@ StreamModerationMatchResponse:
     - pool
     - publiclyViewable
 StreamModerationCountsResponse:
+  title: StreamModerationCountsResponse
   type: object
   description: Match badges computed independently of the loaded page; historical reports remain available per version.
   additionalProperties: true
@@ -502,6 +525,7 @@ StreamModerationCountsResponse:
     - reports
     - rejected
 StreamModerationItemResponse:
+  title: StreamModerationItemResponse
   type: object
   description: One match concerned by contributions.
   additionalProperties: true
@@ -525,6 +549,7 @@ StreamModerationItemResponse:
     - approvalRequiredAfterReports
     - lastActivityAt
 StreamModerationResponse:
+  title: StreamModerationResponse
   type: object
   description: One page of distinct matches satisfying the requested moderation selection.
   additionalProperties: true
@@ -546,6 +571,7 @@ StreamModerationResponse:
   required:
     - items
 ModeratedStreamContributionsResponse:
+  title: ModeratedStreamContributionsResponse
   type: object
   description: Private match context, current active link and one filtered page of recorded versions.
   additionalProperties: true
@@ -592,6 +618,7 @@ ModeratedStreamContributionsResponse:
     - canPublish
     - items
 StreamReportResponse:
+  title: StreamReportResponse
   type: object
   description: Private counted report without reporter identity.
   additionalProperties: true
@@ -613,6 +640,7 @@ StreamReportResponse:
     - reportedAt
     - reason
 StreamReportsResponse:
+  title: StreamReportsResponse
   type: object
   description: One page of reports on one exact contribution version.
   additionalProperties: true
@@ -641,6 +669,7 @@ StreamReportsResponse:
     - count
     - items
 StreamVersionFilterEnum:
+  title: StreamVersionFilterEnum
   type: string
   description:
     Version-page selection; historical excludes active and pending without creating a lifecycle

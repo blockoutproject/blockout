@@ -85,6 +85,9 @@
               <generateModelDocumentation>false</generateModelDocumentation>
               <generateSupportingFiles>true</generateSupportingFiles>
               <supportingFilesToGenerate>ApiClient.java,ServerConfiguration.java,ServerVariable.java,Authentication.java,HttpBearerAuth.java,OAuth.java,ApiKeyAuth.java,HttpBasicAuth.java,RFC3339DateFormat.java,ExceptionProvider.java,StringUtil.java,JavaTimeFormatter.java</supportingFilesToGenerate>
+              <inlineSchemaOptions>
+                <inlineSchemaOption>RESOLVE_INLINE_ENUMS=true</inlineSchemaOption>
+              </inlineSchemaOptions>
               <configOptions>
                 <useSpringBoot4>true</useSpringBoot4>
                 <useJackson3>true</useJackson3>

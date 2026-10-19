@@ -1,4 +1,5 @@
-CreateSupportRequestRequest:
+SubmitSupportRequest:
+  title: SubmitSupportRequest
   type: object
   description: Declared contact and content for one private request, never proof of identity or ownership.
   additionalProperties: false
@@ -31,14 +32,16 @@ CreateSupportRequestRequest:
       maxLength: 254
       description: Editable reply address, trimmed and checked for syntax only.
     context:
-      $ref: "#/SupportRequestContextRequest"
+      $ref: "#/SupportContextRequest"
 SupportRequestKindEnum:
+  title: SupportRequestKindEnum
   description: Whether the request reports a problem or proposes an improvement.
   type: string
   enum:
     - problem
     - suggestion
 SupportRequestSubjectEnum:
+  title: SupportRequestSubjectEnum
   type: string
   description: Optional classification; omit when none is selected. Empty string and null are invalid.
   enum:
@@ -48,7 +51,8 @@ SupportRequestSubjectEnum:
     - pro-subscription
     - stream-links
     - other
-SupportRequestContextRequest:
+SupportContextRequest:
+  title: SupportContextRequest
   type: object
   description: >-
     Only known, useful context. Omit unknown values. No raw URL query, password, token,
@@ -66,7 +70,7 @@ SupportRequestContextRequest:
       maxLength: 256
       description: Action being attempted.
     target:
-      $ref: "#/SupportRequestTargetRequest"
+      $ref: "#/SupportTargetRequest"
     accountId:
       type: string
       format: uuid
@@ -90,7 +94,8 @@ SupportRequestContextRequest:
       description: Available device model, never a device advertising identifier.
     signInFailure:
       $ref: "#/SupportSignInFailureRequest"
-SupportRequestTargetRequest:
+SupportTargetRequest:
+  title: SupportTargetRequest
   type: object
   description: Known navigation target even when loading failed; no invented name.
   additionalProperties: false
@@ -105,6 +110,7 @@ SupportRequestTargetRequest:
       format: uuid
       description: Target identity from the attempted navigation.
 SupportSignInFailureRequest:
+  title: SupportSignInFailureRequest
   type: object
   description: Safe sign-in context only; omit unknown facts and raw provider details.
   additionalProperties: false
@@ -130,6 +136,7 @@ SupportSignInFailureRequest:
       maxLength: 256
       description: Safe diagnostic reference when available, never an access token.
 SupportRequestCreatedResponse:
+  title: SupportRequestCreatedResponse
   type: object
   description: Confirmation of complete private receipt, with no mobile ticket lookup or editing capability.
   additionalProperties: true
@@ -142,12 +149,14 @@ SupportRequestCreatedResponse:
       description: Opaque reference of the accepted request; never a private repository URL or access credential.
 
 SupportPlatformEnum:
+  title: SupportPlatformEnum
   type: string
   description: Application platform reported in the support context.
   enum:
     - ios
     - android
 SupportTargetTypeEnum:
+  title: SupportTargetTypeEnum
   type: string
   description: Kind of known navigation target, independent of whether loading succeeded.
   enum:

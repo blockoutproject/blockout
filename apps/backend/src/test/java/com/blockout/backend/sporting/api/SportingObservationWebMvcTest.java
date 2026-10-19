@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.config.HttpConfiguration;
-import com.blockout.backend.generated.ingestion.model.ObserveMatchDetailRequest;
+import com.blockout.backend.generated.ingestion.model.MatchDetailObservationInternalRequest;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.application.MatchObservation;
 import jakarta.validation.Valid;
@@ -158,7 +158,8 @@ class SportingObservationWebMvcTest {
      */
     @PostMapping("/contract/sporting/matches/{matchId}")
     MatchObservation bind(
-        @PathVariable UUID matchId, @RequestBody @Valid ObserveMatchDetailRequest request) {
+        @PathVariable UUID matchId,
+        @RequestBody @Valid MatchDetailObservationInternalRequest request) {
       return mapper.toObservation(matchId, request);
     }
   }

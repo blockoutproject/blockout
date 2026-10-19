@@ -4,8 +4,8 @@ import {
   setPoolPresentation,
 } from "../../../../.generated/mobile";
 import type {
-  GetPoolPresentation200,
-  GetPoolStandings200,
+  PoolPresentationResponse,
+  PoolStandingsResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
 
@@ -21,7 +21,7 @@ jest.mock("expo/fetch", () => ({
 }));
 
 /** Supplies only the required synthetic presentation; optional short-name presence stays visible. */
-function poolPresentation(): GetPoolPresentation200 {
+function poolPresentation(): PoolPresentationResponse {
   return {
     id: poolId,
     revision: "revision-1",
@@ -34,7 +34,7 @@ function poolPresentation(): GetPoolPresentation200 {
 }
 
 /** Supplies a usable official table without fabricated rows or recomputed sporting values. */
-function standings(): GetPoolStandings200 {
+function standings(): PoolStandingsResponse {
   return {
     poolId,
     availability: "available",

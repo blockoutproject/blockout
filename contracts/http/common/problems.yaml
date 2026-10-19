@@ -1,5 +1,6 @@
 schemas:
   ProblemResponse:
+    title: ProblemResponse
     type: object
     description: >-
       RFC 9457 error response. Consumers use type as the machine identifier, never title or provider

@@ -1,4 +1,5 @@
 CollectorRuntimeInternalResponse:
+  title: CollectorRuntimeInternalResponse
   type: object
   description: Single current collector incarnation in this environment.
   additionalProperties: true
@@ -18,6 +19,7 @@ CollectorRuntimeInternalResponse:
     - revision
     - incarnationId
 RegisterCollectorRuntimeInternalRequest:
+  title: RegisterCollectorRuntimeInternalRequest
   type: object
   description:
     Replace the runtime after reading its revision. Repeating the current UUID is a no-op;
@@ -38,6 +40,7 @@ RegisterCollectorRuntimeInternalRequest:
     - revision
     - incarnationId
 CollectionWorkInternalResponse:
+  title: CollectionWorkInternalResponse
   type: object
   description:
     Current controls and pending source validations, no durable execution queue. Initial mode
@@ -58,6 +61,7 @@ CollectionWorkInternalResponse:
     - controls
     - validations
 CollectionControlInternalResponse:
+  title: CollectionControlInternalResponse
   type: object
   description: Internal scheduling/admission context, not a mobile administration representation.
   additionalProperties: true
@@ -103,6 +107,7 @@ CollectionControlInternalResponse:
     - revision
     - enabled
 SourceValidationWorkInternalResponse:
+  title: SourceValidationWorkInternalResponse
   type: object
   description: One current candidate awaiting validation; editing or closure invalidates this work.
   additionalProperties: true
@@ -138,6 +143,7 @@ SourceValidationWorkInternalResponse:
     - provider
     - organizerReference
 StartCollectionCycleInternalRequest:
+  title: StartCollectionCycleInternalRequest
   type: object
   description:
     Admit one current cycle. Supply controlId for collection, or sourceBindingId for candidate
@@ -177,6 +183,7 @@ StartCollectionCycleInternalRequest:
     - incarnationId
     - revision
 CollectionCycleInternalResponse:
+  title: CollectionCycleInternalResponse
   type: object
   description:
     Backend-admitted immutable acquisition context. A successful admission commits running
@@ -226,6 +233,7 @@ CollectionCycleInternalResponse:
     - state
     - startedAt
 CollectionTargetInternalResponse:
+  title: CollectionTargetInternalResponse
   type: object
   description:
     One authorized target selected at admission from the starting snapshot. Kind determines
@@ -331,6 +339,7 @@ CollectionTargetInternalResponse:
     - scopeId
     - kind
 CollectionTargetPageInternalResponse:
+  title: CollectionTargetPageInternalResponse
   type: object
   description:
     Domain targets selected at admission, ordered by kind then scopeId with stable pagination. Eligibility/configuration
@@ -357,6 +366,7 @@ CollectionTargetPageInternalResponse:
     - page
     - hasNext
 RecordCollectionResultInternalRequest:
+  title: RecordCollectionResultInternalRequest
   type: object
   description: Record one current scope/stage/phase result. Each phase keeps the acquisition stage so that calendar and standings integration remain independent. No raw supplier payload.
   additionalProperties: false
@@ -407,6 +417,7 @@ RecordCollectionResultInternalRequest:
     - observedAt
     - outcome
 CompleteCollectionCycleInternalRequest:
+  title: CompleteCollectionCycleInternalRequest
   type: object
   description:
     Declare an admitted control passage finished, including one with failed results; this does not turn omitted/failed scopes into success. Candidate validation ends through its own result submission, not this operation.
@@ -420,6 +431,7 @@ CompleteCollectionCycleInternalRequest:
   required:
     - completedAt
 SubmitSourceValidationInternalRequest:
+  title: SubmitSourceValidationInternalRequest
   type: object
   description:
     Atomically apply the candidate result and finish its admitted validation. Identical accepted repetition is a no-op; conflicting results are refused. Candidate revision and open season are rechecked; late
@@ -448,6 +460,7 @@ SubmitSourceValidationInternalRequest:
     - state
     - observedAt
 SourceValidationInternalResponse:
+  title: SourceValidationInternalResponse
   type: object
   description: Accepted current qualification; no mobile presentation payload.
   additionalProperties: true
@@ -469,6 +482,7 @@ SourceValidationInternalResponse:
     - revision
     - state
 ObserveSeasonSourceInternalRequest:
+  title: ObserveSeasonSourceInternalRequest
   type: object
   description:
     Propose one qualified sporting season and supported root found through official entry discovery.
@@ -508,6 +522,7 @@ ObserveSeasonSourceInternalRequest:
     - evidenceUrl
     - observedAt
 SeasonSourceInternalResponse:
+  title: SeasonSourceInternalResponse
   type: object
   description:
     Resolved season and binding; identical proposals reuse current identities without lifecycle

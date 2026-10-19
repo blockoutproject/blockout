@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <!-- Mutable F12 baseline while environments remain disposable; no reset is authorized. -->
+  <changeSet id="access-permissions" author="blockout">
+    <createTable tableName="account_permission">
+      <column name="account_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="permission" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="account_permission" columnNames="account_id, permission" constraintName="pk_account_permission"/>
+    <addForeignKeyConstraint baseTableName="account_permission" baseColumnNames="account_id"
+                             referencedTableName="account" referencedColumnNames="id"
+                             constraintName="fk_account_permission_account" onDelete="CASCADE"/>
+  </changeSet>
+</databaseChangeLog>

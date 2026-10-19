@@ -151,6 +151,9 @@
           <generateApiDocumentation>false</generateApiDocumentation>
           <generateModelDocumentation>false</generateModelDocumentation>
           <generateSupportingFiles>false</generateSupportingFiles>
+          <inlineSchemaOptions>
+            <inlineSchemaOption>RESOLVE_INLINE_ENUMS=true</inlineSchemaOption>
+          </inlineSchemaOptions>
           <configOptions>
             <useSpringBoot4>true</useSpringBoot4>
             <useJackson3>true</useJackson3>

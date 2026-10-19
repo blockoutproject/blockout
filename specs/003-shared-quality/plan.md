@@ -99,7 +99,7 @@ F13 sets mechanics and qualification obligations; dependent plans choose their a
 
 ## Runtime, data and consistency
 
-The backend exposes HTTP adapters around application use cases and domain-owned modules. Generated DTOs stay at transport boundaries; JPA entities are not public contracts. Database constraints enforce structural uniqueness/references; application services verify current rights and own transaction boundaries. MapStruct is used for mechanical mappings where useful, not an obligatory model layer.
+The modular backend separates HTTP adapters, application use cases and domain-owned modules. JPA owns persistence; generated object DTOs remain at transport boundaries. Application use cases own transactions and current authorization, with database constraints enforcing structural uniqueness/references. MapStruct handles useful mechanical mappings. The [Java/Spring](../../.agents/skills/java-spring/SKILL.md) and [OpenAPI](../../.agents/skills/openapi-codegen/SKILL.md) skills supply implementation conventions for these choices.
 
 The collector acquires/parses supplier material independently, then calls the ingestion API. It has no database credentials. PostgreSQL commits backend business changes atomically within the owning use case. Slow supplier/Auth0 calls occur outside SQL transactions; any result applied later must recheck the relevant current state and ownership. Domain plans choose concrete concurrency/version checks and duplicate semantics where required; F13 adds no universal operation ledger, lock service or recovery engine.
 
@@ -135,7 +135,7 @@ One `theme-provider.tsx`, composed by `apps/mobile/src/app/_layout.tsx`, resolve
 
 ### Components, patterns and screens
 
-Use `StyleSheet.create` for stable semantic styles and narrow dynamic token properties where needed, following the existing [React Native skill](../../.agents/skills/react-native-expo/SKILL.md). Keep comparable components structurally consistent, explicit props limited to real approved variants, and ordinary composition visible. No NativeWind, alternative styling engine, duplicated theme resolution, systematic wrappers or generic screen-state engine. Figma's useful component relationships guide reuse; documentation frames, sample content and every visual layer do not become React components.
+Blockout selects native `StyleSheet` styling and the existing [React Native skill's](../../.agents/skills/react-native-expo/SKILL.md) component conventions, without an alternative styling engine or generic screen-state engine. Figma's useful component relationships guide reuse; documentation frames, sample content and every visual layer do not become React components.
 
 Shared buttons, fields, sheets, image selection and reused request feedback live in `src/shared/components/`. Implement only the variants needed by active consumers, extending these same components as later slices need approved variants. Feature-local patterns and screens remain under `src/features/`, with thin Expo Router routes: sporting rows/cards/standings belong to F03, guest sign-in composition to F05, notification items to F07 and the support form to F10. Owners compose shared controls and keep their business state, data access and validation. Reuse an identical cross-feature composition through its owner instead of copying it or extracting a speculative universal pattern.
 

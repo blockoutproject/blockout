@@ -1,4 +1,5 @@
 CollectionFamilyEnum:
+  title: CollectionFamilyEnum
   type: string
   description: Independent collection control family.
   enum:
@@ -7,12 +8,14 @@ CollectionFamilyEnum:
     - club-sheets
     - geocoding
 CollectionProviderEnum:
+  title: CollectionProviderEnum
   type: string
   description: Official competition provider.
   enum:
     - ffvb
     - lnv
 CollectionSeasonStateEnum:
+  title: CollectionSeasonStateEnum
   type: string
   description: Acquisition lifecycle; closed is terminal.
   enum:
@@ -20,6 +23,7 @@ CollectionSeasonStateEnum:
     - active
     - closed
 SourceValidationStateEnum:
+  title: SourceValidationStateEnum
   type: string
   description: Current candidate qualification; an edited candidate loses previous evidence.
   enum:
@@ -29,6 +33,7 @@ SourceValidationStateEnum:
     - confirmation-required
     - qualified
 CollectionCycleStateEnum:
+  title: CollectionCycleStateEnum
   type: string
   description: Execution state; an obsolete incarnation interrupts unfinished work.
   enum:
@@ -36,6 +41,7 @@ CollectionCycleStateEnum:
     - completed
     - interrupted
 CollectionModeEnum:
+  title: CollectionModeEnum
   type: string
   description: Backend-authorized collection purpose; absent for candidate validation. Only the exploitation command can request initial import.
   enum:
@@ -43,6 +49,7 @@ CollectionModeEnum:
     - manual
     - initial-import
 CollectionStageEnum:
+  title: CollectionStageEnum
   type: string
   description: Independent operational stage, never an implied whole-pipeline success.
   enum:
@@ -54,12 +61,14 @@ CollectionStageEnum:
     - geocoding
     - logo
 CollectionPhaseEnum:
+  title: CollectionPhaseEnum
   type: string
   description: Independent acquisition or business-integration evidence for the same stage.
   enum:
     - acquisition
     - integration
 CollectionOutcomeEnum:
+  title: CollectionOutcomeEnum
   type: string
   description: Current scoped outcome; a successful HTTP call alone does not establish success.
   enum:
@@ -68,6 +77,7 @@ CollectionOutcomeEnum:
     - failed
     - unconfirmed
 CollectionTargetKindEnum:
+  title: CollectionTargetKindEnum
   type: string
   description: Qualified read purpose; provider parsing remains source-specific.
   enum:
@@ -78,6 +88,7 @@ CollectionTargetKindEnum:
     - club-sheet
     - geocoding
 CollectionResourceKindEnum:
+  title: CollectionResourceKindEnum
   type: string
   description: Discovered sporting resource kind.
   enum:

@@ -1,4 +1,5 @@
 NotificationFamilyEnum:
+  title: NotificationFamilyEnum
   type: string
   description: Stable announcement composition, independent of later sporting corrections.
   enum:
@@ -7,6 +8,7 @@ NotificationFamilyEnum:
     - live-link
     - post-result-link
 NotificationResponse:
+  title: NotificationResponse
   type: object
   description: One current consultable owner notification; sporting content is read from current authorized facts.
   additionalProperties: true
@@ -33,6 +35,7 @@ NotificationResponse:
       $ref: ../consultation/schemas.yaml#/SportingDivisionResponse
   required: [id, createdAt, family, read, title, match, division]
 NotificationsResponse:
+  title: NotificationsResponse
   type: object
   description: Owner inbox ordered by original creation instant then UUID, both descending.
   additionalProperties: true
@@ -49,6 +52,7 @@ NotificationsResponse:
       description: Opaque continuation after this page; omitted when no continuation exists, never null.
   required: [notifications]
 NotificationSummaryResponse:
+  title: NotificationSummaryResponse
   type: object
   description: Current all-page count and its next age-driven invalidation point, calculated from the same selection.
   additionalProperties: true
@@ -64,6 +68,7 @@ NotificationSummaryResponse:
       description: Earliest 29-day expiry among the counted entries; present exactly when unreadCount is positive. Omitted at zero.
   required: [unreadCount]
 MarkNotificationReadRequest:
+  title: MarkNotificationReadRequest
   type: object
   description: Atomic read intent; repetition has no additional effect. Null and unknown properties are rejected.
   additionalProperties: false
@@ -74,6 +79,7 @@ MarkNotificationReadRequest:
       description: Must be true; marking unread is unsupported.
   required: [read]
 ReplacePushSubscriptionRequest:
+  title: ReplacePushSubscriptionRequest
   type: object
   description: Complete destination association for this connection; neither field may be omitted or null.
   additionalProperties: false
@@ -88,6 +94,7 @@ ReplacePushSubscriptionRequest:
       description: Current Expo push address supplied by the native SDK; not an identity or credential for account access.
   required: [installationId, expoPushToken]
 PushSubscriptionResponse:
+  title: PushSubscriptionResponse
   type: object
   description: Registered connection association, without echoing its private delivery address.
   additionalProperties: true
