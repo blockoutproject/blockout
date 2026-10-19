@@ -19,6 +19,10 @@ tags:
     description: Private account establishment, profile changes and erasure.
   - name: Sporting
     description: Sporting identities, presentation, classification and authorized corrections.
+  - name: SportingClassification
+    description: Atomic pack and pool acquisition classification corrections.
+  - name: DivisionAdministration
+    description: Configured divisions, creation and explicit activity commands.
   - name: Following
     description: Personal team/pool follows, public counts and personal match selection.
   - name: StreamContributions

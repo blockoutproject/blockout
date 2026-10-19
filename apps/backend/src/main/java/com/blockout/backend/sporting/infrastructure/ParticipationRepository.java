@@ -1,6 +1,8 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import java.util.List;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /** Native Spring Data access to the sporting participation owner. */
@@ -13,4 +15,13 @@ interface ParticipationRepository extends JpaRepository<ParticipationEntity, UUI
    * @return whether its retained participation exists
    */
   boolean existsByTeamIdAndPoolId(UUID teamId, UUID poolId);
+
+  /**
+   * Includes retained absent relationships because corrections must preserve their identity.
+   *
+   * @param teamIds affected stable teams
+   * @return current and absent retained relationships
+   */
+  @EntityGraph(attributePaths = {"pool", "pool.division", "team"})
+  List<ParticipationEntity> findByTeamIdIn(List<UUID> teamIds);
 }

@@ -13,6 +13,13 @@
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
       <column name="name" type="TEXT"><constraints nullable="false"/></column>
       <column name="active" type="BOOLEAN"><constraints nullable="false"/></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="color" type="VARCHAR(7)"><constraints nullable="false"/></column>
+      <column name="gradient_start" type="VARCHAR(7)"/>
+      <column name="gradient_middle" type="VARCHAR(7)"/>
+      <column name="gradient_end" type="VARCHAR(7)"/>
+      <column name="logo" type="BYTEA"/>
+      <column name="logo_media_type" type="VARCHAR(255)"/>
     </createTable>
     <createTable tableName="sporting_club">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
@@ -26,6 +33,10 @@
       <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
       <column name="organizer_reference" type="TEXT"><constraints nullable="false"/></column>
       <column name="reference" type="TEXT"><constraints nullable="false"/></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="setting_division_id" type="UUID"/>
+      <column name="setting_format" type="VARCHAR(255)"/>
+      <column name="setting_gender" type="VARCHAR(255)"/>
     </createTable>
     <createTable tableName="sporting_pool">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
@@ -41,7 +52,13 @@
       <column name="division_id" type="UUID"><constraints nullable="false"/></column>
       <column name="format" type="VARCHAR(255)"><constraints nullable="false"/></column>
       <column name="gender" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="setting_division_id" type="UUID"/>
+      <column name="setting_format" type="VARCHAR(255)"/>
+      <column name="setting_gender" type="VARCHAR(255)"/>
     </createTable>
+    <addForeignKeyConstraint baseTableName="sporting_pack" baseColumnNames="setting_division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_pack_setting_division"/>
+    <addForeignKeyConstraint baseTableName="sporting_pool" baseColumnNames="setting_division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_pool_setting_division"/>
     <createTable tableName="sporting_team">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
       <column name="season_id" type="UUID"><constraints nullable="false"/></column>

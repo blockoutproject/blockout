@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Qualifies binding and mapping through a test-only adapter. Authentication filters belong to the
  * dedicated security suite, independently from these serialization cases.
  */
-@WebMvcTest
+@WebMvcTest(controllers = SportingObservationWebMvcTest.BindingAdapter.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({
   HttpConfiguration.class,

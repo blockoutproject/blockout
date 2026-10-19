@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Qualifies required nullable scalars, objects and multipart collections through native binding.
  */
-@WebMvcTest
+@WebMvcTest(controllers = ContractPresenceWebMvcTest.BindingAdapter.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({
   HttpConfiguration.class,

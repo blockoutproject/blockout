@@ -45,7 +45,7 @@ public class SportingIdentityService {
       return existing;
     }
     if (!store
-        .division(classification.divisionId())
+        .lockDivision(classification.divisionId())
         .orElseThrow(() -> new UnresolvedSportingIdentityException("Unknown division"))
         .active()) {
       throw new UnresolvedSportingIdentityException(

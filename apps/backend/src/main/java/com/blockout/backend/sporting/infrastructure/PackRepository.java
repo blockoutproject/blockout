@@ -4,6 +4,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 /** Native Spring Data access to the sporting pack owner. */
 interface PackRepository extends JpaRepository<PackEntity, UUID> {
@@ -18,4 +19,13 @@ interface PackRepository extends JpaRepository<PackEntity, UUID> {
    */
   Optional<PackEntity> findByProviderAndSeasonIdAndOrganizerReferenceAndReference(
       CollectionProviderEnum provider, UUID seasonId, String organizerReference, String reference);
+
+  /**
+   * Resolves the canonical season without caching mutable pack state before its lock.
+   *
+   * @param id requested pack
+   * @return immutable season owner, or empty
+   */
+  @Query("select p.season.id from PackEntity p where p.id = :id")
+  Optional<UUID> findSeasonId(UUID id);
 }

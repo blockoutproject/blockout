@@ -6,6 +6,9 @@ import com.blockout.backend.sporting.application.SportingClassification;
 import com.blockout.backend.sporting.application.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.SportingViews.PackView;
+import com.blockout.backend.sporting.application.SportingViews.ParticipationView;
+import com.blockout.backend.sporting.application.SportingViews.PoolClassificationView;
 import com.blockout.backend.sporting.application.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
@@ -98,4 +101,44 @@ interface SportingIdentityMapper {
   @Mapping(target = "homeTeamId", source = "homeTeam.id")
   @Mapping(target = "awayTeamId", source = "awayTeam.id")
   MatchView toView(MatchEntity source);
+
+  /**
+   * Detaches a complete acquisition setting without inventing an absent value.
+   *
+   * @param source persisted complete setting, or null
+   * @return detached complete value, or null
+   */
+  @Mapping(target = "divisionId", source = "settingDivisionId")
+  @Mapping(target = "format", source = "settingFormat")
+  @Mapping(target = "gender", source = "settingGender")
+  SportingClassification toClassification(ClassificationSetting source);
+
+  /**
+   * Extracts a pack's canonical season and current default.
+   *
+   * @param source current managed grouping
+   * @return immutable classification editor state
+   */
+  @Mapping(target = "seasonId", source = "season.id")
+  PackView toView(PackEntity source);
+
+  /**
+   * Detaches published and acquisition state for the pool editor.
+   *
+   * @param source current managed pool
+   * @return detached owner state
+   */
+  @Mapping(target = "pool", source = "source")
+  PoolClassificationView toClassificationView(PoolEntity source);
+
+  /**
+   * Detaches one retained participation without filtering away absent relationships.
+   *
+   * @param source current or absent participation
+   * @return immutable references and published classification
+   */
+  @Mapping(target = "teamId", source = "team.id")
+  @Mapping(target = "poolId", source = "pool.id")
+  @Mapping(target = "classification", source = "pool")
+  ParticipationView toView(ParticipationEntity source);
 }

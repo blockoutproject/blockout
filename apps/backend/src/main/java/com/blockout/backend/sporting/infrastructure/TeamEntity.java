@@ -64,14 +64,17 @@ public class TeamEntity {
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "division_id")
+  @Setter
   private DivisionEntity division;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
+  @Setter
   private SportFormatEnum format;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
+  @Setter
   private SportGenderEnum gender;
 
   @ElementCollection

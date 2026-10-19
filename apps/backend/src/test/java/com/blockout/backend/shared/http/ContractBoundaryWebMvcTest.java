@@ -52,7 +52,11 @@ import tools.jackson.databind.json.JsonMapper;
  * Qualifies generated binding and error translation with test-only adapters. SecurityWebMvcTest
  * separately exercises the real authentication filters; this slice isolates HTTP serialization.
  */
-@WebMvcTest
+@WebMvcTest(
+    controllers = {
+      ContractBoundaryWebMvcTest.BindingAdapter.class,
+      ContractBoundaryWebMvcTest.AccountAdapter.class
+    })
 @AutoConfigureMockMvc(addFilters = false)
 @ExtendWith(OutputCaptureExtension.class)
 @Import({

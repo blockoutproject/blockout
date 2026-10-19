@@ -341,7 +341,7 @@ PackClassification:
   get:
     operationId: getPackClassification
     tags:
-      - Sporting
+      - SportingClassification
     summary: Read pack classification
     description: >-
       Returns the pack default, effective acquisition classification and current editing revision.
@@ -379,7 +379,7 @@ PackClassification:
   put:
     operationId: setPackClassification
     tags:
-      - Sporting
+      - SportingClassification
     summary: Set pack classification
     description: >-
       Requires global sporting-classification permission; all affected resources remain subject to their business rules. Sets or removes the
@@ -435,7 +435,7 @@ PoolClassification:
   get:
     operationId: getPoolClassification
     tags:
-      - Sporting
+      - SportingClassification
     summary: Read pool classification
     description: >-
       Returns the pool override, effective acquisition classification and current editing revision.
@@ -473,7 +473,7 @@ PoolClassification:
   put:
     operationId: setPoolClassification
     tags:
-      - Sporting
+      - SportingClassification
     summary: Set pool classification
     description: >-
       Requires global sporting-classification permission; all affected resources remain subject to their business rules. Sets or removes the
@@ -626,7 +626,7 @@ Divisions:
   get:
     operationId: listDivisions
     tags:
-      - Sporting
+      - DivisionAdministration
     summary: List configured divisions
     description: >-
       Returns configured divisions ordered by case-folded name, then UUID. Inactive divisions are
@@ -662,7 +662,7 @@ Divisions:
   post:
     operationId: createDivision
     tags:
-      - Sporting
+      - DivisionAdministration
     summary: Create a sporting division
     description: >-
       Requires division-lifecycle permission. Creates an active division with a case-insensitively
@@ -734,7 +734,7 @@ Division:
   get:
     operationId: getDivision
     tags:
-      - Sporting
+      - DivisionAdministration
     summary: Read a division
     description: >-
       Returns the division’s presentation, activity and current editing revision. Requires
@@ -857,7 +857,7 @@ DivisionActivity:
   put:
     operationId: setDivisionActivity
     tags:
-      - Sporting
+      - DivisionAdministration
     summary: Change division activity
     description: >-
       Requires division-lifecycle permission and the current editing revision. Deactivation hides
