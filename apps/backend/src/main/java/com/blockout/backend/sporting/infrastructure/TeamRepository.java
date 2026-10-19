@@ -118,4 +118,14 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
       """)
   List<UUID> findClassificationCollisions(
       List<UUID> teamIds, SportingClassification classification);
+
+  /**
+   * Reads current established participants without recreating missing table identities.
+   *
+   * @param poolId table scope
+   * @return current participating teams only
+   */
+  @Query(
+      "SELECT t FROM TeamEntity t WHERE EXISTS (SELECT p.id FROM ParticipationEntity p WHERE p.team = t AND p.pool.id = :poolId AND p.current = TRUE)")
+  List<TeamEntity> findCurrentIn(UUID poolId);
 }

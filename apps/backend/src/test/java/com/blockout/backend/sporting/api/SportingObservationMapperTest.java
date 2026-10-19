@@ -10,6 +10,7 @@ import com.blockout.backend.generated.ingestion.model.MatchSetScoreInternalReque
 import com.blockout.backend.generated.ingestion.model.ObservationContextInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.domain.MatchFacts;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -106,7 +107,7 @@ class SportingObservationMapperTest {
     assertThat(result.facts().timeZone()).isEqualTo("Europe/Paris");
     assertThat(result.facts().result().get())
         .isEqualTo(new MatchObservation.Result(ResultStateEnum.FINAL, 3, 1, null));
-    assertThat(result.facts().sets().get()).containsExactly(new MatchObservation.SetScore(25, 20));
+    assertThat(result.facts().sets().get()).containsExactly(new MatchFacts.SetScore(25, 20));
     assertThat(result.facts().venueName().get()).isEqualTo("Synthetic venue");
     assertThat(result.facts().venueAddress().get()).isEqualTo("Synthetic address");
     assertThat(result.facts().referees().get()).containsExactly("Synthetic referee");
@@ -151,8 +152,7 @@ class SportingObservationMapperTest {
     facts.getReferees().get().clear();
 
     // Then
-    assertThat(observation.facts().sets().get())
-        .containsExactly(new MatchObservation.SetScore(25, 20));
+    assertThat(observation.facts().sets().get()).containsExactly(new MatchFacts.SetScore(25, 20));
     assertThat(observation.facts().referees().get()).containsExactly("Synthetic referee");
   }
 

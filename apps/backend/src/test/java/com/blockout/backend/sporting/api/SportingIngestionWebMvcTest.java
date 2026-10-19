@@ -17,16 +17,21 @@ import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
+import com.blockout.backend.sporting.application.model.StandingsObservation;
 import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
 import com.blockout.backend.sporting.application.service.CatalogAcceptanceService;
 import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
+import com.blockout.backend.sporting.application.service.StandingsService;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -54,6 +59,7 @@ class SportingIngestionWebMvcTest {
   @MockitoBean private MatchAcceptanceService matches;
   @MockitoBean private CalendarAcceptanceService calendars;
   @MockitoBean private CatalogAcceptanceService catalogs;
+  @MockitoBean private StandingsService standings;
 
   @Test
   @DisplayName("Refuses a calendar whose combined collections exceed 1000 entries")
@@ -93,7 +99,7 @@ class SportingIngestionWebMvcTest {
                 .content(body))
         .andExpect(status().isPayloadTooLarge())
         .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(calendars, catalogs, matches);
+    verifyNoInteractions(calendars, catalogs, matches, standings);
   }
 
   @ParameterizedTest
@@ -116,7 +122,7 @@ class SportingIngestionWebMvcTest {
                 .contentType("application/json")
                 .content("{}"))
         .andExpect(status().isBadRequest());
-    verifyNoInteractions(calendars, catalogs, matches);
+    verifyNoInteractions(calendars, catalogs, matches, standings);
   }
 
   @ParameterizedTest
@@ -134,7 +140,7 @@ class SportingIngestionWebMvcTest {
                 .contentType("application/json")
                 .content("{}"))
         .andExpect(status().isForbidden());
-    verifyNoInteractions(calendars, catalogs, matches);
+    verifyNoInteractions(calendars, catalogs, matches, standings);
   }
 
   @Test
@@ -196,6 +202,68 @@ class SportingIngestionWebMvcTest {
         .andExpect(status().isConflict())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-cycle-context"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "\"publicationState\":\"not-published\",\"columns\":[\"Points\"],\"rows\":[]",
+        "\"publicationState\":\"published\",\"columns\":[],\"rows\":[{\"sourceName\":\"Synthetic\",\"statistics\":{\"Points\":\"9\"}}]"
+      })
+  @DisplayName(
+      "Refuses contradictory non-publication and undeclared statistic columns before writes")
+  void refusesInvalidStandings(String table) throws Exception {
+    // Given
+    String body =
+        "{\"context\":{\"cycleId\":\"00000000-0000-4000-8000-000000000001\",\"readOrdinal\":1,\"observedAt\":\"2026-10-19T12:00:00Z\"},"
+            + table
+            + "}";
+
+    // When / Then
+    mvc.perform(
+            post("/ingestion/pools/00000000-0000-4000-8000-000000000002/standings-observations")
+                .with(collector())
+                .contentType("application/json")
+                .content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(standings);
+  }
+
+  @Test
+  @DisplayName(
+      "Maps a published table through the generated HTTP boundary with source column order")
+  void acceptsStandings() throws Exception {
+    // Given
+    UUID pool = UUID.fromString("00000000-0000-4000-8000-000000000002");
+    when(standings.accept(eq(pool), any()))
+        .thenReturn(
+            new ObservationOutcome(
+                "POOL", ObservationOutcomeEnum.ACCEPTED, pool, null, null, null));
+    String body =
+        """
+        {"context":{"cycleId":"00000000-0000-4000-8000-000000000001","readOrdinal":1,"observedAt":"2026-10-19T12:00:00Z"},
+        "publicationState":"published","columns":["Ratio","Points"],"rows":[{"sourceName":"Synthetic","position":7,"statistics":{"Ratio":"∞"}}]}
+        """;
+
+    // When
+    mvc.perform(
+            post("/ingestion/pools/" + pool + "/standings-observations")
+                .with(collector())
+                .contentType("application/json")
+                .content(body))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.outcome").value("accepted"));
+
+    // Then
+    ArgumentCaptor<StandingsObservation> submitted =
+        ArgumentCaptor.forClass(StandingsObservation.class);
+    Mockito.verify(standings).accept(eq(pool), submitted.capture());
+    Assertions.assertThat(submitted.getValue().columns()).containsExactly("Ratio", "Points");
+    Assertions.assertThat(submitted.getValue().rows().getFirst().statistics())
+        .containsEntry("Ratio", "∞")
+        .hasSize(1);
   }
 
   /**

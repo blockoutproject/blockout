@@ -12,12 +12,15 @@ import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest
 import com.blockout.backend.generated.ingestion.model.MatchSetScoreInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ObservationContextInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeInternalResponse;
+import com.blockout.backend.generated.ingestion.model.StandingsObservationInternalRequest;
 import com.blockout.backend.generated.ingestion.model.TeamCandidateInternalRequest;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
+import com.blockout.backend.sporting.application.model.StandingsObservation;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
+import com.blockout.backend.sporting.domain.MatchFacts;
 import java.util.List;
 import java.util.UUID;
 import org.mapstruct.Mapper;
@@ -77,7 +80,7 @@ public interface SportingObservationMapper {
    * @param source generated presence-bearing set list
    * @return the same presence with mapped sets
    */
-  default JsonNullable<List<MatchObservation.SetScore>> toSets(
+  default JsonNullable<List<MatchFacts.SetScore>> toSets(
       JsonNullable<List<MatchSetScoreInternalRequest>> source) {
     return source.map(this::toSets);
   }
@@ -88,7 +91,7 @@ public interface SportingObservationMapper {
    * @param source supplied sets, possibly null for withdrawal
    * @return mapped sets in source order, or null for withdrawal
    */
-  List<MatchObservation.SetScore> toSets(List<MatchSetScoreInternalRequest> source);
+  List<MatchFacts.SetScore> toSets(List<MatchSetScoreInternalRequest> source);
 
   /**
    * Maps a qualified locator while preserving undefined and explicit null.
@@ -160,4 +163,12 @@ public interface SportingObservationMapper {
    */
   @Mapping(target = "additionalProperties", ignore = true)
   ObservationOutcomeInternalResponse toDto(ObservationOutcome source);
+
+  /**
+   * Copies qualified publication evidence and source-ordered rows without creating associations.
+   *
+   * @param source structurally validated generated request
+   * @return immutable table observation
+   */
+  StandingsObservation toObservation(StandingsObservationInternalRequest source);
 }

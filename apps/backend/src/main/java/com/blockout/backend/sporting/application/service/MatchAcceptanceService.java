@@ -8,6 +8,7 @@ import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.CalendarState;
+import com.blockout.backend.sporting.application.model.MatchDetails;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
@@ -15,28 +16,28 @@ import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.port.SportingStore;
+import com.blockout.backend.sporting.domain.MatchFacts;
+import com.blockout.backend.sporting.domain.SportingReferences;
 import java.net.URI;
-import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Separately proxied match transactions retain F01's runtime fence through each domain commit. */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class MatchAcceptanceService {
   private final SportingStore store;
   private final CollectionCycleService cycles;
   private final SportingIdentityService identities;
+  private final ClassificationService classifications;
 
   /**
    * Qualifies the global envelope and advances its pool order before any item commit.
@@ -79,7 +80,7 @@ public class MatchAcceptanceService {
       return ObservationOutcome.refused(candidate.nativeMatchReference(), true);
     if (expected.equals(store.calendarState(poolId).completed()) && !expected.equals(previous))
       return ObservationOutcome.refused(candidate.nativeMatchReference(), true);
-    if (!eligible(poolId, target))
+    if (!classifications.acceptsObservation(poolId, target))
       return ObservationOutcome.refused(candidate.nativeMatchReference(), false);
     if (previous != null && expected.equals(previous)) {
       return success(store.match(poolId, candidate.nativeMatchReference()).orElseThrow(), false);
@@ -127,7 +128,8 @@ public class MatchAcceptanceService {
     CollectionState.Target target =
         cycles.requireTarget(context.cycleId(), poolId, CollectionTargetKindEnum.CALENDAR);
     CalendarState state = store.calendarState(poolId);
-    if (!expected.equals(state.current()) || !eligible(poolId, target)) return false;
+    if (!expected.equals(state.current()) || !classifications.acceptsObservation(poolId, target))
+      return false;
     if (empty && cycles.get(context.cycleId()).mode() == CollectionModeEnum.INITIAL_IMPORT)
       return false;
     if (!expected.equals(state.completed())) store.completeCalendar(poolId, expected);
@@ -198,7 +200,7 @@ public class MatchAcceptanceService {
       next.localDate(date)
           .localTime(time)
           .timeZone(zone)
-          .reliableStart(resolveStart(date, time, zone))
+          .reliableStart(MatchFacts.resolveStart(date, time, zone))
           .scheduleObservedAt(context.observedAt().toInstant())
           .schedulePublishedAt(published);
     }
@@ -209,33 +211,14 @@ public class MatchAcceptanceService {
           .referencePublishedAt(published);
     }
     store.saveMatchSchedule(next.build());
-    return changed;
-  }
-
-  /**
-   * Resolves only one valid offset; DST gaps and overlaps do not invent an instant.
-   *
-   * @param date supplied date, possibly unknown
-   * @param time supplied time, possibly unknown
-   * @param zone supplied source zone, possibly unknown
-   * @return unique instant or null without sufficient evidence
-   */
-  private Instant resolveStart(LocalDate date, String time, String zone) {
-    if (date == null || time == null || zone == null) return null;
-    try {
-      LocalDateTime local = LocalDateTime.of(date, LocalTime.parse(time));
-      List<ZoneOffset> offsets = ZoneId.of(zone).getRules().getValidOffsets(local);
-      return offsets.size() == 1 ? local.toInstant(offsets.getFirst()) : null;
-    } catch (DateTimeException invalid) {
-      return null;
-    }
+    return acceptDetails(previous.id(), context, facts) || changed;
   }
 
   /**
    * Enriches only an already-known encounter without identifying teams or restoring participation.
    *
    * @param observation known match and original read attribution
-   * @return independent logical-order outcome for the supplied schedule proposals
+   * @return independent logical-order outcome for the supplied schedule and detail proposals
    */
   @Transactional
   public ObservationOutcome detail(MatchObservation observation) {
@@ -254,7 +237,7 @@ public class MatchAcceptanceService {
     if ((current != null && expected.compareTo(current) < 0)
         || (previous != null && expected.compareTo(previous) < 0))
       return ObservationOutcome.refused(match.reference(), true);
-    if (!eligible(match.poolId(), target))
+    if (!classifications.acceptsObservation(match.poolId(), target))
       return ObservationOutcome.refused(match.reference(), false);
     if (expected.equals(previous)) return success(match, false);
     return success(
@@ -268,24 +251,139 @@ public class MatchAcceptanceService {
   }
 
   /**
-   * Checks current acquisition classification against the admitted snapshot without restoring it.
+   * Accepts independent enrichment groups; invalid detail never discards an official overall
+   * result.
    *
-   * @param poolId existing pool
-   * @param target backend-frozen acquisition classification
-   * @return whether this observation remains compatible with current manual settings
+   * @param matchId match already locked by the enclosing transaction
+   * @param context source attribution, never precedence
+   * @param facts supplied proposals with native presence semantics
+   * @return whether accepted values changed, independently of refreshed provenance
    */
-  private boolean eligible(UUID poolId, CollectionState.Target target) {
-    SportingViews.PoolClassificationView classification =
-        store.poolClassification(poolId).orElseThrow();
-    SportingClassification current =
-        classification.setting() == null
-            ? store.pack(classification.pool().packId()).orElseThrow().setting()
-            : classification.setting();
-    SportingClassification admitted =
-        new SportingClassification(target.divisionId(), target.format(), target.gender());
-    return current != null
-        && current.equals(admitted)
-        && (classification.pool().classification() == null
-            || current.equals(classification.pool().classification()));
+  private boolean acceptDetails(
+      UUID matchId, MatchObservation.Context context, MatchObservation.Facts facts) {
+    MatchDetails previous = store.matchDetails(matchId);
+    MatchDetails.MatchDetailsBuilder next = previous.toBuilder();
+    Instant observed = context.observedAt().toInstant();
+    Instant published =
+        context.providerPublishedAt() == null ? null : context.providerPublishedAt().toInstant();
+    MatchObservation.Result result = previous.result();
+    boolean changed = false;
+    if (facts.result().isPresent()) {
+      MatchObservation.Result proposal = facts.result().get();
+      if (proposal == null
+          || MatchFacts.usableResult(
+              proposal.homeSets(), proposal.awaySets(), proposal.specialLabel())) {
+        result = proposal;
+        changed =
+            !Objects.equals(previous.result(), result) || previous.uninterpretedResult() != null;
+        next.result(result)
+            .uninterpretedResult(null)
+            .resultObservedAt(observed)
+            .resultPublishedAt(published);
+      } else {
+        String label = proposal.specialLabel();
+        if (label != null)
+          next.uninterpretedResult(label.substring(0, Math.min(label.length(), 256)));
+        diagnose(matchId, "uninterpreted-result");
+      }
+    }
+    List<MatchFacts.SetScore> sets = previous.sets();
+    boolean withdrawal = facts.result().isPresent() && facts.result().get() == null;
+    if (withdrawal || (facts.sets().isPresent() && facts.sets().get() == null)) {
+      sets = null;
+      next.setsObservedAt(observed).setsPublishedAt(published);
+    } else if (facts.sets().isPresent()) {
+      List<MatchFacts.SetScore> proposed = facts.sets().get();
+      if (compatible(result, proposed)) {
+        sets = proposed;
+        next.setsObservedAt(observed).setsPublishedAt(published);
+      } else diagnose(matchId, "incompatible-sets");
+    }
+    if (sets != null && !compatible(result, sets)) {
+      sets = null;
+      next.setsObservedAt(observed).setsPublishedAt(published);
+    }
+    changed |= !Objects.equals(previous.sets(), sets);
+    next.sets(sets);
+    if (facts.venueName().isPresent() || facts.venueAddress().isPresent()) {
+      String name = facts.venueName().isPresent() ? facts.venueName().get() : previous.venueName();
+      String address =
+          facts.venueAddress().isPresent() ? facts.venueAddress().get() : previous.venueAddress();
+      changed |=
+          !Objects.equals(previous.venueName(), name)
+              || !Objects.equals(previous.venueAddress(), address);
+      next.venueName(name)
+          .venueAddress(address)
+          .venueObservedAt(observed)
+          .venuePublishedAt(published);
+    }
+    if (facts.referees().isPresent()) {
+      changed |= !Objects.equals(previous.referees(), facts.referees().get());
+      next.referees(facts.referees().get())
+          .refereesObservedAt(observed)
+          .refereesPublishedAt(published);
+    }
+    if (facts.professionalStreamUrl().isPresent()) {
+      URI value = facts.professionalStreamUrl().get();
+      if (SportingReferences.qualified(value)) {
+        String url = value == null ? null : value.toString();
+        changed |= !Objects.equals(previous.professionalStreamUrl(), url);
+        next.professionalStreamUrl(url).streamObservedAt(observed).streamPublishedAt(published);
+      } else diagnose(matchId, "invalid-stream-reference");
+    }
+    boolean documents = false;
+    if (facts.informationSheet().isPresent()) {
+      changed |= !Objects.equals(previous.informationSheet(), facts.informationSheet().get());
+      next.informationSheet(facts.informationSheet().get());
+      documents = true;
+    }
+    if (facts.scoresheetUrl().isPresent()) {
+      URI value = facts.scoresheetUrl().get();
+      if (SportingReferences.qualified(value)) {
+        String url = value == null ? null : value.toString();
+        changed |= !Objects.equals(previous.scoresheetUrl(), url);
+        next.scoresheetUrl(url);
+        documents = true;
+      } else diagnose(matchId, "invalid-scoresheet-reference");
+    }
+    if (facts.statisticsUrl().isPresent()) {
+      URI value = facts.statisticsUrl().get();
+      if (SportingReferences.qualified(value)) {
+        String url = value == null ? null : value.toString();
+        changed |= !Objects.equals(previous.statisticsUrl(), url);
+        next.statisticsUrl(url);
+        documents = true;
+      } else diagnose(matchId, "invalid-statistics-reference");
+    }
+    if (documents) next.documentsObservedAt(observed).documentsPublishedAt(published);
+    store.saveMatchDetails(next.build());
+    return changed;
+  }
+
+  /**
+   * Requires numeric overall totals before exposing compatible played-set detail.
+   *
+   * @param result current authoritative result, possibly absent or special
+   * @param sets supplied or retained detail
+   * @return whether the two groups describe the same score
+   */
+  private boolean compatible(MatchObservation.Result result, List<MatchFacts.SetScore> sets) {
+    return result != null
+        && result.specialLabel() == null
+        && MatchFacts.compatibleSets(result.homeSets(), result.awaySets(), sets);
+  }
+
+  /**
+   * Records an isolated degraded group without logging provider values or personal details.
+   *
+   * @param matchId safe affected identity
+   * @param reason fixed bounded diagnostic category
+   */
+  private void diagnose(UUID matchId, String reason) {
+    log.atWarn()
+        .addKeyValue("operation", "sporting_fact_acceptance")
+        .addKeyValue("scope", matchId)
+        .addKeyValue("reason", reason)
+        .log("Invalid secondary facts preserve usable accepted state");
   }
 }

@@ -199,4 +199,88 @@
       <column name="provider_published_at" type="TIMESTAMP WITH TIME ZONE"/>
     </createTable>
   </changeSet>
+  <changeSet id="sporting-match-details" author="blockout">
+    <addColumn tableName="sporting_match">
+      <column name="result_state" type="VARCHAR(255)"/>
+      <column name="home_sets" type="INT"/>
+      <column name="away_sets" type="INT"/>
+      <column name="special_label" type="VARCHAR(255)"/>
+      <column name="uninterpreted_result" type="TEXT"/>
+      <column name="venue_name" type="TEXT"/>
+      <column name="venue_address" type="TEXT"/>
+      <column name="professional_stream_url" type="TEXT"/>
+      <column name="scoresheet_url" type="TEXT"/>
+      <column name="statistics_url" type="TEXT"/>
+      <column name="document_season_label" type="TEXT"/>
+      <column name="document_organizer_reference" type="TEXT"/>
+      <column name="document_match_code" type="TEXT"/>
+      <column name="result_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="result_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="sets_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="sets_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="venue_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="venue_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="referees_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="referees_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="stream_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="stream_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="documents_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="documents_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="sets_available" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="referees_available" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+    </addColumn>
+    <createTable tableName="sporting_match_set">
+      <column name="match_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="set_index" type="INT"><constraints nullable="false"/></column>
+      <column name="home" type="INT"><constraints nullable="false"/></column>
+      <column name="away" type="INT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_match_set" columnNames="match_id,set_index" constraintName="pk_sporting_match_set"/>
+    <addForeignKeyConstraint baseTableName="sporting_match_set" baseColumnNames="match_id" referencedTableName="sporting_match" referencedColumnNames="id" constraintName="fk_sporting_match_set_match"/>
+    <createTable tableName="sporting_match_referee">
+      <column name="match_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="referee_index" type="INT"><constraints nullable="false"/></column>
+      <column name="name" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_match_referee" columnNames="match_id,referee_index" constraintName="pk_sporting_match_referee"/>
+    <addForeignKeyConstraint baseTableName="sporting_match_referee" baseColumnNames="match_id" referencedTableName="sporting_match" referencedColumnNames="id" constraintName="fk_sporting_match_referee_match"/>
+  </changeSet>
+  <changeSet id="sporting-standings" author="blockout">
+    <createTable tableName="sporting_standings">
+      <column name="pool_id" type="UUID"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="cycle_order" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="read_ordinal" type="BIGINT"><constraints nullable="false"/></column>
+      <column name="publication_state" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="observed_at" type="TIMESTAMP WITH TIME ZONE"><constraints nullable="false"/></column>
+      <column name="provider_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="table_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="table_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="sporting_standings" baseColumnNames="pool_id" referencedTableName="sporting_pool" referencedColumnNames="id" constraintName="fk_standings_pool"/>
+    <createTable tableName="sporting_standing_column">
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="column_index" type="INT"><constraints nullable="false"/></column>
+      <column name="label" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_standing_column" columnNames="pool_id,column_index" constraintName="pk_standing_column"/>
+    <addForeignKeyConstraint baseTableName="sporting_standing_column" baseColumnNames="pool_id" referencedTableName="sporting_standings" referencedColumnNames="pool_id" constraintName="fk_standing_column_table"/>
+    <createTable tableName="sporting_standing_row">
+      <column name="id" type="UUID"><constraints primaryKey="true" nullable="false"/></column>
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="row_index" type="INT"/>
+      <column name="source_name" type="TEXT"><constraints nullable="false"/></column>
+      <column name="native_team_reference" type="TEXT"/>
+      <column name="position" type="INT"/>
+      <column name="team_id" type="UUID"/>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="sporting_standing_row" baseColumnNames="pool_id" referencedTableName="sporting_standings" referencedColumnNames="pool_id" constraintName="fk_standing_row_table"/>
+    <addForeignKeyConstraint baseTableName="sporting_standing_row" baseColumnNames="team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_standing_row_team"/>
+    <createTable tableName="sporting_standing_statistic">
+      <column name="row_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="label" type="TEXT"><constraints nullable="false"/></column>
+      <column name="value" type="TEXT"><constraints nullable="false"/></column>
+    </createTable>
+    <addPrimaryKey tableName="sporting_standing_statistic" columnNames="row_id,label" constraintName="pk_standing_statistic"/>
+    <addForeignKeyConstraint baseTableName="sporting_standing_statistic" baseColumnNames="row_id" referencedTableName="sporting_standing_row" referencedColumnNames="id" constraintName="fk_standing_statistic_row"/>
+  </changeSet>
 </databaseChangeLog>
