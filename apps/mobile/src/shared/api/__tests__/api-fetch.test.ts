@@ -9,7 +9,7 @@ import {
   getAccountPhoto,
   setPoolPresentation,
 } from "../../../../.generated/mobile";
-import { ApplicationAccessResponse } from "../../../../.generated/schemas/index.zod";
+import { GetApplicationAccess200 } from "../../../../.generated/schemas/index.zod";
 import { apiFetch, type ApiFetchOptions } from "../api-fetch";
 
 const accountId = "00000000-0000-4000-8000-000000000001";
@@ -39,7 +39,7 @@ afterEach(() => {
 it("validates the generated response exactly once and accepts additive nested data", async () => {
   // Given
   const body = applicationAccessResponse();
-  const parse = jest.spyOn(ApplicationAccessResponse, "parse");
+  const parse = jest.spyOn(GetApplicationAccess200, "parse");
   mockFetch.mockResolvedValue(
     new Response(
       JSON.stringify({
@@ -52,12 +52,7 @@ it("validates the generated response exactly once and accepts additive nested da
   );
 
   // When
-  const response = await apiFetch<ApplicationAccessResponse>(
-    "/application-access",
-    {
-      schema: ApplicationAccessResponse,
-    },
-  );
+  const response = await getApplicationAccess();
 
   // Then
   expect(response).toEqual(body);
@@ -213,7 +208,7 @@ it.each([
 
 it("parses errors through the problem profile without validating them as success", async () => {
   // Given
-  const parse = jest.spyOn(ApplicationAccessResponse, "parse");
+  const parse = jest.spyOn(GetApplicationAccess200, "parse");
   mockFetch.mockResolvedValue(
     new Response(
       JSON.stringify({
