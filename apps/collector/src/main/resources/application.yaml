@@ -20,6 +20,21 @@ spring:
             token-uri: ${BLOCKOUT_INGESTION_TOKEN_URI}
 
 blockout:
+  acquisition:
+    # Conservative starting limits, shared per provider across all seasons and families.
+    # Provider transport and live qualification are implemented by the following F01 tasks.
+    ffvb-origins: ${BLOCKOUT_ACQUISITION_FFVB_ORIGINS:https://www.ffvb.org,https://www.ffvbbeach.org}
+    lnv-origins: ${BLOCKOUT_ACQUISITION_LNV_ORIGINS:https://www.lnv.fr,https://lnv-web.dataproject.com,https://images.dataproject.com}
+    ign-origins: ${BLOCKOUT_ACQUISITION_IGN_ORIGINS:https://data.geopf.fr}
+    timeout: ${BLOCKOUT_ACQUISITION_TIMEOUT:15s}
+    max-response-bytes: ${BLOCKOUT_ACQUISITION_MAX_RESPONSE_BYTES:8388608}
+    max-redirects: ${BLOCKOUT_ACQUISITION_MAX_REDIRECTS:3}
+    concurrency-per-provider: ${BLOCKOUT_ACQUISITION_CONCURRENCY:2}
+    queue-capacity-per-provider: ${BLOCKOUT_ACQUISITION_QUEUE_CAPACITY:8}
+    permits-per-period: ${BLOCKOUT_ACQUISITION_PERMITS_PER_PERIOD:1}
+    refresh-period: ${BLOCKOUT_ACQUISITION_REFRESH_PERIOD:1s}
+    permit-timeout: ${BLOCKOUT_ACQUISITION_PERMIT_TIMEOUT:5s}
+    document-team-associations: []
   ingestion:
     base-url: ${BLOCKOUT_INGESTION_BASE_URL:http://localhost:8080}
     # Empty fallback lets Bean Validation reject an absent audience instead of placeholder text.
