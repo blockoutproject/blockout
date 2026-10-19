@@ -1,4 +1,4 @@
-package com.blockout.collector.acquisition.infrastructure;
+package com.blockout.collector.acquisition.infrastructure.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

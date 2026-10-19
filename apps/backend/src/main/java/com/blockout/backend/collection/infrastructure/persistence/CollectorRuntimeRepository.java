@@ -1,4 +1,4 @@
-package com.blockout.backend.collection.infrastructure;
+package com.blockout.backend.collection.infrastructure.persistence;
 
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;

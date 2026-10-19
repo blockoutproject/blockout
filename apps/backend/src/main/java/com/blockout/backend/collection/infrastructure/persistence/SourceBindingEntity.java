@@ -1,4 +1,4 @@
-package com.blockout.backend.collection.infrastructure;
+package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;

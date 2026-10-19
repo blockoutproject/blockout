@@ -1,4 +1,4 @@
-package com.blockout.backend.collection.infrastructure;
+package com.blockout.backend.collection.infrastructure.persistence;
 
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;

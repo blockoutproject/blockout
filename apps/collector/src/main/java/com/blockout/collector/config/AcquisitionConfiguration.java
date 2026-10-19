@@ -1,6 +1,6 @@
 package com.blockout.collector.config;
 
-import com.blockout.collector.acquisition.infrastructure.ProviderHttpClient;
+import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import io.github.resilience4j.ratelimiter.RateLimiter;

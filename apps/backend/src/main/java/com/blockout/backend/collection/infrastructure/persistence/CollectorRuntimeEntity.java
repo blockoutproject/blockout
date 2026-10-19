@@ -1,4 +1,4 @@
-package com.blockout.backend.collection.infrastructure;
+package com.blockout.backend.collection.infrastructure.persistence;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

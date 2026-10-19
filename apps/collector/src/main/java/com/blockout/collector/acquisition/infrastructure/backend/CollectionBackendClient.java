@@ -1,4 +1,4 @@
-package com.blockout.collector.acquisition.infrastructure;
+package com.blockout.collector.acquisition.infrastructure.backend;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.CollectionBackendFailure;

@@ -1,4 +1,4 @@
-package com.blockout.collector.acquisition.infrastructure;
+package com.blockout.collector.acquisition.infrastructure.provider;
 
 import java.io.IOException;
 import java.io.InputStream;

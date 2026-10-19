@@ -3,9 +3,9 @@ package com.blockout.collector.acquisition.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.blockout.collector.acquisition.infrastructure.CollectionBackendClient;
-import com.blockout.collector.acquisition.infrastructure.CollectionBackendMapperImpl;
 import com.blockout.collector.acquisition.infrastructure.CollectorStartup;
+import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
+import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendMapperImpl;
 import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.sun.net.httpserver.HttpServer;

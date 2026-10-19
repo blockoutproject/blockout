@@ -1,4 +1,4 @@
-package com.blockout.backend.collection.infrastructure;
+package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
