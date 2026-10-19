@@ -230,6 +230,25 @@ class CollectPassageTest {
   }
 
   @Test
+  @DisplayName("Confirms nanosecond clock completion at the persisted microsecond precision")
+  void confirmsPersistedPrecision() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    Instant actualEnd = NOW.plusNanos(123_456_789);
+    Instant persistedEnd = NOW.plusNanos(123_456_000);
+    when(backend.complete(admitted.getCycle().id(), persistedEnd))
+        .thenReturn(completed(admitted, persistedEnd));
+
+    // When
+    boolean confirmed = lifecycle.complete(admitted, actualEnd);
+
+    // Then
+    assertThat(confirmed).isTrue();
+    verify(backend).complete(admitted.getCycle().id(), persistedEnd);
+    verify(backend, never()).cycle(any());
+  }
+
+  @Test
   @DisplayName("Leaves an unconfirmed completion blocked after a single confirmation read")
   void leavesUnconfirmedCompletionBlocked() {
     // Given

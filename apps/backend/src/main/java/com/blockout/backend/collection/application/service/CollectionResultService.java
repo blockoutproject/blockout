@@ -14,6 +14,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.sporting.application.service.SportingReadService;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -79,13 +80,14 @@ public class CollectionResultService {
    * Marks selected work finished; only actual complete evidence may advance control success.
    *
    * @param cycleId admitted control passage, never candidate validation
-   * @param completedAt actual end, preserved for identical terminal submissions
+   * @param completedAt actual end, truncated to PostgreSQL microseconds for terminal identity
    * @return accepted terminal context
    * @throws CollectionConflictException for a conflicting completion
    */
   @Transactional
   public CollectionState.Cycle complete(UUID cycleId, Instant completedAt) {
     CollectionState.Cycle cycle = cycles.lockControlPassage(cycleId);
+    completedAt = completedAt.truncatedTo(ChronoUnit.MICROS);
     if (cycle.completedAt() != null) {
       if (!cycle.completedAt().equals(completedAt)) throw invalidContext();
       return cycle;

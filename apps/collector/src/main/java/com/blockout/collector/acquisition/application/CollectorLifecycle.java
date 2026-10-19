@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -99,12 +100,13 @@ public class CollectorLifecycle {
    * Attempts normal completion once and reads the same cycle once after uncertainty.
    *
    * @param context original admitted control capability
-   * @param completedAt actual end of selected work
+   * @param completedAt actual end, sent at the contract's persisted microsecond precision
    * @return whether completion is confirmed; false requires manual resolution
    */
   public boolean complete(AdmittedCycle context, Instant completedAt) {
     if (context.getCycle().controlId() == null)
       throw new IllegalArgumentException("Control completion requires a control passage");
+    completedAt = completedAt.truncatedTo(ChronoUnit.MICROS);
     try {
       CollectionBackend.Cycle completed = backend.complete(context.getCycle().id(), completedAt);
       if (completed.state() == CollectionCycleStateEnum.COMPLETED

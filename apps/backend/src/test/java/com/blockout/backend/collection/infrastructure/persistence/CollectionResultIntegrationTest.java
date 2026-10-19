@@ -2,6 +2,7 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionResult;
@@ -24,6 +25,7 @@ import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.service.SeasonService;
 import com.blockout.backend.sporting.application.service.SportingIdentityService;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +38,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
@@ -51,6 +54,7 @@ class CollectionResultIntegrationTest {
   private static final Instant OBSERVED = Instant.parse("2026-10-19T16:00:00Z");
   private static final UUID CONTROL = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID SCOPE = UUID.fromString("00000000-0000-4000-8000-000000000153");
+  @MockitoBean private Clock clock;
   @Autowired private CollectorRuntimeService runtimes;
   @Autowired private CollectionCycleService cycles;
   @Autowired private CollectionResultService results;
@@ -142,6 +146,7 @@ class CollectionResultIntegrationTest {
   /** Admits a fresh seasonless control and freezes one synthetic authorized resource. */
   @BeforeEach
   void admitPassage() {
+    when(clock.instant()).thenReturn(OBSERVED);
     sql.update("DELETE FROM collection_result");
     sql.update("DELETE FROM collection_cycle");
     sql.update(
@@ -280,14 +285,14 @@ class CollectionResultIntegrationTest {
   @DisplayName("Accepts identical terminal submission and refuses a conflicting completion")
   void enforcesTerminalIdentity() {
     // Given
-    Instant completed = cycle.startedAt().plusSeconds(1);
+    Instant completed = OBSERVED.plusSeconds(1).plusNanos(123_456_789);
     results.complete(cycle.id(), completed);
 
     // When
     CollectionState.Cycle repeated = results.complete(cycle.id(), completed);
 
     // Then
-    assertThat(repeated.completedAt()).isEqualTo(completed);
+    assertThat(repeated.completedAt()).isEqualTo(OBSERVED.plusSeconds(1).plusNanos(123_456_000));
     assertThatThrownBy(() -> results.complete(cycle.id(), completed.plusSeconds(1)))
         .isInstanceOf(CollectionConflictException.class);
     assertThatThrownBy(
