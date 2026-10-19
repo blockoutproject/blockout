@@ -2,7 +2,6 @@ package com.blockout.backend.access.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 
 import com.blockout.backend.access.application.ActionAuthorization;
 import com.blockout.backend.access.application.CurrentPermissions;
@@ -13,7 +12,6 @@ import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.sporting.application.SportingStore;
 import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
-import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -69,10 +67,7 @@ class PermissionPersistenceIntegrationTest {
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
-    properties.add(
-        "spring.datasource.url", () -> DATABASE.getJdbcUrl().replace("/postgres", "/blockout"));
-    properties.add("spring.datasource.username", () -> "blockout_app");
-    properties.add("spring.datasource.password", () -> "harmless-app");
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
   }
 
   /** Recreates only disposable fixture state; new accounts start with no permission rows. */
@@ -271,7 +266,7 @@ class PermissionPersistenceIntegrationTest {
                                       "UPDATE sporting_season SET label = 'Changed' WHERE id = ?",
                                       season.id());
                                 }));
-                awaitBlocked(mutationPid);
+                PostgresTestDatabase.awaitBlocked(sql, mutationPid);
                 sql.update(
                     "DELETE FROM account_permission WHERE account_id = ? AND permission = 'collection.manage'",
                     account.id());
@@ -318,7 +313,7 @@ class PermissionPersistenceIntegrationTest {
                                       "DELETE FROM account_permission WHERE account_id = ? AND permission = 'collection.manage'",
                                       account.id());
                                 }));
-                awaitBlocked(withdrawalPid);
+                PostgresTestDatabase.awaitBlocked(sql, withdrawalPid);
                 sql.update(
                     "UPDATE sporting_season SET label = 'Changed' WHERE id = ?", season.id());
                 return pending;
@@ -329,21 +324,5 @@ class PermissionPersistenceIntegrationTest {
       assertThat(sporting.season(season.id()).orElseThrow().label()).isEqualTo("Changed");
       assertThat(permissions.forAccount(account.id())).isEmpty();
     }
-  }
-
-  /**
-   * Observes the actual PostgreSQL wait instead of guessing concurrent ordering with sleeps.
-   *
-   * @param backendPid connection identity supplied before the contending lock attempt
-   */
-  private void awaitBlocked(CompletableFuture<Integer> backendPid) {
-    int pid = backendPid.orTimeout(10, TimeUnit.SECONDS).join();
-    await()
-        .atMost(Duration.ofSeconds(10))
-        .until(
-            () ->
-                Boolean.TRUE.equals(
-                    sql.queryForObject(
-                        "SELECT cardinality(pg_blocking_pids(?)) > 0", Boolean.class, pid)));
   }
 }

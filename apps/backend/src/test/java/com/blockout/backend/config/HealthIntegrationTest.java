@@ -35,10 +35,7 @@ class HealthIntegrationTest {
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
-    properties.add(
-        "spring.datasource.url", () -> DATABASE.getJdbcUrl().replace("/postgres", "/blockout"));
-    properties.add("spring.datasource.username", () -> "blockout_app");
-    properties.add("spring.datasource.password", () -> "harmless-app");
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
   }
 
   @Test

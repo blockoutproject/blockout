@@ -69,10 +69,7 @@ class SportingIdentityIntegrationTest {
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
-    properties.add(
-        "spring.datasource.url", () -> DATABASE.getJdbcUrl().replace("/postgres", "/blockout"));
-    properties.add("spring.datasource.username", () -> "blockout_app");
-    properties.add("spring.datasource.password", () -> "harmless-app");
+    PostgresTestDatabase.registerApplicationProperties(DATABASE, properties);
   }
 
   /**
@@ -91,7 +88,7 @@ class SportingIdentityIntegrationTest {
       fixture.execute("TRUNCATE sporting_season, sporting_club, sporting_division CASCADE");
     }
     sql.update(
-        "INSERT INTO sporting_division(id, name, active) VALUES (?, 'Synthetic division', true)",
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Synthetic division', true, '#112233')",
         DIVISION);
   }
 
@@ -496,7 +493,7 @@ class SportingIdentityIntegrationTest {
     org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate =
         () ->
             sql.update(
-                "INSERT INTO sporting_division(id, name, active) VALUES (?, 'SYNTHETIC DIVISION', true)",
+                "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'SYNTHETIC DIVISION', true, '#112233')",
                 other);
 
     // Then

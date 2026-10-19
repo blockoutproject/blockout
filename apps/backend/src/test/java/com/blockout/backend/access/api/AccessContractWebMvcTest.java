@@ -38,7 +38,7 @@ import tools.jackson.databind.json.JsonMapper;
  * Exercises generated request binding through MVC and response serialization through Jackson.
  * Test-only request adapters supply no settings, permission or admission implementation.
  */
-@WebMvcTest
+@WebMvcTest(controllers = AccessContractWebMvcTest.BindingAdapter.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({
   HttpConfiguration.class,

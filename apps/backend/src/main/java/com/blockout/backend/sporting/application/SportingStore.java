@@ -2,11 +2,16 @@ package com.blockout.backend.sporting.application;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.SportingViews.ClubView;
+import com.blockout.backend.sporting.application.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.SportingViews.PackView;
+import com.blockout.backend.sporting.application.SportingViews.ParticipationView;
+import com.blockout.backend.sporting.application.SportingViews.PoolClassificationView;
 import com.blockout.backend.sporting.application.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -207,4 +212,134 @@ public interface SportingStore {
    * @return created encounter
    */
   MatchView createMatch(UUID poolId, String reference, UUID homeTeamId, UUID awayTeamId);
+
+  /**
+   * Locks the pack's canonical season before reading mutable classification.
+   *
+   * @param packId established native grouping
+   * @throws SportingResourceNotFoundException if no pack exists
+   */
+  void lockPackSeason(UUID packId);
+
+  /**
+   * Reads the current pack default.
+   *
+   * @param id native grouping
+   * @return current setting and editing version, or empty
+   */
+  Optional<PackView> pack(UUID id);
+
+  /**
+   * Reads a pool's published identity and independent acquisition override.
+   *
+   * @param id contextual pool
+   * @return current local editor state, or empty
+   */
+  Optional<PoolClassificationView> poolClassification(UUID id);
+
+  /**
+   * Reads all classification scopes within one pack, under the season transaction.
+   *
+   * @param packId locked native grouping
+   * @return its pools, including explicit overrides
+   */
+  List<PoolClassificationView> packPools(UUID packId);
+
+  /**
+   * Returns distinct teams having a retained participation in the supplied pools.
+   *
+   * @param poolIds affected correction scopes
+   * @return each affected team once, including absent participations
+   */
+  List<TeamView> teamsInPools(List<UUID> poolIds);
+
+  /**
+   * Returns every retained participation for the affected teams.
+   *
+   * @param teamIds affected stable identities
+   * @return relationships with their current published classification
+   */
+  List<ParticipationView> participations(List<UUID> teamIds);
+
+  /**
+   * Replaces a complete pack default and flushes its managed editing revision.
+   *
+   * @param id locked pack
+   * @param setting complete default, or null to remove it
+   */
+  void setPackClassification(UUID id, SportingClassification setting);
+
+  /**
+   * Replaces a complete pool override and flushes its managed editing revision.
+   *
+   * @param id pool within the locked season
+   * @param setting complete override, or null to restore inheritance
+   */
+  void setPoolClassification(UUID id, SportingClassification setting);
+
+  /**
+   * Updates validated published scopes without changing identities or relationships.
+   *
+   * @param poolIds all validated pool scopes
+   * @param teamIds all validated affected teams
+   * @param classification complete accepted replacement; never null
+   */
+  void correctClassification(
+      List<UUID> poolIds, List<UUID> teamIds, SportingClassification classification);
+
+  /**
+   * Locks a division after season roots and before account roots.
+   *
+   * @param id existing target division
+   * @return activity held stable through caller commit, or empty
+   */
+  Optional<DivisionView> lockDivision(UUID id);
+
+  /**
+   * Reads complete division editing state.
+   *
+   * @param id configured division
+   * @return detached current values, or empty
+   */
+  Optional<DivisionDetail> divisionDetail(UUID id);
+
+  /**
+   * Lists divisions by case-folded name and UUID, optionally including inactive entries.
+   *
+   * @param includeInactive whether inactive choices are included
+   * @return the ordered configuration list
+   */
+  List<DivisionDetail> divisions(boolean includeInactive);
+
+  /**
+   * Creates one active division with its validated optional image in the caller transaction.
+   *
+   * @param name nonblank unique display name
+   * @param color validated primary sRGB color
+   * @param gradient three validated colors, or null
+   * @param image validated PNG/JPEG bytes, or null
+   * @param mediaType actual image type, or null with no image
+   * @return committed-to-context identity and initial revision
+   * @throws SportingConflictException if the name already exists ignoring case
+   */
+  DivisionDetail createDivision(
+      String name, String color, List<String> gradient, byte[] image, String mediaType);
+
+  /**
+   * Changes activity only and flushes the managed revision.
+   *
+   * @param id division locked by the caller
+   * @param active explicit desired activity
+   * @return current editor state after the change
+   */
+  DivisionDetail setDivisionActive(UUID id, boolean active);
+
+  /**
+   * Finds existing FFVB target identities that collide with the affected team keys.
+   *
+   * @param teamIds teams in the locked season
+   * @param target complete proposed classification
+   * @return conflicting existing team identities
+   */
+  List<UUID> classificationCollisions(List<UUID> teamIds, SportingClassification target);
 }

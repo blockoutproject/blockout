@@ -10,6 +10,9 @@ spring:
       data-source-properties:
         # Actuator's JDBC check uses isValid(0), so pool timeouts alone cannot bound it.
         socketTimeout: 5
+  servlet:
+    multipart:
+      max-file-size: 5MB
   jpa:
     open-in-view: false
     hibernate:

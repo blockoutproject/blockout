@@ -6,6 +6,7 @@ import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -16,12 +17,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /** Contextual native pool and last accepted complete classification. */
 @Getter
@@ -62,20 +65,27 @@ public class PoolEntity {
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "division_id")
+  @Setter
   private DivisionEntity division;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
+  @Setter
   private SportFormatEnum format;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
+  @Setter
   private SportGenderEnum gender;
 
   @ElementCollection
   @CollectionTable(name = "sporting_pool_alias", joinColumns = @JoinColumn(name = "pool_id"))
   @Getter(AccessLevel.NONE)
   private Set<VerifiedName> aliases = new HashSet<>();
+
+  @Version private long revision;
+
+  @Embedded @Setter private ClassificationSetting setting;
 
   /**
    * Establishes the supplied pool state without generating another owner model.

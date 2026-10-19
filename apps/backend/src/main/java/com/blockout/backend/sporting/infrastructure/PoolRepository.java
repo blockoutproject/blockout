@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.sporting.application.PoolKey;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,4 +33,12 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
       and p.groupReference is not distinct from :#{#key.groupReference}
       """)
   Optional<PoolEntity> findByKey(PoolKey key);
+
+  /**
+   * Returns all scopes affected by a pack correction.
+   *
+   * @param packId native grouping
+   * @return its current pools, including overrides
+   */
+  List<PoolEntity> findByPackId(UUID packId);
 }

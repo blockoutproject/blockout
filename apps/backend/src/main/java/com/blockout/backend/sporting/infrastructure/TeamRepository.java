@@ -3,7 +3,9 @@ package com.blockout.backend.sporting.infrastructure;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
+import com.blockout.backend.sporting.application.SportingClassification;
 import com.blockout.backend.sporting.application.SportingViews.PoolView;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -69,4 +71,34 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
       and a.competitionReference = :#{#pool.key.competitionReference} and a.comparisonName = :name
       """)
   Optional<TeamEntity> findByVerifiedAlias(PoolView pool, UUID clubId, String name);
+
+  /**
+   * Reads each affected team once, independently from its number of participations.
+   *
+   * @param poolIds affected correction scopes
+   * @return distinct participating teams
+   */
+  @Query(
+      "select t from TeamEntity t where exists (select p.id from ParticipationEntity p where p.team = t and p.pool.id in :poolIds)")
+  List<TeamEntity> findParticipatingIn(List<UUID> poolIds);
+
+  /**
+   * Resolves target-key collisions in one scoped query rather than one query per team.
+   *
+   * @param teamIds affected teams in the locked season
+   * @param classification proposed complete target
+   * @return distinct conflicting existing team identities
+   */
+  @Query(
+      """
+      select distinct target.id from TeamEntity original, TeamEntity target
+      where original.id in :teamIds and original.provider = com.blockout.backend.generated.ingestion.model.CollectionProviderEnum.FFVB
+      and target.provider = original.provider and target.season = original.season
+      and target.club = original.club and target.comparisonName = original.comparisonName
+      and target.division.id = :#{#classification.divisionId}
+      and target.format = :#{#classification.format} and target.gender = :#{#classification.gender}
+      and target.id <> original.id
+      """)
+  List<UUID> findClassificationCollisions(
+      List<UUID> teamIds, SportingClassification classification);
 }

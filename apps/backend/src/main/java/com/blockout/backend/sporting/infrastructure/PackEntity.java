@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -12,10 +13,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /** Native provider grouping within a season; it is not a division or a team identity. */
 @Getter
@@ -40,6 +43,10 @@ public class PackEntity {
 
   @Column(nullable = false)
   private String reference;
+
+  @Version private long revision;
+
+  @Embedded @Setter private ClassificationSetting setting;
 
   /**
    * Establishes the supplied pack state without generating another owner model.

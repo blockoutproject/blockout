@@ -52,7 +52,7 @@
     <dependency>
       <groupId>org.openapitools</groupId>
       <artifactId>jackson-databind-nullable</artifactId>
-      <version>0.2.12</version>
+      <version>${jackson-databind-nullable.version}</version>
     </dependency>
     <dependency>
       <groupId>org.mapstruct</groupId>
@@ -142,7 +142,7 @@
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>7.26.0</version>
+        <version>${openapi-generator.version}</version>
         <configuration>
           <cleanupOutput>true</cleanupOutput>
           <generatorName>spring</generatorName>

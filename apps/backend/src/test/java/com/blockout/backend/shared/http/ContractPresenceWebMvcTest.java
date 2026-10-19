@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Qualifies required nullable scalars, objects and multipart collections through native binding.
  */
-@WebMvcTest
+@WebMvcTest(controllers = ContractPresenceWebMvcTest.BindingAdapter.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({
   HttpConfiguration.class,
@@ -125,10 +125,14 @@ class ContractPresenceWebMvcTest {
       strings = {
         "{\"name\":\"Synthetic division\",\"color\":\"#112233\",\"logoAction\":\"keep\"}",
         "{\"name\":\"Synthetic division\",\"color\":\"#112233\",\"gradient\":[],\"logoAction\":\"keep\"}",
-        "{\"name\":\"Synthetic division\",\"color\":\"#112233\",\"gradient\":[null,\"#445566\",\"#778899\"],\"logoAction\":\"keep\"}"
+        "{\"name\":\"Synthetic division\",\"color\":\"#112233\",\"gradient\":[null,\"#445566\",\"#778899\"],\"logoAction\":\"keep\"}",
+        "{\"name\":\"Synthetic division\",\"color\":\"blue\",\"gradient\":null,\"logoAction\":\"keep\"}",
+        "{\"name\":\"Synthetic division\",\"color\":null,\"gradient\":null,\"logoAction\":\"keep\"}",
+        "{\"name\":\"Synthetic division\",\"color\":\"#112233\",\"gradient\":[\"#112233\",\"#445566\",\"#778899\",\"#AABBCC\"],\"logoAction\":\"keep\"}",
+        "{\"name\":\"Synthetic division\",\"color\":\"#112233\",\"gradient\":[\"#112233\",\"blue\",\"#778899\"],\"logoAction\":\"keep\"}"
       })
-  @DisplayName("Rejects omitted or invalid required gradients in multipart metadata")
-  void rejectsInvalidMultipartCollection(String body) throws Exception {
+  @DisplayName("Rejects missing or invalid division colors and gradients through native validation")
+  void rejectsInvalidDivisionColors(String body) throws Exception {
     // Given
     MockMultipartFile metadata =
         new MockMultipartFile(

@@ -10,3 +10,16 @@ CollectionReadOrdinal:
   minimum: 1
   maximum: 9007199254740991
   description: Increasing ordinal allocated before a provider read within one cycle; retained for its integration result.
+SrgbColor:
+  type: string
+  description: sRGB hexadecimal color.
+  pattern: ^#[0-9A-Fa-f]{6}$
+  example: "#F0AA00"
+ThreeColorGradient:
+  type: array
+  description: Three explicit gradient colors, or null to use the ordinary color-derived treatment.
+  items:
+    $ref: "#/SrgbColor"
+  minItems: 3
+  maxItems: 3
+  nullable: true

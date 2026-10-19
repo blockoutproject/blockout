@@ -22,6 +22,8 @@
     <google-java-format.version>1.30.0</google-java-format.version>
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
     <checkstyle.version>14.3.0</checkstyle.version>
+    <openapi-generator.version>7.26.0</openapi-generator.version>
+    <jackson-databind-nullable.version>0.2.12</jackson-databind-nullable.version>
   </properties>
   <build>
     <plugins>

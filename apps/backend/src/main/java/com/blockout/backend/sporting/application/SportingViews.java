@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.application;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -104,4 +105,70 @@ public final class SportingViews {
    */
   public record MatchView(
       UUID id, UUID poolId, String reference, UUID homeTeamId, UUID awayTeamId) {}
+
+  /**
+   * Administrative setting and effective acquisition value, separate from published facts.
+   *
+   * @param id edited pack or pool
+   * @param revision current opaque editing revision
+   * @param setting local setting, or null for no setting
+   * @param effective inherited acquisition classification, or null
+   */
+  public record ClassificationView(
+      UUID id, String revision, SportingClassification setting, SportingClassification effective) {}
+
+  /**
+   * Pack state read under its season's transaction.
+   *
+   * @param id native grouping
+   * @param seasonId canonical season
+   * @param revision managed editing version
+   * @param setting current complete default, or null
+   */
+  public record PackView(UUID id, UUID seasonId, long revision, SportingClassification setting) {}
+
+  /**
+   * Pool classification editor state without exporting a managed entity.
+   *
+   * @param pool established published identity
+   * @param revision managed local editing version
+   * @param setting complete override, or null to inherit
+   */
+  public record PoolClassificationView(
+      PoolView pool, long revision, SportingClassification setting) {}
+
+  /**
+   * Retained participation involved in a correction, including currently absent teams.
+   *
+   * @param teamId stable team
+   * @param poolId retained contextual pool
+   * @param classification current published classification of that participation
+   */
+  public record ParticipationView(
+      UUID teamId, UUID poolId, SportingClassification classification) {}
+
+  /**
+   * Current division editing state; image delivery remains the public read owner's responsibility.
+   *
+   * @param id stable identity
+   * @param revision managed editing version
+   * @param name unique name
+   * @param color primary sRGB color
+   * @param gradient explicit three colors, or null for ordinary derivation
+   * @param hasLogo whether validated bytes are retained
+   * @param active independent lifecycle state
+   */
+  public record DivisionDetail(
+      UUID id,
+      long revision,
+      String name,
+      String color,
+      List<String> gradient,
+      boolean hasLogo,
+      boolean active) {
+    /** Detaches optional colors from persistence. */
+    public DivisionDetail {
+      gradient = gradient == null ? null : List.copyOf(gradient);
+    }
+  }
 }
