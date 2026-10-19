@@ -12,10 +12,17 @@ import com.blockout.backend.generated.ingestion.model.CollectionTargetPageIntern
 import com.blockout.backend.generated.ingestion.model.CollectionWorkInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectorRuntimeInternalResponse;
 import com.blockout.backend.generated.ingestion.model.RecordCollectionResultInternalRequest;
+import com.blockout.backend.generated.ingestion.model.SourceValidationInternalResponse;
 import com.blockout.backend.generated.ingestion.model.SourceValidationWorkInternalResponse;
 import com.blockout.backend.generated.ingestion.model.StartCollectionCycleInternalRequest;
+import com.blockout.backend.generated.ingestion.model.SubmitSourceValidationInternalRequest;
 import com.blockout.backend.generated.mobile.model.CollectionResultPageResponse;
 import com.blockout.backend.generated.mobile.model.CollectionResultResponse;
+import com.blockout.backend.generated.mobile.model.CollectionSeasonResponse;
+import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourcePageResponse;
+import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourceResponse;
+import com.blockout.backend.generated.mobile.model.SourceBindingResponse;
+import com.blockout.backend.sporting.application.model.SportingViews;
 import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -31,6 +38,116 @@ import org.openapitools.jackson.nullable.JsonNullable;
  */
 @Mapper(config = MappingConfiguration.class)
 public interface CollectionApiMapper {
+  /**
+   * Reuses the shared contract-owned provider enum across generated API namespaces.
+   *
+   * @param source validated mobile provider
+   * @return the identical application provider
+   */
+  com.blockout.backend.generated.ingestion.model.CollectionProviderEnum toProvider(
+      com.blockout.backend.generated.mobile.model.CollectionProviderEnum source);
+
+  /**
+   * Projects preparation state from its canonical sporting owner.
+   *
+   * @param source season preparation view
+   * @return wire revision and lifecycle
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(target = "revision", source = "collectionRevision")
+  @Mapping(target = "state", source = "collectionState")
+  CollectionSeasonResponse toDto(SportingViews.CollectionSeasonView source);
+
+  /**
+   * Projects source evidence, preserving every required nullable property.
+   *
+   * @param source current source or honest interrupted-validation projection
+   * @return source preparation response, without mapping metadata
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(
+      target = "label",
+      expression = "java(source.provider().name() + \" / \" + source.organizerReference())")
+  @Mapping(target = "validation", source = "validationState")
+  @Mapping(
+      target = "candidateUrl",
+      source = "candidateUrl",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(
+      target = "acceptedUrl",
+      source = "acceptedUrl",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(
+      target = "validatedAt",
+      source = "validatedAt",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(
+      target = "seasonEvidence",
+      source = "seasonEvidence",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(
+      target = "reason",
+      source = "reason",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  SourceBindingResponse toDto(CollectionState.Source source);
+
+  /**
+   * Converts terminal evidence at the generated ingestion boundary.
+   *
+   * @param source validated transport input
+   * @return application evidence without transport DTO ownership
+   */
+  CollectionState.SourceValidation toCommand(SubmitSourceValidationInternalRequest source);
+
+  /**
+   * Acknowledges the current accepted qualification with its resulting editing revision.
+   *
+   * @param source accepted source
+   * @return minimal ingestion acknowledgement
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(target = "sourceBindingId", source = "id")
+  @Mapping(target = "state", source = "validationState")
+  SourceValidationInternalResponse toValidationDto(CollectionState.Source source);
+
+  /**
+   * Maps bounded direct children without classification readiness.
+   *
+   * @param source owning sporting page
+   * @return generated page preserving order and hasNext
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  DiscoveredCollectionResourcePageResponse toDto(SportingViews.CollectionResourcePage source);
+
+  /**
+   * Maps one discovered native identity.
+   *
+   * @param source pack or pool with optional native parent
+   * @return preparation navigation entry
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  DiscoveredCollectionResourceResponse toDto(SportingViews.CollectionResource source);
+
+  /**
+   * Preserves explicit null for absent required URL evidence.
+   *
+   * @param value candidate or accepted URL, possibly absent
+   * @return present nullable URI
+   */
+  default JsonNullable<URI> nullableUri(String value) {
+    return JsonNullable.of(value == null ? null : URI.create(value));
+  }
+
+  /**
+   * Preserves explicit null for absent required explanatory evidence.
+   *
+   * @param value optional evidence stored in a required nullable response property
+   * @return present nullable text
+   */
+  default JsonNullable<String> nullableText(String value) {
+    return JsonNullable.of(value);
+  }
+
   /**
    * Converts independently reported phase evidence to the application command.
    *

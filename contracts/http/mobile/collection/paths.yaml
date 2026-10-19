@@ -2,7 +2,7 @@ Seasons:
   get:
     operationId: listCollectionSeasons
     tags:
-      - Collection
+      - CollectionSources
     summary: Read known collection seasons
     description:
       Requires current global collection-management permission. Includes preparation, active
@@ -29,7 +29,7 @@ Season:
   get:
     operationId: getCollectionSeason
     tags:
-      - Collection
+      - CollectionSources
     summary: Read a collection season
     description:
       Requires current global collection-management permission. Returns current lifecycle and
@@ -121,7 +121,7 @@ Launch:
   post:
     operationId: launchCollectionSources
     tags:
-      - Collection
+      - CollectionSources
     summary: Launch qualified sources
     description:
       Requires current global collection-management permission. Atomically locks the selected
@@ -177,7 +177,7 @@ Sources:
   get:
     operationId: listCollectionSources
     tags:
-      - Collection
+      - CollectionSources
     summary: Read supported season sources
     description:
       Requires current global collection-management permission. Lists source evidence and preparation
@@ -214,11 +214,12 @@ Sources:
   post:
     operationId: createCollectionSource
     tags:
-      - Collection
+      - CollectionSources
     summary: Add a missing supported source
     description:
-      Requires current global collection-management permission. Creates a missing organizer/championship
-      binding only in an open season. Rejects unsupported identities and duplicate bindings; existing
+      Requires current global collection-management permission. Creates an unqualified organizer/championship
+      candidate only in an open season. The collector must qualify its supported scope before launch.
+      Rejects duplicate bindings; existing
       locked bindings are never replaced. Stale revisions return 409 without changes. Read current state
       after an uncertain result before an explicit retry.
     responses:
@@ -275,7 +276,7 @@ Source:
   get:
     operationId: getCollectionSource
     tags:
-      - Collection
+      - CollectionSources
     summary: Read source qualification
     description:
       Requires current global collection-management permission. Returns current candidate,
@@ -313,7 +314,7 @@ Candidate:
   put:
     operationId: setCollectionSourceCandidate
     tags:
-      - Collection
+      - CollectionSources
     summary: Replace an unlaunched source candidate
     description:
       Requires current global collection-management permission. Replaces the URL and clears
@@ -367,7 +368,7 @@ Validation:
   post:
     operationId: requestCollectionSourceValidation
     tags:
-      - Collection
+      - CollectionSources
     summary: Request source qualification
     description:
       Requires current global collection-management permission. Accepts one pending validation
@@ -422,7 +423,7 @@ Confirmation:
   put:
     operationId: confirmCollectionSourceSeason
     tags:
-      - Collection
+      - CollectionSources
     summary: Confirm missing source season
     description:
       Requires current global collection-management permission. Accepts explicit attribution
@@ -709,7 +710,7 @@ Children:
   get:
     operationId: listCollectionSourceChildren
     tags:
-      - Collection
+      - CollectionSources
     summary: Read discovered source children
     description:
       Requires current global collection-management permission. Returns direct children of

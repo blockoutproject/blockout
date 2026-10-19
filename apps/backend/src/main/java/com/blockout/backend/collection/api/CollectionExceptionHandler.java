@@ -2,8 +2,10 @@ package com.blockout.backend.collection.api;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
+import com.blockout.backend.collection.application.exception.InvalidSourceException;
 import com.blockout.backend.generated.ingestion.model.ProblemResponse;
 import com.blockout.backend.sporting.api.SportingIngestionController;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import java.net.URI;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.CacheControl;
@@ -34,11 +36,28 @@ public class CollectionExceptionHandler {
   }
 
   /**
+   * Refuses readable but unusable source input without echoing URLs or diagnostics.
+   *
+   * @return canonical non-cacheable business-input refusal
+   */
+  @ExceptionHandler(InvalidSourceException.class)
+  ResponseEntity<ProblemResponse> invalidSource() {
+    return ResponseEntity.status(422)
+        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+        .cacheControl(CacheControl.noStore())
+        .body(
+            new ProblemResponse(
+                URI.create("urn:blockout:problem:unprocessable-content"),
+                "Unprocessable Content",
+                422));
+  }
+
+  /**
    * Reports a missing retained context.
    *
    * @return non-cacheable shared missing-current-context response
    */
-  @ExceptionHandler(CollectionNotFoundException.class)
+  @ExceptionHandler({CollectionNotFoundException.class, SportingResourceNotFoundException.class})
   ResponseEntity<ProblemResponse> notFound() {
     return ResponseEntity.status(404)
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)

@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
@@ -30,6 +31,8 @@ import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -44,12 +47,14 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Repository;
 
 /** Native JPA identity adapter; caller-owned transactions retain locks through commit. */
 @Repository
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class JpaSportingStore implements SportingStore {
+  private final EntityManager entityManager;
   private final CatalogRepository catalogs;
   private final StandingsRepository standings;
   private final SeasonRepository seasons;
@@ -61,6 +66,33 @@ public class JpaSportingStore implements SportingStore {
   private final ParticipationRepository participations;
   private final MatchRepository matches;
   private final SportingIdentityMapper mapper;
+
+  /** {@inheritDoc} */
+  @Override
+  public SportingViews.CollectionResourcePage collectionChildren(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      UUID parentId,
+      int page,
+      int size) {
+    PageRequest request = PageRequest.of(page, size);
+    if (parentId == null) {
+      Slice<PackEntity> slice =
+          packs.findBySeasonIdAndProviderAndOrganizerReferenceOrderByReferenceAscIdAsc(
+              seasonId, provider, organizerReference, request);
+      return new SportingViews.CollectionResourcePage(
+          slice.stream().map(mapper::toCollectionResource).toList(), page, slice.hasNext());
+    }
+    PackEntity pack = packs.findById(parentId).orElseThrow(SportingResourceNotFoundException::new);
+    if (!seasonId.equals(pack.getSeason().getId())
+        || pack.getProvider() != provider
+        || !organizerReference.equals(pack.getOrganizerReference()))
+      throw new SportingResourceNotFoundException();
+    Slice<PoolEntity> slice = pools.findByPackIdOrderBySourceNameAscIdAsc(parentId, request);
+    return new SportingViews.CollectionResourcePage(
+        slice.stream().map(mapper::toCollectionResource).toList(), page, slice.hasNext());
+  }
 
   /** {@inheritDoc} */
   @Override
@@ -219,6 +251,26 @@ public class JpaSportingStore implements SportingStore {
   @Override
   public Optional<SportingViews.CollectionSeasonView> collectionSeason(UUID id) {
     return seasons.findById(id).map(mapper::toCollectionView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<SportingViews.CollectionSeasonView> collectionSeasons() {
+    return seasons.findAllByOrderByStartYearDescIdAsc().stream()
+        .map(mapper::toCollectionView)
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SportingViews.CollectionSeasonView updatePreparation(UUID id, boolean activate) {
+    SeasonEntity season = seasons.findById(id).orElseThrow(SportingResourceNotFoundException::new);
+    long revision = season.getCollectionRevision();
+    if (activate) season.setCollectionState(CollectionSeasonStateEnum.ACTIVE);
+    seasons.flush();
+    if (season.getCollectionRevision() == revision)
+      entityManager.lock(season, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
+    return mapper.toCollectionView(season);
   }
 
   /** {@inheritDoc} */

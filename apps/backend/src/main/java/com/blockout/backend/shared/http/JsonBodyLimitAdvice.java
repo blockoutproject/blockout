@@ -1,5 +1,8 @@
-package com.blockout.backend.sporting.api;
+package com.blockout.backend.shared.http;
 
+import com.blockout.backend.collection.api.CollectionSourcesController;
+import com.blockout.backend.collection.api.CollectorOperationsController;
+import com.blockout.backend.sporting.api.SportingIngestionController;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,8 +18,13 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdviceAdapter;
 
 /** Enforces the contract's JSON byte bound before deserialization or any domain transaction. */
-@ControllerAdvice(assignableTypes = SportingIngestionController.class)
-public class SportingJsonBodyAdvice extends RequestBodyAdviceAdapter {
+@ControllerAdvice(
+    assignableTypes = {
+      SportingIngestionController.class,
+      CollectionSourcesController.class,
+      CollectorOperationsController.class
+    })
+public class JsonBodyLimitAdvice extends RequestBodyAdviceAdapter {
   private static final int MAX_BYTES = 8 * 1024 * 1024;
 
   /** {@inheritDoc} */

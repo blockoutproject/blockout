@@ -4,6 +4,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
+import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
@@ -25,6 +26,27 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SportingReadService {
   private final SportingStore store;
+
+  /**
+   * Reads current source children through their sporting owner, without acquisition filtering.
+   *
+   * @param seasonId canonical source season
+   * @param provider designated provider
+   * @param organizerReference source organizer or championship
+   * @param parentId optional pack owned by this exact source
+   * @param page bounded page index
+   * @param size bounded page size
+   * @return direct children, including unmapped pools
+   */
+  public CollectionResourcePage collectionChildren(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      UUID parentId,
+      int page,
+      int size) {
+    return store.collectionChildren(seasonId, provider, organizerReference, parentId, page, size);
+  }
 
   /**
    * Resolves a known team's retained pool memberships for acquisition scope checks.

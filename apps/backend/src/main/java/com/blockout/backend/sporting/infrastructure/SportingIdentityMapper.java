@@ -31,6 +31,28 @@ import org.mapstruct.NullValueMappingStrategy;
 @Mapper(config = MappingConfiguration.class)
 interface SportingIdentityMapper {
   /**
+   * Exposes native grouping identity without any mapping state.
+   *
+   * @param source retained native pack
+   * @return root preparation entry
+   */
+  @Mapping(target = "label", source = "reference")
+  @Mapping(target = "kind", constant = "PACK")
+  @Mapping(target = "parentId", ignore = true)
+  SportingViews.CollectionResource toCollectionResource(PackEntity source);
+
+  /**
+   * Exposes a pool's original label and parent without classification readiness.
+   *
+   * @param source retained contextual pool
+   * @return direct child preparation entry
+   */
+  @Mapping(target = "label", source = "sourceName")
+  @Mapping(target = "kind", constant = "POOL")
+  @Mapping(target = "parentId", source = "pack.id")
+  SportingViews.CollectionResource toCollectionResource(PoolEntity source);
+
+  /**
    * Projects acquisition lifecycle without exposing the managed season.
    *
    * @param source canonical managed season

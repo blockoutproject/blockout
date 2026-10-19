@@ -1,7 +1,6 @@
 package com.blockout.collector.acquisition.infrastructure.backend;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
-import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.model.CompleteCollectionCycleInternalRequest;
 import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Component;
 public class CollectionBackendClient implements CollectionBackend {
   private final CollectorOperationsApi api;
   private final CollectionBackendMapper mapper;
-  private final CollectionApi sources;
 
   /** {@inheritDoc} */
   @Override
@@ -82,6 +80,6 @@ public class CollectionBackendClient implements CollectionBackend {
   @Override
   public void validate(UUID sourceBindingId, Validation result) {
     BackendExchange.once(
-        () -> sources.submitCollectionSourceValidation(sourceBindingId, mapper.toRequest(result)));
+        () -> api.submitCollectionSourceValidation(sourceBindingId, mapper.toRequest(result)));
   }
 }

@@ -36,6 +36,25 @@ import java.util.UUID;
 /** Application-owned identity operations; managed entities never cross this port. */
 public interface SportingStore {
   /**
+   * Reads one page of direct children within an exact source-season context.
+   *
+   * @param seasonId canonical season
+   * @param provider designated source
+   * @param organizerReference native source identity
+   * @param parentId pack in that exact context, or null for source roots
+   * @param page zero-based bounded page
+   * @param size positive size no greater than 200
+   * @return child identities without mapping readiness or a total count
+   */
+  SportingViews.CollectionResourcePage collectionChildren(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      UUID parentId,
+      int page,
+      int size);
+
+  /**
    * Reads eligible pool references in bounded owner pages.
    *
    * @param seasonId canonical seasonal scope
@@ -89,6 +108,22 @@ public interface SportingStore {
    * @return its current acquisition lifecycle without exposing persistence
    */
   Optional<SportingViews.CollectionSeasonView> collectionSeason(UUID id);
+
+  /**
+   * Lists acquisition configuration without reading provider data.
+   *
+   * @return canonical seasons in newest-first order
+   */
+  List<SportingViews.CollectionSeasonView> collectionSeasons();
+
+  /**
+   * Advances preparation revision after a source change, optionally activating first launch.
+   *
+   * @param id canonical season already exclusively locked by the caller
+   * @param activate whether the approved source launch activates periodic acquisition
+   * @return flushed canonical state with its native version
+   */
+  SportingViews.CollectionSeasonView updatePreparation(UUID id, boolean activate);
 
   /**
    * Finds a canonical season by its qualified start year.

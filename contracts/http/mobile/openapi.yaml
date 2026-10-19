@@ -11,8 +11,10 @@ servers:
 tags:
   - name: Support
     description: Private problems and suggestions from guests or signed-in people.
+  - name: CollectionSources
+    description: Candidate preparation, qualification evidence and qualified source launch.
   - name: Collection
-    description: Source qualification, collection control and current operational evidence.
+    description: Collection controls and current operational evidence.
   - name: ApplicationAccess
     description: Public admission settings and separately authorized maintenance/version management.
   - name: Accounts

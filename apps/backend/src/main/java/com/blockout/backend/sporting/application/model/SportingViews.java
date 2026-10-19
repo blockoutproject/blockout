@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.application.model;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -11,6 +12,18 @@ import lombok.NoArgsConstructor;
 /** Immutable owner reads; these values alone do not establish current public visibility. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SportingViews {
+  /** Native pack or pool identity for preparation navigation, without classification metadata. */
+  public record CollectionResource(
+      UUID id, String label, CollectionResourceKindEnum kind, UUID parentId) {}
+
+  /** Bounded direct children in stable label/identity order; no total-count query. */
+  public record CollectionResourcePage(List<CollectionResource> items, long page, boolean hasNext) {
+    /** Detaches the returned children from persistence. */
+    public CollectionResourcePage {
+      items = List.copyOf(items);
+    }
+  }
+
   /**
    * Canonical season identity, independent of F01 lifecycle and source labels.
    *
@@ -22,7 +35,11 @@ public final class SportingViews {
 
   /** Canonical season's F01 lifecycle, read under the existing owner transaction. */
   public record CollectionSeasonView(
-      UUID id, String label, CollectionSeasonStateEnum collectionState, long collectionRevision) {}
+      UUID id,
+      String label,
+      long startYear,
+      CollectionSeasonStateEnum collectionState,
+      long collectionRevision) {}
 
   /**
    * Persistent organization, even before a club-page read succeeds.

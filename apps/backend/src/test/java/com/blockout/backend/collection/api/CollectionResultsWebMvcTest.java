@@ -20,6 +20,7 @@ import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
 import com.blockout.backend.collection.application.service.CollectionResultService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.SourcePreparationService;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
@@ -63,6 +64,7 @@ class CollectionResultsWebMvcTest {
   @MockitoBean private CollectionResultService results;
   @MockitoBean private CollectionCycleService cycles;
   @MockitoBean private CollectorRuntimeService runtimes;
+  @MockitoBean private SourcePreparationService preparation;
   @MockitoBean private AccountAccess accounts;
 
   @Test

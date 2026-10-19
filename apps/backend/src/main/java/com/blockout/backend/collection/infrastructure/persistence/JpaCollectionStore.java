@@ -6,12 +6,18 @@ import com.blockout.backend.collection.application.model.CollectionAttempt;
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.port.CollectionStore;
+import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
+import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +32,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 class JpaCollectionStore implements CollectionStore {
+  private final EntityManager entityManager;
   private final CollectorRuntimeRepository runtimes;
   private final CollectionControlRepository controls;
   private final SourceBindingRepository sources;
@@ -79,14 +86,52 @@ class JpaCollectionStore implements CollectionStore {
   @Override
   public void complete(CollectionState.Cycle cycle, Instant completedAt) {
     cycles.findById(cycle.id()).orElseThrow().setCompletedAt(completedAt);
-    if (results.successful(cycle.id(), cycle.cycleOrder()))
+    if (cycle.controlId() != null && results.successful(cycle.id(), cycle.cycleOrder()))
       controls.recordSuccess(cycle.controlId(), completedAt);
   }
 
   /** {@inheritDoc} */
   @Override
-  public void lockAcceptedSource(CollectionState.Source source) {
-    sources.findById(source.id()).orElseThrow().setLocked(true);
+  public CollectionState.Source lockAcceptedSource(CollectionState.Source source) {
+    return saveSource(source.toBuilder().locked(true).acceptedUrl(source.candidateUrl()).build());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public CollectionState.Source createSource(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      String candidateUrl) {
+    return mapper.toView(
+        sources.saveAndFlush(
+            new SourceBindingEntity(seasonId, provider, organizerReference, candidateUrl)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public CollectionState.Source saveSource(CollectionState.Source source) {
+    SourceBindingEntity entity = sources.findById(source.id()).orElseThrow();
+    // Renewing interrupted pending intent only changes the version-excluded cycle pointer.
+    if (entity.getValidationState() == SourceValidationStateEnum.PENDING
+        && source.validationState() == SourceValidationStateEnum.PENDING
+        && !Objects.equals(entity.getCurrentCycleId(), source.currentCycleId()))
+      entityManager.lock(entity, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
+    mapper.update(source, entity);
+    sources.flush();
+    return mapper.toView(entity);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void ensureSeasonControl(UUID seasonId, CollectionProviderEnum provider) {
+    CollectionFamilyEnum family =
+        switch (provider) {
+          case FFVB -> CollectionFamilyEnum.FFVB;
+          case LNV -> CollectionFamilyEnum.LNV;
+        };
+    if (!controls.existsBySeasonIdAndFamily(seasonId, family))
+      controls.save(new CollectionControlEntity(seasonId, family));
   }
 
   /** {@inheritDoc} */
@@ -181,7 +226,9 @@ class JpaCollectionStore implements CollectionStore {
   /** {@inheritDoc} */
   @Override
   public List<CollectionState.Source> sources(UUID seasonId) {
-    return sources.findBySeasonIdOrderById(seasonId).stream().map(mapper::toView).toList();
+    return sources.findBySeasonIdOrderByProviderAscOrganizerReferenceAscIdAsc(seasonId).stream()
+        .map(mapper::toView)
+        .toList();
   }
 
   /** {@inheritDoc} */
