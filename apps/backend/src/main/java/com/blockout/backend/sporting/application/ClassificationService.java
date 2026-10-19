@@ -3,17 +3,14 @@ package com.blockout.backend.sporting.application;
 import com.blockout.backend.access.application.ActionAuthorization;
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
-import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.sporting.application.SportingViews.ClassificationView;
 import com.blockout.backend.sporting.application.SportingViews.DivisionView;
 import com.blockout.backend.sporting.application.SportingViews.PackView;
 import com.blockout.backend.sporting.application.SportingViews.ParticipationView;
 import com.blockout.backend.sporting.application.SportingViews.PoolClassificationView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -144,16 +141,6 @@ public class ClassificationService {
       }
     }
     conflicts.addAll(store.classificationCollisions(teamIds, target));
-    Map<TeamKey, UUID> targets = new HashMap<>();
-    for (TeamView team : teams) {
-      if (team.provider() != CollectionProviderEnum.FFVB) continue;
-      TeamKey key = new TeamKey(team.clubId(), team.comparisonName());
-      UUID duplicate = targets.putIfAbsent(key, team.id());
-      if (duplicate != null) {
-        conflicts.add(duplicate);
-        conflicts.add(team.id());
-      }
-    }
     if (!conflicts.isEmpty()) {
       conflicts.addAll(poolIds);
       throw new SportingConflictException("classification-conflict", List.copyOf(conflicts));
@@ -249,7 +236,4 @@ public class ClassificationService {
         store.poolClassification(poolId).orElseThrow(SportingResourceNotFoundException::new);
     return detail(pool, store.pack(pool.pool().packId()).orElseThrow());
   }
-
-  /** FFVB target key inside the one locked season; format, gender and division are shared. */
-  private record TeamKey(UUID clubId, String comparisonName) {}
 }

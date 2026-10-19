@@ -335,7 +335,8 @@ public interface SportingStore {
   DivisionDetail setDivisionActive(UUID id, boolean active);
 
   /**
-   * Finds existing FFVB target identities that collide with the affected team keys.
+   * Finds FFVB canonical-name or qualified-alias collisions within the affected teams and against
+   * existing teams in the proposed classification. The caller holds the season lock.
    *
    * @param teamIds teams in the locked season
    * @param target complete proposed classification

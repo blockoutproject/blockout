@@ -163,10 +163,30 @@ class DivisionIntegrationTest {
     // Then
     assertThat(read).isEqualTo(division);
     assertThat(divisions.list(account, true)).containsExactly(division);
+    assertThatThrownBy(() -> divisions.requireLifecycle(account))
+        .isInstanceOf(AccessDeniedException.class);
     assertThatThrownBy(() -> divisions.setActive(account, division.id(), "0", false))
         .isInstanceOf(AccessDeniedException.class);
     assertThatThrownBy(() -> divisions.create(account, "Another", "#112233", null, null, null))
         .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  @DisplayName("A successful upload preflight does not authorize creation after grant withdrawal")
+  void rechecksGrantAfterUploadPreflight() {
+    // Given
+    divisions.requireLifecycle(account);
+    sql.update(
+        "DELETE FROM account_permission WHERE account_id = ? AND permission = 'division-lifecycle.manage'",
+        account);
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable create =
+        () -> divisions.create(account, "National 2", "#112233", null, null, null);
+
+    // Then
+    assertThatThrownBy(create).isInstanceOf(AccessDeniedException.class);
+    assertThat(divisions.list(account, true)).isEmpty();
   }
 
   @Test

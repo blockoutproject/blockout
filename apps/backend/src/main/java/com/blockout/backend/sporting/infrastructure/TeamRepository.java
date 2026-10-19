@@ -83,7 +83,9 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
   List<TeamEntity> findParticipatingIn(List<UUID> poolIds);
 
   /**
-   * Resolves target-key collisions in one scoped query rather than one query per team.
+   * Resolves canonical-name and qualified-alias collisions in the corrected scope and against
+   * existing target teams. Names are global within a season/club/classification; two aliases
+   * collide only in the same organizer/competition context of their owners' season.
    *
    * @param teamIds affected teams in the locked season
    * @param classification proposed complete target
@@ -91,13 +93,28 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
    */
   @Query(
       """
-      select distinct target.id from TeamEntity original, TeamEntity target
+      select distinct target.id
+      from TeamEntity original left join original.aliases originalAlias,
+           TeamEntity target left join target.aliases targetAlias
       where original.id in :teamIds and original.provider = com.blockout.backend.generated.ingestion.model.CollectionProviderEnum.FFVB
       and target.provider = original.provider and target.season = original.season
-      and target.club = original.club and target.comparisonName = original.comparisonName
-      and target.division.id = :#{#classification.divisionId}
-      and target.format = :#{#classification.format} and target.gender = :#{#classification.gender}
+      and target.club = original.club
+      and (target.id in :teamIds or (
+        target.division.id = :#{#classification.divisionId}
+        and target.format = :#{#classification.format} and target.gender = :#{#classification.gender}
+      ))
       and target.id <> original.id
+      and (
+        target.comparisonName = original.comparisonName
+        or (originalAlias.seasonId = original.season.id
+            and originalAlias.comparisonName = target.comparisonName)
+        or (targetAlias.seasonId = target.season.id
+            and targetAlias.comparisonName = original.comparisonName)
+        or (originalAlias.seasonId = original.season.id and targetAlias.seasonId = target.season.id
+            and originalAlias.organizerReference = targetAlias.organizerReference
+            and originalAlias.competitionReference = targetAlias.competitionReference
+            and originalAlias.comparisonName = targetAlias.comparisonName)
+      )
       """)
   List<UUID> findClassificationCollisions(
       List<UUID> teamIds, SportingClassification classification);

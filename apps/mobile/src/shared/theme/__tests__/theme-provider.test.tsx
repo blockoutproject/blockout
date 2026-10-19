@@ -25,6 +25,9 @@ function ThemeConsumer() {
       <Text accessibilityLabel="Accent de sélection">
         {theme.membership.fill}
       </Text>
+      <Text accessibilityLabel="Bordure de navigation">
+        {theme.membership.border}
+      </Text>
       <TextInput
         accessibilityLabel="Brouillon"
         value={value}
@@ -93,6 +96,42 @@ it("updates navigation surfaces and preserves a mounted draft when native appear
   expect(screen.getByText("dark")).toBeOnTheScreen();
   expect(screen.getByLabelText("Surfaces natives")).toHaveTextContent(
     "#0D0D0E #19191A",
+  );
+  expect(screen.getByDisplayValue("Valeur conservée")).toBeOnTheScreen();
+});
+
+it("updates the Pro palette while preserving a mounted draft on native appearance changes", async () => {
+  // Given
+  jest.spyOn(Appearance, "getColorScheme").mockReturnValue("light");
+  const subscribe = jest.spyOn(Appearance, "addChangeListener");
+  const user = userEvent.setup();
+  await render(
+    <ThemeProvider proAccent>
+      <ThemeConsumer />
+    </ThemeProvider>,
+  );
+  expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
+    "#E7D39B",
+  );
+  expect(screen.getByLabelText("Bordure de navigation")).toHaveTextContent(
+    "#C1AA68",
+  );
+  await user.type(screen.getByLabelText("Brouillon"), "Valeur conservée");
+
+  // When
+  jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
+  await act(() => {
+    for (const [listener] of subscribe.mock.calls)
+      listener({ colorScheme: "dark" });
+  });
+
+  // Then
+  expect(screen.getByText("dark")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
+    "#E2C985",
+  );
+  expect(screen.getByLabelText("Bordure de navigation")).toHaveTextContent(
+    "#A99662",
   );
   expect(screen.getByDisplayValue("Valeur conservée")).toBeOnTheScreen();
 });

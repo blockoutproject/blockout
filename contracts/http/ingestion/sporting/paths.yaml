@@ -336,7 +336,7 @@ TeamLogoObservations:
     summary: Accept an LNV logo
     description:
       Professional team in the authorized existing calendar cycle only. Validate actual PNG/JPEG
-      bytes and decodability, at most 5242880 bytes. Image failure is independent of match acceptance.
+      bytes and decodability, at most 5242880 bytes and 4194304 pixels. Image failure is independent of match acceptance.
       Retain only latest valid source image; manual logo and optional club relation are never modified.
     responses:
       "200":
@@ -416,9 +416,9 @@ TeamLogoObservations:
           schema:
             type: string
             format: binary
-            description: PNG/JPEG bytes, at most 5 MiB.
+            description: PNG/JPEG bytes, at most 5 MiB and 4194304 pixels.
         image/jpeg:
           schema:
             type: string
             format: binary
-            description: PNG/JPEG bytes, at most 5 MiB.
+            description: PNG/JPEG bytes, at most 5 MiB and 4194304 pixels.

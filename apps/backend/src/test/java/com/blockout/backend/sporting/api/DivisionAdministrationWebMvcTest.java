@@ -3,6 +3,8 @@ package com.blockout.backend.sporting.api;
 import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -36,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -91,6 +94,7 @@ class DivisionAdministrationWebMvcTest {
   @DisplayName("Refuses an undecodable replacement before creating any division")
   void refusesInvalidImage() throws Exception {
     // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     MockMultipartFile image =
         new MockMultipartFile("image", "synthetic.png", "image/png", new byte[] {1, 2, 3});
     // When
@@ -99,10 +103,46 @@ class DivisionAdministrationWebMvcTest {
             multipart("/administration/divisions")
                 .file(metadata("replace"))
                 .file(image)
-                .with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .claim("azp", "mobile-test"))));
     // Then
     response.andExpect(status().isUnprocessableEntity());
-    verifyNoInteractions(divisions);
+    verify(divisions, never()).create(any(), any(), any(), any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("Refuses a missing lifecycle grant before inspecting invalid image content")
+  void refusesUnauthorizedImageValidation() throws Exception {
+    // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
+    doThrow(new AccessDeniedException("Division lifecycle is not permitted"))
+        .when(divisions)
+        .requireLifecycle(ACCOUNT);
+    MockMultipartFile image =
+        new MockMultipartFile("image", "synthetic.png", "image/png", new byte[] {1, 2, 3});
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            multipart("/administration/divisions")
+                .file(metadata("replace"))
+                .file(image)
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .claim("azp", "mobile-test"))));
+
+    // Then
+    response.andExpect(status().isForbidden());
+    verify(divisions, never()).create(any(), any(), any(), any(), any(), any());
   }
 
   @ParameterizedTest
@@ -146,6 +186,7 @@ class DivisionAdministrationWebMvcTest {
   @DisplayName("Forbids an image when the logo instruction does not replace it")
   void refusesUnexpectedImage(String action) throws Exception {
     // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     MockMultipartFile image =
         new MockMultipartFile("image", "synthetic.png", "image/png", new byte[] {1});
     // When
@@ -154,26 +195,39 @@ class DivisionAdministrationWebMvcTest {
             multipart("/administration/divisions")
                 .file(metadata(action))
                 .file(image)
-                .with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .claim("azp", "mobile-test"))));
     // Then
     response.andExpect(status().isUnprocessableEntity());
-    verifyNoInteractions(divisions);
+    verify(divisions, never()).create(any(), any(), any(), any(), any(), any());
   }
 
   @Test
   @DisplayName("Refuses a replacement without image bytes before any write")
   void requiresReplacementImage() throws Exception {
     // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     // The metadata deliberately requests a missing replacement.
     // When
     ResultActions response =
         mvc.perform(
             multipart("/administration/divisions")
                 .file(metadata("replace"))
-                .with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .claim("azp", "mobile-test"))));
     // Then
     response.andExpect(status().isUnprocessableEntity());
-    verifyNoInteractions(divisions);
+    verify(divisions, never()).create(any(), any(), any(), any(), any(), any());
   }
 
   @Test
@@ -265,13 +319,24 @@ class DivisionAdministrationWebMvcTest {
             post("/administration/divisions")
                 .contentType("application/json")
                 .content("{}")
-                .with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .claim("azp", "mobile-test"))));
     // Then
     response.andExpect(status().isUnsupportedMediaType());
     verifyNoInteractions(divisions);
   }
 
-  /** Creates complete JSON metadata; the logo instruction belongs to each scenario. */
+  /**
+   * Creates complete JSON metadata without hiding the scenario's logo instruction.
+   *
+   * @param action desired logo behavior owned by the scenario
+   * @return multipart JSON metadata for a valid division name and colors
+   */
   private MockMultipartFile metadata(String action) {
     return new MockMultipartFile(
         "metadata",

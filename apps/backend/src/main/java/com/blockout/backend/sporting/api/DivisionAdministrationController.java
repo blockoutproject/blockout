@@ -54,12 +54,14 @@ public class DivisionAdministrationController implements DivisionAdministrationA
   @Override
   public ResponseEntity<DivisionResponse> createDivision(
       CreateDivisionRequest metadata, MultipartFile image) {
+    UUID accountId = account.id();
+    divisions.requireLifecycle(accountId);
     if (metadata.getName().isBlank())
       throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT);
     ValidatedImage validated = validateLogo(metadata.getLogoAction(), image);
     DivisionDetail created =
         divisions.create(
-            account.id(),
+            accountId,
             metadata.getName(),
             metadata.getColor(),
             metadata.getGradient().get(),
@@ -83,8 +85,8 @@ public class DivisionAdministrationController implements DivisionAdministrationA
   }
 
   /**
-   * Checks the logo instruction and validates replacement content before opening a write
-   * transaction.
+   * Checks the logo instruction and validates bounded replacement content after permission
+   * preflight and before opening a write transaction.
    *
    * @param action desired logo handling from validated metadata
    * @param image optional multipart bytes, independent from claimed content type
