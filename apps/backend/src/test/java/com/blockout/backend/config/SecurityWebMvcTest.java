@@ -9,10 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.generated.ingestion.api.CollectionApi;
-import com.blockout.backend.generated.ingestion.model.GetCollectorRuntime200Response;
+import com.blockout.backend.generated.ingestion.model.CollectorRuntimeInternalResponse;
 import com.blockout.backend.generated.mobile.api.AccountsApi;
-import com.blockout.backend.generated.mobile.model.ChangeAccountProfileRequestMetadata;
-import com.blockout.backend.generated.mobile.model.EstablishAccount200Response;
+import com.blockout.backend.generated.mobile.model.AccountResponse;
+import com.blockout.backend.generated.mobile.model.ChangeAccountProfileRequest;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
@@ -447,29 +447,26 @@ class SecurityWebMvcTest {
 
     /** {@inheritDoc} */
     @Override
-    public ResponseEntity<EstablishAccount200Response> establishAccount(Boolean bypass) {
+    public ResponseEntity<AccountResponse> establishAccount(Boolean bypass) {
       return ResponseEntity.notFound().build();
     }
 
     /** {@inheritDoc} */
     @Override
-    public ResponseEntity<EstablishAccount200Response> getMyAccount() {
+    public ResponseEntity<AccountResponse> getMyAccount() {
       return ResponseEntity.notFound().build();
     }
 
     /** {@inheritDoc} */
     @Override
-    public ResponseEntity<EstablishAccount200Response> getAccount(UUID accountId, Boolean bypass) {
+    public ResponseEntity<AccountResponse> getAccount(UUID accountId, Boolean bypass) {
       return ResponseEntity.notFound().build();
     }
 
     /** {@inheritDoc} */
     @Override
-    public ResponseEntity<EstablishAccount200Response> changeAccountProfile(
-        UUID accountId,
-        ChangeAccountProfileRequestMetadata metadata,
-        Boolean bypass,
-        MultipartFile image) {
+    public ResponseEntity<AccountResponse> changeAccountProfile(
+        UUID accountId, ChangeAccountProfileRequest metadata, Boolean bypass, MultipartFile image) {
       return ResponseEntity.notFound().build();
     }
 
@@ -481,8 +478,8 @@ class SecurityWebMvcTest {
 
     /** Serves a harmless canonical ingestion projection for the authentication boundary. */
     @GetMapping(CollectionApi.PATH_GET_COLLECTOR_RUNTIME)
-    GetCollectorRuntime200Response runtime() {
-      return new GetCollectorRuntime200Response().revision(0L).incarnationId(null);
+    CollectorRuntimeInternalResponse runtime() {
+      return new CollectorRuntimeInternalResponse().revision(0L).incarnationId(null);
     }
 
     /**

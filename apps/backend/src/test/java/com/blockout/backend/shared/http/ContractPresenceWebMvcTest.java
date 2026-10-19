@@ -7,8 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.config.HttpConfiguration;
-import com.blockout.backend.generated.mobile.model.CreateDivisionRequestMetadata;
-import com.blockout.backend.generated.mobile.model.SetPackClassificationRequest;
+import com.blockout.backend.generated.mobile.model.CreateDivisionRequest;
+import com.blockout.backend.generated.mobile.model.SetClassificationRequest;
 import com.blockout.backend.generated.mobile.model.SetPoolPresentationRequest;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
@@ -182,8 +182,7 @@ class ContractPresenceWebMvcTest {
      * @return the unchanged bound request
      */
     @PostMapping("/contract/classification")
-    SetPackClassificationRequest classification(
-        @RequestBody @Valid SetPackClassificationRequest body) {
+    SetClassificationRequest classification(@RequestBody @Valid SetClassificationRequest body) {
       return body;
     }
 
@@ -194,8 +193,7 @@ class ContractPresenceWebMvcTest {
      * @return the unchanged bound metadata
      */
     @PostMapping(value = "/contract/division", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    CreateDivisionRequestMetadata division(
-        @RequestPart("metadata") @Valid CreateDivisionRequestMetadata metadata) {
+    CreateDivisionRequest division(@RequestPart("metadata") @Valid CreateDivisionRequest metadata) {
       return metadata;
     }
   }

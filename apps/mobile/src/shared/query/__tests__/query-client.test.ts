@@ -5,15 +5,15 @@ import {
   QueryClient,
   QueryObserver,
 } from "@tanstack/react-query";
-import { GetTeamFollowerCount200 } from "../../../../.generated/schemas/index.zod";
+import { FollowerCountResponse } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../query-client";
 
 // Real Query observers use schema-validated responses; only the request is controlled.
-const retained = GetTeamFollowerCount200.parse({ count: 3 });
-const refreshed = GetTeamFollowerCount200.parse({ count: 4 });
+const retained = FollowerCountResponse.parse({ count: 3 });
+const refreshed = FollowerCountResponse.parse({ count: 4 });
 const queryKey = ["controlled-follower-count"];
 let client: QueryClient;
-let observer: QueryObserver<GetTeamFollowerCount200> | undefined;
+let observer: QueryObserver<FollowerCountResponse> | undefined;
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -39,10 +39,10 @@ it("fails an offline read without queueing it, then allows an explicit retry", a
   onlineManager.setOnline(false);
   const failure = new Error("Network unavailable");
   const read = jest
-    .fn<Promise<GetTeamFollowerCount200>, []>()
+    .fn<Promise<FollowerCountResponse>, []>()
     .mockRejectedValueOnce(failure)
     .mockResolvedValue(refreshed);
-  observer = new QueryObserver<GetTeamFollowerCount200>(client, {
+  observer = new QueryObserver<FollowerCountResponse>(client, {
     queryKey,
     queryFn: read,
   });
@@ -121,9 +121,9 @@ it.each(["reconnect", "focus"])(
   async (trigger) => {
     // Given
     const read = jest
-      .fn<Promise<GetTeamFollowerCount200>, []>()
+      .fn<Promise<FollowerCountResponse>, []>()
       .mockResolvedValue(retained);
-    observer = new QueryObserver<GetTeamFollowerCount200>(client, {
+    observer = new QueryObserver<FollowerCountResponse>(client, {
       queryKey,
       queryFn: read,
     });
@@ -159,10 +159,10 @@ it.each([false, true])(
     // Given
     const failure = new Error("Refresh unavailable");
     const read = jest
-      .fn<Promise<GetTeamFollowerCount200>, []>()
+      .fn<Promise<FollowerCountResponse>, []>()
       .mockResolvedValueOnce(retained)
       .mockRejectedValue(failure);
-    observer = new QueryObserver<GetTeamFollowerCount200>(client, {
+    observer = new QueryObserver<FollowerCountResponse>(client, {
       queryKey,
       queryFn: read,
     });
@@ -214,10 +214,10 @@ it.each([false, true])(
 it("allows a feature-approved focus refresh only after its chosen freshness expires", async () => {
   // Given
   const read = jest
-    .fn<Promise<GetTeamFollowerCount200>, []>()
+    .fn<Promise<FollowerCountResponse>, []>()
     .mockResolvedValueOnce(retained)
     .mockResolvedValue(refreshed);
-  observer = new QueryObserver<GetTeamFollowerCount200>(client, {
+  observer = new QueryObserver<FollowerCountResponse>(client, {
     queryKey,
     queryFn: read,
     staleTime: 1_000,
@@ -255,12 +255,12 @@ it.each(["success", "error"])(
     const read =
       state === "success"
         ? jest
-            .fn<Promise<GetTeamFollowerCount200>, []>()
+            .fn<Promise<FollowerCountResponse>, []>()
             .mockResolvedValue(retained)
         : jest
-            .fn<Promise<GetTeamFollowerCount200>, []>()
+            .fn<Promise<FollowerCountResponse>, []>()
             .mockRejectedValue(new Error("Unavailable"));
-    observer = new QueryObserver<GetTeamFollowerCount200>(client, {
+    observer = new QueryObserver<FollowerCountResponse>(client, {
       queryKey,
       queryFn: read,
     });
@@ -270,7 +270,7 @@ it.each(["success", "error"])(
     observer.destroy();
 
     // When
-    observer = new QueryObserver<GetTeamFollowerCount200>(client, {
+    observer = new QueryObserver<FollowerCountResponse>(client, {
       queryKey,
       queryFn: read,
     });

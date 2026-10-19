@@ -1,4 +1,5 @@
 ObservationContextInternalRequest:
+  title: ObservationContextInternalRequest
   type: object
   description: >-
     Authorized collection context. The backend resolves source, season, scope, logical order and
@@ -30,6 +31,7 @@ ObservationContextInternalRequest:
     - readOrdinal
     - observedAt
 ObservationOutcomeEnum:
+  title: ObservationOutcomeEnum
   type: string
   description: Per-scope processing result; stale or rejected is not successful integration.
   enum:
@@ -38,6 +40,7 @@ ObservationOutcomeEnum:
     - stale
     - rejected
 ObservationOutcomeInternalResponse:
+  title: ObservationOutcomeInternalResponse
   type: object
   description: One safe, attributable acceptance outcome. No supplier payload or personal values.
   additionalProperties: true
@@ -74,6 +77,7 @@ ObservationOutcomeInternalResponse:
     - sourceReference
     - outcome
 CalendarOutcomeInternalResponse:
+  title: CalendarOutcomeInternalResponse
   type: object
   description:
     HTTP success means the envelope was processed, not that every sporting observation
@@ -118,6 +122,7 @@ CalendarOutcomeInternalResponse:
     - rejectedCount
     - absenceReconciled
 TeamCandidateInternalRequest:
+  title: TeamCandidateInternalRequest
   type: object
   description:
     Identity-bearing calendar participant. A place awaiting a qualifier belongs in contextSlots,
@@ -148,7 +153,8 @@ TeamCandidateInternalRequest:
       minLength: 1
   required:
     - sourceName
-SetScoreInternalRequest:
+MatchSetScoreInternalRequest:
+  title: MatchSetScoreInternalRequest
   type: object
   description:
     One interpretable played set in source order. Invalid set detail is omitted without
@@ -169,6 +175,7 @@ SetScoreInternalRequest:
 ResultStateEnum:
   $ref: ../../common/sporting-enums.yaml#/ResultStateEnum
 MatchFactsInternalRequest:
+  title: MatchFactsInternalRequest
   type: object
   description:
     Field proposals from one valid observation. Omission preserves useful accepted data.
@@ -197,36 +204,14 @@ MatchFactsInternalRequest:
         times do not yield an invented instant.
       example: Europe/Paris
     result:
-      type: object
-      description:
-        "Omitted: preserve accepted result. Null: explicit official withdrawal, also removing
-        sets. Object: usable overall result proposal."
-      additionalProperties: false
-      properties:
-        state:
-          $ref: "#/ResultStateEnum"
-        homeSets:
-          type: integer
-          description: Published home set total; absent for nonnumeric special notation.
-          minimum: 0
-        awaySets:
-          type: integer
-          description: Published away set total; absent for nonnumeric special notation.
-          minimum: 0
-        specialLabel:
-          type: string
-          description: Recognized official forfeit/penalty notation, independent of result finality; present for a special result.
-          minLength: 1
-      required:
-        - state
-      nullable: true
+      $ref: "#/MatchResultInternalRequest"
     sets:
       type: array
       description:
         "Omitted: retain only compatible earlier sets with old freshness. Null: qualified
         removal. Empty: no played sets stated."
       items:
-        $ref: "#/SetScoreInternalRequest"
+        $ref: "#/MatchSetScoreInternalRequest"
       nullable: true
     venueName:
       type: string
@@ -261,6 +246,7 @@ MatchFactsInternalRequest:
       nullable: true
       description: Published professional statistics PDF URL; omission preserves, null explicitly withdraws. Not extracted player statistics.
 InformationSheetInternalRequest:
+  title: InformationSheetInternalRequest
   type: object
   description: Qualified official form locator. Omission preserves an existing association; null explicitly withdraws it. Professional qualification requires verified same-season/championship team associations and a unique exact participants/date match; an established code survives rescheduling.
   additionalProperties: false
@@ -281,6 +267,7 @@ InformationSheetInternalRequest:
     - organizerReference
     - matchCode
 CalendarMatchInternalRequest:
+  title: CalendarMatchInternalRequest
   type: object
   description:
     One attributable match candidate. Identities and source context are distinct from optional
@@ -309,12 +296,14 @@ CalendarMatchInternalRequest:
     - away
     - facts
 ContextSlotKindEnum:
+  title: ContextSlotKindEnum
   type: string
   description: Recognized non-match context, not a supplier parse failure.
   enum:
     - bye
     - undetermined-qualifier
 CalendarContextSlotInternalRequest:
+  title: CalendarContextSlotInternalRequest
   type: object
   description:
     Recognized place without two established sporting teams. Creates no match or fictional
@@ -331,6 +320,7 @@ CalendarContextSlotInternalRequest:
     - sourceReference
     - kind
 AcquisitionFailureInternalRequest:
+  title: AcquisitionFailureInternalRequest
   type: object
   description:
     A bounded local adapter failure reported explicitly so missing rows never become proof
@@ -349,6 +339,7 @@ AcquisitionFailureInternalRequest:
     - sourceReference
     - reasonType
 CalendarObservationInternalRequest:
+  title: CalendarObservationInternalRequest
   type: object
   description:
     One source calendar/phase. Maximum total across matches, contextSlots and failures
@@ -389,6 +380,7 @@ CalendarObservationInternalRequest:
     - contextSlots
     - failures
 MatchDetailObservationInternalRequest:
+  title: MatchDetailObservationInternalRequest
   type: object
   description:
     Enrich an already-known match only. Does not create identities or restore participation/calendar
@@ -403,6 +395,7 @@ MatchDetailObservationInternalRequest:
     - context
     - facts
 CatalogPoolInternalRequest:
+  title: CatalogPoolInternalRequest
   type: object
   description:
     Native pool identity inside one provider season binding. Compound references use explicit
@@ -448,6 +441,7 @@ CatalogPoolInternalRequest:
     - poolReference
     - sourceName
 CatalogObservationInternalRequest:
+  title: CatalogObservationInternalRequest
   type: object
   description: >-
     Complete or partial catalog within a known source-season binding, at most 8388608 bytes of JSON.
@@ -473,6 +467,7 @@ CatalogObservationInternalRequest:
     - complete
     - pools
 CatalogOutcomeInternalResponse:
+  title: CatalogOutcomeInternalResponse
   type: object
   description: >-
     Discovered pool references and acceptance outcomes. Resolved references remain subject to
@@ -495,6 +490,7 @@ CatalogOutcomeInternalResponse:
     - outcomes
     - absenceReconciled
 StandingRowInternalRequest:
+  title: StandingRowInternalRequest
   type: object
   description:
     Official row preserved even without a resolvable current team. No row creates an identity
@@ -524,12 +520,14 @@ StandingRowInternalRequest:
     - sourceName
     - statistics
 StandingsPublicationStateEnum:
+  title: StandingsPublicationStateEnum
   type: string
   description: Qualified source publication state; acquisition failure is not a publication state.
   enum:
     - published
     - not-published
 StandingsObservationInternalRequest:
+  title: StandingsObservationInternalRequest
   type: object
   description: >-
     Atomically accept a qualified publication state under the pool's observation order.
@@ -563,6 +561,7 @@ StandingsObservationInternalRequest:
     - columns
     - rows
 ClubDetailsInternalRequest:
+  title: ClubDetailsInternalRequest
   type: object
   description: >-
     Source-managed club values; manual corrections and deliberate absences remain protected.
@@ -611,6 +610,7 @@ ClubDetailsInternalRequest:
   required:
     - context
 GeocodingOutcomeEnum:
+  title: GeocodingOutcomeEnum
   type: string
   description: Qualified locality outcome; transport failure is not an empty success.
   enum:
@@ -618,6 +618,7 @@ GeocodingOutcomeEnum:
     - empty
     - ambiguous
 ClubLocalityObservationInternalRequest:
+  title: ClubLocalityObservationInternalRequest
   type: object
   description: >-
     Geocoding result for the effective locality context. Only the current locality revision can
@@ -649,3 +650,28 @@ ClubLocalityObservationInternalRequest:
     - context
     - localityRevision
     - outcome
+MatchResultInternalRequest:
+  title: MatchResultInternalRequest
+  type: object
+  description:
+    "Omitted: preserve accepted result. Null: explicit official withdrawal, also removing
+    sets. Object: usable overall result proposal."
+  additionalProperties: false
+  properties:
+    state:
+      $ref: "#/ResultStateEnum"
+    homeSets:
+      type: integer
+      description: Published home set total; absent for nonnumeric special notation.
+      minimum: 0
+    awaySets:
+      type: integer
+      description: Published away set total; absent for nonnumeric special notation.
+      minimum: 0
+    specialLabel:
+      type: string
+      description: Recognized official forfeit/penalty notation, independent of result finality; present for a special result.
+      minLength: 1
+  required:
+    - state
+  nullable: true

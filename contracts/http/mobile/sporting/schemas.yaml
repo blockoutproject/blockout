@@ -1,4 +1,5 @@
 SportingResourceKindEnum:
+  title: SportingResourceKindEnum
   type: string
   description: >-
     Club and team resources with presentation editors.
@@ -6,6 +7,7 @@ SportingResourceKindEnum:
     - club
     - team
 ContactModeEnum:
+  title: ContactModeEnum
   type: string
   description: Independent durable management mode for one field.
   enum:
@@ -13,6 +15,7 @@ ContactModeEnum:
     - manual
     - hidden
 SetClassificationRequest:
+  title: SetClassificationRequest
   type: object
   description:
     Desired pack default or complete pool override; null removes that setting. This is
@@ -24,30 +27,12 @@ SetClassificationRequest:
       description: Current editing revision from the same resource GET.
       minLength: 1
     classification:
-      type: object
-      description: >-
-        Null removes this pack default or pool override. A pool then inherits its pack default, if
-        any. Missing acquisition classification does not erase the classification of published
-        data.
-      additionalProperties: false
-      properties:
-        divisionId:
-          type: string
-          description: Active division for a new assignment.
-          format: uuid
-        format:
-          $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
-        gender:
-          $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
-      required:
-        - divisionId
-        - format
-        - gender
-      nullable: true
+      $ref: "#/AcquisitionClassificationRequest"
   required:
     - revision
     - classification
 ClassificationDetailResponse:
+  title: ClassificationDetailResponse
   type: object
   description: >-
     Current pack or pool setting, effective acquisition classification and editing revision. The
@@ -63,49 +48,16 @@ ClassificationDetailResponse:
       type: string
       description: Opaque revision covering relevant state and inherited values.
     setting:
-      type: object
-      description: Own pack default or pool override; null means no own setting.
-      additionalProperties: true
-      properties:
-        divisionId:
-          type: string
-          description: Division identity.
-          format: uuid
-        format:
-          $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
-        gender:
-          $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
-      required:
-        - divisionId
-        - format
-        - gender
-      nullable: true
+      $ref: "#/AcquisitionClassificationResponse"
     effective:
-      type: object
-      description:
-        Current acquisition classification after inheritance; null means collection cannot
-        start.
-      additionalProperties: true
-      properties:
-        divisionId:
-          type: string
-          description: Division identity.
-          format: uuid
-        format:
-          $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
-        gender:
-          $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
-      required:
-        - divisionId
-        - format
-        - gender
-      nullable: true
+      $ref: "#/AcquisitionClassificationResponse"
   required:
     - id
     - revision
     - setting
     - effective
 NamePresentationResponse:
+  title: NamePresentationResponse
   type: object
   description:
     Names independent of identity. Effective values include eligible source and manual
@@ -137,6 +89,7 @@ NamePresentationResponse:
     - effectiveName
     - manualName
 LogoPresentationResponse:
+  title: LogoPresentationResponse
   type: object
   description:
     Effective artwork projection. URLs designate backend-controlled image delivery subject
@@ -166,6 +119,7 @@ LogoPresentationResponse:
     - manualUrl
     - automaticUrl
 SportingPresentationResponse:
+  title: SportingPresentationResponse
   type: object
   description: >-
     Club or team names, effective and manual logo values, and editing revision. Team club
@@ -194,6 +148,7 @@ SportingPresentationResponse:
     - names
     - logo
 SetClubPresentationRequest:
+  title: SetClubPresentationRequest
   type: object
   description: Set the manual club display name and logo action; source values, contacts and identity remain unchanged.
   additionalProperties: false
@@ -216,6 +171,7 @@ SetClubPresentationRequest:
     - manualName
     - logoAction
 SetTeamPresentationRequest:
+  title: SetTeamPresentationRequest
   type: object
   description:
     Set independent team name customizations and the manual logo action. Clearing one field
@@ -244,6 +200,7 @@ SetTeamPresentationRequest:
     - manualShortName
     - logoAction
 SetPoolPresentationRequest:
+  title: SetPoolPresentationRequest
   type: object
   description: Set independent pool full/short name customizations; no image or logo action.
   additionalProperties: false
@@ -267,6 +224,7 @@ SetPoolPresentationRequest:
     - manualName
     - manualShortName
 PoolPresentationResponse:
+  title: PoolPresentationResponse
   type: object
   description: Current pool name presentation and editing revision.
   additionalProperties: true
@@ -287,6 +245,7 @@ PoolPresentationResponse:
     - revision
     - names
 ContactFieldRequest:
+  title: ContactFieldRequest
   type: object
   description:
     One desired contact mode. value is required and nonempty only for manual; forbidden
@@ -302,6 +261,7 @@ ContactFieldRequest:
   required:
     - mode
 ContactFieldResponse:
+  title: ContactFieldResponse
   type: object
   description:
     Authorized current value and management mode. Privacy-restricted values remain null
@@ -328,6 +288,7 @@ ContactFieldResponse:
     - sourceValue
     - manualValue
 SetClubContactsRequest:
+  title: SetClubContactsRequest
   type: object
   description:
     Set desired state only for supplied fields. Omitted fields are unchanged. At least
@@ -355,6 +316,7 @@ SetClubContactsRequest:
   required:
     - revision
 ClubContactsResponse:
+  title: ClubContactsResponse
   type: object
   description: Current independently managed club contacts; no personal data in error details or diagnostics.
   additionalProperties: true
@@ -388,6 +350,7 @@ ClubContactsResponse:
     - phone
     - website
 CreateDivisionRequest:
+  title: CreateDivisionRequest
   type: object
   description: >-
     Name, colors and logo action used when creating an active division.
@@ -421,6 +384,7 @@ CreateDivisionRequest:
     - gradient
     - logoAction
 SetDivisionPresentationRequest:
+  title: SetDivisionPresentationRequest
   type: object
   description: >-
     Division name, colors and logo action with the current editing revision; activity remains
@@ -460,6 +424,7 @@ SetDivisionPresentationRequest:
     - gradient
     - logoAction
 DivisionResponse:
+  title: DivisionResponse
   type: object
   description: Division identity, presentation and independent lifecycle.
   additionalProperties: true
@@ -505,6 +470,7 @@ DivisionResponse:
     - logo
     - active
 DivisionListResponse:
+  title: DivisionListResponse
   type: object
   description:
     Administrative selection list; all matching configured divisions, ordered by case-folded
@@ -519,6 +485,7 @@ DivisionListResponse:
   required:
     - items
 SetDivisionActivityRequest:
+  title: SetDivisionActivityRequest
   type: object
   description: Explicit lifecycle command separate from presentation. Never deletes sporting history.
   additionalProperties: false
@@ -536,9 +503,51 @@ SetDivisionActivityRequest:
     - revision
     - active
 LogoActionEnum:
+  title: LogoActionEnum
   type: string
   description: Desired logo behavior within the single editor save.
   enum:
     - keep
     - replace
     - automatic
+AcquisitionClassificationRequest:
+  title: AcquisitionClassificationRequest
+  type: object
+  description: >-
+    Null removes this pack default or pool override. A pool then inherits its pack default, if
+    any. Missing acquisition classification does not erase the classification of published
+    data.
+  additionalProperties: false
+  properties:
+    divisionId:
+      type: string
+      description: Active division for a new assignment.
+      format: uuid
+    format:
+      $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+    gender:
+      $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+  required:
+    - divisionId
+    - format
+    - gender
+  nullable: true
+AcquisitionClassificationResponse:
+  title: AcquisitionClassificationResponse
+  type: object
+  description: Complete acquisition classification; null means unavailable. The setting field holds the pack default or pool override; effective holds the current inherited value.
+  additionalProperties: true
+  properties:
+    divisionId:
+      type: string
+      description: Division identity.
+      format: uuid
+    format:
+      $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
+    gender:
+      $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
+  required:
+    - divisionId
+    - format
+    - gender
+  nullable: true

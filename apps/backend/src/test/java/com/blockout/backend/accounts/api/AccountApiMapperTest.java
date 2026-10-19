@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.domain.Account;
-import com.blockout.backend.generated.mobile.model.EstablishAccount200Response;
-import com.blockout.backend.generated.mobile.model.EstablishAccount200ResponsePermissions;
+import com.blockout.backend.generated.mobile.model.AccountPermissionsResponse;
+import com.blockout.backend.generated.mobile.model.AccountResponse;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Set;
@@ -47,19 +47,19 @@ class AccountApiMapperTest {
     Set<Permission> grants = Set.of(permission);
 
     // When
-    EstablishAccount200ResponsePermissions result = mapper.toDto(grants);
+    AccountPermissionsResponse result = mapper.toDto(grants);
 
     // Then
     assertThat(result)
         .extracting(
-            EstablishAccount200ResponsePermissions::getManageMaintenance,
-            EstablishAccount200ResponsePermissions::getManageApplicationVersions,
-            EstablishAccount200ResponsePermissions::getBypassMaintenance,
-            EstablishAccount200ResponsePermissions::getManageSportingPresentation,
-            EstablishAccount200ResponsePermissions::getManageSportingClassification,
-            EstablishAccount200ResponsePermissions::getManageDivisionLifecycle,
-            EstablishAccount200ResponsePermissions::getManageCollection,
-            EstablishAccount200ResponsePermissions::getModerateStreamLinks)
+            AccountPermissionsResponse::getManageMaintenance,
+            AccountPermissionsResponse::getManageApplicationVersions,
+            AccountPermissionsResponse::getBypassMaintenance,
+            AccountPermissionsResponse::getManageSportingPresentation,
+            AccountPermissionsResponse::getManageSportingClassification,
+            AccountPermissionsResponse::getManageDivisionLifecycle,
+            AccountPermissionsResponse::getManageCollection,
+            AccountPermissionsResponse::getModerateStreamLinks)
         .containsExactly(
             maintenance,
             versions,
@@ -85,7 +85,7 @@ class AccountApiMapperTest {
             Instant.parse("2020-01-02T03:04:05Z"));
 
     // When
-    EstablishAccount200Response result =
+    AccountResponse result =
         mapper.toDto(
             account, true, Set.of(Permission.MANAGE_MAINTENANCE, Permission.BYPASS_MAINTENANCE));
 
@@ -116,7 +116,7 @@ class AccountApiMapperTest {
             null);
 
     // When
-    EstablishAccount200Response result = mapper.toDto(account, false, Set.of());
+    AccountResponse result = mapper.toDto(account, false, Set.of());
 
     // Then
     assertThat(result.getPrincipalCreatedAt().isPresent()).isTrue();
@@ -124,14 +124,14 @@ class AccountApiMapperTest {
     assertThat(result.getHasPhoto()).isFalse();
     assertThat(result.getPermissions())
         .extracting(
-            EstablishAccount200ResponsePermissions::getManageMaintenance,
-            EstablishAccount200ResponsePermissions::getManageApplicationVersions,
-            EstablishAccount200ResponsePermissions::getBypassMaintenance,
-            EstablishAccount200ResponsePermissions::getManageSportingPresentation,
-            EstablishAccount200ResponsePermissions::getManageSportingClassification,
-            EstablishAccount200ResponsePermissions::getManageDivisionLifecycle,
-            EstablishAccount200ResponsePermissions::getManageCollection,
-            EstablishAccount200ResponsePermissions::getModerateStreamLinks)
+            AccountPermissionsResponse::getManageMaintenance,
+            AccountPermissionsResponse::getManageApplicationVersions,
+            AccountPermissionsResponse::getBypassMaintenance,
+            AccountPermissionsResponse::getManageSportingPresentation,
+            AccountPermissionsResponse::getManageSportingClassification,
+            AccountPermissionsResponse::getManageDivisionLifecycle,
+            AccountPermissionsResponse::getManageCollection,
+            AccountPermissionsResponse::getModerateStreamLinks)
         .containsOnly(false);
   }
 }

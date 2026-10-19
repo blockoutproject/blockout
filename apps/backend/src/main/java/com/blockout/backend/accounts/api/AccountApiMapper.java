@@ -3,8 +3,8 @@ package com.blockout.backend.accounts.api;
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.config.MappingConfiguration;
-import com.blockout.backend.generated.mobile.model.EstablishAccount200Response;
-import com.blockout.backend.generated.mobile.model.EstablishAccount200ResponsePermissions;
+import com.blockout.backend.generated.mobile.model.AccountPermissionsResponse;
+import com.blockout.backend.generated.mobile.model.AccountResponse;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -31,7 +31,7 @@ public interface AccountApiMapper {
       target = "principalCreatedAt",
       source = "account.principalCreatedAt",
       nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
-  EstablishAccount200Response toDto(Account account, boolean hasPhoto, Set<Permission> permissions);
+  AccountResponse toDto(Account account, boolean hasPhoto, Set<Permission> permissions);
 
   /**
    * Projects independent grants into all known canonical capability fields.
@@ -39,8 +39,8 @@ public interface AccountApiMapper {
    * @param permissions current grants, never inferred from a role or Pro entitlement
    * @return explicit booleans for presentation; resource eligibility remains owner-controlled
    */
-  default EstablishAccount200ResponsePermissions toDto(Set<Permission> permissions) {
-    return new EstablishAccount200ResponsePermissions()
+  default AccountPermissionsResponse toDto(Set<Permission> permissions) {
+    return new AccountPermissionsResponse()
         .manageMaintenance(permissions.contains(Permission.MANAGE_MAINTENANCE))
         .manageApplicationVersions(permissions.contains(Permission.MANAGE_APPLICATION_VERSIONS))
         .bypassMaintenance(permissions.contains(Permission.BYPASS_MAINTENANCE))

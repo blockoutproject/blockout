@@ -23,6 +23,7 @@ Collection:
       content:
         multipart/form-data:
           schema:
+            title: SubmitSupportMultipartRequest
             type: object
             description: Support metadata and optional prepared image files.
             additionalProperties: false
@@ -30,7 +31,7 @@ Collection:
               - metadata
             properties:
               metadata:
-                $ref: ./schemas.yaml#/CreateSupportRequestRequest
+                $ref: ./schemas.yaml#/SubmitSupportRequest
               images:
                 type: array
                 description: >-

@@ -1,10 +1,12 @@
 SearchResourceTypeEnum:
+  title: SearchResourceTypeEnum
   type: string
   description: Sporting resource type whose search choices are requested.
   enum:
     - team
     - pool
 ClubSummaryResponse:
+  title: ClubSummaryResponse
   type: object
   description: Public club identity with its currently permitted distinguishing city.
   additionalProperties: true
@@ -17,6 +19,7 @@ ClubSummaryResponse:
   required:
     - club
 ClubSearchResponse:
+  title: ClubSearchResponse
   type: object
   description: Current eligible club examples or textual matches; no total or fixed snapshot is promised.
   additionalProperties: true
@@ -34,6 +37,7 @@ ClubSearchResponse:
   required:
     - clubs
 TeamSearchResponse:
+  title: TeamSearchResponse
   type: object
   description: Current eligible team examples or textual matches; no total or fixed snapshot is promised.
   additionalProperties: true
@@ -51,6 +55,7 @@ TeamSearchResponse:
   required:
     - teams
 PoolSearchResponse:
+  title: PoolSearchResponse
   type: object
   description: Current eligible pool examples or textual matches; no total or fixed snapshot is promised.
   additionalProperties: true
@@ -68,6 +73,7 @@ PoolSearchResponse:
   required:
     - pools
 SportingSearchOptionsResponse:
+  title: SportingSearchOptionsResponse
   type: object
   description: Current available choices, independent of the current text or filter combination.
   additionalProperties: true

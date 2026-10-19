@@ -1,5 +1,6 @@
 schemas:
   AccessProblemResponse:
+    title: AccessProblemResponse
     type: object
     description:
       Shared Problem Details profile for mobile admission. Type urn:blockout:problem:maintenance requires

@@ -1,3 +1,4 @@
+import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import {
   changeApplicationVersionSettings,
   getAccount,
@@ -5,10 +6,7 @@ import {
   getGetApplicationAccessQueryOptions,
   getMyAccount,
 } from "../../../../.generated/mobile";
-import type {
-  GetApplicationAccess200,
-  GetMyAccount200,
-} from "../../../../.generated/schemas/index.zod";
+import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
 
 const accountId = "00000000-0000-4000-8000-000000000001";
@@ -22,21 +20,8 @@ jest.mock("expo/fetch", () => ({
     mockFetch(url, options),
 }));
 
-/** Builds a complete synthetic public snapshot; no business admission is inferred here. */
-function accessResponse(): GetApplicationAccess200 {
-  return {
-    maintenance: { revision: 0, active: false, message: null, imageUrl: null },
-    versions: {
-      revision: 0,
-      ios: { minimumVersion: null, storeUrl: null },
-      android: { minimumVersion: null, storeUrl: null },
-      message: null,
-    },
-  };
-}
-
 /** Supplies an existing account with no projected privilege. */
-function accountResponse(): GetMyAccount200 {
+function accountResponse(): AccountResponse {
   return {
     accountId,
     username: "Synthetic",
@@ -58,7 +43,7 @@ afterEach(() => {
 
 it("accepts complete nullable groups and the maximum safe revisions", async () => {
   // Given
-  const body = accessResponse();
+  const body = applicationAccessResponse();
   body.maintenance.revision = Number.MAX_SAFE_INTEGER;
   body.versions.revision = Number.MAX_SAFE_INTEGER;
   mockFetch.mockResolvedValue(
@@ -88,28 +73,31 @@ it("accepts complete nullable groups and the maximum safe revisions", async () =
 });
 
 it.each<[string, unknown]>([
-  ["missing maintenance", { ...accessResponse(), maintenance: undefined }],
-  ["missing versions", { ...accessResponse(), versions: undefined }],
+  [
+    "missing maintenance",
+    { ...applicationAccessResponse(), maintenance: undefined },
+  ],
+  ["missing versions", { ...applicationAccessResponse(), versions: undefined }],
   [
     "missing platform",
     {
-      ...accessResponse(),
-      versions: { ...accessResponse().versions, ios: undefined },
+      ...applicationAccessResponse(),
+      versions: { ...applicationAccessResponse().versions, ios: undefined },
     },
   ],
   [
     "missing nullable field",
     {
-      ...accessResponse(),
-      versions: { ...accessResponse().versions, message: undefined },
+      ...applicationAccessResponse(),
+      versions: { ...applicationAccessResponse().versions, message: undefined },
     },
   ],
   ...[-1, 0.5, Number.MAX_SAFE_INTEGER + 1, "0"].map<[string, unknown]>(
     (revision) => [
       `invalid revision ${JSON.stringify(revision)}`,
       {
-        ...accessResponse(),
-        maintenance: { ...accessResponse().maintenance, revision },
+        ...applicationAccessResponse(),
+        maintenance: { ...applicationAccessResponse().maintenance, revision },
       },
     ],
   ),
@@ -197,7 +185,7 @@ it.each([
 ])("preserves %s in generated partial requests", async (_scenario, change) => {
   // Given
   mockFetch.mockResolvedValue(
-    new Response(JSON.stringify(accessResponse().versions), {
+    new Response(JSON.stringify(applicationAccessResponse().versions), {
       headers: { "Content-Type": "application/json" },
     }),
   );

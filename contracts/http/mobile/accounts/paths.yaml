@@ -163,6 +163,7 @@ Member:
       content:
         multipart/form-data:
           schema:
+            title: ChangeAccountProfileMultipartRequest
             type: object
             description: Changed profile fields and optional replacement image.
             additionalProperties: false

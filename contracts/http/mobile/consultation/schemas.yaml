@@ -1,10 +1,12 @@
 CalendarCategoryEnum:
+  title: CalendarCategoryEnum
   type: string
   description: Presentation category; Completed does not itself establish a definitive result.
   enum:
     - upcoming
     - completed
 MatchDocumentKindEnum:
+  title: MatchDocumentKindEnum
   type: string
   description: Distinct official PDF uses; statistics applies only to professional matches.
   enum:
@@ -12,6 +14,7 @@ MatchDocumentKindEnum:
     - scoresheet
     - statistics
 StandingsAvailabilityEnum:
+  title: StandingsAvailabilityEnum
   type: string
   description:
     Available includes a usable retained table; not-published is qualified absence, unavailable means
@@ -21,6 +24,7 @@ StandingsAvailabilityEnum:
     - not-published
     - unavailable
 SportingSeasonResponse:
+  title: SportingSeasonResponse
   type: object
   description: Viewable sporting season, independent of calendar postponements.
   additionalProperties: true
@@ -39,6 +43,7 @@ SportingSeasonResponse:
     - label
     - startYear
 SportingIdentityResponse:
+  title: SportingIdentityResponse
   type: object
   description: Effective resource identity and presentation; the supplying operation determines access.
   additionalProperties: true
@@ -61,6 +66,7 @@ SportingIdentityResponse:
     - id
     - name
 SportingDivisionResponse:
+  title: SportingDivisionResponse
   type: object
   description: Effective division presentation.
   additionalProperties: true
@@ -96,6 +102,7 @@ SportingDivisionResponse:
     - color
     - gradient
 SportingClassificationResponse:
+  title: SportingClassificationResponse
   type: object
   description: Available accepted classification; absent members remain unknown.
   additionalProperties: true
@@ -107,6 +114,7 @@ SportingClassificationResponse:
     gender:
       $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
 MunicipalityLocationResponse:
+  title: MunicipalityLocationResponse
   type: object
   description: Reliable municipality-level location, never an exact gymnasium.
   additionalProperties: true
@@ -131,6 +139,7 @@ MunicipalityLocationResponse:
     - longitude
     - label
 SportingContactsResponse:
+  title: SportingContactsResponse
   type: object
   description: Permitted effective contacts only; an omitted member has no usable public value.
   additionalProperties: true
@@ -156,6 +165,7 @@ SportingContactsResponse:
       description: Usable public HTTP(S) website without credentials.
       format: uri
 ClubDetailResponse:
+  title: ClubDetailResponse
   type: object
   description: Public club information; seasons derive from viewable teams.
   additionalProperties: true
@@ -176,6 +186,7 @@ ClubDetailResponse:
     - contacts
     - seasons
 PoolSummaryResponse:
+  title: PoolSummaryResponse
   type: object
   description: Pool identity and available competition context; the supplying operation determines access.
   additionalProperties: true
@@ -197,6 +208,7 @@ PoolSummaryResponse:
     - season
     - classification
 TeamSummaryResponse:
+  title: TeamSummaryResponse
   type: object
   description: Viewable team with its season and available relationships.
   additionalProperties: true
@@ -218,6 +230,7 @@ TeamSummaryResponse:
     - classification
     - professional
 ClubTeamsResponse:
+  title: ClubTeamsResponse
   type: object
   description: Viewable teams in one club season; no arbitrary team cap.
   additionalProperties: true
@@ -235,6 +248,7 @@ ClubTeamsResponse:
     - seasonId
     - items
 TeamDetailResponse:
+  title: TeamDetailResponse
   type: object
   description: Public team context; follow state and editing permissions are separate.
   additionalProperties: true
@@ -250,6 +264,7 @@ TeamDetailResponse:
     - team
     - participations
 PoolDetailResponse:
+  title: PoolDetailResponse
   type: object
   description: Public pool context; standings and participants load independently.
   additionalProperties: true
@@ -259,6 +274,7 @@ PoolDetailResponse:
   required:
     - pool
 StandingRowResponse:
+  title: StandingRowResponse
   type: object
   description: One official row; unknown rank/statistics never become zero.
   additionalProperties: true
@@ -282,6 +298,7 @@ StandingRowResponse:
     - sourceName
     - statistics
 PoolStandingsResponse:
+  title: PoolStandingsResponse
   type: object
   description: Independent official standings state without locally recomputed rankings.
   additionalProperties: true
@@ -318,6 +335,7 @@ PoolStandingsResponse:
     - columns
     - rows
 PoolParticipantResponse:
+  title: PoolParticipantResponse
   type: object
   description: Current viewable participation, independently of any standings row.
   additionalProperties: true
@@ -329,6 +347,7 @@ PoolParticipantResponse:
   required:
     - team
 PoolParticipantsResponse:
+  title: PoolParticipantsResponse
   type: object
   description: All current viewable participants, including teams without a reliable location.
   additionalProperties: true
@@ -348,6 +367,7 @@ PoolParticipantsResponse:
     - poolId
     - items
 MatchScheduleResponse:
+  title: MatchScheduleResponse
   type: object
   description: Usable sporting date with optional resolved instant; date alone is never converted.
   additionalProperties: true
@@ -372,6 +392,7 @@ MatchScheduleResponse:
     - timeZone
     - observedAt
 MatchResultResponse:
+  title: MatchResultResponse
   type: object
   description: Accepted official result, independent of calendar classification.
   additionalProperties: true
@@ -398,6 +419,7 @@ MatchResultResponse:
     - state
     - observedAt
 MatchSetScoreResponse:
+  title: MatchSetScoreResponse
   type: object
   description: One usable set in official sequence.
   additionalProperties: true
@@ -414,6 +436,7 @@ MatchSetScoreResponse:
     - home
     - away
 MatchSetsResponse:
+  title: MatchSetsResponse
   type: object
   description: Compatible optional detail, independent from overall result freshness.
   additionalProperties: true
@@ -431,6 +454,7 @@ MatchSetsResponse:
     - observedAt
     - items
 MatchSummaryResponse:
+  title: MatchSummaryResponse
   type: object
   description: One publicly viewable dated match with enough context for its calendar card.
   additionalProperties: true
@@ -459,6 +483,7 @@ MatchSummaryResponse:
     - schedule
     - category
 MatchPoolGroupResponse:
+  title: MatchPoolGroupResponse
   type: object
   description: Stable pool group within one display day.
   additionalProperties: true
@@ -479,6 +504,7 @@ MatchPoolGroupResponse:
     - poolId
     - matches
 MatchDayResponse:
+  title: MatchDayResponse
   type: object
   description: One complete nonempty display day.
   additionalProperties: true
@@ -497,6 +523,7 @@ MatchDayResponse:
     - date
     - pools
 MatchCalendarResponse:
+  title: MatchCalendarResponse
   type: object
   description: Up to seven complete nonempty days. Separate responses are not one immutable snapshot.
   additionalProperties: true
@@ -528,6 +555,7 @@ MatchCalendarResponse:
     - evaluatedAt
     - days
 MatchDocumentResponse:
+  title: MatchDocumentResponse
   type: object
   description: An eligible document action; presence does not guarantee supplier delivery.
   additionalProperties: true
@@ -542,6 +570,7 @@ MatchDocumentResponse:
     - kind
     - url
 MatchDetailResponse:
+  title: MatchDetailResponse
   type: object
   description: Public match facts and currently eligible actions; absent optional values remain unavailable.
   additionalProperties: true

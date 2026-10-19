@@ -99,6 +99,7 @@ ClubPresentation:
       content:
         multipart/form-data:
           schema:
+            title: SetClubPresentationMultipartRequest
             type: object
             description:
               One ordinary multipart editor submission; metadata JSON plus an optional binary
@@ -223,6 +224,7 @@ TeamPresentation:
       content:
         multipart/form-data:
           schema:
+            title: SetTeamPresentationMultipartRequest
             type: object
             description:
               One ordinary multipart editor submission; metadata JSON plus an optional binary
@@ -706,6 +708,7 @@ Divisions:
       content:
         multipart/form-data:
           schema:
+            title: CreateDivisionMultipartRequest
             type: object
             description:
               One ordinary multipart editor submission; metadata JSON plus an optional binary
@@ -828,6 +831,7 @@ DivisionPresentation:
       content:
         multipart/form-data:
           schema:
+            title: SetDivisionPresentationMultipartRequest
             type: object
             description:
               One ordinary multipart editor submission; metadata JSON plus an optional binary

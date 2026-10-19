@@ -1,3 +1,4 @@
+import { applicationAccessResponse } from "../test-support/application-access";
 import { QueryClient } from "@tanstack/react-query";
 import {
   getApplicationAccess,
@@ -8,7 +9,7 @@ import {
   getAccountPhoto,
   setPoolPresentation,
 } from "../../../../.generated/mobile";
-import { GetApplicationAccess200 } from "../../../../.generated/schemas/index.zod";
+import { ApplicationAccessResponse } from "../../../../.generated/schemas/index.zod";
 import { apiFetch, type ApiFetchOptions } from "../api-fetch";
 
 const accountId = "00000000-0000-4000-8000-000000000001";
@@ -21,19 +22,6 @@ jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
     mockFetch(url, options),
 }));
-
-/** Supplies the complete public access shape without assuming any domain defaults. */
-function accessResponse(): GetApplicationAccess200 {
-  return {
-    maintenance: { revision: 0, active: false, message: null, imageUrl: null },
-    versions: {
-      revision: 0,
-      ios: { minimumVersion: null, storeUrl: null },
-      android: { minimumVersion: null, storeUrl: null },
-      message: null,
-    },
-  };
-}
 
 beforeEach(() => {
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
@@ -50,8 +38,8 @@ afterEach(() => {
 
 it("validates the generated response exactly once and accepts additive nested data", async () => {
   // Given
-  const body = accessResponse();
-  const parse = jest.spyOn(GetApplicationAccess200, "parse");
+  const body = applicationAccessResponse();
+  const parse = jest.spyOn(ApplicationAccessResponse, "parse");
   mockFetch.mockResolvedValue(
     new Response(
       JSON.stringify({
@@ -64,7 +52,12 @@ it("validates the generated response exactly once and accepts additive nested da
   );
 
   // When
-  const response = await getApplicationAccess();
+  const response = await apiFetch<ApplicationAccessResponse>(
+    "/application-access",
+    {
+      schema: ApplicationAccessResponse,
+    },
+  );
 
   // Then
   expect(response).toEqual(body);
@@ -76,13 +69,19 @@ it.each([
   [
     "wrong known type",
     {
-      ...accessResponse(),
-      maintenance: { ...accessResponse().maintenance, active: "false" },
+      ...applicationAccessResponse(),
+      maintenance: {
+        ...applicationAccessResponse().maintenance,
+        active: "false",
+      },
     },
   ],
   [
     "missing nullable",
-    { ...accessResponse(), maintenance: { revision: 0, active: false } },
+    {
+      ...applicationAccessResponse(),
+      maintenance: { revision: 0, active: false },
+    },
   ],
 ])("rejects %s before Query success", async (_case, body) => {
   // Given
@@ -214,7 +213,7 @@ it.each([
 
 it("parses errors through the problem profile without validating them as success", async () => {
   // Given
-  const parse = jest.spyOn(GetApplicationAccess200, "parse");
+  const parse = jest.spyOn(ApplicationAccessResponse, "parse");
   mockFetch.mockResolvedValue(
     new Response(
       JSON.stringify({
@@ -448,7 +447,7 @@ it("rejects a response that arrives after caller cancellation", async () => {
   const controller = new AbortController();
   mockFetch.mockImplementation(async () => {
     controller.abort();
-    return new Response(JSON.stringify(accessResponse()), {
+    return new Response(JSON.stringify(applicationAccessResponse()), {
       headers: { "Content-Type": "application/json" },
     });
   });
@@ -468,7 +467,7 @@ it("rejects JSON read after caller cancellation", async () => {
   });
   jest.spyOn(response, "json").mockImplementation(async () => {
     controller.abort();
-    return accessResponse();
+    return applicationAccessResponse();
   });
   mockFetch.mockResolvedValue(response);
 
@@ -505,7 +504,7 @@ it("rejects a response that arrives after the timeout", async () => {
       new Promise((resolve) =>
         options?.signal?.addEventListener("abort", () =>
           resolve(
-            new Response(JSON.stringify(accessResponse()), {
+            new Response(JSON.stringify(applicationAccessResponse()), {
               headers: { "Content-Type": "application/json" },
             }),
           ),

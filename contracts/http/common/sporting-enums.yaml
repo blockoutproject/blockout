@@ -1,4 +1,5 @@
 SportFormatEnum:
+  title: SportFormatEnum
   type: string
   description: >-
     Sporting format; 2x2 does not imply beach volleyball.
@@ -7,6 +8,7 @@ SportFormatEnum:
     - 4x4
     - 2x2
 SportGenderEnum:
+  title: SportGenderEnum
   type: string
   description: >-
     Gender category of the sporting classification.
@@ -15,6 +17,7 @@ SportGenderEnum:
     - male
     - mixed
 ResultStateEnum:
+  title: ResultStateEnum
   type: string
   description: >-
     Result finality from the designated source. Provisional is explicitly temporary; final is definitive;

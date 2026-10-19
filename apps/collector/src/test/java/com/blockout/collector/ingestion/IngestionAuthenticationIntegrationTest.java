@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeout;
 
 import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
-import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeRequest;
+import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
@@ -184,8 +184,8 @@ class IngestionAuthenticationIntegrationTest {
   void reusesToken() {
     // Given
     CollectionApi api = new CollectionApi(client);
-    RegisterCollectorRuntimeRequest request =
-        new RegisterCollectorRuntimeRequest()
+    RegisterCollectorRuntimeInternalRequest request =
+        new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
@@ -217,8 +217,8 @@ class IngestionAuthenticationIntegrationTest {
     // Given
     lifetime = 3600;
     CollectionApi api = new CollectionApi(client);
-    RegisterCollectorRuntimeRequest request =
-        new RegisterCollectorRuntimeRequest()
+    RegisterCollectorRuntimeInternalRequest request =
+        new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
     api.registerCollectorRuntime(request);
@@ -239,8 +239,8 @@ class IngestionAuthenticationIntegrationTest {
     // Given
     lifetime = 3600;
     CollectionApi api = new CollectionApi(client);
-    RegisterCollectorRuntimeRequest request =
-        new RegisterCollectorRuntimeRequest()
+    RegisterCollectorRuntimeInternalRequest request =
+        new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
     api.registerCollectorRuntime(request);
@@ -262,8 +262,8 @@ class IngestionAuthenticationIntegrationTest {
     // Given
     stallToken = true;
     CollectionApi api = new CollectionApi(client);
-    RegisterCollectorRuntimeRequest request =
-        new RegisterCollectorRuntimeRequest()
+    RegisterCollectorRuntimeInternalRequest request =
+        new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
@@ -286,8 +286,8 @@ class IngestionAuthenticationIntegrationTest {
     // Given
     refuseWrite = true;
     CollectionApi api = new CollectionApi(client);
-    RegisterCollectorRuntimeRequest request =
-        new RegisterCollectorRuntimeRequest()
+    RegisterCollectorRuntimeInternalRequest request =
+        new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
@@ -317,8 +317,8 @@ class IngestionAuthenticationIntegrationTest {
     // Given
     disconnectWrite = true;
     CollectionApi api = new CollectionApi(client);
-    RegisterCollectorRuntimeRequest request =
-        new RegisterCollectorRuntimeRequest()
+    RegisterCollectorRuntimeInternalRequest request =
+        new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 

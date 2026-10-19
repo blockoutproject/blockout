@@ -7,6 +7,7 @@ SettingsRevision:
     Monotonic revision of one settings group, exactly representable in JavaScript. Submit the revision
     read for that group.
 MaintenanceSettingsResponse:
+  title: MaintenanceSettingsResponse
   type: object
   description: Stored maintenance settings, visible only with maintenance-management permission.
   additionalProperties: true
@@ -31,6 +32,7 @@ MaintenanceSettingsResponse:
     - message
     - imageUrl
 PublicMaintenanceResponse:
+  title: PublicMaintenanceResponse
   type: object
   description:
     Published maintenance state. Message and image are null when inactive; active maintenance has a nonempty
@@ -57,6 +59,7 @@ PublicMaintenanceResponse:
     - message
     - imageUrl
 ChangeMaintenanceRequest:
+  title: ChangeMaintenanceRequest
   type: object
   description:
     Atomic content changes. Omitted fields are preserved; imageUrl null removes the image. Activation
@@ -79,6 +82,7 @@ ChangeMaintenanceRequest:
   required:
     - revision
 SetMaintenanceActivationRequest:
+  title: SetMaintenanceActivationRequest
   type: object
   description:
     Set the desired activation state using the current maintenance revision. This does not toggle or
@@ -94,6 +98,7 @@ SetMaintenanceActivationRequest:
     - revision
     - active
 PlatformVersionResponse:
+  title: PlatformVersionResponse
   type: object
   description: One platform minimum and store destination. A non-null minimum requires a valid store URL.
   additionalProperties: true
@@ -113,6 +118,7 @@ PlatformVersionResponse:
     - minimumVersion
     - storeUrl
 ChangePlatformVersionRequest:
+  title: ChangePlatformVersionRequest
   type: object
   description:
     Omitted fields remain unchanged; null removes a value. The resulting minimum requires a valid store
@@ -133,6 +139,7 @@ ChangePlatformVersionRequest:
         HTTPS Blockout link on the platform store; required when a minimum remains. Null removes an optional
         link.
 ApplicationVersionsResponse:
+  title: ApplicationVersionsResponse
   type: object
   description: Both platform settings and one shared message, governed by a single revision.
   additionalProperties: true
@@ -154,6 +161,7 @@ ApplicationVersionsResponse:
     - android
     - message
 ChangeApplicationVersionsRequest:
+  title: ChangeApplicationVersionsRequest
   type: object
   description:
     Atomic partial change to version settings. Omitted platforms and fields are unchanged; explicit null
@@ -174,6 +182,7 @@ ChangeApplicationVersionsRequest:
   required:
     - revision
 ApplicationAccessResponse:
+  title: ApplicationAccessResponse
   type: object
   description:
     Complete public configuration from one coherent database snapshot. Failure never yields permissive
@@ -188,6 +197,7 @@ ApplicationAccessResponse:
     - maintenance
     - versions
 AccountPermissionsResponse:
+  title: AccountPermissionsResponse
   type: object
   description:
     Current global action capabilities for this account. Only literal true grants a capability; absent

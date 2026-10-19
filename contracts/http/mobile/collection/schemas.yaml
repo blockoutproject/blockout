@@ -5,6 +5,7 @@ CollectionRevision:
   maximum: 9007199254740991
   description: Current editing revision of this resource; stale commands have no effects.
 CollectionSeasonResponse:
+  title: CollectionSeasonResponse
   type: object
   description:
     Canonical season and current acquisition lifecycle. Source changes advance this preparation
@@ -31,6 +32,7 @@ CollectionSeasonResponse:
     - revision
     - state
 CollectionSeasonListResponse:
+  title: CollectionSeasonListResponse
   type: object
   description:
     All known seasons, newest start year first, UUID as tie-breaker; no pagination for this
@@ -45,6 +47,7 @@ CollectionSeasonListResponse:
   required:
     - items
 SourceBindingResponse:
+  title: SourceBindingResponse
   type: object
   description:
     Supported root source and current qualification, distinct from discovered child pools and
@@ -123,6 +126,7 @@ SourceBindingResponse:
     - reason
     - launched
 SourceBindingListResponse:
+  title: SourceBindingListResponse
   type: object
   description:
     Supported roots for one season, ordered by provider, organizer reference and UUID; no classification
@@ -137,6 +141,7 @@ SourceBindingListResponse:
   required:
     - items
 CreateSourceBindingRequest:
+  title: CreateSourceBindingRequest
   type: object
   description:
     Add a missing supported source before launch. Existing provider/organizer identity conflicts;
@@ -161,6 +166,7 @@ CreateSourceBindingRequest:
     - organizerReference
     - candidateUrl
 SetSourceCandidateRequest:
+  title: SetSourceCandidateRequest
   type: object
   description:
     Replace the entire candidate URL and clear its prior validation; locked/closed sources
@@ -177,6 +183,7 @@ SetSourceCandidateRequest:
     - revision
     - candidateUrl
 RequestSourceValidationRequest:
+  title: RequestSourceValidationRequest
   type: object
   description:
     Request validation of the exact current candidate; a duplicate pending request creates
@@ -188,6 +195,7 @@ RequestSourceValidationRequest:
   required:
     - revision
 ConfirmSourceSeasonRequest:
+  title: ConfirmSourceSeasonRequest
   type: object
   description: Confirm missing seasonal attribution only after compatible source structure was established.
   additionalProperties: false
@@ -202,6 +210,7 @@ ConfirmSourceSeasonRequest:
     - revision
     - seasonLabel
 LaunchCollectionSourcesRequest:
+  title: LaunchCollectionSourcesRequest
   type: object
   description:
     Atomically launch explicitly selected qualified sources in an open season. Existing periodically
@@ -227,6 +236,7 @@ LaunchCollectionSourcesRequest:
     - revision
     - sourceBindingIds
 CloseCollectionSeasonRequest:
+  title: CloseCollectionSeasonRequest
   type: object
   description: Irreversibly close this season; cancel unstarted work and let admitted cycles finish once.
   additionalProperties: false
@@ -241,6 +251,7 @@ CloseCollectionSeasonRequest:
     - revision
     - confirmation
 CollectionCycleSummaryResponse:
+  title: CollectionCycleSummaryResponse
   type: object
   description: Current confirmed execution; request acceptance alone creates no running cycle.
   additionalProperties: true
@@ -267,6 +278,7 @@ CollectionCycleSummaryResponse:
     - mode
     - startedAt
 CollectionControlResponse:
+  title: CollectionControlResponse
   type: object
   description:
     Desired activity, pending intent and confirmed execution are independent. Reads never trigger
@@ -316,6 +328,7 @@ CollectionControlResponse:
     - lastAttemptAt
     - lastSuccessAt
 CollectionControlListResponse:
+  title: CollectionControlListResponse
   type: object
   description: Requested configuration controls, ordered by family then UUID; no execution history.
   additionalProperties: true
@@ -328,6 +341,7 @@ CollectionControlListResponse:
   required:
     - items
 SetCollectionActivityRequest:
+  title: SetCollectionActivityRequest
   type: object
   description:
     Replace desired activity; pause cancels an unstarted request and resume never restores
@@ -343,6 +357,7 @@ SetCollectionActivityRequest:
     - revision
     - enabled
 RequestCollectionRequest:
+  title: RequestCollectionRequest
   type: object
   description:
     Request one ordinary passage of this control; existing pending/running work is returned.
@@ -354,6 +369,7 @@ RequestCollectionRequest:
   required:
     - revision
 CollectionResultResponse:
+  title: CollectionResultResponse
   type: object
   description: Latest evidence for one stable domain scope, stage and acquisition/integration phase, retained independently of pause and results elsewhere.
   additionalProperties: true
@@ -416,6 +432,7 @@ CollectionResultResponse:
     - lastSuccessAt
     - firstFailureAt
 CollectionResultPageResponse:
+  title: CollectionResultPageResponse
   type: object
   description:
     Current results ordered by scope UUID, stage then phase; concurrent updates may change later pages,
@@ -441,6 +458,7 @@ CollectionResultPageResponse:
     - page
     - hasNext
 DiscoveredCollectionResourceResponse:
+  title: DiscoveredCollectionResourceResponse
   type: object
   description: Native child reference in the selected source hierarchy, independent of mapping readiness.
   additionalProperties: true
@@ -463,6 +481,7 @@ DiscoveredCollectionResourceResponse:
     - label
     - kind
 DiscoveredCollectionResourcePageResponse:
+  title: DiscoveredCollectionResourcePageResponse
   type: object
   description:
     Current discovered children, ordered by kind, label and UUID; concurrent catalog changes

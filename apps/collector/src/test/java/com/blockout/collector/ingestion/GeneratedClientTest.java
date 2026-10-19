@@ -6,10 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTimeout;
 
 import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
-import com.blockout.collector.generated.ingestion.model.GetCollectionWork200Response;
-import com.blockout.collector.generated.ingestion.model.GetCollectionWork200ResponseControlsInner;
-import com.blockout.collector.generated.ingestion.model.GetCollectorRuntime200Response;
-import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeRequest;
+import com.blockout.collector.generated.ingestion.model.CollectionFamilyEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionWorkInternalResponse;
+import com.blockout.collector.generated.ingestion.model.CollectorRuntimeInternalResponse;
+import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
 import com.sun.net.httpserver.HttpServer;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler;
@@ -121,7 +121,7 @@ class GeneratedClientTest {
     body = "{\"revision\":0,\"incarnationId\":null,\"future\":true}";
 
     // When
-    GetCollectorRuntime200Response result = api.getCollectorRuntime();
+    CollectorRuntimeInternalResponse result = api.getCollectorRuntime();
 
     // Then
     assertThat(result.getRevision()).isZero();
@@ -225,7 +225,7 @@ class GeneratedClientTest {
             .formatted(controlId);
 
     // When
-    GetCollectionWork200Response result = api.getCollectionWork(incarnationId);
+    CollectionWorkInternalResponse result = api.getCollectionWork(incarnationId);
 
     // Then
     assertThat(result.getControls())
@@ -233,8 +233,7 @@ class GeneratedClientTest {
         .satisfies(
             control -> {
               assertThat(control.getId()).isEqualTo(controlId);
-              assertThat(control.getFamily())
-                  .isEqualTo(GetCollectionWork200ResponseControlsInner.FamilyEnum.FFVB);
+              assertThat(control.getFamily()).isEqualTo(CollectionFamilyEnum.FFVB);
               assertThat(control.getRevision()).isEqualTo(7L);
               assertThat(control.getEnabled()).isTrue();
               assertThat(control.getLastStartedAt())
@@ -248,8 +247,8 @@ class GeneratedClientTest {
   void boundsUncertainWrite() {
     // Given
     stall = true;
-    RegisterCollectorRuntimeRequest request =
-        new RegisterCollectorRuntimeRequest()
+    RegisterCollectorRuntimeInternalRequest request =
+        new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
@@ -269,8 +268,8 @@ class GeneratedClientTest {
   void doesNotReplayUncertainWrite() {
     // Given
     disconnect = true;
-    RegisterCollectorRuntimeRequest request =
-        new RegisterCollectorRuntimeRequest()
+    RegisterCollectorRuntimeInternalRequest request =
+        new RegisterCollectorRuntimeInternalRequest()
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
