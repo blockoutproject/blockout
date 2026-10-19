@@ -23,6 +23,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -157,16 +158,16 @@ class CollectionContractWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {0, 201})
+  @CsvSource({"size, 0", "size, 201", "page, -1", "page, 9007199254740992"})
   @DisplayName("Rejects out-of-range target pages before loading a snapshot")
-  void rejectsUnboundedPage(int size) throws Exception {
+  void rejectsUnboundedPage(String parameter, String value) throws Exception {
 
     // When
     ResultActions response =
         mvc.perform(
             get("/ingestion/collection-cycles/00000000-0000-4000-8000-000000000001/targets")
                 .with(collector())
-                .param("size", Integer.toString(size)));
+                .param(parameter, value));
 
     // Then
     response.andExpect(status().isBadRequest());

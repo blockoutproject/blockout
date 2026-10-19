@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doAnswer;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.exception.UnresolvedSportingIdentityException;
+import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
@@ -19,7 +21,10 @@ import com.blockout.backend.sporting.application.service.SeasonService;
 import com.blockout.backend.sporting.application.service.SportingIdentityService;
 import com.blockout.backend.sporting.application.service.SportingReadService;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CyclicBarrier;
@@ -90,6 +95,48 @@ class SportingIdentityIntegrationTest {
     sql.update(
         "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Synthetic division', true, '#112233')",
         DIVISION);
+  }
+
+  @Test
+  @DisplayName("Uses the latest reliable match start inside the pool's current fast window")
+  void selectsLatestStartWithinWindow() {
+    // Given
+    SeasonView season = seasons.getOrCreate(2026L);
+    PoolView pool = pool(season, "A", null, CollectionProviderEnum.FFVB);
+    Instant now = Instant.parse("2026-10-19T10:00:00Z");
+    sql.update(
+        "UPDATE sporting_pool SET setting_division_id = ?, setting_format = '_6X6', setting_gender = 'MIXED', calendar_url = 'https://www.ffvb.org/calendar' WHERE id = ?",
+        DIVISION,
+        pool.id());
+    Map<String, Instant> starts =
+        Map.of(
+            "earlier", Instant.parse("2026-10-19T08:00:00Z"),
+            "latest", Instant.parse("2026-10-19T10:30:00Z"),
+            "outside", Instant.parse("2026-10-19T12:00:00Z"));
+    for (Map.Entry<String, Instant> start : starts.entrySet()) {
+      MatchView match =
+          identities.identifyMatch(
+              pool.id(), start.getKey(), ffvb("Home", "0001"), ffvb("Away", "0002"));
+      sql.update(
+          "UPDATE sporting_match SET reliable_start = ? WHERE id = ?",
+          Timestamp.from(start.getValue()),
+          match.id());
+    }
+
+    // When
+    List<AcquisitionReference> references =
+        reads.acquisitionPools(season.id(), CollectionProviderEnum.FFVB, "LIG", false, now, 0);
+
+    // Then
+    assertThat(references)
+        .singleElement()
+        .satisfies(
+            reference -> {
+              assertThat(reference.poolId()).isEqualTo(pool.id());
+              assertThat(reference.kind()).isEqualTo(CollectionTargetKindEnum.CALENDAR);
+              assertThat(reference.fastWindowEndsAt())
+                  .isEqualTo(Instant.parse("2026-10-19T14:30:00Z"));
+            });
   }
 
   @Test

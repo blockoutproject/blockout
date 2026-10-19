@@ -21,9 +21,6 @@ interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
       "select m from MatchEntity m join fetch m.pool p join fetch p.pack where p.id = :poolId and m.detailUrl is not null order by m.id")
   List<MatchEntity> acquisitionDetails(UUID poolId, Pageable page);
 
-  /** Latest reliable start currently inside the pool's fast window. */
-  record FastStart(UUID poolId, Instant start) {}
-
   /**
    * Aggregates current reliable fast windows for a bounded pool selection.
    *
@@ -33,8 +30,14 @@ interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
    * @return one aggregate per currently fast pool, without per-pool queries
    */
   @Query(
-      "select new com.blockout.backend.sporting.infrastructure.MatchRepository$FastStart(m.pool.id, max(m.reliableStart)) from MatchEntity m where m.pool.id in :poolIds and m.reliableStart between :earliest and :latest group by m.pool.id")
-  List<FastStart> fastStarts(List<UUID> poolIds, Instant earliest, Instant latest);
+      """
+      select m.pool.id as poolId, max(m.reliableStart) as latestStart
+      from MatchEntity m
+      where m.pool.id in :poolIds and m.reliableStart between :earliest and :latest
+      group by m.pool.id
+      """)
+  List<PoolMatchStart> findLatestMatchStartsInWindow(
+      List<UUID> poolIds, Instant earliest, Instant latest);
 
   /**
    * Finds the match by contextual native reference.

@@ -159,15 +159,13 @@ public class CollectionCycleService {
    * Serves one bounded page of authorized targets.
    *
    * @param cycleId running current control
-   * @param page zero-based page within the shared safe range
-   * @param size bounded page size, at most 200
+   * @param page zero-based page validated against the generated contract's safe range
+   * @param size page size validated against the generated contract's 1–200 bound
    * @return frozen configuration with current permitted locality; no provider observation occurs
    */
   @Transactional
   public TargetPage targets(UUID cycleId, long page, int size) {
     requireRunningControl(cycleId);
-    if (page < 0 || page > CollectorRuntimeService.MAX_SAFE_INTEGER || size < 1 || size > 200)
-      throw new IllegalArgumentException("Invalid collection page");
     if (page > Integer.MAX_VALUE / size) return new TargetPage(List.of(), page, false);
     SnapshotPage snapshot = store.targets(cycleId, (int) page, size);
     List<ServedTarget> targets = selection.serve(snapshot.items());

@@ -7,10 +7,9 @@ import lombok.Getter;
  */
 @Getter
 public class CollectionBackendFailure extends RuntimeException {
-  /** Only uncertainty permits a confirmation read; it never permits a repeated mutation. */
+  /** Chooses rejection, supersession checks or read-only confirmation; never mutation replay. */
   public enum Kind {
     CONFLICT,
-    NOT_FOUND,
     REJECTED,
     UNCONFIRMED
   }

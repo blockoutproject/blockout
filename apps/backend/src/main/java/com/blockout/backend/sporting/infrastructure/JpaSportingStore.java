@@ -66,15 +66,15 @@ public class JpaSportingStore implements SportingStore {
     if (selected.isEmpty()) return List.of();
     Map<UUID, Instant> windows =
         matches
-            .fastStarts(
+            .findLatestMatchStartsInWindow(
                 selected.stream().map(PoolEntity::getId).toList(),
                 now.minus(Duration.ofHours(4)),
                 now.plus(Duration.ofHours(1)))
             .stream()
             .collect(
                 Collectors.toMap(
-                    MatchRepository.FastStart::poolId,
-                    value -> value.start().plus(Duration.ofHours(4))));
+                    PoolMatchStart::getPoolId,
+                    value -> value.getLatestStart().plus(Duration.ofHours(4))));
     List<AcquisitionReference> references = new ArrayList<>();
     for (PoolEntity pool : selected) {
       if (pool.getCalendarUrl() != null)

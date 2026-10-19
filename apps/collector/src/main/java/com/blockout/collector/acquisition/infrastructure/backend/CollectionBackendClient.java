@@ -65,7 +65,6 @@ public class CollectionBackendClient implements CollectionBackend {
       CollectionBackendFailure.Kind kind =
           switch (failure.getStatusCode().value()) {
             case 409 -> CollectionBackendFailure.Kind.CONFLICT;
-            case 404 -> CollectionBackendFailure.Kind.NOT_FOUND;
             default ->
                 failure.getStatusCode().is5xxServerError()
                     ? CollectionBackendFailure.Kind.UNCONFIRMED
