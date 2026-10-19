@@ -35,6 +35,39 @@ class ImageValidatorTest {
     assertThat(image.mediaType()).isEqualTo(mediaType);
   }
 
+  @ParameterizedTest
+  @CsvSource({"PNG, 2048, 2049", "JPEG, 2049, 2048"})
+  @DisplayName("Rejects a compressed image exceeding the decoded pixel budget")
+  void rejectsExcessiveDecodedPixels(String format, int width, int height) throws IOException {
+    // Given
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    ImageIO.write(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), format, output);
+    byte[] bytes = output.toByteArray();
+    assertThat(bytes.length).isLessThan(5 * 1024 * 1024);
+
+    // When
+    ThrowingCallable validate = () -> ImageValidator.validate(bytes);
+
+    // Then
+    assertThatThrownBy(validate).isInstanceOf(IOException.class);
+  }
+
+  @Test
+  @DisplayName("Accepts a logo at the decoded pixel budget without changing its bytes")
+  void acceptsDecodedPixelBoundary() throws IOException {
+    // Given
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    ImageIO.write(new BufferedImage(2048, 2048, BufferedImage.TYPE_INT_RGB), "PNG", output);
+    byte[] bytes = output.toByteArray();
+
+    // When
+    ValidatedImage image = ImageValidator.validate(bytes);
+
+    // Then
+    assertThat(image.bytes()).containsExactly(bytes);
+    assertThat(image.mediaType()).isEqualTo("image/png");
+  }
+
   @Test
   @DisplayName("Rejects content that cannot be recognized as an image")
   void rejectsUnrecognizedContent() {

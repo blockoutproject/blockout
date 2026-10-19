@@ -21,6 +21,19 @@ public class DivisionService {
   private final CurrentPermissions permissions;
 
   /**
+   * Refuses an absent current lifecycle grant before expensive upload validation. This short read
+   * authorizes no later write; mutation methods still check the grant under the account lock.
+   *
+   * @param accountId original account resolved from the validated principal
+   * @throws AccessDeniedException if the lifecycle grant is absent
+   */
+  @Transactional(readOnly = true)
+  public void requireLifecycle(UUID accountId) {
+    if (!permissions.forAccount(accountId).contains(Permission.MANAGE_DIVISION_LIFECYCLE))
+      throw new AccessDeniedException("Division lifecycle is not permitted");
+  }
+
+  /**
    * Reads the configured selection list using any of its canonical read-grant alternatives.
    *
    * @param accountId original account
@@ -87,8 +100,7 @@ public class DivisionService {
    */
   @Transactional
   public DivisionDetail setActive(UUID accountId, UUID id, String revision, boolean active) {
-    if (!permissions.forAccount(accountId).contains(Permission.MANAGE_DIVISION_LIFECYCLE))
-      throw new AccessDeniedException("Division lifecycle is not permitted");
+    requireLifecycle(accountId);
     store.lockDivision(id).orElseThrow(SportingResourceNotFoundException::new);
     authorization.require(accountId, Permission.MANAGE_DIVISION_LIFECYCLE);
     DivisionDetail current = store.divisionDetail(id).orElseThrow();

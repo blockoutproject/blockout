@@ -43,7 +43,9 @@ export function ThemeProvider({
         scheme,
         colors,
         context: context[scheme],
-        membership: proAccent ? membershipColors.pro : membershipColors[scheme],
+        membership: proAccent
+          ? membershipColors.pro[scheme]
+          : membershipColors[scheme],
       }}
     >
       <NavigationThemeProvider

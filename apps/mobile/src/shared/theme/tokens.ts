@@ -59,7 +59,7 @@ export const neutralContext: { light: ContextColors; dark: ContextColors } = {
   },
 };
 
-/** Membership is a separate Figma axis; caller eligibility selects it without changing sporting context. */
+/** Membership aliases retain both Semantic Color appearances; eligibility never changes sporting context. */
 export const membershipColors = {
   light: {
     fill: reference.neutral900,
@@ -67,7 +67,10 @@ export const membershipColors = {
     border: "#20212424",
   },
   dark: { fill: "#F1F1F2", content: reference.neutral900, border: "#FFFFFF2E" },
-  pro: { fill: "#E7D39B", content: "#201E19", border: "#C1AA68" },
+  pro: {
+    light: { fill: "#E7D39B", content: "#201E19", border: "#C1AA68" },
+    dark: { fill: "#E2C985", content: "#201E19", border: "#A99662" },
+  },
 };
 
 const outfit = { fontFamily: "Outfit" };

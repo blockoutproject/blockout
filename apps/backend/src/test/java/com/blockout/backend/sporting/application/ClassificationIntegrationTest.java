@@ -20,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -184,6 +186,156 @@ class ClassificationIntegrationTest {
             SportingConflictException.class,
             error -> assertThat(error.getResourceIds()).contains(existing.homeTeamId()));
     assertThat(classifications.pool(account, first.id())).isEqualTo(before);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"beta, other-target", "other-original, alpha", "shared alias, shared alias"})
+  @DisplayName("Refuses a correction that collides through a qualified alias")
+  void refusesAliasCollision(String originalAlias, String targetAlias) {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView target = pool("B", "other-pack", TARGET);
+    MatchView original = match(first, "Alpha", "First away");
+    MatchView existing = match(target, "Beta", "Target away");
+    sql.update(
+        "INSERT INTO sporting_team_alias(team_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'organizer', 'competition', ?), (?, ?, 'organizer', 'competition', ?)",
+        original.homeTeamId(),
+        season,
+        originalAlias,
+        existing.homeTeamId(),
+        season,
+        targetAlias);
+    ClassificationView before = classifications.pool(account, first.id());
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable correction =
+        () ->
+            classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
+
+    // Then
+    assertThatThrownBy(correction)
+        .isInstanceOfSatisfying(
+            SportingConflictException.class,
+            error ->
+                assertThat(error.getResourceIds()).contains(existing.homeTeamId(), first.id()));
+    assertThat(classifications.pool(account, first.id())).isEqualTo(before);
+    assertThat(reads.team(original.homeTeamId()).orElseThrow().classification())
+        .isEqualTo(classification(ORIGINAL));
+    assertThat(reads.match(original.id())).contains(original);
+    assertThat(reads.match(existing.id())).contains(existing);
+  }
+
+  @Test
+  @DisplayName("Refuses the whole pack when two corrected teams would share a qualified alias")
+  void refusesAliasesWithinCorrectedPack() {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView second = pool("B", "pack", TARGET);
+    MatchView original = match(first, "Alpha", "First away");
+    MatchView existing = match(second, "Beta", "Second away");
+    sql.update(
+        "INSERT INTO sporting_team_alias(team_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'organizer', 'competition', 'shared alias'), (?, ?, 'organizer', 'competition', 'shared alias')",
+        original.homeTeamId(),
+        season,
+        existing.homeTeamId(),
+        season);
+    ClassificationView before = classifications.pack(account, first.packId());
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable correction =
+        () ->
+            classifications.setPack(
+                account, first.packId(), before.revision(), classification(ORIGINAL));
+
+    // Then
+    assertThatThrownBy(correction)
+        .isInstanceOfSatisfying(
+            SportingConflictException.class,
+            error ->
+                assertThat(error.getResourceIds())
+                    .contains(
+                        original.homeTeamId(), existing.homeTeamId(), first.id(), second.id()));
+    assertThat(classifications.pack(account, first.packId())).isEqualTo(before);
+    assertThat(reads.pool(second.id()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(reads.match(original.id())).contains(original);
+    assertThat(reads.match(existing.id())).contains(existing);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"other-organizer, competition", "organizer, other-competition"})
+  @DisplayName("Preserves aliases in distinct qualified contexts during correction")
+  void preservesIndependentAliasContexts(String organizer, String competition) {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    PoolView target = pool("B", "other-pack", TARGET);
+    MatchView original = match(first, "Alpha", "First away");
+    MatchView existing = match(target, "Beta", "Target away");
+    sql.update(
+        "INSERT INTO sporting_team_alias(team_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'organizer', 'competition', 'shared alias'), (?, ?, ?, ?, 'shared alias')",
+        original.homeTeamId(),
+        season,
+        existing.homeTeamId(),
+        season,
+        organizer,
+        competition);
+    ClassificationView before = classifications.pool(account, first.id());
+
+    // When
+    classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
+    MatchView observed = match(first, "Shared alias", "First away");
+
+    // Then
+    assertThat(observed).isEqualTo(original);
+    assertThat(reads.team(original.homeTeamId()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(reads.match(existing.id())).contains(existing);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"0002, 2026", "0001, 2027"})
+  @DisplayName("Keeps identical aliases independent across clubs or seasons after correction")
+  void preservesIndependentAliasOwners(String otherClub, long otherStartYear) {
+    // Given
+    PoolView first = pool("A", "pack", ORIGINAL);
+    MatchView original = match(first, "Alpha", "First away");
+    UUID otherSeason = seasons.getOrCreate(otherStartYear).id();
+    PoolView other =
+        identities.establishPool(
+            new PoolKey(
+                CollectionProviderEnum.FFVB,
+                otherSeason,
+                "organizer",
+                "competition",
+                null,
+                null,
+                "B"),
+            "other-pack",
+            "Other pool",
+            classification(TARGET));
+    MatchView existing =
+        identities.identifyMatch(
+            other.id(),
+            "M1",
+            new TeamCandidate(null, "Beta", otherClub, null),
+            new TeamCandidate(null, "Other away", "0009", null));
+    sql.update(
+        "INSERT INTO sporting_team_alias(team_id, season_id, organizer_reference, competition_reference, comparison_name) VALUES (?, ?, 'organizer', 'competition', 'shared alias'), (?, ?, 'organizer', 'competition', 'shared alias')",
+        original.homeTeamId(),
+        season,
+        existing.homeTeamId(),
+        otherSeason);
+    ClassificationView before = classifications.pool(account, first.id());
+
+    // When
+    classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
+    MatchView observed = match(first, "Shared alias", "First away");
+
+    // Then
+    assertThat(observed).isEqualTo(original);
+    assertThat(reads.team(original.homeTeamId()).orElseThrow().classification())
+        .isEqualTo(classification(TARGET));
+    assertThat(reads.match(existing.id())).contains(existing);
   }
 
   @Test

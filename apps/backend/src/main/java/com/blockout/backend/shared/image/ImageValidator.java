@@ -15,13 +15,17 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ImageValidator {
+  private static final long MAX_DECODED_PIXELS = 4_194_304L;
 
   /**
-   * Decodes an image without trusting an upload's filename or declared media type.
+   * Decodes an image of at most 4,194,304 pixels without trusting its filename or declared media
+   * type. Dimensions are checked before raster allocation; the compressed byte limit remains with
+   * the caller.
    *
    * @param bytes non-null original image content; callers own size and presence constraints
    * @return original bytes with their detected media type, without re-encoding
-   * @throws IOException if the content is unsupported or cannot be decoded
+   * @throws IOException if the content is unsupported, exceeds the pixel budget or cannot be
+   *     decoded
    */
   public static ValidatedImage validate(byte[] bytes) throws IOException {
     try (MemoryCacheImageInputStream input =
@@ -36,6 +40,9 @@ public final class ImageValidator {
         else if ("JPEG".equalsIgnoreCase(format)) mediaType = "image/jpeg";
         else throw new IIOException("Only PNG and JPEG images are supported");
         reader.setInput(input);
+        long pixels = (long) reader.getWidth(0) * reader.getHeight(0);
+        if (pixels > MAX_DECODED_PIXELS)
+          throw new IIOException("Image exceeds the decoded pixel limit");
         reader.read(0);
         return new ValidatedImage(bytes, mediaType);
       } finally {
