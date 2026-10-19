@@ -19,7 +19,7 @@ interface CollectionCycleRepository extends JpaRepository<CollectionCycleEntity,
    * @return scalar owner references before locks are acquired
    */
   @Query(
-      "select new com.blockout.backend.collection.application.model.CollectionState$CycleScope(c.incarnationId, c.controlId, c.sourceBindingId) from CollectionCycleEntity c where c.id = :id")
+      "SELECT NEW com.blockout.backend.collection.application.model.CollectionState$CycleScope(c.incarnationId, c.controlId, c.sourceBindingId) FROM CollectionCycleEntity c WHERE c.id = :id")
   Optional<CollectionState.CycleScope> scope(UUID id);
 
   /**
@@ -29,7 +29,7 @@ interface CollectionCycleRepository extends JpaRepository<CollectionCycleEntity,
    * @return current completion state held through the caller transaction
    */
   @Lock(LockModeType.PESSIMISTIC_READ)
-  @Query("select c from CollectionCycleEntity c where c.id = :id")
+  @Query("SELECT c FROM CollectionCycleEntity c WHERE c.id = :id")
   Optional<CollectionCycleEntity> lockById(UUID id);
 
   /**
@@ -39,7 +39,7 @@ interface CollectionCycleRepository extends JpaRepository<CollectionCycleEntity,
    * @return context held exclusively through commit
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("select c from CollectionCycleEntity c where c.id = :id")
+  @Query("SELECT c FROM CollectionCycleEntity c WHERE c.id = :id")
   Optional<CollectionCycleEntity> lockForUpdate(UUID id);
 
   /**

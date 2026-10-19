@@ -249,7 +249,7 @@ public interface SportingObservationMapper {
    */
   default JsonNullable<MatchResultInternalRequest> result(
       JsonNullable<SportingObservation.Result> source) {
-    return source.isPresent() ? JsonNullable.of(toDto(source.get())) : JsonNullable.undefined();
+    return source.map(this::toDto);
   }
 
   /**
@@ -260,10 +260,16 @@ public interface SportingObservationMapper {
    */
   default JsonNullable<List<MatchSetScoreInternalRequest>> sets(
       JsonNullable<List<SportingObservation.SetScore>> source) {
-    if (!source.isPresent()) return JsonNullable.undefined();
-    return JsonNullable.of(
-        source.get() == null ? null : source.get().stream().map(this::toDto).toList());
+    return source.map(this::toSets);
   }
+
+  /**
+   * Maps supplied set scores while retaining an explicit null or empty list.
+   *
+   * @param source supplied scores, possibly null for withdrawal
+   * @return mapped scores in source order, or null for withdrawal
+   */
+  List<MatchSetScoreInternalRequest> toSets(List<SportingObservation.SetScore> source);
 
   /**
    * Maps optional document context without changing its presence.
@@ -273,7 +279,7 @@ public interface SportingObservationMapper {
    */
   default JsonNullable<InformationSheetInternalRequest> sheet(
       JsonNullable<SportingObservation.InformationSheet> source) {
-    return source.isPresent() ? JsonNullable.of(toDto(source.get())) : JsonNullable.undefined();
+    return source.map(this::toDto);
   }
 
   /**

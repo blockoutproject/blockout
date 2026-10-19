@@ -20,10 +20,10 @@ interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
    */
   @Query(
       """
-      select c from ClubEntity c where c.provider = CollectionProviderEnum.FFVB
-      and (:geocoding = false or (c.hasCoordinates = false and c.municipalityRestricted = false
-        and c.municipality is not null and (:manual = true or c.geocodedRevision is null or c.geocodedRevision <> c.localityRevision)))
-      order by c.id
+      SELECT c FROM ClubEntity c WHERE c.provider = CollectionProviderEnum.FFVB
+      AND (:geocoding = FALSE OR (c.hasCoordinates = FALSE AND c.municipalityRestricted = FALSE
+        AND c.municipality IS NOT NULL AND (:manual = TRUE OR c.geocodedRevision IS NULL OR c.geocodedRevision <> c.localityRevision)))
+      ORDER BY c.id
       """)
   List<ClubEntity> acquisitionClubs(boolean geocoding, boolean manual, Pageable page);
 

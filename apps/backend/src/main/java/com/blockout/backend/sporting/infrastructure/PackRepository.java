@@ -26,6 +26,6 @@ interface PackRepository extends JpaRepository<PackEntity, UUID> {
    * @param id requested pack
    * @return immutable season owner, or empty
    */
-  @Query("select p.season.id from PackEntity p where p.id = :id")
+  @Query("SELECT p.season.id FROM PackEntity p WHERE p.id = :id")
   Optional<UUID> findSeasonId(UUID id);
 }

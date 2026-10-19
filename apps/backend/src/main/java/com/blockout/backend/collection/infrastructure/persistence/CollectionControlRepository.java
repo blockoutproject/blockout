@@ -20,7 +20,7 @@ interface CollectionControlRepository extends JpaRepository<CollectionControlEnt
    * @return scalar season reference without loading a managed aggregate
    */
   @Query(
-      "select new com.blockout.backend.collection.application.model.CollectionState$SeasonScope(c.seasonId) from CollectionControlEntity c where c.id = :id")
+      "SELECT NEW com.blockout.backend.collection.application.model.CollectionState$SeasonScope(c.seasonId) FROM CollectionControlEntity c WHERE c.id = :id")
   Optional<CollectionState.SeasonScope> seasonScope(UUID id);
 
   /**
@@ -30,7 +30,7 @@ interface CollectionControlRepository extends JpaRepository<CollectionControlEnt
    * @return current control held through admission
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("select c from CollectionControlEntity c where c.id = :id")
+  @Query("SELECT c FROM CollectionControlEntity c WHERE c.id = :id")
   Optional<CollectionControlEntity> lockById(UUID id);
 
   /**
@@ -48,9 +48,10 @@ interface CollectionControlRepository extends JpaRepository<CollectionControlEnt
    */
   @Modifying
   @Query(
-      value =
-          "UPDATE collection_control SET last_attempt_at = GREATEST(last_attempt_at, :attemptedAt) WHERE id = :id",
-      nativeQuery = true)
+      """
+      UPDATE CollectionControlEntity c SET c.lastAttemptAt = :attemptedAt
+      WHERE c.id = :id AND (c.lastAttemptAt IS NULL OR c.lastAttemptAt < :attemptedAt)
+      """)
   void recordAttempt(UUID id, Instant attemptedAt);
 
   /**
@@ -60,8 +61,6 @@ interface CollectionControlRepository extends JpaRepository<CollectionControlEnt
    * @param completedAt actual completed successful passage
    */
   @Modifying
-  @Query(
-      value = "UPDATE collection_control SET last_success_at = :completedAt WHERE id = :id",
-      nativeQuery = true)
+  @Query("UPDATE CollectionControlEntity c SET c.lastSuccessAt = :completedAt WHERE c.id = :id")
   void recordSuccess(UUID id, Instant completedAt);
 }

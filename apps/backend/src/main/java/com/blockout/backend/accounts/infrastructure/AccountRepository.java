@@ -25,6 +25,6 @@ interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
    * @return locked original row, or empty after erasure
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("select a from AccountEntity a where a.id = :id")
+  @Query("SELECT a FROM AccountEntity a WHERE a.id = :id")
   Optional<AccountEntity> lockById(UUID id);
 }

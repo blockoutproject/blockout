@@ -8,6 +8,7 @@ import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
 import com.blockout.collector.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
+import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
 import com.blockout.collector.ingestion.IngestionTestClient;
 import com.sun.net.httpserver.HttpServer;
@@ -24,13 +25,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import tools.jackson.databind.JsonNode;
@@ -224,6 +228,62 @@ class SportingObservationClientTest {
     assertThat(body.at("/context/readOrdinal").asLong()).isEqualTo(7);
     assertThat(body.at("/context/observedAt").asText()).isEqualTo("2026-10-19T12:00:00Z");
     assertThat(body.at("/context/providerPublishedAt").asText()).isEqualTo("2026-10-19T11:00:00Z");
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("nestedPresenceProposals")
+  @DisplayName("Preserves presence while mapping nested result, sets and document proposals")
+  void preservesNestedPresence(String scenario, SportingObservation.Facts facts, String expected) {
+    // Given
+    JsonNode expectedFacts = json.readTree(expected);
+
+    // When
+    client.detail(ID, CONTEXT, facts);
+
+    // Then
+    assertThat(json.readTree(received).get("facts")).isEqualTo(expectedFacts);
+  }
+
+  /**
+   * Supplies explicit presence states at the handwritten mapper and real generated HTTP boundary.
+   *
+   * @return undefined, withdrawn and supplied nested proposals with their expected JSON
+   */
+  private static Stream<Arguments> nestedPresenceProposals() {
+    return Stream.of(
+        Arguments.of(
+            "undefined",
+            SportingObservation.Facts.builder()
+                .result(JsonNullable.undefined())
+                .sets(JsonNullable.undefined())
+                .informationSheet(JsonNullable.undefined())
+                .build(),
+            "{}"),
+        Arguments.of(
+            "withdrawn",
+            SportingObservation.Facts.builder()
+                .result(JsonNullable.of(null))
+                .sets(JsonNullable.of(null))
+                .informationSheet(JsonNullable.of(null))
+                .build(),
+            "{\"result\":null,\"sets\":null,\"informationSheet\":null}"),
+        Arguments.of(
+            "supplied",
+            SportingObservation.Facts.builder()
+                .result(
+                    JsonNullable.of(
+                        new SportingObservation.Result(
+                            ResultStateEnum.UNCONFIRMED, null, null, "F/F")))
+                .sets(JsonNullable.of(List.of(new SportingObservation.SetScore(25, 20))))
+                .informationSheet(
+                    JsonNullable.of(
+                        new SportingObservation.InformationSheet("2026/2027", "ABCD", "001")))
+                .build(),
+            """
+            {"result":{"state":"unconfirmed","specialLabel":"F/F"},
+             "sets":[{"home":25,"away":20}],
+             "informationSheet":{"seasonLabel":"2026/2027","organizerReference":"ABCD","matchCode":"001"}}
+            """));
   }
 
   @ParameterizedTest

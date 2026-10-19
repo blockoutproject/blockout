@@ -18,7 +18,7 @@ interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
    * @return current qualified detail references in identity order
    */
   @Query(
-      "select m from MatchEntity m join fetch m.pool p join fetch p.pack where p.id = :poolId and m.detailUrl is not null order by m.id")
+      "SELECT m FROM MatchEntity m JOIN FETCH m.pool p JOIN FETCH p.pack WHERE p.id = :poolId AND m.detailUrl IS NOT NULL ORDER BY m.id")
   List<MatchEntity> acquisitionDetails(UUID poolId, Pageable page);
 
   /**
@@ -31,10 +31,10 @@ interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
    */
   @Query(
       """
-      select m.pool.id as poolId, max(m.reliableStart) as latestStart
-      from MatchEntity m
-      where m.pool.id in :poolIds and m.reliableStart between :earliest and :latest
-      group by m.pool.id
+      SELECT m.pool.id AS poolId, MAX(m.reliableStart) AS latestStart
+      FROM MatchEntity m
+      WHERE m.pool.id IN :poolIds AND m.reliableStart BETWEEN :earliest AND :latest
+      GROUP BY m.pool.id
       """)
   List<PoolMatchStart> findLatestMatchStartsInWindow(
       List<UUID> poolIds, Instant earliest, Instant latest);

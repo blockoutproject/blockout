@@ -16,6 +16,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.model.PoolKey;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -136,7 +138,12 @@ class CollectionResultIntegrationTest {
     assertThat(cycles.get(cycle.id()).completedAt()).isNull();
   }
 
-  /** Applies the real disposable baseline and registers application-only database credentials. */
+  /**
+   * Applies the real disposable baseline and registers application-only database credentials.
+   *
+   * @param properties isolated application connection settings
+   * @throws Exception if the disposable baseline cannot be migrated
+   */
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
@@ -150,7 +157,7 @@ class CollectionResultIntegrationTest {
     sql.update("DELETE FROM collection_result");
     sql.update("DELETE FROM collection_cycle");
     sql.update(
-        "UPDATE collection_control SET enabled = true, current_cycle_id = NULL, last_success_at = NULL, last_attempt_at = NULL WHERE id = ?",
+        "UPDATE collection_control SET enabled = TRUE, current_cycle_id = NULL, last_success_at = NULL, last_attempt_at = NULL WHERE id = ?",
         CONTROL);
     UUID startup = UUID.randomUUID();
     runtimes.register(runtimes.current().revision(), startup);
@@ -204,7 +211,7 @@ class CollectionResultIntegrationTest {
     assertThat(current(CollectionPhaseEnum.ACQUISITION).outcome())
         .isEqualTo(CollectionOutcomeEnum.FAILED);
     assertThat(current(CollectionPhaseEnum.ACQUISITION).lastSuccessAt()).isNull();
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_result", Integer.class))
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Integer.class))
         .isEqualTo(1);
   }
 
@@ -241,7 +248,7 @@ class CollectionResultIntegrationTest {
         .isEqualTo(OBSERVED.plusSeconds(5));
     assertThat(current(CollectionPhaseEnum.ACQUISITION).readOrdinal()).isEqualTo(1);
     assertThat(current(CollectionPhaseEnum.ACQUISITION).cycleOrder()).isEqualTo(cycle.cycleOrder());
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_result", Integer.class))
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Integer.class))
         .isEqualTo(1);
   }
 
@@ -263,22 +270,99 @@ class CollectionResultIntegrationTest {
     assertThat(control().lastSuccessAt()).isNull();
   }
 
-  @Test
-  @DisplayName("Advances full success only when every selected role has both successful phases")
-  void recordsFullSuccess() {
+  @ParameterizedTest
+  @EnumSource(CollectionTargetKindEnum.class)
+  @DisplayName("Advances full success for each selected role only with both successful phases")
+  void recordsFullSuccess(CollectionTargetKindEnum kind) {
     // Given
+    sql.update("UPDATE collection_target SET kind = ? WHERE cycle_id = ?", kind.name(), cycle.id());
     long revision = control().revision();
-    results.record(
-        cycle.id(), evidence(1, CollectionPhaseEnum.ACQUISITION, CollectionOutcomeEnum.SUCCESS));
-    results.record(
-        cycle.id(), evidence(1, CollectionPhaseEnum.INTEGRATION, CollectionOutcomeEnum.SUCCESS));
+    for (CollectionPhaseEnum phase : CollectionPhaseEnum.values()) {
+      results.record(
+          cycle.id(),
+          new RecordCollectionResult(
+              SCOPE,
+              CollectionStageEnum.fromValue(kind.getValue()),
+              phase,
+              1,
+              OBSERVED.plusSeconds(1),
+              CollectionOutcomeEnum.SUCCESS,
+              null,
+              null,
+              1L,
+              0L));
+    }
 
     // When
     results.complete(cycle.id(), cycle.startedAt().plusSeconds(1));
 
     // Then
     assertThat(control().lastSuccessAt()).isEqualTo(cycle.startedAt().plusSeconds(1));
+    assertThat(control().lastAttemptAt()).isEqualTo(OBSERVED.plusSeconds(1));
     assertThat(control().revision()).isEqualTo(revision);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"1, 2", "2, 2", "3, 3"})
+  @DisplayName("Retains the latest actual attempt without changing the operator revision")
+  void retainsLatestAttempt(int nextSeconds, int expectedSeconds) {
+    // Given
+    results.record(
+        cycle.id(), evidence(2, CollectionPhaseEnum.ACQUISITION, CollectionOutcomeEnum.SUCCESS));
+    long revision = control().revision();
+    RecordCollectionResult next =
+        new RecordCollectionResult(
+            SCOPE,
+            CollectionStageEnum.CLUB_SHEET,
+            CollectionPhaseEnum.ACQUISITION,
+            3,
+            OBSERVED.plusSeconds(nextSeconds),
+            CollectionOutcomeEnum.SUCCESS,
+            null,
+            null,
+            1L,
+            0L);
+
+    // When
+    results.record(cycle.id(), next);
+
+    // Then
+    assertThat(control().lastAttemptAt()).isEqualTo(OBSERVED.plusSeconds(expectedSeconds));
+    assertThat(control().revision()).isEqualTo(revision);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CollectionPhaseEnum.class)
+  @DisplayName("A selected role with a missing phase cannot establish full success")
+  void refusesIncompletePhases(CollectionPhaseEnum phase) {
+    // Given
+    results.record(cycle.id(), evidence(1, phase, CollectionOutcomeEnum.SUCCESS));
+
+    // When
+    results.complete(cycle.id(), OBSERVED.plusSeconds(2));
+
+    // Then
+    assertThat(control().lastSuccessAt()).isNull();
+  }
+
+  @Test
+  @DisplayName("A successful role cannot cover a different selected role for the same scope")
+  void refusesMissingRole() {
+    // Given
+    sql.update(
+        "INSERT INTO collection_target(cycle_id, scope_id, kind) VALUES (?, ?, 'GEOCODING')",
+        cycle.id(),
+        SCOPE);
+    results.record(
+        cycle.id(), evidence(1, CollectionPhaseEnum.ACQUISITION, CollectionOutcomeEnum.SUCCESS));
+    results.record(
+        cycle.id(), evidence(1, CollectionPhaseEnum.INTEGRATION, CollectionOutcomeEnum.SUCCESS));
+
+    // When
+    results.complete(cycle.id(), OBSERVED.plusSeconds(2));
+
+    // Then
+    assertThat(control().lastSuccessAt()).isNull();
   }
 
   @Test
@@ -323,7 +407,7 @@ class CollectionResultIntegrationTest {
     // When / Then
     assertThatThrownBy(() -> results.record(cycle.id(), unselected))
         .isInstanceOf(CollectionConflictException.class);
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_result", Integer.class))
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Integer.class))
         .isZero();
   }
 
@@ -386,7 +470,7 @@ class CollectionResultIntegrationTest {
   private MatchView match(String reference) {
     UUID division = UUID.randomUUID();
     sql.update(
-        "INSERT INTO sporting_division(id,name,active,color) VALUES (?, ?,true,'#112233')",
+        "INSERT INTO sporting_division(id,name,active,color) VALUES (?, ?,TRUE,'#112233')",
         division,
         reference);
     UUID pool =

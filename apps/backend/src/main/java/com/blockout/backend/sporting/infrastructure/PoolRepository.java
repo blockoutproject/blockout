@@ -23,12 +23,12 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
    */
   @Query(
       """
-      select p from PoolEntity p join fetch p.pack pack
-      join DivisionEntity d on d.id = coalesce(p.setting.settingDivisionId, pack.setting.settingDivisionId)
-      where p.season.id = :seasonId and p.provider = :provider and p.organizerReference = :organizerReference
-      and (:initialImport = true or p.catalogEligible = true) and d.active = true
-      and (p.calendarUrl is not null or p.standingsUrl is not null)
-      order by p.id
+      SELECT p FROM PoolEntity p JOIN FETCH p.pack pack
+      JOIN DivisionEntity d ON d.id = COALESCE(p.setting.settingDivisionId, pack.setting.settingDivisionId)
+      WHERE p.season.id = :seasonId AND p.provider = :provider AND p.organizerReference = :organizerReference
+      AND (:initialImport = TRUE OR p.catalogEligible = TRUE) AND d.active = TRUE
+      AND (p.calendarUrl IS NOT NULL OR p.standingsUrl IS NOT NULL)
+      ORDER BY p.id
       """)
   List<PoolEntity> acquisitionPools(
       UUID seasonId,
@@ -43,7 +43,7 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
    * @param id existing pool identity
    * @return canonical season to lock before reading current sporting state
    */
-  @Query("select p.season.id from PoolEntity p where p.id = :id")
+  @Query("SELECT p.season.id FROM PoolEntity p WHERE p.id = :id")
   Optional<UUID> findSeasonId(UUID id);
 
   /**
@@ -54,11 +54,11 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
    */
   @Query(
       """
-      select p from PoolEntity p where p.provider = :#{#key.provider} and p.season.id = :#{#key.seasonId}
-      and p.organizerReference = :#{#key.organizerReference} and p.competitionReference = :#{#key.competitionReference}
-      and p.reference = :#{#key.reference}
-      and p.tourReference is not distinct from :#{#key.tourReference}
-      and p.groupReference is not distinct from :#{#key.groupReference}
+      SELECT p FROM PoolEntity p WHERE p.provider = :#{#key.provider} AND p.season.id = :#{#key.seasonId}
+      AND p.organizerReference = :#{#key.organizerReference} AND p.competitionReference = :#{#key.competitionReference}
+      AND p.reference = :#{#key.reference}
+      AND p.tourReference IS NOT DISTINCT FROM :#{#key.tourReference}
+      AND p.groupReference IS NOT DISTINCT FROM :#{#key.groupReference}
       """)
   Optional<PoolEntity> findByKey(PoolKey key);
 

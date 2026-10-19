@@ -13,6 +13,6 @@ interface PermissionRepository extends Repository<PermissionEntity, PermissionEn
    * @param accountId original business UUID; the foreign key excludes orphan grants
    * @return stored action identifiers, empty after erasure or without assignments
    */
-  @Query("select p.permission from PermissionEntity p where p.accountId = :accountId")
+  @Query("SELECT p.permission FROM PermissionEntity p WHERE p.accountId = :accountId")
   Set<String> findByAccountId(UUID accountId);
 }

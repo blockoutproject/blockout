@@ -63,12 +63,12 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
    */
   @Query(
       """
-      select t from TeamEntity t join t.aliases a
-      where t.provider = :#{#pool.key.provider} and t.season.id = :#{#pool.key.seasonId}
-      and t.club.id = :clubId and t.division.id = :#{#pool.classification.divisionId}
-      and t.format = :#{#pool.classification.format} and t.gender = :#{#pool.classification.gender}
-      and a.seasonId = :#{#pool.key.seasonId} and a.organizerReference = :#{#pool.key.organizerReference}
-      and a.competitionReference = :#{#pool.key.competitionReference} and a.comparisonName = :name
+      SELECT t FROM TeamEntity t JOIN t.aliases a
+      WHERE t.provider = :#{#pool.key.provider} AND t.season.id = :#{#pool.key.seasonId}
+      AND t.club.id = :clubId AND t.division.id = :#{#pool.classification.divisionId}
+      AND t.format = :#{#pool.classification.format} AND t.gender = :#{#pool.classification.gender}
+      AND a.seasonId = :#{#pool.key.seasonId} AND a.organizerReference = :#{#pool.key.organizerReference}
+      AND a.competitionReference = :#{#pool.key.competitionReference} AND a.comparisonName = :name
       """)
   Optional<TeamEntity> findByVerifiedAlias(PoolView pool, UUID clubId, String name);
 
@@ -79,7 +79,7 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
    * @return distinct participating teams
    */
   @Query(
-      "select t from TeamEntity t where exists (select p.id from ParticipationEntity p where p.team = t and p.pool.id in :poolIds)")
+      "SELECT t FROM TeamEntity t WHERE EXISTS (SELECT p.id FROM ParticipationEntity p WHERE p.team = t AND p.pool.id IN :poolIds)")
   List<TeamEntity> findParticipatingIn(List<UUID> poolIds);
 
   /**
@@ -93,27 +93,27 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
    */
   @Query(
       """
-      select distinct target.id
-      from TeamEntity original left join original.aliases originalAlias,
-           TeamEntity target left join target.aliases targetAlias
-      where original.id in :teamIds and original.provider = com.blockout.backend.generated.ingestion.model.CollectionProviderEnum.FFVB
-      and target.provider = original.provider and target.season = original.season
-      and target.club = original.club
-      and (target.id in :teamIds or (
+      SELECT DISTINCT target.id
+      FROM TeamEntity original LEFT JOIN original.aliases originalAlias,
+           TeamEntity target LEFT JOIN target.aliases targetAlias
+      WHERE original.id IN :teamIds AND original.provider = com.blockout.backend.generated.ingestion.model.CollectionProviderEnum.FFVB
+      AND target.provider = original.provider AND target.season = original.season
+      AND target.club = original.club
+      AND (target.id IN :teamIds OR (
         target.division.id = :#{#classification.divisionId}
-        and target.format = :#{#classification.format} and target.gender = :#{#classification.gender}
+        AND target.format = :#{#classification.format} AND target.gender = :#{#classification.gender}
       ))
-      and target.id <> original.id
-      and (
+      AND target.id <> original.id
+      AND (
         target.comparisonName = original.comparisonName
-        or (originalAlias.seasonId = original.season.id
-            and originalAlias.comparisonName = target.comparisonName)
-        or (targetAlias.seasonId = target.season.id
-            and targetAlias.comparisonName = original.comparisonName)
-        or (originalAlias.seasonId = original.season.id and targetAlias.seasonId = target.season.id
-            and originalAlias.organizerReference = targetAlias.organizerReference
-            and originalAlias.competitionReference = targetAlias.competitionReference
-            and originalAlias.comparisonName = targetAlias.comparisonName)
+        OR (originalAlias.seasonId = original.season.id
+            AND originalAlias.comparisonName = target.comparisonName)
+        OR (targetAlias.seasonId = target.season.id
+            AND targetAlias.comparisonName = original.comparisonName)
+        OR (originalAlias.seasonId = original.season.id AND targetAlias.seasonId = target.season.id
+            AND originalAlias.organizerReference = targetAlias.organizerReference
+            AND originalAlias.competitionReference = targetAlias.competitionReference
+            AND originalAlias.comparisonName = targetAlias.comparisonName)
       )
       """)
   List<UUID> findClassificationCollisions(
