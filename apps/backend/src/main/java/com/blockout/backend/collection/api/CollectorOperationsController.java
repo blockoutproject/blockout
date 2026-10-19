@@ -1,8 +1,8 @@
 package com.blockout.backend.collection.api;
 
-import com.blockout.backend.collection.application.CollectionCycleService;
-import com.blockout.backend.collection.application.CollectionState.Admission;
-import com.blockout.backend.collection.application.CollectorRuntimeService;
+import com.blockout.backend.collection.application.model.CollectionState.Admission;
+import com.blockout.backend.collection.application.service.CollectionCycleService;
+import com.blockout.backend.collection.application.service.CollectorRuntimeService;
 import com.blockout.backend.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetPageInternalResponse;

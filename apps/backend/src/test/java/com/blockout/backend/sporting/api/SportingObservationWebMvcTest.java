@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.generated.ingestion.model.MatchDetailObservationInternalRequest;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
-import com.blockout.backend.sporting.application.MatchObservation;
+import com.blockout.backend.sporting.application.model.MatchObservation;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.AccessLevel;

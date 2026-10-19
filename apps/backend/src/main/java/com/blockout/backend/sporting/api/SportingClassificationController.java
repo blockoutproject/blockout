@@ -4,7 +4,7 @@ import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.generated.mobile.api.SportingClassificationApi;
 import com.blockout.backend.generated.mobile.model.ClassificationDetailResponse;
 import com.blockout.backend.generated.mobile.model.SetClassificationRequest;
-import com.blockout.backend.sporting.application.ClassificationService;
+import com.blockout.backend.sporting.application.service.ClassificationService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;

@@ -1,4 +1,4 @@
-package com.blockout.backend.sporting.application;
+package com.blockout.backend.sporting.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -7,9 +7,14 @@ import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
-import com.blockout.backend.sporting.application.SportingViews.ClassificationView;
-import com.blockout.backend.sporting.application.SportingViews.MatchView;
-import com.blockout.backend.sporting.application.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.exception.SportingConflictException;
+import com.blockout.backend.sporting.application.model.PoolKey;
+import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
+import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.model.TeamCandidate;
+import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;

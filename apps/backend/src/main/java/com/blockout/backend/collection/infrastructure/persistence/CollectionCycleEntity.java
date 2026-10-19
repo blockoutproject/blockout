@@ -1,6 +1,6 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
-import com.blockout.backend.collection.application.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import jakarta.persistence.Column;

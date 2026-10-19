@@ -1,6 +1,9 @@
-package com.blockout.backend.sporting.application;
+package com.blockout.backend.sporting.application.service;
 
-import com.blockout.backend.sporting.application.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.model.SportingViews;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.port.SportingStore;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

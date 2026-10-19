@@ -1,4 +1,4 @@
-package com.blockout.backend.sporting.application;
+package com.blockout.backend.sporting.application.model;
 
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import java.net.URI;

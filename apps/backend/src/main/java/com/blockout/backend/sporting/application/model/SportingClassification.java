@@ -1,4 +1,4 @@
-package com.blockout.backend.sporting.application;
+package com.blockout.backend.sporting.application.model;
 
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;

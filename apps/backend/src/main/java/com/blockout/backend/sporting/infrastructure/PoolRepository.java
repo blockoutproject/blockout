@@ -1,7 +1,7 @@
 package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
-import com.blockout.backend.sporting.application.PoolKey;
+import com.blockout.backend.sporting.application.model.PoolKey;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

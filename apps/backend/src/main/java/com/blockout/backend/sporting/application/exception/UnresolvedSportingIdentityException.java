@@ -1,4 +1,4 @@
-package com.blockout.backend.sporting.application;
+package com.blockout.backend.sporting.application.exception;
 
 /**
  * Refuses one unassociable item without guessing a replacement or changing its retained identity.

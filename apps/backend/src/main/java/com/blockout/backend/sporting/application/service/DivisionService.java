@@ -1,9 +1,12 @@
-package com.blockout.backend.sporting.application;
+package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.access.application.ActionAuthorization;
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
-import com.blockout.backend.sporting.application.SportingViews.DivisionDetail;
+import com.blockout.backend.sporting.application.exception.SportingConflictException;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
+import com.blockout.backend.sporting.application.port.SportingStore;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;

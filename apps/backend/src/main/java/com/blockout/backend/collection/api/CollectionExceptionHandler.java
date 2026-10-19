@@ -1,7 +1,7 @@
 package com.blockout.backend.collection.api;
 
-import com.blockout.backend.collection.application.CollectionConflictException;
-import com.blockout.backend.collection.application.CollectionNotFoundException;
+import com.blockout.backend.collection.application.exception.CollectionConflictException;
+import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
 import com.blockout.backend.generated.ingestion.model.ProblemResponse;
 import java.net.URI;
 import org.springframework.core.annotation.Order;

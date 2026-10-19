@@ -4,7 +4,7 @@
 
 Place entities, Spring Data repositories and persistence adapters under the owning feature's infrastructure. An application-owned port remains mandatory even for CRUD. Keep it use-case-shaped rather than mirroring repository methods. Return mapped values, never managed entities or Spring Data pages.
 
-Keep an adapter and its collaborating repositories, entities, persistence value types and mappers together when they form one cohesive persistence boundary. An `infrastructure/persistence` package is useful when the feature also has other infrastructure responsibilities. Subdivide further only for actual independent groups; do not scatter each persistence role into its own package or split a coherent store merely to reduce directory size.
+An `infrastructure/persistence` package can distinguish persistence from other adapters. Inside the owning feature, keeping an adapter, repositories, entities, persistence values and mappers together preserves proximity and package-private access. Role-based subpackages such as `entity`, `repository` or `mapper` are also valid when navigation benefits justify the required visibility. Keep the same business ownership in either layout; moving files does not require splitting a coherent store or introducing another abstraction.
 
 Name application-owned persistence interfaces `XStore`, their JPA adapters `JpaXStore`, and Spring Data interfaces `XRepository`. Determine names from actual roles, preserve coherent business groupings, and do not add interfaces or layers solely to satisfy naming. Preserve framework-owned and generated names. This naming scheme is a personal convention, not a Spring requirement.
 

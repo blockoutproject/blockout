@@ -1,5 +1,8 @@
-package com.blockout.backend.collection.application;
+package com.blockout.backend.collection.application.service;
 
+import com.blockout.backend.collection.application.exception.CollectionConflictException;
+import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.port.CollectionStore;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

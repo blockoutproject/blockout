@@ -1,6 +1,6 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
-import com.blockout.backend.collection.application.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import java.util.Objects;

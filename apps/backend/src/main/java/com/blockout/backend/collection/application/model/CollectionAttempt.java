@@ -1,4 +1,4 @@
-package com.blockout.backend.collection.application;
+package com.blockout.backend.collection.application.model;
 
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import java.time.Instant;

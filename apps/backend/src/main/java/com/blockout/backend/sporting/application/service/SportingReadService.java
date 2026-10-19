@@ -1,12 +1,15 @@
-package com.blockout.backend.sporting.application;
+package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
-import com.blockout.backend.sporting.application.SportingViews.ClubView;
-import com.blockout.backend.sporting.application.SportingViews.DivisionView;
-import com.blockout.backend.sporting.application.SportingViews.MatchView;
-import com.blockout.backend.sporting.application.SportingViews.PoolView;
-import com.blockout.backend.sporting.application.SportingViews.SeasonView;
-import com.blockout.backend.sporting.application.SportingViews.TeamView;
+import com.blockout.backend.sporting.application.model.AcquisitionReference;
+import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
+import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
+import com.blockout.backend.sporting.application.port.SportingStore;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;

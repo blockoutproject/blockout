@@ -1,4 +1,4 @@
-package com.blockout.backend.sporting.application;
+package com.blockout.backend.sporting.application.exception;
 
 import java.util.List;
 import java.util.UUID;

@@ -1,8 +1,8 @@
 package com.blockout.backend.sporting.api;
 
 import com.blockout.backend.generated.mobile.model.ProblemResponse;
-import com.blockout.backend.sporting.application.SportingConflictException;
-import com.blockout.backend.sporting.application.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.exception.SportingConflictException;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import java.net.URI;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.CacheControl;

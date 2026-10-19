@@ -1,6 +1,6 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
-import com.blockout.backend.collection.application.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionState;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +18,7 @@ interface SourceBindingRepository extends JpaRepository<SourceBindingEntity, UUI
    * @return scalar season reference without loading a managed aggregate
    */
   @Query(
-      "select new com.blockout.backend.collection.application.CollectionState$SeasonScope(c.seasonId) from SourceBindingEntity c where c.id = :id")
+      "select new com.blockout.backend.collection.application.model.CollectionState$SeasonScope(c.seasonId) from SourceBindingEntity c where c.id = :id")
   Optional<CollectionState.SeasonScope> seasonScope(UUID id);
 
   /**

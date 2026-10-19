@@ -1,12 +1,14 @@
-package com.blockout.backend.collection.application;
+package com.blockout.backend.collection.application.port;
 
-import com.blockout.backend.collection.application.CollectionState.Candidate;
-import com.blockout.backend.collection.application.CollectionState.Control;
-import com.blockout.backend.collection.application.CollectionState.Cycle;
-import com.blockout.backend.collection.application.CollectionState.Runtime;
-import com.blockout.backend.collection.application.CollectionState.Source;
-import com.blockout.backend.collection.application.CollectionState.StartCycle;
-import com.blockout.backend.collection.application.CollectionState.Target;
+import com.blockout.backend.collection.application.model.CollectionAttempt;
+import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionState.Candidate;
+import com.blockout.backend.collection.application.model.CollectionState.Control;
+import com.blockout.backend.collection.application.model.CollectionState.Cycle;
+import com.blockout.backend.collection.application.model.CollectionState.Runtime;
+import com.blockout.backend.collection.application.model.CollectionState.Source;
+import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
+import com.blockout.backend.collection.application.model.CollectionState.Target;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import java.time.Instant;
 import java.util.List;

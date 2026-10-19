@@ -1,6 +1,6 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
-import com.blockout.backend.collection.application.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionState;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,7 +19,7 @@ interface CollectionCycleRepository extends JpaRepository<CollectionCycleEntity,
    * @return scalar owner references before locks are acquired
    */
   @Query(
-      "select new com.blockout.backend.collection.application.CollectionState$CycleScope(c.incarnationId, c.controlId, c.sourceBindingId) from CollectionCycleEntity c where c.id = :id")
+      "select new com.blockout.backend.collection.application.model.CollectionState$CycleScope(c.incarnationId, c.controlId, c.sourceBindingId) from CollectionCycleEntity c where c.id = :id")
   Optional<CollectionState.CycleScope> scope(UUID id);
 
   /**

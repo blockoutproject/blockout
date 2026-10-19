@@ -1,10 +1,10 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
-import com.blockout.backend.collection.application.CollectionAttempt;
-import com.blockout.backend.collection.application.CollectionConflictException;
-import com.blockout.backend.collection.application.CollectionNotFoundException;
-import com.blockout.backend.collection.application.CollectionState;
-import com.blockout.backend.collection.application.CollectionStore;
+import com.blockout.backend.collection.application.exception.CollectionConflictException;
+import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
+import com.blockout.backend.collection.application.model.CollectionAttempt;
+import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import java.time.Instant;
 import java.util.List;

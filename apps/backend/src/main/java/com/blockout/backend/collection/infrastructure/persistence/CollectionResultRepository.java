@@ -1,6 +1,6 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
-import com.blockout.backend.collection.application.CollectionAttempt;
+import com.blockout.backend.collection.application.model.CollectionAttempt;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,6 +19,6 @@ interface CollectionResultRepository
    * @return current actual acquisition attempts and usable observations
    */
   @Query(
-      "select new com.blockout.backend.collection.application.CollectionAttempt(r.scopeId, r.stage, r.lastAttemptAt, r.lastSuccessAt) from CollectionResultEntity r where r.controlId = :controlId and r.scopeId in :scopeIds and r.phase = com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum.ACQUISITION")
+      "select new com.blockout.backend.collection.application.model.CollectionAttempt(r.scopeId, r.stage, r.lastAttemptAt, r.lastSuccessAt) from CollectionResultEntity r where r.controlId = :controlId and r.scopeId in :scopeIds and r.phase = com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum.ACQUISITION")
   List<CollectionAttempt> attempts(UUID controlId, List<UUID> scopeIds);
 }

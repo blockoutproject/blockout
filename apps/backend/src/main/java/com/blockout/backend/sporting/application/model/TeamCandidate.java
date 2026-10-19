@@ -1,4 +1,4 @@
-package com.blockout.backend.sporting.application;
+package com.blockout.backend.sporting.application.model;
 
 /**
  * Identified calendar participant; standings rows and undetermined places are not candidates.

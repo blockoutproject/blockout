@@ -1,4 +1,4 @@
-package com.blockout.backend.collection.application;
+package com.blockout.backend.collection.application.exception;
 
 import lombok.Getter;
 

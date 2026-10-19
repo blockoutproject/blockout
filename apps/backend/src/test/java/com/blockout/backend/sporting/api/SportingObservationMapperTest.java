@@ -9,7 +9,7 @@ import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest
 import com.blockout.backend.generated.ingestion.model.MatchSetScoreInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ObservationContextInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
-import com.blockout.backend.sporting.application.MatchObservation;
+import com.blockout.backend.sporting.application.model.MatchObservation;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;

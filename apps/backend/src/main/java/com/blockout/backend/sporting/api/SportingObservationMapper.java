@@ -7,7 +7,7 @@ import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchSetScoreInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ObservationContextInternalRequest;
-import com.blockout.backend.sporting.application.MatchObservation;
+import com.blockout.backend.sporting.application.model.MatchObservation;
 import java.util.List;
 import java.util.UUID;
 import org.mapstruct.Mapper;
