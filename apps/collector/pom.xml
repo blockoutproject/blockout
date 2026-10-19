@@ -122,6 +122,12 @@
               <inlineSchemaOptions>
                 <inlineSchemaOption>RESOLVE_INLINE_ENUMS=true</inlineSchemaOption>
               </inlineSchemaOptions>
+              <typeMappings>
+                <typeMapping>string+binary=Resource</typeMapping>
+              </typeMappings>
+              <importMappings>
+                <importMapping>Resource=org.springframework.core.io.Resource</importMapping>
+              </importMappings>
               <configOptions>
                 <useSpringBoot4>true</useSpringBoot4>
                 <useJackson3>true</useJackson3>

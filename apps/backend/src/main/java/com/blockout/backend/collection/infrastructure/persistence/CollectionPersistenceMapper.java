@@ -1,8 +1,10 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
+import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import java.net.URI;
 import java.util.Objects;
 import java.util.UUID;
 import org.mapstruct.Context;
@@ -12,6 +14,45 @@ import org.mapstruct.Mapping;
 /** Mechanical persistence projections; interrupted state derives from the current runtime only. */
 @Mapper(config = MappingConfiguration.class)
 interface CollectionPersistenceMapper {
+  /**
+   * Detaches one current result.
+   *
+   * @param source persisted independent evidence
+   * @return immutable current evidence with its logical order
+   */
+  @Mapping(target = "observedAt", source = "lastAttemptAt")
+  CollectionResult toView(CollectionResultEntity source);
+
+  /**
+   * Stores newer evidence while retaining its stable key.
+   *
+   * @param controlId admitted owner
+   * @param source current evidence computed by the application
+   * @return complete current-state row
+   */
+  @Mapping(target = "lastAttemptAt", source = "source.observedAt")
+  CollectionResultEntity toEntity(UUID controlId, CollectionResult source);
+
+  /**
+   * Restores the persisted machine-readable reason type.
+   *
+   * @param value persisted safe type
+   * @return native URI for the contract
+   */
+  default URI toUri(String value) {
+    return URI.create(value);
+  }
+
+  /**
+   * Persists the machine-readable reason without a provider payload.
+   *
+   * @param value safe machine type
+   * @return its persisted URI representation
+   */
+  default String toText(URI value) {
+    return value.toString();
+  }
+
   /**
    * Detaches current registration.
    *

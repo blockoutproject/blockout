@@ -248,7 +248,7 @@ Results:
   post:
     operationId: recordCollectionResult
     tags:
-      - Collection
+      - CollectorOperations
     summary: Record current scoped evidence
     description:
       Requires a current running control passage and authorized domain scope. Accepts one stage/phase result under the stable control/scope/stage/phase key; older
@@ -302,7 +302,7 @@ Completion:
   put:
     operationId: completeCollectionCycle
     tags:
-      - Collection
+      - CollectorOperations
     summary: Complete selected collection work
     description:
       Requires the current collector incarnation and a control passage, not candidate validation. Completes this running cycle after selected

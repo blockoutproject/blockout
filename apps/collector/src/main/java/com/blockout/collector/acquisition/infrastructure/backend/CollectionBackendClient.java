@@ -1,15 +1,14 @@
 package com.blockout.collector.acquisition.infrastructure.backend;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
-import com.blockout.collector.acquisition.application.CollectionBackendFailure;
+import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
+import com.blockout.collector.generated.ingestion.model.CompleteCollectionCycleInternalRequest;
 import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
+import java.time.Instant;
 import java.util.UUID;
-import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Native generated backend adapter; the existing ApiClient owns OAuth, validation and no-retry
@@ -20,17 +19,18 @@ import org.springframework.web.client.RestClientResponseException;
 public class CollectionBackendClient implements CollectionBackend {
   private final CollectorOperationsApi api;
   private final CollectionBackendMapper mapper;
+  private final CollectionApi sources;
 
   /** {@inheritDoc} */
   @Override
   public Runtime current() {
-    return exchange(() -> mapper.toView(api.getCollectorRuntime()));
+    return BackendExchange.once(() -> mapper.toView(api.getCollectorRuntime()));
   }
 
   /** {@inheritDoc} */
   @Override
   public Runtime register(long revision, UUID incarnationId) {
-    return exchange(
+    return BackendExchange.once(
         () ->
             mapper.toView(
                 api.registerCollectorRuntime(
@@ -42,37 +42,46 @@ public class CollectionBackendClient implements CollectionBackend {
   /** {@inheritDoc} */
   @Override
   public Cycle admit(StartCycle command) {
-    return exchange(() -> mapper.toView(api.startCollectionCycle(mapper.toRequest(command))));
+    return BackendExchange.once(
+        () -> mapper.toView(api.startCollectionCycle(mapper.toRequest(command))));
   }
 
   /** {@inheritDoc} */
   @Override
   public Cycle cycle(UUID id) {
-    return exchange(() -> mapper.toView(api.getCollectionCycle(id)));
+    return BackendExchange.once(() -> mapper.toView(api.getCollectionCycle(id)));
   }
 
-  /**
-   * Classifies one HTTP failure for confirmation reads, never mutation retries.
-   *
-   * @param operation one generated HTTP exchange, executed exactly once
-   * @param <T> already mapped application result
-   * @return accepted result, with failure classification for confirmation reads only
-   */
-  private <T> T exchange(Supplier<T> operation) {
-    try {
-      return operation.get();
-    } catch (RestClientResponseException failure) {
-      CollectionBackendFailure.Kind kind =
-          switch (failure.getStatusCode().value()) {
-            case 409 -> CollectionBackendFailure.Kind.CONFLICT;
-            default ->
-                failure.getStatusCode().is5xxServerError()
-                    ? CollectionBackendFailure.Kind.UNCONFIRMED
-                    : CollectionBackendFailure.Kind.REJECTED;
-          };
-      throw new CollectionBackendFailure(kind, failure);
-    } catch (RestClientException failure) {
-      throw new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, failure);
-    }
+  /** {@inheritDoc} */
+  @Override
+  public TargetPage targets(UUID cycleId, long page) {
+    return BackendExchange.once(
+        () -> mapper.toView(api.listCollectionCycleTargets(cycleId, page, 50)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Cycle record(UUID cycleId, Result result) {
+    return BackendExchange.once(
+        () -> mapper.toView(api.recordCollectionResult(cycleId, mapper.toRequest(result))));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Cycle complete(UUID cycleId, Instant completedAt) {
+    return BackendExchange.once(
+        () ->
+            mapper.toView(
+                api.completeCollectionCycle(
+                    cycleId,
+                    new CompleteCollectionCycleInternalRequest()
+                        .completedAt(mapper.toDate(completedAt)))));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void validate(UUID sourceBindingId, Validation result) {
+    BackendExchange.once(
+        () -> sources.submitCollectionSourceValidation(sourceBindingId, mapper.toRequest(result)));
   }
 }

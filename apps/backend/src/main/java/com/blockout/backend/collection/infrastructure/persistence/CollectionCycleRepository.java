@@ -33,6 +33,16 @@ interface CollectionCycleRepository extends JpaRepository<CollectionCycleEntity,
   Optional<CollectionCycleEntity> lockById(UUID id);
 
   /**
+   * Serializes evidence recording with terminal completion.
+   *
+   * @param id cycle after runtime and season locks
+   * @return context held exclusively through commit
+   */
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select c from CollectionCycleEntity c where c.id = :id")
+  Optional<CollectionCycleEntity> lockForUpdate(UUID id);
+
+  /**
    * Reads a retained cycle by its external UUID.
    *
    * @param id externally stable cycle UUID

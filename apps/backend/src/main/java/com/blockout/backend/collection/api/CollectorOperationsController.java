@@ -2,12 +2,15 @@ package com.blockout.backend.collection.api;
 
 import com.blockout.backend.collection.application.model.CollectionState.Admission;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
+import com.blockout.backend.collection.application.service.CollectionResultService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
 import com.blockout.backend.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetPageInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionWorkInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectorRuntimeInternalResponse;
+import com.blockout.backend.generated.ingestion.model.CompleteCollectionCycleInternalRequest;
+import com.blockout.backend.generated.ingestion.model.RecordCollectionResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
 import com.blockout.backend.generated.ingestion.model.StartCollectionCycleInternalRequest;
 import java.net.URI;
@@ -24,6 +27,25 @@ public class CollectorOperationsController implements CollectorOperationsApi {
   private final CollectorRuntimeService runtimes;
   private final CollectionCycleService cycles;
   private final CollectionApiMapper mapper;
+  private final CollectionResultService results;
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<CollectionCycleInternalResponse> recordCollectionResult(
+      UUID cycleId, RecordCollectionResultInternalRequest request) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(results.record(cycleId, mapper.toCommand(request))));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<CollectionCycleInternalResponse> completeCollectionCycle(
+      UUID cycleId, CompleteCollectionCycleInternalRequest request) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(results.complete(cycleId, request.getCompletedAt().toInstant())));
+  }
 
   /** {@inheritDoc} */
   @Override

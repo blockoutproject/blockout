@@ -14,11 +14,9 @@ import com.blockout.collector.generated.ingestion.model.ObservationContextIntern
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeInternalResponse;
 import com.sun.net.httpserver.HttpServer;
-import io.micrometer.observation.ObservationRegistry;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -79,21 +77,10 @@ class SportingContractTest {
           exchange.close();
         });
     server.start();
-    IngestionClientConfiguration configuration = new IngestionClientConfiguration();
-    IngestionProperties properties =
-        new IngestionProperties(
-            "http://127.0.0.1:" + server.getAddress().getPort(),
-            "ingestion-test",
-            Duration.ofSeconds(2));
-    factory = configuration.ingestionRequestFactory(properties);
-    ApiClient client =
-        configuration.ingestionApiClient(
-            factory,
-            ObservationRegistry.NOOP,
-            properties,
-            // OAuth has its own real HTTP suite; this boundary supplies controlled credentials.
-            (request, body, execution) -> execution.execute(request, body));
-    client.setBearerToken("harmless-test-token");
+    IngestionTestClient transport =
+        IngestionTestClient.connect("http://127.0.0.1:" + server.getAddress().getPort());
+    factory = transport.factory();
+    ApiClient client = transport.api();
     api = new SportingApi(client);
   }
 

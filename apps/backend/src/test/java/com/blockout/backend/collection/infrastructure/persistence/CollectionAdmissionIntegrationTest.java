@@ -259,12 +259,12 @@ class CollectionAdmissionIntegrationTest {
     // Given
     UUID pool = classifiedPool();
     sql.update(
-        "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at) VALUES (?,?,'CALENDAR','ACQUISITION',?)",
+        "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at,cycle_order,read_ordinal,outcome) VALUES (?,?,'CALENDAR','ACQUISITION',?,1,1,'SUCCESS')",
         CONTROL,
         pool,
         Timestamp.from(NOW.minusSeconds(60)));
     sql.update(
-        "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at) VALUES (?,?,'DISCOVERY','ACQUISITION',?)",
+        "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at,cycle_order,read_ordinal,outcome) VALUES (?,?,'DISCOVERY','ACQUISITION',?,1,1,'SUCCESS')",
         CONTROL,
         SOURCE,
         Timestamp.from(NOW.minusSeconds(60)));

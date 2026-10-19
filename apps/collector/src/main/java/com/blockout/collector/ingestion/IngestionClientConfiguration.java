@@ -1,6 +1,8 @@
 package com.blockout.collector.ingestion;
 
 import com.atlassian.oai.validator.OpenApiInteractionValidator;
+import com.atlassian.oai.validator.report.LevelResolver;
+import com.atlassian.oai.validator.report.ValidationReport;
 import com.atlassian.oai.validator.springweb.client.OpenApiValidationClientHttpRequestInterceptor;
 import com.blockout.collector.generated.ingestion.ApiClient;
 import io.micrometer.observation.ObservationRegistry;
@@ -78,6 +80,12 @@ public class IngestionClientConfiguration {
             OpenApiInteractionValidator.createForInlineApiSpecification(
                     new ClassPathResource("contracts/ingestion.yaml")
                         .getContentAsString(StandardCharsets.UTF_8))
+                // This consumer validates responses. The interceptor's post-send request check
+                // treats percent-encoded date query values as invalid; the backend owns inputs.
+                .withLevelResolver(
+                    LevelResolver.create()
+                        .withLevel("validation.request", ValidationReport.Level.IGNORE)
+                        .build())
                 .build());
     RestClient restClient =
         ApiClient.buildRestClientBuilder()

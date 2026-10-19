@@ -22,6 +22,14 @@ import lombok.NoArgsConstructor;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CollectionState {
+  /** Bounded current evidence in stable scope/stage/phase order. */
+  public record ResultPage(List<CollectionResult> items, long page, boolean hasNext) {
+    /** Detaches current evidence from persistence. */
+    public ResultPage {
+      items = List.copyOf(items);
+    }
+  }
+
   /**
    * Current environment startup and safe editing revision; null incarnation means never registered.
    */

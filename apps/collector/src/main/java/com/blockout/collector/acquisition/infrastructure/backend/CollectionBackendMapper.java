@@ -1,22 +1,22 @@
 package com.blockout.collector.acquisition.infrastructure.backend;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
+import com.blockout.collector.config.MappingConfiguration;
 import com.blockout.collector.generated.ingestion.model.CollectionCycleInternalResponse;
+import com.blockout.collector.generated.ingestion.model.CollectionTargetInternalResponse;
+import com.blockout.collector.generated.ingestion.model.CollectionTargetPageInternalResponse;
 import com.blockout.collector.generated.ingestion.model.CollectorRuntimeInternalResponse;
+import com.blockout.collector.generated.ingestion.model.RecordCollectionResultInternalRequest;
 import com.blockout.collector.generated.ingestion.model.StartCollectionCycleInternalRequest;
-import org.mapstruct.InjectionStrategy;
+import com.blockout.collector.generated.ingestion.model.SubmitSourceValidationInternalRequest;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingConstants;
-import org.mapstruct.NullValueCheckStrategy;
-import org.mapstruct.ReportingPolicy;
 
 /** Maps generated transport objects immediately to immutable application capabilities. */
-@Mapper(
-    componentModel = MappingConstants.ComponentModel.SPRING,
-    unmappedTargetPolicy = ReportingPolicy.ERROR,
-    injectionStrategy = InjectionStrategy.CONSTRUCTOR,
-    nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS)
+@Mapper(config = MappingConfiguration.class)
 public interface CollectionBackendMapper {
   /**
    * Projects the validated runtime.
@@ -42,4 +42,56 @@ public interface CollectionBackendMapper {
    * @return strict generated request with absent inapplicable fields
    */
   StartCollectionCycleInternalRequest toRequest(CollectionBackend.StartCycle source);
+
+  /**
+   * Preserves frozen provider references in the application target.
+   *
+   * @param source validated frozen target
+   * @return immutable context with exact provider references
+   */
+  CollectionBackend.Target toView(CollectionTargetInternalResponse source);
+
+  /**
+   * Projects bounded admitted work without a resumable checkpoint.
+   *
+   * @param source bounded snapshot page
+   * @return admitted work without a resumable checkpoint
+   */
+  CollectionBackend.TargetPage toView(CollectionTargetPageInternalResponse source);
+
+  /**
+   * Maps independent attempt evidence to its generated submission.
+   *
+   * @param source actual independent phase evidence
+   * @return generated current-result submission
+   */
+  RecordCollectionResultInternalRequest toRequest(CollectionBackend.Result source);
+
+  /**
+   * Maps candidate evidence without inferring source qualification.
+   *
+   * @param source terminal candidate evidence
+   * @return exact generated submission without inferred qualification
+   */
+  SubmitSourceValidationInternalRequest toRequest(CollectionBackend.Validation source);
+
+  /**
+   * Preserves a validated backend timestamp.
+   *
+   * @param source known timestamp
+   * @return identical instant
+   */
+  default Instant toInstant(OffsetDateTime source) {
+    return source.toInstant();
+  }
+
+  /**
+   * Represents an actual instant in UTC.
+   *
+   * @param source actual instant
+   * @return UTC wire representation
+   */
+  default OffsetDateTime toDate(Instant source) {
+    return source.atOffset(ZoneOffset.UTC);
+  }
 }
