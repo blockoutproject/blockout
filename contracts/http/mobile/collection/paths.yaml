@@ -668,7 +668,7 @@ Results:
   get:
     operationId: listCollectionResults
     tags:
-      - Collection
+      - CollectionResults
     summary: Read current scoped results
     description:
       Requires current global collection-management permission. Returns current evidence and

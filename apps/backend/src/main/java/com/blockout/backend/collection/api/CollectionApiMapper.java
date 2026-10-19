@@ -1,6 +1,8 @@
 package com.blockout.backend.collection.api;
 
+import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionControlInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleInternalResponse;
@@ -9,8 +11,11 @@ import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetPageInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionWorkInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectorRuntimeInternalResponse;
+import com.blockout.backend.generated.ingestion.model.RecordCollectionResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.SourceValidationWorkInternalResponse;
 import com.blockout.backend.generated.ingestion.model.StartCollectionCycleInternalRequest;
+import com.blockout.backend.generated.mobile.model.CollectionResultPageResponse;
+import com.blockout.backend.generated.mobile.model.CollectionResultResponse;
 import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -26,6 +31,61 @@ import org.openapitools.jackson.nullable.JsonNullable;
  */
 @Mapper(config = MappingConfiguration.class)
 public interface CollectionApiMapper {
+  /**
+   * Converts independently reported phase evidence to the application command.
+   *
+   * @param source validated result submission
+   * @return independent application evidence
+   */
+  RecordCollectionResult toCommand(RecordCollectionResultInternalRequest source);
+
+  /**
+   * Projects bounded current results in their existing canonical order.
+   *
+   * @param source current bounded evidence
+   * @return generated page in canonical order
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  CollectionResultPageResponse toDto(CollectionState.ResultPage source);
+
+  /**
+   * Keeps required nullable timestamps present in the operational response.
+   *
+   * @param source stable scope evidence
+   * @return safe operational view without raw provider data
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  @Mapping(target = "scopeLabel", expression = "java(source.scopeId().toString())")
+  @Mapping(
+      target = "lastSuccessAt",
+      source = "lastSuccessAt",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(
+      target = "firstFailureAt",
+      source = "firstFailureAt",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  CollectionResultResponse toDto(CollectionResult source);
+
+  /**
+   * Wraps a required nullable timestamp without turning null into omission.
+   *
+   * @param value required nullable evidence
+   * @return present nullable UTC timestamp
+   */
+  default JsonNullable<OffsetDateTime> nullableDate(Instant value) {
+    return JsonNullable.of(value == null ? null : toDate(value));
+  }
+
+  /**
+   * Preserves the instant represented by a validated wire timestamp.
+   *
+   * @param value validated wire timestamp
+   * @return its actual instant
+   */
+  default Instant toInstant(OffsetDateTime value) {
+    return value.toInstant();
+  }
+
   /**
    * Retains the conditional admission purpose.
    *

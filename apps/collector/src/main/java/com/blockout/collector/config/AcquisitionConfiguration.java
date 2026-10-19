@@ -2,10 +2,13 @@ package com.blockout.collector.config;
 
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.generated.ingestion.ApiClient;
+import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
+import com.blockout.collector.generated.ingestion.api.SportingApi;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import java.net.URI;
+import java.time.Clock;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -34,6 +37,38 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 /** Native, independent FFVB/LNV/IGN budgets shared across seasons and acquisition families. */
 @Configuration(proxyBeanMethods = false)
 public class AcquisitionConfiguration {
+  /**
+   * Shares the authenticated native transport with source qualification.
+   *
+   * @param client native authenticated ingestion transport
+   * @return generated source-qualification operations
+   */
+  @Bean
+  CollectionApi collectionSourcesApi(ApiClient client) {
+    return new CollectionApi(client);
+  }
+
+  /**
+   * Shares the authenticated native transport with the seven sporting operations.
+   *
+   * @param client native authenticated ingestion transport
+   * @return generated seven-operation sporting client
+   */
+  @Bean
+  SportingApi sportingApi(ApiClient client) {
+    return new SportingApi(client);
+  }
+
+  /**
+   * Supplies observation timestamps independently from logical read order.
+   *
+   * @return host clock used only for actual observation/completion timestamps
+   */
+  @Bean
+  Clock acquisitionClock() {
+    return Clock.systemUTC();
+  }
+
   /**
    * Uses the existing authenticated ingestion transport for collector operations.
    *

@@ -1,6 +1,7 @@
 package com.blockout.backend.collection.application.port;
 
 import com.blockout.backend.collection.application.model.CollectionAttempt;
+import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Candidate;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
@@ -10,6 +11,9 @@ import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
 import com.blockout.backend.collection.application.model.CollectionState.Target;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -218,4 +222,60 @@ public interface CollectionStore {
    * @return whether that identity belongs to the frozen snapshot
    */
   boolean containsTarget(UUID cycleId, UUID scopeId);
+
+  /**
+   * Checks the exact admitted acquisition role.
+   *
+   * @param cycleId current context
+   * @param scopeId stable identity
+   * @param kind required frozen role
+   * @return whether the role belongs to the admitted snapshot
+   */
+  boolean containsTarget(UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind);
+
+  /**
+   * Serializes result writes with completion after runtime and season fencing.
+   *
+   * @param id retained context
+   * @return exclusively locked cycle
+   */
+  Cycle lockCycleForUpdate(UUID id);
+
+  /**
+   * Reads the previous evidence for exactly one stable key.
+   *
+   * @param controlId independent control
+   * @param scopeId stable resource
+   * @param stage acquisition stage
+   * @param phase acquisition or integration
+   * @return current evidence, if an actual attempt has been recorded
+   */
+  Optional<CollectionResult> result(
+      UUID controlId, UUID scopeId, CollectionStageEnum stage, CollectionPhaseEnum phase);
+
+  /**
+   * Replaces one current result under its cycle lock.
+   *
+   * @param controlId admitted owner
+   * @param result newer evidence; unrelated keys remain unchanged
+   */
+  void saveResult(UUID controlId, CollectionResult result);
+
+  /**
+   * Pages current evidence without a total count or historical snapshot.
+   *
+   * @param controlId independent owner
+   * @param page zero-based native page
+   * @param size bounded page size
+   * @return canonical scope/stage/phase order
+   */
+  CollectionState.ResultPage results(UUID controlId, int page, int size);
+
+  /**
+   * Ends an exclusively locked cycle without implying successful collection.
+   *
+   * @param cycle retained current cycle
+   * @param completedAt actual end of selected work
+   */
+  void complete(Cycle cycle, Instant completedAt);
 }

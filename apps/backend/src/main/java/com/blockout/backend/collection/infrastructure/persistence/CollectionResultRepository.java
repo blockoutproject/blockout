@@ -3,6 +3,8 @@ package com.blockout.backend.collection.infrastructure.persistence;
 import com.blockout.backend.collection.application.model.CollectionAttempt;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -19,6 +21,43 @@ interface CollectionResultRepository
    * @return current actual acquisition attempts and usable observations
    */
   @Query(
-      "select new com.blockout.backend.collection.application.model.CollectionAttempt(r.scopeId, r.stage, r.lastAttemptAt, r.lastSuccessAt) from CollectionResultEntity r where r.controlId = :controlId and r.scopeId in :scopeIds and r.phase = com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum.ACQUISITION")
+      "SELECT NEW com.blockout.backend.collection.application.model.CollectionAttempt(r.scopeId, r.stage, r.lastAttemptAt, r.lastSuccessAt) FROM CollectionResultEntity r WHERE r.controlId = :controlId AND r.scopeId IN :scopeIds AND r.phase = com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum.ACQUISITION")
   List<CollectionAttempt> attempts(UUID controlId, List<UUID> scopeIds);
+
+  /**
+   * Pages current evidence in canonical order without counting all results.
+   *
+   * @param controlId independent owner
+   * @param page bounded native page
+   * @return current scope/stage/phase ordered slice
+   */
+  Slice<CollectionResultEntity> findByControlIdOrderByScopeIdAscStageAscPhaseAsc(
+      UUID controlId, Pageable page);
+
+  /**
+   * Qualifies success from both phases of every selected target and any additional child results.
+   * Hibernate compares target kinds and stages through their shared string enum mapping.
+   *
+   * @param cycleId frozen nonempty selection
+   * @param cycleOrder current logical passage
+   * @return true only when no selected role is missing and no current result failed
+   */
+  @Query(
+      """
+      SELECT CASE WHEN COUNT(c) > 0 THEN TRUE ELSE FALSE END
+      FROM CollectionCycleEntity c
+      WHERE c.id = :cycleId
+        AND EXISTS (SELECT 1 FROM CollectionTargetEntity t WHERE t.cycleId = c.id)
+        AND NOT EXISTS (SELECT 1 FROM CollectionResultEntity r
+          WHERE r.cycleOrder = :cycleOrder AND r.outcome <> CollectionOutcomeEnum.SUCCESS)
+        AND NOT EXISTS (
+          SELECT 1 FROM CollectionTargetEntity t WHERE t.cycleId = c.id AND (
+            NOT EXISTS (SELECT 1 FROM CollectionResultEntity r WHERE r.cycleOrder = :cycleOrder
+              AND r.scopeId = t.scopeId AND r.stage = t.kind
+              AND r.phase = CollectionPhaseEnum.ACQUISITION AND r.outcome = CollectionOutcomeEnum.SUCCESS)
+            OR NOT EXISTS (SELECT 1 FROM CollectionResultEntity r WHERE r.cycleOrder = :cycleOrder
+              AND r.scopeId = t.scopeId AND r.stage = t.kind
+              AND r.phase = CollectionPhaseEnum.INTEGRATION AND r.outcome = CollectionOutcomeEnum.SUCCESS)))
+      """)
+  boolean successful(UUID cycleId, long cycleOrder);
 }

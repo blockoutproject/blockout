@@ -13,7 +13,7 @@ interface CollectorRuntimeRepository extends JpaRepository<CollectorRuntimeEntit
    * @return current incarnation locked through the caller's domain commit
    */
   @Lock(LockModeType.PESSIMISTIC_READ)
-  @Query("select r from CollectorRuntimeEntity r where r.id = 1")
+  @Query("SELECT r FROM CollectorRuntimeEntity r WHERE r.id = 1")
   CollectorRuntimeEntity lockCurrent();
 
   /**
@@ -22,6 +22,6 @@ interface CollectorRuntimeRepository extends JpaRepository<CollectorRuntimeEntit
    * @return exclusive registration after all previously admitted shared holders commit
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("select r from CollectorRuntimeEntity r where r.id = 1")
+  @Query("SELECT r FROM CollectorRuntimeEntity r WHERE r.id = 1")
   CollectorRuntimeEntity lockForReplacement();
 }

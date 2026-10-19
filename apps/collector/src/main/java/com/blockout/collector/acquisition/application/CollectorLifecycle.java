@@ -1,6 +1,8 @@
 package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -94,8 +96,84 @@ public class CollectorLifecycle {
         .log("Collector incarnation is no longer current; restart requires operator action");
   }
 
+  /**
+   * Attempts normal completion once and reads the same cycle once after uncertainty.
+   *
+   * @param context original admitted control capability
+   * @param completedAt actual end, sent at the contract's persisted microsecond precision
+   * @return whether completion is confirmed; false requires manual resolution
+   */
+  public boolean complete(AdmittedCycle context, Instant completedAt) {
+    if (context.getCycle().controlId() == null)
+      throw new IllegalArgumentException("Control completion requires a control passage");
+    completedAt = completedAt.truncatedTo(ChronoUnit.MICROS);
+    try {
+      CollectionBackend.Cycle completed = backend.complete(context.getCycle().id(), completedAt);
+      if (completed.state() == CollectionCycleStateEnum.COMPLETED
+          && completedAt.equals(completed.completedAt())) return true;
+    } catch (CollectionBackendFailure failure) {
+      if (failure.getKind() == CollectionBackendFailure.Kind.UNCONFIRMED
+          && confirmsCompletion(context, completedAt)) return true;
+    }
+    unresolved(context);
+    return false;
+  }
+
+  /**
+   * Publishes candidate evidence once; it cannot be replaced with control completion.
+   *
+   * @param context original admitted candidate capability
+   * @param result interpretation owned by source qualification
+   * @return whether the atomic terminal write is confirmed
+   */
+  public boolean validate(AdmittedCycle context, CollectionBackend.Validation result) {
+    if (context.getCycle().sourceBindingId() == null
+        || !context.getCycle().id().equals(result.cycleId()))
+      throw new IllegalArgumentException("Candidate result requires its admitted context");
+    try {
+      backend.validate(context.getCycle().sourceBindingId(), result);
+      return true;
+    } catch (CollectionBackendFailure failure) {
+      if (failure.getKind() == CollectionBackendFailure.Kind.UNCONFIRMED
+          && confirmsCompletion(context, null)) return true;
+    }
+    unresolved(context);
+    return false;
+  }
+
+  /**
+   * Confirms the original terminal operation with one read.
+   *
+   * @param context original capability
+   * @param completedAt submitted control timestamp, or null for source-owned validation completion
+   * @return one-read confirmation without mutation replay
+   */
+  private boolean confirmsCompletion(AdmittedCycle context, Instant completedAt) {
+    try {
+      CollectionBackend.Cycle current = backend.cycle(context.getCycle().id());
+      return current.id().equals(context.getCycle().id())
+          && current.state() == CollectionCycleStateEnum.COMPLETED
+          && (completedAt == null || completedAt.equals(current.completedAt()));
+    } catch (CollectionBackendFailure failure) {
+      return false;
+    }
+  }
+
+  /**
+   * Reports unresolved completion once without exposing backend diagnostics.
+   *
+   * @param context unresolved original operation, kept blocked for manual inspection
+   */
+  private void unresolved(AdmittedCycle context) {
+    log.atError()
+        .addKeyValue("operation", "collection_completion")
+        .addKeyValue("cycleId", context.getCycle().id())
+        .addKeyValue("outcome", "unconfirmed")
+        .log("Collection completion requires manual resolution; no mutation was replayed");
+  }
+
   /** Refuses work before startup confirmation or after supersession. */
-  private void requireActive() {
+  void requireActive() {
     if (!active) throw new IllegalStateException("Collector is not active");
   }
 

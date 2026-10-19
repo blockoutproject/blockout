@@ -24,6 +24,6 @@ interface SeasonRepository extends JpaRepository<SeasonEntity, UUID> {
    * @return locked row
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("select s from SeasonEntity s where s.id = :id")
+  @Query("SELECT s FROM SeasonEntity s WHERE s.id = :id")
   Optional<SeasonEntity> lockById(UUID id);
 }

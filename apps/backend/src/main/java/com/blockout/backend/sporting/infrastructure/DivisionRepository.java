@@ -17,7 +17,7 @@ interface DivisionRepository extends JpaRepository<DivisionEntity, UUID> {
    * @return current managed owner under a write lock, or empty
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("select d from DivisionEntity d where d.id = :id")
+  @Query("SELECT d FROM DivisionEntity d WHERE d.id = :id")
   Optional<DivisionEntity> lockById(UUID id);
 
   /**
@@ -28,13 +28,13 @@ interface DivisionRepository extends JpaRepository<DivisionEntity, UUID> {
    */
   @Query(
       """
-      select d.id as id, d.revision as revision, d.name as name, d.color as color,
-          d.gradientStart as gradientStart, d.gradientMiddle as gradientMiddle,
-          d.gradientEnd as gradientEnd,
-          case when d.logo is not null then true else false end as hasLogo, d.active as active
-      from DivisionEntity d
-      where :includeInactive = true or d.active = true
-      order by lower(d.name), d.id
+      SELECT d.id AS id, d.revision AS revision, d.name AS name, d.color AS color,
+          d.gradientStart AS gradientStart, d.gradientMiddle AS gradientMiddle,
+          d.gradientEnd AS gradientEnd,
+          CASE WHEN d.logo IS NOT NULL THEN TRUE ELSE FALSE END AS hasLogo, d.active AS active
+      FROM DivisionEntity d
+      WHERE :includeInactive = TRUE OR d.active = TRUE
+      ORDER BY LOWER(d.name), d.id
       """)
   List<DivisionSummary> findConfigured(boolean includeInactive);
 }

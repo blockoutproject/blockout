@@ -87,7 +87,7 @@ class ClassificationIntegrationTest {
           "TRUNCATE sporting_season, sporting_club, sporting_division, account CASCADE");
     }
     sql.update(
-        "INSERT INTO sporting_division(id,name,active,color) VALUES (?, 'Original', true, '#112233'), (?, 'Target', true, '#445566')",
+        "INSERT INTO sporting_division(id,name,active,color) VALUES (?, 'Original', TRUE, '#112233'), (?, 'Target', TRUE, '#445566')",
         ORIGINAL,
         TARGET);
     account =

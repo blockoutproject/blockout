@@ -7,6 +7,7 @@ import com.blockout.collector.acquisition.infrastructure.CollectorStartup;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendMapperImpl;
 import com.blockout.collector.generated.ingestion.ApiClient;
+import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
@@ -24,6 +25,9 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Exercises startup and read-only uncertainty recovery through a controlled generated HTTP peer.
+ */
 @DisplayName("Collector startup and uncertain admission through the generated client")
 class CollectorLifecycleTest {
   private HttpServer server;
@@ -39,6 +43,7 @@ class CollectorLifecycleTest {
   private boolean refuseCycleRead;
   private CollectorLifecycle lifecycle;
 
+  /** Starts a native local HTTP peer and a generated client with automatic retries disabled. */
   @BeforeEach
   void startPeer() throws Exception {
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -115,9 +120,12 @@ class CollectorLifecycleTest {
     lifecycle =
         new CollectorLifecycle(
             new CollectionBackendClient(
-                new CollectorOperationsApi(api), new CollectionBackendMapperImpl()));
+                new CollectorOperationsApi(api),
+                new CollectionBackendMapperImpl(),
+                new CollectionApi(api)));
   }
 
+  /** Releases the listener and the HTTP pool owned by this scenario. */
   @AfterEach
   void closePeer() throws Exception {
     server.stop(0);

@@ -93,7 +93,7 @@ class SportingIdentityIntegrationTest {
       fixture.execute("TRUNCATE sporting_season, sporting_club, sporting_division CASCADE");
     }
     sql.update(
-        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Synthetic division', true, '#112233')",
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Synthetic division', TRUE, '#112233')",
         DIVISION);
   }
 
@@ -191,7 +191,7 @@ class SportingIdentityIntegrationTest {
     assertThat(two.homeTeamId()).isNotEqualTo(two.awayTeamId());
     assertThat(
             sql.queryForObject(
-                "SELECT count(*) FROM sporting_participation WHERE team_id = ?",
+                "SELECT COUNT(*) FROM sporting_participation WHERE team_id = ?",
                 Long.class,
                 one.homeTeamId()))
         .isEqualTo(2L);
@@ -262,7 +262,7 @@ class SportingIdentityIntegrationTest {
 
     // Then
     assertThat(repeated).isEqualTo(existing);
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_pool", Long.class)).isEqualTo(1L);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Long.class)).isEqualTo(1L);
   }
 
   @Test
@@ -282,7 +282,7 @@ class SportingIdentityIntegrationTest {
     assertThatThrownBy(replace).isInstanceOf(UnresolvedSportingIdentityException.class);
     assertThat(reads.match(match.id())).contains(match);
     assertThat(reads.team(match.homeTeamId()).orElseThrow().sourceName()).isEqualTo("Home 1");
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_team", Long.class)).isEqualTo(2L);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(2L);
   }
 
   @Test
@@ -335,7 +335,7 @@ class SportingIdentityIntegrationTest {
     // Then
     assertThat(renamed).isEqualTo(match);
     assertThat(reads.team(match.homeTeamId()).orElseThrow().sourceName()).isEqualTo("Renamed home");
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_club", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Long.class)).isZero();
   }
 
   @Test
@@ -350,9 +350,9 @@ class SportingIdentityIntegrationTest {
 
     // Then
     assertThatThrownBy(identify).isInstanceOf(UnresolvedSportingIdentityException.class);
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_club", Long.class)).isZero();
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_team", Long.class)).isZero();
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_match", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Long.class)).isZero();
   }
 
   @Test
@@ -454,7 +454,7 @@ class SportingIdentityIntegrationTest {
     assertThatThrownBy(duplicate)
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_team_ffvb");
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_team", Long.class)).isEqualTo(2L);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(2L);
   }
 
   @Test
@@ -485,7 +485,7 @@ class SportingIdentityIntegrationTest {
     assertThatThrownBy(duplicate)
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_team_lnv");
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_team", Long.class)).isEqualTo(2L);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(2L);
   }
 
   @Test
@@ -506,7 +506,7 @@ class SportingIdentityIntegrationTest {
     assertThatThrownBy(duplicate)
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_pool_identity");
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_pool", Long.class)).isEqualTo(1L);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Long.class)).isEqualTo(1L);
   }
 
   @Test
@@ -526,7 +526,7 @@ class SportingIdentityIntegrationTest {
     assertThatThrownBy(duplicate)
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_season_identity");
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_season", Long.class))
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_season", Long.class))
         .isEqualTo(1L);
   }
 
@@ -540,7 +540,7 @@ class SportingIdentityIntegrationTest {
     org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate =
         () ->
             sql.update(
-                "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'SYNTHETIC DIVISION', true, '#112233')",
+                "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'SYNTHETIC DIVISION', TRUE, '#112233')",
                 other);
 
     // Then
@@ -578,14 +578,14 @@ class SportingIdentityIntegrationTest {
     org.assertj.core.api.ThrowableAssert.ThrowingCallable orphan =
         () ->
             sql.update(
-                "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, true)",
+                "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
                 UUID.fromString("00000000-0000-4000-8000-000000000030"),
                 UUID.fromString("00000000-0000-4000-8000-000000000031"),
                 pool.id());
 
     // Then
     assertThatThrownBy(orphan).isInstanceOf(DataIntegrityViolationException.class);
-    assertThat(sql.queryForObject("SELECT count(*) FROM sporting_participation", Long.class))
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_participation", Long.class))
         .isZero();
   }
 
@@ -624,11 +624,11 @@ class SportingIdentityIntegrationTest {
       assertThat(outcomes.stream().filter(MatchView.class::isInstance)).hasSize(1);
       assertThat(outcomes.stream().filter(DataIntegrityViolationException.class::isInstance))
           .hasSize(1);
-      assertThat(sql.queryForObject("SELECT count(*) FROM sporting_match", Long.class))
+      assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Long.class))
           .isEqualTo(1L);
-      assertThat(sql.queryForObject("SELECT count(*) FROM sporting_team", Long.class))
+      assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class))
           .isEqualTo(2L);
-      assertThat(sql.queryForObject("SELECT count(*) FROM sporting_club", Long.class))
+      assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Long.class))
           .isEqualTo(2L);
     }
   }

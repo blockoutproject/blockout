@@ -3,9 +3,13 @@ package com.blockout.backend.collection.infrastructure.persistence;
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
 import com.blockout.backend.collection.application.model.CollectionAttempt;
+import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +33,55 @@ class JpaCollectionStore implements CollectionStore {
   private final CollectionTargetRepository targets;
   private final CollectionPersistenceMapper mapper;
   private final CollectionResultRepository results;
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean containsTarget(UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind) {
+    return targets.existsByCycleIdAndScopeIdAndKind(cycleId, scopeId, kind);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public CollectionState.Cycle lockCycleForUpdate(UUID id) {
+    return mapper.toView(
+        cycles.lockForUpdate(id).orElseThrow(CollectionNotFoundException::new),
+        runtime().incarnationId());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<CollectionResult> result(
+      UUID controlId, UUID scopeId, CollectionStageEnum stage, CollectionPhaseEnum phase) {
+    return results
+        .findById(new CollectionResultEntity.Key(controlId, scopeId, stage, phase))
+        .map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void saveResult(UUID controlId, CollectionResult result) {
+    results.saveAndFlush(mapper.toEntity(controlId, result));
+    if (result.phase() == CollectionPhaseEnum.ACQUISITION)
+      controls.recordAttempt(controlId, result.observedAt());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public CollectionState.ResultPage results(UUID controlId, int page, int size) {
+    Slice<CollectionResultEntity> slice =
+        results.findByControlIdOrderByScopeIdAscStageAscPhaseAsc(
+            controlId, PageRequest.of(page, size));
+    return new CollectionState.ResultPage(
+        slice.stream().map(mapper::toView).toList(), page, slice.hasNext());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void complete(CollectionState.Cycle cycle, Instant completedAt) {
+    cycles.findById(cycle.id()).orElseThrow().setCompletedAt(completedAt);
+    if (results.successful(cycle.id(), cycle.cycleOrder()))
+      controls.recordSuccess(cycle.controlId(), completedAt);
+  }
 
   /** {@inheritDoc} */
   @Override

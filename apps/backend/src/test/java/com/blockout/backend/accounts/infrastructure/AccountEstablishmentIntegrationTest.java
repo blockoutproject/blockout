@@ -113,7 +113,7 @@ class AccountEstablishmentIntegrationTest {
           .isInstanceOfSatisfying(
               DataIntegrityViolationException.class,
               failure -> assertThat(failure).hasStackTraceContaining(constraint));
-      assertThat(sql.queryForObject("SELECT count(*) FROM account", Long.class)).isEqualTo(1L);
+      assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isEqualTo(1L);
     }
   }
 
@@ -168,7 +168,7 @@ class AccountEstablishmentIntegrationTest {
 
     // Then
     assertThat(result).isEmpty();
-    assertThat(sql.queryForObject("SELECT count(*) FROM account", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isZero();
   }
 
   @ParameterizedTest
@@ -474,7 +474,7 @@ class AccountEstablishmentIntegrationTest {
 
     // Then
     assertThatThrownBy(create).isInstanceOf(DataIntegrityViolationException.class);
-    assertThat(sql.queryForObject("SELECT count(*) FROM account WHERE id = ?", Long.class, id))
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM account WHERE id = ?", Long.class, id))
         .isZero();
   }
 

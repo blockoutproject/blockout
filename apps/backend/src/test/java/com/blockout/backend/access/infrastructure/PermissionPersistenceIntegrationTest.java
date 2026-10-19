@@ -209,7 +209,7 @@ class PermissionPersistenceIntegrationTest {
       assertThat(replacement.id()).isNotEqualTo(account.id());
       assertThat(permissions.forAccount(replacement.id())).isEmpty();
     }
-    assertThat(sql.queryForObject("SELECT count(*) FROM account_permission", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM account_permission", Long.class)).isZero();
     assertThat(permissions.forAccount(account.id())).isEmpty();
     assertThatThrownBy(
             () ->

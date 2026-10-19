@@ -96,6 +96,23 @@ public class CollectionCycleService {
   }
 
   /**
+   * Locks a control passage for result recording or idempotent completion.
+   *
+   * @param id retained control context
+   * @return exclusively locked current cycle, possibly already completed
+   * @throws CollectionConflictException for candidate or superseded context
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Cycle lockControlPassage(UUID id) {
+    CycleScope scope = store.cycleScope(id);
+    runtimes.requireCurrent(scope.incarnationId());
+    if (scope.controlId() == null) throw invalidContext();
+    UUID seasonId = store.controlSeason(scope.controlId());
+    if (seasonId != null) seasons.lockCollectionState(seasonId);
+    return store.lockCycleForUpdate(id);
+  }
+
+  /**
    * Checks the logical token and scope while retaining the same fence through the caller's write.
    *
    * @param id admitted control cycle

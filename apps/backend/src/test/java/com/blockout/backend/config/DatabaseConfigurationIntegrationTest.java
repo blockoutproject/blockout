@@ -90,7 +90,7 @@ class DatabaseConfigurationIntegrationTest {
         Statement sql = connection.createStatement();
         ResultSet tables =
             sql.executeQuery(
-                "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'missing'")) {
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'missing'")) {
       assertThat(tables.next()).isTrue();
       assertThat(tables.getInt(1)).isZero();
     }

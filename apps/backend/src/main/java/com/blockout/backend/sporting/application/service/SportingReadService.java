@@ -27,6 +27,18 @@ public class SportingReadService {
   private final SportingStore store;
 
   /**
+   * Resolves a known team's retained pool memberships for acquisition scope checks.
+   *
+   * @param teamId stable sporting team
+   * @return owning pool identities without exporting persistence entities
+   */
+  public List<UUID> teamPools(UUID teamId) {
+    return store.participations(List.of(teamId)).stream()
+        .map(participation -> participation.poolId())
+        .toList();
+  }
+
+  /**
    * Reads eligible pool references in bounded owner pages.
    *
    * @param seasonId canonical season held by the admission transaction

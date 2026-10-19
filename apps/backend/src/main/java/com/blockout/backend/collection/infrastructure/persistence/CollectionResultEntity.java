@@ -1,5 +1,6 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
+import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import jakarta.persistence.Entity;
@@ -14,12 +15,11 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-/**
- * Current per-scope evidence used by admission; result submission completes this owner in its
- * story.
- */
+/** Current per-scope evidence; logical order and recovery survive replacement of cycle context. */
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @IdClass(CollectionResultEntity.Key.class)
@@ -38,6 +38,17 @@ class CollectionResultEntity {
 
   private Instant lastAttemptAt;
   private Instant lastSuccessAt;
+  private Instant firstFailureAt;
+  private long cycleOrder;
+  private long readOrdinal;
+
+  @Enumerated(EnumType.STRING)
+  private CollectionOutcomeEnum outcome;
+
+  private String reasonType;
+  private String reason;
+  private Long obtainedCount;
+  private Long rejectedCount;
 
   /** Stable current-evidence key, independent of the cycle UUID. */
   public record Key(

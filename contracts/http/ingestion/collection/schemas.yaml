@@ -426,7 +426,7 @@ CompleteCollectionCycleInternalRequest:
   properties:
     completedAt:
       type: string
-      description: Actual end of selected work.
+      description: Actual end of selected work, truncated to microsecond precision for persisted terminal identity.
       format: date-time
   required:
     - completedAt

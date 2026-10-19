@@ -18,7 +18,7 @@ interface SourceBindingRepository extends JpaRepository<SourceBindingEntity, UUI
    * @return scalar season reference without loading a managed aggregate
    */
   @Query(
-      "select new com.blockout.backend.collection.application.model.CollectionState$SeasonScope(c.seasonId) from SourceBindingEntity c where c.id = :id")
+      "SELECT NEW com.blockout.backend.collection.application.model.CollectionState$SeasonScope(c.seasonId) FROM SourceBindingEntity c WHERE c.id = :id")
   Optional<CollectionState.SeasonScope> seasonScope(UUID id);
 
   /**
@@ -28,7 +28,7 @@ interface SourceBindingRepository extends JpaRepository<SourceBindingEntity, UUI
    * @return source held through admission
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("select s from SourceBindingEntity s where s.id = :id")
+  @Query("SELECT s FROM SourceBindingEntity s WHERE s.id = :id")
   Optional<SourceBindingEntity> lockById(UUID id);
 
   /**
@@ -45,6 +45,6 @@ interface SourceBindingRepository extends JpaRepository<SourceBindingEntity, UUI
    * @return only never-admitted pending requests, not obsolete interrupted validations
    */
   @Query(
-      "select s from SourceBindingEntity s where s.validationState = com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum.PENDING and s.currentCycleId is null order by s.id")
+      "SELECT s FROM SourceBindingEntity s WHERE s.validationState = com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum.PENDING AND s.currentCycleId IS NULL ORDER BY s.id")
   List<SourceBindingEntity> pendingValidations();
 }

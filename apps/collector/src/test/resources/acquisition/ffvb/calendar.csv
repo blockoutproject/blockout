@@ -1,0 +1,3 @@
+Entité;Jo;Match;Date;Heure;EQA_no;EQA_nom;EQB_no;EQB_nom;Set;Score;Total;Salle;Arb1;Arb2;
+ABCCS;01;TST001;2026-10-01;20:00;0012345;"Équipe A; espoirs";0098765;Équipe B;3/0;25-22,25-18,25-16;75-56;Salle test;;;
+ABCCS;02;TST002;2026-10-02;00:00;0098765;Équipe B;;xxxxx;;;;;;;

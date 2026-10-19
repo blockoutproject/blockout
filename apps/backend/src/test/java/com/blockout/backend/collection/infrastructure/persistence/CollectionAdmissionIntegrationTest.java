@@ -76,7 +76,12 @@ class CollectionAdmissionIntegrationTest {
   @Autowired private EntityManagerFactory entityManagerFactory;
   private UUID season;
 
-  /** Applies the real disposable baseline before the application checks its mappings. */
+  /**
+   * Applies the real disposable baseline before the application checks its mappings.
+   *
+   * @param properties isolated application connection settings
+   * @throws Exception if the disposable baseline cannot be migrated
+   */
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
@@ -102,11 +107,11 @@ class CollectionAdmissionIntegrationTest {
     season = seasons.getOrCreate(2026).id();
     sql.update("UPDATE sporting_season SET collection_state = 'ACTIVE' WHERE id = ?", season);
     sql.update(
-        "INSERT INTO collection_control(id, season_id, family, enabled, revision) VALUES (?, ?, 'FFVB', true, 0)",
+        "INSERT INTO collection_control(id, season_id, family, enabled, revision) VALUES (?, ?, 'FFVB', TRUE, 0)",
         CONTROL,
         season);
     sql.update(
-        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,candidate_url,accepted_url,revision,validation_state,locked,launched) VALUES (?,?,'FFVB','ABCCS','https://www.ffvb.org/source','https://www.ffvb.org/source',0,'QUALIFIED',true,true)",
+        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,candidate_url,accepted_url,revision,validation_state,locked,launched) VALUES (?,?,'FFVB','ABCCS','https://www.ffvb.org/source','https://www.ffvb.org/source',0,'QUALIFIED',TRUE,TRUE)",
         SOURCE,
         season);
     runtimes.register(0, STARTUP);
@@ -120,14 +125,14 @@ class CollectionAdmissionIntegrationTest {
     assertThatThrownBy(
             () ->
                 sql.update(
-                    "INSERT INTO collection_control(id,season_id,family,enabled) VALUES (?,?,'FFVB',true)",
+                    "INSERT INTO collection_control(id,season_id,family,enabled) VALUES (?,?,'FFVB',TRUE)",
                     UUID.randomUUID(),
                     season))
         .isInstanceOf(DataIntegrityViolationException.class);
     assertThatThrownBy(
             () ->
                 sql.update(
-                    "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,validation_state,locked,launched) VALUES (?,?,'FFVB','ABCCS','UNVALIDATED',false,false)",
+                    "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,validation_state,locked,launched) VALUES (?,?,'FFVB','ABCCS','UNVALIDATED',FALSE,FALSE)",
                     UUID.randomUUID(),
                     season))
         .isInstanceOf(DataIntegrityViolationException.class);
@@ -158,7 +163,7 @@ class CollectionAdmissionIntegrationTest {
     cycles.work(STARTUP);
 
     // Then
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
     assertThat(
             sql.queryForObject(
                 "SELECT revision FROM collection_control WHERE id = ?", Long.class, CONTROL))
@@ -170,7 +175,7 @@ class CollectionAdmissionIntegrationTest {
   void isolatesCandidatePurpose() {
     // Given
     sql.update(
-        "UPDATE collection_source_binding SET locked = false, launched = false, validation_state = 'PENDING' WHERE id = ?",
+        "UPDATE collection_source_binding SET locked = FALSE, launched = FALSE, validation_state = 'PENDING' WHERE id = ?",
         SOURCE);
 
     // When
@@ -219,7 +224,7 @@ class CollectionAdmissionIntegrationTest {
     // Then
     assertThat(second.cycle().cycleOrder()).isGreaterThan(first.cycle().cycleOrder());
     assertThatThrownBy(() -> cycles.get(CYCLE)).isInstanceOf(CollectionNotFoundException.class);
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Long.class))
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class))
         .isEqualTo(1);
   }
 
@@ -259,12 +264,12 @@ class CollectionAdmissionIntegrationTest {
     // Given
     UUID pool = classifiedPool();
     sql.update(
-        "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at) VALUES (?,?,'CALENDAR','ACQUISITION',?)",
+        "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at,cycle_order,read_ordinal,outcome) VALUES (?,?,'CALENDAR','ACQUISITION',?,1,1,'SUCCESS')",
         CONTROL,
         pool,
         Timestamp.from(NOW.minusSeconds(60)));
     sql.update(
-        "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at) VALUES (?,?,'DISCOVERY','ACQUISITION',?)",
+        "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at,cycle_order,read_ordinal,outcome) VALUES (?,?,'DISCOVERY','ACQUISITION',?,1,1,'SUCCESS')",
         CONTROL,
         SOURCE,
         Timestamp.from(NOW.minusSeconds(60)));
@@ -280,7 +285,7 @@ class CollectionAdmissionIntegrationTest {
                 Timestamp.class,
                 CONTROL))
         .isNull();
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_result", Long.class))
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Long.class))
         .isEqualTo(2);
   }
 
@@ -311,7 +316,7 @@ class CollectionAdmissionIntegrationTest {
               assertThat(item.localityRevision()).isEqualTo("2");
             });
     sql.update(
-        "UPDATE sporting_club SET municipality_restricted = true, locality_revision = 3 WHERE id = ?",
+        "UPDATE sporting_club SET municipality_restricted = TRUE, locality_revision = 3 WHERE id = ?",
         club);
     assertThat(cycles.targets(CYCLE, 0, 50).items())
         .singleElement()
@@ -418,7 +423,7 @@ class CollectionAdmissionIntegrationTest {
       assertThatThrownBy(() -> admission.get(10, TimeUnit.SECONDS))
           .hasCauseInstanceOf(CollectionConflictException.class);
     }
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
   }
 
   @Test
@@ -468,7 +473,7 @@ class CollectionAdmissionIntegrationTest {
       assertThatThrownBy(() -> second.get(10, TimeUnit.SECONDS))
           .hasCauseInstanceOf(CollectionConflictException.class);
     }
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Long.class))
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class))
         .isEqualTo(1);
     assertThat(
             sql.queryForObject(
@@ -483,13 +488,13 @@ class CollectionAdmissionIntegrationTest {
   void rejectsStaleCandidate() {
     // Given
     sql.update(
-        "UPDATE collection_source_binding SET revision = 1, locked = false, launched = false, validation_state = 'PENDING' WHERE id = ?",
+        "UPDATE collection_source_binding SET revision = 1, locked = FALSE, launched = FALSE, validation_state = 'PENDING' WHERE id = ?",
         SOURCE);
 
     // When / Then
     assertThatThrownBy(() -> cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, 0, null)))
         .isInstanceOf(CollectionConflictException.class);
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
   }
 
   @Test
@@ -504,7 +509,7 @@ class CollectionAdmissionIntegrationTest {
                 cycles.admit(
                     new StartCycle(CYCLE, STARTUP, CONTROL, null, 9_007_199_254_740_991L, null)))
         .isInstanceOf(CollectionConflictException.class);
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
   }
 
   @Test
@@ -513,19 +518,19 @@ class CollectionAdmissionIntegrationTest {
   void admitsSelectedInitialImport() {
     // Given
     UUID historicalPool = classifiedPool();
-    sql.update("UPDATE sporting_pool SET catalog_eligible = false WHERE id = ?", historicalPool);
+    sql.update("UPDATE sporting_pool SET catalog_eligible = FALSE WHERE id = ?", historicalPool);
     UUID request = UUID.fromString("00000000-0000-4000-8000-000000000158");
     UUID otherSource = UUID.fromString("00000000-0000-4000-8000-000000000159");
     sql.update("UPDATE sporting_season SET collection_state = 'PREPARING' WHERE id = ?", season);
     sql.update(
-        "UPDATE collection_source_binding SET locked = false, launched = false WHERE id = ?",
+        "UPDATE collection_source_binding SET locked = FALSE, launched = FALSE WHERE id = ?",
         SOURCE);
     sql.update(
-        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,validation_state,locked,launched) VALUES (?,?,'FFVB','OTHER','UNVALIDATED',false,false)",
+        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,validation_state,locked,launched) VALUES (?,?,'FFVB','OTHER','UNVALIDATED',FALSE,FALSE)",
         otherSource,
         season);
     sql.update(
-        "UPDATE collection_control SET enabled = false, request_id = ?, requested_mode = 'INITIAL_IMPORT' WHERE id = ?",
+        "UPDATE collection_control SET enabled = FALSE, request_id = ?, requested_mode = 'INITIAL_IMPORT' WHERE id = ?",
         request,
         CONTROL);
     sql.update(
@@ -559,7 +564,7 @@ class CollectionAdmissionIntegrationTest {
             sql.queryForObject(
                 "SELECT request_id FROM collection_control WHERE id = ?", UUID.class, CONTROL))
         .isNull();
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_request_source", Long.class))
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_request_source", Long.class))
         .isZero();
   }
 
@@ -568,7 +573,7 @@ class CollectionAdmissionIntegrationTest {
   void excludesInactiveDivision() {
     // Given
     classifiedPool();
-    sql.update("UPDATE sporting_division SET active = false WHERE id = ?", DIVISION);
+    sql.update("UPDATE sporting_division SET active = FALSE WHERE id = ?", DIVISION);
 
     // When
     cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
@@ -581,10 +586,12 @@ class CollectionAdmissionIntegrationTest {
 
   /**
    * Creates an actual F02 pool, then supplies the current acquisition setting and qualified URL.
+   *
+   * @return persisted pool eligible for the scenario's acquisition selection
    */
   private UUID classifiedPool() {
     sql.update(
-        "INSERT INTO sporting_division(id,name,active,color) VALUES (?,'Synthetic division',true,'#112233')",
+        "INSERT INTO sporting_division(id,name,active,color) VALUES (?,'Synthetic division',TRUE,'#112233')",
         DIVISION);
     PoolKey key = new PoolKey(CollectionProviderEnum.FFVB, season, "ABCCS", "N2", null, null, "P1");
     UUID pool =
@@ -638,7 +645,7 @@ class CollectionAdmissionIntegrationTest {
 
     // When / Then
     assertThatThrownBy(() -> cycles.admit(command)).isInstanceOf(CollectionConflictException.class);
-    assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Long.class)).isZero();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
   }
 
   @Test

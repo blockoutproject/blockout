@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
+import com.blockout.backend.collection.application.service.CollectionResultService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
@@ -47,6 +48,7 @@ class CollectionContractWebMvcTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private CollectorRuntimeService runtimes;
   @MockitoBean private CollectionCycleService cycles;
+  @MockitoBean private CollectionResultService results;
 
   @Test
   @DisplayName("Returns required explicit null before registration with no-store")

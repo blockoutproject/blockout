@@ -24,6 +24,8 @@ Use Spring Data repositories, normally `JpaRepository`, and Spring Boot's manage
 
 ## Queries and lifecycle
 
+Write keywords in handwritten SQL and JPQL/HQL queries in uppercase. Preserve the exact case of identifiers, parameters and quoted values. This is a personal style convention, not a framework requirement. Do not rewrite generated or upstream code, or already-applied migrations, solely to change casing.
+
 Prefer lazy, unidirectional relationships. Set to-one `FetchType.LAZY` explicitly and make foreign-key ownership clear. Cascade and orphan removal require actual aggregate lifecycle ownership; do not blanket `CascadeType.ALL` or eager-load to simplify serialization.
 
 Use inherited operations, then clear derived queries, then JPQL for more complex shapes. Use specifications for genuinely composable dynamic predicates, not every lookup. Choose a bounded projection, `Slice` or `Page` according to the needed count and navigation semantics; map it to the port's application view.
