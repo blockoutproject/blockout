@@ -35,6 +35,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
           case 413 -> "urn:blockout:problem:payload-too-large";
           case 422 -> "urn:blockout:problem:unprocessable-content";
           case 415 -> "urn:blockout:problem:unsupported-media-type";
+          case 503 -> "urn:blockout:problem:unavailable";
           default -> "about:blank";
         };
     return safeProblem(status, type, headers);
