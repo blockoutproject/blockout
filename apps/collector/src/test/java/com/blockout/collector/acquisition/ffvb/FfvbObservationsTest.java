@@ -3,9 +3,11 @@ package com.blockout.collector.acquisition.ffvb;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.model.ContextSlotKindEnum;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
@@ -89,6 +91,21 @@ class FfvbObservationsTest {
     assertThatThrownBy(() -> calendars.parse(bytes(fixture("calendar.csv")), empty, SCOPE))
         .isInstanceOf(FfvbAcquisitionException.class);
     assertThatThrownBy(() -> page("<html><body>Temporarily unavailable</body></html>"))
+        .isInstanceOf(FfvbAcquisitionException.class);
+  }
+
+  @Test
+  @DisplayName("Refuses a header-only calendar without positive empty-pool evidence")
+  void refusesHeaderOnlyCalendar() throws IOException {
+    // Given
+    String html = fixture("calendar.html");
+    String incomplete =
+        html.substring(0, html.indexOf("<table>"))
+            + "<table><tr><td>Journée 01</td></tr></table></body></html>";
+    String header = fixture("calendar.csv").lines().findFirst().orElseThrow() + "\n";
+
+    // When / Then
+    assertThatThrownBy(() -> calendars.parse(bytes(header), page(incomplete), SCOPE))
         .isInstanceOf(FfvbAcquisitionException.class);
   }
 
@@ -322,7 +339,7 @@ class FfvbObservationsTest {
    * @return its source text before transport encoding
    */
   private String fixture(String name) throws IOException {
-    try (var input = getClass().getResourceAsStream("/acquisition/ffvb/" + name)) {
+    try (InputStream input = getClass().getResourceAsStream("/acquisition/ffvb/" + name)) {
       return new String(input.readAllBytes(), StandardCharsets.UTF_8);
     }
   }

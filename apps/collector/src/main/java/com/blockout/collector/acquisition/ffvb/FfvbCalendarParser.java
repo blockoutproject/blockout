@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.ffvb;
 
+import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.model.ContextSlotKindEnum;
 import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
@@ -126,6 +127,8 @@ public class FfvbCalendarParser {
                 null));
       }
     }
+    if (matches.isEmpty() && slots.isEmpty() && failures.isEmpty() && !page.qualifiedEmpty())
+      throw new FfvbAcquisitionException("Empty FFVB calendar lacks positive scope evidence");
     if (matches.size() + slots.size() + failures.size() > 1000)
       throw new FfvbAcquisitionException("FFVB calendar exceeds the observation item bound");
     return new SportingObservation.Calendar(failures.isEmpty(), matches, slots, failures);

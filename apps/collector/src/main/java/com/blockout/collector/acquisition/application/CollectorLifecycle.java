@@ -173,7 +173,7 @@ public class CollectorLifecycle {
   }
 
   /** Refuses work before startup confirmation or after supersession. */
-  private void requireActive() {
+  void requireActive() {
     if (!active) throw new IllegalStateException("Collector is not active");
   }
 

@@ -12,7 +12,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.blockout.collector.acquisition.ffvb.FfvbAcquisitionException;
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
@@ -22,6 +21,7 @@ import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
+import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -30,9 +30,13 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 /** Isolates passage decisions while using real lifecycle-issued admitted capabilities. */
+@ExtendWith(OutputCaptureExtension.class)
 @DisplayName("Bounded admitted passage and uncertain terminal writes")
 class CollectPassageTest {
   private static final Instant NOW = Instant.parse("2026-10-19T12:00:00Z");
@@ -40,7 +44,10 @@ class CollectPassageTest {
   private static final UUID POOL = UUID.fromString("00000000-0000-4000-8000-000000000154");
   private final CollectionBackend backend = mock(CollectionBackend.class);
   private final SportingBackend sporting = mock(SportingBackend.class);
+  private static final URI SOURCE =
+      URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET");
   private final FfvbAcquisition ffvb = mock(FfvbAcquisition.class);
+  private final FfvbAcquisition.Resource resource = mock(FfvbAcquisition.Resource.class);
   private final CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
   private final CollectPassage passage =
       new CollectPassage(backend, sporting, ffvb, lifecycle, Clock.fixed(NOW, ZoneOffset.UTC));
@@ -49,16 +56,21 @@ class CollectPassageTest {
   @DisplayName("Keeps independent standings when calendar acquisition fails")
   void continuesIndependentStage() {
     // Given
+    when(ffvb.resourceUrl(any())).thenReturn(SOURCE);
+    when(ffvb.read(SOURCE)).thenReturn(resource);
     CollectorLifecycle.AdmittedCycle admitted = admit(false);
     CollectionBackend.Target calendar = target(CollectionTargetKindEnum.CALENDAR);
     CollectionBackend.Target table = target(CollectionTargetKindEnum.STANDINGS);
     when(backend.targets(admitted.getCycle().id(), 0))
-        .thenReturn(new CollectionBackend.TargetPage(List.of(calendar, table), 0, false));
-    when(ffvb.calendar(calendar)).thenThrow(new FfvbAcquisitionException("Wrong season"));
+        .thenReturn(new CollectionBackend.TargetPage(List.of(calendar), 0, true));
+    when(backend.targets(admitted.getCycle().id(), 1))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(table), 1, false));
+    when(resource.calendar(calendar)).thenThrow(new FfvbAcquisitionException("Wrong season"));
     SportingObservation.Standings standings =
         new SportingObservation.Standings(
             StandingsPublicationStateEnum.PUBLISHED, List.of(), List.of());
-    when(ffvb.standings(table)).thenReturn(standings);
+    when(resource.standings(table))
+        .thenReturn(new FfvbAcquisition.Read<>(standings, NOW.minusSeconds(1)));
     when(sporting.standings(eq(POOL), any(), eq(standings)))
         .thenReturn(
             new SportingObservation.Outcome(
@@ -81,7 +93,10 @@ class CollectPassageTest {
             CollectionOutcomeEnum.SUCCESS);
     assertThat(results.getAllValues())
         .extracting(CollectionBackend.Result::readOrdinal)
-        .containsExactly(1L, 2L, 2L);
+        .containsExactly(1L, 1L, 1L);
+    assertThat(results.getAllValues().getFirst().reason()).isEqualTo("Wrong season");
+    assertThat(results.getAllValues().get(1).observedAt()).isEqualTo(NOW.minusSeconds(1));
+    verify(ffvb).read(SOURCE);
     verify(sporting, never()).calendar(any(), any(), any());
   }
 
@@ -90,13 +105,15 @@ class CollectPassageTest {
       "Reports an uncertain sporting write without replaying it or claiming measured counts")
   void preservesUncertainIntegration() {
     // Given
+    when(ffvb.resourceUrl(any())).thenReturn(SOURCE);
+    when(ffvb.read(SOURCE)).thenReturn(resource);
     CollectorLifecycle.AdmittedCycle admitted = admit(false);
     CollectionBackend.Target target = target(CollectionTargetKindEnum.CALENDAR);
     when(backend.targets(admitted.getCycle().id(), 0))
         .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
     SportingObservation.Calendar calendar =
         new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
-    when(ffvb.calendar(target)).thenReturn(calendar);
+    when(resource.calendar(target)).thenReturn(new FfvbAcquisition.Read<>(calendar, NOW));
     when(sporting.calendar(eq(POOL), any(), eq(calendar))).thenThrow(uncertain());
     when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
 
@@ -120,6 +137,8 @@ class CollectPassageTest {
   @DisplayName("Preserves 99 accepted matches and one rejected match as partial integration")
   void preservesPartialIntegration() {
     // Given
+    when(ffvb.resourceUrl(any())).thenReturn(SOURCE);
+    when(ffvb.read(SOURCE)).thenReturn(resource);
     CollectorLifecycle.AdmittedCycle admitted = admit(false);
     CollectionBackend.Target target = target(CollectionTargetKindEnum.CALENDAR);
     when(backend.targets(admitted.getCycle().id(), 0))
@@ -149,8 +168,10 @@ class CollectPassageTest {
                         null,
                         null))
             .toList();
-    when(ffvb.calendar(target))
-        .thenReturn(new SportingObservation.Calendar(true, matches, List.of(), List.of()));
+    when(resource.calendar(target))
+        .thenReturn(
+            new FfvbAcquisition.Read<>(
+                new SportingObservation.Calendar(true, matches, List.of(), List.of()), NOW));
     when(sporting.calendar(eq(POOL), any(), any()))
         .thenReturn(new SportingObservation.CalendarOutcome(outcomes, 99, 0, 0, 1, false));
     when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
@@ -171,13 +192,17 @@ class CollectPassageTest {
   @DisplayName("Stops a superseded incarnation before another stage or sporting write")
   void stopsAfterContextRefusal() {
     // Given
+    when(ffvb.resourceUrl(any())).thenReturn(SOURCE);
+    when(ffvb.read(SOURCE)).thenReturn(resource);
     CollectorLifecycle.AdmittedCycle admitted = admit(false);
     CollectionBackend.Target calendar = target(CollectionTargetKindEnum.CALENDAR);
     CollectionBackend.Target standings = target(CollectionTargetKindEnum.STANDINGS);
     when(backend.targets(admitted.getCycle().id(), 0))
         .thenReturn(new CollectionBackend.TargetPage(List.of(calendar, standings), 0, false));
-    when(ffvb.calendar(calendar))
-        .thenReturn(new SportingObservation.Calendar(true, List.of(), List.of(), List.of()));
+    when(resource.calendar(calendar))
+        .thenReturn(
+            new FfvbAcquisition.Read<>(
+                new SportingObservation.Calendar(true, List.of(), List.of(), List.of()), NOW));
     doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null))
         .when(backend)
         .record(eq(admitted.getCycle().id()), any());
@@ -189,9 +214,63 @@ class CollectPassageTest {
     // Then
     assertThat(completed).isFalse();
     verifyNoInteractions(sporting);
-    verify(ffvb, never()).standings(any());
+    verify(resource, never()).standings(any());
     verify(backend, never()).complete(any(), any());
     assertThatThrownBy(admitted::nextReadOrdinal).isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  @DisplayName("Retains only safe exception information when acquisition unexpectedly fails")
+  void excludesUnsafeFailureMessage(CapturedOutput output) {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target target = target(CollectionTargetKindEnum.CALENDAR);
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+    when(ffvb.resourceUrl(target)).thenReturn(SOURCE);
+    when(ffvb.read(SOURCE)).thenThrow(new IllegalStateException("PRIVATE_PROVIDER_PAYLOAD"));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    boolean finished = passage.execute(admitted);
+
+    // Then
+    assertThat(finished).isTrue();
+    ArgumentCaptor<CollectionBackend.Result> result =
+        ArgumentCaptor.forClass(CollectionBackend.Result.class);
+    verify(backend).record(eq(admitted.getCycle().id()), result.capture());
+    assertThat(result.getValue().reason()).isEqualTo("IllegalStateException");
+    assertThat(result.getValue().outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
+    assertThat(output).doesNotContain("PRIVATE_PROVIDER_PAYLOAD");
+    verifyNoInteractions(sporting);
+  }
+
+  @Test
+  @DisplayName("Stops before another shared-resource stage when the lifecycle becomes inactive")
+  void stopsBetweenSharedStages() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target calendar = target(CollectionTargetKindEnum.CALENDAR);
+    CollectionBackend.Target standings = target(CollectionTargetKindEnum.STANDINGS);
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(calendar, standings), 0, false));
+    when(ffvb.resourceUrl(any())).thenReturn(SOURCE);
+    when(ffvb.read(SOURCE)).thenReturn(resource);
+    when(resource.calendar(calendar))
+        .thenReturn(
+            new FfvbAcquisition.Read<>(
+                new SportingObservation.Calendar(true, List.of(), List.of(), List.of()), NOW));
+    when(sporting.calendar(eq(POOL), any(), any()))
+        .thenAnswer(
+            call -> {
+              lifecycle.stop();
+              return new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true);
+            });
+
+    // When / Then
+    assertThatThrownBy(() -> passage.execute(admitted)).isInstanceOf(IllegalStateException.class);
+    verify(resource, never()).standings(any());
+    verify(backend, never()).complete(any(), any());
   }
 
   @Test
@@ -346,6 +425,7 @@ class CollectPassageTest {
    */
   private CollectionBackend.Target target(CollectionTargetKindEnum kind) {
     return CollectionBackend.Target.builder()
+        .url(SOURCE)
         .scopeId(POOL)
         .poolId(POOL)
         .provider(CollectionProviderEnum.FFVB)

@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.ffvb;
 
+import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
 import java.util.ArrayList;

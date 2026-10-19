@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.ffvb;
 
+import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Collections;

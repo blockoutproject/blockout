@@ -9,6 +9,10 @@ import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,7 +31,9 @@ public class CollectPassage {
   private final Clock clock;
 
   /**
-   * Executes supported stages from the frozen selection and attempts ordinary completion.
+   * Executes supported stages from the frozen selection and attempts ordinary completion. Only
+   * target metadata is grouped across pages; provider bodies live for one shared resource at a
+   * time.
    *
    * @param context backend-confirmed control capability; source validation has a separate owner
    * @return whether terminal completion was confirmed, independently from stage success
@@ -36,16 +42,19 @@ public class CollectPassage {
     if (context.getCycle().controlId() == null)
       throw new IllegalArgumentException("A control passage is required");
     try {
+      Map<URI, List<CollectionBackend.Target>> resources = new LinkedHashMap<>();
       long page = 0;
       CollectionBackend.TargetPage targets;
       do {
         targets = backend.targets(context.getCycle().id(), page++);
         for (CollectionBackend.Target target : targets.items()) {
           if (target.provider() == CollectionProviderEnum.FFVB
-              && target.kind() == CollectionTargetKindEnum.CALENDAR) calendar(context, target);
-          else if (target.provider() == CollectionProviderEnum.FFVB
-              && target.kind() == CollectionTargetKindEnum.STANDINGS) standings(context, target);
-          else
+              && (target.kind() == CollectionTargetKindEnum.CALENDAR
+                  || target.kind() == CollectionTargetKindEnum.STANDINGS)) {
+            resources
+                .computeIfAbsent(ffvb.resourceUrl(target), ignored -> new ArrayList<>())
+                .add(target);
+          } else
             log.atWarn()
                 .addKeyValue("operation", "collection_stage")
                 .addKeyValue("stage", target.kind())
@@ -53,6 +62,23 @@ public class CollectPassage {
                 .log("Selected acquisition adapter is not available; no observation was submitted");
         }
       } while (targets.hasNext());
+      for (Map.Entry<URI, List<CollectionBackend.Target>> entry : resources.entrySet()) {
+        long ordinal = context.nextReadOrdinal();
+        FfvbAcquisition.Resource resource;
+        try {
+          resource = ffvb.read(entry.getKey());
+        } catch (RuntimeException failure) {
+          for (CollectionBackend.Target target : entry.getValue())
+            acquisitionFailed(context, target, ordinal, failure);
+          continue;
+        }
+        for (CollectionBackend.Target target : entry.getValue()) {
+          lifecycle.requireActive();
+          if (target.kind() == CollectionTargetKindEnum.CALENDAR)
+            calendar(context, target, resource, ordinal);
+          else standings(context, target, resource, ordinal);
+        }
+      }
       return lifecycle.complete(context, clock.instant());
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) throw failure;
@@ -72,25 +98,23 @@ public class CollectPassage {
    *
    * @param context admitted capability
    * @param target exact pool context retained through both phases
+   * @param resource one shared read, discarded after its selected scopes
+   * @param ordinal order allocated before this resource was read
    */
-  private void calendar(CollectorLifecycle.AdmittedCycle context, CollectionBackend.Target target) {
-    long ordinal = context.nextReadOrdinal();
-    SportingObservation.Calendar observation;
+  private void calendar(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      FfvbAcquisition.Resource resource,
+      long ordinal) {
+    FfvbAcquisition.Read<SportingObservation.Calendar> read;
     try {
-      observation = ffvb.calendar(target);
+      read = resource.calendar(target);
     } catch (RuntimeException failure) {
-      record(
-          context,
-          target,
-          ordinal,
-          CollectionPhaseEnum.ACQUISITION,
-          CollectionOutcomeEnum.FAILED,
-          null,
-          null,
-          clock.instant());
+      acquisitionFailed(context, target, ordinal, failure);
       return;
     }
-    Instant observedAt = clock.instant();
+    SportingObservation.Calendar observation = read.observation();
+    Instant observedAt = read.observedAt();
     record(
         context,
         target,
@@ -99,7 +123,10 @@ public class CollectPassage {
         observation.complete() ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.PARTIAL,
         (long) observation.matches().size(),
         (long) observation.failures().size(),
-        observedAt);
+        observedAt,
+        observation.failures().isEmpty()
+            ? null
+            : observation.failures().getFirst().reasonType().toString());
     try {
       SportingObservation.CalendarOutcome outcome =
           sporting.calendar(
@@ -120,7 +147,12 @@ public class CollectPassage {
           result,
           accepted,
           rejected,
-          clock.instant());
+          clock.instant(),
+          outcome.outcomes().stream()
+              .filter(item -> item.reasonType() != null)
+              .map(item -> item.reasonType().toString())
+              .findFirst()
+              .orElse(null));
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
       record(
@@ -131,7 +163,8 @@ public class CollectPassage {
           failed(failure),
           null,
           null,
-          clock.instant());
+          clock.instant(),
+          failureReason(failure));
     }
   }
 
@@ -140,26 +173,23 @@ public class CollectPassage {
    *
    * @param context admitted capability
    * @param target independently selected standings scope
+   * @param resource one shared read, independent of export success
+   * @param ordinal order allocated before this resource was read
    */
   private void standings(
-      CollectorLifecycle.AdmittedCycle context, CollectionBackend.Target target) {
-    long ordinal = context.nextReadOrdinal();
-    SportingObservation.Standings observation;
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      FfvbAcquisition.Resource resource,
+      long ordinal) {
+    FfvbAcquisition.Read<SportingObservation.Standings> read;
     try {
-      observation = ffvb.standings(target);
+      read = resource.standings(target);
     } catch (RuntimeException failure) {
-      record(
-          context,
-          target,
-          ordinal,
-          CollectionPhaseEnum.ACQUISITION,
-          CollectionOutcomeEnum.FAILED,
-          null,
-          null,
-          clock.instant());
+      acquisitionFailed(context, target, ordinal, failure);
       return;
     }
-    Instant observedAt = clock.instant();
+    SportingObservation.Standings observation = read.observation();
+    Instant observedAt = read.observedAt();
     record(
         context,
         target,
@@ -168,7 +198,8 @@ public class CollectPassage {
         CollectionOutcomeEnum.SUCCESS,
         (long) observation.rows().size(),
         0L,
-        observedAt);
+        observedAt,
+        null);
     try {
       SportingObservation.Outcome outcome =
           sporting.standings(
@@ -186,7 +217,8 @@ public class CollectPassage {
           accepted ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
           null,
           null,
-          clock.instant());
+          clock.instant(),
+          outcome.reasonType() == null ? null : outcome.reasonType().toString());
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
       record(
@@ -197,8 +229,55 @@ public class CollectPassage {
           failed(failure),
           null,
           null,
-          clock.instant());
+          clock.instant(),
+          failureReason(failure));
     }
+  }
+
+  /**
+   * Retains a safe cause while allowing independent scopes and phases to proceed.
+   *
+   * @param context admitted capability
+   * @param target affected stage and scope
+   * @param ordinal original pre-read order
+   * @param failure absorbed failure; raw messages and causes are never logged
+   */
+  private void acquisitionFailed(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      long ordinal,
+      RuntimeException failure) {
+    String reason = failureReason(failure);
+    log.atWarn()
+        .addKeyValue("operation", "collection_acquisition")
+        .addKeyValue("cycleId", context.getCycle().id())
+        .addKeyValue("scopeId", target.scopeId())
+        .addKeyValue("stage", target.kind())
+        .addKeyValue("reason", reason)
+        .log("Provider observation failed; independent selected work may continue");
+    record(
+        context,
+        target,
+        ordinal,
+        CollectionPhaseEnum.ACQUISITION,
+        CollectionOutcomeEnum.FAILED,
+        null,
+        null,
+        clock.instant(),
+        reason);
+  }
+
+  /**
+   * Keeps fixed parser diagnostics and native status/type information without exposing payloads.
+   *
+   * @param failure absorbed acquisition or backend failure
+   * @return bounded diagnostic from trusted categories, never an arbitrary exception message
+   */
+  private String failureReason(RuntimeException failure) {
+    if (failure instanceof FfvbAcquisitionException) return failure.getMessage();
+    if (failure instanceof CollectionBackendFailure backendFailure)
+      return "Backend " + backendFailure.getKind();
+    return failure.getClass().getSimpleName();
   }
 
   /**
@@ -224,6 +303,7 @@ public class CollectPassage {
    * @param obtained measured accepted/usable items, or null
    * @param rejected measured unusable items, or null
    * @param observedAt actual completion of this phase
+   * @param reason safe provider or integration diagnostic, absent on success
    */
   private void record(
       CollectorLifecycle.AdmittedCycle context,
@@ -233,7 +313,8 @@ public class CollectPassage {
       CollectionOutcomeEnum outcome,
       Long obtained,
       Long rejected,
-      Instant observedAt) {
+      Instant observedAt,
+      String reason) {
     try {
       backend.record(
           context.getCycle().id(),
@@ -247,7 +328,7 @@ public class CollectPassage {
               outcome == CollectionOutcomeEnum.SUCCESS
                   ? null
                   : URI.create("urn:blockout:acquisition:" + outcome.getValue()),
-              null,
+              reason,
               obtained,
               rejected));
     } catch (CollectionBackendFailure failure) {
