@@ -1,30 +1,40 @@
 package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
-import com.blockout.backend.sporting.application.PoolKey;
-import com.blockout.backend.sporting.application.SportingClassification;
-import com.blockout.backend.sporting.application.SportingConflictException;
-import com.blockout.backend.sporting.application.SportingResourceNotFoundException;
-import com.blockout.backend.sporting.application.SportingStore;
-import com.blockout.backend.sporting.application.SportingViews.ClubView;
-import com.blockout.backend.sporting.application.SportingViews.DivisionDetail;
-import com.blockout.backend.sporting.application.SportingViews.DivisionView;
-import com.blockout.backend.sporting.application.SportingViews.MatchView;
-import com.blockout.backend.sporting.application.SportingViews.PackView;
-import com.blockout.backend.sporting.application.SportingViews.ParticipationView;
-import com.blockout.backend.sporting.application.SportingViews.PoolClassificationView;
-import com.blockout.backend.sporting.application.SportingViews.PoolView;
-import com.blockout.backend.sporting.application.SportingViews.SeasonView;
-import com.blockout.backend.sporting.application.SportingViews.TeamView;
-import com.blockout.backend.sporting.application.TeamCandidate;
-import com.blockout.backend.sporting.application.UnresolvedSportingIdentityException;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
+import com.blockout.backend.sporting.application.exception.SportingConflictException;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.exception.UnresolvedSportingIdentityException;
+import com.blockout.backend.sporting.application.model.AcquisitionReference;
+import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.PoolKey;
+import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingViews;
+import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
+import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.model.SportingViews.PackView;
+import com.blockout.backend.sporting.application.model.SportingViews.ParticipationView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolClassificationView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
+import com.blockout.backend.sporting.application.model.TeamCandidate;
+import com.blockout.backend.sporting.application.port.SportingStore;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 /** Native JPA identity adapter; caller-owned transactions retain locks through commit. */
@@ -40,6 +50,165 @@ public class JpaSportingStore implements SportingStore {
   private final ParticipationRepository participations;
   private final MatchRepository matches;
   private final SportingIdentityMapper mapper;
+
+  /** {@inheritDoc} */
+  @Override
+  public List<AcquisitionReference> acquisitionPools(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      boolean initialImport,
+      Instant now,
+      int page) {
+    List<PoolEntity> selected =
+        pools.acquisitionPools(
+            seasonId, provider, organizerReference, initialImport, PageRequest.of(page, 200));
+    if (selected.isEmpty()) return List.of();
+    Map<UUID, Instant> windows =
+        matches
+            .findLatestMatchStartsInWindow(
+                selected.stream().map(PoolEntity::getId).toList(),
+                now.minus(Duration.ofHours(4)),
+                now.plus(Duration.ofHours(1)))
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    PoolMatchStart::getPoolId,
+                    value -> value.getLatestStart().plus(Duration.ofHours(4))));
+    List<AcquisitionReference> references = new ArrayList<>();
+    for (PoolEntity pool : selected) {
+      if (pool.getCalendarUrl() != null)
+        references.add(
+            acquisitionReference(
+                pool,
+                CollectionTargetKindEnum.CALENDAR,
+                pool.getId(),
+                null,
+                null,
+                pool.getCalendarUrl(),
+                windows.get(pool.getId())));
+      if (pool.getStandingsUrl() != null)
+        references.add(
+            acquisitionReference(
+                pool,
+                CollectionTargetKindEnum.STANDINGS,
+                pool.getId(),
+                null,
+                null,
+                pool.getStandingsUrl(),
+                windows.get(pool.getId())));
+    }
+    return references;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<AcquisitionReference> acquisitionDetails(UUID poolId, Instant now, int page) {
+    return matches.acquisitionDetails(poolId, PageRequest.of(page, 200)).stream()
+        .map(
+            match -> {
+              Instant start = match.getReliableStart();
+              Instant end =
+                  start == null
+                          || now.isBefore(start.minus(Duration.ofHours(1)))
+                          || now.isAfter(start.plus(Duration.ofHours(4)))
+                      ? null
+                      : start.plus(Duration.ofHours(4));
+              return acquisitionReference(
+                  match.getPool(),
+                  CollectionTargetKindEnum.DETAILS,
+                  match.getId(),
+                  match.getId(),
+                  match.getReference(),
+                  match.getDetailUrl(),
+                  end);
+            })
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<AcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, int page) {
+    return clubs.acquisitionClubs(geocoding, manual, PageRequest.of(page, 200)).stream()
+        .map(
+            club ->
+                new AcquisitionReference(
+                    club.getId(),
+                    geocoding
+                        ? CollectionTargetKindEnum.GEOCODING
+                        : CollectionTargetKindEnum.CLUB_SHEET,
+                    null,
+                    null,
+                    null,
+                    null,
+                    club.getId(),
+                    club.getReference(),
+                    null,
+                    null,
+                    null,
+                    club.getProvider(),
+                    null))
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, ClubLocalityView> clubLocalities(List<UUID> clubIds) {
+    return clubs.findAllById(clubIds).stream()
+        .collect(
+            Collectors.toMap(
+                ClubEntity::getId,
+                club ->
+                    new ClubLocalityView(
+                        Long.toString(club.getLocalityRevision()),
+                        club.isMunicipalityRestricted() ? null : club.getMunicipality(),
+                        club.isMunicipalityRestricted() ? null : club.getPostalCode())));
+  }
+
+  /**
+   * Combines a qualified native reference with effective acquisition settings, never published
+   * fallbacks.
+   *
+   * @param pool eligible contextual owner
+   * @param kind read purpose
+   * @param scopeId stable pool or match identity
+   * @param matchId detail identity, otherwise absent
+   * @param reference native detail reference, otherwise absent
+   * @param url current qualified read URL
+   * @param windowEnd current reliable fast window end, otherwise absent
+   * @return detached nonpersonal acquisition context
+   */
+  private AcquisitionReference acquisitionReference(
+      PoolEntity pool,
+      CollectionTargetKindEnum kind,
+      UUID scopeId,
+      UUID matchId,
+      String reference,
+      String url,
+      Instant windowEnd) {
+    ClassificationSetting setting =
+        pool.getSetting() == null ? pool.getPack().getSetting() : pool.getSetting();
+    return new AcquisitionReference(
+        scopeId,
+        kind,
+        mapper.toKey(pool),
+        pool.getPack().getReference(),
+        pool.getId(),
+        matchId,
+        null,
+        null,
+        mapper.toClassification(setting),
+        url,
+        windowEnd,
+        pool.getProvider(),
+        reference);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<SportingViews.CollectionSeasonView> collectionSeason(UUID id) {
+    return seasons.findById(id).map(mapper::toCollectionView);
+  }
 
   /** {@inheritDoc} */
   @Override

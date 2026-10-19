@@ -6,9 +6,9 @@ import com.blockout.backend.generated.mobile.model.AcquisitionClassificationResp
 import com.blockout.backend.generated.mobile.model.ClassificationDetailResponse;
 import com.blockout.backend.generated.mobile.model.DivisionResponse;
 import com.blockout.backend.generated.mobile.model.LogoPresentationResponse;
-import com.blockout.backend.sporting.application.SportingClassification;
-import com.blockout.backend.sporting.application.SportingViews.ClassificationView;
-import com.blockout.backend.sporting.application.SportingViews.DivisionDetail;
+import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

@@ -11,6 +11,8 @@ servers:
   - url: /
     description: Same-origin backend; deployment supplies its environment URL.
 tags:
+  - name: CollectorOperations
+    description: Current collector registration and admitted acquisition context.
   - name: Collection
     description: Source qualification, collection control and current operational evidence.
   - name: Sporting

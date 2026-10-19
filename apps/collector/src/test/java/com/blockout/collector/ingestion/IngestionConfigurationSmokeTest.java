@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.collector.CollectorApplication;
+import com.blockout.collector.acquisition.application.CollectorLifecycle;
 import com.blockout.collector.generated.ingestion.ApiClient;
 import java.time.Duration;
 import java.util.Map;
@@ -11,14 +12,21 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
 
-/** Exercises actual Boot startup, configuration aliases and validation without provider calls. */
+/**
+ * Exercises Boot configuration aliases and validation; registration has its own HTTP lifecycle
+ * suite.
+ */
 @DisplayName("Collector ingestion startup configuration")
 class IngestionConfigurationSmokeTest {
   @Test
@@ -33,7 +41,7 @@ class IngestionConfigurationSmokeTest {
         .getPropertySources()
         .remove(StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
     SpringApplicationBuilder application =
-        new SpringApplicationBuilder(CollectorApplication.class)
+        new SpringApplicationBuilder(CollectorApplication.class, ConfigurationOnly.class)
             .web(WebApplicationType.NONE)
             .environment(environment);
 
@@ -73,7 +81,8 @@ class IngestionConfigurationSmokeTest {
   void rejectsInvalidSettings(String property) {
     // Given
     SpringApplicationBuilder application =
-        new SpringApplicationBuilder(CollectorApplication.class).web(WebApplicationType.NONE);
+        new SpringApplicationBuilder(CollectorApplication.class, ConfigurationOnly.class)
+            .web(WebApplicationType.NONE);
 
     // When
     Throwable failure =
@@ -94,7 +103,8 @@ class IngestionConfigurationSmokeTest {
   void preservesLocalDefaults() {
     // Given
     SpringApplicationBuilder application =
-        new SpringApplicationBuilder(CollectorApplication.class).web(WebApplicationType.NONE);
+        new SpringApplicationBuilder(CollectorApplication.class, ConfigurationOnly.class)
+            .web(WebApplicationType.NONE);
 
     // When
     try (ConfigurableApplicationContext context =
@@ -121,7 +131,7 @@ class IngestionConfigurationSmokeTest {
                     "BLOCKOUT_INGESTION_AUDIENCE", "ingestion-preproduction",
                     "BLOCKOUT_INGESTION_TIMEOUT", "250ms")));
     SpringApplicationBuilder application =
-        new SpringApplicationBuilder(CollectorApplication.class)
+        new SpringApplicationBuilder(CollectorApplication.class, ConfigurationOnly.class)
             .web(WebApplicationType.NONE)
             .environment(environment);
 
@@ -134,6 +144,21 @@ class IngestionConfigurationSmokeTest {
       assertThat(properties.timeout()).isEqualTo(Duration.ofMillis(250));
       assertThat(context.getBean(ApiClient.class).getBasePath())
           .isEqualTo("https://api.example.invalid");
+    }
+  }
+
+  /** Keeps configuration qualification independent of the backend startup protocol. */
+  @TestConfiguration(proxyBeanMethods = false)
+  static class ConfigurationOnly {
+    /**
+     * Supplies a controlled lifecycle so the real runner does not contact an identity provider.
+     *
+     * @return inert boundary used only by these configuration scenarios
+     */
+    @Bean
+    @Primary
+    CollectorLifecycle configurationLifecycle() {
+      return Mockito.mock(CollectorLifecycle.class);
     }
   }
 }

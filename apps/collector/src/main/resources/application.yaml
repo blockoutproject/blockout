@@ -22,7 +22,7 @@ spring:
 blockout:
   acquisition:
     # Conservative starting limits, shared per provider across all seasons and families.
-    # Provider transport and live qualification are implemented by the following F01 tasks.
+    # Live provider qualification remains separate from the bounded transport tests.
     ffvb-origins: ${BLOCKOUT_ACQUISITION_FFVB_ORIGINS:https://www.ffvb.org,https://www.ffvbbeach.org}
     lnv-origins: ${BLOCKOUT_ACQUISITION_LNV_ORIGINS:https://www.lnv.fr,https://lnv-web.dataproject.com,https://images.dataproject.com}
     ign-origins: ${BLOCKOUT_ACQUISITION_IGN_ORIGINS:https://data.geopf.fr}

@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.blockout.backend.generated.ingestion.api.CollectionApi;
+import com.blockout.backend.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.backend.generated.ingestion.model.CollectorRuntimeInternalResponse;
 import com.blockout.backend.generated.mobile.api.AccountsApi;
 import com.blockout.backend.generated.mobile.model.AccountResponse;
@@ -305,7 +305,7 @@ class SecurityWebMvcTest {
     // When
     ResultActions response =
         mvc.perform(
-            get(CollectionApi.PATH_GET_COLLECTOR_RUNTIME)
+            get(CollectorOperationsApi.PATH_GET_COLLECTOR_RUNTIME)
                 .header("Authorization", "Bearer " + token));
 
     // Then
@@ -329,7 +329,7 @@ class SecurityWebMvcTest {
     // When
     ResultActions response =
         mvc.perform(
-            get(CollectionApi.PATH_GET_COLLECTOR_RUNTIME)
+            get(CollectorOperationsApi.PATH_GET_COLLECTOR_RUNTIME)
                 .header("Authorization", "Bearer " + token));
 
     // Then
@@ -350,7 +350,7 @@ class SecurityWebMvcTest {
     // When
     ResultActions response =
         mvc.perform(
-            get(CollectionApi.PATH_GET_COLLECTOR_RUNTIME)
+            get(CollectorOperationsApi.PATH_GET_COLLECTOR_RUNTIME)
                 .header("Authorization", "Bearer " + token));
 
     // Then
@@ -477,7 +477,7 @@ class SecurityWebMvcTest {
     }
 
     /** Serves a harmless canonical ingestion projection for the authentication boundary. */
-    @GetMapping(CollectionApi.PATH_GET_COLLECTOR_RUNTIME)
+    @GetMapping(CollectorOperationsApi.PATH_GET_COLLECTOR_RUNTIME)
     CollectorRuntimeInternalResponse runtime() {
       return new CollectorRuntimeInternalResponse().revision(0L).incarnationId(null);
     }

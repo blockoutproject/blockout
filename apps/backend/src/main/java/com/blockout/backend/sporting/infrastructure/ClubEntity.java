@@ -18,6 +18,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /** Persistent provider-qualified organization; an unknown page label remains null. */
 @Getter
@@ -25,6 +26,13 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "sporting_club")
 public class ClubEntity {
+  @Setter private String municipality;
+  @Setter private String postalCode;
+  @Setter private long localityRevision;
+  @Setter private Long geocodedRevision;
+  @Setter private boolean municipalityRestricted;
+  @Setter private boolean hasCoordinates;
+
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;

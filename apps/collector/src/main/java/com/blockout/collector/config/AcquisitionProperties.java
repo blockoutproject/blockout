@@ -16,7 +16,8 @@ import org.springframework.validation.annotation.Validated;
 
 /**
  * Source boundaries and per-provider budgets for the single collector instance. Defaults belong to
- * application.yaml; transport and provider adapters consume these settings in their owning tasks.
+ * application.yaml; the native transport consumes these limits without a second configuration
+ * loader.
  *
  * @param ffvbOrigins exact allowed FFVB origins, including redirect destinations
  * @param lnvOrigins exact allowed LNV origins, including DataProject and its image origin

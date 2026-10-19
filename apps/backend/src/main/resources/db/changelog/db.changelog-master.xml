@@ -5,6 +5,7 @@
   <!-- Domain owners add their real tables here while all databases remain disposable.
        Freeze this baseline at the first preproduction/production version; append immutable changes thereafter. -->
   <include file="sporting.xml" relativeToChangelogFile="true"/>
+  <include file="collection.xml" relativeToChangelogFile="true"/>
   <include file="accounts.xml" relativeToChangelogFile="true"/>
   <include file="access.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

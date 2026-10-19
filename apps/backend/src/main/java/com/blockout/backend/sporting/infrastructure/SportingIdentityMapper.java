@@ -1,18 +1,19 @@
 package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.config.MappingConfiguration;
-import com.blockout.backend.sporting.application.PoolKey;
-import com.blockout.backend.sporting.application.SportingClassification;
-import com.blockout.backend.sporting.application.SportingViews.ClubView;
-import com.blockout.backend.sporting.application.SportingViews.DivisionDetail;
-import com.blockout.backend.sporting.application.SportingViews.DivisionView;
-import com.blockout.backend.sporting.application.SportingViews.MatchView;
-import com.blockout.backend.sporting.application.SportingViews.PackView;
-import com.blockout.backend.sporting.application.SportingViews.ParticipationView;
-import com.blockout.backend.sporting.application.SportingViews.PoolClassificationView;
-import com.blockout.backend.sporting.application.SportingViews.PoolView;
-import com.blockout.backend.sporting.application.SportingViews.SeasonView;
-import com.blockout.backend.sporting.application.SportingViews.TeamView;
+import com.blockout.backend.sporting.application.model.PoolKey;
+import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingViews;
+import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
+import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.model.SportingViews.PackView;
+import com.blockout.backend.sporting.application.model.SportingViews.ParticipationView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolClassificationView;
+import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -20,6 +21,14 @@ import org.mapstruct.Mapping;
 /** Maps persistence values inside their transaction without exporting managed relationships. */
 @Mapper(config = MappingConfiguration.class)
 interface SportingIdentityMapper {
+  /**
+   * Projects acquisition lifecycle without exposing the managed season.
+   *
+   * @param source canonical managed season
+   * @return detached acquisition lifecycle
+   */
+  SportingViews.CollectionSeasonView toCollectionView(SeasonEntity source);
+
   /**
    * Detaches the canonical season.
    *

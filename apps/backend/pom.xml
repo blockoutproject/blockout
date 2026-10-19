@@ -156,6 +156,7 @@
           </inlineSchemaOptions>
           <configOptions>
             <useSpringBoot4>true</useSpringBoot4>
+            <useSpringBuiltInValidation>true</useSpringBuiltInValidation>
             <useJackson3>true</useJackson3>
             <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
             <hideGenerationTimestamp>true</hideGenerationTimestamp>
