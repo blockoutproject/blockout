@@ -153,15 +153,16 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<ClubLocalityView> clubLocality(UUID clubId) {
-    return clubs
-        .findById(clubId)
-        .map(
-            club ->
-                new ClubLocalityView(
-                    Long.toString(club.getLocalityRevision()),
-                    club.isMunicipalityRestricted() ? null : club.getMunicipality(),
-                    club.isMunicipalityRestricted() ? null : club.getPostalCode()));
+  public Map<UUID, ClubLocalityView> clubLocalities(List<UUID> clubIds) {
+    return clubs.findAllById(clubIds).stream()
+        .collect(
+            Collectors.toMap(
+                ClubEntity::getId,
+                club ->
+                    new ClubLocalityView(
+                        Long.toString(club.getLocalityRevision()),
+                        club.isMunicipalityRestricted() ? null : club.getMunicipality(),
+                        club.isMunicipalityRestricted() ? null : club.getPostalCode())));
   }
 
   /**

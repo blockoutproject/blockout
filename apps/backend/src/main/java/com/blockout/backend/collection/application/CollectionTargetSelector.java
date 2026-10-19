@@ -132,18 +132,32 @@ public class CollectionTargetSelector {
   }
 
   /**
-   * Resolves current permitted locality when serving targets.
+   * Resolves current permitted localities once per served page, preserving target order.
    *
-   * @param target frozen reference without personal values
+   * @param targets bounded page of frozen references without personal values
    * @return current permitted locality for geocoding only; removal/restriction forbids a query
    */
-  public ServedTarget serve(Target target) {
-    if (target.kind() != CollectionTargetKindEnum.GEOCODING)
-      return new ServedTarget(target, null, null, null);
-    ClubLocalityView locality =
-        sporting.clubLocality(target.clubId()).orElseThrow(CollectionNotFoundException::new);
-    return new ServedTarget(
-        target, locality.localityRevision(), locality.municipality(), locality.postalCode());
+  public List<ServedTarget> serve(List<Target> targets) {
+    List<UUID> clubIds =
+        targets.stream()
+            .filter(target -> target.kind() == CollectionTargetKindEnum.GEOCODING)
+            .map(Target::clubId)
+            .toList();
+    Map<UUID, ClubLocalityView> localities = sporting.clubLocalities(clubIds);
+    return targets.stream()
+        .map(
+            target -> {
+              if (target.kind() != CollectionTargetKindEnum.GEOCODING)
+                return new ServedTarget(target, null, null, null);
+              ClubLocalityView locality = localities.get(target.clubId());
+              if (locality == null) throw new CollectionNotFoundException();
+              return new ServedTarget(
+                  target,
+                  locality.localityRevision(),
+                  locality.municipality(),
+                  locality.postalCode());
+            })
+        .toList();
   }
 
   /**

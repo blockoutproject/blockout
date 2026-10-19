@@ -17,11 +17,14 @@ import org.apache.hc.client5.http.impl.DefaultRedirectStrategy;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.io.CloseMode;
+import org.apache.hc.core5.io.ModalCloseable;
 import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
 import org.springframework.context.annotation.Bean;
@@ -140,10 +143,16 @@ public class AcquisitionConfiguration {
                 })
             .addExecInterceptorBefore(
                 ChainElement.CONNECT.name(),
-                "provider-permit",
+                "provider-exchange",
                 (request, scope, chain) -> {
                   RateLimiter.waitForPermission(limiter);
-                  return chain.proceed(request, scope);
+                  ClassicHttpResponse response = chain.proceed(request, scope);
+                  if (response.getCode() >= 300 && response.getEntity() != null) {
+                    // Discard unused bodies before native retries/redirects can drain them.
+                    ((ModalCloseable) response).close(CloseMode.IMMEDIATE);
+                    response.setEntity(null);
+                  }
+                  return response;
                 })
             .build();
     return new ProviderHttpClient(http, executor, origins, properties.maxResponseBytes());

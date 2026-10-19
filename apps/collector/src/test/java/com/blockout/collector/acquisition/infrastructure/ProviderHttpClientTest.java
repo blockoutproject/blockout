@@ -17,6 +17,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPOutputStream;
@@ -34,10 +36,13 @@ import org.springframework.core.task.TaskRejectedException;
 class ProviderHttpClientTest {
   private HttpServer server;
   private URI origin;
+  private ExecutorService peers;
 
   @BeforeEach
   void startPeer() throws Exception {
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    peers = Executors.newFixedThreadPool(2);
+    server.setExecutor(peers);
     server.start();
     origin = URI.create("http://127.0.0.1:" + server.getAddress().getPort());
   }
@@ -45,6 +50,49 @@ class ProviderHttpClientTest {
   @AfterEach
   void stopPeer() {
     server.stop(0);
+    peers.shutdownNow();
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {302, 429, 503})
+  @DisplayName(
+      "Discards intermediate bodies without waiting for their end before following native policy")
+  void discardsIntermediateBodies(int status) throws Exception {
+    // Given
+    AtomicInteger requests = new AtomicInteger();
+    CountDownLatch release = new CountDownLatch(1);
+    server.createContext(
+        "/source",
+        exchange -> {
+          if (requests.incrementAndGet() == 1) {
+            exchange.getResponseHeaders().add("Location", "/source");
+            exchange.getResponseHeaders().add("Retry-After", "1");
+            exchange.sendResponseHeaders(status, 0);
+            exchange.getResponseBody().write(new byte[33]);
+            exchange.getResponseBody().flush();
+            try {
+              release.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException exception) {
+              Thread.currentThread().interrupt();
+            } finally {
+              exchange.close();
+            }
+          } else {
+            exchange.sendResponseHeaders(200, 2);
+            exchange.getResponseBody().write("ok".getBytes(StandardCharsets.UTF_8));
+            exchange.close();
+          }
+        });
+    try (ProviderHttpClient client = client(32, Duration.ofSeconds(5), 10)) {
+      // When
+      byte[] result = client.get(origin.resolve("/source")).get(3, TimeUnit.SECONDS);
+
+      // Then
+      assertThat(result).isEqualTo("ok".getBytes(StandardCharsets.UTF_8));
+      assertThat(requests).hasValue(2);
+    } finally {
+      release.countDown();
+    }
   }
 
   @Test

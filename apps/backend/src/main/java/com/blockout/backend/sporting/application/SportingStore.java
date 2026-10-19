@@ -13,6 +13,7 @@ import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -58,12 +59,12 @@ public interface SportingStore {
   List<AcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, int page);
 
   /**
-   * Resolves currently permitted locality.
+   * Resolves currently permitted localities in one batch.
    *
-   * @param clubId current organization
-   * @return currently permitted locality and its revision
+   * @param clubIds current organizations from a bounded target page
+   * @return permitted localities and their revisions by identity, omitting removed organizations
    */
-  Optional<ClubLocalityView> clubLocality(UUID clubId);
+  Map<UUID, ClubLocalityView> clubLocalities(List<UUID> clubIds);
 
   /**
    * Reads acquisition lifecycle on the canonical season.

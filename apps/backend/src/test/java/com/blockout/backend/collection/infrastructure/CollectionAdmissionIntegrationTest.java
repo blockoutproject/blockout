@@ -19,6 +19,7 @@ import com.blockout.backend.sporting.application.SeasonService;
 import com.blockout.backend.sporting.application.SportingClassification;
 import com.blockout.backend.sporting.application.SportingIdentityService;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManagerFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -26,6 +27,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -33,6 +35,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -69,6 +73,7 @@ class CollectionAdmissionIntegrationTest {
   @Autowired private SeasonService seasons;
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
+  @Autowired private EntityManagerFactory entityManagerFactory;
   private UUID season;
 
   /** Applies the real disposable baseline before the application checks its mappings. */
@@ -316,6 +321,54 @@ class CollectionAdmissionIntegrationTest {
               assertThat(item.postalCode()).isNull();
               assertThat(item.localityRevision()).isEqualTo("3");
             });
+  }
+
+  @Test
+  @DisplayName("Serving a larger geocoding page does not add one SQL read per club")
+  void readsLocalitiesAsOneBatch() {
+    // Given
+    List<UUID> clubs =
+        List.of(
+            UUID.fromString("00000000-0000-4000-8000-000000000160"),
+            UUID.fromString("00000000-0000-4000-8000-000000000161"),
+            UUID.fromString("00000000-0000-4000-8000-000000000162"));
+    sql.update(
+        "UPDATE collection_control SET season_id = NULL, family = 'GEOCODING' WHERE id = ?",
+        CONTROL);
+    for (UUID club : clubs) {
+      sql.update(
+          "INSERT INTO sporting_club(id,provider,reference,municipality,postal_code,locality_revision) VALUES (?,'FFVB',?,'Paris','75001',1)",
+          club,
+          club.toString());
+    }
+    cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      cycles.targets(CYCLE, 0, 1);
+      long singleTargetReads = statistics.getPrepareStatementCount() - before;
+      before = statistics.getPrepareStatementCount();
+
+      // When
+      CollectionState.TargetPage page = cycles.targets(CYCLE, 0, 200);
+      long pageReads = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(page.items())
+          .extracting(item -> item.target().clubId())
+          .containsExactlyElementsOf(clubs);
+      assertThat(page.items())
+          .allSatisfy(
+              item -> {
+                assertThat(item.municipality()).isEqualTo("Paris");
+                assertThat(item.localityRevision()).isEqualTo("1");
+              });
+      assertThat(pageReads).isEqualTo(singleTargetReads);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
   }
 
   @Test

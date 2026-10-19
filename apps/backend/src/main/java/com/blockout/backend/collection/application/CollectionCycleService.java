@@ -167,7 +167,7 @@ public class CollectionCycleService {
       throw new IllegalArgumentException("Invalid collection page");
     if (page > Integer.MAX_VALUE / size) return new TargetPage(List.of(), page, false);
     SnapshotPage snapshot = store.targets(cycleId, (int) page, size);
-    List<ServedTarget> targets = snapshot.items().stream().map(selection::serve).toList();
+    List<ServedTarget> targets = selection.serve(snapshot.items());
     return new TargetPage(targets, page, snapshot.hasNext());
   }
 

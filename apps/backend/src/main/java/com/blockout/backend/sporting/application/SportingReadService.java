@@ -9,6 +9,7 @@ import com.blockout.backend.sporting.application.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.SportingViews.TeamView;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -68,13 +69,13 @@ public class SportingReadService {
   }
 
   /**
-   * Resolves the currently permitted organization locality.
+   * Resolves currently permitted organization localities in one batch.
    *
-   * @param clubId current organization
-   * @return current permitted context, or empty after owner removal
+   * @param clubIds current organizations from a bounded target page
+   * @return permitted context by identity, omitting removed organizations
    */
-  public Optional<ClubLocalityView> clubLocality(UUID clubId) {
-    return store.clubLocality(clubId);
+  public Map<UUID, ClubLocalityView> clubLocalities(List<UUID> clubIds) {
+    return store.clubLocalities(clubIds);
   }
 
   /**
