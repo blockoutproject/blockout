@@ -14,10 +14,13 @@ import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
 import com.blockout.backend.collection.application.service.CollectionResultService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.SourcePreparationService;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import java.time.Instant;
 import java.util.UUID;
 import org.hamcrest.Matchers;
@@ -47,6 +50,50 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 class CollectionContractWebMvcTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private CollectorRuntimeService runtimes;
+  @MockitoBean private SourcePreparationService preparation;
+
+  @Test
+  @DisplayName(
+      "The generated validation route maps terminal evidence and acknowledges the source revision")
+  void acceptsSourceValidation() throws Exception {
+    // Given
+    UUID sourceId = UUID.fromString("00000000-0000-4000-8000-000000000166");
+    UUID cycleId = UUID.fromString("00000000-0000-4000-8000-000000000167");
+    Instant observedAt = Instant.parse("2026-10-20T09:00:00Z");
+    CollectionState.SourceValidation result =
+        new CollectionState.SourceValidation(
+            cycleId, SourceValidationStateEnum.QUALIFIED, observedAt, "2026/2027", null);
+    when(preparation.submitValidation(sourceId, result))
+        .thenReturn(
+            CollectionState.Source.builder()
+                .id(sourceId)
+                .provider(CollectionProviderEnum.FFVB)
+                .organizerReference("ABCCS")
+                .revision(3)
+                .validationState(SourceValidationStateEnum.QUALIFIED)
+                .build());
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            put("/ingestion/source-bindings/{id}/validation", sourceId)
+                .with(collector())
+                .contentType("application/json")
+                .content(
+                    """
+        {"cycleId":"%s","state":"qualified","observedAt":"2026-10-20T09:00:00Z","seasonEvidence":"2026/2027"}
+        """
+                        .formatted(cycleId)));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sourceBindingId").value(sourceId.toString()))
+        .andExpect(jsonPath("$.revision").value(3))
+        .andExpect(jsonPath("$.state").value("qualified"))
+        .andExpect(header().string("Cache-Control", "no-store"));
+  }
+
   @MockitoBean private CollectionCycleService cycles;
   @MockitoBean private CollectionResultService results;
 

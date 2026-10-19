@@ -59,4 +59,17 @@ class CollectionControlEntity {
       joinColumns = @JoinColumn(name = "control_id"))
   @Column(name = "scope_id")
   private Set<UUID> scopeIds = new HashSet<>();
+
+  /**
+   * Enables the family's first qualified periodic launch.
+   *
+   * @param seasonId canonical season already locked by the caller
+   * @param family competition family for this season
+   */
+  CollectionControlEntity(UUID seasonId, CollectionFamilyEnum family) {
+    this.id = UUID.randomUUID();
+    this.seasonId = seasonId;
+    this.family = family;
+    this.enabled = true;
+  }
 }

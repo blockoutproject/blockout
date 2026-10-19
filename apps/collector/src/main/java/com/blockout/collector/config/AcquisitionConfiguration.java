@@ -2,7 +2,6 @@ package com.blockout.collector.config;
 
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.generated.ingestion.ApiClient;
-import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
 import io.github.resilience4j.ratelimiter.RateLimiter;
@@ -37,17 +36,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 /** Native, independent FFVB/LNV/IGN budgets shared across seasons and acquisition families. */
 @Configuration(proxyBeanMethods = false)
 public class AcquisitionConfiguration {
-  /**
-   * Shares the authenticated native transport with source qualification.
-   *
-   * @param client native authenticated ingestion transport
-   * @return generated source-qualification operations
-   */
-  @Bean
-  CollectionApi collectionSourcesApi(ApiClient client) {
-    return new CollectionApi(client);
-  }
-
   /**
    * Shares the authenticated native transport with the seven sporting operations.
    *

@@ -82,7 +82,16 @@ public final class CollectionState {
       CollectionProviderEnum provider,
       String organizerReference) {}
 
+  /** Terminal collector evidence, bound to the exact admitted candidate. */
+  public record SourceValidation(
+      UUID cycleId,
+      SourceValidationStateEnum state,
+      Instant observedAt,
+      String seasonEvidence,
+      String reason) {}
+
   /** Current preparation state; proposed and accepted references remain independent. */
+  @Builder(toBuilder = true)
   public record Source(
       UUID id,
       UUID seasonId,
@@ -94,6 +103,7 @@ public final class CollectionState {
       SourceValidationStateEnum validationState,
       Instant validatedAt,
       String seasonEvidence,
+      String reason,
       boolean seasonConfirmed,
       boolean locked,
       boolean launched,

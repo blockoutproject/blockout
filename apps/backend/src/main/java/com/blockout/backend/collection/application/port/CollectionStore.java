@@ -12,6 +12,7 @@ import com.blockout.backend.collection.application.model.CollectionState.StartCy
 import com.blockout.backend.collection.application.model.CollectionState.Target;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import java.time.Instant;
@@ -136,7 +137,7 @@ public interface CollectionStore {
    * Lists current sources within the locked season.
    *
    * @param seasonId locked canonical season
-   * @return current source configuration in identity order
+   * @return current source configuration ordered by provider, organizer and identity
    */
   List<Source> sources(UUID seasonId);
 
@@ -144,8 +145,40 @@ public interface CollectionStore {
    * Locks the accepted reference on its first initial use without launching it.
    *
    * @param source qualified selected source in the locked season
+   * @return locked source with its accepted URL and flushed revision
    */
-  void lockAcceptedSource(CollectionState.Source source);
+  Source lockAcceptedSource(CollectionState.Source source);
+
+  /**
+   * Creates an unqualified candidate under the owning season lock.
+   *
+   * @param seasonId canonical open season
+   * @param provider designated authority
+   * @param organizerReference expected native identity, unique within this season/provider
+   * @param candidateUrl syntactically valid proposed URL
+   * @return persisted unqualified source
+   */
+  Source createSource(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      String candidateUrl);
+
+  /**
+   * Persists one approved state change and advances its native editing revision.
+   *
+   * @param source new mutable state of the locked source
+   * @return flushed current state, including a new revision when renewing obsolete intent
+   */
+  Source saveSource(Source source);
+
+  /**
+   * Establishes the seasonal family on first launch without resuming an existing paused control.
+   *
+   * @param seasonId exclusively locked canonical season
+   * @param provider newly launched authority
+   */
+  void ensureSeasonControl(UUID seasonId, CollectionProviderEnum provider);
 
   /**
    * Lists only validation requests not yet admitted.

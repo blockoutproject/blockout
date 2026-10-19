@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.mapstruct.Context;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 /** Mechanical persistence projections; interrupted state derives from the current runtime only. */
 @Mapper(config = MappingConfiguration.class)
@@ -76,6 +77,14 @@ interface CollectionPersistenceMapper {
    * @return detached candidate/accepted context
    */
   CollectionState.Source toView(SourceBindingEntity source);
+
+  /**
+   * Replaces mutable source state, including explicit evidence clearing.
+   *
+   * @param source application-approved state; identity and revision remain persistence-owned
+   * @param target managed binding held by the transaction
+   */
+  void update(CollectionState.Source source, @MappingTarget SourceBindingEntity target);
 
   /**
    * Projects current completion without updating obsolete rows.

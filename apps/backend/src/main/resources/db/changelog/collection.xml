@@ -19,6 +19,7 @@
       <column name="validation_state" type="VARCHAR(255)"><constraints nullable="false"/></column>
       <column name="validated_at" type="TIMESTAMP WITH TIME ZONE"></column>
       <column name="season_evidence" type="TEXT"></column>
+      <column name="reason" type="TEXT"/>
       <column name="season_confirmed" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
       <column name="locked" type="BOOLEAN"><constraints nullable="false"/></column>
       <column name="launched" type="BOOLEAN"><constraints nullable="false"/></column>

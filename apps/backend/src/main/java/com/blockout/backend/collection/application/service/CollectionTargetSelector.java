@@ -20,6 +20,7 @@ import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
+import com.blockout.backend.sporting.application.service.SeasonService;
 import com.blockout.backend.sporting.application.service.SportingReadService;
 import java.time.Duration;
 import java.time.Instant;
@@ -40,6 +41,7 @@ import org.springframework.stereotype.Service;
 public class CollectionTargetSelector {
   private final CollectionStore store;
   private final SportingReadService sporting;
+  private final SeasonService seasons;
 
   /**
    * Persists the due or explicitly requested scope inside the admission transaction.
@@ -84,12 +86,18 @@ public class CollectionTargetSelector {
     if (sources.isEmpty()
         || (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT
             && sources.size() != control.sourceBindingIds().size())) throw invalid();
-    for (Source source : sources) {
-      if (source.validationState() != SourceValidationStateEnum.QUALIFIED
-          || source.acceptedUrl() == null) throw invalid();
-      if (!source.locked()) {
-        CollectorRuntimeService.requireAdvance(source.revision());
-        store.lockAcceptedSource(source);
+    boolean lockedReference = false;
+    for (Source candidate : sources) {
+      Source source;
+      if (candidate.validationState() != SourceValidationStateEnum.QUALIFIED
+          || (candidate.locked() ? candidate.acceptedUrl() : candidate.candidateUrl()) == null)
+        throw invalid();
+      if (!candidate.locked()) {
+        CollectorRuntimeService.requireAdvance(candidate.revision());
+        source = store.lockAcceptedSource(candidate);
+        lockedReference = true;
+      } else {
+        source = candidate;
       }
       retainDue(
           cycle,
@@ -133,6 +141,10 @@ public class CollectionTargetSelector {
           }
         }
       }
+    }
+    if (lockedReference) {
+      CollectorRuntimeService.requireAdvance(season.collectionRevision());
+      seasons.updatePreparation(season.id(), false);
     }
   }
 

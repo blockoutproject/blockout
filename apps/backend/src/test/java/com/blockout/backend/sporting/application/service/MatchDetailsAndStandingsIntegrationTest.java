@@ -501,7 +501,7 @@ class MatchDetailsAndStandingsIntegrationTest {
     UUID source = UUID.fromString("00000000-0000-4000-8000-000000000165");
     UUID control = UUID.fromString("00000000-0000-4000-8000-000000000166");
     sql.update(
-        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,accepted_url,validation_state,locked,launched) VALUES (?,?,'LNV','LNV','https://lnv-web.dataproject.com/', 'QUALIFIED',FALSE,TRUE)",
+        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,accepted_url,validation_state,locked,launched) VALUES (?,?,'LNV','LNV','https://lnv-web.dataproject.com/', 'QUALIFIED',TRUE,TRUE)",
         source,
         scope.season());
     sql.update(

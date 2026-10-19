@@ -355,7 +355,7 @@ Validation:
   put:
     operationId: submitCollectionSourceValidation
     tags:
-      - Collection
+      - CollectorOperations
     summary: Apply candidate validation
     description:
       Requires the exact admitted source-validation cycle. Accepts invalid, confirmation-required

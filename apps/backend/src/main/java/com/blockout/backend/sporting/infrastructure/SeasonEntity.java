@@ -14,6 +14,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /** Canonical F02 season; F01 lifecycle references this identity instead of another season table. */
 @Getter
@@ -26,6 +27,7 @@ public class SeasonEntity {
   private UUID id;
 
   @Enumerated(EnumType.STRING)
+  @Setter
   private CollectionSeasonStateEnum collectionState = CollectionSeasonStateEnum.PREPARING;
 
   @Version private long collectionRevision;

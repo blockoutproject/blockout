@@ -37,7 +37,8 @@ interface SourceBindingRepository extends JpaRepository<SourceBindingEntity, UUI
    * @param seasonId canonical season
    * @return its ordered preparation configuration
    */
-  List<SourceBindingEntity> findBySeasonIdOrderById(UUID seasonId);
+  List<SourceBindingEntity> findBySeasonIdOrderByProviderAscOrganizerReferenceAscIdAsc(
+      UUID seasonId);
 
   /**
    * Reads pending validations that have no admitted context.

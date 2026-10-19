@@ -16,6 +16,7 @@ import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
+import com.blockout.backend.shared.http.JsonBodyLimitAdvice;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.StandingsObservation;
 import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
@@ -51,7 +52,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   CollectionExceptionHandler.class,
   SportingObservationMapperImpl.class,
   SportingObservationValidator.class,
-  SportingJsonBodyAdvice.class
+  JsonBodyLimitAdvice.class
 })
 @DisplayName("Sporting ingestion request limits")
 class SportingIngestionWebMvcTest {

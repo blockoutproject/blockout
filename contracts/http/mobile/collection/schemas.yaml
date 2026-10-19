@@ -50,7 +50,7 @@ SourceBindingResponse:
   title: SourceBindingResponse
   type: object
   description:
-    Supported root source and current qualification, distinct from discovered child pools and
+    Root source candidate and current qualification, distinct from discovered child pools and
     mappings. An unfinished validation from a replaced collector is exposed as unvalidated;
     accepted qualification remains intact.
   additionalProperties: true
@@ -77,7 +77,7 @@ SourceBindingResponse:
       $ref: "#/CollectionRevision"
     candidateUrl:
       type: string
-      description: Proposed supported official URL, without credentials; null when missing.
+      description: Proposed HTTP URL without credentials; qualification verifies official scope. Null when missing.
       format: uri
       nullable: true
     acceptedUrl:
@@ -144,8 +144,9 @@ CreateSourceBindingRequest:
   title: CreateSourceBindingRequest
   type: object
   description:
-    Add a missing supported source before launch. Existing provider/organizer identity conflicts;
-    no arbitrary scraping configuration.
+    Add an unqualified candidate before launch. Existing provider/organizer identity conflicts.
+    The collector must verify supported scope, structure and season before launch; this is not
+    arbitrary scraping configuration.
   additionalProperties: false
   properties:
     seasonRevision:
@@ -154,11 +155,11 @@ CreateSourceBindingRequest:
       $ref: ../../common/collection-enums.yaml#/CollectionProviderEnum
     organizerReference:
       type: string
-      description: Supported native organizer or championship reference.
+      description: Expected native organizer or championship reference; qualification establishes supported scope.
       minLength: 1
     candidateUrl:
       type: string
-      description: Supported official URL without credentials.
+      description: Proposed HTTP URL without credentials; qualification verifies supported official scope.
       format: uri
   required:
     - seasonRevision
@@ -177,7 +178,7 @@ SetSourceCandidateRequest:
       $ref: "#/CollectionRevision"
     candidateUrl:
       type: string
-      description: Supported official candidate URL without credentials.
+      description: Proposed HTTP candidate without credentials; qualification verifies supported official scope.
       format: uri
   required:
     - revision

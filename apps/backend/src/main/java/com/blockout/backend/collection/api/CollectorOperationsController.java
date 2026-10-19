@@ -4,6 +4,7 @@ import com.blockout.backend.collection.application.model.CollectionState.Admissi
 import com.blockout.backend.collection.application.service.CollectionCycleService;
 import com.blockout.backend.collection.application.service.CollectionResultService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.collection.application.service.SourcePreparationService;
 import com.blockout.backend.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetPageInternalResponse;
@@ -12,7 +13,9 @@ import com.blockout.backend.generated.ingestion.model.CollectorRuntimeInternalRe
 import com.blockout.backend.generated.ingestion.model.CompleteCollectionCycleInternalRequest;
 import com.blockout.backend.generated.ingestion.model.RecordCollectionResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
+import com.blockout.backend.generated.ingestion.model.SourceValidationInternalResponse;
 import com.blockout.backend.generated.ingestion.model.StartCollectionCycleInternalRequest;
+import com.blockout.backend.generated.ingestion.model.SubmitSourceValidationInternalRequest;
 import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,18 @@ public class CollectorOperationsController implements CollectorOperationsApi {
   private final CollectionCycleService cycles;
   private final CollectionApiMapper mapper;
   private final CollectionResultService results;
+  private final SourcePreparationService preparation;
+
+  /** {@inheritDoc} */
+  @Override
+  public ResponseEntity<SourceValidationInternalResponse> submitCollectionSourceValidation(
+      UUID sourceBindingId, SubmitSourceValidationInternalRequest request) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(
+            mapper.toValidationDto(
+                preparation.submitValidation(sourceBindingId, mapper.toCommand(request))));
+  }
 
   /** {@inheritDoc} */
   @Override

@@ -41,9 +41,31 @@ class SourceBindingEntity {
 
   @Setter private Instant validatedAt;
   @Setter private String seasonEvidence;
+  @Setter private String reason;
   @Setter private boolean seasonConfirmed;
   @Setter private boolean locked;
   @Setter private boolean launched;
+
+  /**
+   * Records an unqualified candidate without accepting its URL.
+   *
+   * @param seasonId canonical owning season
+   * @param provider designated qualification authority
+   * @param organizerReference expected native scope
+   * @param candidateUrl proposed URL, never fetched in this transaction
+   */
+  SourceBindingEntity(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      String candidateUrl) {
+    this.id = UUID.randomUUID();
+    this.seasonId = seasonId;
+    this.provider = provider;
+    this.organizerReference = organizerReference;
+    this.candidateUrl = candidateUrl;
+    this.validationState = SourceValidationStateEnum.UNVALIDATED;
+  }
 
   @OptimisticLock(excluded = true)
   @Setter

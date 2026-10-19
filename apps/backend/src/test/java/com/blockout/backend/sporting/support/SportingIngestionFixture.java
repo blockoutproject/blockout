@@ -84,7 +84,7 @@ public final class SportingIngestionFixture {
         DIVISION,
         pool);
     sql.update(
-        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,accepted_url,validation_state,locked,launched) VALUES (?,?,'FFVB','SYNTHETIC','https://www.ffvbbeach.org/ffvbapp/resu/', 'QUALIFIED',FALSE,TRUE)",
+        "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,accepted_url,validation_state,locked,launched) VALUES (?,?,'FFVB','SYNTHETIC','https://www.ffvbbeach.org/ffvbapp/resu/', 'QUALIFIED',TRUE,TRUE)",
         SOURCE,
         season);
     sql.update(

@@ -6,11 +6,21 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 /** Native Spring Data access to the sporting pool owner. */
 interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
+  /**
+   * Pages direct children of an already scope-checked pack without filtering unmapped pools.
+   *
+   * @param packId pack in the selected source
+   * @param pageable bounded direct-child request
+   * @return stable source-name/identity slice
+   */
+  Slice<PoolEntity> findByPackIdOrderBySourceNameAscIdAsc(UUID packId, Pageable pageable);
+
   /**
    * Selects qualified pools with complete active acquisition settings.
    *
