@@ -1,6 +1,6 @@
 # Quickstart: qualifying the V1-to-V2 transition
 
-This is a future qualification guide. The repository has no production runtime, and #55 authorizes no migration or provider configuration. Use the [plan's release sequence](plan.md#cutover-and-recovery); do not treat the scenarios below as permission to run destructive operations.
+Use the [plan's release sequence](plan.md#cutover-and-recovery). Repository tests do not authorize migration, provider changes or retirement; the native and operational scenarios below require their stated qualification setup.
 
 ## Prerequisites
 
@@ -28,8 +28,20 @@ This is a future qualification guide. The repository has no production runtime, 
 
 Use the existing Java/mobile test tools for controlled failure and serialization cases, then actual authorized native/provider checks for external outcomes. Do not log private customer references or credentials into public test reports. No automatic migration coordinator, new E2E framework or recurring transition test programme is required.
 
+## Legacy status qualification
+
+Use both supported installed V1 store builds and the actual first V2 release for each platform. The October 15 observations were Android 1.3.5/build 84 and iOS 1.3.5/build 122; refresh that inventory before qualification rather than treating those observations as the supported population.
+
+1. Configure the four retirement inputs in the [backend environment example](../../apps/backend/.env.example) for an authorized isolated backend. These are fixed first-V2 versions and existing listing URLs, independent of F12 minima. Missing inputs produce 503; malformed supplied versions or non-HTTPS/wrong-store URLs fail startup. Do not use fixture versions or listing IDs for cutover.
+2. Call `GET /api/v1/mobile/public/config/app-status` without credentials. Repeat with obsolete or malformed bearer credentials; only this exact GET ignores them. Verify the [historical flat shape](contracts/README.md#legacy-mobile-access), explicit required nulls, `maintenance: false`, both thresholds/links and `Cache-Control: no-store`. On both installed clients, verify numerical component comparison: every supported V1 version is below its threshold, while the qualified first V2 release meets it. Include a multi-digit component comparison such as 1.10.0 versus 1.9.0 in the controlled comparison cases.
+3. Activate V2 maintenance and subsequently change F12 minimum versions through their authorized controls. The legacy response must remain unchanged and both old clients must retain a working update action to the correct existing listing. This integration requires the implemented F12 admission/settings owners.
+4. Separately omit a required retirement input and simulate a network failure, first without any retained V1 configuration and then after a successful read. Record each installed client's actual result: no configuration guarantees neither a blocking screen nor an update action; retained configuration may still govern the display. Restore and verify the valid response before any cutover.
+5. In the authorized retirement rehearsal, try direct authenticated old business calls and deferred writers as well as the status read. No old mutation or identity association may reach V2 state, even when status retrieval fails. An update screenshot does not establish writer retirement.
+
+Record platform, installed version/build, tested backend revision, configured threshold and safe outcomes with T043. Store availability, effective retirement and production activation remain their later tasks; serialization tests alone do not complete them.
+
 ## Current repository checks
 
-Run the [README verification commands](../../README.md#verification), including the legacy OpenAPI root. They check formatting, references and schema structure; generation/compilation and actual old-binary compatibility remain future checks against the implemented provider.
+Run the [README verification commands](../../README.md#verification), including the legacy OpenAPI root and backend tests. They cover generation, binding, serialization, HTTP admission and missing configuration. Actual old-binary compatibility and F12 maintenance integration remain separate qualification boundaries.
 
 Record passed, failed and unavailable evidence with the tested release. A source inspection, scheduled price change, present file or accepted store submission alone does not establish the end-to-end outcome.
