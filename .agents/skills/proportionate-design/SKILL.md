@@ -19,6 +19,10 @@ Keep authorization, privacy, data integrity and required correctness intact. Man
 
 Start with the existing library or platform's supported behavior and ordinary configuration. Distinguish configuration, a focused adapter with a concrete responsibility, and a custom subsystem. A small adapter can be simpler than changing the stack; adding a dependency can cost more than a direct implementation.
 
+Understand the library's intended responsibility before treating missing behavior as a defect. Check the actual integration and supported options first. A decoder need not be an exhaustive schema validator, and an SDK need not provide stronger lifecycle guarantees than its documented contract. Proving that an extra mechanism detects more failures does not establish that the product needs it.
+
+Do not anticipate every possible library defect with duplicate state, defensive wrappers, fallback paths or another validation engine. Identify a concrete unmet requirement and its consequence. When native behavior is sufficient, use it directly and test the application's real integration. When it is insufficient, compare the necessary mechanism with accepting a simpler behavior explicitly; neither a mature library nor a general KISS preference silently waives an accepted guarantee.
+
 Compare the concepts and ongoing work an option introduces: duplicated state, synchronization, concurrent updates, persistence, recovery, operational intervention and meaningful tests. Do not use line count, hypothetical future reuse or the agent's ability to generate code as the justification. Avoid speculative extension points; describe a concrete condition for reconsidering the choice only when it helps a present decision.
 
 For a material tradeoff, compare the direct solution with a credible simpler alternative. If both preserve accepted behavior, choose within the task's existing authority. If simplicity requires changing behavior, make that change a product decision, not an implementation shortcut. Explain why the added mechanism is necessary when no simpler option satisfies the need.
