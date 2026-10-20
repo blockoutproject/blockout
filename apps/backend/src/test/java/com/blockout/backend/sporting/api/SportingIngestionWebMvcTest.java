@@ -179,6 +179,9 @@ class SportingIngestionWebMvcTest {
         .andExpect(jsonPath("$.outcomes[0].sourceReference").value("M1"))
         .andExpect(jsonPath("$.outcomes[1].outcome").value("rejected"))
         .andExpect(jsonPath("$.acceptedCount").value(1))
+        .andExpect(jsonPath("$.unchangedCount").value(0))
+        .andExpect(jsonPath("$.staleCount").value(0))
+        .andExpect(jsonPath("$.rejectedCount").value(1))
         .andExpect(jsonPath("$.absenceReconciled").value(false));
   }
 

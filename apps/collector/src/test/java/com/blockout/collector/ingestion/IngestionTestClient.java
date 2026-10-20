@@ -2,7 +2,6 @@ package com.blockout.collector.ingestion;
 
 import com.blockout.collector.generated.ingestion.ApiClient;
 import io.micrometer.observation.ObservationRegistry;
-import java.io.IOException;
 import java.time.Duration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 
@@ -12,14 +11,12 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 public record IngestionTestClient(ApiClient api, HttpComponentsClientHttpRequestFactory factory)
     implements AutoCloseable {
   /**
-   * Creates the production validator, converters, timeout and no-retry transport against a local
-   * peer.
+   * Creates the production converters, timeout and no-retry transport against a local peer.
    *
    * @param baseUrl controlled listener
    * @return owned native client and connection pool
-   * @throws IOException when the bundled contract cannot be read
    */
-  public static IngestionTestClient connect(String baseUrl) throws IOException {
+  public static IngestionTestClient connect(String baseUrl) {
     IngestionClientConfiguration configuration = new IngestionClientConfiguration();
     IngestionProperties properties =
         new IngestionProperties(baseUrl, "ingestion-test", Duration.ofSeconds(2));

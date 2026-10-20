@@ -220,7 +220,7 @@ public interface SportingObservationMapper {
   /**
    * Retains sporting acceptance without substituting collector success.
    *
-   * @param source validated outcome
+   * @param source decoded outcome
    * @return F02-owned acceptance, not inferred success
    */
   SportingObservation.Outcome toView(ObservationOutcomeInternalResponse source);
@@ -228,7 +228,7 @@ public interface SportingObservationMapper {
   /**
    * Retains every independent match outcome and measured count.
    *
-   * @param source validated calendar outcome
+   * @param source decoded calendar outcome
    * @return all independent acceptance results
    */
   SportingObservation.CalendarOutcome toView(CalendarOutcomeInternalResponse source);
@@ -236,7 +236,7 @@ public interface SportingObservationMapper {
   /**
    * Retains catalog outcome order for compound identity correlation.
    *
-   * @param source validated catalog outcome
+   * @param source decoded catalog outcome
    * @return positional native-identity outcomes
    */
   SportingObservation.CatalogOutcome toView(CatalogOutcomeInternalResponse source);

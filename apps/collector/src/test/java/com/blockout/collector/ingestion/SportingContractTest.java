@@ -38,9 +38,7 @@ import org.springframework.web.client.RestClientResponseException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Exercises the generated sporting client and canonical validator against a controlled HTTP peer.
- */
+/** Exercises generated sporting serialization and decoding against a controlled HTTP peer. */
 @DisplayName("Generated sporting ingestion contract")
 class SportingContractTest {
   private final JsonMapper json = JsonMapper.builder().build();
@@ -57,7 +55,7 @@ class SportingContractTest {
   /**
    * Starts an isolated peer and the actual configured generated client, without provider access.
    *
-   * @throws IOException if the listener or canonical contract cannot be opened
+   * @throws IOException if the listener cannot be opened
    */
   @BeforeEach
   void startServer() throws IOException {
@@ -157,11 +155,10 @@ class SportingContractTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "{}",
         "{\"sourceReference\":\"M42\",\"outcome\":\"future\"}",
         "{\"sourceReference\":\"M42\",\"outcome\":\"accepted\",\"resourceId\":\"invalid-uuid\"}"
       })
-  @DisplayName("Rejects malformed known outcome fields despite additive response tolerance")
+  @DisplayName("Fails decoding an unknown outcome or invalid resource UUID")
   void rejectsInvalidOutcome(String response) {
     // Given
     responseBody = response;
@@ -171,9 +168,7 @@ class SportingContractTest {
     Throwable failure = catchThrowable(() -> api.observeMatchDetail(MATCH, request));
 
     // Then
-    assertThat(failure)
-        .isInstanceOf(RestClientException.class)
-        .hasMessage("Invalid ingestion HTTP exchange");
+    assertThat(failure).isInstanceOf(RestClientException.class);
   }
 
   @Test

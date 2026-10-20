@@ -152,19 +152,9 @@ class GeneratedClientTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{}",
-        "{\"revision\":0}",
-        "{\"revision\":null,\"incarnationId\":null}",
-        "{\"revision\":\"0\",\"incarnationId\":null}",
-        "{\"revision\":-1,\"incarnationId\":null}",
-        "{\"revision\":9007199254740992,\"incarnationId\":null}",
-        "{\"revision\":0,\"incarnationId\":\"bad-uuid\"}",
-        "{"
-      })
-  @DisplayName("Rejects missing required fields and invalid known values")
-  void rejectsInvalidRuntime(String response) {
+  @ValueSource(strings = {"{\"revision\":0,\"incarnationId\":\"bad-uuid\"}", "{"})
+  @DisplayName("Fails decoding malformed JSON or an invalid UUID")
+  void rejectsUndecodableRuntime(String response) {
     // Given
     body = response;
 

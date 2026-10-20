@@ -13,7 +13,7 @@ import org.springframework.web.client.RestClientResponseException;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class BackendExchange {
   /**
-   * Classifies one native HTTP/validation failure without disclosing its response payload.
+   * Classifies one native HTTP/decoding failure without disclosing its response payload.
    *
    * @param operation single generated exchange
    * @param <T> mapped application result
