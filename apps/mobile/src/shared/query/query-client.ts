@@ -50,8 +50,6 @@ export function bindSessionQueries(
         typeof queryKey[1] === "string" &&
         !isCurrent(queryKey[1]),
     };
-    // Privacy cleanup must not resolve fetchQuery with its previously cached private value.
-    void client.cancelQueries(filters, { revert: false });
     client.removeQueries(filters);
   }
 
