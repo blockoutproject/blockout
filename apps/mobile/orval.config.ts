@@ -12,6 +12,12 @@ export default defineConfig({
       clean: true,
       override: {
         operations: {
+          createSupportRequest: {
+            formData: {
+              path: "src/features/support/api/support-form-data.ts",
+              name: "supportFormData",
+            },
+          },
           getClubLogo: { requestOptions: { responseType: "blob" } },
           getTeamLogo: { requestOptions: { responseType: "blob" } },
           getDivisionLogo: { requestOptions: { responseType: "blob" } },

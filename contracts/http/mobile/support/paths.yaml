@@ -36,7 +36,7 @@ Collection:
                 type: array
                 description: >-
                   Omit for a request without images. Each file must decode as PNG or JPEG and be
-                  at most 5242880 bytes. Invalid or missing selected content is never silently omitted.
+                  at most 5242880 bytes and fit the server’s 64 MiB decoded-buffer budget. Invalid or missing selected content is never silently omitted.
                 maxItems: 5
                 items:
                   type: string

@@ -1,0 +1,140 @@
+package com.blockout.backend.support.application;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.MemoryCacheImageInputStream;
+
+/** Completes file validation before creating private originals or admitting a provider effect. */
+public final class SupportValidation {
+  private static final int MAX_FILE_BYTES = 5_242_880;
+  private static final long MAX_DECODED_BYTES = 64L * 1024 * 1024;
+  private final Path temporaryDirectory;
+
+  /**
+   * Selects the process-owned temporary directory; callers never supply user filenames or paths.
+   *
+   * @param temporaryDirectory existing private runtime temporary storage, with no durable volume
+   */
+  public SupportValidation(Path temporaryDirectory) {
+    this.temporaryDirectory = temporaryDirectory;
+  }
+
+  /**
+   * Freezes and validates every selected file, then stores private originals with generated names.
+   * Metadata has already passed canonical JSON binding/Bean Validation at the API boundary. The
+   * servlet owns the complete 26 MiB request limit, including metadata and multipart overhead.
+   *
+   * @param metadata detached canonical metadata
+   * @param images all selected file bytes, or an empty list for a text-only request
+   * @return a snapshot whose caller must close after processing, including exceptional exits
+   * @throws InvalidSubmission for excessive count/size or unsupported/invalid real image content
+   * @throws IOException when private storage fails; already-created files are cleaned
+   */
+  public SupportSubmission validate(SupportSubmission.Metadata metadata, List<byte[]> images)
+      throws IOException {
+    if (images.size() > 5) throw new InvalidSubmission(Reason.INVALID_INPUT);
+    for (byte[] image : images) {
+      if (image.length > MAX_FILE_BYTES) throw new InvalidSubmission(Reason.CONTENT_TOO_LARGE);
+    }
+    List<byte[]> snapshots = images.stream().map(byte[]::clone).toList();
+    List<String> mediaTypes = new ArrayList<>();
+    for (byte[] image : snapshots) mediaTypes.add(validateImage(image));
+
+    List<SupportSubmission.Image> files = new ArrayList<>();
+    try {
+      for (int index = 0; index < snapshots.size(); index++) {
+        String mediaType = mediaTypes.get(index);
+        Path file =
+            Files.createTempFile(
+                temporaryDirectory,
+                "support-",
+                mediaType.equals("image/png") ? ".png" : ".jpg",
+                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
+        files.add(new SupportSubmission.Image(file, mediaType));
+        Files.write(file, snapshots.get(index));
+      }
+      return new SupportSubmission(UUID.randomUUID(), metadata, files, null);
+    } catch (IOException exception) {
+      try {
+        new SupportSubmission(null, metadata, files, null).close();
+      } catch (IOException cleanupFailure) {
+        exception.addSuppressed(cleanupFailure);
+      }
+      throw exception;
+    }
+  }
+
+  /**
+   * Uses the native decoder after inspecting dimensions. Eight bytes per pixel covers PNG 16-bit
+   * RGBA; three source rows cover the PNG filter/raster buffers. This conservative 64 MiB decoded
+   * buffer budget is independent of the compressed-file limit and is not a total JVM heap promise.
+   *
+   * @param bytes compressed original already within the canonical file bound
+   * @return content-detected PNG/JPEG media type
+   * @throws InvalidSubmission for unrecognized, unsupported, excessive or undecodable content
+   */
+  private static String validateImage(byte[] bytes) {
+    try (MemoryCacheImageInputStream input =
+        new MemoryCacheImageInputStream(new ByteArrayInputStream(bytes))) {
+      Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+      if (!readers.hasNext()) throw new InvalidSubmission(Reason.INVALID_IMAGE);
+      ImageReader reader = readers.next();
+      try {
+        String format = reader.getFormatName();
+        String mediaType;
+        if ("PNG".equalsIgnoreCase(format)) mediaType = "image/png";
+        else if ("JPEG".equalsIgnoreCase(format)) mediaType = "image/jpeg";
+        else throw new InvalidSubmission(Reason.UNSUPPORTED_IMAGE);
+        reader.setInput(input, true, true);
+        int width = reader.getWidth(0);
+        int height = reader.getHeight(0);
+        // Divide the budget before multiplication to avoid overflowing on hostile dimensions.
+        if (width <= 0 || height <= 0 || (long) width * (height + 3L) > MAX_DECODED_BYTES / 8) {
+          throw new InvalidSubmission(Reason.INVALID_IMAGE);
+        }
+        reader.read(0).flush();
+        return mediaType;
+      } finally {
+        reader.dispose();
+      }
+    } catch (IOException exception) {
+      throw new InvalidSubmission(Reason.INVALID_IMAGE);
+    }
+  }
+
+  /** Safe application refusals for the future HTTP adapter; no file/contact/provider payload. */
+  public enum Reason {
+    INVALID_INPUT,
+    CONTENT_TOO_LARGE,
+    UNSUPPORTED_IMAGE,
+    INVALID_IMAGE
+  }
+
+  /** Whole-input rejection, safe to classify without rendering submitted values. */
+  public static final class InvalidSubmission extends RuntimeException {
+    private final Reason reason;
+
+    /**
+     * Creates a refusal containing only its safe classification.
+     *
+     * @param reason safe refusal classification, without rejected content
+     */
+    public InvalidSubmission(Reason reason) {
+      super("Invalid support submission");
+      this.reason = reason;
+    }
+
+    public Reason getReason() {
+      return reason;
+    }
+  }
+}
