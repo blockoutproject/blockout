@@ -14,7 +14,7 @@ Preserve Auth0 identities, applicable Pro rights and manually maintained club lo
 
 **Language/Version**: Java 25 / Spring Boot 4.1.1, TypeScript / Expo SDK 57 / React Native 0.86 / React 19.2.3, from [F13](../003-shared-quality/plan.md).
 
-**Primary Dependencies**: Existing Auth0 native SDK 5.11.1, RevenueCat/store integration from [F09](../006-pro-subscriptions/plan.md), Expo-compatible AsyncStorage for non-sensitive installation flags, EAS native build/signing and F07 Expo Push configuration. Existing PostgreSQL/JPA, F01 acquisition and F04 projection. No new service or migration framework.
+**Primary Dependencies**: Existing Auth0 native SDK from [F05](../005-accounts-identity/plan.md), RevenueCat/store integration from [F09](../006-pro-subscriptions/plan.md), Expo-compatible AsyncStorage for non-sensitive installation flags, EAS native build/signing and F07 Expo Push configuration. Executable versions are pinned in `apps/mobile/package.json`. Existing PostgreSQL/JPA, F01 acquisition and F04 projection. No new service or migration framework.
 
 **Storage**: V2 PostgreSQL under the owning models; private temporary preservation of indispensable V1 references and club-logo files. Providers retain identities and purchases. No replicated business database, generic migration table or persistent application cache.
 
@@ -71,6 +71,8 @@ The legacy root describes one boundary of the same backend. It creates no deploy
 ## Installation initialization
 
 Before mounting Auth0Provider, read a stable V2-initialized marker from ordinary Expo-compatible AsyncStorage. If absent, call the native Auth0 Credentials Manager's `clearCredentials`, then persist successful initialization. Mount the provider only after both operations succeed. Absence of credentials is a normal case; an interruption before marker persistence safely repeats initialization. A failed clear/write does not admit the old session; ordinary error/retry and guest access remain available under F12. The public F12 check is independent and can run in parallel.
+
+The initialization function accepts the application's SDK client and shares an in-flight promise across repeated mount attempts. After clearing, `hasValidCredentials()` verifies that no session remains resumable before the marker is written: the installed iOS bridge can resolve `clearCredentials()` even when native deletion returns false. Both calls use the SDK's public API; no token retrieval, renewal, platform storage access or custom native patch is involved.
 
 This marker is not the app version and is not reset on each release, sign-out or account recreation. Keep common V2 onboarding completion separately: complete or skip it explicitly, preserve interruption as incomplete, and present it on first V2 use even if V1 onboarding was completed. Reinstall follows the installation lifecycle and clears any surviving SDK credentials before personal access. Qualify actual platform backup/restore behavior; neither marker contains a profile, credential or entitlement.
 
