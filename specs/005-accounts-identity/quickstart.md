@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-This guide validates the future [F05 implementation](plan.md). No account runtime or native build exists yet; use the actual implementation targets when available. Current documentary commands are in the [README](../../README.md#verification).
+Use the [README verification commands](../../README.md#verification) for implemented boundaries. The scenarios below qualify the [F05 implementation](plan.md) as their owning tasks and native/provider prerequisites become available; passing controlled tests does not complete those scenarios.
 
 Prepare synthetic principals for shared email, existing linked identities, missing email/age and dedicated preproduction signup, plus two devices and qualification purchase/gift accounts. Keep private evidence outside the repository. Destructive provider tests require authorization and must not target social or cross-connection principals from preproduction.
 
@@ -14,7 +14,7 @@ Prepare synthetic principals for shared email, existing linked identities, missi
 
 ## Authentication and isolation
 
-1. **Sign in on physical iOS/Android:** production Google/Apple and dedicated preproduction email/password signup. Exercise callback, cancellation, outage, renewal and failed browser logout. **Expected:** configured environment/client/audience restrictions apply, and local logout clears credentials/private state despite browser failure. This does not claim global provider logout.
+1. **Sign in on physical iOS/Android:** production Google/Apple and dedicated preproduction email/password signup. Exercise callback, cancellation, outage, explicit restoration retry, renewal and failed browser logout. Include renewal completing after local credential clearing, then restart the app. **Expected:** configured environment/client/audience restrictions apply, and local logout clears credentials/private state despite browser failure, including on restart. Qualify native storage ordering separately from JavaScript generation guards. This does not claim global provider logout.
 2. **Read and establish accounts:** ordinary GET, first establishment without usable email, explicit login with provider failure, missing-age retry, linked methods and same-email distinct principals. **Expected:** GET neither creates nor contacts Auth0; missing first email blocks creation; known email/age survive failure; only age-dependent actions wait for unknown age.
 3. **Switch A → B and A → guest → A** while queries, photo preparation and entitlement callbacks are delayed. **Expected:** no prior-session result or unaccepted action enters the new session. Different-owner, visitor, expired/wrong-client/environment and collector credentials cannot perform owner operations.
 4. **Fail push disassociation on logout, then reassociate B.** **Expected:** local logout succeeds without durable retry; delayed A removal cannot remove B. Any still-delivered A system push cannot expose A's private inbox under guest/B.

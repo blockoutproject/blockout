@@ -20,22 +20,28 @@ import {
   type SessionSnapshot,
 } from "./session-generation";
 
-/** Authentication availability only: Query owns profile availability and RevenueCat owns entitlements. */
+/** Authentication availability only: Query owns profiles and RevenueCat owns entitlements. */
 type AuthenticationStatus =
-  | "initializing"
   | "initialization-error"
   | "restoring"
   | "authentication-error"
   | "guest"
   | "authenticated";
 
-/** Sole transient account boundary; it retains neither credentials nor a copy of remote business data. */
+/**
+ * Transient business boundary; credentials and identity stay SDK-owned.
+ * Lifecycle commands must invalidate synchronously before awaiting native login/logout or cleanup.
+ */
 export interface AccountSession extends SessionSnapshot, SessionGeneration {
+  /** Invalidates private work before native local clearing; the sign-out flow owns browser/network cleanup. */
+  clearCredentials(): Promise<void>;
   status: AuthenticationStatus;
   error: unknown;
-  /** Retries failed installation initialization without blocking public navigation. */
+  /** Retries failed F14 initialization; success replaces the exceptional guest navigation. */
   retryInitialization(): void;
-  /** Uses native SDK retrieval/renewal without updating the SDK user; obsolete work rejects with AbortError. */
+  /** Remounts the SDK after failed restoration, resetting navigation without clearing credentials. */
+  retryAuthentication(): void;
+  /** Uses native retrieval/renewal without mutating SDK React state; obsolete work rejects with AbortError. */
   getCredentials(generation: string): Promise<Credentials | undefined>;
 }
 
@@ -44,33 +50,23 @@ type Initialization =
   | { status: "initialization-error"; error: unknown }
   | { status: "ready"; domain: string; clientId: string; client: Auth0 };
 
-/** Minimal availability projection of the SDK; identity and credentials remain SDK-owned. */
-interface AuthenticationAvailability {
-  status: AuthenticationStatus;
-  error: unknown;
-}
-
 const AccountSessionContext = createContext<AccountSession | null>(null);
 
-/** Initializes F14 before mounting the SDK bridge, preserving the public subtree throughout session changes. */
+/**
+ * Finishes local F14 initialization before mounting the standard SDK/application tree.
+ * Failure leaves guest navigation available; ordinary identity changes never remount it.
+ */
 export function AccountSessionProvider({ children }: PropsWithChildren) {
-  const [session] = useState(createSessionGeneration);
-  const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const [initialization, setInitialization] = useState<Initialization>({
     status: "initializing",
   });
-  const [authentication, setAuthentication] =
-    useState<AuthenticationAvailability>({
-      status: "restoring",
-      error: null,
-    });
-  const [attempt, setAttempt] = useState(0);
-  useLayoutEffect(() => () => session.invalidate(), [session]);
+  const [initializationAttempt, setInitializationAttempt] = useState(0);
+  const [restorationAttempt, setRestorationAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
-    /** Resolves the configured native client and leaves credential clearing/markers to F14. */
+    /** Resolves the native client; F14 exclusively owns credential clearing and installation markers. */
     async function initialize() {
       try {
         const domain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
@@ -91,31 +87,88 @@ export function AccountSessionProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, [initializationAttempt]);
 
-  /** Allows a failed initialization to be retried explicitly, without restarting a usable session. */
-  function retryInitialization() {
-    if (initialization.status !== "initialization-error") return;
-    setInitialization({ status: "initializing" });
-    setAttempt((value) => value + 1);
-  }
+  if (initialization.status === "initializing") return null;
 
-  const status =
-    initialization.status === "ready"
-      ? authentication.status
-      : initialization.status;
-  const error =
-    initialization.status === "ready"
-      ? authentication.error
-      : initialization.status === "initialization-error"
-        ? initialization.error
-        : null;
+  const content = (
+    <SessionScope
+      initialization={initialization}
+      retryInitialization={() => setInitializationAttempt((value) => value + 1)}
+      retryAuthentication={() => setRestorationAttempt((value) => value + 1)}
+    >
+      {children}
+    </SessionScope>
+  );
+
+  return initialization.status === "ready" ? (
+    <Auth0Provider
+      key={restorationAttempt}
+      domain={initialization.domain}
+      clientId={initialization.clientId}
+    >
+      {content}
+    </Auth0Provider>
+  ) : (
+    content
+  );
+}
+
+/** Derives availability directly from Auth0 and guards business work with one transient generation. */
+function SessionScope({
+  children,
+  initialization,
+  retryInitialization,
+  retryAuthentication,
+}: PropsWithChildren<{
+  initialization: Exclude<Initialization, { status: "initializing" }>;
+  retryInitialization: () => void;
+  retryAuthentication: () => void;
+}>) {
+  const auth = useAuth0();
+  const [session] = useState(createSessionGeneration);
+  const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
+  const subject = auth.user?.sub ?? null;
+  const previousSubject = useRef<string | null>(null);
+
+  useLayoutEffect(() => () => session.invalidate(), [session]);
+  useLayoutEffect(() => {
+    if (previousSubject.current !== subject) {
+      session.invalidate();
+      previousSubject.current = subject;
+    }
+  }, [session, subject]);
+
+  const status: AuthenticationStatus =
+    initialization.status === "initialization-error"
+      ? "initialization-error"
+      : auth.isLoading
+        ? "restoring"
+        : auth.user
+          ? "authenticated"
+          : auth.error
+            ? "authentication-error"
+            : "guest";
   const value: AccountSession = {
     ...session,
     ...snapshot,
     status,
-    error,
-    retryInitialization,
+    error:
+      initialization.status === "initialization-error"
+        ? initialization.error
+        : auth.error,
+    retryInitialization() {
+      if (status === "initialization-error") retryInitialization();
+    },
+    retryAuthentication() {
+      if (status !== "authentication-error") return;
+      session.invalidate();
+      retryAuthentication();
+    },
+    async clearCredentials() {
+      session.invalidate();
+      if (initialization.status === "ready") await auth.clearCredentials();
+    },
     setAccount: (generation, accountId) =>
       status === "authenticated" && session.setAccount(generation, accountId),
     async getCredentials(generation) {
@@ -124,7 +177,7 @@ export function AccountSessionProvider({ children }: PropsWithChildren) {
         return undefined;
       let credentials: Credentials;
       try {
-        // The hook variant updates Auth0's user before our generation guard can reject an obsolete result.
+        // The hook variant updates SDK state before a generation guard could reject obsolete work.
         credentials =
           await initialization.client.credentialsManager.getCredentials();
       } catch (error) {
@@ -135,52 +188,10 @@ export function AccountSessionProvider({ children }: PropsWithChildren) {
       return credentials;
     },
   };
+
   return (
-    <AccountSessionContext value={value}>
-      {children}
-      {initialization.status === "ready" && (
-        <Auth0Provider
-          domain={initialization.domain}
-          clientId={initialization.clientId}
-        >
-          <NativeAuthentication
-            session={session}
-            onChange={setAuthentication}
-          />
-        </Auth0Provider>
-      )}
-    </AccountSessionContext>
+    <AccountSessionContext value={value}>{children}</AccountSessionContext>
   );
-}
-
-/** Observes SDK authentication without placing public navigation inside its conditional lifecycle. */
-function NativeAuthentication({
-  session,
-  onChange,
-}: {
-  session: SessionGeneration;
-  onChange: (availability: AuthenticationAvailability) => void;
-}) {
-  const auth = useAuth0();
-  const subject = auth.user?.sub ?? null;
-  const previousSubject = useRef<string | null>(null);
-  const status = auth.isLoading
-    ? "restoring"
-    : auth.user
-      ? "authenticated"
-      : auth.error
-        ? "authentication-error"
-        : "guest";
-
-  useLayoutEffect(() => {
-    if (previousSubject.current !== subject) {
-      session.invalidate();
-      previousSubject.current = subject;
-    }
-    onChange({ status, error: auth.error });
-  }, [session, subject, status, auth.error, onChange]);
-
-  return null;
 }
 
 /** Discards both successful and failed credential completions from a previous session. */
@@ -189,7 +200,7 @@ function assertCurrent(session: SessionGeneration, generation: string): void {
     throw new DOMException("Session changed", "AbortError");
 }
 
-/** Reads the account boundary; consumers must be mounted beneath the application's session owner. */
+/** Reads the business boundary; SDK actions are also available below the initialized Auth0Provider. */
 export function useAccountSession(): AccountSession {
   const session = useContext(AccountSessionContext);
   if (!session)
