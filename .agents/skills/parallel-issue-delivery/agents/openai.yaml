@@ -1,0 +1,7 @@
+interface:
+  display_name: "Parallel issue delivery"
+  short_description: "Coordinate issue batches and independent reviews"
+  default_prompt: "Use $parallel-issue-delivery to propose independent issues and wait for batch approval before launching."
+
+policy:
+  allow_implicit_invocation: false
