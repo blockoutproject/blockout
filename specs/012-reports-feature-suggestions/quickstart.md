@@ -1,6 +1,6 @@
 # Qualification: Private support and suggestions
 
-The repository contains specifications and contracts, not an application runtime. Run its [document and OpenAPI checks](../../README.md#verification) now. The scenarios below become executable with the implemented backend/mobile and an explicitly authorized private test destination; no provider send or native qualification is claimed here.
+Run the [repository verification commands](../../README.md#verification) for the implemented input foundation. Backend tests exercise generated JSON/multipart binding, canonical metadata constraints, exact/over-limit file and complete request sizes, the approved decoded-buffer budget, private temporary cleanup and configuration diagnostics. Mobile tests exercise the generated FormData client and single response-validation boundary. The complete journeys below still require their owning implementations and, for provider scenarios, an explicitly authorized private test destination; these checks establish no provider send or native qualification.
 
 ## Prerequisites
 

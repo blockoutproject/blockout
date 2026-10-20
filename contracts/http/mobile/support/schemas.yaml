@@ -1,7 +1,11 @@
 SubmitSupportRequest:
   title: SubmitSupportRequest
   type: object
-  description: Declared contact and content for one private request, never proof of identity or ownership.
+  description: >-
+    Declared contact and content for one private request, never proof of identity or ownership.
+    All bounded text, including nested context, additionally uses the stated maximum in UTF-16
+    code units (supplementary characters count as two), as enforced by Java and Zod.
+    Normalize outer title/reply-address whitespace before validation.
   additionalProperties: false
   required:
     - kind
@@ -18,18 +22,21 @@ SubmitSupportRequest:
       type: string
       minLength: 1
       maxLength: 200
-      pattern: '\S'
+      pattern: '[\s\S]*[^\s\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff][\s\S]*'
+      x-field-extra-annotation: "@tools.jackson.databind.annotation.JsonDeserialize(converter = com.blockout.backend.support.api.SupportTrimmedText.class)"
       description: Required title; trim outer whitespace and reject blank text.
     description:
       type: string
       minLength: 1
       maxLength: 10000
-      pattern: '\S'
+      pattern: '[\s\S]*[^\s\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff][\s\S]*'
       description: Required explanation of the problem or desired improvement; reject blank text.
     replyEmail:
       type: string
       format: email
+      minLength: 1
       maxLength: 254
+      x-field-extra-annotation: "@tools.jackson.databind.annotation.JsonDeserialize(converter = com.blockout.backend.support.api.SupportTrimmedText.class)"
       description: Editable reply address, trimmed and checked for syntax only.
     context:
       $ref: "#/SupportContextRequest"

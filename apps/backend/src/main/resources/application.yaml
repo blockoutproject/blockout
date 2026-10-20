@@ -12,7 +12,9 @@ spring:
         socketTimeout: 5
   servlet:
     multipart:
-      max-file-size: 5MB
+      max-file-size: 5242880B
+      max-request-size: 27262976B
+      file-size-threshold: 0B
   jpa:
     open-in-view: false
     hibernate:
@@ -26,6 +28,11 @@ spring:
       read-timeout: 5s
       redirects: dont-follow
 
+server:
+  tomcat:
+    # Drain bounded rejected multipart requests so clients can receive the canonical 413.
+    max-swallow-size: 27MB
+
 blockout:
   search:
     enabled: false
@@ -35,6 +42,11 @@ blockout:
     ssl-bundle: opensearch
     connect-timeout-millis: 3000
     request-timeout-millis: 5000
+  support:
+    # Set destination.* only for a qualified private destination; credentials stay external.
+    connect-timeout: 3s
+    read-timeout: 5s
+    process-timeout: 30s
   security:
     # Empty fallbacks let Bean Validation reject absent inputs instead of binding placeholder text.
     issuer: ${BLOCKOUT_SECURITY_ISSUER:}
