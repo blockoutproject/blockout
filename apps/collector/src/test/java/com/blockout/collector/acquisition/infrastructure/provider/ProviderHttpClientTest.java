@@ -1,6 +1,7 @@
 package com.blockout.collector.acquisition.infrastructure.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.collector.config.AcquisitionConfiguration;
@@ -15,6 +16,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -24,11 +26,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPOutputStream;
 import org.apache.hc.client5.http.HttpResponseException;
 import org.apache.hc.client5.http.RedirectException;
+import org.apache.hc.core5.http.HttpHost;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.task.TaskRejectedException;
 
@@ -51,6 +55,40 @@ class ProviderHttpClientTest {
   void stopPeer() {
     server.stop(0);
     peers.shutdownNow();
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "https://www.ffvb.org, https://www.ffvb.org:443/source",
+    "https://www.ffvb.org:443, https://www.ffvb.org/source",
+    "http://www.ffvb.org, http://www.ffvb.org:80/source",
+    "http://www.ffvb.org:80, http://www.ffvb.org/source"
+  })
+  @DisplayName("Accepts the same origin with an omitted or explicit default port")
+  void acceptsEquivalentOrigin(String allowed, String requested) {
+    // Given
+    Set<HttpHost> origins = Set.of(HttpHost.create(URI.create(allowed)));
+
+    // When / Then
+    assertThatCode(() -> ProviderHttpClient.requireOrigin(URI.create(requested), origins))
+        .doesNotThrowAnyException();
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "https://www.ffvb.org:444/source",
+        "http://www.ffvb.org/source",
+        "https://foreign.example/source"
+      })
+  @DisplayName("Keeps different ports, schemes and hosts outside the allowed origin")
+  void refusesDifferentOrigin(String requested) {
+    // Given
+    Set<HttpHost> origins = Set.of(HttpHost.create(URI.create("https://www.ffvb.org")));
+
+    // When / Then
+    assertThatThrownBy(() -> ProviderHttpClient.requireOrigin(URI.create(requested), origins))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest

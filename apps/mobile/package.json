@@ -13,7 +13,7 @@
     "format:check": "prettier --check --ignore-path ../../.prettierignore .",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "jest --ci",
+    "test": "jest --ci --runInBand",
     "doctor": "expo-doctor",
     "generate": "orval --config orval.config.ts"
   },
@@ -25,6 +25,7 @@
     "expo": "57.0.30",
     "expo-build-properties": "~57.0.22",
     "expo-constants": "57.0.22",
+    "expo-crypto": "~57.0.4",
     "expo-dev-client": "~57.0.15",
     "expo-font": "~57.0.4",
     "expo-image": "~57.0.5",

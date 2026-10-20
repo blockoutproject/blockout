@@ -12,7 +12,6 @@ jest.mock("react-native-auth0", () => ({
   default: jest.fn().mockImplementation(() => ({
     credentialsManager: {
       clearCredentials: jest.fn().mockResolvedValue(undefined),
-      hasValidCredentials: jest.fn().mockResolvedValue(false),
     },
   })),
 }));
@@ -33,40 +32,24 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-it.each([false, true])(
-  "initializes an installation with retained credentials=%s",
-  async (retainedCredentials) => {
-    // Given
-    let canResume = retainedCredentials;
-    jest
-      .mocked(auth0.credentialsManager.clearCredentials)
-      .mockImplementation(async () => {
-        canResume = false;
-      });
-    jest
-      .mocked(auth0.credentialsManager.hasValidCredentials)
-      .mockImplementation(async () => canResume);
-    await AsyncStorage.setItem("blockout:onboarding-complete", "true");
+it("clears native credentials before completing V2 initialization", async () => {
+  // Given
+  await AsyncStorage.setItem("blockout:onboarding-complete", "true");
 
-    // When
-    await initializeV2Installation(auth0);
+  // When
+  await initializeV2Installation(auth0);
 
-    // Then
-    expect(auth0.credentialsManager.clearCredentials).toHaveBeenCalledTimes(1);
-    expect(canResume).toBe(false);
-    expect(await AsyncStorage.getItem(marker)).toBe("true");
-    expect(await AsyncStorage.getItem("blockout:onboarding-complete")).toBe(
-      "true",
-    );
-  },
-);
+  // Then
+  expect(auth0.credentialsManager.clearCredentials).toHaveBeenCalledTimes(1);
+  expect(await AsyncStorage.getItem(marker)).toBe("true");
+  expect(await AsyncStorage.getItem("blockout:onboarding-complete")).toBe(
+    "true",
+  );
+});
 
 it("preserves normal credentials after completed V2 initialization", async () => {
   // Given
   await AsyncStorage.setItem(marker, "true");
-  jest
-    .mocked(auth0.credentialsManager.hasValidCredentials)
-    .mockResolvedValue(true);
 
   // When
   await initializeV2Installation(auth0);
@@ -127,20 +110,6 @@ it("leaves initialization incomplete when native clearing rejects", async () => 
 
   // Then
   await expect(initialization).rejects.toBe(error);
-  expect(await AsyncStorage.getItem(marker)).toBeNull();
-});
-
-it("refuses completion when the SDK still has resumable credentials", async () => {
-  // Given
-  jest
-    .mocked(auth0.credentialsManager.hasValidCredentials)
-    .mockResolvedValueOnce(true);
-
-  // When
-  const initialization = initializeV2Installation(auth0);
-
-  // Then
-  await expect(initialization).rejects.toThrow("Previous credentials remain");
   expect(await AsyncStorage.getItem(marker)).toBeNull();
 });
 

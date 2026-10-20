@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
+import { AccountSessionProvider } from "../features/accounts/session/account-session-provider";
 import { createQueryClient } from "../shared/query/query-client";
 import { initializeSentry } from "../shared/observability/sentry";
 import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
@@ -20,14 +21,16 @@ function Navigation() {
   );
 }
 
-/** Keeps one cache and one live system-theme owner around the mounted native navigation tree. */
+/** Composes the transient session, cache and live system theme around native navigation. */
 function RootLayout() {
   const [queryClient] = useState(createQueryClient);
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <Navigation />
+        <AccountSessionProvider>
+          <Navigation />
+        </AccountSessionProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
