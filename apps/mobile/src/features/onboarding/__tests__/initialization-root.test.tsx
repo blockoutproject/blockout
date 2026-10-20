@@ -6,6 +6,7 @@ import { Pressable, Text } from "react-native";
 import { useAuth0, type Credentials } from "react-native-auth0";
 import RootLayout from "../../../app/_layout";
 import { useAccountSession } from "../../accounts/session/account-session-provider";
+import { credentialsFor } from "../../accounts/test-support/native-auth0";
 
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
@@ -25,16 +26,11 @@ jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
   __esModule: true,
   default: jest.fn(() => mockClient),
 }));
-jest.mock("react-native-auth0", () => ({
-  __esModule: true,
-  default: jest.requireMock(require.resolve("react-native-auth0/src/Auth0.ts"))
-    .default,
-  Auth0Provider: jest.requireActual(
-    "react-native-auth0/src/hooks/Auth0Provider.tsx",
-  ).Auth0Provider,
-  useAuth0: jest.requireActual("react-native-auth0/src/hooks/useAuth0.ts")
-    .useAuth0,
-}));
+jest.mock("react-native-auth0", () =>
+  jest
+    .requireActual("../../accounts/test-support/native-auth0")
+    .nativeAuth0Module(),
+);
 
 const mockClient = {
   credentialsManager: {
@@ -180,15 +176,9 @@ it("restores the ordinary SDK identity on subsequent launches without clearing i
   // Given
   await AsyncStorage.setItem(marker, "true");
   mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-  const payload = Buffer.from(
-    JSON.stringify({ sub: "auth0|current" }),
-  ).toString("base64url");
-  mockClient.credentialsManager.getCredentials.mockResolvedValue({
-    accessToken: "test-access-token",
-    idToken: `e30.${payload}.test-signature`,
-    tokenType: "Bearer",
-    expiresAt: 2_000_000_000,
-  });
+  mockClient.credentialsManager.getCredentials.mockResolvedValue(
+    credentialsFor("auth0|current"),
+  );
   const root = await render(<RootLayout />);
   expect(screen.getByText("Identity: auth0|current")).toBeOnTheScreen();
 

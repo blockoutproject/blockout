@@ -15,12 +15,17 @@ import {
   type SessionGeneration,
   type SessionSnapshot,
 } from "./session-generation";
+import {
+  requiresReauthentication,
+  signOutNativeSession,
+} from "./native-session";
 
 /** Authentication availability only: Query owns profiles and RevenueCat owns entitlements. */
 type AuthenticationStatus =
   | "initialization-error"
   | "restoring"
   | "authentication-error"
+  | "reauthentication-required"
   | "guest"
   | "authenticated";
 
@@ -29,6 +34,8 @@ type AuthenticationStatus =
  * Lifecycle commands must invalidate synchronously before awaiting native login/logout or cleanup.
  */
 export interface AccountSession extends SessionSnapshot, SessionGeneration {
+  /** Invalidates private work immediately, then closes the native session with independent local clearing. */
+  signOut(): Promise<void>;
   /** Invalidates private work before native local clearing; the sign-out flow owns browser/network cleanup. */
   clearCredentials(): Promise<void>;
   status: AuthenticationStatus;
@@ -124,6 +131,7 @@ function SessionScope({
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const subject = auth.user?.sub ?? null;
   const previousSubject = useRef<string | null>(null);
+  const reauthenticationRequired = requiresReauthentication(auth.error);
 
   useLayoutEffect(() => () => session.invalidate(), [session]);
   useLayoutEffect(() => {
@@ -132,17 +140,22 @@ function SessionScope({
       previousSubject.current = subject;
     }
   }, [session, subject]);
+  useLayoutEffect(() => {
+    if (reauthenticationRequired) session.invalidate();
+  }, [session, reauthenticationRequired]);
 
   const status: AuthenticationStatus =
     initialization.status === "initialization-error"
       ? "initialization-error"
       : auth.isLoading
         ? "restoring"
-        : auth.user
-          ? "authenticated"
-          : auth.error
-            ? "authentication-error"
-            : "guest";
+        : reauthenticationRequired
+          ? "reauthentication-required"
+          : auth.user
+            ? "authenticated"
+            : auth.error
+              ? "authentication-error"
+              : "guest";
   const value: AccountSession = {
     ...session,
     ...snapshot,
@@ -162,6 +175,10 @@ function SessionScope({
     async clearCredentials() {
       session.invalidate();
       if (initialization.status === "ready") await auth.clearCredentials();
+    },
+    async signOut() {
+      session.invalidate();
+      if (initialization.status === "ready") await signOutNativeSession(auth);
     },
     setAccount: (generation, accountId) =>
       status === "authenticated" && session.setAccount(generation, accountId),
