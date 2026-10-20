@@ -1,0 +1,36 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import type Auth0 from "react-native-auth0";
+
+const initializationMarker = "blockout:v2-initialized";
+let pendingInitialization: Promise<void> | undefined;
+
+/**
+ * Clears retained credentials once per installation before Auth0Provider may mount.
+ * Concurrent mount attempts share the same operation; rejection permits an explicit retry.
+ * @param auth0 The application's native SDK client, created before mounting its provider.
+ * @returns Completion only after the stable installation marker has been persisted or read.
+ * @throws If storage or SDK operations fail, or credentials remain resumable after clearing.
+ */
+export function initializeV2Installation(auth0: Auth0): Promise<void> {
+  pendingInitialization ??= initialize(auth0).finally(() => {
+    pendingInitialization = undefined;
+  });
+  return pendingInitialization;
+}
+
+/**
+ * Writes only the initialization flag, leaving discovery, age and other installation state intact.
+ * @param auth0 Native client whose retained credentials must no longer be resumable.
+ */
+async function initialize(auth0: Auth0): Promise<void> {
+  if ((await AsyncStorage.getItem(initializationMarker)) === "true") {
+    return;
+  }
+
+  await auth0.credentialsManager.clearCredentials();
+  // The native iOS bridge can resolve clearing without rejecting a failed deletion.
+  if (await auth0.credentialsManager.hasValidCredentials()) {
+    throw new Error("Previous credentials remain");
+  }
+  await AsyncStorage.setItem(initializationMarker, "true");
+}
