@@ -13,7 +13,9 @@ import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
+import org.apache.hc.client5.http.impl.DefaultSchemePortResolver;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.routing.RoutingSupport;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.NameValuePair;
 import org.springframework.core.task.TaskRejectedException;
@@ -57,7 +59,8 @@ public final class ProviderHttpClient implements AutoCloseable {
   }
 
   /**
-   * Rejects foreign origins and URL credentials before connection or redirect execution.
+   * Rejects foreign origins and URL credentials before connection or redirect execution. Apache
+   * normalizes omitted default ports on both sides of the comparison.
    *
    * @param uri absolute source URI
    * @param origins this provider's configured native HTTP origins
@@ -66,8 +69,15 @@ public final class ProviderHttpClient implements AutoCloseable {
     if (uri.getUserInfo() != null
         || uri.getFragment() != null
         || uri.getHost() == null
-        || !("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
-        || !origins.contains(HttpHost.create(uri))) {
+        || !("http".equalsIgnoreCase(uri.getScheme())
+            || "https".equalsIgnoreCase(uri.getScheme()))) {
+      throw new IllegalArgumentException("Unsupported provider origin");
+    }
+    HttpHost destination =
+        RoutingSupport.normalize(HttpHost.create(uri), DefaultSchemePortResolver.INSTANCE);
+    if (origins.stream()
+        .map(origin -> RoutingSupport.normalize(origin, DefaultSchemePortResolver.INSTANCE))
+        .noneMatch(destination::equals)) {
       throw new IllegalArgumentException("Unsupported provider origin");
     }
   }
