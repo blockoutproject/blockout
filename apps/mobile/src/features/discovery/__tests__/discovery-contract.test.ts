@@ -132,6 +132,12 @@ it.each([
   { cursor: "opaque" },
   { q: "Volley", exampleIds: [id], cursor: "opaque" },
   { exampleIds: [id, id] },
+  {
+    exampleIds: [
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA",
+    ],
+  },
   { exampleIds: [] },
   { q: "\uFEFF", exampleIds: [id] },
 ])("rejects invalid parameter combinations: %j", (params) => {

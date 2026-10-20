@@ -43,7 +43,8 @@ export type ErrorType<TProblem> = ApiError<TProblem>;
 
 /**
  * Resolves backend references and validates JSON once before a generated consumer succeeds.
- * Expo Fetch owns cancellation and timeout delivery; neither proves that a mutation was rolled back.
+ * Expo Fetch owns cancellation and timeout delivery. Admission rechecks cancellation because a
+ * completed body cannot be retracted by Fetch; neither proves that a mutation was rolled back.
  * The adapter never retries requests and rejects redirects that could forward caller credentials.
  * Empty 204 responses succeed only when the caller expects no JSON or binary representation.
  * Private calls supply a captured session; obsolete results and errors become cancellations.
@@ -124,6 +125,7 @@ export async function apiFetch(
         throw new ApiError("schema");
       }
     }
+    if (requestSignal.aborted) throw requestSignal.reason;
     assertCurrentSession(session);
     return data;
   } catch (error) {

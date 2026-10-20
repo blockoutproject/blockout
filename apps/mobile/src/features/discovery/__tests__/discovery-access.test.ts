@@ -143,3 +143,42 @@ it("rejects a late completion after the owner cancels bypass intent", async () =
   await expect(result).rejects.toMatchObject({ kind: "cancelled" });
   expect(createDiscoveryContext("club").queryKey).not.toEqual(context.queryKey);
 });
+
+it("rejects cancelled bypass intent after the response body has completed", async () => {
+  // Given: native Fetch cannot retract a completed body; intent may change before transport admission.
+  const session = createSessionGeneration();
+  const intent = new AbortController();
+  const cache = createQueryClient();
+  const context = createDiscoveryContext(
+    "club",
+    {},
+    {
+      token: "synthetic-token",
+      session: { ...session.getSnapshot(), isCurrent: session.isCurrent },
+      signal: intent.signal,
+    },
+  );
+  const response = Response.json({ clubs: [] });
+  const readBody = response.json.bind(response);
+  jest.spyOn(response, "json").mockImplementation(async () => {
+    const body: unknown = await readBody();
+    intent.abort();
+    return body;
+  });
+  mockFetch.mockResolvedValue(response);
+
+  try {
+    // When
+    const result = cache.fetchQuery({
+      queryKey: context.queryKey,
+      queryFn: () => listClubs(context.params, context.request),
+    });
+
+    // Then
+    await expect(result).rejects.toMatchObject({ kind: "cancelled" });
+    expect(cache.getQueryData(context.queryKey)).toBeUndefined();
+  } finally {
+    jest.restoreAllMocks();
+    cache.clear();
+  }
+});

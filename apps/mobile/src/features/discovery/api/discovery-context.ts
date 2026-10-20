@@ -51,7 +51,8 @@ export function createDiscoveryContext(
     (parsed.exampleIds !== undefined &&
       (q !== "" ||
         parsed.cursor !== undefined ||
-        new Set(parsed.exampleIds).size !== parsed.exampleIds.length))
+        new Set(parsed.exampleIds.map((id) => id.toLowerCase())).size !==
+          parsed.exampleIds.length))
   ) {
     throw new Error("Invalid discovery selection");
   }
