@@ -6,7 +6,7 @@ description: "Implementation tasks for F04 search and discovery"
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#91](https://github.com/blockoutproject/blockout/issues/91) under [#82](https://github.com/blockoutproject/blockout/issues/82).
 
-**Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). This task-authoring delivery initializes no application, engine or environment. Native, generated-consumer, Java/client, infrastructure and restoration evidence remains future work.
+**Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). T001–T007's dependency and request/context qualification is recorded in the [quickstart](quickstart.md#contracts-and-access); later business, native-device, deployment and restoration evidence remains future work.
 
 **Tests**: A01–A29 and SC-001–007 explicitly require qualification. Write automated tests first and observe a meaningful failure before their associated implementation. Prepare manual/native cases before configuration; execute them only with actual prerequisites and authorization. Real analyzer and large-set traversal checks establish functional correctness, not a benchmark or capacity commitment.
 
@@ -16,7 +16,7 @@ description: "Implementation tasks for F04 search and discovery"
 
 - **[P]** identifies distinct-file work that may run together after its prerequisites.
 - **[USn]** retains the specification's story number.
-- Paths identify future implementation or the existing qualification source. All boxes start unchecked.
+- Paths identify implementation or its qualification source. Checked tasks record the completed scope; remaining boxes stay unchecked.
 
 ## Path Conventions
 

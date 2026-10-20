@@ -1,5 +1,6 @@
 import {
   listClubs,
+  listTeams,
   getSportingSearchOptions,
   getListClubsQueryOptions,
 } from "../../../../.generated/mobile";
@@ -93,16 +94,24 @@ it("encodes repeated UUID examples in their selected order", async () => {
   ).toEqual([second, id]);
 });
 
-it("accepts 200 Unicode characters without truncation", () => {
-  // Given
-  const text = "🏐".repeat(200);
+it.each(["🏐", "İ"])(
+  "sends 200 Unicode characters without rewriting them: %s",
+  async (character) => {
+    // Given
+    const text = character.repeat(200);
+    mockFetch.mockResolvedValue(Response.json({ teams: [] }));
 
-  // When
-  const context = createDiscoveryContext("team", { q: text });
+    // When
+    const context = createDiscoveryContext("team", { q: text });
+    await listTeams(context.params);
 
-  // Then
-  expect(context.params.q).toBe(text);
-});
+    // Then
+    expect(context.params.q).toBe(text);
+    expect(new URL(mockFetch.mock.calls[0][0]).searchParams.get("q")).toBe(
+      text,
+    );
+  },
+);
 
 it.each(["x".repeat(201), "🏐".repeat(201), "x".repeat(200) + "\n"])(
   "rejects over-limit Unicode input",
@@ -124,6 +133,7 @@ it.each([
   { q: "Volley", exampleIds: [id], cursor: "opaque" },
   { exampleIds: [id, id] },
   { exampleIds: [] },
+  { q: "\uFEFF", exampleIds: [id] },
 ])("rejects invalid parameter combinations: %j", (params) => {
   // Given
   // Each table entry violates the example or continuation mode.
@@ -146,6 +156,9 @@ it("keeps normalized search context separate from pagination", () => {
   });
 
   // Then
-  expect(first.params.q).toBe("étoile volley");
+  expect(first.params.q).toBe("  ÉTOILE\tVolley  ");
   expect(first.queryKey).toEqual(next.queryKey);
+  expect(first.queryKey).toEqual(
+    createDiscoveryContext("team", { q: "étoile volley" }).queryKey,
+  );
 });

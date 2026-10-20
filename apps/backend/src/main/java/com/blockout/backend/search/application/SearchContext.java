@@ -35,7 +35,8 @@ public record SearchContext(
   }
 
   /**
-   * Normalizes only search text and rejects sporting filters on clubs.
+   * Folds Unicode whitespace and case, retaining other control/format characters as text, and
+   * rejects sporting filters on clubs. Normalized expansion does not change the wire-input limit.
    *
    * @param resource required collection kind
    * @param text original text, or null for examples
@@ -47,7 +48,10 @@ public record SearchContext(
    */
   public SearchContext {
     Objects.requireNonNull(resource);
-    text = text == null ? "" : text.replaceAll("(?U)\\s+", " ").trim().toLowerCase(Locale.ROOT);
+    text =
+        text == null
+            ? ""
+            : text.replaceAll("(?U)\\s+", " ").replaceAll("^ +| +$", "").toLowerCase(Locale.ROOT);
     if (resource == Resource.CLUB
         && (seasonId != null || divisionId != null || format != null || gender != null)) {
       throw new IllegalArgumentException("Clubs have no sporting filters");

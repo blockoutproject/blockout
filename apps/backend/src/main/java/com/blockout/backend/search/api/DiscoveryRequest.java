@@ -58,8 +58,8 @@ public class DiscoveryRequest {
         throw invalid();
       // Reject comma-separated/coerced UUID forms; the contract requires repeated distinct UUIDs.
       for (String value : raw) {
-        if (exampleIds.stream().noneMatch(id -> id.toString().equalsIgnoreCase(value)))
-          throw invalid();
+        if (exampleIds.stream()
+            .noneMatch(id -> id != null && id.toString().equalsIgnoreCase(value))) throw invalid();
       }
     }
     if (cursor != null && context.examples()) throw invalid();

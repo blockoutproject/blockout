@@ -86,6 +86,49 @@ class DiscoveryContractTest {
   }
 
   @Test
+  @DisplayName("Normalizes accepted text even when lowercase expands beyond the wire limit")
+  void acceptsExpandingCase() throws Exception {
+    // Given
+    String text = "İ".repeat(200);
+
+    // When
+    ResultActions response = mvc.perform(get("/teams").param("q", text));
+
+    // Then
+    response.andExpect(status().isOk());
+    assertThat(adapter.bound.context().text()).isEqualTo("i\u0307".repeat(200));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", " ", "\t"})
+  @DisplayName("Rejects blank UUID examples alongside a valid retained identity")
+  void rejectsBlankExample(String blank) throws Exception {
+    // Given
+    String retained = "00000000-0000-4000-8000-000000000001";
+
+    // When
+    ResultActions response = mvc.perform(get("/clubs").param("exampleIds", retained, blank));
+
+    // Then
+    response.andExpect(status().isBadRequest());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"\u0000", "\uFEFF"})
+  @DisplayName("Keeps non-whitespace control and format characters in textual mode")
+  void keepsNonWhitespaceText(String text) throws Exception {
+    // Given
+    String retained = "00000000-0000-4000-8000-000000000001";
+
+    // When
+    ResultActions response =
+        mvc.perform(get("/teams").param("q", text).param("exampleIds", retained));
+
+    // Then
+    response.andExpect(status().isBadRequest());
+  }
+
+  @Test
   @DisplayName("Preserves ordered distinct retained examples and optional absence")
   void preservesExamples() throws Exception {
     // Given

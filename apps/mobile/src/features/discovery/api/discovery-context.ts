@@ -25,6 +25,8 @@ export interface DiscoveryBypass {
 /**
  * Builds a detached search selection and native Query key without waiting for identity or Pro.
  * Generated schemas validate individual request shapes. Cross-field modes stay at this boundary.
+ * Wire text stays unchanged; the key folds Unicode whitespace and case without imposing a second
+ * length limit on the normalized result. Other control and format characters remain textual input.
  * Pagination is excluded from the key; examples retain ordered identities. The caller owns bypass
  * authorization and cancels its signal when intent changes; transport rejects old-session completions.
  */
@@ -42,7 +44,7 @@ export function createDiscoveryContext(
   const parsed = schema.strict().parse(input);
   const q = (parsed.q ?? "")
     .replace(/\p{White_Space}+/gu, " ")
-    .trim()
+    .replace(/^ +| +$/g, "")
     .toLowerCase();
   if (
     (parsed.cursor !== undefined && q === "") ||
@@ -55,12 +57,11 @@ export function createDiscoveryContext(
   }
   const params = Object.freeze({
     ...parsed,
-    q,
     ...(parsed.exampleIds ? { exampleIds: [...parsed.exampleIds] } : {}),
   });
   if (params.exampleIds) Object.freeze(params.exampleIds);
-  const { cursor: _cursor, ...selection } = params;
-  Object.freeze(selection);
+  const { cursor: _cursor, ...filters } = params;
+  const selection = Object.freeze({ ...filters, q });
   const queryKey =
     resource === "club"
       ? getListClubsQueryKey(selection)
