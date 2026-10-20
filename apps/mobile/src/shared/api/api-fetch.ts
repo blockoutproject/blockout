@@ -8,6 +8,11 @@ import {
 /** Per-call transport settings; session credentials remain supplied by their owning caller. */
 export interface ApiFetchOptions extends RequestInit {
   schema?: ZodType;
+  /** Capture before preparing private work; the existing session owner decides whether it is still current. */
+  session?: {
+    readonly generation: string;
+    isCurrent(generation: string): boolean;
+  };
   /** Positive integer milliseconds before the transport stops waiting; defaults to 15 seconds. */
   timeoutMs?: number;
   responseType?: "blob";
@@ -41,6 +46,7 @@ export type ErrorType<TProblem> = ApiError<TProblem>;
  * Expo Fetch owns cancellation and timeout delivery; neither proves that a mutation was rolled back.
  * The adapter never retries requests and rejects redirects that could forward caller credentials.
  * Empty 204 responses succeed only when the caller expects no JSON or binary representation.
+ * Private calls supply a captured session; obsolete results and errors become cancellations.
  */
 export function apiFetch<T>(url: string, options?: ApiFetchOptions): Promise<T>;
 export async function apiFetch(
@@ -52,8 +58,10 @@ export async function apiFetch(
     timeoutMs = 15_000,
     responseType,
     signal,
+    session,
     ...request
   } = options;
+  assertCurrentSession(session);
   let destination: URL;
   try {
     const base = new URL(process.env.EXPO_PUBLIC_API_URL ?? "");
@@ -101,25 +109,34 @@ export async function apiFetch(
       }
       throw new ApiError("http", response.status, problem);
     }
+    let data: unknown;
     if (response.status === 204) {
       if (schema || responseType) throw new ApiError("schema");
-      return undefined;
+    } else if (responseType === "blob" && !schema) {
+      data = await response.blob();
+    } else {
+      if (!schema || contentType !== "application/json")
+        throw new ApiError("schema");
+      try {
+        const body: unknown = await response.json();
+        data = schema.parse(body);
+      } catch {
+        throw new ApiError("schema");
+      }
     }
-    if (responseType === "blob" && !schema) {
-      return await response.blob();
-    }
-    if (!schema || contentType !== "application/json")
-      throw new ApiError("schema");
-    try {
-      const body: unknown = await response.json();
-      return schema.parse(body);
-    } catch {
-      throw new ApiError("schema");
-    }
+    assertCurrentSession(session);
+    return data;
   } catch (error) {
+    assertCurrentSession(session);
     if (signal?.aborted) throw new ApiError("cancelled");
     if (deadline.aborted) throw new ApiError("timeout");
     if (error instanceof ApiError) throw error;
     throw new ApiError("network");
   }
+}
+
+/** Rejects obsolete private work even when native request cancellation loses a race. */
+function assertCurrentSession(session: ApiFetchOptions["session"]) {
+  if (session && !session.isCurrent(session.generation))
+    throw new ApiError("cancelled");
 }
