@@ -1,18 +1,30 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { AccountSessionProvider } from "../features/accounts/session/account-session-provider";
-import { createQueryClient } from "../shared/query/query-client";
+import { useLayoutEffect, useState } from "react";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+} from "../features/accounts/session/account-session-provider";
+import {
+  bindSessionQueries,
+  createQueryClient,
+} from "../shared/query/query-client";
 import { initializeSentry } from "../shared/observability/sentry";
 import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
 
 initializeSentry();
 
-/** Keeps status-bar text aligned with the theme's light fallback, including the native unspecified scheme. */
+/** Binds private cache cleanup to the session owner and renders navigation in the current system theme. */
 function Navigation() {
   const theme = useTheme();
+  const client = useQueryClient();
+  const { subscribe, isCurrent } = useAccountSession();
+  useLayoutEffect(
+    () => bindSessionQueries(client, subscribe, isCurrent),
+    [client, subscribe, isCurrent],
+  );
   return (
     <>
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
