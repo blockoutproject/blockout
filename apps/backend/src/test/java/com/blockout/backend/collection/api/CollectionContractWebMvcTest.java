@@ -20,8 +20,10 @@ import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +41,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+/** Exercises producer serialization and request refusal through real generated MVC contracts. */
 @WebMvcTest(CollectorOperationsController.class)
 @Import({
   HttpConfiguration.class,
@@ -204,6 +207,48 @@ class CollectionContractWebMvcTest {
         .andExpect(jsonPath("$.mode").value("periodic"))
         .andExpect(jsonPath("$.candidate").doesNotExist())
         .andExpect(jsonPath("$.sourceBindingId").doesNotExist());
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  @DisplayName("Serializes target items, page index and continuation for the collector")
+  void returnsTargetPage(boolean hasNext) throws Exception {
+    // Given
+    UUID cycle = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    UUID source = UUID.fromString("00000000-0000-4000-8000-000000000002");
+    CollectionState.Target target =
+        CollectionState.Target.builder()
+            .scopeId(source)
+            .kind(CollectionTargetKindEnum.DISCOVERY)
+            .sourceBindingId(source)
+            .url("https://www.ffvb.org/catalog")
+            .seasonLabel("2026/2027")
+            .provider(CollectionProviderEnum.FFVB)
+            .organizerReference("ABCCS")
+            .build();
+    when(cycles.targets(cycle, 2L, 1))
+        .thenReturn(
+            new CollectionState.TargetPage(
+                List.of(new CollectionState.ServedTarget(target, null, null, null)), 2, hasNext));
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            get("/ingestion/collection-cycles/{id}/targets", cycle)
+                .with(collector())
+                .param("page", "2")
+                .param("size", "1"));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.items.length()").value(1))
+        .andExpect(jsonPath("$.items[0].scopeId").value(source.toString()))
+        .andExpect(jsonPath("$.items[0].kind").value("discovery"))
+        .andExpect(jsonPath("$.items[0].url").value("https://www.ffvb.org/catalog"))
+        .andExpect(jsonPath("$.page").value(2))
+        .andExpect(jsonPath("$.hasNext").value(hasNext));
   }
 
   @ParameterizedTest

@@ -9,9 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Component;
 
-/**
- * Seven generated sporting operations with native OAuth, contract validation and no write replay.
- */
+/** Seven generated sporting operations with native OAuth, Jackson decoding and no write replay. */
 @Component
 @RequiredArgsConstructor
 public class SportingObservationClient implements SportingBackend {

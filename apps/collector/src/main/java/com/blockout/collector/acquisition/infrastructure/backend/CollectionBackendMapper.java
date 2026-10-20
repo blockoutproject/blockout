@@ -19,9 +19,9 @@ import org.mapstruct.Mapping;
 @Mapper(config = MappingConfiguration.class)
 public interface CollectionBackendMapper {
   /**
-   * Projects the validated runtime.
+   * Projects the decoded runtime.
    *
-   * @param source validated current registration
+   * @param source decoded current registration
    * @return immutable runtime state
    */
   CollectionBackend.Runtime toView(CollectorRuntimeInternalResponse source);
@@ -29,7 +29,7 @@ public interface CollectionBackendMapper {
   /**
    * Projects the admitted capability and its conditional purpose.
    *
-   * @param source validated backend context
+   * @param source decoded backend context
    * @return minimal capability, retaining conditional-purpose information
    */
   @Mapping(target = "hasCandidate", expression = "java(source.getCandidate() != null)")
@@ -46,7 +46,7 @@ public interface CollectionBackendMapper {
   /**
    * Preserves frozen provider references in the application target.
    *
-   * @param source validated frozen target
+   * @param source decoded frozen target
    * @return immutable context with exact provider references
    */
   CollectionBackend.Target toView(CollectionTargetInternalResponse source);
@@ -76,7 +76,7 @@ public interface CollectionBackendMapper {
   SubmitSourceValidationInternalRequest toRequest(CollectionBackend.Validation source);
 
   /**
-   * Preserves a validated backend timestamp.
+   * Preserves a decoded backend timestamp.
    *
    * @param source known timestamp
    * @return identical instant

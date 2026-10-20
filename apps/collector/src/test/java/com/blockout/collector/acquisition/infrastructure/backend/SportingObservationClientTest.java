@@ -40,7 +40,7 @@ import org.openapitools.jackson.nullable.JsonNullable;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Exercises generated serialization and response validation against a controlled HTTP peer. */
+/** Exercises generated serialization and response decoding against a controlled HTTP peer. */
 @DisplayName("Interpreted sporting observations through the actual generated HTTP client")
 class SportingObservationClientTest {
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000153");
@@ -57,7 +57,11 @@ class SportingObservationClientTest {
   private volatile int status = 200;
   private volatile String response = "{\"sourceReference\":\"M1\",\"outcome\":\"accepted\"}";
 
-  /** Starts a controlled backend peer and the real configured generation/validation boundary. */
+  /**
+   * Starts a controlled backend peer and the real configured generated client.
+   *
+   * @throws IOException if the listener cannot be opened
+   */
   @BeforeEach
   void start() throws IOException {
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -83,7 +87,11 @@ class SportingObservationClientTest {
             new SportingApi(transport.api()), new SportingObservationMapperImpl());
   }
 
-  /** Releases the owned listener and HTTP pool. */
+  /**
+   * Releases the owned listener and HTTP pool.
+   *
+   * @throws Exception if the native transport cannot be closed
+   */
   @AfterEach
   void close() throws Exception {
     server.stop(0);

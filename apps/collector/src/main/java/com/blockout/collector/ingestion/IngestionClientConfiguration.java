@@ -1,13 +1,7 @@
 package com.blockout.collector.ingestion;
 
-import com.atlassian.oai.validator.OpenApiInteractionValidator;
-import com.atlassian.oai.validator.report.LevelResolver;
-import com.atlassian.oai.validator.report.ValidationReport;
-import com.atlassian.oai.validator.springweb.client.OpenApiValidationClientHttpRequestInterceptor;
 import com.blockout.collector.generated.ingestion.ApiClient;
 import io.micrometer.observation.ObservationRegistry;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -17,15 +11,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 
-/**
- * Qualifies raw ingestion responses before generated decoding, without provider retry semantics.
- */
+/** Configures native generated ingestion decoding without automatic business-request replay. */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(IngestionProperties.class)
 public class IngestionClientConfiguration {
@@ -58,52 +48,26 @@ public class IngestionClientConfiguration {
   }
 
   /**
-   * Validates the canonical bundle, including required nullable fields lost by DTO annotations. The
-   * native interceptor buffers the validated response for generated Jackson decoding.
+   * Uses generated Jackson decoding for backend responses. Contract constraints beyond decoding are
+   * the producer's responsibility; this consumer does not perform exhaustive response validation.
    *
    * @param factory bounded HTTP transport
    * @param observations native registry for low-cardinality HTTP metrics
    * @param properties validated backend URL supplied by deployment configuration
    * @param authentication native client-credentials interceptor
-   * @return generated client with native client-credentials authentication and response validation
-   * @throws IOException when the bundled contract cannot be read
+   * @return generated client with native client-credentials authentication and HTTP observation
    */
   @Bean
   ApiClient ingestionApiClient(
       HttpComponentsClientHttpRequestFactory factory,
       ObservationRegistry observations,
       IngestionProperties properties,
-      @Qualifier("ingestionAuthentication") ClientHttpRequestInterceptor authentication)
-      throws IOException {
-    OpenApiValidationClientHttpRequestInterceptor validation =
-        new OpenApiValidationClientHttpRequestInterceptor(
-            OpenApiInteractionValidator.createForInlineApiSpecification(
-                    new ClassPathResource("contracts/ingestion.yaml")
-                        .getContentAsString(StandardCharsets.UTF_8))
-                // This consumer validates responses. The interceptor's post-send request check
-                // treats percent-encoded date query values as invalid; the backend owns inputs.
-                .withLevelResolver(
-                    LevelResolver.create()
-                        .withLevel("validation.request", ValidationReport.Level.IGNORE)
-                        .build())
-                .build());
+      @Qualifier("ingestionAuthentication") ClientHttpRequestInterceptor authentication) {
     RestClient restClient =
         ApiClient.buildRestClientBuilder()
             .requestFactory(factory)
             .observationRegistry(observations)
             .requestInterceptor(authentication)
-            .requestInterceptor(
-                (request, body, execution) -> {
-                  try {
-                    return validation.intercept(request, body, execution);
-                  } catch (
-                      OpenApiValidationClientHttpRequestInterceptor.OpenApiValidationException
-                          exception) {
-                    // Its report contains received values. Keep it out of exceptions and
-                    // operational logs.
-                    throw new RestClientException("Invalid ingestion HTTP exchange");
-                  }
-                })
             .build();
     ApiClient client = new ApiClient(restClient);
     client.setBasePath(properties.baseUrl());

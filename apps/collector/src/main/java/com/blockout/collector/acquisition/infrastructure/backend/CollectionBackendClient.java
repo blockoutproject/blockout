@@ -10,8 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * Native generated backend adapter; the existing ApiClient owns OAuth, validation and no-retry
- * HTTP.
+ * Native generated backend adapter; the existing ApiClient owns OAuth, decoding and no-retry HTTP.
  */
 @Component
 @RequiredArgsConstructor

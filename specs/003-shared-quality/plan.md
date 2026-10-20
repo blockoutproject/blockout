@@ -109,7 +109,7 @@ Liquibase XML runs once as a dedicated release job with separate schema credenti
 
 ## HTTP generation, errors and compatibility
 
-The backend provides mobile and ingestion surfaces from canonical OpenAPI YAML 3.0.4 roots. Redocly validates/bundles them; OpenAPI Generator produces Java interfaces, DTOs and the collector client; Orval produces mobile Query functions/types and Zod schemas. A focused Fetch adapter validates business responses before cache admission.
+The backend provides mobile and ingestion surfaces from canonical OpenAPI YAML 3.0.4 roots. Redocly validates/bundles them; OpenAPI Generator produces Java interfaces, DTOs and the collector client; Orval produces mobile Query functions/types and Zod schemas. A focused Fetch adapter validates mobile business responses before cache admission. The collector uses generated RestClient/Jackson decoding directly with the explicitly accepted internal-response limits in the interface decisions.
 
 [Interface decisions](contracts/README.md) define the source locations, generation configuration, RFC 9457 errors, request/response validation and compatibility policy. [Research](research.md) explains the selected tools and their concrete limits; [quickstart](quickstart.md#contract-boundary) defines the integrated proof required before adoption.
 

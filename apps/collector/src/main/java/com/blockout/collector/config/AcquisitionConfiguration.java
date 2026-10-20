@@ -60,7 +60,7 @@ public class AcquisitionConfiguration {
   /**
    * Uses the existing authenticated ingestion transport for collector operations.
    *
-   * @param client existing validated and authenticated ingestion transport
+   * @param client existing generated and authenticated ingestion transport
    * @return generated collector operations, with no additional HTTP stack
    */
   @Bean
