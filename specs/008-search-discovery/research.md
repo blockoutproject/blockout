@@ -56,7 +56,9 @@ The [existing F04 evidence](spec.md#v1-sources) also identifies five examples, t
 
 **Alternatives considered**: One generic mixed-type search union adds generated-model complexity and does not match the three independent tabs. A global filter/list endpoint, random sampling on refresh, a server search session or a persistent mobile cache supplies no needed behavior. Snapshot totals and custom transient-state protocols are not required. Existing errors/ordinary retry cover dependency loss without a new screen.
 
-**Evidence limit**: Canonical definitions can be linted now. Java/TypeScript generation, Unicode counting, array encoding, request cancellation, mobile memory behavior and native accessibility still require the [quickstart scenarios](quickstart.md).
+**Generated binding**: The discovery operations use their own generator tag so the shared request boundary can be qualified without implementing unrelated sporting operations. The selected generators translate `maxLength` into UTF-16 length checks; the query schema instead expresses the same 200-code-point bound with a Unicode property pattern, including a strict end check. Java Pattern and Orval's generated Unicode RegExp enforce it natively. Spring query converters delegate exact wire values to the generated enums' `fromValue` methods. There is no handwritten transport schema or custom validation engine.
+
+**Evidence limit**: Scoped Java/TypeScript, Unicode, array, response-validation and session-boundary evidence is recorded in the [quickstart](quickstart.md#contracts-and-access). Complete mobile journeys and native accessibility remain later qualification.
 
 ## Infrastructure and diagnostics
 

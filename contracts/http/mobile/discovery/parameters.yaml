@@ -6,7 +6,9 @@ Query:
   schema:
     type: string
     description: At most 200 Unicode characters, without truncation or a separate token-count limit.
-    maxLength: 200
+    # Both Java Pattern and Orval's Unicode RegExp count code points here. @Size/max count UTF-16.
+    # The final negative lookahead also rejects an over-limit trailing newline.
+    pattern: '^[\p{L}\P{L}]{0,200}(?![\p{L}\P{L}])'
 Cursor:
   name: cursor
   in: query

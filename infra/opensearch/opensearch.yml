@@ -1,0 +1,15 @@
+cluster.name: blockout-local-search
+node.name: local-search
+network.host: 0.0.0.0
+discovery.type: single-node
+plugins.security.ssl.transport.pemcert_filepath: tls/node.pem
+plugins.security.ssl.transport.pemkey_filepath: tls/node-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: tls/ca.pem
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.pemcert_filepath: tls/node.pem
+plugins.security.ssl.http.pemkey_filepath: tls/node-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: tls/ca.pem
+plugins.security.nodes_dn:
+  - CN=localhost
+# Only the disposable local/test instance initializes its private native configuration on first use.
+plugins.security.allow_default_init_securityindex: true

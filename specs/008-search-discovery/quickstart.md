@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-This guide qualifies the future implementation. The product runtime and its Maven/npm/Nx targets do not exist yet; run the actual targets supplied by authorized implementation, not invented commands. Current documentary checks are in the [README](../../README.md#verification).
+The executable foundation and verification commands are in the [README](../../README.md#verification), including [local search infrastructure](../../README.md#local-search-infrastructure). The later story scenarios below remain qualification work for their owning tasks.
 
 Use synthetic sporting fixtures, PostgreSQL 18.6, OpenSearch 3.9.0 and the selected Java client on Java 25. Keep provider data and production credentials out of fixtures. Start the isolated services through the implementation's supported setup and apply its current baseline before the scenarios. Native checks use the F13 iOS/Android builds and established test tools.
 
@@ -13,6 +13,10 @@ Use synthetic sporting fixtures, PostgreSQL 18.6, OpenSearch 3.9.0 and the selec
 Lint/bundle the canonical root and generate the Java/TypeScript consumers at the same source revision. Compile/test actual consumers and regenerate deterministically. Check absent fields, additive response properties, enum rejection, Unicode length, repeated UUID query-array encoding and cursor/context validation. Expected: 200 Unicode characters are accepted, longer input is rejected without truncation, all meaningful terms are retained, wrong parameter combinations fail, and invalid JSON never enters the cache as success.
 
 Read as guest, free, Pro and unknown entitlement. Exercise maintenance and explicit bypass with absent, expired, wrong-environment and unauthorized tokens. Expected: public search needs no account; existing F12 refusals and safe Problem Details apply. Stop the engine or fail a shard: no failure becomes a successful empty list or end. Verify TLS trust, namespace-scoped privileges and that neither mobile nor collector reaches the engine directly.
+
+Foundation evidence for #147: `OpenSearchClientIntegrationTest` executes the official client 3.10.0/Apache HttpClient 5 against real OpenSearch 3.9.0 under Temurin 25.0.4.1. Trusted TLS succeeds; an untrusted CA, incorrect credential and out-of-namespace write fail. Native record serialization, matching, per-item bulk outcomes, explicit refresh, rejected alias-update rollback and atomic three-alias replacement pass on isolated synthetic indexes. The optional Compose service uses independently generated local credentials and TLS, with no demo installer. These are dependency primitives, not analyzer, complete traversal, rebuild or environment qualification.
+
+`DiscoveryContractTest` and the mobile discovery suites exercise generated interfaces/consumers, the shared Problem Details boundary, 200 Unicode code points, rejected over-limit input, exact enum values, unknown parameters, repeated distinct UUIDs and malformed/context-mismatched cursors. Native generated response validation occurs once before Query admission. `DiscoveryAccessTest` uses the real security, current-account and grant owners with controlled persistence; its test-only adapter composes bypass admission. The existing security suite owns real signature/expiry/environment checks. Mobile tests control HTTP responses and native cancellation, reusing F05 session generation and F13 transport/Query isolation. No production discovery endpoint or second maintenance owner is installed. Complete F12 maintenance integration, actual device networking and business search responses remain unqualified.
 
 ## Matching, choices and complete browsing
 
@@ -40,4 +44,4 @@ Open/close F03 sheets and exercise the existing F11 counter: filtering, scrollin
 
 ## Evidence limits
 
-Official documentation and scoped static V1 inspection support the decisions, not their integrated execution. No engine run, Java 25/client compilation, generated consumer compilation, native qualification, deployment or restoration has been performed for this plan. Record those future outcomes in their owning test/delivery tools; do not infer them from passing documentary checks.
+The foundation evidence above qualifies only T001–T007's dependency and request/context boundaries. Matching/analyzers, current-data hydration, exhaustive traversal, projection lifecycle, installed F12 maintenance admission, native UI/device behavior, deployment and restoration remain with their later owning tasks. Local synthetic evidence establishes no provider or production approval.
