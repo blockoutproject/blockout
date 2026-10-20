@@ -13,6 +13,7 @@ import {
   AccountSessionProvider,
   useAccountSession,
 } from "../session/account-session-provider";
+import { credentialsFor, mockClient } from "../test-support/native-auth0";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -22,30 +23,9 @@ jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
   __esModule: true,
   default: jest.fn(() => mockClient),
 }));
-jest.mock("react-native-auth0", () => {
-  const sdk = jest.requireActual<typeof import("react-native-auth0")>(
-    "react-native-auth0/src/hooks/Auth0Provider.tsx",
-  );
-  return {
-    __esModule: true,
-    default: jest.requireMock(
-      require.resolve("react-native-auth0/src/Auth0.ts"),
-    ).default,
-    useAuth0: jest.requireActual("react-native-auth0/src/hooks/useAuth0.ts")
-      .useAuth0,
-    Auth0Provider: sdk.Auth0Provider,
-  };
-});
-
-const mockClient = {
-  credentialsManager: {
-    hasValidCredentials: jest.fn<Promise<boolean>, []>(),
-    getCredentials: jest.fn<Promise<Credentials>, []>(),
-    clearCredentials: jest.fn<Promise<void>, []>(),
-    saveCredentials: jest.fn<Promise<void>, [Credentials]>(),
-  },
-  webAuth: { authorize: jest.fn<Promise<Credentials>, []>() },
-};
+jest.mock("react-native-auth0", () =>
+  jest.requireActual("../test-support/native-auth0").nativeAuth0Module(),
+);
 
 const originalConfiguration = {
   EXPO_PUBLIC_AUTH0_DOMAIN: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
@@ -78,19 +58,6 @@ afterEach(() => {
     else process.env[key] = value;
   }
 });
-
-/** Supplies decoded identity claims to the SDK; this fixture does not qualify token validation. */
-function credentialsFor(subject: string): Credentials {
-  const payload = Buffer.from(JSON.stringify({ sub: subject })).toString(
-    "base64url",
-  );
-  return {
-    accessToken: "test-access-token",
-    idToken: `e30.${payload}.test-signature`,
-    tokenType: "Bearer",
-    expiresAt: 2_000_000_000,
-  };
-}
 
 /** Exercises native actions from an ordinary app descendant, invalidating old work before logout. */
 function MockNativeAuthenticationControls() {
