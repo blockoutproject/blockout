@@ -8,11 +8,7 @@ import {
   useSyncExternalStore,
   type PropsWithChildren,
 } from "react";
-import Auth0, {
-  Auth0Provider,
-  useAuth0,
-  type Credentials,
-} from "react-native-auth0";
+import Auth0, { Auth0Provider, useAuth0 } from "react-native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
   createSessionGeneration,
@@ -41,14 +37,12 @@ export interface AccountSession extends SessionSnapshot, SessionGeneration {
   retryInitialization(): void;
   /** Remounts the SDK after failed restoration, resetting navigation without clearing credentials. */
   retryAuthentication(): void;
-  /** Uses native retrieval/renewal without mutating SDK React state; obsolete work rejects with AbortError. */
-  getCredentials(generation: string): Promise<Credentials | undefined>;
 }
 
 type Initialization =
   | { status: "initializing" }
   | { status: "initialization-error"; error: unknown }
-  | { status: "ready"; domain: string; clientId: string; client: Auth0 };
+  | { status: "ready"; domain: string; clientId: string };
 
 const AccountSessionContext = createContext<AccountSession | null>(null);
 
@@ -76,7 +70,7 @@ export function AccountSessionProvider({ children }: PropsWithChildren) {
         const client = new Auth0({ domain, clientId });
         await initializeV2Installation(client);
         if (!cancelled)
-          setInitialization({ status: "ready", domain, clientId, client });
+          setInitialization({ status: "ready", domain, clientId });
       } catch (error) {
         if (!cancelled)
           setInitialization({ status: "initialization-error", error });
@@ -171,33 +165,11 @@ function SessionScope({
     },
     setAccount: (generation, accountId) =>
       status === "authenticated" && session.setAccount(generation, accountId),
-    async getCredentials(generation) {
-      assertCurrent(session, generation);
-      if (status !== "authenticated" || initialization.status !== "ready")
-        return undefined;
-      let credentials: Credentials;
-      try {
-        // The hook variant updates SDK state before a generation guard could reject obsolete work.
-        credentials =
-          await initialization.client.credentialsManager.getCredentials();
-      } catch (error) {
-        assertCurrent(session, generation);
-        throw error;
-      }
-      assertCurrent(session, generation);
-      return credentials;
-    },
   };
 
   return (
     <AccountSessionContext value={value}>{children}</AccountSessionContext>
   );
-}
-
-/** Discards both successful and failed credential completions from a previous session. */
-function assertCurrent(session: SessionGeneration, generation: string): void {
-  if (!session.isCurrent(generation))
-    throw new DOMException("Session changed", "AbortError");
 }
 
 /** Reads the business boundary; SDK actions are also available below the initialized Auth0Provider. */

@@ -5,7 +5,7 @@ import {
   screen,
   userEvent,
 } from "@testing-library/react-native";
-import { useState, type PropsWithChildren } from "react";
+import { useState } from "react";
 import { Pressable, Text, TextInput } from "react-native";
 import { useAuth0, type Credentials } from "react-native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -118,16 +118,6 @@ function MockNativeAuthenticationControls() {
         <Text>Clear credentials</Text>
       </Pressable>
     </>
-  );
-}
-
-/** Gives hook tests the same SDK access as ordinary application descendants. */
-function SessionHarness({ children }: PropsWithChildren) {
-  return (
-    <AccountSessionProvider>
-      <MockNativeAuthenticationControls />
-      {children}
-    </AccountSessionProvider>
   );
 }
 
@@ -309,100 +299,56 @@ it.each(["auth0|a", "auth0|b"])(
   },
 );
 
-it.each(["success", "failure"] as const)(
-  "discards a late credential %s without changing the cleared SDK session",
-  async (completion) => {
-    // Given
-    mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-    const hook = await renderHook(useAccountSession, {
-      wrapper: SessionHarness,
-    });
-    const renewal = Promise.withResolvers<Credentials>();
-    mockClient.credentialsManager.getCredentials.mockReturnValueOnce(
-      renewal.promise,
-    );
-    const captured = hook.result.current.generation;
-    const pending = hook.result.current.getCredentials(captured);
-    const outcome = expect(pending).rejects.toMatchObject({
-      name: "AbortError",
-    });
-    const user = userEvent.setup();
-
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Clear native credentials" }),
-    );
-    expect(hook.result.current.status).toBe("guest");
-    await act(async () => {
-      if (completion === "failure")
-        renewal.reject(new Error("Old network failure"));
-      else renewal.resolve(credentialsFor("auth0|a"));
-      await outcome;
-    });
-
-    // Then
-    expect(hook.result.current.status).toBe("guest");
-    expect(hook.result.current.error).toBeNull();
-    expect(screen.getByText("Native identity: guest")).toBeOnTheScreen();
-    expect(
-      screen.queryByText("Native error: Old network failure"),
-    ).not.toBeOnTheScreen();
-    expect(hook.result.current.isCurrent(captured)).toBe(false);
-
-    // When
-    mockClient.credentialsManager.getCredentials.mockClear();
-    await expect(
-      hook.result.current.getCredentials(captured),
-    ).rejects.toMatchObject({ name: "AbortError" });
-
-    // Then
-    expect(mockClient.credentialsManager.getCredentials).not.toHaveBeenCalled();
-  },
-);
-
 it("preserves the account context when native credential retrieval fails transiently", async () => {
   // Given
   mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-  const hook = await renderHook(useAccountSession, {
-    wrapper: SessionHarness,
-  });
+  const hook = await renderHook(
+    () => ({ auth: useAuth0(), session: useAccountSession() }),
+    { wrapper: AccountSessionProvider },
+  );
   const failure = new Error("Network unavailable");
   mockClient.credentialsManager.getCredentials.mockRejectedValueOnce(failure);
-  const captured = hook.result.current.generation;
+  const captured = hook.result.current.session.generation;
   await act(async () => {
-    hook.result.current.setAccount(captured, "account-a");
+    hook.result.current.session.setAccount(captured, "account-a");
   });
 
   // When
-  await expect(hook.result.current.getCredentials(captured)).rejects.toBe(
-    failure,
-  );
+  await act(async () => {
+    await expect(hook.result.current.auth.getCredentials()).rejects.toBe(
+      failure,
+    );
+  });
 
   // Then
-  expect(hook.result.current.status).toBe("authenticated");
-  expect(hook.result.current.accountId).toBe("account-a");
-  expect(hook.result.current.generation).toBe(captured);
+  expect(hook.result.current.session.status).toBe("authenticated");
+  expect(hook.result.current.session.accountId).toBe("account-a");
+  expect(hook.result.current.session.generation).toBe(captured);
 });
 
 it("returns native credentials without inferring a business account", async () => {
   // Given
   mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-  const hook = await renderHook(useAccountSession, {
-    wrapper: SessionHarness,
-  });
+  const hook = await renderHook(
+    () => ({ auth: useAuth0(), session: useAccountSession() }),
+    { wrapper: AccountSessionProvider },
+  );
   const credentials = credentialsFor("auth0|a");
   mockClient.credentialsManager.getCredentials.mockResolvedValueOnce(
     credentials,
   );
-  const captured = hook.result.current.generation;
+  const captured = hook.result.current.session.generation;
 
   // When
-  const result = await hook.result.current.getCredentials(captured);
+  let result: Credentials | undefined;
+  await act(async () => {
+    result = await hook.result.current.auth.getCredentials();
+  });
 
   // Then
   expect(result).toBe(credentials);
-  expect(hook.result.current.generation).toBe(captured);
-  expect(hook.result.current.accountId).toBeNull();
+  expect(hook.result.current.session.generation).toBe(captured);
+  expect(hook.result.current.session.accountId).toBeNull();
 });
 
 it("leaves public access available when native authentication is not configured", async () => {
@@ -442,36 +388,6 @@ it("exposes the SDK context to ordinary app descendants", async () => {
   // Then
   expect(hook.result.current.auth.user?.sub).toBe("auth0|a");
   expect(hook.result.current.session.status).toBe("authenticated");
-});
-
-it("rejects old credentials when logout and their completion precede React's next commit", async () => {
-  // Given
-  mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-  const hook = await renderHook(
-    () => ({ auth: useAuth0(), session: useAccountSession() }),
-    {
-      wrapper: AccountSessionProvider,
-    },
-  );
-  const renewal = Promise.withResolvers<Credentials>();
-  mockClient.credentialsManager.getCredentials.mockReturnValueOnce(
-    renewal.promise,
-  );
-  const pending = hook.result.current.session.getCredentials(
-    hook.result.current.session.generation,
-  );
-  const outcome = expect(pending).rejects.toMatchObject({ name: "AbortError" });
-
-  // When
-  await act(async () => {
-    await hook.result.current.session.clearCredentials();
-    renewal.resolve(credentialsFor("auth0|a"));
-    await outcome;
-  });
-
-  // Then
-  expect(hook.result.current.session.status).toBe("guest");
-  expect(hook.result.current.auth.user).toBeNull();
 });
 
 it("retries SDK restoration explicitly after a network failure without clearing credentials or logging in", async () => {
@@ -546,9 +462,7 @@ it("invalidates private work immediately even when native credential clearing is
   // Then
   expect(hook.result.current.isCurrent(captured)).toBe(false);
   expect(hook.result.current.accountId).toBeNull();
-  await expect(
-    hook.result.current.getCredentials(captured),
-  ).rejects.toMatchObject({ name: "AbortError" });
+  expect(hook.result.current.setAccount(captured, "late-account")).toBe(false);
 
   // When
   await act(async () => {
