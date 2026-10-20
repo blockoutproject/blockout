@@ -38,7 +38,7 @@ export type ErrorType<TProblem> = ApiError<TProblem>;
 
 /**
  * Resolves backend references and validates JSON once before a generated consumer succeeds.
- * Cancellation and timeout stop waiting; neither proves that a mutation was rolled back.
+ * Expo Fetch owns cancellation and timeout delivery; neither proves that a mutation was rolled back.
  * The adapter never retries requests and rejects redirects that could forward caller credentials.
  * Empty 204 responses succeed only when the caller expects no JSON or binary representation.
  */
@@ -73,8 +73,6 @@ export async function apiFetch(
   } catch {
     throw new ApiError("configuration");
   }
-  if (signal?.aborted) throw new ApiError("cancelled");
-
   const deadline = AbortSignal.timeout(timeoutMs);
   const requestSignal = signal ? AbortSignal.any([signal, deadline]) : deadline;
   try {
@@ -103,24 +101,17 @@ export async function apiFetch(
       }
       throw new ApiError("http", response.status, problem);
     }
-    if (requestSignal.aborted)
-      throw new ApiError(deadline.aborted ? "timeout" : "cancelled");
     if (response.status === 204) {
       if (schema || responseType) throw new ApiError("schema");
       return undefined;
     }
     if (responseType === "blob" && !schema) {
-      const blob = await response.blob();
-      if (requestSignal.aborted)
-        throw new ApiError(deadline.aborted ? "timeout" : "cancelled");
-      return blob;
+      return await response.blob();
     }
     if (!schema || contentType !== "application/json")
       throw new ApiError("schema");
     try {
       const body: unknown = await response.json();
-      if (requestSignal.aborted)
-        throw new ApiError(deadline.aborted ? "timeout" : "cancelled");
       return schema.parse(body);
     } catch {
       throw new ApiError("schema");

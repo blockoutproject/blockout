@@ -385,19 +385,6 @@ it("preserves caller cancellation without replay", async () => {
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 
-it("does not send an already cancelled request", async () => {
-  // Given
-  const controller = new AbortController();
-  controller.abort();
-
-  // When
-  const response = getApplicationAccess({ signal: controller.signal });
-
-  // Then
-  await expect(response).rejects.toMatchObject({ kind: "cancelled" });
-  expect(mockFetch).not.toHaveBeenCalled();
-});
-
 it.each([0, 0.5, Number.POSITIVE_INFINITY])(
   "rejects an invalid timeout of %s before sending",
   async (timeoutMs) => {
@@ -429,86 +416,6 @@ it("bounds an uncertain write without replay", async () => {
 
   // When
   const response = eraseAccount(accountId, { timeoutMs: 50 });
-
-  // Then
-  await expect(response).rejects.toMatchObject({
-    kind: "timeout",
-  });
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-});
-
-it("rejects a response that arrives after caller cancellation", async () => {
-  // Given
-  const controller = new AbortController();
-  mockFetch.mockImplementation(async () => {
-    controller.abort();
-    return new Response(JSON.stringify(applicationAccessResponse()), {
-      headers: { "Content-Type": "application/json" },
-    });
-  });
-
-  // When
-  const response = getApplicationAccess({ signal: controller.signal });
-
-  // Then
-  await expect(response).rejects.toMatchObject({ kind: "cancelled" });
-});
-
-it("rejects JSON read after caller cancellation", async () => {
-  // Given
-  const controller = new AbortController();
-  const response = new Response("{}", {
-    headers: { "Content-Type": "application/json" },
-  });
-  jest.spyOn(response, "json").mockImplementation(async () => {
-    controller.abort();
-    return applicationAccessResponse();
-  });
-  mockFetch.mockResolvedValue(response);
-
-  // When
-  const attempt = getApplicationAccess({ signal: controller.signal });
-
-  // Then
-  await expect(attempt).rejects.toMatchObject({ kind: "cancelled" });
-});
-
-it("rejects binary content read after caller cancellation", async () => {
-  // Given
-  const controller = new AbortController();
-  const response = new Response("image-bytes", {
-    headers: { "Content-Type": "image/png" },
-  });
-  jest.spyOn(response, "blob").mockImplementation(async () => {
-    controller.abort();
-    return new Blob(["image-bytes"]);
-  });
-  mockFetch.mockResolvedValue(response);
-
-  // When
-  const attempt = getAccountPhoto(accountId, { signal: controller.signal });
-
-  // Then
-  await expect(attempt).rejects.toMatchObject({ kind: "cancelled" });
-});
-
-it("rejects a response that arrives after the timeout", async () => {
-  // Given
-  mockFetch.mockImplementation(
-    (_url, options) =>
-      new Promise((resolve) =>
-        options?.signal?.addEventListener("abort", () =>
-          resolve(
-            new Response(JSON.stringify(applicationAccessResponse()), {
-              headers: { "Content-Type": "application/json" },
-            }),
-          ),
-        ),
-      ),
-  );
-
-  // When
-  const response = getApplicationAccess({ timeoutMs: 50 });
 
   // Then
   await expect(response).rejects.toMatchObject({
