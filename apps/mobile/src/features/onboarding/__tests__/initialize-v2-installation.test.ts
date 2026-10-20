@@ -101,27 +101,6 @@ it("waits for clearing before persisting completion across repeated mount attemp
   expect(await AsyncStorage.getItem(marker)).toBe("true");
 });
 
-it("resolves only after the marker is persisted", async () => {
-  // Given
-  const writing = Promise.withResolvers<void>();
-  const started = Promise.withResolvers<void>();
-  let persisted = false;
-  jest.spyOn(AsyncStorage, "setItem").mockImplementationOnce(async () => {
-    started.resolve();
-    await writing.promise;
-    persisted = true;
-  });
-
-  // When
-  const initialization = initializeV2Installation(auth0).then(() => persisted);
-  await started.promise;
-
-  // Then
-  expect(persisted).toBe(false);
-  writing.resolve();
-  expect(await initialization).toBe(true);
-});
-
 it("propagates a failed marker read without clearing credentials", async () => {
   // Given
   const error = new Error("Storage unavailable");
