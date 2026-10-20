@@ -19,6 +19,8 @@ Use this workflow when the human explicitly requests a parallel issue batch or c
 
 Use the available native task and worktree tools. Create one separate implementation conversation and managed worktree per approved issue, starting from the intended integration revision. Name the conversation `#<number> — <exact issue title>`. If these capabilities are unavailable, report the limit and supply usable task prompts; do not claim to have launched work or build an orchestration service.
 
+Begin each task conversation with a short, plain-language explanation of the problem, intended outcome and practical benefit. Write for a technically literate reader who is unfamiliar with the project. Introduce only the concepts needed to understand the task, before implementation details, commands or progress reporting.
+
 Give each task a self-contained handoff:
 
 - Repository/worktree, issue, base revision, exact scope and owning spec/plan/tasks.
@@ -53,7 +55,7 @@ Recheck affected behavior after corrections, then run the second round with two 
 
 Apply repository verification and delivery policy, using an installed delivery skill when available. Test the final tree proportionately and report passed, failed and unavailable evidence. Mocks, exports, startup and synthetic native launches prove only their own boundary. Do not claim actual provider, design or device qualification from narrower evidence.
 
-Deliver one draft PR per scoped task and attach it to its conversation when the native tool is available. Report changes, checks, both review rounds and material remaining limits concisely. Use existing conversation/PR records; do not commit a parallel audit catalogue or synchronization manifest.
+Deliver one draft PR per scoped task and attach it to its conversation when the native tool is available. Open its description with the same brief explanation of purpose, adjusted to the actual delivered behavior; update it when scope changes. Follow with the relevant implementation, checks, both review rounds and material remaining limits concisely. Use existing conversation/PR records; do not commit a parallel audit catalogue or synchronization manifest.
 
 Merging and starting subsequent issues require the applicable explicit human request. At an authorized merge, fetch the current base, detect integration lag and follow the project's update strategy. Rebase owned topics only where that is the accepted policy, publish rewrites with a safe lease, reassess semantic conflicts and rerun affected verification/required CI on the final revision. Preserve protections and unrelated branches. This workflow grants no integration-branch rewrite or provider-operation permission.
 
