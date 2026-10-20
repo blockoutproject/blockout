@@ -125,13 +125,14 @@ class SupportPropertiesTest {
         });
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(strings = {"intake-incomplete", "INTAKE-INCOMPLETE"})
   @DisplayName("Rejects indistinguishable incomplete and complete intake labels")
-  void rejectsIdenticalLabels() {
+  void rejectsIdenticalLabels(String completeLabel) {
     // Given
     ApplicationContextRunner application =
         configuredDestination()
-            .withPropertyValues("blockout.support.destination.complete-label=intake-incomplete");
+            .withPropertyValues("blockout.support.destination.complete-label=" + completeLabel);
 
     // When
     application.run(

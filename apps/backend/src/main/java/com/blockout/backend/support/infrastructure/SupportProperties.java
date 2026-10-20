@@ -46,7 +46,8 @@ public record SupportProperties(
       @NotBlank @Pattern(regexp = "https://discord\\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+")
           String discordWebhook) {
     /**
-     * Prevents one label from representing both partial and complete intake.
+     * Prevents one case-insensitive GitHub label from representing both partial and complete
+     * intake.
      *
      * @return whether supplied intake labels differ; required-value checks own missing labels
      */
@@ -54,7 +55,7 @@ public record SupportProperties(
     public boolean isIntakeDistinct() {
       return incompleteLabel == null
           || completeLabel == null
-          || !incompleteLabel.equals(completeLabel);
+          || !incompleteLabel.equalsIgnoreCase(completeLabel);
     }
 
     /** Keeps credentials and the private repository out of incidental object rendering. */
