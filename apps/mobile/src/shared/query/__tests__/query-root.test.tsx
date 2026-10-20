@@ -1,7 +1,7 @@
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { Stack } from "expo-router";
-import type { ComponentType } from "react";
+import type { ComponentType, PropsWithChildren } from "react";
 import { Pressable, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 
@@ -13,6 +13,22 @@ jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
   wrap: (component: ComponentType) => component,
 }));
+jest.mock("react-native-auth0", () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    credentialsManager: {
+      clearCredentials: jest.fn().mockResolvedValue(undefined),
+      hasValidCredentials: jest.fn().mockResolvedValue(false),
+    },
+  })),
+  Auth0Provider: ({ children }: PropsWithChildren) => children,
+  useAuth0: () => ({ user: null, isLoading: false, error: null }),
+}));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(async () => {
