@@ -28,6 +28,12 @@ Use the [plan's release sequence](plan.md#cutover-and-recovery). Repository test
 
 Use the existing Java/mobile test tools for controlled failure and serialization cases, then actual authorized native/provider checks for external outcomes. Do not log private customer references or credentials into public test reports. No automatic migration coordinator, new E2E framework or recurring transition test programme is required.
 
+## Private continuity and final-state preparation
+
+Use the [private inventory and destruction gates](../../infra/operations/README.md#private-continuity-inventory) prepared by T018 and the [final current-state reconciliation](../../infra/operations/README.md#final-current-state-reconciliation) prepared by T024. Execute the population reconciliation only under #163/T020 authorization; T049 performs the final check immediately before authorized retirement. T025/T053 record public-safe outcomes here, separating population coverage, native/provider qualification and current-state evidence. Keep all personal associations and unresolved cases in the authorized private process.
+
+These instructions provide no executed inventory, current provider check or continuity qualification. T020–T022, T025, logo preservation and release execution remain pending in [tasks.md](tasks.md); the dated observations in [research.md](research.md#current-v1-evidence) are not new operational evidence.
+
 ## Legacy status qualification
 
 Use both supported installed V1 store builds and the actual first V2 release for each platform. The October 15 observations were Android 1.3.5/build 84 and iOS 1.3.5/build 122; refresh that inventory before qualification rather than treating those observations as the supported population.
