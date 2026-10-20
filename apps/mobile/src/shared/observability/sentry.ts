@@ -25,8 +25,29 @@ function safeFrames(frames: Sentry.StackFrame[] | undefined) {
   });
 }
 
-/** Filters JavaScript errors after scope enrichment; native reports require Sentry project scrubbing. */
-function safeError(event: Sentry.ErrorEvent): Sentry.ErrorEvent | null {
+/** Keeps standard JS error categories; custom Error.name values can contain user/provider content. */
+function safeErrorType(type: string | undefined) {
+  return type &&
+    [
+      "Error",
+      "TypeError",
+      "RangeError",
+      "ReferenceError",
+      "SyntaxError",
+      "URIError",
+      "EvalError",
+      "AggregateError",
+    ].includes(type)
+    ? type
+    : "Error";
+}
+
+/** Filters enriched JS errors and their attachment hint; native crash reports bypass this hook. */
+const safeError: NonNullable<Sentry.ReactNativeOptions["beforeSend"]> = (
+  event,
+  hint,
+) => {
+  hint.attachments = [];
   if (!event.exception?.values?.length) return null;
 
   return {
@@ -38,13 +59,23 @@ function safeError(event: Sentry.ErrorEvent): Sentry.ErrorEvent | null {
     release: event.release,
     dist: event.dist,
     environment: event.environment,
-    sdk: event.sdk,
+    sdk: event.sdk
+      ? {
+          name: event.sdk.name,
+          version: event.sdk.version,
+          settings: { infer_ip: "never" },
+        }
+      : undefined,
     exception: {
       values: event.exception.values.map((exception) => ({
-        type: exception.type,
+        type: safeErrorType(exception.type),
         mechanism: exception.mechanism
           ? {
-              type: exception.mechanism.type,
+              type: ["generic", "onerror", "onunhandledrejection"].includes(
+                exception.mechanism.type,
+              )
+                ? exception.mechanism.type
+                : "generic",
               handled: exception.mechanism.handled,
             }
           : undefined,
@@ -53,7 +84,14 @@ function safeError(event: Sentry.ErrorEvent): Sentry.ErrorEvent | null {
     },
     debug_meta: {
       images: event.debug_meta?.images?.flatMap((image) => {
-        if (image.type !== "sourcemap") return [];
+        if (
+          image.type !== "sourcemap" ||
+          !image.debug_id ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            image.debug_id,
+          )
+        )
+          return [];
         const codeFile = bundleFilename(image.code_file);
         return codeFile
           ? [
@@ -67,19 +105,27 @@ function safeError(event: Sentry.ErrorEvent): Sentry.ErrorEvent | null {
       }),
     },
   };
-}
+};
 
-/** Configures the SDK at the route entry; development is disabled and Sentry handles absent DSNs. */
+/** Prepares bounded capture at the route entry; T033 qualification must precede any sending. */
 export function initializeSentry() {
   Sentry.init({
     dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
     environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT,
-    enabled: !__DEV__,
+    // A DSN or release build cannot bypass the pending native privacy/symbolication gate.
+    enabled: false,
     sendDefaultPii: false,
+    sendClientReports: false,
     enableAutoSessionTracking: false,
     enableAutoPerformanceTracing: false,
+    enableAppHangTracking: false,
+    enableWatchdogTerminationTracking: false,
+    enableCaptureFailedRequests: false,
+    attachScreenshot: false,
+    attachViewHierarchy: false,
     enableLogs: false,
     maxBreadcrumbs: 0,
+    beforeBreadcrumb: () => null,
     // Sampling options stay absent so the SDK does not install replay/tracing/profiling integrations.
     beforeSend: safeError,
   });
