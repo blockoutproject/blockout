@@ -1,4 +1,25 @@
 services:
+  opensearch:
+    image: opensearchproject/opensearch:3.9.0
+    profiles: [search]
+    environment:
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "127.0.0.1:${OPENSEARCH_PORT:-9200}:9200"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+      - ./infra/opensearch/opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro
+      - ./local/opensearch/tls:/usr/share/opensearch/config/tls:ro
+      - ./local/opensearch/security:/usr/share/opensearch/config/opensearch-security:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl --silent --cacert config/tls/ca.pem -o /dev/null -w '%{http_code}' https://localhost:9200 | grep -q 401
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
   postgres:
     image: postgres:18.6
     environment:
@@ -20,4 +41,5 @@ services:
       start_period: 10s
 
 volumes:
+  opensearch-data:
   postgres-data:

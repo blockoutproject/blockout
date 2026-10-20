@@ -27,6 +27,14 @@ spring:
       redirects: dont-follow
 
 blockout:
+  search:
+    enabled: false
+    endpoint: ${BLOCKOUT_SEARCH_ENDPOINT:}
+    username: ${BLOCKOUT_SEARCH_USERNAME:}
+    password: ${BLOCKOUT_SEARCH_PASSWORD:}
+    ssl-bundle: opensearch
+    connect-timeout-millis: 3000
+    request-timeout-millis: 5000
   security:
     # Empty fallbacks let Bean Validation reject absent inputs instead of binding placeholder text.
     issuer: ${BLOCKOUT_SECURITY_ISSUER:}

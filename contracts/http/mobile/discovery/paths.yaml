@@ -2,7 +2,7 @@ Clubs:
   get:
     operationId: listClubs
     tags:
-      - Sporting
+      - Discovery
     summary: Discover or search clubs
     description: >-
       Matches current public/source club names, applicable verified aliases and the currently permitted city.
@@ -40,7 +40,7 @@ Teams:
   get:
     operationId: listTeams
     tags:
-      - Sporting
+      - Discovery
     summary: Discover or search teams
     description: >-
       Matches current public/source full and short names, applicable verified aliases, club names and city when attached, division names and known abbreviations, format and gender.
@@ -82,7 +82,7 @@ Pools:
   get:
     operationId: listPools
     tags:
-      - Sporting
+      - Discovery
     summary: Discover or search pools
     description: >-
       Matches current public/source full and short names, applicable verified aliases, division names and known abbreviations, league, format and gender.
@@ -124,7 +124,7 @@ Options:
   get:
     operationId: getSportingSearchOptions
     tags:
-      - Sporting
+      - Discovery
     summary: Read sporting search choices
     description: >-
       Returns current seasons with viewable resources of the requested type and active division choices.

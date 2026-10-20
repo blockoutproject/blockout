@@ -83,7 +83,7 @@ Mobile crash reporting follows the [official Expo/Sentry integration](https://do
 
 Sentry's Metro/config plugins own source maps and native build integration. Authorized uploads use private build variables `SENTRY_ORG`, `SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN`; never expose the token through `EXPO_PUBLIC_` or app configuration. Set `SENTRY_DISABLE_AUTO_UPLOAD=true` for local unsigned builds. Native/provider activation, actual emitted crash data and symbolication remain subject to [T033 qualification](specs/003-shared-quality/tasks.md) and the [prepared mobile cases](specs/003-shared-quality/quickstart.md#delivery-and-operations). No project, credential, paid capability or remote setting is created by repository verification.
 
-Compose runs only local PostgreSQL 18.6 infrastructure, bound to loopback on port 5432. Applications run on the host. Start the database explicitly:
+Compose runs local PostgreSQL 18.6 infrastructure, bound to loopback on port 5432, and an optional OpenSearch service. Applications run on the host. Start the database explicitly:
 
 ```sh
 docker compose config --quiet
@@ -102,6 +102,35 @@ npx nx run backend:migrate
 ```
 
 The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-master.xml) includes the F02 sporting identity baseline. Backend startup disables SQL initialization and uses Hibernate validation; Liquibase is confined to the migration plugin and integration tests, outside the application runtime. Freeze the mutable baseline at the first preproduction/production version; later changes are immutable migrations.
+
+### Local search infrastructure
+
+The optional `search` profile runs OpenSearch 3.9.0 on loopback port 9200. With Docker and OpenSSL available, prepare fresh disposable TLS and a random backend credential, then start only this service:
+
+```sh
+bash infra/opensearch/prepare-local.sh
+docker compose --profile search config --quiet
+docker compose --profile search up -d --wait opensearch
+set -a
+. apps/backend/.env.local
+. local/opensearch/backend.env
+set +a
+```
+
+Create `apps/backend/.env.local` from its example first. Spring reads the exported values; it does not read either file automatically. The generated private files remain under ignored `local/opensearch/`. Preparation refuses to overwrite that directory. Certificates expire after seven days and are only for disposable local use; hosted TLS, rotation and provisioning remain with the operations owners. The OpenSearch volume retains its security index and derived data: editing initial YAML does not change an initialized security index.
+
+Set `OPENSEARCH_PORT` on Compose and `BLOCKOUT_SEARCH_ENDPOINT` in the backend shell when using another port. Separate worktrees should use their own Compose project (`-p <project>`) and port. No mobile or collector credential is configured. The native backend role is limited to `blockout-local-search-*`; no demo installer or trust-all client is used. Search connection creation is opt-in with `BLOCKOUT_SEARCH_ENABLED=true`; it makes no engine request and installs no search endpoint or scheduler.
+
+The official `opensearch-java` 3.10.0 client uses Apache HttpClient 5, a native Spring SSL bundle and positive connection/request deadlines (defaults 3/5 seconds). After contract generation, run the actual isolated engine qualification under Temurin Java 25:
+
+```sh
+npm run generate
+./mvnw -B -ntp -pl apps/backend verify -Dtest='Discovery*Test,OpenSearchPropertiesTest' -Dit.test=OpenSearchClientIntegrationTest
+```
+
+The integration suite creates its own TLS, credential, mapped port and disposable Testcontainers engine; it requires Docker and OpenSSL but does not require the Compose instance. It checks trust refusal, namespace refusal, native serialization/query, bulk item failures, explicit refresh and atomic aliases. See the [F04 qualification limits](specs/008-search-discovery/quickstart.md#contracts-and-access). Full backend verification remains `npx nx run backend:test`.
+
+### Application processes
 
 Each application owns a safe `.env.example`. Copy it to `.env.local` when local values are needed. Spring does not read dotenv files: export the chosen application's file in its launching shell. From the repository root, in separate terminals:
 

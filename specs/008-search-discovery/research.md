@@ -10,7 +10,7 @@
 
 **Alternatives considered**: PostgreSQL-only full-text/trigram search avoids another service but requires more application composition for the accepted multi-field prefix/fuzzy relevance semantics. Elasticsearch retains familiar V1 concepts but is not a continuity obligation. A second framework integration adds a dependency without a needed abstraction. The engine adds deployment, security and rebuild work; two isolated instances on the existing VPS are the accepted cost. No HA cluster, hosted-provider migration or capacity programme is selected.
 
-**Evidence limit**: Client TLS, serialization, native queries and bulk/alias operations must run under Java 25 before adoption. No engine container was started and no client compiled during this exploration.
+**Evidence limit**: Client TLS, serialization, native queries and bulk/alias primitives passed under the selected Java/client/engine combination; the [quickstart](quickstart.md#contracts-and-access) records the qualified scope. Analyzer behavior, business traversal, deployment and capacity remain unqualified.
 
 ## Native matching rather than token orchestration
 
@@ -56,7 +56,9 @@ The [existing F04 evidence](spec.md#v1-sources) also identifies five examples, t
 
 **Alternatives considered**: One generic mixed-type search union adds generated-model complexity and does not match the three independent tabs. A global filter/list endpoint, random sampling on refresh, a server search session or a persistent mobile cache supplies no needed behavior. Snapshot totals and custom transient-state protocols are not required. Existing errors/ordinary retry cover dependency loss without a new screen.
 
-**Evidence limit**: Canonical definitions can be linted now. Java/TypeScript generation, Unicode counting, array encoding, request cancellation, mobile memory behavior and native accessibility still require the [quickstart scenarios](quickstart.md).
+**Generated binding**: The discovery operations use their own generator tag so the shared request boundary can be qualified without implementing unrelated sporting operations. The selected generators translate `maxLength` into UTF-16 length checks; the query schema instead expresses the same 200-code-point bound with a Unicode property pattern, including a strict end check. Java Pattern and Orval's generated Unicode RegExp enforce it natively. Spring query converters delegate exact wire values to the generated enums' `fromValue` methods. There is no handwritten transport schema or custom validation engine.
+
+**Evidence limit**: Scoped Java/TypeScript, Unicode, array, response-validation and session-boundary evidence is recorded in the [quickstart](quickstart.md#contracts-and-access). Complete mobile journeys and native accessibility remain later qualification.
 
 ## Infrastructure and diagnostics
 
