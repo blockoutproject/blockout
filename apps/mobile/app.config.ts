@@ -4,6 +4,21 @@ const variant = process.env.APP_VARIANT;
 const production = variant === "production";
 const preview = variant === "preview";
 const release = production || preview;
+const testStoreApiKey = process.env.REVENUECAT_TEST_STORE_API_KEY;
+const iosApiKey = process.env.REVENUECAT_IOS_API_KEY;
+const androidApiKey = process.env.REVENUECAT_ANDROID_API_KEY;
+
+if (
+  production &&
+  (testStoreApiKey ||
+    iosApiKey?.startsWith("test_") ||
+    androidApiKey?.startsWith("test_"))
+) {
+  throw new Error(
+    "Production candidates must not contain RevenueCat Test Store keys.",
+  );
+}
+
 const easSlug = process.env.EXPO_PROJECT_SLUG;
 const applicationId = production
   ? "com.blockoutproject.blockout"
@@ -77,9 +92,18 @@ const config: ExpoConfig = {
   android: {
     package: applicationId,
   },
-  ...(easSlug
-    ? { extra: { eas: { projectId: "10cdf86a-a81e-496a-bcaa-07c132678f6d" } } }
-    : {}),
+  extra: {
+    ...(easSlug
+      ? { eas: { projectId: "10cdf86a-a81e-496a-bcaa-07c132678f6d" } }
+      : {}),
+    // Public SDK keys only. Identity association remains with the Pro lifecycle owner.
+    revenueCat: {
+      iosApiKey: testStoreApiKey || iosApiKey,
+      androidApiKey: testStoreApiKey || androidApiKey,
+      offeringIdentifier: process.env.REVENUECAT_V2_OFFERING_ID,
+      supportActionIdentifier: process.env.REVENUECAT_SUPPORT_ACTION_ID,
+    },
+  },
 };
 
 export default config;
