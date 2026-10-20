@@ -251,7 +251,7 @@ public class CollectPassage {
     log.atWarn()
         .addKeyValue("operation", "collection_acquisition")
         .addKeyValue("cycleId", context.getCycle().id())
-        .addKeyValue("scopeId", target.scopeId())
+        .addKeyValue("scope", target.scopeId())
         .addKeyValue("stage", target.kind())
         .addKeyValue("reason", reason)
         .log("Provider observation failed; independent selected work may continue");
@@ -336,6 +336,7 @@ public class CollectPassage {
       log.atError()
           .addKeyValue("operation", "collection_result")
           .addKeyValue("cycleId", context.getCycle().id())
+          .addKeyValue("scope", target.scopeId())
           .addKeyValue("stage", target.kind())
           .addKeyValue("phase", phase)
           .addKeyValue("outcome", "unconfirmed")

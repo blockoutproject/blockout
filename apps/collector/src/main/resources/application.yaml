@@ -64,8 +64,10 @@ logging:
         - error
         - error.type
         - operation
+        - cycleId
         - stage
         - scope
+        - phase
         - outcome
         - provider
         - reason
