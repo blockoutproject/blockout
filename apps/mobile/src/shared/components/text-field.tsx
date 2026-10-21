@@ -1,4 +1,4 @@
-import { useState, type Ref } from "react";
+import { useState, type ComponentType } from "react";
 import {
   StyleSheet,
   Text,
@@ -14,7 +14,8 @@ export interface TextFieldProps extends TextInputProps {
   label: string;
   helper?: string;
   error?: string;
-  ref?: Ref<TextInput>;
+  /** Supply BottomSheetTextInput inside a Sheet; its native keyboard integration stays upstream. */
+  inputComponent?: ComponentType<TextInputProps>;
 }
 
 /** Preserves the label and current draft while presenting helper/error and native focus semantics. */
@@ -28,7 +29,7 @@ export function TextField({
   onFocus,
   onBlur,
   style,
-  ref,
+  inputComponent: Input = TextInput,
   ...input
 }: TextFieldProps) {
   const { colors } = useTheme();
@@ -37,9 +38,8 @@ export function TextField({
   return (
     <View style={[styles.field, !isEditable && styles.disabled]}>
       <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-      <TextInput
+      <Input
         {...input}
-        ref={ref}
         accessibilityLabel={label}
         accessibilityHint={error ?? helper}
         accessibilityState={{ disabled: !isEditable }}
