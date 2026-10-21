@@ -77,10 +77,7 @@ export function Sheet({ title, message, footer, children }: SheetProps) {
   // iOS requires the root scroll view for intrinsic sheet sizing and native scroll integration.
   const content = (
     <ScrollView
-      style={[
-        styles.sheet,
-        { backgroundColor: colors.surface, maxHeight: height - insets.top },
-      ]}
+      style={[styles.sheet, { backgroundColor: colors.surface }]}
       stickyHeaderIndices={Platform.OS === "ios" ? [0] : undefined}
       alwaysBounceVertical={false}
       nestedScrollEnabled
@@ -109,6 +106,7 @@ export function Sheet({ title, message, footer, children }: SheetProps) {
   );
 
   // Android's native sheet translates short content; padding lets longer forms scroll above the keyboard.
+  // Temporary Android cap for Screens 4.26.2: no cap prevents scrolling; 100% clips the footer.
   // Keeping the fixed header outside the scroll target also allows native drag dismissal from it.
   return Platform.OS === "android" ? (
     <KeyboardAvoidingView
