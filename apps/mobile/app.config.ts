@@ -46,6 +46,34 @@ const config: ExpoConfig = {
     "expo-router",
     ["react-native-auth0", { domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN }],
     [
+      "react-native-google-mobile-ads",
+      {
+        // Google's sample apps allow native startup without configuring a provider account.
+        iosAppId:
+          process.env.ADMOB_IOS_APP_ID ||
+          "ca-app-pub-3940256099942544~1458002511",
+        androidAppId:
+          process.env.ADMOB_ANDROID_APP_ID ||
+          "ca-app-pub-3940256099942544~3347511713",
+        delayAppMeasurementInit: true,
+        skAdNetworkItems: ["cstr6suwn9.skadnetwork"],
+      },
+    ],
+    [
+      "@react-native-google-mobile-ads/facebook",
+      {
+        skAdNetworkItems: ["v9wttpbfk9.skadnetwork", "n38lu8286q.skadnetwork"],
+      },
+    ],
+    [
+      "expo-tracking-transparency",
+      {
+        userTrackingPermission:
+          "Votre autorisation permet d’utiliser l’identifiant publicitaire pour vous proposer des publicités personnalisées.",
+      },
+    ],
+    "expo-web-browser",
+    [
       "expo-image-picker",
       { cameraPermission: false, microphonePermission: false },
     ],
@@ -96,6 +124,12 @@ const config: ExpoConfig = {
     ...(easSlug
       ? { eas: { projectId: "10cdf86a-a81e-496a-bcaa-07c132678f6d" } }
       : {}),
+    // Public V2 inputs only; the future F11 lifecycle owns consent and SDK initialization.
+    advertising: {
+      iosInterstitialUnitId: process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID,
+      androidInterstitialUnitId:
+        process.env.ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID,
+    },
     // Public SDK keys only. Identity association remains with the Pro lifecycle owner.
     revenueCat: {
       iosApiKey: testStoreApiKey || iosApiKey,

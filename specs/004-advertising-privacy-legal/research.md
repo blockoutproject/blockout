@@ -8,7 +8,11 @@
 
 **Alternatives considered**: Separate Meta UI/SDK orchestration, Equativ, native pin overrides, Next-Gen ad pools and custom bridges add boundaries without an accepted need.
 
-**Evidence limit**: Published wrapper types/pins and provider documentation were inspected. The reviewed core pins include Android Google Mobile Ads 25.4.0/UMP 4.0 and iOS Google Mobile Ads 13.6/UMP 3.1; compatible Meta package pins must be resolved together at installation. Newer examples on a supplier page do not authorize overriding them. No native compilation or delivery was performed.
+**Resolved setup**: The lockfile selects `@react-native-google-mobile-ads/facebook` 17.3.1 alongside core 17.2.0. Its supported pins select Meta adapter 6.22.0.1 on Android and 6.22.0.0 on iOS, both with Audience Network 6.22.0. Its [Android POM](https://dl.google.com/dl/android/maven2/com/google/ads/mediation/facebook/6.22.0.1/facebook-6.22.0.1.pom) requests Google Mobile Ads 25.4.0; its [iOS podspec](https://cdn.cocoapods.org/Specs/4/1/b/GoogleMobileAdsMediationFacebook/6.22.0.0/GoogleMobileAdsMediationFacebook.podspec.json) admits the core's 13.6.0 via `~> 13.3`. Core retains UMP 4.0.0 on Android and 3.1.0 on iOS. Expo 57's installed compatibility map selects tracking transparency 57.0.2, web browser 57.0.3 and slider 5.2.0. No native pin override is needed.
+
+**Compatibility correction**: Scoped package 17.2.0 contains only an Android marker class, so Expo 57 autolinking omits it and Gradle resolves no Meta adapter despite a successful app build. The published 17.3.1 package includes a `ReactPackage` and supported autolinking configuration; it accepts core `>=17.0.0` and preserves the selected Google pins. Use that compatible package rather than patching the library, inserting native dependencies manually or adding a second Meta integration.
+
+**Evidence limit**: Published pins and resolved native configuration establish dependency compatibility, not serving or consent behavior. [Setup verification](quickstart.md#native-setup-boundary-t001t002) identifies the executable checks; delivery evidence records actual build/launch outcomes. Newer supplier examples do not authorize overriding these pins. T020/T040 still own real mediation, privacy and release qualification.
 
 ## Common advertising age treatment and native consent
 

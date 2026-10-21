@@ -1,6 +1,14 @@
 # F11 validation guide
 
-This repository contains planning documents, not an initialized application runtime. The scenarios below are future implementation qualifications, not tests already passed. Use the [README documentation checks](../../README.md#verification) for the current dossier; application commands belong to the runtime when it exists.
+The mobile dependency/configuration foundation is executable. Advertising initialization, consent, age forms, serving and the scenarios below remain separate implementation/qualification work. Use the [README verification commands](../../README.md#verification) for the workspace.
+
+## Native setup boundary (T001/T002)
+
+Install the root lockfile with `npm ci --no-audit --no-fund`. Copy `apps/mobile/.env.example` to the ignored `apps/mobile/.env.local` for local builds. The two `ADMOB_*_APP_ID` inputs configure native app IDs; empty values use Google's sample apps. `ADMOB_V2_*_INTERSTITIAL_UNIT_ID` selects one public V2 unit per platform in `Constants.expoConfig.extra.advertising`; the example supplies Google demo units, and absent inputs remain unconfigured. No V1 unit is a fallback. Set reviewed environment-specific app IDs and V2 units before authorized provider qualification/release.
+
+Run `npx nx run mobile:verify` for generation, lint, types, Jest, platform exports and Expo Doctor. After dependency/configuration changes, use `npm exec --workspace=@blockout/mobile -- expo prebuild --clean`, then the [README native build commands](../../README.md#local-development) with an explicitly allocated device and Metro port. Keep generated projects/build outputs ignored. Inspect the resolved `ios/Podfile.lock` and Android `debugRuntimeClasspath`, plus `Info.plist`/merged Android manifest, to confirm the [selected native pins](research.md#native-mediation-rather-than-parallel-ad-integrations), app IDs and delayed measurement. iOS also declares the ATT usage text and Google/Meta SKAdNetwork identifiers through the supported plugins.
+
+The config tests exercise absent and explicit public inputs. Native compile/install/launch checks establish binary integration only. This setup adds no SDK initialization, ad request, consent gathering or ATT request; those remain with the F11 runtime tasks. Google demo units do not qualify Meta mediation. T020/T040 still require authorized provider test devices/settings, physical-device evidence and store reconciliation; preserve V1 configuration.
 
 ## Prerequisites
 
