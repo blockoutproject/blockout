@@ -16,12 +16,16 @@ import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -77,12 +81,12 @@ class ClassificationIntegrationTest {
    */
   @BeforeEach
   void prepareOwners() throws Exception {
-    try (java.sql.Connection connection =
-            java.sql.DriverManager.getConnection(
+    try (Connection connection =
+            DriverManager.getConnection(
                 DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
-        java.sql.Statement fixture = connection.createStatement()) {
+        Statement fixture = connection.createStatement()) {
       fixture.execute(
           "TRUNCATE sporting_season, sporting_club, sporting_division, account CASCADE");
     }
@@ -152,7 +156,7 @@ class ClassificationIntegrationTest {
     ClassificationView before = classifications.pack(account, first.packId());
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable correction =
+    ThrowingCallable correction =
         () ->
             classifications.setPack(
                 account, first.packId(), before.revision(), classification(TARGET));
@@ -181,7 +185,7 @@ class ClassificationIntegrationTest {
     ClassificationView before = classifications.pool(account, first.id());
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable correction =
+    ThrowingCallable correction =
         () ->
             classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
 
@@ -213,7 +217,7 @@ class ClassificationIntegrationTest {
     ClassificationView before = classifications.pool(account, first.id());
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable correction =
+    ThrowingCallable correction =
         () ->
             classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
 
@@ -247,7 +251,7 @@ class ClassificationIntegrationTest {
     ClassificationView before = classifications.pack(account, first.packId());
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable correction =
+    ThrowingCallable correction =
         () ->
             classifications.setPack(
                 account, first.packId(), before.revision(), classification(ORIGINAL));
@@ -355,7 +359,7 @@ class ClassificationIntegrationTest {
     classifications.setPack(account, pool.packId(), pack.revision(), classification(TARGET));
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable stale =
+    ThrowingCallable stale =
         () -> classifications.setPool(account, pool.id(), before.revision(), null);
 
     // Then
@@ -413,7 +417,7 @@ class ClassificationIntegrationTest {
         new SportingClassification(TARGET, SportFormatEnum._4X4, SportGenderEnum.MIXED);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable correction =
+    ThrowingCallable correction =
         () -> classifications.setPack(account, first.packId(), pack.revision(), changed);
 
     // Then

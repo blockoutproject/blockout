@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.context.properties.ConfigurationPropertiesBindException;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
@@ -39,9 +40,7 @@ class SupportConfigurationDiagnosticsTest {
     ThrowingCallable start = () -> application.run(arguments);
 
     // Then
-    assertThatThrownBy(start)
-        .isInstanceOf(
-            org.springframework.boot.context.properties.ConfigurationPropertiesBindException.class);
+    assertThatThrownBy(start).isInstanceOf(ConfigurationPropertiesBindException.class);
     assertThat(output.getAll())
         .doesNotContain("synthetic-sensitive-token", "synthetic-private-webhook", "fictional-org");
     assertThat(output.getAll()).contains("ERROR");

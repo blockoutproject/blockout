@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.api;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -122,8 +123,8 @@ class SportingClassificationWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.revision").value("1"))
-        .andExpect(jsonPath("$.setting").value(org.hamcrest.Matchers.nullValue()))
-        .andExpect(jsonPath("$.effective").value(org.hamcrest.Matchers.nullValue()));
+        .andExpect(jsonPath("$.setting").value(nullValue()))
+        .andExpect(jsonPath("$.effective").value(nullValue()));
     verify(classifications).setPool(ACCOUNT, ID, "0", null);
   }
 

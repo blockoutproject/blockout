@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -148,7 +149,7 @@ class PermissionPersistenceIntegrationTest {
         account.id());
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate =
+    ThrowingCallable duplicate =
         () ->
             sql.update(
                 "INSERT INTO account_permission(account_id, permission) VALUES (?, 'maintenance.manage')",
@@ -167,7 +168,7 @@ class PermissionPersistenceIntegrationTest {
     UUID absent = UUID.fromString("00000000-0000-4000-8000-000000000999");
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable orphan =
+    ThrowingCallable orphan =
         () ->
             sql.update(
                 "INSERT INTO account_permission(account_id, permission) VALUES (?, 'maintenance.manage')",
@@ -225,8 +226,7 @@ class PermissionPersistenceIntegrationTest {
     UUID original = account.id();
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable check =
-        () -> authorization.require(original, Permission.MANAGE_MAINTENANCE);
+    ThrowingCallable check = () -> authorization.require(original, Permission.MANAGE_MAINTENANCE);
 
     // Then
     assertThatThrownBy(check).isInstanceOf(IllegalTransactionStateException.class);

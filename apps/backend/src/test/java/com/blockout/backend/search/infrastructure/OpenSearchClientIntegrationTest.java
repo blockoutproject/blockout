@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import javax.net.ssl.SSLHandshakeException;
 import org.junit.jupiter.api.AfterAll;
@@ -239,8 +240,7 @@ class OpenSearchClientIntegrationTest {
                                     item.index(index)
                                         .id("invalid")
                                         .document(
-                                            java.util.Map.of(
-                                                "name", "Club", "count", "not-an-integer")))));
+                                            Map.of("name", "Club", "count", "not-an-integer")))));
 
     // Then
     assertThat(result.errors()).isTrue();
