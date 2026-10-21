@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import type { PropsWithChildren, ReactNode } from "react";
 import {
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -31,26 +32,56 @@ export function useSheetScreenOptions() {
   } as const;
 }
 
-/** Dismissible route content in an anchored native stack; owners retain fields/footer and draft/commit decisions. */
+/**
+ * Content for an anchored native sheet, sized to its contents up to the available screen.
+ * The title and close action stay fixed; fields and the optional footer scroll together.
+ * Owners retain field state, confirmation behavior and draft/commit decisions.
+ */
 export interface SheetProps extends PropsWithChildren {
   title: string;
   message?: string;
   footer?: ReactNode;
 }
 
-/** Docks the heading and close action in the native host's root ScrollView; form/footer scroll only as needed. */
+/** Composes the fixed heading and scrollable form with the platform's standard keyboard handling. */
 export function Sheet({ title, message, footer, children }: SheetProps) {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  return (
+  const header = (
+    <View style={[styles.introduction, { backgroundColor: colors.surface }]}>
+      <View style={styles.titleRow}>
+        <Text
+          accessibilityRole="header"
+          style={[styles.title, { color: colors.text }]}
+        >
+          {title}
+        </Text>
+        <IconButton label="Fermer" onPress={() => router.back()}>
+          <Image
+            source={require("../../../assets/icons/close.svg")}
+            style={styles.closeIcon}
+            tintColor={colors.icon}
+            contentFit="contain"
+          />
+        </IconButton>
+      </View>
+      {message && (
+        <Text style={[styles.message, { color: colors.secondaryText }]}>
+          {message}
+        </Text>
+      )}
+    </View>
+  );
+  // iOS requires the root scroll view for intrinsic sheet sizing and native scroll integration.
+  const content = (
     <ScrollView
       style={[
         styles.sheet,
         { backgroundColor: colors.surface, maxHeight: height - insets.top },
       ]}
-      stickyHeaderIndices={[0]}
+      stickyHeaderIndices={Platform.OS === "ios" ? [0] : undefined}
       alwaysBounceVertical={false}
       nestedScrollEnabled
       automaticallyAdjustKeyboardInsets
@@ -60,29 +91,7 @@ export function Sheet({ title, message, footer, children }: SheetProps) {
         { paddingBottom: footer ? 0 : tokens.spacing.section },
       ]}
     >
-      <View style={[styles.introduction, { backgroundColor: colors.surface }]}>
-        <View style={styles.titleRow}>
-          <Text
-            accessibilityRole="header"
-            style={[styles.title, { color: colors.text }]}
-          >
-            {title}
-          </Text>
-          <IconButton label="Fermer" onPress={() => router.back()}>
-            <Image
-              source={require("../../../assets/icons/close.svg")}
-              style={styles.closeIcon}
-              tintColor={colors.icon}
-              contentFit="contain"
-            />
-          </IconButton>
-        </View>
-        {message && (
-          <Text style={[styles.message, { color: colors.secondaryText }]}>
-            {message}
-          </Text>
-        )}
-      </View>
+      {Platform.OS === "ios" && header}
       <View style={styles.body}>
         {children}
         {footer && (
@@ -97,6 +106,21 @@ export function Sheet({ title, message, footer, children }: SheetProps) {
         )}
       </View>
     </ScrollView>
+  );
+
+  // Android's native sheet translates short content; padding lets longer forms scroll above the keyboard.
+  // Keeping the fixed header outside the scroll target also allows native drag dismissal from it.
+  return Platform.OS === "android" ? (
+    <KeyboardAvoidingView
+      behavior="padding"
+      keyboardVerticalOffset={insets.top}
+      style={[styles.sheet, { maxHeight: height - insets.top }]}
+    >
+      <View style={styles.content}>{header}</View>
+      {content}
+    </KeyboardAvoidingView>
+  ) : (
+    content
   );
 }
 

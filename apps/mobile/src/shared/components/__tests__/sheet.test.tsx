@@ -154,3 +154,39 @@ it("updates appearance with a sheet open without losing its draft or navigation"
   expect(screen.getByDisplayValue("Valeur conservée")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Fermer" })).toBeOnTheScreen();
 });
+
+it("lets the caller confirm the current input without implicitly dismissing", async () => {
+  // Given
+  const confirm = jest.fn();
+  const user = userEvent.setup();
+
+  /** Keeps confirmation owned by the caller while exercising the real sheet footer and field. */
+  function ConfirmableEdit() {
+    const [value, setValue] = useState("");
+    return (
+      <Sheet
+        title="Modifier le club"
+        footer={<Button label="Confirmer" onPress={() => confirm(value)} />}
+      >
+        <TextField label="Nom du club" value={value} onChangeText={setValue} />
+      </Sheet>
+    );
+  }
+
+  await renderRouter(
+    { _layout: Layout, index: Home, edit: ConfirmableEdit },
+    { initialUrl: "/edit" },
+  );
+  await user.type(screen.getByLabelText("Nom du club"), "Volley");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Confirmer" }));
+
+  // Then
+  expect(confirm).toHaveBeenCalledTimes(1);
+  expect(confirm).toHaveBeenCalledWith("Volley");
+  expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Modifier le club" }),
+  ).toBeOnTheScreen();
+});
