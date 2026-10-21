@@ -2,6 +2,7 @@ package com.blockout.collector.config;
 
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.generated.ingestion.ApiClient;
+import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
 import io.github.resilience4j.ratelimiter.RateLimiter;
@@ -16,7 +17,10 @@ import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.ChainElement;
 import org.apache.hc.client5.http.impl.DefaultHttpRequestRetryStrategy;
 import org.apache.hc.client5.http.impl.DefaultRedirectStrategy;
+import org.apache.hc.client5.http.impl.cache.CacheConfig;
+import org.apache.hc.client5.http.impl.cache.CachingHttpClients;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -36,6 +40,17 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 /** Native, independent FFVB/LNV/IGN budgets shared across seasons and acquisition families. */
 @Configuration(proxyBeanMethods = false)
 public class AcquisitionConfiguration {
+  /**
+   * Shares the native authenticated transport for qualified source proposals.
+   *
+   * @param client existing generated transport
+   * @return generated source discovery operations
+   */
+  @Bean
+  CollectionApi collectionApi(ApiClient client) {
+    return new CollectionApi(client);
+  }
+
   /**
    * Shares the authenticated native transport with the seven sporting operations.
    *
@@ -131,9 +146,26 @@ public class AcquisitionConfiguration {
     executor.setQueueCapacity(properties.queueCapacityPerProvider());
     executor.setThreadNamePrefix("acquisition-" + name + "-");
     executor.initialize();
+    HttpClientBuilder builder =
+        name.equals("lnv")
+            ? CachingHttpClients.custom()
+                .setCacheConfig(
+                    CacheConfig.custom()
+                        .setMaxCacheEntries(128)
+                        .setMaxObjectSize(Math.min(properties.maxResponseBytes(), 5L * 1024 * 1024))
+                        .setHeuristicCachingEnabled(false)
+                        .setAsynchronousWorkers(0)
+                        .setStaleIfErrorEnabled(false)
+                        .build())
+            : HttpClients.custom();
     CloseableHttpClient http =
-        HttpClients.custom()
+        builder
             .disableCookieManagement()
+            .addResponseInterceptorLast(
+                (response, entity, context) ->
+                    context.setAttribute(
+                        ProviderHttpClient.SUPPLIER_BODY,
+                        response.getCode() >= 200 && response.getCode() < 300))
             .setConnectionManager(
                 PoolingHttpClientConnectionManagerBuilder.create()
                     .setMaxConnTotal(properties.concurrencyPerProvider())

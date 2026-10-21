@@ -3,6 +3,7 @@ package com.blockout.backend.collection.api;
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
+import com.blockout.backend.collection.application.service.CollectionSourceService;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionControlInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleInternalResponse;
@@ -11,7 +12,9 @@ import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetPageInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectionWorkInternalResponse;
 import com.blockout.backend.generated.ingestion.model.CollectorRuntimeInternalResponse;
+import com.blockout.backend.generated.ingestion.model.ObserveSeasonSourceInternalRequest;
 import com.blockout.backend.generated.ingestion.model.RecordCollectionResultInternalRequest;
+import com.blockout.backend.generated.ingestion.model.SeasonSourceInternalResponse;
 import com.blockout.backend.generated.ingestion.model.SourceValidationInternalResponse;
 import com.blockout.backend.generated.ingestion.model.SourceValidationWorkInternalResponse;
 import com.blockout.backend.generated.ingestion.model.StartCollectionCycleInternalRequest;
@@ -38,6 +41,23 @@ import org.openapitools.jackson.nullable.JsonNullable;
  */
 @Mapper(config = MappingConfiguration.class)
 public interface CollectionApiMapper {
+  /**
+   * Carries qualified source-entry evidence to its application owner.
+   *
+   * @param source strict generated discovery proposal
+   * @return immutable application command
+   */
+  CollectionSourceService.Proposal toCommand(ObserveSeasonSourceInternalRequest source);
+
+  /**
+   * Returns existing owner identities without claiming activation.
+   *
+   * @param source resolved canonical season and binding
+   * @return generated discovery acknowledgement
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  SeasonSourceInternalResponse toDto(CollectionSourceService.Resolved source);
+
   /**
    * Reuses the shared contract-owned provider enum across generated API namespaces.
    *

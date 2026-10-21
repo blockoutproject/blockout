@@ -109,7 +109,15 @@ public class MatchAcceptanceService {
     if (created) schedule = store.lockMatchSchedule(match.id());
     boolean changed =
         acceptSchedule(schedule, expected, context, candidate.facts(), candidate.detailUrl());
-    return success(match, created || namesChanged || changed);
+    ObservationOutcome result = success(match, created || namesChanged || changed);
+    return new ObservationOutcome(
+        result.sourceReference(),
+        result.outcome(),
+        result.resourceId(),
+        result.reasonType(),
+        result.homeTeamId(),
+        result.awayTeamId(),
+        created);
   }
 
   /**
@@ -332,7 +340,13 @@ public class MatchAcceptanceService {
       } else diagnose(matchId, "invalid-stream-reference");
     }
     boolean documents = false;
-    if (facts.informationSheet().isPresent()) {
+    // An auxiliary date/participant lookup cannot replace a code already attached to this match.
+    boolean establishedProfessionalCode =
+        previous.informationSheet() != null
+            && "AALNV".equals(previous.informationSheet().organizerReference());
+    if (facts.informationSheet().isPresent()
+        && (!establishedProfessionalCode
+            || Objects.equals(previous.informationSheet(), facts.informationSheet().get()))) {
       changed |= !Objects.equals(previous.informationSheet(), facts.informationSheet().get());
       next.informationSheet(facts.informationSheet().get());
       documents = true;

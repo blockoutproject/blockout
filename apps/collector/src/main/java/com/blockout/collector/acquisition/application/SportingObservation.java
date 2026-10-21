@@ -147,7 +147,28 @@ public final class SportingObservation {
       UUID resourceId,
       URI reasonType,
       UUID homeTeamId,
-      UUID awayTeamId) {}
+      UUID awayTeamId,
+      Boolean created) {
+    /**
+     * Represents outcomes without a calendar-creation assertion.
+     *
+     * @param sourceReference native reference
+     * @param outcome acceptance state
+     * @param resourceId resolved identity
+     * @param reasonType safe refusal
+     * @param homeTeamId resolved home participant
+     * @param awayTeamId resolved away participant
+     */
+    public Outcome(
+        String sourceReference,
+        ObservationOutcomeEnum outcome,
+        UUID resourceId,
+        URI reasonType,
+        UUID homeTeamId,
+        UUID awayTeamId) {
+      this(sourceReference, outcome, resourceId, reasonType, homeTeamId, awayTeamId, null);
+    }
+  }
 
   /** Exact bounded per-match outcomes, independent from acquisition completeness. */
   public record CalendarOutcome(

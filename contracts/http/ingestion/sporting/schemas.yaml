@@ -69,6 +69,12 @@ ObservationOutcomeInternalResponse:
         Resolved home team for a successful calendar match, allowing source-logo submission
         without a separate lookup.
       format: uuid
+    created:
+      type: boolean
+      description: >-
+        True only when this calendar item created the resolved match. Allows its first detail
+        read within the admitted calendar passage. Absent or false does not authorize an extra
+        detail read outside the frozen selection.
     awayTeamId:
       type: string
       description: Resolved away team for a successful calendar match.

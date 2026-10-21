@@ -155,7 +155,9 @@ class SportingObservationClientTest {
                                 "sourceReference",
                                 "M" + index,
                                 "outcome",
-                                index == 100 ? "rejected" : "accepted"))
+                                index == 100 ? "rejected" : "accepted",
+                                "created",
+                                index != 100))
                     .toList(),
                 "acceptedCount",
                 99,
@@ -178,6 +180,7 @@ class SportingObservationClientTest {
     assertThat(outcome.rejectedCount()).isEqualTo(1);
     assertThat(outcome.absenceReconciled()).isFalse();
     assertThat(outcome.outcomes()).hasSize(100);
+    assertThat(outcome.outcomes().getFirst().created()).isTrue();
     assertThat(json.readTree(received).get("matches").size()).isEqualTo(100);
   }
 

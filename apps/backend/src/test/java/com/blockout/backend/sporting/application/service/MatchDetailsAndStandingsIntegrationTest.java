@@ -78,6 +78,29 @@ class MatchDetailsAndStandingsIntegrationTest {
   private SportingIngestionFixture.Scope scope;
   private UUID matchId;
 
+  @Test
+  @DisplayName("Calendar responses distinguish newly identified matches from existing updates")
+  void reportsActualMatchCreation() {
+    // Given
+    CalendarObservation observation =
+        new CalendarObservation(
+            context(2),
+            true,
+            List.of(
+                candidate("M1", "Home", LocalDate.of(2026, 10, 20)),
+                candidate("M2", "Home", LocalDate.of(2026, 10, 21))),
+            List.of(),
+            List.of());
+
+    // When
+    ObservationOutcome.Calendar outcome = calendars.accept(scope.pool(), observation);
+
+    // Then
+    assertThat(outcome.outcomes())
+        .extracting(ObservationOutcome::created)
+        .containsExactly(false, true);
+  }
+
   /**
    * Migrates the disposable database with the shared role separation.
    *
@@ -247,6 +270,32 @@ class MatchDetailsAndStandingsIntegrationTest {
             sql.queryForObject(
                 "SELECT local_date FROM sporting_match WHERE id=?", LocalDate.class, matchId))
         .isEqualTo(LocalDate.of(2027, 1, 3));
+  }
+
+  @Test
+  @DisplayName("A new date match cannot replace an established professional document association")
+  void preservesEstablishedProfessionalCode() {
+    // Given
+    matches.detail(
+        detail(
+            2,
+            new MatchFactsInternalRequest()
+                .informationSheet(
+                    new InformationSheetInternalRequest("2026/2027", "AALNV", "ORIGINAL"))));
+    MatchDetails previous = details();
+
+    // When
+    matches.detail(
+        detail(
+            3,
+            new MatchFactsInternalRequest()
+                ._localDate(LocalDate.of(2027, 1, 3))
+                .informationSheet(
+                    new InformationSheetInternalRequest("2026/2027", "AALNV", "DIFFERENT"))));
+
+    // Then
+    assertThat(details().informationSheet().matchCode()).isEqualTo("ORIGINAL");
+    assertThat(details().documentsObservedAt()).isEqualTo(previous.documentsObservedAt());
   }
 
   @Test

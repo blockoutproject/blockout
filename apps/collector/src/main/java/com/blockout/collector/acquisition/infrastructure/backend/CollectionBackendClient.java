@@ -1,6 +1,7 @@
 package com.blockout.collector.acquisition.infrastructure.backend;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
+import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.model.CompleteCollectionCycleInternalRequest;
 import com.blockout.collector.generated.ingestion.model.RegisterCollectorRuntimeInternalRequest;
@@ -16,7 +17,22 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CollectionBackendClient implements CollectionBackend {
   private final CollectorOperationsApi api;
+  private final CollectionApi sources;
+
+  /** {@inheritDoc} */
+  @Override
+  public void observeSource(SourceProposal proposal) {
+    BackendExchange.once(() -> sources.observeCollectionSeasonSource(mapper.toRequest(proposal)));
+  }
+
   private final CollectionBackendMapper mapper;
+
+  /** {@inheritDoc} */
+  @Override
+  public Candidate candidate(UUID cycleId) {
+    return BackendExchange.once(
+        () -> mapper.toCandidate(api.getCollectionCycle(cycleId).getCandidate()));
+  }
 
   /** {@inheritDoc} */
   @Override

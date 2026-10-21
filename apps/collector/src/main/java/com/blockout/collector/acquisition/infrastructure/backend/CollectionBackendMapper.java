@@ -6,7 +6,9 @@ import com.blockout.collector.generated.ingestion.model.CollectionCycleInternalR
 import com.blockout.collector.generated.ingestion.model.CollectionTargetInternalResponse;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetPageInternalResponse;
 import com.blockout.collector.generated.ingestion.model.CollectorRuntimeInternalResponse;
+import com.blockout.collector.generated.ingestion.model.ObserveSeasonSourceInternalRequest;
 import com.blockout.collector.generated.ingestion.model.RecordCollectionResultInternalRequest;
+import com.blockout.collector.generated.ingestion.model.SourceValidationWorkInternalResponse;
 import com.blockout.collector.generated.ingestion.model.StartCollectionCycleInternalRequest;
 import com.blockout.collector.generated.ingestion.model.SubmitSourceValidationInternalRequest;
 import java.time.Instant;
@@ -18,6 +20,22 @@ import org.mapstruct.Mapping;
 /** Maps generated transport objects immediately to immutable application capabilities. */
 @Mapper(config = MappingConfiguration.class)
 public interface CollectionBackendMapper {
+  /**
+   * Maps qualified discovery without inventing lifecycle or classification.
+   *
+   * @param source source-entry evidence
+   * @return strict generated proposal
+   */
+  ObserveSeasonSourceInternalRequest toRequest(CollectionBackend.SourceProposal source);
+
+  /**
+   * Preserves the admitted candidate's provider, root and seasonal scope.
+   *
+   * @param source generated frozen validation context
+   * @return immutable candidate values
+   */
+  CollectionBackend.Candidate toCandidate(SourceValidationWorkInternalResponse source);
+
   /**
    * Projects the decoded runtime.
    *

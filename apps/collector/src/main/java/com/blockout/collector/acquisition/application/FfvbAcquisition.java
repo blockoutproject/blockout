@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.application;
 
+import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import java.net.URI;
 import java.time.Instant;
 
@@ -22,6 +23,15 @@ public interface FfvbAcquisition {
    * @return resource retained only while its selected targets are processed
    */
   Resource read(URI url);
+
+  /**
+   * Reuses a discovery response only while its already admitted scopes are consumed.
+   *
+   * @param page complete bounded native response
+   * @param observedAt actual response completion time
+   * @return transient resource without another page request
+   */
+  Resource fromPage(ProviderHttpClient.Response page, Instant observedAt);
 
   /** One sequentially consumed HTML resource and optional export, discarded after its scopes. */
   interface Resource {

@@ -19,6 +19,7 @@ import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
 import com.blockout.backend.collection.application.service.CollectionResultService;
+import com.blockout.backend.collection.application.service.CollectionSourceService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
 import com.blockout.backend.collection.application.service.SourcePreparationService;
 import com.blockout.backend.config.HttpConfiguration;
@@ -61,6 +62,9 @@ class CollectionResultsWebMvcTest {
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000153");
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000154");
   @Autowired private MockMvc mvc;
+
+  @MockitoBean private CollectionSourceService sources;
+
   @MockitoBean private CollectionResultService results;
   @MockitoBean private CollectionCycleService cycles;
   @MockitoBean private CollectorRuntimeService runtimes;

@@ -7,6 +7,7 @@ import com.blockout.collector.acquisition.infrastructure.CollectorStartup;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendMapperImpl;
 import com.blockout.collector.generated.ingestion.ApiClient;
+import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
@@ -119,7 +120,9 @@ class CollectorLifecycleTest {
     lifecycle =
         new CollectorLifecycle(
             new CollectionBackendClient(
-                new CollectorOperationsApi(api), new CollectionBackendMapperImpl()));
+                new CollectorOperationsApi(api),
+                new CollectionApi(api),
+                new CollectionBackendMapperImpl()));
   }
 
   /** Releases the listener and the HTTP pool owned by this scenario. */
