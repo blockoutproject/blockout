@@ -161,7 +161,7 @@ Structured Spring/SLF4J logs and ordinary HTTP/JVM/PostgreSQL-pool metrics flow 
 
 One external European Grafana probe per environment checks minimal API-and-database health: production every minute, preproduction every five minutes. Use the native Spring Boot Actuator readiness group on the main API port at `/health`, combining application readiness and the database check, with only the aggregate status exposed. The [health boundary](contracts/README.md#native-health-boundary) owns the native configuration and public access limits. Expected maintenance does not mask application/database failure. Alert evaluation distinguishes expected pauses/maintenance from actual failure; no-data is not healthy. Native alerts reach private Discord with useful grouping and five-day reminders for unchanged conditions; group changes can notify sooner. Resolved means the condition ended, not proven business recovery. The operator checks affected results and latest successes, intervening according to availability.
 
-Sentry Free captures JavaScript errors/native crashes with sourcemaps. Disable replay, tracing and profiling; scrub native/JS events, URLs, query strings, messages and breadcrumbs. Free plan limits are current constraints, not an authorization to buy or enable paid capabilities.
+Sentry Free is configured for JavaScript errors/native crashes with sourcemaps, with sending disabled until separately authorized T033 privacy/symbolication qualification and a subsequent activation decision. Disable replay, tracing and profiling; scrub native/JS events, URLs, query strings, messages and breadcrumbs. Free plan limits are current constraints, not an authorization to buy or enable paid capabilities.
 
 ## Backups and recovery
 

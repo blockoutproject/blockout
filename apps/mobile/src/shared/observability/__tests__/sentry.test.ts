@@ -109,26 +109,28 @@ it.each(["app:///index.android.bundle", "app:///main.jsbundle"])(
 );
 
 it.each([
-  { development: true, enabled: false },
-  { development: false, enabled: true },
+  { development: true, dsn: undefined },
+  { development: false, dsn: undefined },
+  { development: true, dsn: "https://public@example.invalid/1" },
+  { development: false, dsn: "https://public@example.invalid/1" },
 ])(
-  "sets reporting to $enabled with development=$development",
-  ({ development, enabled }) => {
+  "keeps reporting disabled with development=$development and dsn=$dsn",
+  ({ development, dsn }) => {
     // Given
-    const dsn = "https://public@example.invalid/1";
     jest.replaceProperty(
       globalThis as typeof globalThis & { __DEV__: boolean },
       "__DEV__",
       development,
     );
-    process.env.EXPO_PUBLIC_SENTRY_DSN = dsn;
+    if (dsn === undefined) delete process.env.EXPO_PUBLIC_SENTRY_DSN;
+    else process.env.EXPO_PUBLIC_SENTRY_DSN = dsn;
 
     // When
     initializeSentry();
     const options = jest.mocked(Sentry.init).mock.calls[0][0];
 
     // Then
-    expect(options).toMatchObject({ dsn, enabled });
+    expect(options).toMatchObject({ dsn, enabled: false });
   },
 );
 
@@ -169,7 +171,7 @@ it.each([
   },
 );
 
-it("keeps standard native initialization with the error-only capture mode", () => {
+it("bounds native capture while preserving SDK-owned crash initialization", () => {
   // Given
   // Default sampling options would install additional telemetry integrations.
 
@@ -178,6 +180,15 @@ it("keeps standard native initialization with the error-only capture mode", () =
   const options = jest.mocked(Sentry.init).mock.calls[0][0];
 
   // Then
+  expect(options).toMatchObject({
+    enabled: false,
+    attachScreenshot: false,
+    attachViewHierarchy: false,
+    enableCaptureFailedRequests: false,
+    enableAppHangTracking: false,
+    enableWatchdogTerminationTracking: false,
+    sendClientReports: false,
+  });
   expect(options?.maxBreadcrumbs).toBe(0);
   expect(options?.tracesSampleRate).toBeUndefined();
   expect(options?.profilesSampleRate).toBeUndefined();
@@ -204,4 +215,78 @@ it("drops a free-form message without an exception", async () => {
 
   // Then
   expect(result).toBeNull();
+});
+
+it("removes attachments carried outside the JavaScript event", async () => {
+  // Given
+  initializeSentry();
+  const options = jest.mocked(Sentry.init).mock.calls[0][0];
+  const hint = {
+    attachments: [{ filename: "private.txt", data: "private-provider-body" }],
+  };
+
+  // When
+  const result = await options?.beforeSend?.(
+    { type: undefined, exception: { values: [{ type: "Error" }] } },
+    hint,
+  );
+
+  // Then
+  expect(result?.exception?.values?.[0].type).toBe("Error");
+  expect(hint.attachments).toEqual([]);
+});
+
+it("replaces free-form exception names and mechanisms without losing failure coordinates", async () => {
+  // Given
+  initializeSentry();
+  const options = jest.mocked(Sentry.init).mock.calls[0][0];
+  const event: ErrorEvent = {
+    type: undefined,
+    exception: {
+      values: [
+        {
+          type: "private-provider-body",
+          value: "private@example.invalid",
+          mechanism: { type: "private-account", handled: false },
+          stacktrace: {
+            frames: [
+              { filename: "app:///main.jsbundle", lineno: 12, colno: 34 },
+            ],
+          },
+        },
+      ],
+    },
+    sdk: {
+      name: "sentry.javascript.react-native",
+      version: "7.11.0",
+      settings: { infer_ip: "never" },
+      integrations: ["private-account"],
+    },
+    debug_meta: {
+      images: [
+        {
+          type: "sourcemap",
+          code_file: "app:///main.jsbundle",
+          debug_id: "private-provider-body",
+        },
+      ],
+    },
+  };
+
+  // When
+  const result = await options?.beforeSend?.(event, {});
+
+  // Then
+  expect(result?.exception?.values).toEqual([
+    {
+      type: "Error",
+      mechanism: { type: "generic", handled: false },
+      stacktrace: {
+        frames: [{ filename: "app:///main.jsbundle", lineno: 12, colno: 34 }],
+      },
+    },
+  ]);
+  expect(result?.sdk?.settings).toEqual({ infer_ip: "never" });
+  expect(result?.debug_meta?.images).toEqual([]);
+  expect(JSON.stringify(result)).not.toContain("private");
 });
