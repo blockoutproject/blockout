@@ -45,7 +45,12 @@ public class FfvbDiscovery {
     Element menu = page.selectFirst("#menu");
     List<Element> links =
         menu == null ? page.select("select option[value]") : menu.select("a[href]");
-    boolean recognized = menu != null && menu.text().contains("Compétitions") || !links.isEmpty();
+    boolean recognized =
+        menu != null && menu.text().contains("Compétitions")
+            || links.stream()
+                .anyMatch(
+                    link ->
+                        link.attr("value").contains("vbspo_calendrier.php") && pack(link) != null);
     if (!recognized) throw invalid();
     boolean complete = true;
     boolean seasonProven =
@@ -99,6 +104,18 @@ public class FfvbDiscovery {
     }
     if (!seasonProven) throw invalid();
     return new SportingObservation.Catalog(complete, new ArrayList<>(pools.values()));
+  }
+
+  /**
+   * Distinguishes a complete seasonal menu from a local calendar or round response.
+   *
+   * @param bytes bounded native page
+   * @param url response base
+   * @return whether this page supplies seasonal navigation rather than a child calendar
+   */
+  public boolean seasonal(byte[] bytes, URI url) {
+    Document page = Jsoup.parse(new String(bytes, ENCODING), url.toString());
+    return page.selectFirst("form[action$=vbspo_calendrier_export.php]") == null;
   }
 
   /**
@@ -182,6 +199,14 @@ public class FfvbDiscovery {
                   && !fields.getOrDefault("division", "").isBlank()
                   && !fields.getOrDefault("tour", "").isBlank();
             })
+        .map(
+            link -> {
+              try {
+                return new URIBuilder(link).setParameter("calend", "COMPLET").build();
+              } catch (URISyntaxException invalid) {
+                throw invalid();
+              }
+            })
         .toList();
   }
 
@@ -203,7 +228,7 @@ public class FfvbDiscovery {
         if ("www.ffvbbeach.org".equalsIgnoreCase(target.getHost())
             && path != null
             && path.startsWith("/ffvbapp/resu/")
-            && !excludedCompetition(link.text())
+            && !excludedCompetition(pack(link) + " " + link.text())
             && !EXCLUDED.contains(query(target).getOrDefault("codent", ""))) result.add(target);
       } catch (IllegalArgumentException failure) {
         throw invalid();

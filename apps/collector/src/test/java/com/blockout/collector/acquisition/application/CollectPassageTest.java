@@ -74,7 +74,8 @@ class CollectPassageTest {
     SportingObservation.Catalog empty = new SportingObservation.Catalog(true, List.of());
     when(backend.targets(admitted.getCycle().id(), 0))
         .thenReturn(new CollectionBackend.TargetPage(List.of(calendar, source), 0, false));
-    when(discovery.catalog(source)).thenReturn(new DiscoverSeasonSources.Read(empty, NOW));
+    when(discovery.catalog(eq(source), any(), any()))
+        .thenReturn(new DiscoverSeasonSources.Read(empty, NOW));
     when(sporting.catalog(eq(CONTROL), any(), eq(empty)))
         .thenReturn(new SportingObservation.CatalogOutcome(List.of(), true));
     when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
@@ -83,7 +84,7 @@ class CollectPassageTest {
     passage.execute(admitted);
 
     // Then
-    verifyNoInteractions(ffvb);
+    verify(ffvb, never()).read(any());
     verify(sporting, never()).calendar(any(), any(), any());
   }
 
@@ -103,7 +104,8 @@ class CollectPassageTest {
         target(CollectionTargetKindEnum.CALENDAR).toBuilder().sourceBindingId(CONTROL).build();
     when(backend.targets(admitted.getCycle().id(), 0))
         .thenReturn(new CollectionBackend.TargetPage(List.of(source, calendar), 0, false));
-    when(discovery.catalog(source)).thenThrow(new FfvbAcquisitionException("Unavailable catalog"));
+    when(discovery.catalog(eq(source), any(), any()))
+        .thenThrow(new FfvbAcquisitionException("Unavailable catalog"));
     when(ffvb.resourceUrl(calendar)).thenReturn(SOURCE);
     when(ffvb.read(SOURCE)).thenReturn(resource);
     SportingObservation.Calendar empty =
@@ -120,10 +122,11 @@ class CollectPassageTest {
     verify(sporting).calendar(eq(POOL), any(), eq(empty));
   }
 
-  @Test
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
   @DisplayName(
-      "Only new resolved matches get immediate detail and shared team images are attempted once")
-  void enrichesNewMatchesWithinCalendar() {
+      "Only new resolved matches get first detail while independent team image attempts remain bounded")
+  void enrichesNewMatchesWithinCalendar(boolean imageUnavailable) {
     // Given
     CollectorLifecycle.AdmittedCycle admitted = admit(false);
     UUID newMatch = UUID.fromString("00000000-0000-4000-8000-000000000171");
@@ -189,7 +192,9 @@ class CollectPassageTest {
         .thenReturn(
             new SportingObservation.Outcome(
                 "new", ObservationOutcomeEnum.ACCEPTED, newMatch, null, null, null));
-    when(lnv.image(logo)).thenReturn(null);
+    if (imageUnavailable)
+      when(lnv.image(logo)).thenThrow(new IllegalArgumentException("Unavailable image"));
+    else when(lnv.image(logo)).thenReturn(null);
     when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
 
     // When
@@ -202,12 +207,200 @@ class CollectPassageTest {
     verify(sporting, never()).logo(any(), any(), any());
     ArgumentCaptor<CollectionBackend.Result> evidence =
         ArgumentCaptor.forClass(CollectionBackend.Result.class);
-    verify(backend, times(4)).record(eq(admitted.getCycle().id()), evidence.capture());
-    assertThat(evidence.getAllValues())
-        .noneMatch(
-            item ->
-                item.stage()
-                    == com.blockout.collector.generated.ingestion.model.CollectionStageEnum.LOGO);
+    verify(backend, times(imageUnavailable ? 6 : 4))
+        .record(eq(admitted.getCycle().id()), evidence.capture());
+    assertThat(
+            evidence.getAllValues().stream()
+                .filter(
+                    item ->
+                        item.stage()
+                            == com.blockout.collector.generated.ingestion.model.CollectionStageEnum
+                                .LOGO)
+                .toList())
+        .hasSize(imageUnavailable ? 2 : 0)
+        .allSatisfy(item -> assertThat(item.outcome()).isEqualTo(CollectionOutcomeEnum.FAILED));
+  }
+
+  @Test
+  @DisplayName(
+      "Discovery and an admitted LNV calendar consume one page with its original timestamp")
+  void sharesDiscoveryPage() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    URI page = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+    CollectionBackend.Target source =
+        CollectionBackend.Target.builder()
+            .scopeId(CONTROL)
+            .sourceBindingId(CONTROL)
+            .provider(CollectionProviderEnum.LNV)
+            .kind(CollectionTargetKindEnum.DISCOVERY)
+            .url(page)
+            .seasonLabel("2026/2027")
+            .organizerReference("901")
+            .build();
+    CollectionBackend.Target calendar =
+        target(CollectionTargetKindEnum.CALENDAR).toBuilder()
+            .provider(CollectionProviderEnum.LNV)
+            .sourceBindingId(CONTROL)
+            .url(page)
+            .build();
+    com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient http =
+        mock(com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient.class);
+    byte[] html =
+        ("<title>Alterna VOLSTAR 2026/2027</title>"
+                + "<a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"
+                + "<div class=rmpView id=Content_Main_903><span id=group_lbl_title>Regular</span></div>")
+            .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient.Response
+        response =
+            new com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient
+                .Response(html, page, true);
+    when(http.page(page))
+        .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(response));
+    DiscoverSeasonSources realDiscovery =
+        new DiscoverSeasonSources(
+            http,
+            http,
+            new com.blockout.collector.acquisition.ffvb.FfvbDiscovery(),
+            new com.blockout.collector.acquisition.lnv.LnvDiscovery(),
+            backend,
+            lifecycle,
+            Clock.fixed(NOW, ZoneOffset.UTC));
+    CollectPassage sharedPassage =
+        new CollectPassage(
+            backend,
+            sporting,
+            ffvb,
+            lnv,
+            realDiscovery,
+            lifecycle,
+            Clock.fixed(NOW, ZoneOffset.UTC));
+    LnvAcquisition.Resource shared = mock(LnvAcquisition.Resource.class);
+    SportingObservation.Calendar empty =
+        new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
+    when(lnv.fromPage(response, NOW)).thenReturn(shared);
+    when(shared.calendar(calendar))
+        .thenReturn(new LnvAcquisition.Calendar(empty, Map.of(), NOW, null));
+    when(lnv.documentIndexes()).thenReturn((owner, evidence) -> null);
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(source, calendar), 0, false));
+    when(sporting.calendar(eq(POOL), any(), eq(empty)))
+        .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
+    when(sporting.catalog(eq(CONTROL), any(), any()))
+        .thenReturn(
+            new SportingObservation.CatalogOutcome(
+                List.of(
+                    new SportingObservation.Outcome(
+                        "902", ObservationOutcomeEnum.ACCEPTED, POOL, null, null, null)),
+                true));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    sharedPassage.execute(admitted);
+
+    // Then
+    verify(http).page(page);
+    verify(lnv, never()).read(any());
+    ArgumentCaptor<SportingObservation.Context> context =
+        ArgumentCaptor.forClass(SportingObservation.Context.class);
+    verify(sporting).calendar(eq(POOL), context.capture(), eq(empty));
+    assertThat(context.getValue().observedAt()).isEqualTo(NOW);
+  }
+
+  @Test
+  @DisplayName(
+      "A refused information-sheet association remains visible after a successful detail read")
+  void preservesDocumentRefusal() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    UUID match = UUID.fromString("00000000-0000-4000-8000-000000000171");
+    URI page = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+    URI detailUrl = page.resolve("MatchStatistics.aspx?ID=901&mID=990");
+    CollectionBackend.Target calendarTarget =
+        target(CollectionTargetKindEnum.CALENDAR).toBuilder()
+            .provider(CollectionProviderEnum.LNV)
+            .url(page)
+            .build();
+    CollectionBackend.Target detailTarget =
+        calendarTarget.toBuilder()
+            .kind(CollectionTargetKindEnum.DETAILS)
+            .scopeId(match)
+            .matchId(match)
+            .url(detailUrl)
+            .build();
+    SportingObservation.Facts facts = SportingObservation.Facts.builder().build();
+    SportingObservation.Team home = new SportingObservation.Team("Home", "01", null, null);
+    SportingObservation.Team away = new SportingObservation.Team("Away", "02", null, null);
+    SportingObservation.Calendar calendar =
+        new SportingObservation.Calendar(
+            true,
+            List.of(new SportingObservation.Match("990", home, away, facts, detailUrl)),
+            List.of(),
+            List.of());
+    LnvAcquisition.Resource calendarResource = mock(LnvAcquisition.Resource.class);
+    LnvAcquisition.Resource detailResource = mock(LnvAcquisition.Resource.class);
+    SportingObservation.InformationSheet sheet =
+        new SportingObservation.InformationSheet("2026/2027", "AALNV", "001");
+    SportingObservation.Facts documentFacts =
+        SportingObservation.Facts.builder()
+            .informationSheet(org.openapitools.jackson.nullable.JsonNullable.of(sheet))
+            .build();
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(
+            new CollectionBackend.TargetPage(List.of(calendarTarget, detailTarget), 0, false));
+    when(lnv.read(page)).thenReturn(calendarResource);
+    when(calendarResource.calendar(calendarTarget))
+        .thenReturn(new LnvAcquisition.Calendar(calendar, Map.of(), NOW, "LAM"));
+    when(lnv.documentIndexes())
+        .thenReturn((owner, evidence) -> new LnvAcquisition.Read<>(Map.of("990", sheet), NOW));
+    when(sporting.calendar(eq(POOL), any(), eq(calendar)))
+        .thenReturn(
+            new SportingObservation.CalendarOutcome(
+                List.of(
+                    new SportingObservation.Outcome(
+                        "990", ObservationOutcomeEnum.ACCEPTED, match, null, null, null, false)),
+                1,
+                0,
+                0,
+                0,
+                true));
+    when(sporting.detail(eq(match), any(), eq(documentFacts)))
+        .thenReturn(
+            new SportingObservation.Outcome(
+                "990",
+                ObservationOutcomeEnum.REJECTED,
+                match,
+                URI.create("urn:blockout:document-refused"),
+                null,
+                null));
+    when(lnv.read(detailUrl)).thenReturn(detailResource);
+    when(detailResource.detail(detailTarget)).thenReturn(new LnvAcquisition.Read<>(facts, NOW));
+    when(sporting.detail(eq(match), any(), eq(facts)))
+        .thenReturn(
+            new SportingObservation.Outcome(
+                "990", ObservationOutcomeEnum.ACCEPTED, match, null, null, null));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    verify(sporting).detail(eq(match), any(), eq(documentFacts));
+    ArgumentCaptor<CollectionBackend.Result> results =
+        ArgumentCaptor.forClass(CollectionBackend.Result.class);
+    verify(backend, org.mockito.Mockito.atLeastOnce())
+        .record(eq(admitted.getCycle().id()), results.capture());
+    CollectionBackend.Result last =
+        results.getAllValues().stream()
+            .filter(
+                item ->
+                    item.scopeId().equals(match) && item.phase() == CollectionPhaseEnum.INTEGRATION)
+            .reduce((earlier, later) -> later)
+            .orElseThrow();
+    assertThat(last.outcome()).isEqualTo(CollectionOutcomeEnum.PARTIAL);
+    assertThat(last.obtainedCount()).isEqualTo(1);
+    assertThat(last.rejectedCount()).isEqualTo(1);
+    assertThat(last.reason()).contains("Information-sheet association", "document-refused");
   }
 
   @Test

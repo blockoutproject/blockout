@@ -8,6 +8,7 @@ import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpCl
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.concurrent.CompletionException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +63,12 @@ public class FfvbObservationReader implements FfvbAcquisition {
     } catch (RuntimeException failure) {
       throw readFailure(failure);
     }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Resource fromPage(ProviderHttpClient.Response page, Instant observedAt) {
+    return new SharedResource(page.url(), new Read<>(page.body(), observedAt));
   }
 
   /**

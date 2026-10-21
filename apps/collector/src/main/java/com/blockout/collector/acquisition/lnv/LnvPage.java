@@ -75,7 +75,10 @@ final class LnvPage {
           .localTime(JsonNullable.of(null))
           .build();
     try {
-      LocalTime time = LocalTime.parse(parts[1], DateTimeFormatter.ofPattern("H:mm"));
+      LocalTime time =
+          LocalTime.parse(
+              parts[1],
+              DateTimeFormatter.ofPattern("H:mm").withResolverStyle(ResolverStyle.STRICT));
       LocalDateTime paris =
           date.atTime(time)
               .atOffset(ZoneOffset.UTC)

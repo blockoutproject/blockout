@@ -40,6 +40,29 @@ class LnvObservationsTest {
   }
 
   @Test
+  @DisplayName("Unrelated ambiguous or malformed roster logos do not discard usable matches")
+  void isolatesUnrelatedRosterImages() throws Exception {
+    // Given
+    String html;
+    try (InputStream input = getClass().getResourceAsStream("/acquisition/lnv/calendar.html")) {
+      html = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    html +=
+        "<div id=unused1_DIV_Team><input id=a_HF_TeamID value=003><img src='https://images.dataproject.com/lnv/TeamLogo/placeholder.png'></div>"
+            + "<div id=unused2_DIV_Team><input id=b_HF_TeamID value=004><img src='https://images.dataproject.com/lnv/TeamLogo/placeholder.png'></div>"
+            + "<div id=unused3_DIV_Team><input id=c_HF_TeamID value=005><img src='http://[malformed'></div>";
+
+    // When
+    LnvCalendarParser.Read read =
+        new LnvCalendarParser().parse(bytes(html), CALENDAR, "901", "902", "903");
+
+    // Then
+    assertThat(read.calendar().complete()).isTrue();
+    assertThat(read.calendar().matches()).hasSize(1);
+    assertThat(read.logos()).hasSize(2);
+  }
+
+  @Test
   @DisplayName("A local calendar clock without the confirmed offset-zero flag is omitted")
   void omitsUnqualifiedCalendarClock() throws Exception {
     // Given
@@ -131,6 +154,48 @@ class LnvObservationsTest {
   }
 
   @Test
+  @DisplayName("A detail page carries its independently published aggregate correction")
+  void readsDetailAggregate() {
+    // Given
+    String html =
+        "<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026</span>"
+            + "<span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>2</span>";
+
+    // When
+    SportingObservation.Facts facts =
+        new LnvDetailParser()
+            .parse(
+                bytes(html),
+                URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901"),
+                "990",
+                "901");
+
+    // Then
+    assertThat(facts.result()).isNotNull();
+    assertThat(facts.result().get().homeSets()).isEqualTo(3);
+    assertThat(facts.result().get().awaySets()).isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("An invalid published clock cannot normalize into a plausible midnight")
+  void rejectsInvalidClock() {
+    // Given
+    String html = "<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026 - 24:00</span>";
+
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new LnvDetailParser()
+                    .parse(
+                        bytes(html),
+                        URI.create(
+                            "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901"),
+                        "990",
+                        "901"))
+        .isInstanceOf(LnvAcquisitionException.class);
+  }
+
+  @Test
   @DisplayName("A date-only detail never becomes a midnight instant")
   void preservesUnknownTime() {
     // Given / When
@@ -219,7 +284,8 @@ class LnvObservationsTest {
   }
 
   /**
-   * @param html synthetic native fragment @return provider encoding without stored raw payloads
+   * @param html synthetic native fragment
+   * @return provider encoding without stored raw payloads
    */
   private byte[] bytes(String html) {
     return html.getBytes(StandardCharsets.UTF_8);

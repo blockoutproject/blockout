@@ -58,21 +58,6 @@ public class CollectPassage {
         targets = backend.targets(context.getCycle().id(), page++);
         selected.addAll(targets.items());
       } while (targets.hasNext());
-      Map<UUID, Set<UUID>> presentPools = new LinkedHashMap<>();
-      for (CollectionBackend.Target target : selected) {
-        if (target.kind() == CollectionTargetKindEnum.DISCOVERY) {
-          Set<UUID> present = discover(context, target);
-          if (present != null) presentPools.put(target.sourceBindingId(), present);
-        }
-      }
-      selected =
-          selected.stream()
-              .filter(
-                  target ->
-                      target.poolId() == null
-                          || !presentPools.containsKey(target.sourceBindingId())
-                          || presentPools.get(target.sourceBindingId()).contains(target.poolId()))
-              .toList();
       Map<URI, List<CollectionBackend.Target>> resources = new LinkedHashMap<>();
       Map<URI, List<CollectionBackend.Target>> professional = new LinkedHashMap<>();
       for (CollectionBackend.Target target : selected) {
@@ -85,58 +70,83 @@ public class CollectPassage {
           else professional.computeIfAbsent(target.url(), ignored -> new ArrayList<>()).add(target);
         }
       }
+      DetailEvidence details = new DetailEvidence(context);
+      Set<UUID> readTeams = new LinkedHashSet<>();
+      Set<UUID> readMatches = new LinkedHashSet<>();
+      LnvAcquisition.DocumentIndexes indexes =
+          professional.isEmpty() ? null : lnv.documentIndexes();
+      Map<UUID, Set<UUID>> presentPools = new LinkedHashMap<>();
+      for (CollectionBackend.Target target : selected) {
+        if (target.kind() != CollectionTargetKindEnum.DISCOVERY) continue;
+        Set<UUID> present =
+            discover(
+                context,
+                target,
+                pageRead -> {
+                  URI url = pageRead.response().url();
+                  if (target.provider() == CollectionProviderEnum.FFVB) {
+                    List<CollectionBackend.Target> scopes = resources.remove(url);
+                    if (scopes != null)
+                      consumeFfvb(
+                          context,
+                          scopes,
+                          ffvb.fromPage(pageRead.response(), pageRead.observedAt()),
+                          pageRead.ordinal());
+                  } else {
+                    List<CollectionBackend.Target> scopes = professional.remove(url);
+                    if (scopes != null)
+                      consumeLnv(
+                          context,
+                          scopes,
+                          lnv.fromPage(pageRead.response(), pageRead.observedAt()),
+                          pageRead.ordinal(),
+                          readTeams,
+                          readMatches,
+                          indexes,
+                          details);
+                  }
+                });
+        if (present != null) presentPools.put(target.sourceBindingId(), present);
+      }
+      selected = selected.stream().filter(target -> remainsPresent(target, presentPools)).toList();
       for (Map.Entry<URI, List<CollectionBackend.Target>> entry : resources.entrySet()) {
+        List<CollectionBackend.Target> scopes =
+            entry.getValue().stream()
+                .filter(target -> remainsPresent(target, presentPools))
+                .toList();
+        if (scopes.isEmpty()) continue;
         long ordinal = context.nextReadOrdinal();
         FfvbAcquisition.Resource resource;
         try {
           resource = ffvb.read(entry.getKey());
         } catch (RuntimeException failure) {
-          for (CollectionBackend.Target target : entry.getValue())
+          for (CollectionBackend.Target target : scopes)
             acquisitionFailed(context, target, ordinal, failure);
           continue;
         }
-        for (CollectionBackend.Target target : entry.getValue()) {
-          lifecycle.requireActive();
-          if (target.kind() == CollectionTargetKindEnum.CALENDAR)
-            calendar(context, target, resource, ordinal);
-          else standings(context, target, resource, ordinal);
-        }
+        consumeFfvb(context, scopes, resource, ordinal);
       }
-      Set<UUID> readTeams = new LinkedHashSet<>();
-      Set<UUID> readMatches = new LinkedHashSet<>();
-      LnvAcquisition.DocumentIndexes indexes =
-          professional.isEmpty() ? null : lnv.documentIndexes();
       for (Map.Entry<URI, List<CollectionBackend.Target>> entry : professional.entrySet()) {
+        List<CollectionBackend.Target> scopes =
+            entry.getValue().stream()
+                .filter(target -> remainsPresent(target, presentPools))
+                .toList();
+        if (scopes.isEmpty()) continue;
         long ordinal = context.nextReadOrdinal();
         LnvAcquisition.Resource resource;
         try {
           resource = lnv.read(entry.getKey());
         } catch (RuntimeException failure) {
-          for (CollectionBackend.Target target : entry.getValue())
+          for (CollectionBackend.Target target : scopes)
             acquisitionFailed(context, target, ordinal, failure);
           continue;
         }
-        for (CollectionBackend.Target target : entry.getValue()) {
-          lifecycle.requireActive();
-          if (target.kind() == CollectionTargetKindEnum.CALENDAR)
-            professionalCalendar(
-                context, target, resource, ordinal, readTeams, readMatches, indexes);
-          else {
-            LnvAcquisition.Read<SportingObservation.Standings> read;
-            try {
-              read = resource.standings(target);
-            } catch (RuntimeException failure) {
-              acquisitionFailed(context, target, ordinal, failure);
-              continue;
-            }
-            submitStandings(context, target, ordinal, read.observation(), read.observedAt());
-          }
-        }
+        consumeLnv(context, scopes, resource, ordinal, readTeams, readMatches, indexes, details);
       }
       for (CollectionBackend.Target target : selected)
         if (target.provider() == CollectionProviderEnum.LNV
             && target.kind() == CollectionTargetKindEnum.DETAILS
-            && readMatches.add(target.matchId())) detail(context, target);
+            && readMatches.add(target.matchId())) detail(context, target, details);
       return lifecycle.complete(context, clock.instant());
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) throw failure;
@@ -148,6 +158,80 @@ public class CollectPassage {
           .addKeyValue("outcome", "refused")
           .log("Admitted context was refused; no further reads or completion were attempted");
       return false;
+    }
+  }
+
+  /**
+   * Applies newly confirmed absence to all remaining reads in the frozen selection.
+   *
+   * @param target originally admitted scope
+   * @param presentPools only successfully reconciled seasonal catalogs
+   * @return whether no complete catalog has removed this scope
+   */
+  private boolean remainsPresent(
+      CollectionBackend.Target target, Map<UUID, Set<UUID>> presentPools) {
+    return target.poolId() == null
+        || !presentPools.containsKey(target.sourceBindingId())
+        || presentPools.get(target.sourceBindingId()).contains(target.poolId());
+  }
+
+  /**
+   * Consumes selected FFVB scopes immediately, discarding the shared page afterward.
+   *
+   * @param context admitted passage
+   * @param scopes already eligible targets only
+   * @param resource shared provider read
+   * @param ordinal original pre-read order
+   */
+  private void consumeFfvb(
+      CollectorLifecycle.AdmittedCycle context,
+      List<CollectionBackend.Target> scopes,
+      FfvbAcquisition.Resource resource,
+      long ordinal) {
+    for (CollectionBackend.Target target : scopes) {
+      lifecycle.requireActive();
+      if (target.kind() == CollectionTargetKindEnum.CALENDAR)
+        calendar(context, target, resource, ordinal);
+      else standings(context, target, resource, ordinal);
+    }
+  }
+
+  /**
+   * Consumes selected professional scopes without retaining other groups' sporting rows.
+   *
+   * @param context admitted passage
+   * @param scopes already eligible targets only
+   * @param resource shared provider read
+   * @param ordinal original pre-read order
+   * @param readTeams passage-local media attempts
+   * @param readMatches passage-local detail attempts
+   * @param details cumulative independent detail/document evidence
+   * @param indexes passage-local document indexes
+   */
+  private void consumeLnv(
+      CollectorLifecycle.AdmittedCycle context,
+      List<CollectionBackend.Target> scopes,
+      LnvAcquisition.Resource resource,
+      long ordinal,
+      Set<UUID> readTeams,
+      Set<UUID> readMatches,
+      LnvAcquisition.DocumentIndexes indexes,
+      DetailEvidence details) {
+    for (CollectionBackend.Target target : scopes) {
+      lifecycle.requireActive();
+      if (target.kind() == CollectionTargetKindEnum.CALENDAR) {
+        professionalCalendar(
+            context, target, resource, ordinal, readTeams, readMatches, indexes, details);
+      } else {
+        LnvAcquisition.Read<SportingObservation.Standings> read;
+        try {
+          read = resource.standings(target);
+        } catch (RuntimeException failure) {
+          acquisitionFailed(context, target, ordinal, failure);
+          continue;
+        }
+        submitStandings(context, target, ordinal, read.observation(), read.observedAt());
+      }
     }
   }
 
@@ -328,18 +412,23 @@ public class CollectPassage {
   }
 
   /**
-   * Integrates catalog presence before any selected sporting page is read.
+   * Integrates catalog presence before remaining reads; shared pages serve admitted scopes inline.
    *
    * @param context admitted passage
    * @param target selected binding
+   * @param consume immediate shared-page consumer for already admitted scopes
    * @return reconciled present pool IDs, or null when absence is not established
    */
   private Set<UUID> discover(
-      CollectorLifecycle.AdmittedCycle context, CollectionBackend.Target target) {
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      java.util.function.Consumer<DiscoverSeasonSources.PageRead> consume) {
     long ordinal = context.nextReadOrdinal();
     DiscoverSeasonSources.Read read;
     try {
-      read = discovery.catalog(target);
+      read = discovery.catalog(target, context::nextReadOrdinal, consume);
+    } catch (CollectionBackendFailure failure) {
+      throw failure;
     } catch (RuntimeException failure) {
       acquisitionFailed(context, target, ordinal, failure);
       return null;
@@ -408,6 +497,7 @@ public class CollectPassage {
    * @param ordinal pre-read order
    * @param readTeams passage-local media attempts
    * @param readMatches passage-local detail attempts
+   * @param details cumulative independent detail/document evidence
    * @param indexes passage-local auxiliary document indexes
    */
   private void professionalCalendar(
@@ -417,7 +507,8 @@ public class CollectPassage {
       long ordinal,
       Set<UUID> readTeams,
       Set<UUID> readMatches,
-      LnvAcquisition.DocumentIndexes indexes) {
+      LnvAcquisition.DocumentIndexes indexes,
+      DetailEvidence details) {
     LnvAcquisition.Calendar read;
     try {
       read = resource.calendar(target);
@@ -446,7 +537,8 @@ public class CollectPassage {
                 .kind(CollectionTargetKindEnum.DETAILS)
                 .nativeMatchReference(match.nativeMatchReference())
                 .url(match.detailUrl())
-                .build());
+                .build(),
+            details);
       }
       image(
           context,
@@ -459,7 +551,7 @@ public class CollectPassage {
           read.logos().get(match.away().nativeTeamReference()),
           readTeams);
     }
-    informationSheets(context, target, read, outcome, indexes);
+    informationSheets(context, target, read, outcome, indexes, details);
   }
 
   /**
@@ -469,6 +561,7 @@ public class CollectPassage {
    * @param target admitted calendar owner
    * @param calendar independently acquired sporting identities and dates
    * @param outcome actual F02 identity resolutions
+   * @param details cumulative independent detail/document evidence
    * @param indexes bounded passage-local index reads
    */
   private void informationSheets(
@@ -476,19 +569,23 @@ public class CollectPassage {
       CollectionBackend.Target target,
       LnvAcquisition.Calendar calendar,
       SportingObservation.CalendarOutcome outcome,
-      LnvAcquisition.DocumentIndexes indexes) {
+      LnvAcquisition.DocumentIndexes indexes,
+      DetailEvidence details) {
     long ordinal = context.nextReadOrdinal();
     LnvAcquisition.Read<Map<String, SportingObservation.InformationSheet>> read;
     try {
       read = indexes.informationSheets(target, calendar);
     } catch (RuntimeException failure) {
-      log.atWarn()
-          .addKeyValue("operation", "document_index")
-          .addKeyValue("cycleId", context.getCycle().id())
-          .addKeyValue("scope", target.poolId())
-          .addKeyValue("outcome", "failed")
-          .log(
-              "Auxiliary information-sheet index failed; sporting observations remain independent");
+      for (SportingObservation.Outcome item : outcome.outcomes()) {
+        if (accepted(item) && item.resourceId() != null)
+          details.add(
+              item.resourceId(),
+              ordinal,
+              CollectionPhaseEnum.ACQUISITION,
+              CollectionOutcomeEnum.FAILED,
+              clock.instant(),
+              "Information-sheet index: " + failureReason(failure));
+      }
       return;
     }
     if (read == null) return;
@@ -496,20 +593,43 @@ public class CollectPassage {
       SportingObservation.InformationSheet sheet = read.observation().get(item.sourceReference());
       if (!accepted(item) || item.resourceId() == null || sheet == null) continue;
       lifecycle.requireActive();
+      details.add(
+          item.resourceId(),
+          ordinal,
+          CollectionPhaseEnum.ACQUISITION,
+          CollectionOutcomeEnum.SUCCESS,
+          read.observedAt(),
+          null);
       try {
-        sporting.detail(
+        SportingObservation.Outcome association =
+            sporting.detail(
+                item.resourceId(),
+                new SportingObservation.Context(
+                    context.getCycle().id(), ordinal, read.observedAt(), null),
+                SportingObservation.Facts.builder()
+                    .informationSheet(JsonNullable.of(sheet))
+                    .build());
+        details.add(
             item.resourceId(),
-            new SportingObservation.Context(
-                context.getCycle().id(), ordinal, read.observedAt(), null),
-            SportingObservation.Facts.builder().informationSheet(JsonNullable.of(sheet)).build());
+            ordinal,
+            CollectionPhaseEnum.INTEGRATION,
+            accepted(association) ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
+            clock.instant(),
+            accepted(association)
+                ? null
+                : "Information-sheet association: "
+                    + (association.reasonType() == null
+                        ? association.outcome()
+                        : association.reasonType()));
       } catch (CollectionBackendFailure failure) {
         if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
-        log.atWarn()
-            .addKeyValue("operation", "document_association")
-            .addKeyValue("cycleId", context.getCycle().id())
-            .addKeyValue("scope", item.resourceId())
-            .addKeyValue("outcome", failed(failure))
-            .log("Auxiliary document association was not confirmed; the write was not replayed");
+        details.add(
+            item.resourceId(),
+            ordinal,
+            CollectionPhaseEnum.INTEGRATION,
+            failed(failure),
+            clock.instant(),
+            "Information-sheet association: " + failureReason(failure));
       }
     }
   }
@@ -519,21 +639,26 @@ public class CollectPassage {
    *
    * @param context admitted passage
    * @param target selected or newly resolved professional match
+   * @param evidence cumulative independent detail/document outcomes
    */
-  private void detail(CollectorLifecycle.AdmittedCycle context, CollectionBackend.Target target) {
+  private void detail(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      DetailEvidence evidence) {
     long ordinal = context.nextReadOrdinal();
     LnvAcquisition.Resource resource;
     try {
       resource = lnv.read(target.url());
     } catch (RuntimeException failure) {
-      acquisitionFailed(context, target, ordinal, failure);
+      evidence.add(
+          target.matchId(),
+          ordinal,
+          CollectionPhaseEnum.ACQUISITION,
+          CollectionOutcomeEnum.FAILED,
+          clock.instant(),
+          failureReason(failure));
       return;
     }
-    long obtained = 0;
-    long rejected = 0;
-    long integrated = 0;
-    long refused = 0;
-    boolean unconfirmed = false;
     for (int part = 0; part < 3; part++) {
       if (part > 0) ordinal = context.nextReadOrdinal();
       LnvAcquisition.Read<SportingObservation.Facts> read;
@@ -543,32 +668,23 @@ public class CollectPassage {
                 ? resource.detail(target)
                 : resource.document(part == 1 ? "Scoresheet" : "DataVolley");
       } catch (RuntimeException failure) {
-        rejected++;
-        record(
-            context,
-            target,
+        evidence.add(
+            target.matchId(),
             ordinal,
             CollectionPhaseEnum.ACQUISITION,
-            obtained == 0 ? CollectionOutcomeEnum.FAILED : CollectionOutcomeEnum.PARTIAL,
-            obtained,
-            rejected,
+            CollectionOutcomeEnum.FAILED,
             clock.instant(),
             failureReason(failure));
         continue;
       }
       if (read == null) continue;
-      obtained++;
-      record(
-          context,
-          target,
+      evidence.add(
+          target.matchId(),
           ordinal,
           CollectionPhaseEnum.ACQUISITION,
-          rejected == 0 ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.PARTIAL,
-          obtained,
-          rejected,
+          CollectionOutcomeEnum.SUCCESS,
           read.observedAt(),
-          rejected == 0 ? null : "Independent detail or document read failed");
-      String reason = null;
+          null);
       try {
         SportingObservation.Outcome outcome =
             sporting.detail(
@@ -576,30 +692,85 @@ public class CollectPassage {
                 new SportingObservation.Context(
                     context.getCycle().id(), ordinal, read.observedAt(), null),
                 read.observation());
-        if (accepted(outcome)) integrated++;
-        else refused++;
-        reason = outcome.reasonType() == null ? null : outcome.reasonType().toString();
+        evidence.add(
+            target.matchId(),
+            ordinal,
+            CollectionPhaseEnum.INTEGRATION,
+            accepted(outcome) ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
+            clock.instant(),
+            outcome.reasonType() == null ? null : outcome.reasonType().toString());
       } catch (CollectionBackendFailure failure) {
         if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
-        refused++;
-        unconfirmed |= failure.getKind() == CollectionBackendFailure.Kind.UNCONFIRMED;
-        reason = failureReason(failure);
+        evidence.add(
+            target.matchId(),
+            ordinal,
+            CollectionPhaseEnum.INTEGRATION,
+            failed(failure),
+            clock.instant(),
+            failureReason(failure));
       }
+    }
+  }
+
+  /** Passage-local totals prevent a later independent success from hiding a document failure. */
+  @RequiredArgsConstructor
+  private final class DetailEvidence {
+    private final CollectorLifecycle.AdmittedCycle context;
+    private final Map<UUID, Map<CollectionPhaseEnum, DetailTotal>> totals = new LinkedHashMap<>();
+
+    /**
+     * Reports cumulative measured parts through the existing per-match DETAILS stage.
+     *
+     * @param match resolved F02 match identity
+     * @param ordinal original source-read order
+     * @param phase independent acquisition or integration phase
+     * @param outcome one actual part's outcome
+     * @param observedAt original observation or integration completion time
+     * @param reason safe failure diagnostic, retained across later successes
+     */
+    private void add(
+        UUID match,
+        long ordinal,
+        CollectionPhaseEnum phase,
+        CollectionOutcomeEnum outcome,
+        Instant observedAt,
+        String reason) {
+      DetailTotal total =
+          totals
+              .computeIfAbsent(match, ignored -> new LinkedHashMap<>())
+              .computeIfAbsent(phase, ignored -> new DetailTotal());
+      if (outcome == CollectionOutcomeEnum.SUCCESS) total.obtained++;
+      else {
+        total.rejected++;
+        total.reason = reason;
+      }
+      total.unconfirmed |= outcome == CollectionOutcomeEnum.UNCONFIRMED;
       record(
           context,
-          target,
+          match,
+          CollectionStageEnum.DETAILS,
           ordinal,
-          CollectionPhaseEnum.INTEGRATION,
-          unconfirmed
+          phase,
+          total.unconfirmed
               ? CollectionOutcomeEnum.UNCONFIRMED
-              : refused == 0
+              : total.rejected == 0
                   ? CollectionOutcomeEnum.SUCCESS
-                  : integrated == 0 ? CollectionOutcomeEnum.FAILED : CollectionOutcomeEnum.PARTIAL,
-          integrated,
-          refused,
-          clock.instant(),
-          reason);
+                  : total.obtained == 0
+                      ? CollectionOutcomeEnum.FAILED
+                      : CollectionOutcomeEnum.PARTIAL,
+          total.obtained,
+          total.rejected,
+          observedAt,
+          total.reason);
     }
+  }
+
+  /** Measured independent parts for one match and one phase, discarded at passage completion. */
+  private static final class DetailTotal {
+    private long obtained;
+    private long rejected;
+    private boolean unconfirmed;
+    private String reason;
   }
 
   /**
@@ -702,7 +873,8 @@ public class CollectPassage {
   }
 
   /**
-   * @param outcome actual F02 response @return whether this identity was accepted
+   * @param outcome actual F02 response
+   * @return whether this identity was accepted
    */
   private boolean accepted(SportingObservation.Outcome outcome) {
     return outcome.outcome() == ObservationOutcomeEnum.ACCEPTED

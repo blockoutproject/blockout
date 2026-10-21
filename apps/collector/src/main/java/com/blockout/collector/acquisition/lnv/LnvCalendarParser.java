@@ -149,16 +149,23 @@ public class LnvCalendarParser {
    */
   private Map<String, RosterTeam> roster(Document page) {
     Map<String, RosterTeam> result = new LinkedHashMap<>();
+    Set<String> ambiguous = new LinkedHashSet<>();
     for (Element team : page.select("[id$=_DIV_Team]")) {
       Element id = team.selectFirst("[id$=_HF_TeamID]");
       Element image = team.selectFirst("img[src]");
       if (id == null || id.attr("value").isBlank() || image == null) continue;
-      URI logo = URI.create(image.absUrl("src"));
-      String file = logo.getPath().substring(logo.getPath().lastIndexOf('/') + 1);
-      RosterTeam item = new RosterTeam(id.attr("value"), logo);
-      RosterTeam previous = result.putIfAbsent(file, item);
-      if (previous != null && !previous.equals(item)) throw LnvPage.invalid();
+      try {
+        URI logo = URI.create(image.absUrl("src"));
+        if (logo.getPath() == null) continue;
+        String file = logo.getPath().substring(logo.getPath().lastIndexOf('/') + 1);
+        RosterTeam item = new RosterTeam(id.attr("value"), logo);
+        RosterTeam previous = result.putIfAbsent(file, item);
+        if (previous != null && !previous.equals(item)) ambiguous.add(file);
+      } catch (IllegalArgumentException invalidImage) {
+        // This roster entry cannot identify a participant; unrelated matches remain usable.
+      }
     }
+    ambiguous.forEach(result::remove);
     return result;
   }
 
@@ -225,7 +232,9 @@ public class LnvCalendarParser {
   }
 
   /**
-   * @param row native context @param suffix exact field suffix @return visible text or absence
+   * @param row native context
+   * @param suffix exact field suffix
+   * @return visible text or absence
    */
   private String text(Element row, String suffix) {
     Element value = row.selectFirst("[id$=" + suffix + "]");

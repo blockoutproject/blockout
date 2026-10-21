@@ -15,6 +15,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.core5.net.URIBuilder;
 import org.jsoup.Jsoup;
@@ -48,6 +50,9 @@ public class DiscoverSeasonSources {
 
   /** Contextual catalog with its actual read completion time. */
   public record Read(SportingObservation.Catalog catalog, Instant observedAt) {}
+
+  /** One bounded response consumed immediately, never retained as a passage page cache. */
+  public record PageRead(ProviderHttpClient.Response response, Instant observedAt, long ordinal) {}
 
   /**
    * Composes the existing budgets, native interpreters and generated proposal boundary.
@@ -114,13 +119,28 @@ public class DiscoverSeasonSources {
    * @return complete or partial catalog; unsupported roots throw rather than fabricate emptiness
    */
   public Read catalog(CollectionBackend.Target target) {
-    if (target.provider() == CollectionProviderEnum.LNV) return lnvCatalog(target);
+    return catalog(target, () -> 0, page -> {});
+  }
+
+  /**
+   * Streams shared pages to already admitted scopes before discarding each body.
+   *
+   * @param target seasonal discovery scope
+   * @param nextOrdinal allocator called before every actual page read
+   * @param consume immediate consumer; must not retain raw pages or ineligible sporting rows
+   * @return aggregated catalog with actual final discovery read time
+   */
+  public Read catalog(
+      CollectionBackend.Target target, LongSupplier nextOrdinal, Consumer<PageRead> consume) {
+    if (target.provider() == CollectionProviderEnum.LNV)
+      return lnvCatalog(target, nextOrdinal, consume);
     ffvb.requireContext(target.url(), target.seasonLabel(), target.organizerReference());
     ArrayDeque<URI> pending = new ArrayDeque<>(List.of(target.url()));
     Set<URI> visited = new LinkedHashSet<>();
     List<SportingObservation.Pool> pools = new ArrayList<>();
     boolean complete = true;
     boolean recognized = false;
+    Instant observedAt = clock.instant();
     while (!pending.isEmpty()) {
       URI url = pending.removeFirst();
       if (!visited.add(url)) continue;
@@ -128,8 +148,11 @@ public class DiscoverSeasonSources {
         throw new FfvbAcquisitionException("FFVB discovery exceeds bounded navigation");
       lifecycle.requireActive();
       try {
+        long ordinal = nextOrdinal.getAsLong();
         ProviderHttpClient.Response response = ffvbHttp.page(url).join();
+        observedAt = clock.instant();
         ffvb.requireContext(response.url(), target.seasonLabel(), target.organizerReference());
+        consume.accept(new PageRead(response, observedAt, ordinal));
         try {
           SportingObservation.Catalog found =
               ffvb.parse(
@@ -137,7 +160,7 @@ public class DiscoverSeasonSources {
                   response.url(),
                   target.seasonLabel(),
                   target.organizerReference());
-          recognized = true;
+          recognized |= ffvb.seasonal(response.body(), response.url());
           complete &= found.complete();
           pools.addAll(found.pools());
           pending.addAll(
@@ -151,24 +174,31 @@ public class DiscoverSeasonSources {
           if (links.isEmpty()) complete = false;
           else pending.addAll(links);
         }
+      } catch (CollectionBackendFailure failure) {
+        throw failure;
       } catch (RuntimeException failure) {
         complete = false;
       }
     }
     if (!recognized) throw new FfvbAcquisitionException("No qualified FFVB catalog");
     return new Read(
-        new SportingObservation.Catalog(complete, pools.stream().distinct().toList()),
-        clock.instant());
+        new SportingObservation.Catalog(complete, pools.stream().distinct().toList()), observedAt);
   }
 
   /**
    * Follows the bound championship's own phases; rollover at today's entry cannot remove old roots.
    *
    * @param target exact admitted championship
+   * @param nextOrdinal pre-read order allocator
+   * @param consume immediate selected-scope consumer
    * @return published phase/group references, never sampled numeric IDs
    */
-  private Read lnvCatalog(CollectionBackend.Target target) {
+  private Read lnvCatalog(
+      CollectionBackend.Target target, LongSupplier nextOrdinal, Consumer<PageRead> consume) {
+    long rootOrdinal = nextOrdinal.getAsLong();
     ProviderHttpClient.Response root = lnvHttp.page(target.url()).join();
+    Instant observedAt = clock.instant();
+    consume.accept(new PageRead(root, observedAt, rootOrdinal));
     String season = lnv.qualify(root.body(), root.url(), target.organizerReference());
     if (season != null && !season.equals(target.seasonLabel()))
       throw new IllegalArgumentException("Contradictory LNV season");
@@ -177,8 +207,13 @@ public class DiscoverSeasonSources {
     for (URI phase : lnv.phaseLinks(root.body(), root.url(), target.organizerReference())) {
       lifecycle.requireActive();
       try {
-        ProviderHttpClient.Response page =
-            phase.equals(root.url()) ? root : lnvHttp.page(phase).join();
+        ProviderHttpClient.Response page = root;
+        if (!phase.equals(root.url())) {
+          long ordinal = nextOrdinal.getAsLong();
+          page = lnvHttp.page(phase).join();
+          observedAt = clock.instant();
+          consume.accept(new PageRead(page, observedAt, ordinal));
+        }
         Map<String, String> context = query(page.url());
         if (!target.organizerReference().equals(context.get("ID"))
             || !query(phase).get("PID").equals(context.get("PID")))
@@ -209,11 +244,13 @@ public class DiscoverSeasonSources {
                   standings,
                   title.text()));
         }
+      } catch (CollectionBackendFailure failure) {
+        throw failure;
       } catch (RuntimeException failure) {
         complete = false;
       }
     }
-    return new Read(new SportingObservation.Catalog(complete, pools), clock.instant());
+    return new Read(new SportingObservation.Catalog(complete, pools), observedAt);
   }
 
   /**
@@ -300,7 +337,8 @@ public class DiscoverSeasonSources {
   }
 
   /**
-   * @param uri published reference @return exact native query fields
+   * @param uri published reference
+   * @return exact native query fields
    */
   private Map<String, String> query(URI uri) {
     Map<String, String> values = new LinkedHashMap<>();

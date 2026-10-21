@@ -87,6 +87,36 @@ class FfvbDiscoveryTest {
   }
 
   @Test
+  @DisplayName("A retained season header without a competition catalog cannot prove absence")
+  void refusesSeasonHeaderAlone() {
+    // Given
+    String html =
+        "<select name=saison><option selected value='2026/2027'>2026/2027</option></select>";
+
+    // When / Then
+    assertThatThrownBy(() -> parse(html, ROOT, "LIRA"))
+        .isInstanceOf(FfvbAcquisitionException.class);
+  }
+
+  @Test
+  @DisplayName("A neutral round label remains excluded under a French Cup heading")
+  void excludesCupRoundNavigation() {
+    // Given
+    String html =
+        "<ul id=menu><li><a>Compétitions</a><ul><li><a>Coupe de France</a><ul>"
+            + "<li><a href='vbspo_calendrier.php?saison=2026/2027&codent=LIRA&division=CUP&tour=01'>Tour 1</a></li>"
+            + "</ul></li></ul></li></ul>";
+
+    // When
+    java.util.List<URI> rounds =
+        new FfvbDiscovery()
+            .roundLinks(html.getBytes(Charset.forName("windows-1252")), ROOT, "2026/2027", "LIRA");
+
+    // Then
+    assertThat(rounds).isEmpty();
+  }
+
+  @Test
   @DisplayName("A qualified native empty menu is distinct from a failed page")
   void acceptsQualifiedEmptyCatalog() {
     // Given

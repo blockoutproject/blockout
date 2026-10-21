@@ -63,7 +63,12 @@ public class LnvObservationReader implements LnvAcquisition {
   @Override
   public Resource read(URI uri) {
     ProviderHttpClient.Response response = http.page(uri).join();
-    Instant observedAt = clock.instant();
+    return fromPage(response, clock.instant());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Resource fromPage(ProviderHttpClient.Response response, Instant observedAt) {
     return new Resource() {
       /** {@inheritDoc} */
       @Override

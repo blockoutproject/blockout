@@ -1,6 +1,7 @@
 package com.blockout.collector.acquisition.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -69,6 +70,41 @@ class DiscoverSeasonSourcesTest {
         .extracting(SportingObservation.Pool::poolReference)
         .containsExactly("EA");
     assertThat(read.observedAt()).isEqualTo(Instant.EPOCH);
+  }
+
+  @Test
+  @DisplayName("An isolated round cannot establish the whole seasonal catalog")
+  void refusesRoundAsSeasonRoot() throws Exception {
+    // Given
+    URI round =
+        URI.create(
+            "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?saison=2026/2027&codent=LIIDF&division=YOUTH&tour=01");
+    String html;
+    try (java.io.InputStream input =
+        getClass().getResourceAsStream("/acquisition/ffvb/round.html")) {
+      html = new String(input.readAllBytes(), Charset.forName("windows-1252"));
+    }
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    when(http.page(round)).thenReturn(response(round, html));
+    DiscoverSeasonSources service =
+        new DiscoverSeasonSources(
+            http,
+            http,
+            new FfvbDiscovery(),
+            new LnvDiscovery(),
+            mock(CollectionBackend.class),
+            mock(CollectorLifecycle.class),
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .provider(CollectionProviderEnum.FFVB)
+            .url(round)
+            .seasonLabel("2026/2027")
+            .organizerReference("LIIDF")
+            .build();
+
+    // When / Then
+    assertThatThrownBy(() -> service.catalog(target)).isInstanceOf(FfvbAcquisitionException.class);
   }
 
   /**

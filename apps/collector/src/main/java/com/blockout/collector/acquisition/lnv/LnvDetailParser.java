@@ -1,6 +1,7 @@
 package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.SportingObservation;
+import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import java.net.URI;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -57,10 +58,35 @@ public class LnvDetailParser {
         .localTime(time.localTime())
         .timeZone(time.timeZone())
         .sets(sets)
+        .result(result(page))
         .venueName(
             page.getElementById("Content_Main_LB_Stadium") == null
                 ? null
                 : JsonNullable.of(page.getElementById("Content_Main_LB_Stadium").text()))
         .build();
+  }
+
+  /**
+   * Reads published aggregate scores independently of optional set details.
+   *
+   * @param page native match detail
+   * @return absent for unplayed or malformed scores; F02 owns sporting compatibility
+   */
+  private JsonNullable<SportingObservation.Result> result(Document page) {
+    Element home = page.getElementById("Content_Main_LBL_WonSetHome");
+    Element away = page.getElementById("Content_Main_LBL_WonSetGuest");
+    if (home == null
+        || away == null
+        || !home.text().matches("[0-9]")
+        || !away.text().matches("[0-9]")
+        || home.text().equals("0") && away.text().equals("0")) return null;
+    return JsonNullable.of(
+        new SportingObservation.Result(
+            page.text().toLowerCase(Locale.FRENCH).contains("en cours")
+                ? ResultStateEnum.PROVISIONAL
+                : ResultStateEnum.FINAL,
+            Integer.valueOf(home.text()),
+            Integer.valueOf(away.text()),
+            null));
   }
 }
