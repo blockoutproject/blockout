@@ -103,8 +103,16 @@ const config: ExpoConfig = {
         },
       },
     ],
-    // Expo 57 requires scene lifecycle opt-in when building with Xcode 27.
-    ["expo-build-properties", { ios: { enableSceneSupport: true } }],
+    [
+      "expo-build-properties",
+      {
+        // Google Mobile Ads 25.4 metadata requires a newer compiler than RN's 2.1 default.
+        android: { kotlinVersion: "2.2.21" },
+        // Expo 57 requires scene lifecycle opt-in when building with Xcode 27.
+        ios: { enableSceneSupport: true },
+      },
+    ],
+    "./plugins/with-android-kotlin-compiler.cjs",
     [
       "@sentry/react-native/expo",
       {
