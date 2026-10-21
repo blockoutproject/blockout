@@ -84,7 +84,7 @@ class LnvObservationsTest {
 
     // Then
     assertThat(facts.localDate().get()).isEqualTo(LocalDate.of(2026, 10, 17));
-    assertThat(facts.localTime().get()).isNull();
+    assertThat(facts.localTime()).isNull();
   }
 
   @Test
@@ -221,15 +221,21 @@ class LnvObservationsTest {
     assertThat(read.calendar().complete()).isEqualTo(schedule.isBlank());
   }
 
-  @Test
-  @DisplayName("A published professional forfeit remains a native notation without invented scores")
-  void retainsForfeitNotation() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {"3/F", "P/3", "F/3", "3/X"})
+  @DisplayName("A native special or uninterpreted notation reaches F02 without invented scores")
+  void retainsForfeitNotation(String notation) throws Exception {
     // Given
     String html;
     try (InputStream input = getClass().getResourceAsStream("/acquisition/lnv/calendar.html")) {
       html =
           new String(input.readAllBytes(), StandardCharsets.UTF_8)
-              .replace("id=\"fixture_LB_SetOspiti\">1", "id=\"fixture_LB_SetOspiti\">F");
+              .replace(
+                  "id=\"fixture_LB_SetCasa\">3",
+                  "id=\"fixture_LB_SetCasa\">" + notation.split("/")[0])
+              .replace(
+                  "id=\"fixture_LB_SetOspiti\">1",
+                  "id=\"fixture_LB_SetOspiti\">" + notation.split("/")[1]);
     }
 
     // When
@@ -244,7 +250,7 @@ class LnvObservationsTest {
             .get();
 
     // Then
-    assertThat(result.specialLabel()).isEqualTo("3/F");
+    assertThat(result.specialLabel()).isEqualTo(notation);
     assertThat(result.homeSets()).isNull();
     assertThat(result.awaySets()).isNull();
   }

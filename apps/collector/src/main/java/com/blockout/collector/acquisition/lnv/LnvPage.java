@@ -124,20 +124,19 @@ final class LnvPage {
   }
 
   /**
-   * Preserves recognized official notations without manufacturing numeric scores or winners.
+   * Preserves published official notations without manufacturing numeric scores or winners.
    *
    * @param home published home score field
    * @param away published away score field
    * @param live explicit provisional publication
-   * @return absent for an unpublished/unplayed result; invalid notation is a local field failure
+   * @return absent for an unpublished/unplayed result; F02 owns interpretation of native notation
    */
   static JsonNullable<SportingObservation.Result> result(String home, String away, boolean live) {
     if (home.isBlank() && away.isBlank() || home.equals("0") && away.equals("0")) return null;
     String notation = home + "/" + away;
-    if (java.util.Set.of("F/P", "3/F", "3/P", "F/F", "2/F").contains(notation))
+    if (!home.matches("[0-9]") || !away.matches("[0-9]"))
       return JsonNullable.of(
           new SportingObservation.Result(ResultStateEnum.UNCONFIRMED, null, null, notation));
-    if (!home.matches("[0-9]") || !away.matches("[0-9]")) throw invalid();
     return JsonNullable.of(
         new SportingObservation.Result(
             live ? ResultStateEnum.PROVISIONAL : ResultStateEnum.FINAL,

@@ -61,8 +61,37 @@ class LnvObservationReaderTest {
 
   @Test
   @DisplayName(
-      "A document form redirect is checked against the admitted match before returning a PDF link")
-  void rejectsForeignDocumentResponse() {
+      "Positive contradictory season evidence prevents both detail and document interpretation")
+  void rejectsContradictoryDetailSeason() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    LnvObservationReader reader = documentReader(http);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .seasonLabel("2026/2027")
+            .nativeMatchReference("990")
+            .competitionReference("901")
+            .build();
+    URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
+    String html =
+        "<title>Alterna VOLSTAR 2027/2028</title><span id=Content_Main_LB_DateTime>dimanche 17 octobre 2027</span><span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
+    LnvAcquisition.Resource resource =
+        reader.fromPage(
+            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
+            Instant.EPOCH);
+
+    // When / Then
+    assertThatThrownBy(() -> resource.detail(target)).isInstanceOf(LnvAcquisitionException.class);
+    assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
+        .isInstanceOf(LnvAcquisitionException.class);
+    verifyNoInteractions(http);
+  }
+
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+  @DisplayName(
+      "Document form responses preserve admitted identity and season before returning a PDF link")
+  void rejectsForeignDocumentResponse(boolean wrongSeason) {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     LnvObservationReader reader = documentReader(http);
@@ -76,6 +105,7 @@ class LnvObservationReaderTest {
         """;
     CollectionBackend.Target target =
         CollectionBackend.Target.builder()
+            .seasonLabel("2026/2027")
             .nativeMatchReference("990")
             .competitionReference("901")
             .build();
@@ -87,10 +117,14 @@ class LnvObservationReaderTest {
         .thenReturn(
             CompletableFuture.completedFuture(
                 new ProviderHttpClient.Response(
-                    "<iframe src='https://documents.example.invalid/foreign.pdf'></iframe>"
+                    ("<title>Alterna VOLSTAR "
+                            + (wrongSeason ? "2027/2028" : "2026/2027")
+                            + "</title><iframe src='https://documents.example.invalid/foreign.pdf'></iframe>")
                         .getBytes(StandardCharsets.UTF_8),
                     URI.create(
-                        "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=991&ID=901"),
+                        "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID="
+                            + (wrongSeason ? "990" : "991")
+                            + "&ID=901"),
                     true)));
 
     // When / Then

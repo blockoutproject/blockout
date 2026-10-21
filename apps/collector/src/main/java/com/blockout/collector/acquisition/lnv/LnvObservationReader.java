@@ -106,6 +106,7 @@ public class LnvObservationReader implements LnvAcquisition {
       /** {@inheritDoc} */
       @Override
       public Read<SportingObservation.Facts> detail(CollectionBackend.Target target) {
+        requireSeason(response, target);
         requireMatch(response.url(), target);
         LnvDetailParser.Read read =
             details.inspect(
@@ -120,12 +121,14 @@ public class LnvObservationReader implements LnvAcquisition {
       @Override
       public Read<SportingObservation.Facts> document(
           CollectionBackend.Target target, String label) {
+        requireSeason(response, target);
         requireMatch(response.url(), target);
         LnvDocumentReferences.Form form = documents.form(response.body(), response.url(), label);
         if (form == null) return null;
         requireMatch(form.action(), target);
         ProviderHttpClient.Response document = http.postPage(form.action(), form.fields()).join();
         requireMatch(document.url(), target);
+        requireSeason(document, target);
         URI pdf = documents.publishedPdf(document.body(), document.url());
         if (pdf == null) throw LnvPage.invalid();
         SportingObservation.Facts facts =

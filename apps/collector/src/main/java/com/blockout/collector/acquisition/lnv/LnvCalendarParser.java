@@ -76,7 +76,7 @@ public class LnvCalendarParser {
         Element flag = row.parent().selectFirst("[id$=_HF_LocalMatchTimeVisible]");
         boolean qualifiedClock = flag != null && flag.attr("value").equalsIgnoreCase("true");
         // The native false flag can render a local clock even with offset zero. Preserve its date,
-        // keep the unqualified clock unknown, and let an independently qualified detail read supply
+        // omit the unqualified clock, and let an independently qualified detail read supply
         // it.
         SportingObservation.Facts time = SportingObservation.Facts.builder().build();
         try {
@@ -104,7 +104,7 @@ public class LnvCalendarParser {
         SportingObservation.Facts facts =
             SportingObservation.Facts.builder()
                 .localDate(time.localDate())
-                .localTime(time.localTime())
+                .localTime(qualifiedClock || !rendered.contains(" - ") ? time.localTime() : null)
                 .timeZone(time.timeZone())
                 .result(result)
                 .referees(referees(row))
