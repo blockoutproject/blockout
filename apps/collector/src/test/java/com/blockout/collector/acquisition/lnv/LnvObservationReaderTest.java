@@ -1,8 +1,11 @@
 package com.blockout.collector.acquisition.lnv;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
@@ -28,6 +31,130 @@ import org.openapitools.jackson.nullable.JsonNullable;
  */
 @DisplayName("Passage-local LNV auxiliary index reads")
 class LnvObservationReaderTest {
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(
+      strings = {"mID=991&ID=901", "mID=990&ID=999", "mID=990&ID=901&PID=999"})
+  @DisplayName("A redirected detail context cannot submit a document form for the admitted match")
+  void rejectsForeignDocumentContext(String query) {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    LnvObservationReader reader = documentReader(http);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .nativeMatchReference("990")
+            .competitionReference("901")
+            .poolReference("902")
+            .build();
+    LnvAcquisition.Resource resource =
+        reader.fromPage(
+            new ProviderHttpClient.Response(
+                new byte[0],
+                URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?" + query),
+                true),
+            Instant.EPOCH);
+
+    // When / Then
+    assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
+        .isInstanceOf(LnvAcquisitionException.class);
+    verifyNoInteractions(http);
+  }
+
+  @Test
+  @DisplayName(
+      "A document form redirect is checked against the admitted match before returning a PDF link")
+  void rejectsForeignDocumentResponse() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    LnvObservationReader reader = documentReader(http);
+    URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
+    String html =
+        """
+        <form method=post><input type=hidden id=State name=State value='{}'>
+        <div id=Tabs><li class=rtsLI>Scoresheet</li></div></form><script>
+        $create(Telerik.Web.UI.RadTabStrip, {"_postBackReference":"__doPostBack('tabs','arguments')","clientStateFieldID":"State","tabData":[{}]}, null, null, $get("Tabs"));
+        </script>
+        """;
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .nativeMatchReference("990")
+            .competitionReference("901")
+            .build();
+    LnvAcquisition.Resource resource =
+        reader.fromPage(
+            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
+            Instant.EPOCH);
+    when(http.postPage(any(), any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                new ProviderHttpClient.Response(
+                    "<iframe src='https://documents.example.invalid/foreign.pdf'></iframe>"
+                        .getBytes(StandardCharsets.UTF_8),
+                    URI.create(
+                        "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=991&ID=901"),
+                    true)));
+
+    // When / Then
+    assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
+        .isInstanceOf(LnvAcquisitionException.class);
+    verify(http).postPage(any(), any());
+    org.mockito.Mockito.verifyNoMoreInteractions(http);
+  }
+
+  @Test
+  @DisplayName("A published championship table without PID uses its explicit group container")
+  void readsChampionshipTable() {
+    // Given
+    LnvObservationReader reader = documentReader(mock(ProviderHttpClient.class));
+    URI page = URI.create("https://lnv-web.dataproject.com/CompetitionStandings.aspx?ID=901");
+    String html =
+        "<div id=Content_Main_903><table class=rgMasterTable><thead><tr><th>Equipe</th><th>Points</th></tr></thead><tbody><tr><td><span id=TeamName>Home</span><input id=HF_TeamID value=001></td><td>9</td></tr></tbody></table></div>";
+    LnvAcquisition.Resource resource =
+        reader.fromPage(
+            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
+            Instant.EPOCH);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .competitionReference("901")
+            .poolReference("902")
+            .groupReference("903")
+            .build();
+
+    // When
+    LnvAcquisition.Read<SportingObservation.Standings> read = resource.standings(target);
+
+    // Then
+    assertThat(read.observation().rows())
+        .singleElement()
+        .satisfies(row -> assertThat(row.nativeTeamReference()).isEqualTo("001"));
+  }
+
+  @Test
+  @DisplayName("An invalid detail schedule yields partial evidence with usable result facts")
+  void reportsPartialDetail() {
+    // Given
+    LnvObservationReader reader = documentReader(mock(ProviderHttpClient.class));
+    URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
+    String html =
+        "<span id=Content_Main_LB_DateTime>invalid date</span><span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
+    LnvAcquisition.Resource resource =
+        reader.fromPage(
+            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
+            Instant.EPOCH);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .nativeMatchReference("990")
+            .competitionReference("901")
+            .build();
+
+    // When
+    LnvAcquisition.Read<SportingObservation.Facts> read = resource.detail(target);
+
+    // Then
+    assertThat(read.complete()).isFalse();
+    assertThat(read.observation().result().get().homeSets()).isEqualTo(3);
+    assertThat(read.observation().localDate()).isNull();
+  }
+
   @Test
   @DisplayName("Two admitted pools share one XML read and its original completion time")
   void sharesIndexAcrossPools() {
@@ -98,18 +225,50 @@ class LnvObservationReaderTest {
             List.of());
     LnvAcquisition.Calendar calendar =
         new LnvAcquisition.Calendar(matches, Map.of(), firstTime, "LAM");
-    LnvAcquisition.DocumentIndexes indexes = reader.documentIndexes();
+    LnvAcquisition.DocumentIndexes indexes = reader.documentIndexes(() -> 7);
 
     // When
-    LnvAcquisition.Read<Map<String, SportingObservation.InformationSheet>> firstRead =
-        indexes.informationSheets(first, calendar);
-    LnvAcquisition.Read<Map<String, SportingObservation.InformationSheet>> secondRead =
-        indexes.informationSheets(second, calendar);
+    LnvAcquisition.DocumentRead firstRead = indexes.informationSheets(first, calendar);
+    LnvAcquisition.DocumentRead secondRead = indexes.informationSheets(second, calendar);
 
     // Then
     verify(http).page(indexUrl);
     assertThat(firstRead.observation().get("990").matchCode()).isEqualTo("00AA");
     assertThat(secondRead.observation()).isEqualTo(firstRead.observation());
     assertThat(secondRead.observedAt()).isEqualTo(firstTime);
+    assertThat(secondRead.readOrdinal()).isEqualTo(7);
+  }
+
+  /**
+   * Composes real native parsers with only the transport controlled and no XML associations.
+   *
+   * @param http controlled provider boundary
+   * @return reader with a deterministic source completion clock
+   */
+  private LnvObservationReader documentReader(ProviderHttpClient http) {
+    Clock clock = Clock.fixed(Instant.EPOCH, java.time.ZoneOffset.UTC);
+    AcquisitionProperties properties =
+        new AcquisitionProperties(
+            List.of(),
+            List.of(),
+            List.of(),
+            Duration.ofSeconds(3),
+            1024,
+            1,
+            1,
+            1,
+            10,
+            Duration.ofSeconds(1),
+            Duration.ZERO,
+            List.of());
+    return new LnvObservationReader(
+        http,
+        new LnvCalendarParser(),
+        new LnvStandingsParser(),
+        new LnvDetailParser(),
+        new LnvTeamImages(http, clock),
+        new LnvDocumentReferences(),
+        properties,
+        clock);
   }
 }

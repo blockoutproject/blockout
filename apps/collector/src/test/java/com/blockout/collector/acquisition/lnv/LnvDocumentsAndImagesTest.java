@@ -82,7 +82,7 @@ class LnvDocumentsAndImagesTest {
         <input type=hidden name=__VIEWSTATE value=synthetic-state>
         <input type=hidden name=__EVENTVALIDATION value=synthetic-validation>
         <div id=NativeTabs><ul><li class=rtsLI>Scoresheet</li><li class=rtsLI>Statistics</li><li class=rtsLI>DataVolley</li></ul></div>
-        <input type=hidden id=NativeTabs_State name=NativeTabs_State value='{"selectedIndexes":["1"]}'>
+        <input type=hidden id=NativeTabs_State name=Native$Tabs$State value='{"selectedIndexes":["1"]}'>
         </form><script>
         $create(Telerik.Web.UI.RadTabStrip, {"_postBackReference":"__doPostBack('actual$Control','arguments')","clientStateFieldID":"NativeTabs_State","tabData":[{"value":"sheet"},{"value":"stats"},{"value":"volley"}]}, null, null, $get("NativeTabs"));
         </script>
@@ -94,6 +94,12 @@ class LnvDocumentsAndImagesTest {
 
     // Then
     assertThat(form.action()).isEqualTo(page);
+    assertThat(
+            form.fields().stream()
+                .filter(field -> field.getName().equals("Native$Tabs$State"))
+                .toList())
+        .singleElement()
+        .satisfies(field -> assertThat(field.getValue()).contains("\"selectedIndexes\":[\"0\"]"));
     assertThat(form.fields())
         .anySatisfy(
             field -> {

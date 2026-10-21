@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.LongSupplier;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -73,6 +74,7 @@ public class LnvObservationReader implements LnvAcquisition {
       /** {@inheritDoc} */
       @Override
       public Calendar calendar(CollectionBackend.Target target) {
+        requireSeason(response, target);
         LnvCalendarParser.Read read =
             calendars.parse(
                 response.body(),
@@ -92,8 +94,10 @@ public class LnvObservationReader implements LnvAcquisition {
       /** {@inheritDoc} */
       @Override
       public Read<SportingObservation.Standings> standings(CollectionBackend.Target target) {
+        requireSeason(response, target);
         if (!target.competitionReference().equals(LnvPage.query(response.url()).get("ID"))
-            || !target.poolReference().equals(LnvPage.query(response.url()).get("PID")))
+            || LnvPage.query(response.url()).containsKey("PID")
+                && !target.poolReference().equals(LnvPage.query(response.url()).get("PID")))
           throw LnvPage.invalid();
         return new Read<>(
             standings.parse(response.body(), response.url(), target.groupReference()), observedAt);
@@ -102,24 +106,26 @@ public class LnvObservationReader implements LnvAcquisition {
       /** {@inheritDoc} */
       @Override
       public Read<SportingObservation.Facts> detail(CollectionBackend.Target target) {
-        return new Read<>(
-            details.parse(
+        requireMatch(response.url(), target);
+        LnvDetailParser.Read read =
+            details.inspect(
                 response.body(),
                 response.url(),
                 target.nativeMatchReference(),
-                target.competitionReference()),
-            observedAt);
+                target.competitionReference());
+        return new Read<>(read.facts(), observedAt, read.complete());
       }
 
       /** {@inheritDoc} */
       @Override
-      public Read<SportingObservation.Facts> document(String label) {
+      public Read<SportingObservation.Facts> document(
+          CollectionBackend.Target target, String label) {
+        requireMatch(response.url(), target);
         LnvDocumentReferences.Form form = documents.form(response.body(), response.url(), label);
         if (form == null) return null;
+        requireMatch(form.action(), target);
         ProviderHttpClient.Response document = http.postPage(form.action(), form.fields()).join();
-        if (!LnvPage.query(response.url())
-            .get("mID")
-            .equals(LnvPage.query(document.url()).get("mID"))) throw LnvPage.invalid();
+        requireMatch(document.url(), target);
         URI pdf = documents.publishedPdf(document.body(), document.url());
         if (pdf == null) throw LnvPage.invalid();
         SportingObservation.Facts facts =
@@ -133,8 +139,8 @@ public class LnvObservationReader implements LnvAcquisition {
 
   /** {@inheritDoc} */
   @Override
-  public DocumentIndexes documentIndexes() {
-    Map<String, Optional<Read<byte[]>>> indexes = new LinkedHashMap<>();
+  public DocumentIndexes documentIndexes(LongSupplier nextOrdinal) {
+    Map<String, Optional<Index>> indexes = new LinkedHashMap<>();
     return (target, calendar) -> {
       String code = calendar.documentCompetition();
       if (code == null) return null;
@@ -149,18 +155,19 @@ public class LnvObservationReader implements LnvAcquisition {
         // Cache failure too: one unavailable index is not retried per match or pool in this
         // passage.
         indexes.put(code, Optional.empty());
+        long ordinal = nextOrdinal.getAsLong();
         ProviderHttpClient.Response xml =
             http.page(URI.create("https://www.lnv.fr/xml/calendrier-" + code + ".xml")).join();
-        indexes.put(code, Optional.of(new Read<>(xml.body(), clock.instant())));
+        indexes.put(code, Optional.of(new Index(xml.body(), clock.instant(), ordinal)));
       }
-      Read<byte[]> index = indexes.get(code).orElseThrow(LnvPage::invalid);
+      Index index = indexes.get(code).orElseThrow(LnvPage::invalid);
       Map<String, SportingObservation.InformationSheet> sheets = new LinkedHashMap<>();
       for (SportingObservation.Match match : calendar.observation().matches()) {
         LocalDate date =
             match.facts().localDate() == null ? null : match.facts().localDate().orElse(null);
         SportingObservation.InformationSheet sheet =
             documents.informationSheet(
-                index.observation(),
+                index.bytes(),
                 year,
                 target.competitionReference(),
                 code,
@@ -170,8 +177,40 @@ public class LnvObservationReader implements LnvAcquisition {
                 properties.documentTeamAssociations());
         if (sheet != null) sheets.put(match.nativeMatchReference(), sheet);
       }
-      return new Read<>(Map.copyOf(sheets), index.observedAt());
+      return new DocumentRead(Map.copyOf(sheets), index.observedAt(), index.readOrdinal());
     };
+  }
+
+  /**
+   * Bounded auxiliary bytes and their actual observation token, retained only during the passage.
+   */
+  private record Index(byte[] bytes, Instant observedAt, long readOrdinal) {}
+
+  /**
+   * Rejects positive contradictory seasonal evidence even without a simultaneous discovery target.
+   *
+   * @param response bounded provider response
+   * @param target admitted seasonal scope
+   */
+  private void requireSeason(
+      ProviderHttpClient.Response response, CollectionBackend.Target target) {
+    String season = LnvPage.season(LnvPage.parse(response.body(), response.url()));
+    if (season != null && !season.equals(target.seasonLabel())) throw LnvPage.invalid();
+  }
+
+  /**
+   * Checks every detail/document request against the admitted identity, including redirects.
+   *
+   * @param url actual page or form-action URL
+   * @param target admitted native match/championship and optional phase/group
+   */
+  private void requireMatch(URI url, CollectionBackend.Target target) {
+    Map<String, String> fields = LnvPage.query(url);
+    if (!target.nativeMatchReference().equals(fields.get("mID"))
+        || !target.competitionReference().equals(fields.get("ID"))
+        || fields.containsKey("PID") && !fields.get("PID").equals(target.poolReference())
+        || fields.containsKey("CID") && !fields.get("CID").equals(target.groupReference()))
+      throw LnvPage.invalid();
   }
 
   /** {@inheritDoc} */

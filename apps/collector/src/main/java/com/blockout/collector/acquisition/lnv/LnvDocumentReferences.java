@@ -89,26 +89,26 @@ public class LnvDocumentReferences {
         if (form == null || !form.attr("method").equalsIgnoreCase("post")) throw LnvPage.invalid();
         List<NameValuePair> fields = new ArrayList<>();
         String state = configuration.path("clientStateFieldID").asText();
+        Element previous = document.getElementById(state);
+        String stateName = previous == null ? state : previous.attr("name");
+        if (stateName.isBlank()) throw LnvPage.invalid();
         for (Element input : form.select("input[type=hidden][name]")) {
           String name = input.attr("name");
-          if (name.equals("__EVENTTARGET") || name.equals("__EVENTARGUMENT") || name.equals(state))
-            continue;
+          if (name.equals("__EVENTTARGET")
+              || name.equals("__EVENTARGUMENT")
+              || name.equals(stateName)) continue;
           fields.add(new BasicNameValuePair(name, input.attr("value")));
         }
         fields.add(new BasicNameValuePair("__EVENTTARGET", event.group(1)));
         fields.add(
             new BasicNameValuePair(
                 "__EVENTARGUMENT", JSON.writeValueAsString(Map.of("type", 0, "index", index))));
-        Element previous = document.getElementById(state);
         ObjectNode clientState =
             previous != null && !previous.attr("value").isBlank()
                 ? (ObjectNode) JSON.readTree(previous.attr("value"))
                 : JSON.createObjectNode();
         clientState.putArray("selectedIndexes").add(index);
-        fields.add(
-            new BasicNameValuePair(
-                previous == null ? state : previous.attr("name"),
-                JSON.writeValueAsString(clientState)));
+        fields.add(new BasicNameValuePair(stateName, JSON.writeValueAsString(clientState)));
         URI action = form.attr("action").isBlank() ? page : page.resolve(form.attr("action"));
         if (!page.getHost().equalsIgnoreCase(action.getHost())
             || !LnvPage.query(page).get("mID").equals(LnvPage.query(action).get("mID")))

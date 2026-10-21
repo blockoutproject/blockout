@@ -30,20 +30,7 @@ public class LnvDiscovery {
         || title.contains("ligue a féminine")
         || title.contains("ligue b masculine"))) throw LnvPage.invalid();
     phaseLinks(bytes, url, competition);
-    java.util.regex.Matcher seasons =
-        java.util.regex.Pattern.compile("(20[0-9]{2})[/–-](20[0-9]{2})")
-            .matcher(
-                page.select("title, [id$=LB_Season], select[name*=Season] option[selected]")
-                    .text());
-    String result = null;
-    while (seasons.find()) {
-      if (Integer.parseInt(seasons.group(2)) != Integer.parseInt(seasons.group(1)) + 1)
-        throw LnvPage.invalid();
-      String season = seasons.group(1) + "/" + seasons.group(2);
-      if (result != null && !result.equals(season)) throw LnvPage.invalid();
-      result = season;
-    }
-    return result;
+    return LnvPage.season(page);
   }
 
   /**

@@ -1,7 +1,6 @@
 package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.SportingObservation;
-import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import java.net.URI;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -77,30 +76,35 @@ public class LnvCalendarParser {
         Element flag = row.parent().selectFirst("[id$=_HF_LocalMatchTimeVisible]");
         boolean qualifiedClock = flag != null && flag.attr("value").equalsIgnoreCase("true");
         // The native false flag can render a local clock even with offset zero. Preserve its date,
-        // omit the unqualified clock, and let an independently qualified detail read supply it.
-        SportingObservation.Facts time =
-            LnvPage.time(
-                qualifiedClock ? rendered : rendered.split(" - ")[0],
-                DateTimeFormatter.ofPattern("dd/MM/uuuu"));
+        // keep the unqualified clock unknown, and let an independently qualified detail read supply
+        // it.
+        SportingObservation.Facts time = SportingObservation.Facts.builder().build();
+        try {
+          time =
+              LnvPage.time(
+                  qualifiedClock ? rendered : rendered.split(" - ")[0],
+                  DateTimeFormatter.ofPattern("dd/MM/uuuu"));
+        } catch (LnvAcquisitionException invalidTime) {
+          failures.add(
+              new SportingObservation.Failure(
+                  reference, URI.create("urn:blockout:acquisition:invalid-schedule")));
+        }
         JsonNullable<SportingObservation.Result> result = null;
-        String homeSets = text(row, "_LB_SetCasa");
-        String awaySets = text(row, "_LB_SetOspiti");
-        if (homeSets.matches("[0-9]")
-            && awaySets.matches("[0-9]")
-            && !(homeSets.equals("0") && awaySets.equals("0")))
+        try {
           result =
-              JsonNullable.of(
-                  new SportingObservation.Result(
-                      row.text().toLowerCase(Locale.FRENCH).contains("en cours")
-                          ? ResultStateEnum.PROVISIONAL
-                          : ResultStateEnum.FINAL,
-                      Integer.valueOf(homeSets),
-                      Integer.valueOf(awaySets),
-                      null));
+              LnvPage.result(
+                  text(row, "_LB_SetCasa"),
+                  text(row, "_LB_SetOspiti"),
+                  row.text().toLowerCase(Locale.FRENCH).contains("en cours"));
+        } catch (LnvAcquisitionException invalidResult) {
+          failures.add(
+              new SportingObservation.Failure(
+                  reference, URI.create("urn:blockout:acquisition:invalid-result")));
+        }
         SportingObservation.Facts facts =
             SportingObservation.Facts.builder()
                 .localDate(time.localDate())
-                .localTime(qualifiedClock || !rendered.contains(" - ") ? time.localTime() : null)
+                .localTime(time.localTime())
                 .timeZone(time.timeZone())
                 .result(result)
                 .referees(referees(row))
@@ -232,6 +236,8 @@ public class LnvCalendarParser {
   }
 
   /**
+   * Reads one optional native text field without substituting another representation.
+   *
    * @param row native context
    * @param suffix exact field suffix
    * @return visible text or absence

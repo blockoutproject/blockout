@@ -74,7 +74,7 @@ public class CollectPassage {
       Set<UUID> readTeams = new LinkedHashSet<>();
       Set<UUID> readMatches = new LinkedHashSet<>();
       LnvAcquisition.DocumentIndexes indexes =
-          professional.isEmpty() ? null : lnv.documentIndexes();
+          professional.isEmpty() ? null : lnv.documentIndexes(context::nextReadOrdinal);
       Map<UUID, Set<UUID>> presentPools = new LinkedHashMap<>();
       for (CollectionBackend.Target target : selected) {
         if (target.kind() != CollectionTargetKindEnum.DISCOVERY) continue;
@@ -147,6 +147,7 @@ public class CollectPassage {
         if (target.provider() == CollectionProviderEnum.LNV
             && target.kind() == CollectionTargetKindEnum.DETAILS
             && readMatches.add(target.matchId())) detail(context, target, details);
+      details.flush();
       return lifecycle.complete(context, clock.instant());
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) throw failure;
@@ -572,7 +573,7 @@ public class CollectPassage {
       LnvAcquisition.DocumentIndexes indexes,
       DetailEvidence details) {
     long ordinal = context.nextReadOrdinal();
-    LnvAcquisition.Read<Map<String, SportingObservation.InformationSheet>> read;
+    LnvAcquisition.DocumentRead read;
     try {
       read = indexes.informationSheets(target, calendar);
     } catch (RuntimeException failure) {
@@ -589,6 +590,7 @@ public class CollectPassage {
       return;
     }
     if (read == null) return;
+    ordinal = read.readOrdinal();
     for (SportingObservation.Outcome item : outcome.outcomes()) {
       SportingObservation.InformationSheet sheet = read.observation().get(item.sourceReference());
       if (!accepted(item) || item.resourceId() == null || sheet == null) continue;
@@ -666,7 +668,7 @@ public class CollectPassage {
         read =
             part == 0
                 ? resource.detail(target)
-                : resource.document(part == 1 ? "Scoresheet" : "DataVolley");
+                : resource.document(target, part == 1 ? "Scoresheet" : "DataVolley");
       } catch (RuntimeException failure) {
         evidence.add(
             target.matchId(),
@@ -682,9 +684,9 @@ public class CollectPassage {
           target.matchId(),
           ordinal,
           CollectionPhaseEnum.ACQUISITION,
-          CollectionOutcomeEnum.SUCCESS,
+          read.complete() ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.PARTIAL,
           read.observedAt(),
-          null);
+          read.complete() ? null : "Invalid independent detail fields");
       try {
         SportingObservation.Outcome outcome =
             sporting.detail(
@@ -739,34 +741,53 @@ public class CollectPassage {
           totals
               .computeIfAbsent(match, ignored -> new LinkedHashMap<>())
               .computeIfAbsent(phase, ignored -> new DetailTotal());
-      if (outcome == CollectionOutcomeEnum.SUCCESS) total.obtained++;
-      else {
+      if (outcome == CollectionOutcomeEnum.SUCCESS || outcome == CollectionOutcomeEnum.PARTIAL)
+        total.obtained++;
+      if (outcome != CollectionOutcomeEnum.SUCCESS) {
         total.rejected++;
         total.reason = reason;
       }
       total.unconfirmed |= outcome == CollectionOutcomeEnum.UNCONFIRMED;
-      record(
-          context,
-          match,
-          CollectionStageEnum.DETAILS,
-          ordinal,
-          phase,
-          total.unconfirmed
-              ? CollectionOutcomeEnum.UNCONFIRMED
-              : total.rejected == 0
-                  ? CollectionOutcomeEnum.SUCCESS
-                  : total.obtained == 0
-                      ? CollectionOutcomeEnum.FAILED
-                      : CollectionOutcomeEnum.PARTIAL,
-          total.obtained,
-          total.rejected,
-          observedAt,
-          total.reason);
+      if (ordinal >= total.readOrdinal) {
+        total.readOrdinal = ordinal;
+        total.observedAt = observedAt;
+      }
+    }
+
+    /**
+     * Publishes each stable match/phase once after its independent parts have completed, so reused
+     * older XML cannot hide a refusal behind an already recorded newer detail ordinal.
+     */
+    private void flush() {
+      for (Map.Entry<UUID, Map<CollectionPhaseEnum, DetailTotal>> match : totals.entrySet()) {
+        for (Map.Entry<CollectionPhaseEnum, DetailTotal> phase : match.getValue().entrySet()) {
+          DetailTotal total = phase.getValue();
+          record(
+              context,
+              match.getKey(),
+              CollectionStageEnum.DETAILS,
+              total.readOrdinal,
+              phase.getKey(),
+              total.unconfirmed
+                  ? CollectionOutcomeEnum.UNCONFIRMED
+                  : total.rejected == 0
+                      ? CollectionOutcomeEnum.SUCCESS
+                      : total.obtained == 0
+                          ? CollectionOutcomeEnum.FAILED
+                          : CollectionOutcomeEnum.PARTIAL,
+              total.obtained,
+              total.rejected,
+              total.observedAt,
+              total.reason);
+        }
+      }
     }
   }
 
   /** Measured independent parts for one match and one phase, discarded at passage completion. */
   private static final class DetailTotal {
+    private long readOrdinal;
+    private Instant observedAt;
     private long obtained;
     private long rejected;
     private boolean unconfirmed;
@@ -873,6 +894,8 @@ public class CollectPassage {
   }
 
   /**
+   * Recognizes only explicit F02 acceptance or unchanged identity outcomes.
+   *
    * @param outcome actual F02 response
    * @return whether this identity was accepted
    */

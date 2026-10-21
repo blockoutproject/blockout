@@ -171,7 +171,7 @@ class CollectPassageTest {
     when(shared.calendar(target))
         .thenReturn(
             new LnvAcquisition.Calendar(calendar, Map.of("01", logo, "02", logo), NOW, null));
-    when(lnv.documentIndexes()).thenReturn((owner, evidence) -> null);
+    when(lnv.documentIndexes(any())).thenReturn((owner, evidence) -> null);
     when(sporting.calendar(eq(POOL), any(), eq(calendar)))
         .thenReturn(
             new SportingObservation.CalendarOutcome(
@@ -281,7 +281,7 @@ class CollectPassageTest {
     when(lnv.fromPage(response, NOW)).thenReturn(shared);
     when(shared.calendar(calendar))
         .thenReturn(new LnvAcquisition.Calendar(empty, Map.of(), NOW, null));
-    when(lnv.documentIndexes()).thenReturn((owner, evidence) -> null);
+    when(lnv.documentIndexes(any())).thenReturn((owner, evidence) -> null);
     when(backend.targets(admitted.getCycle().id(), 0))
         .thenReturn(new CollectionBackend.TargetPage(List.of(source, calendar), 0, false));
     when(sporting.calendar(eq(POOL), any(), eq(empty)))
@@ -351,8 +351,9 @@ class CollectPassageTest {
     when(lnv.read(page)).thenReturn(calendarResource);
     when(calendarResource.calendar(calendarTarget))
         .thenReturn(new LnvAcquisition.Calendar(calendar, Map.of(), NOW, "LAM"));
-    when(lnv.documentIndexes())
-        .thenReturn((owner, evidence) -> new LnvAcquisition.Read<>(Map.of("990", sheet), NOW));
+    when(lnv.documentIndexes(any()))
+        .thenReturn(
+            (owner, evidence) -> new LnvAcquisition.DocumentRead(Map.of("990", sheet), NOW, 1));
     when(sporting.calendar(eq(POOL), any(), eq(calendar)))
         .thenReturn(
             new SportingObservation.CalendarOutcome(
@@ -385,7 +386,10 @@ class CollectPassageTest {
     passage.execute(admitted);
 
     // Then
-    verify(sporting).detail(eq(match), any(), eq(documentFacts));
+    ArgumentCaptor<SportingObservation.Context> documentContext =
+        ArgumentCaptor.forClass(SportingObservation.Context.class);
+    verify(sporting).detail(eq(match), documentContext.capture(), eq(documentFacts));
+    assertThat(documentContext.getValue().readOrdinal()).isEqualTo(1);
     ArgumentCaptor<CollectionBackend.Result> results =
         ArgumentCaptor.forClass(CollectionBackend.Result.class);
     verify(backend, org.mockito.Mockito.atLeastOnce())

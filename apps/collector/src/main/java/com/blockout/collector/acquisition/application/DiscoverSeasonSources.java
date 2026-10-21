@@ -106,7 +106,7 @@ public class DiscoverSeasonSources {
             propose(CollectionProviderEnum.LNV, competition, season, candidate, entry);
         }
       } catch (RuntimeException failure) {
-        failed(CollectionProviderEnum.LNV);
+        discoveryFailure(CollectionProviderEnum.LNV, failure);
       }
     }
   }
@@ -198,10 +198,10 @@ public class DiscoverSeasonSources {
     long rootOrdinal = nextOrdinal.getAsLong();
     ProviderHttpClient.Response root = lnvHttp.page(target.url()).join();
     Instant observedAt = clock.instant();
-    consume.accept(new PageRead(root, observedAt, rootOrdinal));
     String season = lnv.qualify(root.body(), root.url(), target.organizerReference());
     if (season != null && !season.equals(target.seasonLabel()))
       throw new IllegalArgumentException("Contradictory LNV season");
+    consume.accept(new PageRead(root, observedAt, rootOrdinal));
     List<SportingObservation.Pool> pools = new ArrayList<>();
     boolean complete = true;
     for (URI phase : lnv.phaseLinks(root.body(), root.url(), target.organizerReference())) {
@@ -212,6 +212,12 @@ public class DiscoverSeasonSources {
           long ordinal = nextOrdinal.getAsLong();
           page = lnvHttp.page(phase).join();
           observedAt = clock.instant();
+          String phaseSeason = lnv.qualify(page.body(), page.url(), target.organizerReference());
+          if (phaseSeason != null && !phaseSeason.equals(target.seasonLabel()))
+            throw new IllegalArgumentException("Contradictory LNV season");
+          if (!target.organizerReference().equals(query(page.url()).get("ID"))
+              || !query(phase).get("PID").equals(query(page.url()).get("PID")))
+            throw new IllegalArgumentException("Contradictory phase");
           consume.accept(new PageRead(page, observedAt, ordinal));
         }
         Map<String, String> context = query(page.url());
@@ -231,7 +237,8 @@ public class DiscoverSeasonSources {
           for (Element link : group.ownerDocument().select("a[href*=CompetitionStandings.aspx]")) {
             URI proposed = URI.create(link.absUrl("href"));
             if (context.get("ID").equals(query(proposed).get("ID"))
-                && context.get("PID").equals(query(proposed).get("PID"))) standings = proposed;
+                && (!query(proposed).containsKey("PID")
+                    || context.get("PID").equals(query(proposed).get("PID")))) standings = proposed;
           }
           pools.add(
               new SportingObservation.Pool(
@@ -268,46 +275,50 @@ public class DiscoverSeasonSources {
         if (!seen.add(candidate)) continue;
         if (seen.size() > 512) throw new IllegalArgumentException("Discovery navigation bound");
         lifecycle.requireActive();
-        ProviderHttpClient.Response source = ffvbHttp.page(candidate).join();
-        List<URI> links = ffvb.navigation(source.body(), source.url());
-        List<String> organizers =
-            links.stream()
-                .map(this::query)
-                .map(fields -> fields.get("codent"))
-                .filter(java.util.Objects::nonNull)
-                .distinct()
-                .toList();
-        List<String> seasons =
-            links.stream()
-                .map(this::query)
-                .map(fields -> fields.get("saison"))
-                .filter(java.util.Objects::nonNull)
-                .distinct()
-                .toList();
-        if (!organizers.isEmpty() && seasons.size() == 1) {
-          for (String organizer : organizers) {
-            try {
-              SportingObservation.Catalog catalog =
-                  ffvb.parse(source.body(), source.url(), seasons.getFirst(), organizer);
-              if (catalog.complete())
-                propose(
-                    CollectionProviderEnum.FFVB,
-                    organizer,
-                    seasons.getFirst(),
-                    source.url(),
-                    entry);
-            } catch (FfvbAcquisitionException unsupported) {
-              failed(CollectionProviderEnum.FFVB);
+        try {
+          ProviderHttpClient.Response source = ffvbHttp.page(candidate).join();
+          List<URI> links = ffvb.navigation(source.body(), source.url());
+          List<String> organizers =
+              links.stream()
+                  .map(this::query)
+                  .map(fields -> fields.get("codent"))
+                  .filter(java.util.Objects::nonNull)
+                  .distinct()
+                  .toList();
+          List<String> seasons =
+              links.stream()
+                  .map(this::query)
+                  .map(fields -> fields.get("saison"))
+                  .filter(java.util.Objects::nonNull)
+                  .distinct()
+                  .toList();
+          if (!organizers.isEmpty() && seasons.size() == 1) {
+            for (String organizer : organizers) {
+              try {
+                SportingObservation.Catalog catalog =
+                    ffvb.parse(source.body(), source.url(), seasons.getFirst(), organizer);
+                if (catalog.complete())
+                  propose(
+                      CollectionProviderEnum.FFVB,
+                      organizer,
+                      seasons.getFirst(),
+                      source.url(),
+                      entry);
+              } catch (FfvbAcquisitionException unsupported) {
+                failed(CollectionProviderEnum.FFVB);
+              }
             }
           }
+          pending.addAll(
+              links.stream()
+                  .filter(link -> !link.getPath().endsWith("vbspo_calendrier.php"))
+                  .toList());
+        } catch (RuntimeException failure) {
+          discoveryFailure(CollectionProviderEnum.FFVB, failure);
         }
-        pending.addAll(
-            links.stream()
-                .filter(link -> !link.getPath().endsWith("vbspo_calendrier.php"))
-                .toList());
       }
     } catch (RuntimeException failure) {
-      failed(CollectionProviderEnum.FFVB);
+      discoveryFailure(CollectionProviderEnum.FFVB, failure);
     }
   }
 
@@ -337,6 +348,8 @@ public class DiscoverSeasonSources {
   }
 
   /**
+   * Reads native query values from a published discovery reference.
+   *
    * @param uri published reference
    * @return exact native query fields
    */
@@ -349,6 +362,23 @@ public class DiscoverSeasonSources {
   }
 
   /**
+   * Preserves independent discovery failures while stopping a replaced collector.
+   *
+   * @param provider affected provider
+   * @param failure failed read or proposal
+   */
+  private void discoveryFailure(CollectionProviderEnum provider, RuntimeException failure) {
+    if (failure instanceof CollectionBackendFailure refused
+        && refused.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
+      if (!lifecycle.getIncarnationId().equals(backend.current().incarnationId())) lifecycle.stop();
+    }
+    lifecycle.requireActive();
+    failed(provider);
+  }
+
+  /**
+   * Reports a payload-free failure without inferring absence or activation.
+   *
    * @param provider affected provider; independent current entries remain eligible
    */
   private void failed(CollectionProviderEnum provider) {

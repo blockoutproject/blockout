@@ -84,7 +84,7 @@ class LnvObservationsTest {
 
     // Then
     assertThat(facts.localDate().get()).isEqualTo(LocalDate.of(2026, 10, 17));
-    assertThat(facts.localTime()).isNull();
+    assertThat(facts.localTime().get()).isNull();
   }
 
   @Test
@@ -177,22 +177,76 @@ class LnvObservationsTest {
   }
 
   @Test
-  @DisplayName("An invalid published clock cannot normalize into a plausible midnight")
-  void rejectsInvalidClock() {
+  @DisplayName("An invalid detail clock preserves independently published aggregate facts")
+  void isolatesInvalidDetailClock() {
     // Given
-    String html = "<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026 - 24:00</span>";
+    String html =
+        "<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026 - 24:00</span>"
+            + "<span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
 
-    // When / Then
-    assertThatThrownBy(
-            () ->
-                new LnvDetailParser()
-                    .parse(
-                        bytes(html),
-                        URI.create(
-                            "https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901"),
-                        "990",
-                        "901"))
-        .isInstanceOf(LnvAcquisitionException.class);
+    // When
+    SportingObservation.Facts facts =
+        new LnvDetailParser()
+            .parse(
+                bytes(html),
+                URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901"),
+                "990",
+                "901");
+
+    // Then
+    assertThat(facts.localDate()).isNull();
+    assertThat(facts.localTime()).isNull();
+    assertThat(facts.result().get().homeSets()).isEqualTo(3);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "invalid - 18:00", "17/10/2026 - 24:00"})
+  @DisplayName("Missing or malformed schedule fields preserve identified calendar participants")
+  void isolatesCalendarSchedule(String schedule) throws Exception {
+    // Given
+    String html;
+    try (InputStream input = getClass().getResourceAsStream("/acquisition/lnv/calendar.html")) {
+      html =
+          new String(input.readAllBytes(), StandardCharsets.UTF_8)
+              .replace("17/10/2026 - 23:30", schedule);
+    }
+
+    // When
+    LnvCalendarParser.Read read =
+        new LnvCalendarParser().parse(bytes(html), CALENDAR, "901", "902", "903");
+
+    // Then
+    assertThat(read.calendar().matches()).hasSize(1);
+    assertThat(read.calendar().matches().getFirst().facts().result().get().homeSets()).isEqualTo(3);
+    assertThat(read.calendar().complete()).isEqualTo(schedule.isBlank());
+  }
+
+  @Test
+  @DisplayName("A published professional forfeit remains a native notation without invented scores")
+  void retainsForfeitNotation() throws Exception {
+    // Given
+    String html;
+    try (InputStream input = getClass().getResourceAsStream("/acquisition/lnv/calendar.html")) {
+      html =
+          new String(input.readAllBytes(), StandardCharsets.UTF_8)
+              .replace("id=\"fixture_LB_SetOspiti\">1", "id=\"fixture_LB_SetOspiti\">F");
+    }
+
+    // When
+    SportingObservation.Result result =
+        new LnvCalendarParser()
+            .parse(bytes(html), CALENDAR, "901", "902", "903")
+            .calendar()
+            .matches()
+            .getFirst()
+            .facts()
+            .result()
+            .get();
+
+    // Then
+    assertThat(result.specialLabel()).isEqualTo("3/F");
+    assertThat(result.homeSets()).isNull();
+    assertThat(result.awaySets()).isNull();
   }
 
   @Test
@@ -284,6 +338,8 @@ class LnvObservationsTest {
   }
 
   /**
+   * Encodes a synthetic native HTML fixture as UTF-8.
+   *
    * @param html synthetic native fragment
    * @return provider encoding without stored raw payloads
    */

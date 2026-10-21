@@ -1,6 +1,7 @@
 package com.blockout.collector.acquisition.lnv;
 
 import com.blockout.collector.acquisition.application.SportingObservation;
+import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -59,6 +60,11 @@ final class LnvPage {
    * @return source-managed date/time proposals
    */
   static SportingObservation.Facts time(String rendered, DateTimeFormatter dateFormat) {
+    if (rendered.isBlank())
+      return SportingObservation.Facts.builder()
+          .localDate(JsonNullable.of(null))
+          .localTime(JsonNullable.of(null))
+          .build();
     String[] parts = rendered.strip().split("\\s+-\\s+", 2);
     LocalDate date;
     try {
@@ -95,6 +101,54 @@ final class LnvPage {
   }
 
   /**
+   * Reads only published seasonal evidence, without deriving a year from IDs or current time.
+   *
+   * @param page native response DOM
+   * @return one consistent sporting season, or null without positive evidence
+   */
+  static String season(Document page) {
+    java.util.regex.Matcher seasons =
+        java.util.regex.Pattern.compile("(20[0-9]{2})[/–-](20[0-9]{2})")
+            .matcher(
+                page.select("title, [id$=LB_Season], select[name*=Season] option[selected]")
+                    .text());
+    String result = null;
+    while (seasons.find()) {
+      if (Integer.parseInt(seasons.group(2)) != Integer.parseInt(seasons.group(1)) + 1)
+        throw invalid();
+      String season = seasons.group(1) + "/" + seasons.group(2);
+      if (result != null && !result.equals(season)) throw invalid();
+      result = season;
+    }
+    return result;
+  }
+
+  /**
+   * Preserves recognized official notations without manufacturing numeric scores or winners.
+   *
+   * @param home published home score field
+   * @param away published away score field
+   * @param live explicit provisional publication
+   * @return absent for an unpublished/unplayed result; invalid notation is a local field failure
+   */
+  static JsonNullable<SportingObservation.Result> result(String home, String away, boolean live) {
+    if (home.isBlank() && away.isBlank() || home.equals("0") && away.equals("0")) return null;
+    String notation = home + "/" + away;
+    if (java.util.Set.of("F/P", "3/F", "3/P", "F/F", "2/F").contains(notation))
+      return JsonNullable.of(
+          new SportingObservation.Result(ResultStateEnum.UNCONFIRMED, null, null, notation));
+    if (!home.matches("[0-9]") || !away.matches("[0-9]")) throw invalid();
+    return JsonNullable.of(
+        new SportingObservation.Result(
+            live ? ResultStateEnum.PROVISIONAL : ResultStateEnum.FINAL,
+            Integer.valueOf(home),
+            Integer.valueOf(away),
+            null));
+  }
+
+  /**
+   * Builds a fixed structural diagnostic without source payloads.
+   *
    * @return a fixed payload-free diagnostic for missing or contradictory native context
    */
   static LnvAcquisitionException invalid() {

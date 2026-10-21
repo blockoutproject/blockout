@@ -309,6 +309,8 @@ public class FfvbDiscovery {
   }
 
   /**
+   * Builds a fixed structural diagnostic without source payloads.
+   *
    * @return a fixed safe structural diagnostic with no provider payload
    */
   private FfvbAcquisitionException invalid() {
