@@ -1,6 +1,14 @@
 # F11 validation guide
 
-This repository contains planning documents, not an initialized application runtime. The scenarios below are future implementation qualifications, not tests already passed. Use the [README documentation checks](../../README.md#verification) for the current dossier; application commands belong to the runtime when it exists.
+The mobile dependency/configuration foundation is executable. Advertising initialization, consent, age forms, serving and the scenarios below remain separate implementation/qualification work.
+
+## Native setup boundary (T001/T002)
+
+Follow the README's [installation/verification](../../README.md#verification) and [native build/prebuild](../../README.md#application-processes) instructions, using the [mobile environment example](../../apps/mobile/.env.example) for public inputs and fallbacks. Allocate a device and Metro port explicitly for native checks.
+
+Inspect `ios/Podfile.lock` and Android `debugRuntimeClasspath` for the [selected native pins](research.md#native-mediation-rather-than-parallel-ad-integrations), then `Info.plist`/merged Android manifest for app IDs and delayed measurement. Confirm the French ATT usage text and the complete Google buyer SKAdNetwork list, including Meta, against the official sources linked in that research.
+
+The config tests exercise absent and explicit public inputs. Native compile/install/launch checks establish binary integration only. This setup adds no SDK initialization, ad request, consent gathering or ATT request; those remain with the F11 runtime tasks. Google demo units do not qualify Meta mediation. T020/T040 still require authorized provider test devices/settings, physical-device evidence and store reconciliation; preserve V1 configuration.
 
 ## Prerequisites
 

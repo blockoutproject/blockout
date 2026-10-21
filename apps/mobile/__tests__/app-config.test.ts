@@ -10,6 +10,10 @@ beforeEach(() => {
     "REVENUECAT_ANDROID_API_KEY",
     "REVENUECAT_V2_OFFERING_ID",
     "REVENUECAT_SUPPORT_ACTION_ID",
+    "ADMOB_IOS_APP_ID",
+    "ADMOB_ANDROID_APP_ID",
+    "ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID",
+    "ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID",
   ]) {
     delete process.env[name];
   }
@@ -18,6 +22,56 @@ beforeEach(() => {
 
 afterEach(() => {
   process.env = originalEnv;
+});
+
+it("uses Google sample app IDs with delayed measurement and no configured V2 ad units", () => {
+  // Given: no advertising inputs.
+
+  // When
+  const { default: config } =
+    jest.requireActual<typeof import("../app.config")>("../app.config");
+
+  // Then
+  expect(config.plugins).toContainEqual([
+    "react-native-google-mobile-ads",
+    expect.objectContaining({
+      iosAppId: "ca-app-pub-3940256099942544~1458002511",
+      androidAppId: "ca-app-pub-3940256099942544~3347511713",
+      delayAppMeasurementInit: true,
+    }),
+  ]);
+  expect(config.extra?.advertising).toEqual({
+    iosInterstitialUnitId: undefined,
+    androidInterstitialUnitId: undefined,
+  });
+});
+
+it("selects explicit public app and V2 unit IDs independently for each platform", () => {
+  // Given: synthetic deployment inputs, never provider credentials or V1 fallbacks.
+  process.env.ADMOB_IOS_APP_ID = "ca-app-pub-0000000000000000~0000000001";
+  process.env.ADMOB_ANDROID_APP_ID = "ca-app-pub-0000000000000000~0000000002";
+  process.env.ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID =
+    "ca-app-pub-0000000000000000/0000000003";
+  process.env.ADMOB_V2_ANDROID_INTERSTITIAL_UNIT_ID =
+    "ca-app-pub-0000000000000000/0000000004";
+
+  // When
+  const { default: config } =
+    jest.requireActual<typeof import("../app.config")>("../app.config");
+
+  // Then
+  expect(config.plugins).toContainEqual([
+    "react-native-google-mobile-ads",
+    expect.objectContaining({
+      iosAppId: "ca-app-pub-0000000000000000~0000000001",
+      androidAppId: "ca-app-pub-0000000000000000~0000000002",
+      delayAppMeasurementInit: true,
+    }),
+  ]);
+  expect(config.extra?.advertising).toEqual({
+    iosInterstitialUnitId: "ca-app-pub-0000000000000000/0000000003",
+    androidInterstitialUnitId: "ca-app-pub-0000000000000000/0000000004",
+  });
 });
 
 it("keeps ordinary local builds unconfigured without inventing provider identifiers", () => {
