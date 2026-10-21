@@ -1,4 +1,6 @@
 import {
+  BottomSheetBackdrop,
+  type BottomSheetBackdropProps,
   BottomSheetModal,
   BottomSheetModalProvider,
   BottomSheetScrollView,
@@ -8,7 +10,10 @@ import { Image } from "expo-image";
 import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Button } from "../shared/components/button";
 import { Sheet } from "../shared/components/sheet";
 import { IconButton } from "../shared/components/icon-button";
@@ -111,9 +116,10 @@ export function NativeSheetComparison({
   );
 }
 
-/** Presents one modal using default sizing, keyboard, backdrop and dismissal behavior. */
+/** Keeps default sizing and keyboard behavior, with system-safe placement and the built-in backdrop. */
 function BottomSheetExample({ example }: { example: Example }) {
   const modal = useRef<BottomSheetModal>(null);
+  const { top } = useSafeAreaInsets();
   const { colors } = useTheme();
   return (
     <>
@@ -124,6 +130,8 @@ function BottomSheetExample({ example }: { example: Example }) {
       />
       <BottomSheetModal
         ref={modal}
+        topInset={top}
+        backdropComponent={SheetBackdrop}
         backgroundStyle={{ backgroundColor: colors.surface }}
         handleIndicatorStyle={{ backgroundColor: colors.icon }}
       >
@@ -136,7 +144,14 @@ function BottomSheetExample({ example }: { example: Example }) {
   );
 }
 
-/** Uses the library's integrated scroll view and inputs; local values reset when the modal unmounts. */
+/** Shows the built-in backdrop at the modal's single dynamic snap point and hides it when closed. */
+function SheetBackdrop(props: BottomSheetBackdropProps) {
+  return (
+    <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+  );
+}
+
+/** Keeps the final action above the system area; integrated inputs reset when the modal unmounts. */
 function BottomSheetForm({
   example,
   onDismiss,
@@ -147,8 +162,14 @@ function BottomSheetForm({
   const { colors } = useTheme();
   const [name, setName] = useState("");
   const [last, setLast] = useState("");
+  const { bottom } = useSafeAreaInsets();
   return (
-    <BottomSheetScrollView contentContainerStyle={styles.content}>
+    <BottomSheetScrollView
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: tokens.spacing.lg + bottom },
+      ]}
+    >
       <View style={styles.introduction}>
         <View style={styles.titleRow}>
           <Text
