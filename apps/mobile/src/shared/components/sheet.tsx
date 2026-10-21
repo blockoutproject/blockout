@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import type { PropsWithChildren, ReactNode } from "react";
 import {
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -96,7 +97,7 @@ export function Sheet({ title, message, footer, children }: SheetProps) {
 }
 
 const styles = StyleSheet.create({
-  sheet: { flexShrink: 1 },
+  sheet: Platform.OS === "ios" ? { flex: 1 } : { flexShrink: 1 },
   body: {
     paddingTop: tokens.spacing.sm,
     paddingHorizontal: tokens.spacing.lg,

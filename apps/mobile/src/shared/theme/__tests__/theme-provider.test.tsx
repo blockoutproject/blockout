@@ -5,10 +5,20 @@ import {
   ThemeProvider as NavigationThemeProvider,
   useTheme as useNavigationTheme,
 } from "expo-router";
-import { Appearance, Text, TextInput } from "react-native";
+import {
+  AccessibilityInfo,
+  Appearance,
+  DeviceEventEmitter,
+  Text,
+  TextInput,
+} from "react-native";
+import { Button } from "../../components/button";
 import { ThemeProvider, useTheme } from "../theme-provider";
 
 jest.unmock("react-native/Libraries/Utilities/useColorScheme");
+jest.unmock(
+  "react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo",
+);
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -136,45 +146,106 @@ it("updates the Pro palette while preserving a mounted draft on native appearanc
   expect(screen.getByDisplayValue("Valeur conservée")).toBeOnTheScreen();
 });
 
-it("uses current caller-owned sporting and Pro presentation without retaining the previous accent", async () => {
-  // Given
-  jest.spyOn(Appearance, "getColorScheme").mockReturnValue("light");
-  const sportingContext = {
-    light: {
-      primary: "#B42340",
-      actionStart: "#B42340",
-      actionEnd: "#86192E",
-      onAction: "#FFFFFF",
-      shadow: "#00000014",
-    },
-    dark: {
-      primary: "#FFB3C3",
-      actionStart: "#FFB3C3",
-      actionEnd: "#FFDDE5",
-      onAction: "#171717",
-      shadow: "#00000038",
-    },
-  };
-  const root = await render(
-    <ThemeProvider context={sportingContext} proAccent>
-      <ThemeConsumer />
-    </ThemeProvider>,
-  );
-  expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
-    "#E7D39B",
-  );
+it.each(["light", "dark"] as const)(
+  "changes sporting inputs and removes Pro presentation independently without losing the draft in %s",
+  async (scheme) => {
+    // Given
+    jest.spyOn(Appearance, "getColorScheme").mockReturnValue(scheme);
+    const sportingContext = {
+      light: {
+        primary: "#B42340",
+        actionStart: "#B42340",
+        actionEnd: "#86192E",
+        onAction: "#FFFFFF",
+        shadow: "#00000014",
+      },
+      dark: {
+        primary: "#FFB3C3",
+        actionStart: "#FFB3C3",
+        actionEnd: "#FFDDE5",
+        onAction: "#171717",
+        shadow: "#00000038",
+      },
+    };
+    const user = userEvent.setup();
+    const root = await render(
+      <ThemeProvider proAccent>
+        <ThemeConsumer />
+      </ThemeProvider>,
+    );
+    await user.type(screen.getByLabelText("Brouillon"), "Saisie conservée");
 
-  // When
-  await root.rerender(
-    <ThemeProvider context={sportingContext}>
-      <ThemeConsumer />
-    </ThemeProvider>,
-  );
+    // When
+    await root.rerender(
+      <ThemeProvider context={sportingContext} proAccent>
+        <ThemeConsumer />
+      </ThemeProvider>,
+    );
 
-  // Then
-  expect(screen.getByLabelText("Accent sportif")).toHaveTextContent("#B42340");
-  expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
-    "#171717",
-  );
-  expect(screen.getByText("light")).toBeOnTheScreen();
-});
+    // Then
+    expect(screen.getByLabelText("Accent sportif")).toHaveTextContent(
+      sportingContext[scheme].primary,
+    );
+    expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
+      scheme === "dark" ? "#E2C985" : "#E7D39B",
+    );
+    expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
+
+    // When
+    await root.rerender(
+      <ThemeProvider context={sportingContext}>
+        <ThemeConsumer />
+      </ThemeProvider>,
+    );
+
+    // Then
+    expect(screen.getByLabelText("Accent sportif")).toHaveTextContent(
+      sportingContext[scheme].primary,
+    );
+    expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
+      scheme === "dark" ? "#F1F1F2" : "#171717",
+    );
+    expect(screen.getByText(scheme)).toBeOnTheScreen();
+    expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
+  },
+);
+
+it.each([true, false])(
+  "preserves appearance, Pro presentation and the draft when native reduced motion becomes %s",
+  async (reducedMotion) => {
+    // Given
+    jest.spyOn(Appearance, "getColorScheme").mockReturnValue("dark");
+    jest
+      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+      .mockResolvedValue(!reducedMotion);
+    const subscribe = jest.spyOn(AccessibilityInfo, "addEventListener");
+    const user = userEvent.setup();
+    await render(
+      <ThemeProvider proAccent>
+        <ThemeConsumer />
+        <Button label="Enregistrement" loading onPress={jest.fn()} />
+      </ThemeProvider>,
+    );
+    await user.type(screen.getByLabelText("Brouillon"), "Saisie conservée");
+    expect(subscribe).toHaveBeenCalledWith(
+      "reduceMotionChanged",
+      expect.any(Function),
+    );
+
+    // When
+    await act(() => {
+      // jest-expo uses iOS, whose native event keeps the public event name.
+      DeviceEventEmitter.emit("reduceMotionChanged", reducedMotion);
+    });
+
+    // Then
+    expect(screen.getByText("dark")).toBeOnTheScreen();
+    expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
+      "#E2C985",
+    );
+    expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Enregistrement", busy: true }),
+    ).toBeDisabled();
+  },
+);
