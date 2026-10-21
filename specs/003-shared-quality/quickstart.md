@@ -55,6 +55,12 @@ At cold start and explicit retry, fail admission and verify each gate stays clos
 
 Apply the same theme/accessibility checks to the gates, including reduced-motion static bands and no clipped retry glyph. Browser/Figma evidence does not replace native testing or supplier qualification.
 
+### Bottom Sheet comparison trial
+
+Mount `SheetComparisonScreen` from `apps/mobile/src/development/sheet-comparison.tsx` in a temporary local entry route under the real providers. Its `onOpenNative` callback navigates to a temporary route with `useSheetScreenOptions()`; that route renders `NativeSheetComparison` with the same paragraph count and a back-navigation confirmation callback. Keep these mounts out of production routing. Use an installed development build after dependency changes.
+
+On iOS and Android, compare the three native buttons with the three Gorhom buttons. Enter a background draft first. For each library and form length, verify opening, first/last field entry, scrolling to confirmation, explicit close, reopening and retained background draft. Repeat with the keyboard open; record whether the focused field and confirmation remain reachable, what the first action tap does, and what Android Back does. Exercise the visible handle and content drag separately. Record differences from default dynamic sizing, absent backdrop and keyboard blur behavior rather than adding offsets, snap points, gestures or a Back handler to normalize them. Check light/dark and enlarged text where available. These trials establish observed behavior on the named devices, not production adoption or full A23/A24 approval.
+
 ## Data and schema
 
 Run the shared Query behavior suite with `npm run test --workspace=@blockout/mobile -- --runInBand src/shared/query/__tests__/query-client.test.ts`. Real Query observers and generated-schema-validated fixtures exercise offline attempts, reconnect/focus, remounts, retained data after failure and explicit recovery. This controlled request boundary does not establish native connectivity, account isolation or the integrated sporting outcomes below.
