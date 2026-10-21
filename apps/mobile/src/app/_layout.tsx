@@ -1,3 +1,6 @@
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StyleSheet } from "react-native";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
 import { Stack } from "expo-router";
@@ -33,19 +36,25 @@ function Navigation() {
   );
 }
 
-/** Composes the transient session, cache and live system theme around native navigation. */
+/** Composes session, cache and live appearance around navigation and the shared modal host. */
 function RootLayout() {
   const [queryClient] = useState(createQueryClient);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AccountSessionProvider>
-          <Navigation />
-        </AccountSessionProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AccountSessionProvider>
+            <BottomSheetModalProvider>
+              <Navigation />
+            </BottomSheetModalProvider>
+          </AccountSessionProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1 } });
 
 export default Sentry.wrap(RootLayout);

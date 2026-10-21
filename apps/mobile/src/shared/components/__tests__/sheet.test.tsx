@@ -1,146 +1,105 @@
-import { useState } from "react";
-import { Stack, router } from "expo-router";
-import { act, renderRouter, screen } from "expo-router/testing-library";
-import { userEvent } from "@testing-library/react-native";
+import {
+  BottomSheetModal,
+  BottomSheetModalProvider,
+  BottomSheetTextInput,
+} from "@gorhom/bottom-sheet";
+import { act, render, screen, userEvent } from "@testing-library/react-native";
+import { useRef, useState, type PropsWithChildren } from "react";
 import { Appearance, Text } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useTheme } from "../../theme/theme-provider";
 import { Button } from "../button";
-import { Sheet, useSheetScreenOptions } from "../sheet";
+import { Sheet } from "../sheet";
 import { TextField } from "../text-field";
 
+// Gorhom's upstream mock controls the native modal/animation boundary; it does not simulate visibility or gestures.
+jest.mock("@gorhom/bottom-sheet", () => require("@gorhom/bottom-sheet/mock"));
 jest.unmock("react-native/Libraries/Utilities/useColorScheme");
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
-/** Uses the real Expo stack; its native screen surfaces are controlled by Expo's test setup. */
-function Layout() {
+/** Supplies real theme/safe-area context and the library's mocked native modal provider. */
+function Providers({ children }: PropsWithChildren) {
   return (
-    <ThemeProvider>
-      <Routes />
-    </ThemeProvider>
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 393, height: 852 },
+        insets: { top: 59, right: 0, bottom: 34, left: 0 },
+      }}
+    >
+      <ThemeProvider>
+        <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
-/** Configures the native host before opening the sheet, using the current semantic surface. */
-function Routes() {
-  const options = useSheetScreenOptions();
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="edit" options={options} />
-    </Stack>
-  );
-}
-
-/** Keeps a caller-owned draft on the covered route while a sheet is presented. */
-function Home() {
+/** Owns confirmation and draft state; native presentation is verified separately on devices. */
+function Form({ onConfirm }: { onConfirm: (value: string) => void }) {
+  const modal = useRef<BottomSheetModal>(null);
   const [value, setValue] = useState("");
+  const { scheme } = useTheme();
   return (
-    <>
+    <Sheet
+      ref={modal}
+      title="Modifier le club"
+      message="Complétez le nom officiel."
+      footer={<Button label="Confirmer" onPress={() => onConfirm(value)} />}
+    >
+      <Text accessibilityLabel="Apparence">{scheme}</Text>
       <TextField
-        label="Brouillon initial"
+        label="Nom du club"
         value={value}
         onChangeText={setValue}
+        inputComponent={BottomSheetTextInput}
       />
-      <Button
-        label="Ouvrir le formulaire"
-        onPress={() => router.push("/edit")}
-      />
-    </>
-  );
-}
-
-/** The sheet composes ordinary caller-owned fields rather than a generic form engine. */
-function Edit() {
-  const theme = useTheme();
-  const [value, setValue] = useState("");
-  return (
-    <Sheet title="Modifier le club" message="Complétez le nom officiel.">
-      <Text accessibilityLabel="Apparence">{theme.scheme}</Text>
-      <TextField label="Nom du club" value={value} onChangeText={setValue} />
     </Sheet>
   );
 }
 
-it("dismisses through the accessible close action and preserves the covered route's draft", async () => {
+it("requests dismissal through the accessible close action", async () => {
   // Given
+  const dismiss = jest.spyOn(BottomSheetModal.prototype, "dismiss");
   const user = userEvent.setup();
-  await renderRouter({ _layout: Layout, index: Home, edit: Edit });
-  await user.type(screen.getByLabelText("Brouillon initial"), "Ne pas perdre");
-  await user.press(
-    screen.getByRole("button", { name: "Ouvrir le formulaire" }),
-  );
-  expect(
-    screen.getByRole("header", { name: "Modifier le club" }),
-  ).toBeOnTheScreen();
+  await render(<Form onConfirm={jest.fn()} />, { wrapper: Providers });
 
   // When
   await user.press(screen.getByRole("button", { name: "Fermer" }));
 
   // Then
-  expect(
-    screen.queryByRole("header", { name: "Modifier le club" }),
-  ).not.toBeOnTheScreen();
-  expect(screen.getByDisplayValue("Ne pas perdre")).toBeOnTheScreen();
+  expect(dismiss).toHaveBeenCalledTimes(1);
 });
 
-it("leaves dismissal and return to the native navigation owner", async () => {
+it("lets the caller confirm the current input without implicitly dismissing", async () => {
   // Given
+  const confirm = jest.fn();
+  const dismiss = jest.spyOn(BottomSheetModal.prototype, "dismiss");
   const user = userEvent.setup();
-  await renderRouter({ _layout: Layout, index: Home, edit: Edit });
-  await user.press(
-    screen.getByRole("button", { name: "Ouvrir le formulaire" }),
-  );
+  await render(<Form onConfirm={confirm} />, { wrapper: Providers });
   await user.type(screen.getByLabelText("Nom du club"), "Volley");
 
   // When
-  await act(() => router.back());
+  await user.press(screen.getByRole("button", { name: "Confirmer" }));
 
   // Then
+  expect(confirm).toHaveBeenCalledTimes(1);
+  expect(confirm).toHaveBeenCalledWith("Volley");
+  expect(dismiss).not.toHaveBeenCalled();
+  expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
   expect(
-    screen.queryByRole("header", { name: "Modifier le club" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Ouvrir le formulaire" }),
+    screen.getByRole("header", { name: "Modifier le club" }),
   ).toBeOnTheScreen();
 });
 
-it("returns a directly linked sheet to its anchored background route", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderRouter(
-    {
-      _layout: { default: Layout, unstable_settings: { anchor: "index" } },
-      index: Home,
-      edit: Edit,
-    },
-    { initialUrl: "/edit" },
-  );
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
-
-  // Then
-  expect(
-    screen.queryByRole("header", { name: "Modifier le club" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Ouvrir le formulaire" }),
-  ).toBeOnTheScreen();
-});
-
-it("updates appearance with a sheet open without losing its draft or navigation", async () => {
+it("updates the mounted form's appearance without losing the caller's draft", async () => {
   // Given
   jest.spyOn(Appearance, "getColorScheme").mockReturnValue("light");
   const subscribe = jest.spyOn(Appearance, "addChangeListener");
   const user = userEvent.setup();
-  await renderRouter({ _layout: Layout, index: Home, edit: Edit });
-  await user.press(
-    screen.getByRole("button", { name: "Ouvrir le formulaire" }),
-  );
+  await render(<Form onConfirm={jest.fn()} />, { wrapper: Providers });
   await user.type(screen.getByLabelText("Nom du club"), "Valeur conservée");
-  expect(screen.getByDisplayValue("Valeur conservée")).toBeOnTheScreen();
 
   // When
   jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
@@ -153,40 +112,4 @@ it("updates appearance with a sheet open without losing its draft or navigation"
   expect(screen.getByLabelText("Apparence")).toHaveTextContent("dark");
   expect(screen.getByDisplayValue("Valeur conservée")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Fermer" })).toBeOnTheScreen();
-});
-
-it("lets the caller confirm the current input without implicitly dismissing", async () => {
-  // Given
-  const confirm = jest.fn();
-  const user = userEvent.setup();
-
-  /** Keeps confirmation owned by the caller while exercising the real sheet footer and field. */
-  function ConfirmableEdit() {
-    const [value, setValue] = useState("");
-    return (
-      <Sheet
-        title="Modifier le club"
-        footer={<Button label="Confirmer" onPress={() => confirm(value)} />}
-      >
-        <TextField label="Nom du club" value={value} onChangeText={setValue} />
-      </Sheet>
-    );
-  }
-
-  await renderRouter(
-    { _layout: Layout, index: Home, edit: ConfirmableEdit },
-    { initialUrl: "/edit" },
-  );
-  await user.type(screen.getByLabelText("Nom du club"), "Volley");
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Confirmer" }));
-
-  // Then
-  expect(confirm).toHaveBeenCalledTimes(1);
-  expect(confirm).toHaveBeenCalledWith("Volley");
-  expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("header", { name: "Modifier le club" }),
-  ).toBeOnTheScreen();
 });
