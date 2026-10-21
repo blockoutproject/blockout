@@ -42,7 +42,7 @@ Delete the original account and its local personal data synchronously, then atte
 | IV — Contract first          | Extend the one canonical mobile root, reuse common errors/headers, and generate actual consumers together. No copy in the feature folder or production-generated files.                                                                                                                                       |
 | V — Simplicity               | Ordinary SDK, SQL and manual provider operations meet the agreed scope. No per-device business sessions, entitlement mirror, workflow engine or full historical-user migration. See [research](research.md).                                                                                                  |
 
-The prior scoped approvals establish unchanged content and behavior. The revised deletion container uses the current design evidence linked above, with final revision/capture and library-publication proof still pending; runtime qualifications in [quickstart](quickstart.md) remain future implementation evidence.
+The prior scoped approvals establish unchanged content and behavior. The revised deletion container uses the current design evidence linked above, with library-publication proof still pending; runtime qualifications in [quickstart](quickstart.md) remain future implementation evidence.
 
 ## Project Structure
 
