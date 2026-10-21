@@ -11,6 +11,7 @@ import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.AccountAccess;
 import java.util.Set;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,8 +49,7 @@ class CurrentPermissionsTest {
     when(store.findByAccountId(ACCOUNT_ID)).thenReturn(Set.of(permission));
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> authorization.require(ACCOUNT_ID, permission);
+    ThrowingCallable action = () -> authorization.require(ACCOUNT_ID, permission);
 
     // Then
     assertThatCode(action).doesNotThrowAnyException();
@@ -67,8 +67,7 @@ class CurrentPermissionsTest {
     when(store.findByAccountId(ACCOUNT_ID)).thenReturn(Set.of(Permission.MANAGE_MAINTENANCE));
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> authorization.require(ACCOUNT_ID, otherAction);
+    ThrowingCallable action = () -> authorization.require(ACCOUNT_ID, otherAction);
 
     // Then
     assertThatThrownBy(action).isInstanceOf(AccessDeniedException.class);
@@ -81,7 +80,7 @@ class CurrentPermissionsTest {
     when(accounts.lock(ACCOUNT_ID)).thenReturn(false);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
+    ThrowingCallable action =
         () -> authorization.require(ACCOUNT_ID, Permission.MANAGE_MAINTENANCE);
 
     // Then

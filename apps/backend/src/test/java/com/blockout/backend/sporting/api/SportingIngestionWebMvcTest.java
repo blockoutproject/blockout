@@ -24,6 +24,7 @@ import com.blockout.backend.sporting.application.service.CatalogAcceptanceServic
 import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
 import com.blockout.backend.sporting.application.service.StandingsService;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.assertj.core.api.Assertions;
@@ -67,7 +68,7 @@ class SportingIngestionWebMvcTest {
   void refusesCombinedOverflow() throws Exception {
     // Given
     String slot = "{\"sourceReference\":\"bye\",\"kind\":\"bye\"}";
-    String slots = String.join(",", java.util.Collections.nCopies(1000, slot));
+    String slots = String.join(",", Collections.nCopies(1000, slot));
     String body =
         """
         {"context":{"cycleId":"00000000-0000-4000-8000-000000000001","readOrdinal":1,

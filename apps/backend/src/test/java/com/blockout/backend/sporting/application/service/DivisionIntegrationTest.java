@@ -16,6 +16,9 @@ import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -24,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -76,12 +80,12 @@ class DivisionIntegrationTest {
    */
   @BeforeEach
   void prepareOwners() throws Exception {
-    try (java.sql.Connection connection =
-            java.sql.DriverManager.getConnection(
+    try (Connection connection =
+            DriverManager.getConnection(
                 DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
-        java.sql.Statement fixture = connection.createStatement()) {
+        Statement fixture = connection.createStatement()) {
       fixture.execute(
           "TRUNCATE sporting_season, sporting_club, sporting_division, account CASCADE");
     }
@@ -113,7 +117,7 @@ class DivisionIntegrationTest {
     DivisionDetail original =
         divisions.create(account, "National 2", "#112233", null, image, "image/png");
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate =
+    ThrowingCallable duplicate =
         () -> divisions.create(account, "national 2", "#445566", null, null, null);
     // Then
     assertThatThrownBy(duplicate).isInstanceOf(SportingConflictException.class);
@@ -184,7 +188,7 @@ class DivisionIntegrationTest {
         account);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable create =
+    ThrowingCallable create =
         () -> divisions.create(account, "National 2", "#112233", null, null, null);
 
     // Then

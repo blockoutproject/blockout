@@ -21,8 +21,12 @@ import com.blockout.backend.sporting.application.service.SeasonService;
 import com.blockout.backend.sporting.application.service.SportingIdentityService;
 import com.blockout.backend.sporting.application.service.SportingReadService;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -84,12 +89,12 @@ class SportingIdentityIntegrationTest {
    */
   @BeforeEach
   void prepareOwners() throws Exception {
-    try (java.sql.Connection connection =
-            java.sql.DriverManager.getConnection(
+    try (Connection connection =
+            DriverManager.getConnection(
                 DATABASE.getJdbcUrl().replace("/postgres", "/blockout"),
                 "blockout_migration",
                 "harmless-migration");
-        java.sql.Statement fixture = connection.createStatement()) {
+        Statement fixture = connection.createStatement()) {
       fixture.execute("TRUNCATE sporting_season, sporting_club, sporting_division CASCADE");
     }
     sql.update(
@@ -224,14 +229,12 @@ class SportingIdentityIntegrationTest {
     assertThat(otherContext.id()).isNotEqualTo(match.id());
     assertThat(
             sql.queryForObject(
-                "SELECT local_date FROM sporting_match WHERE id = ?",
-                java.time.LocalDate.class,
-                match.id()))
-        .isEqualTo(java.time.LocalDate.of(2027, 2, 1));
+                "SELECT local_date FROM sporting_match WHERE id = ?", LocalDate.class, match.id()))
+        .isEqualTo(LocalDate.of(2027, 2, 1));
     assertThat(
             sql.queryForObject(
                 "SELECT local_date FROM sporting_match WHERE id = ?",
-                java.time.LocalDate.class,
+                LocalDate.class,
                 repeated.id()))
         .isNull();
   }
@@ -274,7 +277,7 @@ class SportingIdentityIntegrationTest {
         identities.identifyMatch(pool.id(), "M1", ffvb("Home 1", "0001"), ffvb("Away", "0002"));
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable replace =
+    ThrowingCallable replace =
         () ->
             identities.identifyMatch(pool.id(), "M1", ffvb("Home 2", "0001"), ffvb("Away", "0002"));
 
@@ -345,7 +348,7 @@ class SportingIdentityIntegrationTest {
     PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable identify =
+    ThrowingCallable identify =
         () -> identities.identifyMatch(pool.id(), "M1", ffvb("Home", "0001"), ffvb("Away", null));
 
     // Then
@@ -384,7 +387,7 @@ class SportingIdentityIntegrationTest {
         season.id());
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable identify =
+    ThrowingCallable identify =
         () ->
             identities.identifyMatch(
                 other.id(), "M1", ffvb("Renamed home", "0001"), ffvb("Away", "0002"));
@@ -445,7 +448,7 @@ class SportingIdentityIntegrationTest {
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate =
+    ThrowingCallable duplicate =
         () ->
             transaction.executeWithoutResult(
                 state -> store.createTeam(pool, home.clubId(), ffvb("Home", "0001"), "home"));
@@ -471,7 +474,7 @@ class SportingIdentityIntegrationTest {
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate =
+    ThrowingCallable duplicate =
         () ->
             transaction.executeWithoutResult(
                 state ->
@@ -496,7 +499,7 @@ class SportingIdentityIntegrationTest {
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate =
+    ThrowingCallable duplicate =
         () ->
             transaction.executeWithoutResult(
                 state ->
@@ -517,7 +520,7 @@ class SportingIdentityIntegrationTest {
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate =
+    ThrowingCallable duplicate =
         () ->
             transaction.executeWithoutResult(
                 state -> store.createSeason(2026L, "Another provider label"));
@@ -537,7 +540,7 @@ class SportingIdentityIntegrationTest {
     UUID other = UUID.fromString("00000000-0000-4000-8000-000000000011");
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate =
+    ThrowingCallable duplicate =
         () ->
             sql.update(
                 "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'SYNTHETIC DIVISION', TRUE, '#112233')",
@@ -557,7 +560,7 @@ class SportingIdentityIntegrationTest {
         "INSERT INTO sporting_division_term(division_id, term) VALUES (?, 'National')", DIVISION);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate =
+    ThrowingCallable duplicate =
         () ->
             sql.update(
                 "INSERT INTO sporting_division_term(division_id, term) VALUES (?, 'National')",
@@ -575,7 +578,7 @@ class SportingIdentityIntegrationTest {
     PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable orphan =
+    ThrowingCallable orphan =
         () ->
             sql.update(
                 "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",

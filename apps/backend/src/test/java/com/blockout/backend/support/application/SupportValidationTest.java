@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -206,7 +207,7 @@ class SupportValidationTest {
 
   /** Checks cleanup through the filesystem, not private implementation state. */
   private void assertEmptyTemporaryDirectory() throws Exception {
-    try (java.util.stream.Stream<Path> files = Files.list(temporaryDirectory)) {
+    try (Stream<Path> files = Files.list(temporaryDirectory)) {
       assertThat(files).isEmpty();
     }
   }

@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.api;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -86,8 +87,8 @@ class DivisionAdministrationWebMvcTest {
         .andExpect(header().string("Location", "/administration/divisions/" + DIVISION))
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.active").value(true))
-        .andExpect(jsonPath("$.gradient").value(org.hamcrest.Matchers.nullValue()))
-        .andExpect(jsonPath("$.logo.effectiveUrl").value(org.hamcrest.Matchers.nullValue()));
+        .andExpect(jsonPath("$.gradient").value(nullValue()))
+        .andExpect(jsonPath("$.logo.effectiveUrl").value(nullValue()));
   }
 
   @Test

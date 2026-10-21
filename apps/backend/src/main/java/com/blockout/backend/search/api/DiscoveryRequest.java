@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -111,7 +112,7 @@ public class DiscoveryRequest {
           || value.score() < 0
           || value.id() == null) throw invalid();
       return value;
-    } catch (IllegalArgumentException | tools.jackson.core.JacksonException exception) {
+    } catch (IllegalArgumentException | JacksonException exception) {
       throw invalid();
     }
   }

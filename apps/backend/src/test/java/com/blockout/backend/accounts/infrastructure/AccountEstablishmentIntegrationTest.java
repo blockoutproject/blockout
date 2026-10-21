@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -180,7 +181,7 @@ class AccountEstablishmentIntegrationTest {
     String subject = "auth0|unusable-email";
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable create =
+    ThrowingCallable create =
         () ->
             transaction.execute(
                 state -> accounts.create(ISSUER, subject, "Player_144", email, null));
@@ -198,7 +199,7 @@ class AccountEstablishmentIntegrationTest {
     String subject = "auth0|invalid-name";
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable create =
+    ThrowingCallable create =
         () ->
             transaction.execute(
                 state ->
@@ -364,7 +365,7 @@ class AccountEstablishmentIntegrationTest {
     UUID original = UUID.fromString("00000000-0000-4000-8000-000000000144");
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable lock = () -> access.lock(original);
+    ThrowingCallable lock = () -> access.lock(original);
 
     // Then
     assertThatThrownBy(lock).isInstanceOf(IllegalTransactionStateException.class);
@@ -437,7 +438,7 @@ class AccountEstablishmentIntegrationTest {
                 accounts.create(ISSUER, "auth0|one", "Player_144", "player@example.invalid", null));
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable update =
+    ThrowingCallable update =
         () ->
             sql.update(
                 "UPDATE account SET photo_bytes = ?, photo_media_type = ?, photo_dimension = ? WHERE id = ?",
@@ -463,7 +464,7 @@ class AccountEstablishmentIntegrationTest {
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000144");
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable create =
+    ThrowingCallable create =
         () ->
             sql.update(
                 "INSERT INTO account(id, issuer, subject, username) VALUES (?, ?, ?, ?)",

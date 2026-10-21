@@ -32,6 +32,7 @@ import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManager;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -63,7 +64,7 @@ class MatchDetailsAndStandingsIntegrationTest {
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final OffsetDateTime FIRST = OffsetDateTime.parse("2026-10-19T12:00:00Z");
   @Autowired private JdbcTemplate sql;
-  @Autowired private jakarta.persistence.EntityManager entityManager;
+  @Autowired private EntityManager entityManager;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private SeasonService seasons;
   @Autowired private SportingIdentityService identities;

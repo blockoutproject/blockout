@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.api;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -138,8 +139,8 @@ class SportingObservationWebMvcTest {
         .andExpect(jsonPath("$.matchId").value("00000000-0000-4000-8000-000000000001"))
         .andExpect(jsonPath("$.context.readOrdinal").value(7))
         .andExpect(jsonPath("$.facts.localDate").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.facts.result").value(org.hamcrest.Matchers.nullValue()))
-        .andExpect(jsonPath("$.facts.referees").value(org.hamcrest.Matchers.nullValue()))
+        .andExpect(jsonPath("$.facts.result").value(nullValue()))
+        .andExpect(jsonPath("$.facts.referees").value(nullValue()))
         .andExpect(content().json("{\"facts\":{\"sets\":%s}}".formatted(sets)));
   }
 

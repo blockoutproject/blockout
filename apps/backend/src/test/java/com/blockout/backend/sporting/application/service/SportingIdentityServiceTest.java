@@ -8,6 +8,7 @@ import com.blockout.backend.sporting.application.exception.UnresolvedSportingIde
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -24,8 +25,7 @@ class SportingIdentityServiceTest {
     TeamCandidate away = new TeamCandidate(null, "Synthetic visitor", "0002", null);
 
     // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable identify =
-        () -> service.identifyMatch(pool, "M1", null, away);
+    ThrowingCallable identify = () -> service.identifyMatch(pool, "M1", null, away);
 
     // Then
     assertThatThrownBy(identify).isInstanceOf(UnresolvedSportingIdentityException.class);

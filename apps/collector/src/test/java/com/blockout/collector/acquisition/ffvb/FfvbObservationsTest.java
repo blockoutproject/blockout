@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.model.ContextSlotKindEnum;
+import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -84,10 +85,7 @@ class FfvbObservationsTest {
     // Then
     assertThat(calendar.complete()).isTrue();
     assertThat(calendar.matches()).isEmpty();
-    assertThat(table.publicationState())
-        .isEqualTo(
-            com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum
-                .NOT_PUBLISHED);
+    assertThat(table.publicationState()).isEqualTo(StandingsPublicationStateEnum.NOT_PUBLISHED);
     assertThatThrownBy(() -> calendars.parse(bytes(fixture("calendar.csv")), empty, SCOPE))
         .isInstanceOf(FfvbAcquisitionException.class);
     assertThatThrownBy(() -> page("<html><body>Temporarily unavailable</body></html>"))
