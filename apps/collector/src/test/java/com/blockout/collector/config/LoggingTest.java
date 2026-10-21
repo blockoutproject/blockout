@@ -10,7 +10,9 @@ import com.blockout.collector.acquisition.application.CollectPassage;
 import com.blockout.collector.acquisition.application.CollectionBackend;
 import com.blockout.collector.acquisition.application.CollectionBackendFailure;
 import com.blockout.collector.acquisition.application.CollectorLifecycle;
+import com.blockout.collector.acquisition.application.DiscoverSeasonSources;
 import com.blockout.collector.acquisition.application.FfvbAcquisition;
+import com.blockout.collector.acquisition.application.LnvAcquisition;
 import com.blockout.collector.acquisition.application.SportingBackend;
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
@@ -103,8 +105,8 @@ class LoggingTest {
             backend,
             mock(SportingBackend.class),
             ffvb,
-            mock(com.blockout.collector.acquisition.application.LnvAcquisition.class),
-            mock(com.blockout.collector.acquisition.application.DiscoverSeasonSources.class),
+            mock(LnvAcquisition.class),
+            mock(DiscoverSeasonSources.class),
             lifecycle,
             Clock.fixed(now, ZoneOffset.UTC));
 

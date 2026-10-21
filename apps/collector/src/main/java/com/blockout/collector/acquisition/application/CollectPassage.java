@@ -17,8 +17,10 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openapitools.jackson.nullable.JsonNullable;
@@ -423,7 +425,7 @@ public class CollectPassage {
   private Set<UUID> discover(
       CollectorLifecycle.AdmittedCycle context,
       CollectionBackend.Target target,
-      java.util.function.Consumer<DiscoverSeasonSources.PageRead> consume) {
+      Consumer<DiscoverSeasonSources.PageRead> consume) {
     long ordinal = context.nextReadOrdinal();
     DiscoverSeasonSources.Read read;
     try {
@@ -470,7 +472,7 @@ public class CollectPassage {
       outcome.outcomes().stream()
           .filter(this::accepted)
           .map(SportingObservation.Outcome::resourceId)
-          .filter(java.util.Objects::nonNull)
+          .filter(Objects::nonNull)
           .forEach(pools::add);
       return pools;
     } catch (CollectionBackendFailure failure) {

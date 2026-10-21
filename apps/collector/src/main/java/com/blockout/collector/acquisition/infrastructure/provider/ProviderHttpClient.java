@@ -3,8 +3,10 @@ package com.blockout.collector.acquisition.infrastructure.provider;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
@@ -178,9 +180,8 @@ public final class ProviderHttpClient implements AutoCloseable {
               String type = response.getEntity().getContentType();
               if (page
                   && type != null
-                  && (type.toLowerCase(java.util.Locale.ROOT).startsWith("application/pdf")
-                      || type.toLowerCase(java.util.Locale.ROOT)
-                          .startsWith("application/octet-stream"))) {
+                  && (type.toLowerCase(Locale.ROOT).startsWith("application/pdf")
+                      || type.toLowerCase(Locale.ROOT).startsWith("application/octet-stream"))) {
                 request.cancel();
                 throw new IOException("Binary document bodies are not collection pages");
               }
@@ -196,7 +197,7 @@ public final class ProviderHttpClient implements AutoCloseable {
     URI actual;
     try {
       actual = request.getUri();
-    } catch (java.net.URISyntaxException failure) {
+    } catch (URISyntaxException failure) {
       throw new IOException("Invalid source URL", failure);
     }
     if (context.getRedirectLocations() != null && context.getRedirectLocations().size() > 0)

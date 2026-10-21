@@ -6,7 +6,9 @@ import com.blockout.collector.generated.ingestion.model.CollectionCycleInternalR
 import com.blockout.collector.generated.ingestion.model.CollectionTargetInternalResponse;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetPageInternalResponse;
 import com.blockout.collector.generated.ingestion.model.CollectorRuntimeInternalResponse;
+import com.blockout.collector.generated.ingestion.model.ObserveSeasonSourceInternalRequest;
 import com.blockout.collector.generated.ingestion.model.RecordCollectionResultInternalRequest;
+import com.blockout.collector.generated.ingestion.model.SourceValidationWorkInternalResponse;
 import com.blockout.collector.generated.ingestion.model.StartCollectionCycleInternalRequest;
 import com.blockout.collector.generated.ingestion.model.SubmitSourceValidationInternalRequest;
 import java.time.Instant;
@@ -24,8 +26,7 @@ public interface CollectionBackendMapper {
    * @param source source-entry evidence
    * @return strict generated proposal
    */
-  com.blockout.collector.generated.ingestion.model.ObserveSeasonSourceInternalRequest toRequest(
-      CollectionBackend.SourceProposal source);
+  ObserveSeasonSourceInternalRequest toRequest(CollectionBackend.SourceProposal source);
 
   /**
    * Preserves the admitted candidate's provider, root and seasonal scope.
@@ -33,8 +34,7 @@ public interface CollectionBackendMapper {
    * @param source generated frozen validation context
    * @return immutable candidate values
    */
-  CollectionBackend.Candidate toCandidate(
-      com.blockout.collector.generated.ingestion.model.SourceValidationWorkInternalResponse source);
+  CollectionBackend.Candidate toCandidate(SourceValidationWorkInternalResponse source);
 
   /**
    * Projects the decoded runtime.

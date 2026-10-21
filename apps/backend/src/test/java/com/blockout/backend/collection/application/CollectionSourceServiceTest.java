@@ -2,6 +2,9 @@ package com.blockout.backend.collection.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -61,12 +64,7 @@ class CollectionSourceServiceTest {
 
     // Then
     assertThat(result).isEqualTo(new CollectionSourceService.Resolved(SEASON, SOURCE));
-    org.mockito.Mockito.verify(store, org.mockito.Mockito.never())
-        .createSource(
-            org.mockito.ArgumentMatchers.any(),
-            org.mockito.ArgumentMatchers.any(),
-            org.mockito.ArgumentMatchers.any(),
-            org.mockito.ArgumentMatchers.any());
+    verify(store, never()).createSource(any(), any(), any(), any());
   }
 
   @Test

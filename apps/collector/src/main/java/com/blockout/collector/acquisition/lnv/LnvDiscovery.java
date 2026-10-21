@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +22,7 @@ public class LnvDiscovery {
   public String qualify(byte[] bytes, URI url, String competition) {
     if (!"lnv-web.dataproject.com".equalsIgnoreCase(url.getHost())
         || !competition.equals(LnvPage.query(url).get("ID"))) throw LnvPage.invalid();
-    org.jsoup.nodes.Document page = LnvPage.parse(bytes, url);
+    Document page = LnvPage.parse(bytes, url);
     String title = page.select("title, [id$=lbl_title]").text().toLowerCase(Locale.ROOT);
     if (!(title.contains("alterna volstar")
         || title.contains("saforelle volstar")

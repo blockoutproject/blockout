@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
@@ -282,14 +283,14 @@ public class DiscoverSeasonSources {
               links.stream()
                   .map(this::query)
                   .map(fields -> fields.get("codent"))
-                  .filter(java.util.Objects::nonNull)
+                  .filter(Objects::nonNull)
                   .distinct()
                   .toList();
           List<String> seasons =
               links.stream()
                   .map(this::query)
                   .map(fields -> fields.get("saison"))
-                  .filter(java.util.Objects::nonNull)
+                  .filter(Objects::nonNull)
                   .distinct()
                   .toList();
           if (!organizers.isEmpty() && seasons.size() == 1) {

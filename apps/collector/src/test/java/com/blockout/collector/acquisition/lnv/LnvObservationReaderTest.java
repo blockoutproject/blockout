@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.application.CollectionBackend;
@@ -19,11 +20,14 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 
 /**
@@ -31,9 +35,8 @@ import org.openapitools.jackson.nullable.JsonNullable;
  */
 @DisplayName("Passage-local LNV auxiliary index reads")
 class LnvObservationReaderTest {
-  @org.junit.jupiter.params.ParameterizedTest
-  @org.junit.jupiter.params.provider.ValueSource(
-      strings = {"mID=991&ID=901", "mID=990&ID=999", "mID=990&ID=901&PID=999"})
+  @ParameterizedTest
+  @ValueSource(strings = {"mID=991&ID=901", "mID=990&ID=999", "mID=990&ID=901&PID=999"})
   @DisplayName("A redirected detail context cannot submit a document form for the admitted match")
   void rejectsForeignDocumentContext(String query) {
     // Given
@@ -87,8 +90,8 @@ class LnvObservationReaderTest {
     verifyNoInteractions(http);
   }
 
-  @org.junit.jupiter.params.ParameterizedTest
-  @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
   @DisplayName(
       "Document form responses preserve admitted identity and season before returning a PDF link")
   void rejectsForeignDocumentResponse(boolean wrongSeason) {
@@ -131,7 +134,7 @@ class LnvObservationReaderTest {
     assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
         .isInstanceOf(LnvAcquisitionException.class);
     verify(http).postPage(any(), any());
-    org.mockito.Mockito.verifyNoMoreInteractions(http);
+    verifyNoMoreInteractions(http);
   }
 
   @Test
@@ -280,7 +283,7 @@ class LnvObservationReaderTest {
    * @return reader with a deterministic source completion clock
    */
   private LnvObservationReader documentReader(ProviderHttpClient http) {
-    Clock clock = Clock.fixed(Instant.EPOCH, java.time.ZoneOffset.UTC);
+    Clock clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC);
     AcquisitionProperties properties =
         new AcquisitionProperties(
             List.of(),

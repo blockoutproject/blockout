@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -12,28 +13,37 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
+import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
+import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 
@@ -122,8 +132,8 @@ class CollectPassageTest {
     verify(sporting).calendar(eq(POOL), any(), eq(empty));
   }
 
-  @org.junit.jupiter.params.ParameterizedTest
-  @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
   @DisplayName(
       "Only new resolved matches get first detail while independent team image attempts remain bounded")
   void enrichesNewMatchesWithinCalendar(boolean imageUnavailable) {
@@ -211,11 +221,7 @@ class CollectPassageTest {
         .record(eq(admitted.getCycle().id()), evidence.capture());
     assertThat(
             evidence.getAllValues().stream()
-                .filter(
-                    item ->
-                        item.stage()
-                            == com.blockout.collector.generated.ingestion.model.CollectionStageEnum
-                                .LOGO)
+                .filter(item -> item.stage() == CollectionStageEnum.LOGO)
                 .toList())
         .hasSize(imageUnavailable ? 2 : 0)
         .allSatisfy(item -> assertThat(item.outcome()).isEqualTo(CollectionOutcomeEnum.FAILED));
@@ -244,25 +250,20 @@ class CollectPassageTest {
             .sourceBindingId(CONTROL)
             .url(page)
             .build();
-    com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient http =
-        mock(com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient.class);
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
     byte[] html =
         ("<title>Alterna VOLSTAR 2026/2027</title>"
                 + "<a href='CompetitionMatches.aspx?ID=901&PID=902'>Regular</a>"
                 + "<div class=rmpView id=Content_Main_903><span id=group_lbl_title>Regular</span></div>")
-            .getBytes(java.nio.charset.StandardCharsets.UTF_8);
-    com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient.Response
-        response =
-            new com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient
-                .Response(html, page, true);
-    when(http.page(page))
-        .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(response));
+            .getBytes(StandardCharsets.UTF_8);
+    ProviderHttpClient.Response response = new ProviderHttpClient.Response(html, page, true);
+    when(http.page(page)).thenReturn(CompletableFuture.completedFuture(response));
     DiscoverSeasonSources realDiscovery =
         new DiscoverSeasonSources(
             http,
             http,
-            new com.blockout.collector.acquisition.ffvb.FfvbDiscovery(),
-            new com.blockout.collector.acquisition.lnv.LnvDiscovery(),
+            new FfvbDiscovery(),
+            new LnvDiscovery(),
             backend,
             lifecycle,
             Clock.fixed(NOW, ZoneOffset.UTC));
@@ -342,9 +343,7 @@ class CollectPassageTest {
     SportingObservation.InformationSheet sheet =
         new SportingObservation.InformationSheet("2026/2027", "AALNV", "001");
     SportingObservation.Facts documentFacts =
-        SportingObservation.Facts.builder()
-            .informationSheet(org.openapitools.jackson.nullable.JsonNullable.of(sheet))
-            .build();
+        SportingObservation.Facts.builder().informationSheet(JsonNullable.of(sheet)).build();
     when(backend.targets(admitted.getCycle().id(), 0))
         .thenReturn(
             new CollectionBackend.TargetPage(List.of(calendarTarget, detailTarget), 0, false));
@@ -392,8 +391,7 @@ class CollectPassageTest {
     assertThat(documentContext.getValue().readOrdinal()).isEqualTo(1);
     ArgumentCaptor<CollectionBackend.Result> results =
         ArgumentCaptor.forClass(CollectionBackend.Result.class);
-    verify(backend, org.mockito.Mockito.atLeastOnce())
-        .record(eq(admitted.getCycle().id()), results.capture());
+    verify(backend, atLeastOnce()).record(eq(admitted.getCycle().id()), results.capture());
     CollectionBackend.Result last =
         results.getAllValues().stream()
             .filter(

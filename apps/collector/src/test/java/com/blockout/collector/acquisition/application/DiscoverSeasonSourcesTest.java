@@ -2,7 +2,9 @@ package com.blockout.collector.acquisition.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.blockout.collector.acquisition.ffvb.FfvbDiscovery;
@@ -10,14 +12,18 @@ import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpCl
 import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /** Native navigation over controlled HTTP responses; no external provider or backend write. */
 @DisplayName("Bound-source discovery traversal")
@@ -80,8 +86,7 @@ class DiscoverSeasonSourcesTest {
         URI.create(
             "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?saison=2026/2027&codent=LIIDF&division=YOUTH&tour=01");
     String html;
-    try (java.io.InputStream input =
-        getClass().getResourceAsStream("/acquisition/ffvb/round.html")) {
+    try (InputStream input = getClass().getResourceAsStream("/acquisition/ffvb/round.html")) {
       html = new String(input.readAllBytes(), Charset.forName("windows-1252"));
     }
     ProviderHttpClient http = mock(ProviderHttpClient.class);
@@ -134,7 +139,7 @@ class DiscoverSeasonSourcesTest {
             .seasonLabel("2026/2027")
             .organizerReference("901")
             .build();
-    java.util.List<DiscoverSeasonSources.PageRead> consumed = new java.util.ArrayList<>();
+    List<DiscoverSeasonSources.PageRead> consumed = new ArrayList<>();
 
     // When / Then
     assertThatThrownBy(() -> service.catalog(target, () -> 1, consumed::add))
@@ -186,7 +191,7 @@ class DiscoverSeasonSourcesTest {
     URI broken = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/broken.htm");
     URI valid = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/valid.htm");
     ProviderHttpClient http = mock(ProviderHttpClient.class);
-    when(http.page(org.mockito.ArgumentMatchers.any()))
+    when(http.page(any()))
         .thenReturn(CompletableFuture.failedFuture(new IOException("Unavailable fixture")));
     when(http.page(entry))
         .thenReturn(
@@ -212,9 +217,9 @@ class DiscoverSeasonSourcesTest {
     service.currentEntries();
 
     // Then
-    org.mockito.ArgumentCaptor<CollectionBackend.SourceProposal> proposal =
-        org.mockito.ArgumentCaptor.forClass(CollectionBackend.SourceProposal.class);
-    org.mockito.Mockito.verify(backend).observeSource(proposal.capture());
+    ArgumentCaptor<CollectionBackend.SourceProposal> proposal =
+        ArgumentCaptor.forClass(CollectionBackend.SourceProposal.class);
+    verify(backend).observeSource(proposal.capture());
     assertThat(proposal.getValue().organizerReference()).isEqualTo("LIRA");
     assertThat(proposal.getValue().startYear()).isEqualTo(2026);
   }

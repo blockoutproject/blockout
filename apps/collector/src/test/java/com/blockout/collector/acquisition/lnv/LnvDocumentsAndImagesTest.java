@@ -2,6 +2,7 @@ package com.blockout.collector.acquisition.lnv;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.config.AcquisitionConfiguration;
 import com.blockout.collector.config.AcquisitionProperties;
@@ -15,12 +16,14 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** Native bounded HTTP caching against an isolated origin; no live image or document is fetched. */
 @DisplayName("LNV auxiliary documents and native image caching")
 class LnvDocumentsAndImagesTest {
-  @org.junit.jupiter.params.ParameterizedTest
-  @org.junit.jupiter.params.provider.ValueSource(ints = {200, 304})
+  @ParameterizedTest
+  @ValueSource(ints = {200, 304})
   @DisplayName("Revalidation distinguishes a changed image body from cached 304 reuse")
   void distinguishesRevalidation(int status) throws Exception {
     // Given
@@ -143,7 +146,7 @@ class LnvDocumentsAndImagesTest {
         <Score>0-3</Score></Match></Journee></Competition></Calendrier>
         """;
     LnvDocumentReferences documents = new LnvDocumentReferences();
-    com.blockout.collector.acquisition.application.SportingObservation.InformationSheet sheet =
+    SportingObservation.InformationSheet sheet =
         documents.informationSheet(
             xml.getBytes(StandardCharsets.UTF_8),
             2026,

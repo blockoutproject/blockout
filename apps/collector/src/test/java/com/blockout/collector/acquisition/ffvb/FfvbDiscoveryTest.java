@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.collector.acquisition.application.FfvbAcquisitionException;
 import com.blockout.collector.acquisition.application.SportingObservation;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,8 +23,7 @@ class FfvbDiscoveryTest {
   void discoversNativeRoundGroups() throws Exception {
     // Given
     byte[] html;
-    try (java.io.InputStream input =
-        getClass().getResourceAsStream("/acquisition/ffvb/round.html")) {
+    try (InputStream input = getClass().getResourceAsStream("/acquisition/ffvb/round.html")) {
       html = input.readAllBytes();
     }
     URI round =
@@ -108,7 +109,7 @@ class FfvbDiscoveryTest {
             + "</ul></li></ul></li></ul>";
 
     // When
-    java.util.List<URI> rounds =
+    List<URI> rounds =
         new FfvbDiscovery()
             .roundLinks(html.getBytes(Charset.forName("windows-1252")), ROOT, "2026/2027", "LIRA");
 

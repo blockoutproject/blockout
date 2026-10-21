@@ -4,6 +4,7 @@ import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -14,6 +15,8 @@ import java.time.format.ResolverStyle;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.net.URIBuilder;
 import org.jsoup.Jsoup;
@@ -72,7 +75,7 @@ final class LnvPage {
           LocalDate.parse(
               parts[0].toLowerCase(Locale.FRENCH),
               dateFormat.withResolverStyle(ResolverStyle.STRICT));
-    } catch (java.time.DateTimeException failure) {
+    } catch (DateTimeException failure) {
       throw invalid();
     }
     if (parts.length == 1 || parts[1].equals("--:--"))
@@ -95,7 +98,7 @@ final class LnvPage {
           .localTime(JsonNullable.of(paris.toLocalTime().toString()))
           .timeZone("Europe/Paris")
           .build();
-    } catch (java.time.DateTimeException failure) {
+    } catch (DateTimeException failure) {
       throw invalid();
     }
   }
@@ -107,8 +110,8 @@ final class LnvPage {
    * @return one consistent sporting season, or null without positive evidence
    */
   static String season(Document page) {
-    java.util.regex.Matcher seasons =
-        java.util.regex.Pattern.compile("(20[0-9]{2})[/–-](20[0-9]{2})")
+    Matcher seasons =
+        Pattern.compile("(20[0-9]{2})[/–-](20[0-9]{2})")
             .matcher(
                 page.select("title, [id$=LB_Season], select[name*=Season] option[selected]")
                     .text());

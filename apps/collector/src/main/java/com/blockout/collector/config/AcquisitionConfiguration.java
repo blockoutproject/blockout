@@ -2,6 +2,7 @@ package com.blockout.collector.config;
 
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
 import com.blockout.collector.generated.ingestion.ApiClient;
+import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
 import io.github.resilience4j.ratelimiter.RateLimiter;
@@ -46,8 +47,8 @@ public class AcquisitionConfiguration {
    * @return generated source discovery operations
    */
   @Bean
-  com.blockout.collector.generated.ingestion.api.CollectionApi collectionApi(ApiClient client) {
-    return new com.blockout.collector.generated.ingestion.api.CollectionApi(client);
+  CollectionApi collectionApi(ApiClient client) {
+    return new CollectionApi(client);
   }
 
   /**
