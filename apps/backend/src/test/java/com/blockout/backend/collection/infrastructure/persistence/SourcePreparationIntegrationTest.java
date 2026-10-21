@@ -12,6 +12,7 @@ import com.blockout.backend.collection.application.model.CollectionState.SourceV
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
+import com.blockout.backend.collection.application.service.CollectionSourceService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
 import com.blockout.backend.collection.application.service.SourcePreparationService;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
@@ -69,6 +70,9 @@ class SourcePreparationIntegrationTest {
       "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=ABCCS";
   private static final Instant NOW = Instant.parse("2026-10-20T09:00:00Z");
   @Autowired private SourcePreparationService preparation;
+
+  @Autowired private CollectionSourceService discovery;
+
   @Autowired private SeasonService seasons;
   @Autowired private CollectorRuntimeService runtimes;
   @Autowired private CollectionCycleService cycles;
@@ -77,6 +81,57 @@ class SourcePreparationIntegrationTest {
   @MockitoSpyBean private CollectionStore store;
   @MockitoBean private Clock clock;
   private UUID season;
+
+  @Test
+  @DisplayName(
+      "Current source proposals reuse the season while preserving operator-owned preparation")
+  void retainsSourcePreparationOnDiscovery() {
+    // Given
+    Source before = store.source(SOURCE).orElseThrow();
+    long revision = seasons.collectionState(season).collectionRevision();
+    CollectionSourceService.Proposal proposal =
+        new CollectionSourceService.Proposal(
+            STARTUP,
+            2026,
+            CollectionProviderEnum.FFVB,
+            "ABCCS",
+            URI.create(URL + "&saison=2026/2027"),
+            URI.create("https://www.ffvb.org/119-37-1-Championnats-Nationaux"),
+            NOW);
+
+    // When
+    CollectionSourceService.Resolved resolved = discovery.observe(proposal);
+
+    // Then
+    assertThat(resolved.seasonId()).isEqualTo(season);
+    assertThat(resolved.sourceBindingId()).isEqualTo(SOURCE);
+    assertThat(store.source(SOURCE).orElseThrow()).isEqualTo(before);
+    assertThat(seasons.collectionState(season).collectionRevision()).isEqualTo(revision);
+  }
+
+  @Test
+  @DisplayName("A superseded incarnation cannot create even a missing season through discovery")
+  void fencesNewSeasonProposal() {
+    // Given
+    UUID obsolete = UUID.fromString("00000000-0000-4000-8000-000000000999");
+    CollectionSourceService.Proposal proposal =
+        new CollectionSourceService.Proposal(
+            obsolete,
+            2027,
+            CollectionProviderEnum.FFVB,
+            "ABCCS",
+            URI.create(URL),
+            URI.create(URL),
+            NOW);
+
+    // When / Then
+    assertThatThrownBy(() -> discovery.observe(proposal))
+        .isInstanceOf(CollectionConflictException.class);
+    assertThat(
+            sql.queryForObject(
+                "SELECT count(*) FROM sporting_season WHERE start_year=2027", Integer.class))
+        .isZero();
+  }
 
   /**
    * Migrates the disposable PostgreSQL database using the real baseline.

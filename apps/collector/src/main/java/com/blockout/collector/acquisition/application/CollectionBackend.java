@@ -48,7 +48,7 @@ public interface CollectionBackend {
       Instant completedAt) {}
 
   /** Exact backend-selected context; absent provider fields are never guessed by the passage. */
-  @Builder
+  @Builder(toBuilder = true)
   record Target(
       UUID scopeId,
       CollectionTargetKindEnum kind,
@@ -97,6 +97,38 @@ public interface CollectionBackend {
       String reason,
       Long obtainedCount,
       Long rejectedCount) {}
+
+  /** Qualified entry proposal; it never authorizes launch, classification or replacement. */
+  record SourceProposal(
+      UUID incarnationId,
+      long startYear,
+      CollectionProviderEnum provider,
+      String organizerReference,
+      URI candidateUrl,
+      URI evidenceUrl,
+      Instant observedAt) {}
+
+  /**
+   * Proposes a qualified source through the canonical generated operation exactly once.
+   *
+   * @param proposal actual entry evidence and current incarnation
+   */
+  void observeSource(SourceProposal proposal);
+
+  /** Exact admitted candidate context, independently reread without authorizing sporting writes. */
+  record Candidate(
+      URI candidateUrl,
+      String seasonLabel,
+      CollectionProviderEnum provider,
+      String organizerReference) {}
+
+  /**
+   * Reads the original candidate from its admitted cycle.
+   *
+   * @param cycleId confirmed validation cycle
+   * @return exact frozen candidate, never a newly edited source
+   */
+  Candidate candidate(UUID cycleId);
 
   /**
    * Terminal candidate evidence; interpretation and backend application remain source-preparation

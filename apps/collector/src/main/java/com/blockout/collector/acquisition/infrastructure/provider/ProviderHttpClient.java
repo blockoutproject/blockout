@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import org.apache.hc.client5.http.HttpResponseException;
+import org.apache.hc.client5.http.cache.CacheResponseStatus;
+import org.apache.hc.client5.http.cache.HttpCacheContext;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
@@ -26,10 +28,41 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  */
 @RequiredArgsConstructor
 public final class ProviderHttpClient implements AutoCloseable {
+  /** Per-exchange native protocol evidence; distinguishes 200 revalidation from 304 reuse. */
+  public static final String SUPPLIER_BODY = "blockout.supplier-body";
+
   private final CloseableHttpClient http;
   private final ThreadPoolTaskExecutor executor;
   private final Set<HttpHost> origins;
   private final int maxResponseBytes;
+
+  /** Complete response metadata; cache reuse deliberately carries no new observation timestamp. */
+  public record Response(byte[] body, URI url, boolean supplierRead) {}
+
+  /**
+   * Reads a page with final redirect context and no storage in the image cache.
+   *
+   * @param uri published page URL
+   * @return complete bounded bytes and actual final URL
+   */
+  public CompletableFuture<Response> page(URI uri) {
+    requireOrigin(uri, origins);
+    HttpGet request = new HttpGet(uri);
+    request.setHeader("Cache-Control", "no-store");
+    request.setHeader("Cookie", "timezoneoffset=0");
+    return executor.submitCompletable(() -> response(request, true));
+  }
+
+  /**
+   * Reads an image through native origin-directed caching; cache hits are explicitly identified.
+   *
+   * @param uri qualified published image URL
+   * @return bounded response without treating cache reuse as a new provider observation
+   */
+  public CompletableFuture<Response> image(URI uri) {
+    requireOrigin(uri, origins);
+    return executor.submitCompletable(() -> response(new HttpGet(uri)));
+  }
 
   /**
    * Queues a bounded GET shared by every season/family using this provider.
@@ -41,7 +74,9 @@ public final class ProviderHttpClient implements AutoCloseable {
    */
   public CompletableFuture<byte[]> get(URI uri) {
     requireOrigin(uri, origins);
-    return executor.submitCompletable(() -> read(new HttpGet(uri)));
+    HttpGet request = new HttpGet(uri);
+    request.setHeader("Cache-Control", "no-store");
+    return executor.submitCompletable(() -> read(request));
   }
 
   /**
@@ -56,6 +91,22 @@ public final class ProviderHttpClient implements AutoCloseable {
     HttpPost request = new HttpPost(uri);
     request.setEntity(new UrlEncodedFormEntity(fields, StandardCharsets.UTF_8));
     return executor.submitCompletable(() -> read(request));
+  }
+
+  /**
+   * Reads a native document form response as HTML, refusing PDF entities before body consumption.
+   *
+   * @param uri qualified match form action
+   * @param fields ephemeral published form state
+   * @return final HTML response context, never a downloaded PDF
+   */
+  public CompletableFuture<Response> postPage(URI uri, List<? extends NameValuePair> fields) {
+    requireOrigin(uri, origins);
+    HttpPost request = new HttpPost(uri);
+    request.setHeader("Cache-Control", "no-store");
+    request.setHeader("Cookie", "timezoneoffset=0");
+    request.setEntity(new UrlEncodedFormEntity(fields, StandardCharsets.UTF_8));
+    return executor.submitCompletable(() -> response(request, true));
   }
 
   /**
@@ -90,23 +141,73 @@ public final class ProviderHttpClient implements AutoCloseable {
    * @throws IOException for transport, status or decoded-size failure
    */
   private byte[] read(HttpUriRequestBase request) throws IOException {
-    return http.execute(
-        request,
-        response -> {
-          if (response.getCode() < 200 || response.getCode() >= 300) {
-            request.cancel();
-            throw new HttpResponseException(response.getCode(), "Provider read failed");
-          }
-          if (response.getEntity() == null) return new byte[0];
-          try (InputStream body = response.getEntity().getContent()) {
-            byte[] bytes = body.readNBytes(maxResponseBytes);
-            if (body.read() != -1) {
-              request.cancel();
-              throw new IOException("Provider response exceeds the configured byte limit");
-            }
-            return bytes;
-          }
-        });
+    return response(request).body();
+  }
+
+  /**
+   * Preserves native redirects and cache status while bounding the complete decoded body.
+   *
+   * @param request one native request with caller-selected cache policy
+   * @return actual response context
+   * @throws IOException for status, transport or size failures
+   */
+  private Response response(HttpUriRequestBase request) throws IOException {
+    return response(request, false);
+  }
+
+  /**
+   * Applies the page-only document boundary before reading an entity stream.
+   *
+   * @param request native request
+   * @param page whether binary document bodies are forbidden
+   * @return complete allowed content and native response metadata
+   * @throws IOException for forbidden content, status, transport or size failures
+   */
+  private Response response(HttpUriRequestBase request, boolean page) throws IOException {
+    HttpCacheContext context = HttpCacheContext.create();
+    byte[] body =
+        http.execute(
+            request,
+            context,
+            response -> {
+              if (response.getCode() < 200 || response.getCode() >= 300) {
+                request.cancel();
+                throw new HttpResponseException(response.getCode(), "Provider read failed");
+              }
+              if (response.getEntity() == null) return new byte[0];
+              String type = response.getEntity().getContentType();
+              if (page
+                  && type != null
+                  && (type.toLowerCase(java.util.Locale.ROOT).startsWith("application/pdf")
+                      || type.toLowerCase(java.util.Locale.ROOT)
+                          .startsWith("application/octet-stream"))) {
+                request.cancel();
+                throw new IOException("Binary document bodies are not collection pages");
+              }
+              try (InputStream content = response.getEntity().getContent()) {
+                byte[] bytes = content.readNBytes(maxResponseBytes);
+                if (content.read() != -1) {
+                  request.cancel();
+                  throw new IOException("Provider response exceeds the configured byte limit");
+                }
+                return bytes;
+              }
+            });
+    URI actual;
+    try {
+      actual = request.getUri();
+    } catch (java.net.URISyntaxException failure) {
+      throw new IOException("Invalid source URL", failure);
+    }
+    if (context.getRedirectLocations() != null && context.getRedirectLocations().size() > 0)
+      actual = context.getRedirectLocations().get(context.getRedirectLocations().size() - 1);
+    CacheResponseStatus status = context.getCacheResponseStatus();
+    return new Response(
+        body,
+        actual,
+        status == null
+            || status == CacheResponseStatus.CACHE_MISS
+            || Boolean.TRUE.equals(context.getAttribute(SUPPLIER_BODY)));
   }
 
   /** Stops bounded pending work and releases native HTTP resources when the application closes. */

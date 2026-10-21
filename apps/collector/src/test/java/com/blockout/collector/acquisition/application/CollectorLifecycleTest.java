@@ -119,7 +119,9 @@ class CollectorLifecycleTest {
     lifecycle =
         new CollectorLifecycle(
             new CollectionBackendClient(
-                new CollectorOperationsApi(api), new CollectionBackendMapperImpl()));
+                new CollectorOperationsApi(api),
+                new com.blockout.collector.generated.ingestion.api.CollectionApi(api),
+                new CollectionBackendMapperImpl()));
   }
 
   /** Releases the listener and the HTTP pool owned by this scenario. */

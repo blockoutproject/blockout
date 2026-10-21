@@ -103,6 +103,8 @@ class LoggingTest {
             backend,
             mock(SportingBackend.class),
             ffvb,
+            mock(com.blockout.collector.acquisition.application.LnvAcquisition.class),
+            mock(com.blockout.collector.acquisition.application.DiscoverSeasonSources.class),
             lifecycle,
             Clock.fixed(now, ZoneOffset.UTC));
 

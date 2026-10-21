@@ -12,7 +12,28 @@ public record ObservationOutcome(
     UUID resourceId,
     URI reasonType,
     UUID homeTeamId,
-    UUID awayTeamId) {
+    UUID awayTeamId,
+    Boolean created) {
+  /**
+   * Carries an outcome without asserting creation outside calendar identification.
+   *
+   * @param sourceReference native reference
+   * @param outcome acceptance state
+   * @param resourceId resolved identity
+   * @param reasonType safe refusal
+   * @param homeTeamId resolved home participant
+   * @param awayTeamId resolved away participant
+   */
+  public ObservationOutcome(
+      String sourceReference,
+      ObservationOutcomeEnum outcome,
+      UUID resourceId,
+      URI reasonType,
+      UUID homeTeamId,
+      UUID awayTeamId) {
+    this(sourceReference, outcome, resourceId, reasonType, homeTeamId, awayTeamId, null);
+  }
+
   /**
    * Represents a refused item without retaining submitted values or exception messages.
    *

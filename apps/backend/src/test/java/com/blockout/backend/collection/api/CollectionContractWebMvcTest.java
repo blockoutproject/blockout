@@ -13,6 +13,7 @@ import com.blockout.backend.collection.application.exception.CollectionConflictE
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
 import com.blockout.backend.collection.application.service.CollectionResultService;
+import com.blockout.backend.collection.application.service.CollectionSourceService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
 import com.blockout.backend.collection.application.service.SourcePreparationService;
 import com.blockout.backend.config.HttpConfiguration;
@@ -25,12 +26,16 @@ import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.assertj.core.api.Assertions;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -52,8 +57,49 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 @DisplayName("Generated collector operations HTTP contract")
 class CollectionContractWebMvcTest {
   @Autowired private MockMvc mvc;
+
+  @MockitoBean private CollectionSourceService sources;
+
   @MockitoBean private CollectorRuntimeService runtimes;
   @MockitoBean private SourcePreparationService preparation;
+
+  @Test
+  @DisplayName("The generated discovery operation resolves owner identities with no-store")
+  void acceptsSourceProposal() throws Exception {
+    // Given
+    UUID incarnation = UUID.fromString("00000000-0000-4000-8000-000000000171");
+    UUID season = UUID.fromString("00000000-0000-4000-8000-000000000172");
+    UUID source = UUID.fromString("00000000-0000-4000-8000-000000000173");
+    when(sources.observe(ArgumentMatchers.any()))
+        .thenReturn(new CollectionSourceService.Resolved(season, source));
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            MockMvcRequestBuilders.post("/ingestion/season-source-observations")
+                .with(collector())
+                .contentType("application/json")
+                .content(
+                    """
+            {"incarnationId":"%s","startYear":2026,"provider":"ffvb","organizerReference":"ABCCS",
+            "candidateUrl":"https://www.ffvbbeach.org/ffvbapp/resu/current.htm",
+            "evidenceUrl":"https://www.ffvb.org/119-37-1-Championnats-Nationaux","observedAt":"2026-10-20T09:00:00Z"}
+            """
+                        .formatted(incarnation)));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.seasonId").value(season.toString()))
+        .andExpect(jsonPath("$.sourceBindingId").value(source.toString()));
+    ArgumentCaptor<CollectionSourceService.Proposal> command =
+        ArgumentCaptor.forClass(CollectionSourceService.Proposal.class);
+    Mockito.verify(sources).observe(command.capture());
+    Assertions.assertThat(command.getValue().incarnationId()).isEqualTo(incarnation);
+    Assertions.assertThat(command.getValue().observedAt())
+        .isEqualTo(Instant.parse("2026-10-20T09:00:00Z"));
+  }
 
   @Test
   @DisplayName(

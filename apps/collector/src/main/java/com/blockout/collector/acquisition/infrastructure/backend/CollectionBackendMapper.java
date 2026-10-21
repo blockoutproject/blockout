@@ -19,6 +19,24 @@ import org.mapstruct.Mapping;
 @Mapper(config = MappingConfiguration.class)
 public interface CollectionBackendMapper {
   /**
+   * Maps qualified discovery without inventing lifecycle or classification.
+   *
+   * @param source source-entry evidence
+   * @return strict generated proposal
+   */
+  com.blockout.collector.generated.ingestion.model.ObserveSeasonSourceInternalRequest toRequest(
+      CollectionBackend.SourceProposal source);
+
+  /**
+   * Preserves the admitted candidate's provider, root and seasonal scope.
+   *
+   * @param source generated frozen validation context
+   * @return immutable candidate values
+   */
+  CollectionBackend.Candidate toCandidate(
+      com.blockout.collector.generated.ingestion.model.SourceValidationWorkInternalResponse source);
+
+  /**
    * Projects the decoded runtime.
    *
    * @param source decoded current registration

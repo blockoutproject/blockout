@@ -6,6 +6,12 @@ Follow the [local development setup](../../README.md#local-development) and run 
 
 Use an isolated environment with the backend, PostgreSQL and single collector instance, generated consumers from the same [canonical contracts](contracts/README.md), a collection-authorized operator and accounts without that right. Prepare deterministic sanitized/synthetic FFVB, LNV and IGN fixtures, controlled transport responses and a controllable test clock. No personal provider payload belongs in Git. Live-source qualification requires its own authorized scope and is not a CI dependency.
 
+## Discovery and professional adapter checks
+
+The collector suites `FfvbDiscoveryTest`, `DiscoverSeasonSourcesTest`, `QualifySourceTest`, `LnvObservationsTest`, `LnvDocumentsAndImagesTest` and `CollectPassageTest` exercise native contexts, refusal/partial behavior, clocks, generated identity handoff and controlled HTTP caching. The backend's source-preparation and match-detail integration suites exercise the current-incarnation fence and established document associations against migrated PostgreSQL. Run the repository's full verification to include generated producer/consumer compatibility; these tests establish their represented boundaries, not exhaustive provider coverage.
+
+Verified document-team associations remain explicit configuration scoped to season, championship and native team. Empty configuration leaves auxiliary XML codes unavailable. No test fixture, sampled current identifier or ordinary discovery run supplies missing historical associations or activates collection. Actual provider qualification, native operator journeys and scheduling remain with their owning tasks.
+
 ## Core scenarios
 
 | Scenario                      | Action                                                                                                                                                                                                                                                                          | Expected result                                                                                                                                                                                                                                                                                                                                                                                                                                               |

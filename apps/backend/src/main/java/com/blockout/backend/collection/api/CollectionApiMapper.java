@@ -39,6 +39,25 @@ import org.openapitools.jackson.nullable.JsonNullable;
 @Mapper(config = MappingConfiguration.class)
 public interface CollectionApiMapper {
   /**
+   * Carries qualified source-entry evidence to its application owner.
+   *
+   * @param source strict generated discovery proposal
+   * @return immutable application command
+   */
+  com.blockout.backend.collection.application.service.CollectionSourceService.Proposal toCommand(
+      com.blockout.backend.generated.ingestion.model.ObserveSeasonSourceInternalRequest source);
+
+  /**
+   * Returns existing owner identities without claiming activation.
+   *
+   * @param source resolved canonical season and binding
+   * @return generated discovery acknowledgement
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  com.blockout.backend.generated.ingestion.model.SeasonSourceInternalResponse toDto(
+      com.blockout.backend.collection.application.service.CollectionSourceService.Resolved source);
+
+  /**
    * Reuses the shared contract-owned provider enum across generated API namespaces.
    *
    * @param source validated mobile provider

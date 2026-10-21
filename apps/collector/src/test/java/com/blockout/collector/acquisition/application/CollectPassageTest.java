@@ -21,11 +21,13 @@ import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
+import java.io.IOException;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
@@ -46,11 +48,167 @@ class CollectPassageTest {
   private final SportingBackend sporting = mock(SportingBackend.class);
   private static final URI SOURCE =
       URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET");
+  private final LnvAcquisition lnv = mock(LnvAcquisition.class);
+  private final DiscoverSeasonSources discovery = mock(DiscoverSeasonSources.class);
   private final FfvbAcquisition ffvb = mock(FfvbAcquisition.class);
   private final FfvbAcquisition.Resource resource = mock(FfvbAcquisition.Resource.class);
   private final CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
   private final CollectPassage passage =
-      new CollectPassage(backend, sporting, ffvb, lifecycle, Clock.fixed(NOW, ZoneOffset.UTC));
+      new CollectPassage(
+          backend, sporting, ffvb, lnv, discovery, lifecycle, Clock.fixed(NOW, ZoneOffset.UTC));
+
+  @Test
+  @DisplayName("Complete accepted catalog removal prevents an old frozen pool from being read")
+  void stopsRemovedPoolImmediately() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target source =
+        CollectionBackend.Target.builder()
+            .scopeId(CONTROL)
+            .sourceBindingId(CONTROL)
+            .provider(CollectionProviderEnum.FFVB)
+            .kind(CollectionTargetKindEnum.DISCOVERY)
+            .build();
+    CollectionBackend.Target calendar =
+        target(CollectionTargetKindEnum.CALENDAR).toBuilder().sourceBindingId(CONTROL).build();
+    SportingObservation.Catalog empty = new SportingObservation.Catalog(true, List.of());
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(calendar, source), 0, false));
+    when(discovery.catalog(source)).thenReturn(new DiscoverSeasonSources.Read(empty, NOW));
+    when(sporting.catalog(eq(CONTROL), any(), eq(empty)))
+        .thenReturn(new SportingObservation.CatalogOutcome(List.of(), true));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    verifyNoInteractions(ffvb);
+    verify(sporting, never()).calendar(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("Failed catalog discovery preserves selected same-season acquisition")
+  void retainsPoolsAfterDiscoveryFailure() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target source =
+        CollectionBackend.Target.builder()
+            .scopeId(CONTROL)
+            .sourceBindingId(CONTROL)
+            .provider(CollectionProviderEnum.FFVB)
+            .kind(CollectionTargetKindEnum.DISCOVERY)
+            .build();
+    CollectionBackend.Target calendar =
+        target(CollectionTargetKindEnum.CALENDAR).toBuilder().sourceBindingId(CONTROL).build();
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(source, calendar), 0, false));
+    when(discovery.catalog(source)).thenThrow(new FfvbAcquisitionException("Unavailable catalog"));
+    when(ffvb.resourceUrl(calendar)).thenReturn(SOURCE);
+    when(ffvb.read(SOURCE)).thenReturn(resource);
+    SportingObservation.Calendar empty =
+        new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
+    when(resource.calendar(calendar)).thenReturn(new FfvbAcquisition.Read<>(empty, NOW));
+    when(sporting.calendar(eq(POOL), any(), eq(empty)))
+        .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    verify(sporting).calendar(eq(POOL), any(), eq(empty));
+  }
+
+  @Test
+  @DisplayName(
+      "Only new resolved matches get immediate detail and shared team images are attempted once")
+  void enrichesNewMatchesWithinCalendar() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    UUID newMatch = UUID.fromString("00000000-0000-4000-8000-000000000171");
+    UUID oldMatch = UUID.fromString("00000000-0000-4000-8000-000000000172");
+    UUID home = UUID.fromString("00000000-0000-4000-8000-000000000173");
+    UUID away = UUID.fromString("00000000-0000-4000-8000-000000000174");
+    URI page = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+    URI logo = URI.create("https://images.dataproject.com/lnv/home.png");
+    CollectionBackend.Target target =
+        target(CollectionTargetKindEnum.CALENDAR).toBuilder()
+            .provider(CollectionProviderEnum.LNV)
+            .url(page)
+            .competitionReference("901")
+            .poolReference("902")
+            .groupReference("903")
+            .build();
+    SportingObservation.Team homeTeam = new SportingObservation.Team("Home", "01", null, null);
+    SportingObservation.Team awayTeam = new SportingObservation.Team("Away", "02", null, null);
+    SportingObservation.Facts facts = SportingObservation.Facts.builder().build();
+    SportingObservation.Calendar calendar =
+        new SportingObservation.Calendar(
+            true,
+            List.of(
+                new SportingObservation.Match(
+                    "new",
+                    homeTeam,
+                    awayTeam,
+                    facts,
+                    page.resolve("MatchStatistics.aspx?mID=new&ID=901")),
+                new SportingObservation.Match(
+                    "old",
+                    homeTeam,
+                    awayTeam,
+                    facts,
+                    page.resolve("MatchStatistics.aspx?mID=old&ID=901"))),
+            List.of(),
+            List.of());
+    LnvAcquisition.Resource shared = mock(LnvAcquisition.Resource.class);
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+    when(lnv.read(page)).thenReturn(shared);
+    when(shared.calendar(target))
+        .thenReturn(
+            new LnvAcquisition.Calendar(calendar, Map.of("01", logo, "02", logo), NOW, null));
+    when(lnv.documentIndexes()).thenReturn((owner, evidence) -> null);
+    when(sporting.calendar(eq(POOL), any(), eq(calendar)))
+        .thenReturn(
+            new SportingObservation.CalendarOutcome(
+                List.of(
+                    new SportingObservation.Outcome(
+                        "new", ObservationOutcomeEnum.ACCEPTED, newMatch, null, home, away, true),
+                    new SportingObservation.Outcome(
+                        "old", ObservationOutcomeEnum.ACCEPTED, oldMatch, null, home, away, false)),
+                2,
+                0,
+                0,
+                0,
+                true));
+    LnvAcquisition.Resource detail = mock(LnvAcquisition.Resource.class);
+    when(lnv.read(page.resolve("MatchStatistics.aspx?mID=new&ID=901"))).thenReturn(detail);
+    when(detail.detail(any())).thenReturn(new LnvAcquisition.Read<>(facts, NOW));
+    when(sporting.detail(eq(newMatch), any(), eq(facts)))
+        .thenReturn(
+            new SportingObservation.Outcome(
+                "new", ObservationOutcomeEnum.ACCEPTED, newMatch, null, null, null));
+    when(lnv.image(logo)).thenReturn(null);
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    verify(sporting).detail(eq(newMatch), any(), eq(facts));
+    verify(sporting, never()).detail(eq(oldMatch), any(), any());
+    verify(lnv, times(2)).image(logo);
+    verify(sporting, never()).logo(any(), any(), any());
+    ArgumentCaptor<CollectionBackend.Result> evidence =
+        ArgumentCaptor.forClass(CollectionBackend.Result.class);
+    verify(backend, times(4)).record(eq(admitted.getCycle().id()), evidence.capture());
+    assertThat(evidence.getAllValues())
+        .noneMatch(
+            item ->
+                item.stage()
+                    == com.blockout.collector.generated.ingestion.model.CollectionStageEnum.LOGO);
+  }
 
   @Test
   @DisplayName("Keeps independent standings when calendar acquisition fails")
@@ -440,7 +598,6 @@ class CollectPassageTest {
    */
   private CollectionBackendFailure uncertain() {
     return new CollectionBackendFailure(
-        CollectionBackendFailure.Kind.UNCONFIRMED,
-        new java.io.IOException("Synthetic response loss"));
+        CollectionBackendFailure.Kind.UNCONFIRMED, new IOException("Synthetic response loss"));
   }
 }

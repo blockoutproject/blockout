@@ -6,15 +6,22 @@ import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -27,6 +34,8 @@ public class CollectPassage {
   private final CollectionBackend backend;
   private final SportingBackend sporting;
   private final FfvbAcquisition ffvb;
+  private final LnvAcquisition lnv;
+  private final DiscoverSeasonSources discovery;
   private final CollectorLifecycle lifecycle;
   private final Clock clock;
 
@@ -42,26 +51,40 @@ public class CollectPassage {
     if (context.getCycle().controlId() == null)
       throw new IllegalArgumentException("A control passage is required");
     try {
-      Map<URI, List<CollectionBackend.Target>> resources = new LinkedHashMap<>();
+      List<CollectionBackend.Target> selected = new ArrayList<>();
       long page = 0;
       CollectionBackend.TargetPage targets;
       do {
         targets = backend.targets(context.getCycle().id(), page++);
-        for (CollectionBackend.Target target : targets.items()) {
-          if (target.provider() == CollectionProviderEnum.FFVB
-              && (target.kind() == CollectionTargetKindEnum.CALENDAR
-                  || target.kind() == CollectionTargetKindEnum.STANDINGS)) {
+        selected.addAll(targets.items());
+      } while (targets.hasNext());
+      Map<UUID, Set<UUID>> presentPools = new LinkedHashMap<>();
+      for (CollectionBackend.Target target : selected) {
+        if (target.kind() == CollectionTargetKindEnum.DISCOVERY) {
+          Set<UUID> present = discover(context, target);
+          if (present != null) presentPools.put(target.sourceBindingId(), present);
+        }
+      }
+      selected =
+          selected.stream()
+              .filter(
+                  target ->
+                      target.poolId() == null
+                          || !presentPools.containsKey(target.sourceBindingId())
+                          || presentPools.get(target.sourceBindingId()).contains(target.poolId()))
+              .toList();
+      Map<URI, List<CollectionBackend.Target>> resources = new LinkedHashMap<>();
+      Map<URI, List<CollectionBackend.Target>> professional = new LinkedHashMap<>();
+      for (CollectionBackend.Target target : selected) {
+        if (target.kind() == CollectionTargetKindEnum.CALENDAR
+            || target.kind() == CollectionTargetKindEnum.STANDINGS) {
+          if (target.provider() == CollectionProviderEnum.FFVB)
             resources
                 .computeIfAbsent(ffvb.resourceUrl(target), ignored -> new ArrayList<>())
                 .add(target);
-          } else
-            log.atWarn()
-                .addKeyValue("operation", "collection_stage")
-                .addKeyValue("stage", target.kind())
-                .addKeyValue("outcome", "not_read")
-                .log("Selected acquisition adapter is not available; no observation was submitted");
+          else professional.computeIfAbsent(target.url(), ignored -> new ArrayList<>()).add(target);
         }
-      } while (targets.hasNext());
+      }
       for (Map.Entry<URI, List<CollectionBackend.Target>> entry : resources.entrySet()) {
         long ordinal = context.nextReadOrdinal();
         FfvbAcquisition.Resource resource;
@@ -79,6 +102,41 @@ public class CollectPassage {
           else standings(context, target, resource, ordinal);
         }
       }
+      Set<UUID> readTeams = new LinkedHashSet<>();
+      Set<UUID> readMatches = new LinkedHashSet<>();
+      LnvAcquisition.DocumentIndexes indexes =
+          professional.isEmpty() ? null : lnv.documentIndexes();
+      for (Map.Entry<URI, List<CollectionBackend.Target>> entry : professional.entrySet()) {
+        long ordinal = context.nextReadOrdinal();
+        LnvAcquisition.Resource resource;
+        try {
+          resource = lnv.read(entry.getKey());
+        } catch (RuntimeException failure) {
+          for (CollectionBackend.Target target : entry.getValue())
+            acquisitionFailed(context, target, ordinal, failure);
+          continue;
+        }
+        for (CollectionBackend.Target target : entry.getValue()) {
+          lifecycle.requireActive();
+          if (target.kind() == CollectionTargetKindEnum.CALENDAR)
+            professionalCalendar(
+                context, target, resource, ordinal, readTeams, readMatches, indexes);
+          else {
+            LnvAcquisition.Read<SportingObservation.Standings> read;
+            try {
+              read = resource.standings(target);
+            } catch (RuntimeException failure) {
+              acquisitionFailed(context, target, ordinal, failure);
+              continue;
+            }
+            submitStandings(context, target, ordinal, read.observation(), read.observedAt());
+          }
+        }
+      }
+      for (CollectionBackend.Target target : selected)
+        if (target.provider() == CollectionProviderEnum.LNV
+            && target.kind() == CollectionTargetKindEnum.DETAILS
+            && readMatches.add(target.matchId())) detail(context, target);
       return lifecycle.complete(context, clock.instant());
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) throw failure;
@@ -113,8 +171,25 @@ public class CollectPassage {
       acquisitionFailed(context, target, ordinal, failure);
       return;
     }
-    SportingObservation.Calendar observation = read.observation();
-    Instant observedAt = read.observedAt();
+    submitCalendar(context, target, ordinal, read.observation(), read.observedAt());
+  }
+
+  /**
+   * Submits independent calendar acquisition and integration evidence without a write retry.
+   *
+   * @param context admitted passage
+   * @param target selected pool
+   * @param ordinal original read order
+   * @param observation interpreted calendar
+   * @param observedAt actual source read time
+   * @return confirmed resolved identities, or null after unconfirmed/refused transport
+   */
+  private SportingObservation.CalendarOutcome submitCalendar(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      long ordinal,
+      SportingObservation.Calendar observation,
+      Instant observedAt) {
     record(
         context,
         target,
@@ -153,6 +228,7 @@ public class CollectPassage {
               .map(item -> item.reasonType().toString())
               .findFirst()
               .orElse(null));
+      return outcome;
     } catch (CollectionBackendFailure failure) {
       if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
       record(
@@ -165,6 +241,7 @@ public class CollectPassage {
           null,
           clock.instant(),
           failureReason(failure));
+      return null;
     }
   }
 
@@ -188,8 +265,24 @@ public class CollectPassage {
       acquisitionFailed(context, target, ordinal, failure);
       return;
     }
-    SportingObservation.Standings observation = read.observation();
-    Instant observedAt = read.observedAt();
+    submitStandings(context, target, ordinal, read.observation(), read.observedAt());
+  }
+
+  /**
+   * Retains independent official standings evidence and acceptance.
+   *
+   * @param context admitted passage
+   * @param target selected table
+   * @param ordinal original read order
+   * @param observation official publication
+   * @param observedAt actual source read time
+   */
+  private void submitStandings(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      long ordinal,
+      SportingObservation.Standings observation,
+      Instant observedAt) {
     record(
         context,
         target,
@@ -232,6 +325,388 @@ public class CollectPassage {
           clock.instant(),
           failureReason(failure));
     }
+  }
+
+  /**
+   * Integrates catalog presence before any selected sporting page is read.
+   *
+   * @param context admitted passage
+   * @param target selected binding
+   * @return reconciled present pool IDs, or null when absence is not established
+   */
+  private Set<UUID> discover(
+      CollectorLifecycle.AdmittedCycle context, CollectionBackend.Target target) {
+    long ordinal = context.nextReadOrdinal();
+    DiscoverSeasonSources.Read read;
+    try {
+      read = discovery.catalog(target);
+    } catch (RuntimeException failure) {
+      acquisitionFailed(context, target, ordinal, failure);
+      return null;
+    }
+    record(
+        context,
+        target,
+        ordinal,
+        CollectionPhaseEnum.ACQUISITION,
+        read.catalog().complete() ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.PARTIAL,
+        (long) read.catalog().pools().size(),
+        null,
+        read.observedAt(),
+        null);
+    try {
+      SportingObservation.CatalogOutcome outcome =
+          sporting.catalog(
+              target.sourceBindingId(),
+              new SportingObservation.Context(
+                  context.getCycle().id(), ordinal, read.observedAt(), null),
+              read.catalog());
+      long accepted = outcome.outcomes().stream().filter(this::accepted).count();
+      long rejected = outcome.outcomes().size() - accepted;
+      record(
+          context,
+          target,
+          ordinal,
+          CollectionPhaseEnum.INTEGRATION,
+          rejected == 0
+              ? CollectionOutcomeEnum.SUCCESS
+              : accepted == 0 ? CollectionOutcomeEnum.FAILED : CollectionOutcomeEnum.PARTIAL,
+          accepted,
+          rejected,
+          clock.instant(),
+          null);
+      if (!outcome.absenceReconciled()) return null;
+      Set<UUID> pools = new LinkedHashSet<>();
+      outcome.outcomes().stream()
+          .filter(this::accepted)
+          .map(SportingObservation.Outcome::resourceId)
+          .filter(java.util.Objects::nonNull)
+          .forEach(pools::add);
+      return pools;
+    } catch (CollectionBackendFailure failure) {
+      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+      record(
+          context,
+          target,
+          ordinal,
+          CollectionPhaseEnum.INTEGRATION,
+          failed(failure),
+          null,
+          null,
+          clock.instant(),
+          failureReason(failure));
+      return null;
+    }
+  }
+
+  /**
+   * Uses only backend-resolved identities for first details and once-per-team media reads.
+   *
+   * @param context admitted passage
+   * @param target admitted pool
+   * @param resource one shared provider page
+   * @param ordinal pre-read order
+   * @param readTeams passage-local media attempts
+   * @param readMatches passage-local detail attempts
+   * @param indexes passage-local auxiliary document indexes
+   */
+  private void professionalCalendar(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      LnvAcquisition.Resource resource,
+      long ordinal,
+      Set<UUID> readTeams,
+      Set<UUID> readMatches,
+      LnvAcquisition.DocumentIndexes indexes) {
+    LnvAcquisition.Calendar read;
+    try {
+      read = resource.calendar(target);
+    } catch (RuntimeException failure) {
+      acquisitionFailed(context, target, ordinal, failure);
+      return;
+    }
+    SportingObservation.CalendarOutcome outcome =
+        submitCalendar(context, target, ordinal, read.observation(), read.observedAt());
+    if (outcome == null) return;
+    Map<String, SportingObservation.Match> matches = new LinkedHashMap<>();
+    read.observation().matches().forEach(match -> matches.put(match.nativeMatchReference(), match));
+    for (SportingObservation.Outcome item : outcome.outcomes()) {
+      if (!accepted(item)) continue;
+      SportingObservation.Match match = matches.get(item.sourceReference());
+      if (match == null) continue;
+      if (Boolean.TRUE.equals(item.created())
+          && item.resourceId() != null
+          && match.detailUrl() != null
+          && readMatches.add(item.resourceId())) {
+        detail(
+            context,
+            target.toBuilder()
+                .scopeId(item.resourceId())
+                .matchId(item.resourceId())
+                .kind(CollectionTargetKindEnum.DETAILS)
+                .nativeMatchReference(match.nativeMatchReference())
+                .url(match.detailUrl())
+                .build());
+      }
+      image(
+          context,
+          item.homeTeamId(),
+          read.logos().get(match.home().nativeTeamReference()),
+          readTeams);
+      image(
+          context,
+          item.awayTeamId(),
+          read.logos().get(match.away().nativeTeamReference()),
+          readTeams);
+    }
+    informationSheets(context, target, read, outcome, indexes);
+  }
+
+  /**
+   * Sends only qualified auxiliary codes, keeping the original index timestamp on reused bytes.
+   *
+   * @param context admitted passage
+   * @param target admitted calendar owner
+   * @param calendar independently acquired sporting identities and dates
+   * @param outcome actual F02 identity resolutions
+   * @param indexes bounded passage-local index reads
+   */
+  private void informationSheets(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      LnvAcquisition.Calendar calendar,
+      SportingObservation.CalendarOutcome outcome,
+      LnvAcquisition.DocumentIndexes indexes) {
+    long ordinal = context.nextReadOrdinal();
+    LnvAcquisition.Read<Map<String, SportingObservation.InformationSheet>> read;
+    try {
+      read = indexes.informationSheets(target, calendar);
+    } catch (RuntimeException failure) {
+      log.atWarn()
+          .addKeyValue("operation", "document_index")
+          .addKeyValue("cycleId", context.getCycle().id())
+          .addKeyValue("scope", target.poolId())
+          .addKeyValue("outcome", "failed")
+          .log(
+              "Auxiliary information-sheet index failed; sporting observations remain independent");
+      return;
+    }
+    if (read == null) return;
+    for (SportingObservation.Outcome item : outcome.outcomes()) {
+      SportingObservation.InformationSheet sheet = read.observation().get(item.sourceReference());
+      if (!accepted(item) || item.resourceId() == null || sheet == null) continue;
+      lifecycle.requireActive();
+      try {
+        sporting.detail(
+            item.resourceId(),
+            new SportingObservation.Context(
+                context.getCycle().id(), ordinal, read.observedAt(), null),
+            SportingObservation.Facts.builder().informationSheet(JsonNullable.of(sheet)).build());
+      } catch (CollectionBackendFailure failure) {
+        if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+        log.atWarn()
+            .addKeyValue("operation", "document_association")
+            .addKeyValue("cycleId", context.getCycle().id())
+            .addKeyValue("scope", item.resourceId())
+            .addKeyValue("outcome", failed(failure))
+            .log("Auxiliary document association was not confirmed; the write was not replayed");
+      }
+    }
+  }
+
+  /**
+   * Acquires a known match independently from calendar or standings success.
+   *
+   * @param context admitted passage
+   * @param target selected or newly resolved professional match
+   */
+  private void detail(CollectorLifecycle.AdmittedCycle context, CollectionBackend.Target target) {
+    long ordinal = context.nextReadOrdinal();
+    LnvAcquisition.Resource resource;
+    try {
+      resource = lnv.read(target.url());
+    } catch (RuntimeException failure) {
+      acquisitionFailed(context, target, ordinal, failure);
+      return;
+    }
+    long obtained = 0;
+    long rejected = 0;
+    long integrated = 0;
+    long refused = 0;
+    boolean unconfirmed = false;
+    for (int part = 0; part < 3; part++) {
+      if (part > 0) ordinal = context.nextReadOrdinal();
+      LnvAcquisition.Read<SportingObservation.Facts> read;
+      try {
+        read =
+            part == 0
+                ? resource.detail(target)
+                : resource.document(part == 1 ? "Scoresheet" : "DataVolley");
+      } catch (RuntimeException failure) {
+        rejected++;
+        record(
+            context,
+            target,
+            ordinal,
+            CollectionPhaseEnum.ACQUISITION,
+            obtained == 0 ? CollectionOutcomeEnum.FAILED : CollectionOutcomeEnum.PARTIAL,
+            obtained,
+            rejected,
+            clock.instant(),
+            failureReason(failure));
+        continue;
+      }
+      if (read == null) continue;
+      obtained++;
+      record(
+          context,
+          target,
+          ordinal,
+          CollectionPhaseEnum.ACQUISITION,
+          rejected == 0 ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.PARTIAL,
+          obtained,
+          rejected,
+          read.observedAt(),
+          rejected == 0 ? null : "Independent detail or document read failed");
+      String reason = null;
+      try {
+        SportingObservation.Outcome outcome =
+            sporting.detail(
+                target.matchId(),
+                new SportingObservation.Context(
+                    context.getCycle().id(), ordinal, read.observedAt(), null),
+                read.observation());
+        if (accepted(outcome)) integrated++;
+        else refused++;
+        reason = outcome.reasonType() == null ? null : outcome.reasonType().toString();
+      } catch (CollectionBackendFailure failure) {
+        if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+        refused++;
+        unconfirmed |= failure.getKind() == CollectionBackendFailure.Kind.UNCONFIRMED;
+        reason = failureReason(failure);
+      }
+      record(
+          context,
+          target,
+          ordinal,
+          CollectionPhaseEnum.INTEGRATION,
+          unconfirmed
+              ? CollectionOutcomeEnum.UNCONFIRMED
+              : refused == 0
+                  ? CollectionOutcomeEnum.SUCCESS
+                  : integrated == 0 ? CollectionOutcomeEnum.FAILED : CollectionOutcomeEnum.PARTIAL,
+          integrated,
+          refused,
+          clock.instant(),
+          reason);
+    }
+  }
+
+  /**
+   * Uploads only a new supplier image read and always removes its transient upload file.
+   *
+   * @param context admitted passage
+   * @param team backend-resolved team, absent on rejected identity
+   * @param url published native image, absent when unpublished
+   * @param attempted passage-local deduplication, including failed attempts
+   */
+  private void image(
+      CollectorLifecycle.AdmittedCycle context, UUID team, URI url, Set<UUID> attempted) {
+    if (team == null || url == null || !attempted.add(team)) return;
+    long ordinal = context.nextReadOrdinal();
+    LnvAcquisition.Read<byte[]> read;
+    try {
+      read = lnv.image(url);
+    } catch (RuntimeException failure) {
+      record(
+          context,
+          team,
+          CollectionStageEnum.LOGO,
+          ordinal,
+          CollectionPhaseEnum.ACQUISITION,
+          CollectionOutcomeEnum.FAILED,
+          null,
+          null,
+          clock.instant(),
+          failureReason(failure));
+      return;
+    }
+    if (read == null) return;
+    record(
+        context,
+        team,
+        CollectionStageEnum.LOGO,
+        ordinal,
+        CollectionPhaseEnum.ACQUISITION,
+        CollectionOutcomeEnum.SUCCESS,
+        null,
+        null,
+        read.observedAt(),
+        null);
+    Path image = null;
+    try {
+      image = Files.createTempFile("blockout-logo-", ".image");
+      Files.write(image, read.observation());
+      SportingObservation.Outcome outcome =
+          sporting.logo(
+              team,
+              new SportingObservation.Context(
+                  context.getCycle().id(), ordinal, read.observedAt(), null),
+              image);
+      record(
+          context,
+          team,
+          CollectionStageEnum.LOGO,
+          ordinal,
+          CollectionPhaseEnum.INTEGRATION,
+          accepted(outcome) ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
+          null,
+          null,
+          clock.instant(),
+          outcome.reasonType() == null ? null : outcome.reasonType().toString());
+    } catch (CollectionBackendFailure failure) {
+      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+      record(
+          context,
+          team,
+          CollectionStageEnum.LOGO,
+          ordinal,
+          CollectionPhaseEnum.INTEGRATION,
+          failed(failure),
+          null,
+          null,
+          clock.instant(),
+          failureReason(failure));
+    } catch (IOException failure) {
+      record(
+          context,
+          team,
+          CollectionStageEnum.LOGO,
+          ordinal,
+          CollectionPhaseEnum.INTEGRATION,
+          CollectionOutcomeEnum.FAILED,
+          null,
+          null,
+          clock.instant(),
+          "Transient image unavailable");
+    } finally {
+      if (image != null)
+        try {
+          Files.deleteIfExists(image);
+        } catch (IOException failure) {
+          log.atError()
+              .addKeyValue("operation", "logo_cleanup")
+              .log("Transient image cleanup failed");
+        }
+    }
+  }
+
+  /**
+   * @param outcome actual F02 response @return whether this identity was accepted
+   */
+  private boolean accepted(SportingObservation.Outcome outcome) {
+    return outcome.outcome() == ObservationOutcomeEnum.ACCEPTED
+        || outcome.outcome() == ObservationOutcomeEnum.UNCHANGED;
   }
 
   /**
@@ -315,12 +790,50 @@ public class CollectPassage {
       Long rejected,
       Instant observedAt,
       String reason) {
+    record(
+        context,
+        target.scopeId(),
+        CollectionStageEnum.fromValue(target.kind().getValue()),
+        ordinal,
+        phase,
+        outcome,
+        obtained,
+        rejected,
+        observedAt,
+        reason);
+  }
+
+  /**
+   * Records a frozen or backend-resolved child scope without inventing a collection target kind.
+   *
+   * @param context admitted passage
+   * @param scope stable backend owner
+   * @param stage actual stage
+   * @param ordinal original read order
+   * @param phase actual phase
+   * @param outcome measured result
+   * @param obtained usable count or null
+   * @param rejected rejected count or null
+   * @param observedAt actual phase time
+   * @param reason safe diagnostic
+   */
+  private void record(
+      CollectorLifecycle.AdmittedCycle context,
+      UUID scope,
+      CollectionStageEnum stage,
+      long ordinal,
+      CollectionPhaseEnum phase,
+      CollectionOutcomeEnum outcome,
+      Long obtained,
+      Long rejected,
+      Instant observedAt,
+      String reason) {
     try {
       backend.record(
           context.getCycle().id(),
           new CollectionBackend.Result(
-              target.scopeId(),
-              CollectionStageEnum.fromValue(target.kind().getValue()),
+              scope,
+              stage,
               phase,
               ordinal,
               observedAt,
@@ -336,8 +849,8 @@ public class CollectPassage {
       log.atError()
           .addKeyValue("operation", "collection_result")
           .addKeyValue("cycleId", context.getCycle().id())
-          .addKeyValue("scope", target.scopeId())
-          .addKeyValue("stage", target.kind())
+          .addKeyValue("scope", scope)
+          .addKeyValue("stage", stage)
           .addKeyValue("phase", phase)
           .addKeyValue("outcome", "unconfirmed")
           .log(
