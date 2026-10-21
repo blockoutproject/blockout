@@ -38,7 +38,7 @@ export interface SheetProps extends PropsWithChildren {
   footer?: ReactNode;
 }
 
-/** Keeps form and footer in the native host's root ScrollView; the owning layout applies useSheetScreenOptions. */
+/** Docks the heading and close action in the native host's root ScrollView; form/footer scroll only as needed. */
 export function Sheet({ title, message, footer, children }: SheetProps) {
   const { colors } = useTheme();
   const router = useRouter();
@@ -50,15 +50,17 @@ export function Sheet({ title, message, footer, children }: SheetProps) {
         styles.sheet,
         { backgroundColor: colors.surface, maxHeight: height - insets.top },
       ]}
+      stickyHeaderIndices={[0]}
+      alwaysBounceVertical={false}
       nestedScrollEnabled
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={[
-        styles.body,
+        styles.content,
         { paddingBottom: footer ? 0 : tokens.spacing.section },
       ]}
     >
-      <View style={styles.introduction}>
+      <View style={[styles.introduction, { backgroundColor: colors.surface }]}>
         <View style={styles.titleRow}>
           <Text
             accessibilityRole="header"
@@ -81,29 +83,32 @@ export function Sheet({ title, message, footer, children }: SheetProps) {
           </Text>
         )}
       </View>
-      {children}
-      {footer && (
-        <View
-          style={[
-            styles.footer,
-            { paddingBottom: Math.max(insets.bottom, tokens.spacing.lg) },
-          ]}
-        >
-          {footer}
-        </View>
-      )}
+      <View style={styles.body}>
+        {children}
+        {footer && (
+          <View
+            style={[
+              styles.footer,
+              { paddingBottom: Math.max(insets.bottom, tokens.spacing.lg) },
+            ]}
+          >
+            {footer}
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   sheet: Platform.OS === "ios" ? { flex: 1 } : { flexShrink: 1 },
-  body: {
+  content: { paddingHorizontal: tokens.spacing.lg },
+  body: { gap: tokens.spacing.section },
+  introduction: {
     paddingTop: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.lg,
-    gap: tokens.spacing.section,
+    paddingBottom: tokens.spacing.section,
+    gap: tokens.spacing.xs,
   },
-  introduction: { gap: tokens.spacing.xs },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
