@@ -1,48 +1,34 @@
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetScrollView,
-  type BottomSheetBackdropProps,
-} from "@gorhom/bottom-sheet";
 import { Image } from "expo-image";
-import type { PropsWithChildren, ReactNode, RefObject } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { PropsWithChildren } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { IconButton } from "./icon-button";
 
-/**
- * Standard Gorhom modal content. The owner opens it through the library ref and retains
- * field state, validation and confirmation; content unmounts on dismissal by default.
- * Use TextField's BottomSheetTextInput integration for fields inside this scrollable form.
- */
+/** Register these options in the owning Expo Router layout before opening a sheet route. */
+export const sheetScreenOptions = {
+  presentation: "formSheet",
+  headerShown: false,
+  sheetGrabberVisible: true,
+} as const;
+
+/** Short contextual content without text entry; the caller owns choices, actions and dismissal. */
 export interface SheetProps extends PropsWithChildren {
-  ref: RefObject<BottomSheetModal | null>;
+  onClose: () => void;
   title: string;
   message?: string;
-  footer?: ReactNode;
 }
 
-/** Composes the library's default modal, scrolling and keyboard behavior with system safe areas. */
-export function Sheet({ ref, title, message, footer, children }: SheetProps) {
+/** Keeps short content and its actions in native scrolling, with system bottom spacing. */
+export function Sheet({ onClose, title, message, children }: SheetProps) {
   const { colors } = useTheme();
-  const { top, bottom } = useSafeAreaInsets();
   return (
-    <BottomSheetModal
-      ref={ref}
-      accessible={false}
-      topInset={top}
-      backdropComponent={SheetBackdrop}
-      backgroundStyle={{ backgroundColor: colors.surface }}
-      handleIndicatorStyle={{ backgroundColor: colors.icon }}
+    <ScrollView
+      style={[styles.screen, { backgroundColor: colors.surface }]}
+      nestedScrollEnabled
     >
-      <BottomSheetScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: tokens.spacing.lg + bottom },
-        ]}
-      >
+      <SafeAreaView edges={["bottom"]} style={styles.content}>
         <View style={styles.introduction}>
           <View style={styles.titleRow}>
             <Text
@@ -51,7 +37,7 @@ export function Sheet({ ref, title, message, footer, children }: SheetProps) {
             >
               {title}
             </Text>
-            <IconButton label="Fermer" onPress={() => ref.current?.dismiss()}>
+            <IconButton label="Fermer" onPress={onClose}>
               <Image
                 source={require("../../../assets/icons/close.svg")}
                 style={styles.closeIcon}
@@ -67,20 +53,13 @@ export function Sheet({ ref, title, message, footer, children }: SheetProps) {
           )}
         </View>
         {children}
-        {footer}
-      </BottomSheetScrollView>
-    </BottomSheetModal>
-  );
-}
-
-/** Dims at the single dynamic snap point, retaining the built-in opacity and press-to-close behavior. */
-function SheetBackdrop(props: BottomSheetBackdropProps) {
-  return (
-    <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+      </SafeAreaView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.section },
   introduction: { gap: tokens.spacing.xs },
   titleRow: {
