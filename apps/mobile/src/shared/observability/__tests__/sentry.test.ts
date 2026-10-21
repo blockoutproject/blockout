@@ -217,25 +217,6 @@ it("drops a free-form message without an exception", async () => {
   expect(result).toBeNull();
 });
 
-it.each([
-  { category: "console", message: "private-provider-body" },
-  {
-    category: "xhr",
-    data: { url: "https://example.invalid?token=harmless-secret" },
-  },
-  { category: "navigation", data: { to: "/account/private-account" } },
-])("drops $category breadcrumbs before scope synchronization", (breadcrumb) => {
-  // Given
-  initializeSentry();
-  const options = jest.mocked(Sentry.init).mock.calls[0][0];
-
-  // When
-  const result = options?.beforeBreadcrumb?.(breadcrumb, {});
-
-  // Then
-  expect(result).toBeNull();
-});
-
 it("removes attachments carried outside the JavaScript event", async () => {
   // Given
   initializeSentry();

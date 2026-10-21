@@ -10,6 +10,8 @@ jest.mock("react-native", () => {
     closeNativeSdk: jest.fn().mockResolvedValue(true),
     captureEnvelope: jest.fn().mockResolvedValue(true),
     disableNativeFramesTracking: jest.fn(),
+    addBreadcrumb: jest.fn(),
+    clearBreadcrumbs: jest.fn(),
   };
   return native;
 });
@@ -27,13 +29,14 @@ jest.mock("@sentry/react-native", () => {
 const originalDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
 afterEach(async () => {
+  Sentry.getIsolationScope().clearBreadcrumbs();
   await Sentry.close();
   jest.restoreAllMocks();
   if (originalDsn === undefined) delete process.env.EXPO_PUBLIC_SENTRY_DSN;
   else process.env.EXPO_PUBLIC_SENTRY_DSN = originalDsn;
 });
 
-it("passes the disabled capture policy to the native bridge even with a release DSN", async () => {
+it("keeps release capture disabled and discards breadcrumbs before native synchronization", async () => {
   // Given
   jest.replaceProperty(
     globalThis as typeof globalThis & { __DEV__: boolean },
@@ -42,12 +45,24 @@ it("passes the disabled capture policy to the native bridge even with a release 
   );
   process.env.EXPO_PUBLIC_SENTRY_DSN = "https://public@example.invalid/1";
 
+  const breadcrumbs = [
+    { category: "console", message: "private-provider-body" },
+    {
+      category: "xhr",
+      data: { url: "https://example.invalid?token=harmless-secret" },
+    },
+    { category: "navigation", data: { to: "/account/private-account" } },
+  ];
+
   // When
   initializeSentry();
+  for (const breadcrumb of breadcrumbs) Sentry.addBreadcrumb(breadcrumb);
   Sentry.captureException(new Error("harmless-private-fixture"));
   await Sentry.flush();
 
   // Then
+  expect(Sentry.getIsolationScope().getScopeData().breadcrumbs).toEqual([]);
+  expect(NativeModules.RNSentry.addBreadcrumb).not.toHaveBeenCalled();
   expect(NativeModules.RNSentry.initNativeSdk).toHaveBeenCalledWith(
     expect.objectContaining({
       enabled: false,

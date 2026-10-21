@@ -125,7 +125,6 @@ export function initializeSentry() {
     attachViewHierarchy: false,
     enableLogs: false,
     maxBreadcrumbs: 0,
-    beforeBreadcrumb: () => null,
     // Sampling options stay absent so the SDK does not install replay/tracing/profiling integrations.
     beforeSend: safeError,
   });
