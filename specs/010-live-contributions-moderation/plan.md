@@ -94,6 +94,8 @@ F07 consumes accepted transitions in-process under the same match transaction, w
 
 ## Mobile state and failures
 
+Contribution/replacement forms, personal contributions and reporting use ordinary native stack screens, retaining the same fields, explanations, quota/context and actions. Lists keep only brief filters in sheets. Simple abandonment/withdrawal confirmations use `Alert.alert` at the action owner; no generic dialog shell is introduced. Follow [F13 presentation composition](../003-shared-quality/plan.md#native-ui-and-approved-design) for keyboard, scrolling and safe areas, without adding a shared form-screen abstraction or changing draft lifetime.
+
 Retain drafts in ordinary forms and confirmed data in the shared memory QueryClient. Keys distinguish account/session, match, filters and page; public sporting queries remain under F03. Rotate session identity and cancel/remove private queries under F05, rejecting old callbacks even when cancellation fails. Do not put generated DTOs into persistent storage.
 
 Read moderation at entry, after actions and on explicit list refresh; disable periodic, reconnect and implicit retry behavior under F13. Reset affected version/queue traversal to the first page after a confirmed change and refresh the public match when its link changed. Preserve authorized data on an ordinary read failure; invalidating a query does not revoke already confirmed mutation success. Retain the independently accepted F03 foreground/navigation refreshes.
@@ -102,6 +104,8 @@ After an uncertain mutation, perform one bounded current read: owner context/mem
 
 ## Design reconciliation and evidence
 
+The 2026-10-22 presentation revision replaces form/history sheets with ordinary screens and simple confirmations with native dialogs. The inspected Product Design revision includes [contribution](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5512-148457), [dark/narrow contribution](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5517-54389) and [abandonment semantics](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5554-69452). Final prototype revision, remaining captures and library-instance synchronization are tracked in [F13 #138 evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design). The following earlier references retain their domain content and stable node identities; older captures do not establish the revised container or native behavior.
+
 The owner approved [prototype 5413817](https://github.com/blockoutproject/product-prototype/commit/54138170f14775fe11132aaa61433329059cbfbb) and explicitly authorized its publication. The subsequent Figma report was separately approved in the same #52 conversation. Its scope is complete video-moderation actions, erased report reasons with retained counts, historical reports after new-version reactivation and ordinary current-state recovery.
 
 Approved Product Design references:
@@ -109,9 +113,9 @@ Approved Product Design references:
 - [Complete moderator actions, dark](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4736-32744).
 - [Erased reason with retained count, dark](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4736-31730).
 - [Historical-version reports, light](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4736-32107).
-- Current-state recovery in [moderation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5569-48570) and the [personal sheet](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5558-70675).
+- Current-state recovery in [moderation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5569-48570) and the [personal contributions](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5558-70675).
 
-Existing published library instances and product patterns cover these changes; no new library primitive was necessary. Existing approvals remain authoritative elsewhere. The 206 prototype tests, TypeScript and build passed; browser inspection included narrow/dark report display and uncertain-response reactivation. Figma captures establish the inspected layouts only, not native accessibility or provider behavior.
+Existing library instances and product patterns cover the previously approved content; the presentation revision adds no business requirement or library primitive. Published-instance synchronization for the changed presentation remains to verify through F13. Existing approvals remain authoritative elsewhere. The 206 prototype tests, TypeScript and build passed; browser inspection included narrow/dark report display and uncertain-response reactivation. Figma captures establish the inspected layouts only, not native accessibility or provider behavior.
 
 ## Verification and delivery
 

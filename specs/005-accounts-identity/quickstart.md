@@ -27,6 +27,8 @@ Apply [F13 accessibility checks](../003-shared-quality/quickstart.md#native-mobi
 
 ## Erasure and return
 
+Qualify the ordinary profile-to-erasure screen with the unchanged consequences, checkbox, plain store-billing notice and actions. Cancel/back has no deletion effect; large text and native navigation keep all content reachable. Use the revised [design evidence](spec.md#design-evidence), not the former sheet captures. Hosted Auth0 login remains provider-owned; fictitious design handoff text does not qualify its actual browser return, cancellation or session behavior.
+
 1. **Fail the local transaction and race personal writes with deletion.** **Expected:** rollback preserves the account/session and starts no external deletion; committed deletion removes the profile/photo/associations together and preserves unowned content and moderation. No writer recreates personal data for the absent original UUID.
 2. **Fail each provider call or its target lookup after local commit.** **Expected:** other known targets are attempted once, business data stays deleted and 204 leads directly to guest home. Private diagnostics support manual repair without a pending record, polling or replay. A process stop between commit and logging demonstrates the accepted unreported-cleanup gap.
 3. **Lose the DELETE response and reread the original UUID.** **Expected:** ordinary reads resolve presence/absence without replay; unavailable reads permit local sign-out with an ordinary error and no false confirmation. Repeating DELETE for the absent original returns 404 without provider calls or effects on a replacement account.
