@@ -105,8 +105,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: tokens.spacing.lg },
   body: { gap: tokens.spacing.section },
   introduction: {
-    paddingTop: tokens.spacing.sm,
-    paddingBottom: tokens.spacing.section,
+    paddingVertical: tokens.spacing.sm,
     gap: tokens.spacing.xs,
   },
   titleRow: {
