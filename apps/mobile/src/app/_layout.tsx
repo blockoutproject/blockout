@@ -14,7 +14,7 @@ import {
 } from "../shared/query/query-client";
 import { initializeSentry } from "../shared/observability/sentry";
 import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
-import { ProProvider } from "../features/pro/pro-provider";
+import { ProProvider, usePro } from "../features/pro";
 
 initializeSentry();
 
@@ -41,6 +41,16 @@ function CurrentAccountObserver() {
   return null;
 }
 
+/** Projects only current SDK-active membership into the sole theme owner without remounting routes. */
+function ThemedNavigation() {
+  const { state } = usePro();
+  return (
+    <ThemeProvider proAccent={state.status === "active"}>
+      <Navigation />
+    </ThemeProvider>
+  );
+}
+
 /** Composes session, cache and live appearance around navigation with native route presentation. */
 function RootLayout() {
   const [queryClient] = useState(createQueryClient);
@@ -48,14 +58,12 @@ function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AccountSessionProvider>
-          <CurrentAccountObserver />
-          <ProProvider>
-            <Navigation />
-          </ProProvider>
-        </AccountSessionProvider>
-      </ThemeProvider>
+      <AccountSessionProvider>
+        <CurrentAccountObserver />
+        <ProProvider>
+          <ThemedNavigation />
+        </ProProvider>
+      </AccountSessionProvider>
     </QueryClientProvider>
   );
 }
