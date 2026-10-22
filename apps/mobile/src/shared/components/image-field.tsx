@@ -65,6 +65,7 @@ export function ImageField({
   const [busy, setBusy] = useState(false);
   const [selectionError, setSelectionError] = useState<string>();
   const [previewId, setPreviewId] = useState<string>();
+  const [previewError, setPreviewError] = useState(false);
   const active = useRef(true);
   const selecting = useRef(false);
   const preview = images.find((image) => image.id === previewId);
@@ -107,7 +108,9 @@ export function ImageField({
 
   return (
     <View style={[styles.field, disabled && styles.disabled]}>
-      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      <Text style={[tokens.typography.label, { color: colors.text }]}>
+        {label}
+      </Text>
       {images.map((image) => (
         <View key={image.id} style={styles.field}>
           <View
@@ -125,7 +128,10 @@ export function ImageField({
               accessibilityLabel={`Aperçu : ${image.label}`}
               disabled={unavailable}
               accessibilityState={{ disabled: unavailable }}
-              onPress={() => setPreviewId(image.id)}
+              onPress={() => {
+                setPreviewError(false);
+                setPreviewId(image.id);
+              }}
             >
               <Image
                 source={{ uri: image.uri }}
@@ -162,7 +168,7 @@ export function ImageField({
             accessibilityState={{ disabled: unavailable }}
             disabled={unavailable}
             onPress={() => onRemove(image.id)}
-            style={styles.remove}
+            style={[styles.remove, compact && styles.compactRemove]}
           >
             <Text style={[styles.removeLabel, { color: colors.secondaryText }]}>
               {removeLabel}
@@ -253,7 +259,17 @@ export function ImageField({
                 style={styles.icon}
               />
             </IconButton>
+            {previewError && (
+              <Text
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                style={[styles.previewError, { color: colors.error }]}
+              >
+                Impossible d’afficher l’image.
+              </Text>
+            )}
             <Image
+              onError={() => setPreviewError(true)}
               source={{ uri: preview.uri }}
               accessibilityRole="image"
               accessibilityLabel={preview.label}
@@ -316,7 +332,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignSelf: "flex-start",
   },
+  compactRemove: { alignSelf: "flex-end" },
   removeLabel: tokens.typography.strong,
+  previewError: { ...tokens.typography.body, margin: tokens.spacing.lg },
   viewer: { flex: 1 },
   fullImage: { flex: 1, width: "100%" },
 });

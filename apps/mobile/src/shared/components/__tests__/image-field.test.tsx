@@ -1,4 +1,10 @@
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import { ThemeProvider } from "../../theme/theme-provider";
@@ -391,4 +397,26 @@ it("shows accepted caller values and removes them only when the owner updates", 
   expect(
     screen.getByRole("button", { name: "Choisir une image" }),
   ).toBeOnTheScreen();
+});
+
+it("keeps preview dismissal available when native image decoding fails", async () => {
+  // Given
+  const { user } = await renderField({ images: [logo] });
+  await user.press(
+    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
+  );
+
+  // When
+  fireEvent(screen.getByRole("image", { name: "Logo du club" }), "error", {
+    nativeEvent: { error: "private file path" },
+  });
+
+  // Then
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Impossible d’afficher l’image.",
+  );
+  expect(
+    screen.getByRole("button", { name: "Fermer l’aperçu" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(/private file path/)).not.toBeOnTheScreen();
 });

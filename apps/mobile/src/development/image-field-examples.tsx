@@ -1,11 +1,19 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ImageField,
   type ImageFieldImage,
 } from "../shared/components/image-field";
 import { useTheme } from "../shared/theme/theme-provider";
+import { Button } from "../shared/components/button";
 import { tokens } from "../shared/theme/tokens";
 
 /** Isolated native qualification host; mount temporarily, never as a production/business route. */
@@ -43,6 +51,20 @@ export function ImageFieldExamplesScreen() {
             />
           </View>
         ))}
+        <Button
+          label="Charger un aperçu de test"
+          onPress={() =>
+            setImages([
+              {
+                id: "sample",
+                uri: Image.resolveAssetSource(
+                  require("./assets/image-field-sample.png"),
+                ).uri,
+                label: "Image de test",
+              },
+            ])
+          }
+        />
         <ImageField
           label="Image de démonstration"
           helper="PNG/JPEG, 5 Mio maximum. Aucun envoi."
