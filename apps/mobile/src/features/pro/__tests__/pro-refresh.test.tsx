@@ -108,16 +108,19 @@ it("rejects a detached read and callbacks after provider remount into the same b
   // Given
   await mountAccount();
   const detached = pro;
+  const listener = mockPurchases.addCustomerInfoUpdateListener.mock.calls[0][0];
   const read = Promise.withResolvers<CustomerInfo>();
   mockPurchases.getCustomerInfo.mockReturnValueOnce(read.promise);
   let refreshing: Promise<void> | undefined;
   await act(() => {
     refreshing = pro.refresh();
+    listener(info);
   });
   await cleanup();
 
   // When
   await mountAccount();
+  const readsAfterRemount = mockPurchases.getCustomerInfo.mock.calls.length;
   const active = { "Blockout Pro": entitlement() };
   await act(async () => {
     read.resolve(
@@ -135,6 +138,9 @@ it("rejects a detached read and callbacks after provider remount into the same b
   // Then
   expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
   expect(pro.state).toEqual({ status: "inactive", operation: "idle" });
+  expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(
+    readsAfterRemount,
+  );
 });
 
 it("rereads after an operation even when an earlier read was already in flight", async () => {
@@ -204,6 +210,54 @@ it("treats an old listener payload as a signal to read B rather than publish A's
   await act(() => read.resolve(info));
   expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
 });
+
+it.each([
+  { previousActive: false, expected: "active" },
+  { previousActive: true, expected: "inactive" },
+])(
+  "rereads a coalesced SDK signal after a pending read when current state becomes $expected",
+  async ({ previousActive, expected }) => {
+    // Given: SDK output is controlled; listener payloads have no F05 attribution.
+    await mountAccount();
+    const active = { "Blockout Pro": entitlement() };
+    const activeInfo = customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    });
+    const previous = previousActive ? activeInfo : info;
+    const current = previousActive ? info : activeInfo;
+    mockPurchases.getCustomerInfo.mockResolvedValueOnce(previous);
+    await act(() => pro.refresh());
+    const listener =
+      mockPurchases.addCustomerInfoUpdateListener.mock.calls[0][0];
+    const pending = Promise.withResolvers<CustomerInfo>();
+    mockPurchases.getCustomerInfo
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce(current);
+    const readsBefore = mockPurchases.getCustomerInfo.mock.calls.length;
+    let refresh: Promise<void> | undefined;
+    await act(() => {
+      refresh = pro.refresh();
+    });
+
+    // When: a burst of updates requires one follow-up read, not a queue of payloads.
+    await act(() => {
+      listener(current);
+      listener(current);
+    });
+    await act(async () => {
+      pending.resolve(previous);
+      await refresh;
+    });
+
+    // Then
+    expect(await screen.findByText(`Pro: ${expected}`)).toBeOnTheScreen();
+    expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(
+      readsBefore + 2,
+    );
+  },
+);
 
 it("ignores events during association and reads once after the current login settles", async () => {
   // Given

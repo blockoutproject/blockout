@@ -48,7 +48,11 @@ export function createProSession() {
     refreshing: false,
     verificationFailed: false,
   };
-  let read: { session: SessionSnapshot; promise: Promise<void> } | null = null;
+  let read: {
+    session: SessionSnapshot;
+    promise: Promise<void>;
+    reread: boolean;
+  } | null = null;
   const listeners = new Set<() => void>();
 
   /** Notifies React without storing a derived entitlement or a second session generation. */
@@ -70,7 +74,7 @@ export function createProSession() {
     if (!isAssociated(session)) return Promise.resolve();
     if (read && sameSession(read.session, session)) return read.promise;
     publish({ ...snapshot, refreshing: true });
-    const request = { session, promise: Promise.resolve() };
+    const request = { session, promise: Promise.resolve(), reread: false };
     read = request;
     request.promise = (async () => {
       try {
@@ -88,7 +92,10 @@ export function createProSession() {
           publish({ ...snapshot, refreshing: false, verificationFailed: true });
         }
       } finally {
-        if (read === request) read = null;
+        if (read === request) {
+          read = null;
+          if (request.reread) void refresh(session);
+        }
       }
     })();
     return request.promise;
@@ -186,6 +193,13 @@ export function createProSession() {
     },
 
     refresh,
+
+    /** Coalesces SDK change signals during a read, then rereads only the still-associated session. */
+    signalUpdate(session: SessionSnapshot) {
+      if (!isAssociated(session)) return;
+      if (read && sameSession(read.session, session)) read.reread = true;
+      else void refresh(session);
+    },
 
     /** Retries only an explicit, still-current request; ordinary refresh never retries identity. */
     retry(session: SessionSnapshot) {

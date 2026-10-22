@@ -55,16 +55,20 @@ export function ProProvider({ children }: PropsWithChildren) {
   useLayoutEffect(() => () => proSession.setTarget(null), []);
 
   useEffect(() => {
-    /** Untagged listener payloads can belong to an old account; only current reads are publishable. */
+    /** Reads ordinary foreground state without changing SDK cache policy. */
     function readCurrent() {
       void proSession.refresh(getSnapshot());
     }
-    Purchases.addCustomerInfoUpdateListener(readCurrent);
+    /** Untagged payloads only signal a read, including when an earlier read has not settled. */
+    function readUpdated() {
+      proSession.signalUpdate(getSnapshot());
+    }
+    Purchases.addCustomerInfoUpdateListener(readUpdated);
     const foreground = AppState.addEventListener("change", (state) => {
       if (state === "active") readCurrent();
     });
     return () => {
-      Purchases.removeCustomerInfoUpdateListener(readCurrent);
+      Purchases.removeCustomerInfoUpdateListener(readUpdated);
       foreground.remove();
     };
   }, [getSnapshot]);
