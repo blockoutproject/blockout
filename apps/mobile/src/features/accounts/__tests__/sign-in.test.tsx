@@ -265,7 +265,7 @@ it("never bootstraps an absent account during restoration or a profile read retr
 it("renders only the minimal local profile and default avatar after ordinary restoration", async () => {
   // Given
   mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-  mockFetch.mockResolvedValue(json(account));
+  mockFetch.mockImplementation(async () => json(account));
 
   // When
   await renderJourney(<ProfileScreen admitted />);
@@ -280,6 +280,88 @@ it("renders only the minimal local profile and default avatar after ordinary res
     mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
   ).toBe(true);
 });
+
+it.each(["sign-in", "profile"])(
+  "enters guest mode from an authenticated %s screen without retaining private account state",
+  async (entry) => {
+    // Given
+    mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
+    mockFetch.mockImplementation(async () => json(account));
+    const user = userEvent.setup();
+    await renderJourney(
+      <>
+        <AccountReadProbe />
+        {entry === "profile" ? (
+          <ProfileScreen admitted />
+        ) : (
+          <SignInScreen admitted />
+        )}
+      </>,
+    );
+    expect(
+      await screen.findByText(`Current account: ${account.accountId}`),
+    ).toBeOnTheScreen();
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+    );
+
+    // Then
+    await waitFor(() =>
+      expect(
+        mockClient.credentialsManager.clearCredentials,
+      ).toHaveBeenCalledTimes(1),
+    );
+    expect(
+      await screen.findByText("Current account: unavailable"),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
+    expect(mockNavigate).toHaveBeenCalledWith("/");
+    await waitFor(() =>
+      expect(
+        queryClient.getQueriesData({}).map(([, data]) => data),
+      ).not.toContainEqual(account),
+    );
+  },
+);
+
+it.each(["sign-in", "profile"])(
+  "does not announce guest mode when native clearing fails on %s",
+  async (entry) => {
+    // Given
+    mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
+    mockClient.credentialsManager.clearCredentials.mockRejectedValue(
+      new Error("private storage failure"),
+    );
+    mockFetch.mockImplementation(async () => json(account));
+    const user = userEvent.setup();
+    await renderJourney(
+      <>
+        <AccountReadProbe />
+        {entry === "profile" ? (
+          <ProfileScreen admitted />
+        ) : (
+          <SignInScreen admitted />
+        )}
+      </>,
+    );
+    expect(
+      await screen.findByText(`Current account: ${account.accountId}`),
+    ).toBeOnTheScreen();
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+    );
+
+    // Then
+    expect(
+      await screen.findByText("La déconnexion locale a échoué. Réessayez."),
+    ).toBeOnTheScreen();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  },
+);
 
 it("does not admit login or profile navigation through a controlled F12 refusal", async () => {
   // Given / When
@@ -397,7 +479,7 @@ it("suspends account reads throughout native credential clearing", async () => {
   // Given
   jest.useFakeTimers();
   mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-  mockFetch.mockResolvedValue(json(account));
+  mockFetch.mockImplementation(async () => json(account));
   const clearing = Promise.withResolvers<void>();
   mockClient.credentialsManager.clearCredentials.mockReturnValue(
     clearing.promise,

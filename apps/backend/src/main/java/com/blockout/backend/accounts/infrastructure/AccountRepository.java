@@ -24,7 +24,7 @@ interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
    * @param id original lifecycle UUID
    * @return true only when the existing account has accepted bytes
    */
-  @Query("SELECT COUNT(a) > 0 FROM AccountEntity a WHERE a.id = :id AND a.photoBytes IS NOT NULL")
+  @Query("SELECT COUNT(p) > 0 FROM AccountPhotoPresence p WHERE p.id = :id AND p.bytes IS NOT NULL")
   boolean hasPhoto(UUID id);
 
   /**

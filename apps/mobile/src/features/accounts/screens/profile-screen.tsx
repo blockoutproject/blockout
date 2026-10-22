@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../../shared/api/api-fetch";
@@ -25,8 +26,21 @@ export function ProfileScreen({ admitted }: ProfileScreenProps) {
   const account = useCurrentAccount();
   const router = useRouter();
   const { colors } = useTheme();
+  const [guestError, setGuestError] = useState(false);
   const missing =
     account.error instanceof ApiError && account.error.status === 404;
+
+  /** Invalidates private state and clears native credentials before announcing guest navigation. */
+  async function continueAsGuest() {
+    if (session.status === "signing-out") return;
+    setGuestError(false);
+    try {
+      await session.clearCredentials();
+      router.replace("/");
+    } catch {
+      setGuestError(true);
+    }
+  }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -112,9 +126,13 @@ export function ProfileScreen({ admitted }: ProfileScreenProps) {
                 </View>
               )
             )}
+            {guestError && (
+              <RequestError message="La déconnexion locale a échoué. Réessayez." />
+            )}
             <Button
               label="Continuer en tant qu’invité"
-              onPress={() => router.replace("/")}
+              onPress={() => void continueAsGuest()}
+              loading={session.status === "signing-out"}
             />
             <PublicAccountLinks />
           </>

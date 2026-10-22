@@ -89,6 +89,17 @@ export function SignInScreen({ admitted }: SignInScreenProps) {
     }
   }
 
+  /** Leaves the sole credential/session owner before entering guest navigation. */
+  async function continueAsGuest() {
+    if (session.status === "signing-out") return;
+    try {
+      await session.clearCredentials();
+      router.replace("/");
+    } catch {
+      setLoginError("La déconnexion locale a échoué. Réessayez.");
+    }
+  }
+
   if (!admitted)
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
@@ -189,7 +200,12 @@ export function SignInScreen({ admitted }: SignInScreenProps) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Continuer en tant qu’invité"
-          onPress={() => router.replace("/")}
+          onPress={() => void continueAsGuest()}
+          disabled={session.status === "signing-out"}
+          accessibilityState={{
+            busy: session.status === "signing-out",
+            disabled: session.status === "signing-out",
+          }}
           style={[
             styles.guest,
             { backgroundColor: colors.subtle, borderColor: colors.border },

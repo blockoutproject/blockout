@@ -212,6 +212,32 @@ class EstablishAccountIntegrationTest {
     assertThat(accounts.findById(original.id())).contains(original);
   }
 
+  @Test
+  @DisplayName("Reads photo presence independently from the identity and original-row lock")
+  void readsPhotoPresence() {
+    // Given
+    Account original =
+        transaction.execute(
+            status ->
+                accounts.create(
+                    ISSUER, "auth0|photo", "Photo_owner", "known@example.invalid", CREATED));
+    // Synthetic storage bytes exercise presence only; actual image validation belongs to US2.
+    sql.update(
+        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png', photo_dimension = 1 WHERE id = ?",
+        new byte[] {1, 2, 3},
+        original.id());
+
+    // When
+    Account read = accounts.findByPrincipal(ISSUER, "auth0|photo").orElseThrow();
+    Account locked = transaction.execute(status -> accounts.lockById(original.id()).orElseThrow());
+
+    // Then
+    assertThat(read).isEqualTo(original);
+    assertThat(locked).isEqualTo(original);
+    assertThat(accounts.hasPhoto(original.id())).isTrue();
+    assertThat(accounts.hasPhoto(UUID.randomUUID())).isFalse();
+  }
+
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
   @DisplayName(
