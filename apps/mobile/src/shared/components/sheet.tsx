@@ -18,41 +18,56 @@ export interface SheetProps extends PropsWithChildren {
   onClose: () => void;
   title: string;
   message?: string;
+  /** Disable for short content in a native fitToContents route; its root keeps its natural height. */
+  scrollable?: boolean;
 }
 
-/** Keeps short content and its actions in native scrolling, with system bottom spacing. */
-export function Sheet({ onClose, title, message, children }: SheetProps) {
+/** Supplies system bottom spacing and either scrolling or natural-height content for its native route. */
+export function Sheet({
+  onClose,
+  title,
+  message,
+  scrollable = true,
+  children,
+}: SheetProps) {
   const { colors } = useTheme();
+  const content = (
+    <SafeAreaView edges={["bottom"]} style={styles.content}>
+      <View style={styles.introduction}>
+        <View style={styles.titleRow}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.title, { color: colors.text }]}
+          >
+            {title}
+          </Text>
+          <IconButton label="Fermer" onPress={onClose}>
+            <X
+              accessible={false}
+              size={tokens.size.actionIcon}
+              color={colors.icon}
+            />
+          </IconButton>
+        </View>
+        {message && (
+          <Text style={[styles.message, { color: colors.secondaryText }]}>
+            {message}
+          </Text>
+        )}
+      </View>
+      {children}
+    </SafeAreaView>
+  );
+
+  if (!scrollable)
+    return <View style={{ backgroundColor: colors.surface }}>{content}</View>;
+
   return (
     <ScrollView
       style={[styles.screen, { backgroundColor: colors.surface }]}
       nestedScrollEnabled
     >
-      <SafeAreaView edges={["bottom"]} style={styles.content}>
-        <View style={styles.introduction}>
-          <View style={styles.titleRow}>
-            <Text
-              accessibilityRole="header"
-              style={[styles.title, { color: colors.text }]}
-            >
-              {title}
-            </Text>
-            <IconButton label="Fermer" onPress={onClose}>
-              <X
-                accessible={false}
-                size={tokens.size.actionIcon}
-                color={colors.icon}
-              />
-            </IconButton>
-          </View>
-          {message && (
-            <Text style={[styles.message, { color: colors.secondaryText }]}>
-              {message}
-            </Text>
-          )}
-        </View>
-        {children}
-      </SafeAreaView>
+      {content}
     </ScrollView>
   );
 }

@@ -5,7 +5,7 @@ import { Sheet } from "../../../shared/components/sheet";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
-// Compact artwork from approved Product Design 5263:6373 / 5263:6555; full login artwork stays separate.
+// Artwork from Product Design 5263:6373 / 5263:6555, uniformly reduced inside the compact native banner.
 const gradient = `<svg xmlns="http://www.w3.org/2000/svg" width="343" height="210.373" viewBox="0 0 343 210.373"><defs><linearGradient id="g" x1="27.5944" y1="0" x2="173.459" y2="283.426" gradientUnits="userSpaceOnUse"><stop stop-color="#404040"/><stop offset=".7" stop-color="#171717"/><stop offset="1" stop-color="#737373"/></linearGradient></defs><rect width="343" height="210.373" fill="url(#g)"/></svg>`;
 
 /** Contextual invitation only; callers close it or navigate to ordinary F05 sign-in without replaying an action. */
@@ -15,7 +15,7 @@ export interface SignInInvitationProps {
   onSignIn(): void;
 }
 
-/** The single compact guest invitation uses F13 native-sheet content and ordinary sign-in controls. */
+/** Fits the compact guest invitation and its ordinary sign-in action in a native sheet without scrolling. */
 export function SignInInvitation({
   message,
   onClose,
@@ -23,7 +23,7 @@ export function SignInInvitation({
 }: SignInInvitationProps) {
   const { colors } = useTheme();
   return (
-    <Sheet title="Connexion" onClose={onClose}>
+    <Sheet title="Connexion" onClose={onClose} scrollable={false}>
       <View
         style={[
           styles.card,
@@ -40,21 +40,23 @@ export function SignInInvitation({
             style={StyleSheet.absoluteFill}
             contentFit="fill"
           />
-          <Image
-            source={require("../../../../assets/accounts/invitation-block.svg")}
-            style={styles.block}
-            contentFit="contain"
-          />
-          <Image
-            source={require("../../../../assets/accounts/invitation-out.svg")}
-            style={styles.out}
-            contentFit="contain"
-          />
-          <Image
-            source={require("../../../../assets/accounts/athlete.png")}
-            style={styles.athlete}
-            contentFit="cover"
-          />
+          <View style={styles.illustration}>
+            <Image
+              source={require("../../../../assets/accounts/invitation-block.svg")}
+              style={styles.block}
+              contentFit="contain"
+            />
+            <Image
+              source={require("../../../../assets/accounts/invitation-out.svg")}
+              style={styles.out}
+              contentFit="contain"
+            />
+            <Image
+              source={require("../../../../assets/accounts/athlete.png")}
+              style={styles.athlete}
+              contentFit="cover"
+            />
+          </View>
         </View>
         <View style={styles.content}>
           <Text style={[tokens.typography.strong, { color: colors.text }]}>
@@ -73,7 +75,13 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.sheet,
     overflow: "hidden",
   },
-  artwork: { width: "100%", aspectRatio: 343 / 210.373, zIndex: 1 },
+  artwork: {
+    height: 128,
+    alignItems: "center",
+    paddingTop: tokens.spacing.sm,
+    overflow: "hidden",
+  },
+  illustration: { width: 160, aspectRatio: 343 / 210.373 },
   block: {
     position: "absolute",
     left: "5.45%",
@@ -96,5 +104,5 @@ const styles = StyleSheet.create({
     height: "119.84%",
     zIndex: 1,
   },
-  content: { padding: tokens.spacing.lg, gap: tokens.spacing.md },
+  content: { padding: tokens.spacing.md, gap: tokens.spacing.sm },
 });

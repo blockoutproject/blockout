@@ -34,7 +34,11 @@ function Navigation() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="sign-in-invitation"
-          options={{ ...sheetScreenOptions, sheetAllowedDetents: [0.5] }}
+          options={{
+            ...sheetScreenOptions,
+            sheetAllowedDetents: "fitToContents",
+            contentStyle: { backgroundColor: theme.colors.surface },
+          }}
         />
       </Stack>
     </>
