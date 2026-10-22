@@ -8,6 +8,13 @@ import { useAccountSession } from "../../../features/accounts/session/account-se
 import { mockClient } from "../../../features/accounts/test-support/native-auth0";
 import { getSessionQueryKey } from "../query-client";
 
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual(
+    "../../../features/pro/test-support/native-purchases",
+  ).mockPurchases,
+}));
+
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   Stack: jest.fn(),

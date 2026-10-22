@@ -4,6 +4,45 @@ import { initializeSentry } from "../sentry";
 
 jest.mock("@sentry/react-native", () => ({ init: jest.fn() }));
 
+it("retains only finite Pro operation context while stripping raw provider diagnostics", async () => {
+  // Given
+  initializeSentry();
+  const options = jest.mocked(Sentry.init).mock.calls[0][0];
+  const event: Sentry.ErrorEvent = {
+    type: undefined,
+    tags: {
+      feature: "pro",
+      operation: "association",
+      outcome: "failed",
+      account: "private-customer",
+    },
+    exception: { values: [{ type: "Error", value: "private receipt" }] },
+  };
+
+  // When
+  const result = await options?.beforeSend?.(event, {});
+  const rejected = await options?.beforeSend?.(
+    {
+      ...event,
+      tags: {
+        feature: "pro",
+        operation: "private-customer",
+        outcome: "private receipt",
+      },
+    },
+    {},
+  );
+
+  // Then
+  expect(result?.tags).toEqual({
+    feature: "pro",
+    operation: "association",
+    outcome: "failed",
+  });
+  expect(rejected?.tags).toBeUndefined();
+  expect(JSON.stringify(result)).not.toMatch(/private|receipt|customer/);
+});
+
 const originalDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
 afterEach(() => {
