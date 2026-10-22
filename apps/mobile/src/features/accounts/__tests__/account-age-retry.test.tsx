@@ -313,43 +313,44 @@ it.each(["success", "failure"])(
   async (outcome) => {
     // Given
     const user = await renderProfile();
-    let finish: () => void = () => {
-      throw new Error("Deferred POST not reached");
-    };
+    const response = Promise.withResolvers<Response>();
     mockFetch.mockImplementation(async (_url, request) =>
-      request?.method === "POST"
-        ? new Promise((resolve, reject) => {
-            finish = () =>
-              outcome === "success"
-                ? resolve(
-                    json({
-                      ...account,
-                      username: "Stale_name",
-                      principalCreatedAt: "2020-01-02T03:04:05Z",
-                    }),
-                  )
-                : reject(new TypeError("Late failure"));
-          })
-        : json(account),
+      request?.method === "POST" ? response.promise : json(account),
     );
-    await user.press(screen.getByRole("button", { name: retryLabel }));
-    expect(screen.getByRole("button", { name: retryLabel })).toBeDisabled();
-    await user.press(
-      screen.getByRole("button", { name: "Quitter la session" }),
-    );
-    await user.press(screen.getByRole("button", { name: "Revenir au compte" }));
-    await screen.findByDisplayValue("Original");
+    try {
+      await user.press(screen.getByRole("button", { name: retryLabel }));
+      expect(screen.getByRole("button", { name: retryLabel })).toBeDisabled();
+      await user.press(
+        screen.getByRole("button", { name: "Quitter la session" }),
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Revenir au compte" }),
+      );
+      await screen.findByDisplayValue("Original");
 
-    // When
-    await act(async () => finish());
+      // When
+      await act(async () => {
+        if (outcome === "success")
+          response.resolve(
+            json({
+              ...account,
+              username: "Stale_name",
+              principalCreatedAt: "2020-01-02T03:04:05Z",
+            }),
+          );
+        else response.reject(new TypeError("Late failure"));
+      });
 
-    // Then
-    expect(screen.getByRole("button", { name: retryLabel })).toBeEnabled();
-    expect(screen.getByDisplayValue("Original")).toBeOnTheScreen();
-    expect(screen.queryByDisplayValue("Stale_name")).not.toBeOnTheScreen();
-    expect(
-      screen.queryByText("La lecture de l’ancienneté a échoué. Réessayez."),
-    ).not.toBeOnTheScreen();
+      // Then
+      expect(screen.getByRole("button", { name: retryLabel })).toBeEnabled();
+      expect(screen.getByDisplayValue("Original")).toBeOnTheScreen();
+      expect(screen.queryByDisplayValue("Stale_name")).not.toBeOnTheScreen();
+      expect(
+        screen.queryByText("La lecture de l’ancienneté a échoué. Réessayez."),
+      ).not.toBeOnTheScreen();
+    } finally {
+      await act(async () => response.resolve(json(account)));
+    }
   },
 );
 
@@ -392,12 +393,8 @@ it.each(["age", "profile"])(
       configurable: true,
       value: PhotoReader,
     });
-    let finishAge: (response: Response) => void = () => {
-      throw new Error("POST not reached");
-    };
-    let finishProfile: (response: Response) => void = () => {
-      throw new Error("PATCH not reached");
-    };
+    const age = Promise.withResolvers<Response>();
+    const profile = Promise.withResolvers<Response>();
     try {
       const user = await renderProfile();
       await user.clear(screen.getByLabelText("Pseudo"));
@@ -407,14 +404,8 @@ it.each(["age", "profile"])(
       );
       await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
       mockFetch.mockImplementation(async (url, request) => {
-        if (request?.method === "POST")
-          return new Promise((resolve) => {
-            finishAge = resolve;
-          });
-        if (request?.method === "PATCH")
-          return new Promise((resolve) => {
-            finishProfile = resolve;
-          });
+        if (request?.method === "POST") return age.promise;
+        if (request?.method === "PATCH") return profile.promise;
         if (String(url).endsWith("/photo"))
           return new Response(new Uint8Array([137, 80, 78, 71]), {
             headers: { "Content-Type": "image/png" },
@@ -444,17 +435,17 @@ it.each(["age", "profile"])(
 
       // When: the server's earlier snapshot is delivered after the later committed mutation.
       if (lateReply === "age") {
-        await act(async () => finishProfile(json(profileResponse)));
+        await act(async () => profile.resolve(json(profileResponse)));
         await screen.findByText("Profil enregistré.");
-        await act(async () => finishAge(json(ageResponse)));
+        await act(async () => age.resolve(json(ageResponse)));
       } else {
-        await act(async () => finishAge(json(ageResponse)));
+        await act(async () => age.resolve(json(ageResponse)));
         await waitFor(() =>
           expect(
             screen.queryByRole("button", { name: retryLabel }),
           ).not.toBeOnTheScreen(),
         );
-        await act(async () => finishProfile(json(profileResponse)));
+        await act(async () => profile.resolve(json(profileResponse)));
       }
 
       // Then
@@ -465,7 +456,7 @@ it.each(["age", "profile"])(
       ).not.toBeOnTheScreen();
       expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
       expect(
-        screen.getByDisplayValue("updated@example.invalid"),
+        await screen.findByDisplayValue("updated@example.invalid"),
       ).toBeOnTheScreen();
       expect(
         mockFetch.mock.calls.filter(
@@ -478,13 +469,16 @@ it.each(["age", "profile"])(
         ),
       ).toHaveLength(1);
     } finally {
-      await act(async () => {
-        finishAge(json(account));
-        finishProfile(json(account));
-      });
-      if (previousReader)
-        Object.defineProperty(globalThis, "FileReader", previousReader);
-      else Reflect.deleteProperty(globalThis, "FileReader");
+      try {
+        await act(async () => {
+          age.resolve(json(account));
+          profile.resolve(json(account));
+        });
+      } finally {
+        if (previousReader)
+          Object.defineProperty(globalThis, "FileReader", previousReader);
+        else Reflect.deleteProperty(globalThis, "FileReader");
+      }
     }
   },
 );
