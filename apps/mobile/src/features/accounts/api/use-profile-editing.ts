@@ -39,16 +39,34 @@ export function useProfileEditing(accountId: string) {
     getGetMyAccountQueryKey(),
   );
 
-  /** Admits confirmed current-session data after cancelling obsolete profile and photo reads. */
-  async function accept(account: AccountResponse) {
+  /**
+   * Admits current-session data after cancelling obsolete reads. A profile save preserves concurrent
+   * provider evidence; an original reread refreshes it, retaining a reliable date if its snapshot lacks one.
+   */
+  async function accept(
+    account: AccountResponse,
+    preserveProviderEvidence = false,
+  ) {
     await Promise.all([
       client.cancelQueries({ queryKey: currentKey, exact: true }),
       client.cancelQueries({ queryKey: photoKey, exact: true }),
     ]);
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
-    client.setQueryData(currentKey, account);
+    const accepted = client.setQueryData<AccountResponse>(
+      currentKey,
+      (current) =>
+        current?.accountId === account.accountId
+          ? {
+              ...account,
+              email: preserveProviderEvidence ? current.email : account.email,
+              principalCreatedAt: preserveProviderEvidence
+                ? (current.principalCreatedAt ?? account.principalCreatedAt)
+                : (account.principalCreatedAt ?? current.principalCreatedAt),
+            }
+          : account,
+    );
     void client.invalidateQueries({ queryKey: photoKey, exact: true });
-    return account;
+    return accepted ?? account;
   }
 
   const original = useQuery({
@@ -80,6 +98,7 @@ export function useProfileEditing(accountId: string) {
           session,
           headers: { Authorization: `Bearer ${credentials.accessToken}` },
         }),
+        true,
       );
     },
   });

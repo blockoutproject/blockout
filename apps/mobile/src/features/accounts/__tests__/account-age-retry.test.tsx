@@ -370,3 +370,121 @@ it("does not expose targeted retry through refused profile admission", async () 
     mockFetch.mock.calls.every(([, request]) => request?.method !== "POST"),
   ).toBe(true);
 });
+
+it.each(["age", "profile"])(
+  "preserves confirmed photo and provider evidence when the %s response arrives last",
+  async (lateReply) => {
+    // Given
+    const previousReader = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "FileReader",
+    );
+    /** Native preview decoding is controlled; both account mutations and Query admissions remain real. */
+    class PhotoReader {
+      result = "data:image/png;base64,accepted";
+      onload?: () => void;
+      /** Completes the accepted-photo preview using deterministic native I/O. */
+      readAsDataURL() {
+        this.onload?.();
+      }
+    }
+    Object.defineProperty(globalThis, "FileReader", {
+      configurable: true,
+      value: PhotoReader,
+    });
+    let finishAge: (response: Response) => void = () => {
+      throw new Error("POST not reached");
+    };
+    let finishProfile: (response: Response) => void = () => {
+      throw new Error("PATCH not reached");
+    };
+    try {
+      const user = await renderProfile();
+      await user.clear(screen.getByLabelText("Pseudo"));
+      await user.type(screen.getByLabelText("Pseudo"), "My_draft");
+      await user.press(
+        screen.getByRole("button", { name: "Choisir une photo de profil" }),
+      );
+      await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+      mockFetch.mockImplementation(async (url, request) => {
+        if (request?.method === "POST")
+          return new Promise((resolve) => {
+            finishAge = resolve;
+          });
+        if (request?.method === "PATCH")
+          return new Promise((resolve) => {
+            finishProfile = resolve;
+          });
+        if (String(url).endsWith("/photo"))
+          return new Response(new Uint8Array([137, 80, 78, 71]), {
+            headers: { "Content-Type": "image/png" },
+          });
+        return json(account);
+      });
+      if (lateReply === "age") {
+        await user.press(screen.getByRole("button", { name: retryLabel }));
+        await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+      } else {
+        await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+        await user.press(screen.getByRole("button", { name: retryLabel }));
+      }
+      const ageResponse = {
+        ...account,
+        username: lateReply === "profile" ? "My_draft" : "Original",
+        hasPhoto: lateReply === "profile",
+        email: "updated@example.invalid",
+        principalCreatedAt: "2020-01-02T03:04:05Z",
+      };
+      const profileResponse = {
+        ...account,
+        username: "My_draft",
+        hasPhoto: true,
+        principalCreatedAt: lateReply === "age" ? "2020-01-02T03:04:05Z" : null,
+      };
+
+      // When: the server's earlier snapshot is delivered after the later committed mutation.
+      if (lateReply === "age") {
+        await act(async () => finishProfile(json(profileResponse)));
+        await screen.findByText("Profil enregistré.");
+        await act(async () => finishAge(json(ageResponse)));
+      } else {
+        await act(async () => finishAge(json(ageResponse)));
+        await waitFor(() =>
+          expect(
+            screen.queryByRole("button", { name: retryLabel }),
+          ).not.toBeOnTheScreen(),
+        );
+        await act(async () => finishProfile(json(profileResponse)));
+      }
+
+      // Then
+      await screen.findByText("Profil enregistré.");
+      await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+      expect(
+        screen.queryByRole("button", { name: retryLabel }),
+      ).not.toBeOnTheScreen();
+      expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
+      expect(
+        screen.getByDisplayValue("updated@example.invalid"),
+      ).toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, request]) => request?.method === "POST",
+        ),
+      ).toHaveLength(1);
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, request]) => request?.method === "PATCH",
+        ),
+      ).toHaveLength(1);
+    } finally {
+      await act(async () => {
+        finishAge(json(account));
+        finishProfile(json(account));
+      });
+      if (previousReader)
+        Object.defineProperty(globalThis, "FileReader", previousReader);
+      else Reflect.deleteProperty(globalThis, "FileReader");
+    }
+  },
+);
