@@ -44,6 +44,7 @@
     "react-native": "0.86.3",
     "react-native-auth0": "5.11.2",
     "react-native-google-mobile-ads": "17.2.0",
+    "react-native-keyboard-controller": "1.21.9",
     "react-native-purchases": "10.13.0",
     "react-native-purchases-ui": "10.13.0",
     "react-native-reanimated": "4.5.1",

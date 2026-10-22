@@ -3,12 +3,14 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
 import { Button } from "../shared/components/button";
@@ -103,7 +105,11 @@ export interface FormExampleProps {
   onConfirm: (values: ExampleFormValues) => void;
 }
 
-/** Ordinary bounded form content uses iOS keyboard insets and Android's default resize behavior. */
+/** iOS owns its native keyboard insets; Android uses the documented keyboard-aware scroll under KeyboardProvider. */
+const FormScrollView =
+  Platform.OS === "ios" ? ScrollView : KeyboardAwareScrollView;
+
+/** Exercises ordinary editing with one platform-owned keyboard mechanism and an explicit native confirmation. */
 export function FormExampleScreen({
   long = false,
   onConfirm,
@@ -114,9 +120,9 @@ export function FormExampleScreen({
     defaultValues: { name: "", last: "" },
   });
   return (
-    <ScrollView
+    <FormScrollView
       style={[styles.screen, { backgroundColor: colors.canvas }]}
-      automaticallyAdjustKeyboardInsets
+      automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
       keyboardShouldPersistTaps="handled"
     >
       <SafeAreaView edges={["bottom"]} style={styles.content}>
@@ -168,7 +174,7 @@ export function FormExampleScreen({
           )}
         />
       </SafeAreaView>
-    </ScrollView>
+    </FormScrollView>
   );
 }
 
