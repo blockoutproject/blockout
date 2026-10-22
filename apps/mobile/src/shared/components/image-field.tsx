@@ -17,9 +17,9 @@ export interface ImageFieldImage {
 
 /**
  * Controlled image interaction, without upload, persistence or business validation.
- * The caller retains values until it accepts selection/removal. `onSelect` receives original
- * picker assets and the replaced identity (absent for additions). It owns preparation with
- * Expo ImageManipulator when needed, actual PNG/JPEG validation and the 5 MiB upload bound
+ * The caller retains values until it accepts selection/removal. `onSelect` receives native
+ * picker assets, including any requested native crop, and the replaced identity (absent for additions).
+ * It owns preparation with Expo ImageManipulator when needed, actual PNG/JPEG validation and the 5 MiB upload bound
  * after preparation; picker metadata alone is not content validation. Only the profile owner
  * prepares squares. Sporting owners decide removal/restoration; F10 owns private files.
  * Owners invalidate session-specific callbacks and unmount/key this field when its owner changes.
@@ -36,11 +36,15 @@ export interface ImageFieldProps {
   onRemove: (id: string) => void;
   multiple?: boolean;
   selectionLimit?: number;
+  /** Opts into the system crop UI; defaults off. Multiple additions disable editing; single replacements can use it. */
+  allowsEditing?: boolean;
+  /** Native Android crop ratio when editing; iOS always crops to a square. */
+  aspect?: ImagePicker.ImagePickerOptions["aspect"];
   disabled?: boolean;
   size?: "standard" | "compact";
   chooseLabel?: string;
   retryLabel?: string;
-  /** Thumbnail fitting only; use contain for logos. Original assets and full previews retain their proportions. */
+  /** Thumbnail fitting only; use contain for logos. This does not transform selected assets or full previews. */
   contentFit?: "cover" | "contain";
   replaceLabel?: string;
   removeLabel?: string;
@@ -56,6 +60,8 @@ export function ImageField({
   onRemove,
   multiple = false,
   selectionLimit = 1,
+  allowsEditing = false,
+  aspect,
   disabled = false,
   size = "standard",
   chooseLabel = "Choisir une image",
@@ -97,13 +103,14 @@ export function ImageField({
     setBusy(true);
     setSelectionError(undefined);
     try {
+      const allowsMultipleSelection = multiple && replaceId === undefined;
       // SDK 57's image-only system library requires no broad photo permission request.
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
-        allowsEditing: false,
-        allowsMultipleSelection: multiple && replaceId === undefined,
-        selectionLimit:
-          replaceId === undefined && multiple ? selectionLimit : 1,
+        allowsEditing: allowsEditing && !allowsMultipleSelection,
+        aspect,
+        allowsMultipleSelection,
+        selectionLimit: allowsMultipleSelection ? selectionLimit : 1,
       });
       if (active.current && !result.canceled)
         await onSelect(result.assets, replaceId);

@@ -69,10 +69,55 @@ it("selects original native images without imposing cropping or persistence", as
   ).not.toBeOnTheScreen();
 });
 
+it.each([
+  {
+    operation: "addition",
+    images: [],
+    action: "Choisir une image",
+    replaceId: undefined,
+  },
+  {
+    operation: "replacement",
+    images: [logo],
+    action: "Changer l’image : Logo du club",
+    replaceId: logo.id,
+  },
+])(
+  "forwards caller-owned native cropping for $operation",
+  async ({ images, action, replaceId }) => {
+    // Given
+    const cropped = { ...photo, width: 800, height: 800 };
+    launch.mockResolvedValue({ canceled: false, assets: [cropped] });
+    const { user, onSelect } = await renderField({
+      images,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+
+    // When
+    await user.press(screen.getByRole("button", { name: action }));
+
+    // Then
+    expect(launch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        allowsEditing: true,
+        aspect: [1, 1],
+        allowsMultipleSelection: false,
+        selectionLimit: 1,
+      }),
+    );
+    expect(onSelect).toHaveBeenCalledWith([cropped], replaceId);
+  },
+);
+
 it("preserves the existing image when native selection is cancelled", async () => {
   // Given
   launch.mockResolvedValue({ canceled: true, assets: null });
-  const { user, onSelect, onRemove } = await renderField({ images: [logo] });
+  const { user, onSelect, onRemove } = await renderField({
+    images: [logo],
+    allowsEditing: true,
+    aspect: [1, 1],
+  });
 
   // When
   await user.press(
@@ -161,13 +206,15 @@ it("replaces a specific image and delegates automatic-logo restoration meaning",
   ).toBeOnTheScreen();
 });
 
-it("uses caller multiplicity for adding images but replaces only one image", async () => {
+it("prioritizes multiple additions over native cropping but allows cropping a single replacement", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
   const { user } = await renderField({
     images: [logo],
     multiple: true,
     selectionLimit: 4,
+    allowsEditing: true,
+    aspect: [1, 1],
     chooseLabel: "Ajouter des captures",
   });
 
@@ -180,6 +227,7 @@ it("uses caller multiplicity for adding images but replaces only one image", asy
   expect(launch).toHaveBeenLastCalledWith(
     expect.objectContaining({
       allowsMultipleSelection: true,
+      allowsEditing: false,
       selectionLimit: 4,
     }),
   );
@@ -193,6 +241,8 @@ it("uses caller multiplicity for adding images but replaces only one image", asy
   expect(launch).toHaveBeenLastCalledWith(
     expect.objectContaining({
       allowsMultipleSelection: false,
+      allowsEditing: true,
+      aspect: [1, 1],
       selectionLimit: 1,
     }),
   );
