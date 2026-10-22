@@ -24,6 +24,8 @@ import {
 type AuthenticationStatus =
   | "initialization-error"
   | "restoring"
+  | "authenticating"
+  | "signing-out"
   | "authentication-error"
   | "reauthentication-required"
   | "guest"
@@ -34,6 +36,8 @@ type AuthenticationStatus =
  * Lifecycle commands must invalidate synchronously before awaiting native login/logout or cleanup.
  */
 export interface AccountSession extends SessionSnapshot, SessionGeneration {
+  /** Suspends business reads and invalidates private work before the SDK's explicit hosted login. */
+  signIn(audience: string): Promise<void>;
   /** Invalidates private work immediately, then closes the native session with independent local clearing. */
   signOut(): Promise<void>;
   /** Invalidates private work before native local clearing; the sign-out flow owns browser/network cleanup. */
@@ -127,6 +131,9 @@ function SessionScope({
   retryAuthentication: () => void;
 }>) {
   const auth = useAuth0();
+  const [operation, setOperation] = useState<
+    "idle" | "authenticating" | "signing-out"
+  >("idle");
   const [session] = useState(createSessionGeneration);
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const subject = auth.user?.sub ?? null;
@@ -147,15 +154,17 @@ function SessionScope({
   const status: AuthenticationStatus =
     initialization.status === "initialization-error"
       ? "initialization-error"
-      : auth.isLoading
-        ? "restoring"
-        : reauthenticationRequired
-          ? "reauthentication-required"
-          : auth.user
-            ? "authenticated"
-            : auth.error
-              ? "authentication-error"
-              : "guest";
+      : operation !== "idle"
+        ? operation
+        : auth.isLoading
+          ? "restoring"
+          : reauthenticationRequired
+            ? "reauthentication-required"
+            : auth.user
+              ? "authenticated"
+              : auth.error
+                ? "authentication-error"
+                : "guest";
   const value: AccountSession = {
     ...session,
     ...snapshot,
@@ -172,13 +181,37 @@ function SessionScope({
       session.invalidate();
       retryAuthentication();
     },
-    async clearCredentials() {
+    async signIn(audience) {
+      if (initialization.status !== "ready")
+        throw new Error("Native authentication is unavailable");
+      setOperation("authenticating");
       session.invalidate();
-      if (initialization.status === "ready") await auth.clearCredentials();
+      try {
+        await auth.authorize({
+          audience,
+          scope: "openid profile email offline_access",
+        });
+      } finally {
+        setOperation("idle");
+      }
+    },
+    async clearCredentials() {
+      setOperation("signing-out");
+      session.invalidate();
+      try {
+        if (initialization.status === "ready") await auth.clearCredentials();
+      } finally {
+        setOperation("idle");
+      }
     },
     async signOut() {
+      setOperation("signing-out");
       session.invalidate();
-      if (initialization.status === "ready") await signOutNativeSession(auth);
+      try {
+        if (initialization.status === "ready") await signOutNativeSession(auth);
+      } finally {
+        setOperation("idle");
+      }
     },
     setAccount: (generation, accountId) =>
       status === "authenticated" && session.setAccount(generation, accountId),

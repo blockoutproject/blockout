@@ -19,6 +19,15 @@ interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
   Optional<AccountEntity> findByIssuerAndSubject(String issuer, String subject);
 
   /**
+   * Checks photo presence without returning its contents.
+   *
+   * @param id original lifecycle UUID
+   * @return true only when the existing account has accepted bytes
+   */
+  @Query("SELECT COUNT(p) > 0 FROM AccountPhotoPresence p WHERE p.id = :id AND p.bytes IS NOT NULL")
+  boolean hasPhoto(UUID id);
+
+  /**
    * Acquires the original row's write lock in the active transaction.
    *
    * @param id original business UUID

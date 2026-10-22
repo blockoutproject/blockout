@@ -28,6 +28,14 @@ public interface AccountStore {
   Optional<Account> findById(UUID id);
 
   /**
+   * Reads accepted-photo presence without loading its private bytes.
+   *
+   * @param id original business UUID
+   * @return whether that lifecycle currently has a photo
+   */
+  boolean hasPhoto(UUID id);
+
+  /**
    * Locks the original account until the caller's transaction completes. Acquire any domain root
    * locks first; acquire multiple account locks in UUID order.
    *

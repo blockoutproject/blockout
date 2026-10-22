@@ -14,6 +14,14 @@ Prepare synthetic principals for shared email, existing linked identities, missi
 
 ## Authentication and isolation
 
+### Account access construction
+
+The account MVC suite uses the generated `AccountsApi`, current F12 permissions and a controlled `AccountAdmission`; only `GET /accounts/me` skips ordinary admission. The native routes consume `AccountAdmissionProvider`, defaulting to unavailable until F12 T028 supplies its real policy. Backend composition likewise refuses ordinary operations without an admission implementation. These seams support isolated construction; they do not qualify PostgreSQL maintenance policy, native gates or operational activation. Guest-home and legal/support destinations retain their F14/F10/F11 owners; account screens hand off navigation without owning those journeys.
+
+Run the normal workspace verification, including `AccountAccessWebMvcTest`, `Auth0PrincipalClientTest`, `Auth0ConfigurationTest`, `Auth0PropertiesTest`, `EstablishAccountIntegrationTest` and mobile `sign-in.test.tsx`. The provider suite exercises the real Auth0 Java SDK and Spring OAuth client against controlled responses/local HTTP, with bounded token/resource failures and token reuse. The SQL suite checks service orchestration, concurrent creation and deletion/replacement during provider I/O. Mobile tests control native I/O and admission while retaining the actual session, Query and transport owners. These checks establish neither real hosted login nor native storage, provider configuration or the physical-device cases below.
+
+### Provider and device qualification
+
 1. **Sign in on physical iOS/Android:** production Google/Apple and dedicated preproduction email/password signup. Exercise callback, cancellation, outage, explicit restoration retry, renewal and failed browser logout. **Expected:** configured environment/client/audience restrictions apply, and local logout clears credentials/private state despite browser failure, using the native SDK lifecycle. Business-generation tests do not certify native storage or SDK-internal ordering. This does not claim global provider logout.
 2. **Read and establish accounts:** ordinary GET, first establishment without usable email, explicit login with provider failure, missing-age retry, linked methods and same-email distinct principals. **Expected:** GET neither creates nor contacts Auth0; missing first email blocks creation; known email/age survive failure; only age-dependent actions wait for unknown age.
 3. **Switch A → B and A → guest → A** while queries, photo preparation and entitlement callbacks are delayed. **Expected:** no prior-session result or unaccepted action enters the new session. Different-owner, visitor, expired/wrong-client/environment and collector credentials cannot perform owner operations.

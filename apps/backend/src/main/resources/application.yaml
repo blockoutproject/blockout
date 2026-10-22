@@ -34,6 +34,11 @@ server:
     max-swallow-size: 27MB
 
 blockout:
+  accounts:
+    auth0:
+      audience: ${BLOCKOUT_ACCOUNTS_AUTH0_AUDIENCE:}
+      connect-timeout: 3s
+      read-timeout: 5s
   search:
     enabled: false
     endpoint: ${BLOCKOUT_SEARCH_ENDPOINT:}

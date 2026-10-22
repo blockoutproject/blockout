@@ -92,7 +92,15 @@ function CacheConsumer() {
       >
         <Text>Sign out</Text>
       </Pressable>
-      <Text>Cached queries: {client.getQueryCache().getAll().length}</Text>
+      <Text>
+        Private probe cached:{" "}
+        {client
+          .getQueryCache()
+          .getAll()
+          .some(({ queryKey }) => queryKey.at(-1) === "private-probe")
+          ? "yes"
+          : "no"}
+      </Text>
       {signedOut && <Text>Signed out locally</Text>}
     </>
   );
@@ -129,13 +137,13 @@ it("removes private cache at local invalidation even when remote logout fails", 
   const user = userEvent.setup();
   await render(<RootLayout />);
   await user.press(screen.getByRole("button", { name: "Update cached count" }));
-  expect(screen.getByText("Cached queries: 2")).toBeOnTheScreen();
+  expect(screen.getByText("Private probe cached: yes")).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("button", { name: "Sign out" }));
 
   // Then
   expect(screen.getByText("Signed out locally")).toBeOnTheScreen();
-  expect(screen.getByText("Cached queries: 1")).toBeOnTheScreen();
+  expect(screen.getByText("Private probe cached: no")).toBeOnTheScreen();
   expect(screen.getByText("Count: 4")).toBeOnTheScreen();
 });
