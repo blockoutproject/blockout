@@ -1,5 +1,6 @@
 package com.blockout.backend.accounts.application;
 
+import com.blockout.backend.accounts.application.exception.UsernameUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
 import java.time.Instant;
@@ -52,6 +53,7 @@ public interface AccountStore {
    * @param username normalized supplied username, or null to preserve
    * @param photoAction supplied canonical photo intent, or null to preserve
    * @param photo prepared replacement pixels, otherwise null
+   * @throws UsernameUnavailableException when another account holds the supplied username
    */
   void changeProfile(
       UUID id, String username, ProfilePhotoActionEnum photoAction, ProfilePhoto photo);

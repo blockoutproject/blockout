@@ -27,7 +27,6 @@ const asset = {
   height: 2400,
   fileSize: 20_000_000,
 };
-const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -43,9 +42,7 @@ beforeEach(() => {
   });
   jest
     .mocked(File)
-    .mockImplementation(
-      () => ({ size: 128, type: "image/png", bytes: async () => png }) as File,
-    );
+    .mockImplementation(() => ({ size: 128, type: "image/png" }) as File);
 });
 
 it("adapts a large cropped source once and checks the prepared PNG instead of the original size", async () => {

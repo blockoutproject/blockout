@@ -50,11 +50,6 @@ export async function prepareProfilePhoto(
       file.type !== "image/png"
     )
       throw new Error("La photo préparée doit être un PNG de 5 Mio maximum.");
-    const bytes = await file.bytes();
-    if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
-    const signature = [137, 80, 78, 71, 13, 10, 26, 10];
-    if (!signature.every((value, index) => bytes[index] === value))
-      throw new Error("La préparation de la photo a échoué.");
     return { uri: output.uri, file };
   } finally {
     rendered?.release();

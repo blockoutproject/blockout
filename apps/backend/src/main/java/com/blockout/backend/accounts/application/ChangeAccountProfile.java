@@ -7,8 +7,6 @@ import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
 import com.blockout.backend.shared.validation.TextTrimming;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.exception.ConstraintViolationException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +27,10 @@ public class ChangeAccountProfile {
    * @param photoAction exact contract intent, or null to preserve the photo
    * @param photo prepared pixels for replacement only
    * @return complete accepted original account
+   * @throws InvalidProfileChangeException for invalid supplied fields or photo intent
+   * @throws AccountNotFoundException when the original account is absent or belongs to another
+   *     owner
+   * @throws UsernameUnavailableException when another account holds the supplied username
    */
   @Transactional
   public ReadAccount.View change(
@@ -47,16 +49,7 @@ public class ChangeAccountProfile {
         .lockById(id)
         .filter(account -> issuer.equals(account.issuer()) && subject.equals(account.subject()))
         .orElseThrow(AccountNotFoundException::new);
-    try {
-      accounts.changeProfile(id, normalized, photoAction, photo);
-    } catch (DataIntegrityViolationException failure) {
-      for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-        if (cause instanceof ConstraintViolationException constraint
-            && "uk_account_username".equals(constraint.getConstraintName()))
-          throw new UsernameUnavailableException();
-      }
-      throw failure;
-    }
+    accounts.changeProfile(id, normalized, photoAction, photo);
     return reads.original(issuer, subject, id);
   }
 }

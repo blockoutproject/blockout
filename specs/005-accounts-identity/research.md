@@ -34,7 +34,7 @@
 
 **Decision:** one atomic multipart PATCH for the existing single Save action. Omitted fields retain current state; last accepted supplied value wins. Native square crop, one bounded PNG preparation, actual PNG/JPEG validation and metadata-free pixel re-encoding before PostgreSQL storage.
 
-The native preparation adapter uses Expo FileSystem's `File` on the prepared output to check its byte length and PNG signature before upload. This is the existing Expo runtime dependency declared directly by the mobile consumer. Servlet multipart buffering retains accepted parts in memory within the existing per-file/request bounds; ImageIO uses memory-backed streams rather than disk staging.
+The native preparation adapter uses Expo FileSystem's `File` on the prepared output to check its byte length before upload. ImageManipulator owns PNG encoding; the server validates actual content. FileSystem is the existing Expo runtime dependency declared directly by the mobile consumer. Servlet multipart buffering retains accepted parts in memory within the existing per-file/request bounds; ImageIO uses memory-backed streams rather than disk staging.
 
 **Rationale:** saving username and photo independently would introduce partial success without a corresponding user need. Standard picker/manipulator capabilities cover the requested interaction; server image decoding protects the accepted storage boundary. Applying the upload limit after preparation permits normal large camera/library originals.
 
