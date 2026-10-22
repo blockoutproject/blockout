@@ -1,6 +1,6 @@
 import { Link } from "expo-router";
-import { Image } from "expo-image";
-import { StyleSheet, Text, View } from "react-native";
+import { ShieldCheck } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -15,18 +15,22 @@ export function PublicAccountLinks() {
       >
         Conditions d’utilisation
       </Link>
-      <Link
-        href="/legals/privacy"
-        style={[styles.link, { color: colors.secondaryText }]}
-      >
-        <Image
-          accessible={false}
-          source={require("../../../../assets/icons/privacy.svg")}
-          tintColor={colors.icon}
-          style={styles.icon}
-          contentFit="contain"
-        />
-        <Text> Confidentialité</Text>
+      <Link href="/legals/privacy" asChild>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Confidentialité"
+          style={styles.privacyLink}
+        >
+          <ShieldCheck
+            accessible={false}
+            size={20}
+            color={colors.icon}
+            nonScalingStroke
+          />
+          <Text style={[styles.privacyLabel, { color: colors.secondaryText }]}>
+            Confidentialité
+          </Text>
+        </Pressable>
       </Link>
       <Link
         href="/support"
@@ -53,5 +57,20 @@ const styles = StyleSheet.create({
     maxWidth: 240,
     textAlign: "center",
   },
-  icon: { width: 20, height: 20 },
+  privacyLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: tokens.spacing.xs,
+    padding: tokens.spacing.sm,
+    minHeight: 48,
+    minWidth: 44,
+    maxWidth: 240,
+  },
+  privacyLabel: {
+    ...tokens.typography.metadata,
+    textDecorationLine: "underline",
+    flexShrink: 1,
+    textAlign: "center",
+  },
 });

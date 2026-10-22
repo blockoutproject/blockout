@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+import { X } from "lucide-react-native";
 import type { PropsWithChildren } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -38,11 +38,10 @@ export function Sheet({ onClose, title, message, children }: SheetProps) {
               {title}
             </Text>
             <IconButton label="Fermer" onPress={onClose}>
-              <Image
-                source={require("../../../assets/icons/close.svg")}
-                style={styles.closeIcon}
-                tintColor={colors.icon}
-                contentFit="contain"
+              <X
+                accessible={false}
+                size={tokens.size.actionIcon}
+                color={colors.icon}
               />
             </IconButton>
           </View>
@@ -68,6 +67,5 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.md,
   },
   title: { ...tokens.typography.heading, flex: 1 },
-  closeIcon: { width: tokens.size.actionIcon, height: tokens.size.actionIcon },
   message: tokens.typography.body,
 });

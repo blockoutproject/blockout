@@ -1,5 +1,5 @@
-import { Image } from "expo-image";
 import { Link } from "expo-router";
+import { ChevronRight, Trophy } from "lucide-react-native";
 import {
   Pressable,
   StyleSheet,
@@ -51,21 +51,14 @@ function EntryCard(props: PressableProps) {
     >
       <View style={styles.disclosure}>
         <View style={[styles.tile, { backgroundColor: colors.subtle }]}>
-          <Image
+          <Trophy
             accessible={false}
-            source={require("../../../../assets/icons/administration.svg")}
-            tintColor={colors.icon}
-            style={styles.icon}
-            contentFit="contain"
+            size={20}
+            color={colors.icon}
+            nonScalingStroke
           />
         </View>
-        <Image
-          accessible={false}
-          source={require("../../../../assets/icons/chevron-right.svg")}
-          tintColor={colors.icon}
-          style={styles.chevron}
-          contentFit="contain"
-        />
+        <ChevronRight accessible={false} size={18} color={colors.icon} />
       </View>
       <Text style={[tokens.typography.strong, { color: colors.text }]}>
         Administration technique
@@ -99,6 +92,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  icon: { width: 20, height: 20 },
-  chevron: { width: 18, height: 18 },
 });

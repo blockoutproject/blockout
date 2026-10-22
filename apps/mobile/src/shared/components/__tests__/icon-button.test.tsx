@@ -1,5 +1,5 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
-import { Text } from "react-native";
+import { RotateCw, X } from "lucide-react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { IconButton } from "../icon-button";
 
@@ -10,7 +10,7 @@ it("announces the caller's action independently of its decorative icon", async (
   await render(
     <ThemeProvider>
       <IconButton label="Fermer le formulaire" onPress={onPress}>
-        <Text>×</Text>
+        <X accessible={false} />
       </IconButton>
     </ThemeProvider>,
   );
@@ -34,7 +34,7 @@ it.each([
   await render(
     <ThemeProvider>
       <IconButton label="Actualiser" onPress={onPress} {...state}>
-        <Text>↻</Text>
+        <RotateCw accessible={false} />
       </IconButton>
     </ThemeProvider>,
   );

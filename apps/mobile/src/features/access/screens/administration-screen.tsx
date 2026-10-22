@@ -1,5 +1,5 @@
-import { Image } from "expo-image";
 import { Link, useRouter } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -37,12 +37,10 @@ export function AdministrationScreen({ admitted }: AdministrationScreenProps) {
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={styles.header}>
         <IconButton label="Retour" onPress={() => router.back()}>
-          <Image
+          <ChevronLeft
             accessible={false}
-            source={require("../../../../assets/icons/chevron-left.svg")}
-            tintColor={colors.icon}
-            style={styles.backIcon}
-            contentFit="contain"
+            size={tokens.size.actionIcon}
+            color={colors.icon}
           />
         </IconButton>
         <Text
@@ -100,7 +98,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
     gap: tokens.spacing.sm,
   },
-  backIcon: { width: tokens.size.actionIcon, height: tokens.size.actionIcon },
   title: { ...tokens.typography.heading, flex: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
   command: {

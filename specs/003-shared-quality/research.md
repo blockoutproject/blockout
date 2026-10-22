@@ -122,6 +122,8 @@ These documented mechanisms form the candidate for [native presentation qualific
 
 **Alternatives and tradeoffs**: An automatic token/code generator, runtime styling engine or universal component factory would add maintenance without an established consumer need. A manual typed projection keeps aliases and source references reviewable but must be reconciled when its owning Figma values change. Screenshots and exploratory CSS cannot replace those values. Mapping every documentation layer to React would obscure useful composition; feature-owned patterns preserve business responsibilities while reusing shared controls.
 
+**Interface icons**: The 2026-10-22 owner correction replaces downloaded interface-icon SVGs with named [Lucide React Native](https://lucide.dev/guide/react-native/getting-started) 1.61.0 components. Use [Expo SDK 57's selected SVG renderer](https://docs.expo.dev/versions/v57.0.0/sdk/svg/) `react-native-svg` 15.15.4; keep the current Expo/React Native versions. Glyph identity, size, semantic color, decorative accessibility and the existing loading animation remain consumer/shared-control responsibilities. Lucide's `nonScalingStroke` preserves the two-point strokes of the former 20-point exports; ordinary 24-point glyph scaling remains unchanged. The owner explicitly retains the Blockout logo as branding; outlined lettering, athlete imagery and the justified gradient are artwork, not interface icons. This supersedes the icon-file projection only and establishes no new native or design qualification.
+
 ## Native identity and session
 
 **Decision**: Single existing Auth0 tenant, separate clients/audiences and a preproduction-only Database connection.
