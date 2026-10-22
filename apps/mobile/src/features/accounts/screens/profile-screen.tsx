@@ -15,7 +15,10 @@ import {
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { AdministrationEntry } from "../../access/components/administration-entry";
-import { useCurrentAccount } from "../api/use-current-account";
+import {
+  useCurrentAccount,
+  useEstablishAccount,
+} from "../api/use-current-account";
 import { ProfileForm } from "../components/profile-form";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { useAccountSession } from "../session/account-session-provider";
@@ -106,10 +109,17 @@ function ProfileContent({ admitted }: ProfileScreenProps) {
                   />
                 )}
                 {account.data && (
-                  <ProfileForm
-                    key={`${session.generation}:${account.data.accountId}`}
-                    account={account.data}
-                  />
+                  <>
+                    {account.data.principalCreatedAt === null && (
+                      <AccountAgeRetry
+                        key={`age:${session.generation}:${account.data.accountId}`}
+                      />
+                    )}
+                    <ProfileForm
+                      key={`${session.generation}:${account.data.accountId}`}
+                      account={account.data}
+                    />
+                  </>
                 )}
               </>
             )}
@@ -129,6 +139,31 @@ function ProfileContent({ admitted }: ProfileScreenProps) {
     </SafeAreaView>
   );
 }
+
+/** Explicit missing-evidence read; its pending/error state belongs only to this account generation. */
+function AccountAgeRetry() {
+  const session = useAccountSession();
+  const establishment = useEstablishAccount();
+  return (
+    <>
+      <RequestError
+        message={
+          establishment.isError
+            ? "La lecture de l’ancienneté a échoué. Réessayez."
+            : "L’ancienneté de votre compte est indisponible. Seules les actions qui en dépendent restent en attente."
+        }
+      />
+      <Button
+        label="Réessayer la lecture de l’ancienneté"
+        loading={establishment.isPending}
+        onPress={() => {
+          if (!establishment.isPending) establishment.mutate(session);
+        }}
+      />
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },

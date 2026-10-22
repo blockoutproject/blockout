@@ -107,11 +107,11 @@ description: "Implementation tasks for F05 accounts, sessions and erasure"
 
 ### Tests for User Story 4
 
-- [ ] T021 [US4] Write failing age tests in `apps/backend/src/test/java/com/blockout/backend/accounts/application/AccountAgeTest.java` and `apps/mobile/src/features/accounts/__tests__/account-age-retry.test.tsx`; cover known-date preservation on provider outage, null evidence, targeted establishment retry with still-valid authentication and actual principal dates after successful/failed provider cleanup using controlled lifecycle fixtures.
+- [x] T021 [US4] Write failing age tests in `apps/backend/src/test/java/com/blockout/backend/accounts/application/AccountAgeTest.java` and `apps/mobile/src/features/accounts/__tests__/account-age-retry.test.tsx`; cover known-date preservation on provider outage, null evidence, targeted establishment retry with still-valid authentication and actual principal dates after successful/failed provider cleanup using controlled lifecycle fixtures.
 
 ### Implementation and qualification for User Story 4
 
-- [ ] T022 [US4] Complete age retrieval/preservation in `apps/backend/src/main/java/com/blockout/backend/accounts/application/EstablishAccount.java` and explicit retry UI in `apps/mobile/src/features/accounts/screens/profile-screen.tsx`; make T021 pass through the existing POST/response. Supply immutable evidence to F08's current eligibility checks; do not add a new endpoint, local age clock or automatic login/bootstrap, and leave F08's seven-day threshold/moderator permissions with its owner.
+- [x] T022 [US4] Complete age retrieval/preservation in `apps/backend/src/main/java/com/blockout/backend/accounts/application/EstablishAccount.java` and explicit retry UI in `apps/mobile/src/features/accounts/screens/profile-screen.tsx`; make T021 pass through the existing POST/response. Supply immutable evidence to F08's current eligibility checks; do not add a new endpoint, local age clock or automatic login/bootstrap, and leave F08's seven-day threshold/moderator permissions with its owner.
 - [ ] T023 [US4] Execute A20–A22 through `specs/005-accounts-identity/quickstart.md#authentication-and-isolation` and `specs/005-accounts-identity/quickstart.md#erasure-and-return` when F08/F14 and US5 exist; verify historical/linked principal age, restriction of only dependent operations, and actual surviving-principal age after failed cleanup versus a newly created principal. Record real provider evidence separately from T021 doubles.
 
 **Checkpoint**: Age behavior passes independently; recreation and cross-owner evidence complete with US5/F08/F14.

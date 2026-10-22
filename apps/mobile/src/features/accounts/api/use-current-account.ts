@@ -50,6 +50,7 @@ export function useCurrentAccount() {
 /**
  * Explicit mutation only: login success or a targeted user retry supplies the captured session.
  * The generated POST has two success statuses, so its canonical response schema is supplied explicitly.
+ * For an existing cached lifecycle, only provider evidence changes; concurrent profile edits survive.
  */
 export function useEstablishAccount() {
   const auth = useAuth0();
@@ -72,7 +73,16 @@ export function useEstablishAccount() {
         await client.cancelQueries({ queryKey, exact: true });
         if (!session.isCurrent(session.generation))
           throw new ApiError("cancelled");
-        client.setQueryData(queryKey, account);
+        client.setQueryData<AccountResponse>(queryKey, (current) =>
+          current?.accountId === account.accountId
+            ? {
+                ...current,
+                email: account.email,
+                principalCreatedAt:
+                  account.principalCreatedAt ?? current.principalCreatedAt,
+              }
+            : account,
+        );
         return account;
       } catch (error) {
         // Credential preparation precedes the shared transport's generation guard.

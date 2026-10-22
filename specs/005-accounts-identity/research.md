@@ -52,6 +52,8 @@ The native preparation adapter uses Expo FileSystem's `File` on the prepared out
 
 **Evidence:** F05/F07 accepted behavior and the bounded V1 production-lineage code inspection during exploration. That code comparison is not evidence of all installed binaries or actual push delivery; qualify the selected native destination lifecycle. F13 already supplies no automatic ordinary mobile retry/reconnection replay.
 
+Concurrent explicit age retrieval and profile saves apply immutable field-owned updates through the existing Query owners. For the same cached UUID, POST updates provider email/age while preserving the editable profile; PATCH preserves provider evidence already admitted. Original-account rereads can refresh evidence, but a null snapshot never clears a known principal date. The native [`setQueryData` updater](https://tanstack.com/query/latest/docs/framework/react/guides/updates-from-mutation-responses#immutability) supports this without another state owner. Controlled delayed responses cover both delivery orders. A canonical reread after every mutation would add a request and another unavailable outcome; serializing writes would add unnecessary coordination. Neither is needed for these disjoint field owners.
+
 ## RevenueCat continuity
 
 **Decision:** business UUID as the V2 customer association; SDK state/cache only for entitlement decisions. Explicit native restore plus verified manual assistance replaces a population migration engine. Gifts and historical customer erasure remain separate obligations.
