@@ -14,6 +14,7 @@ import {
 } from "../shared/query/query-client";
 import { initializeSentry } from "../shared/observability/sentry";
 import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
+import { ProProvider } from "../features/pro/pro-provider";
 
 initializeSentry();
 
@@ -50,7 +51,9 @@ function RootLayout() {
       <ThemeProvider>
         <AccountSessionProvider>
           <CurrentAccountObserver />
-          <Navigation />
+          <ProProvider>
+            <Navigation />
+          </ProProvider>
         </AccountSessionProvider>
       </ThemeProvider>
     </QueryClientProvider>

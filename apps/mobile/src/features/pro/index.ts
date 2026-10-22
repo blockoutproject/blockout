@@ -5,3 +5,8 @@ export {
   type ProSessionState,
   type ProState,
 } from "./pro-state";
+export { ProProvider, usePro, type ProContext } from "./pro-provider";
+export {
+  ProVerification,
+  type ProVerificationProps,
+} from "./components/pro-verification";

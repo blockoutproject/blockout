@@ -42,6 +42,15 @@ function safeErrorType(type: string | undefined) {
     : "Error";
 }
 
+/** Allows only the bounded Pro failure vocabulary; customer/provider fields remain excluded. */
+function safeProTags(tags: Sentry.ErrorEvent["tags"]) {
+  return tags?.feature === "pro" &&
+    ["association", "read", "operation"].includes(String(tags.operation)) &&
+    ["failed", "pending", "uncertain"].includes(String(tags.outcome))
+    ? { feature: "pro", operation: tags.operation, outcome: tags.outcome }
+    : undefined;
+}
+
 /** Filters enriched JS errors and their attachment hint; native crash reports bypass this hook. */
 const safeError: NonNullable<Sentry.ReactNativeOptions["beforeSend"]> = (
   event,
@@ -59,6 +68,7 @@ const safeError: NonNullable<Sentry.ReactNativeOptions["beforeSend"]> = (
     release: event.release,
     dist: event.dist,
     environment: event.environment,
+    tags: safeProTags(event.tags),
     sdk: event.sdk
       ? {
           name: event.sdk.name,
