@@ -73,7 +73,7 @@ contracts/http/mobile/openapi.yaml       # existing contact representations; one
 
 **Structure Decision**: Keep the mobile runtime in the advertising owner, with thin calls from actual sporting transitions. Reuse F05/F09 session/entitlement state and F02 contact transactions; do not add a service per feature or a generic provider framework. Map stable extensionless `/legals/{kind}` URLs to the bundled HTML resources through ordinary backend routing.
 
-Blockout-owned age/privacy forms consume the [F13 UI foundation](../003-shared-quality/plan.md#native-ui-and-approved-design) before screen integration. F11 retains the age-selector behavior and privacy composition; shared buttons, fields and sheets supply presentation. Native UMP and browser surfaces retain their provider/platform ownership and qualification.
+Blockout-owned age/privacy controls consume the [F13 UI foundation](../003-shared-quality/plan.md#native-ui-and-approved-design) before screen integration. F11 retains the age-selector behavior and privacy composition; shared buttons, fields and sheets supply presentation. The privacy menu closes before the short correction sheet opens; cancellation restores privacy navigation without changing the declaration. Never stack the two sheets or turn the age selector into a text-entry form. Native UMP and browser surfaces retain their provider/platform ownership and qualification. The changed sequencing/design evidence follows [F13 #138](../003-shared-quality/quickstart.md#native-mobile-and-approved-design); other approved age content remains unchanged.
 
 ## Advertising integration
 

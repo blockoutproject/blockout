@@ -73,8 +73,6 @@ export const membershipColors = {
   },
 };
 
-const outfit = { fontFamily: "Outfit" };
-
 /** Core, Typography, Motion and Platform roles needed by the initial controls, without a styling engine. */
 export const tokens = {
   spacing: { xs: 4, sm: 8, md: 12, lg: 16, section: 24, label: 6 },
@@ -85,23 +83,22 @@ export const tokens = {
   opacity: { disabled: 0.45, pressed: 0.9 },
   elevation: { offsetX: 0, offsetY: 4, blur: 10 },
   motion: { slow: 480 },
+  // Exact static face names preserve intermediate weights on Android versions before API 28.
   typography: {
-    body: { ...outfit, fontSize: 14, lineHeight: 20, fontWeight: "400" },
-    strong: { ...outfit, fontSize: 14, lineHeight: 20, fontWeight: "600" },
-    heading: { ...outfit, fontSize: 20, lineHeight: 26, fontWeight: "700" },
+    body: { fontFamily: "Outfit-Regular", fontSize: 14, lineHeight: 20 },
+    strong: { fontFamily: "Outfit-SemiBold", fontSize: 14, lineHeight: 20 },
+    heading: { fontFamily: "Outfit-Bold", fontSize: 20, lineHeight: 26 },
     // Figma letter spacing is percent; React Native uses logical points (13 × 1%, 12 × 2%).
     label: {
-      ...outfit,
+      fontFamily: "Outfit-SemiBold",
       fontSize: 13,
       lineHeight: 18,
-      fontWeight: "600",
       letterSpacing: 0.13,
     },
     metadata: {
-      ...outfit,
+      fontFamily: "Outfit-Medium",
       fontSize: 12,
       lineHeight: 16,
-      fontWeight: "500",
       letterSpacing: 0.24,
     },
   } satisfies Record<string, TextStyle>,
