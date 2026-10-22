@@ -13,7 +13,7 @@ Start from the current user request and the project's applicable specifications,
 
 An approved decision is the current baseline, not proof that it remains the best solution. Challenge it when new evidence or requirements warrant reconsideration, explain the consequences and obtain any required agreement before changing it. Within authorized changes, update the owning authoritative artifact and mark the previous decision superseded with a link to its replacement; preserve useful rationale without leaving competing instructions.
 
-Keep routine progress, experiments, screenshots and full intermediate analyses in the conversation. Before approval, a concise issue or PR update is useful for a concrete review handoff, a blocker requiring a decision or material evidence that invalidates an assumption. Label the result as a proposal or observation, state what remains undecided and link the reviewable artifact/revision. Do not publish every iteration or treat permission to publish as acceptance. Existing authorization and any stricter design-evidence gates still apply.
+Keep routine progress, experiments, intermediate screenshots and full intermediate analyses in the conversation. Retain representative visual review evidence in the PR as specified below. Before approval, a concise issue or PR update is useful for a concrete review handoff, a blocker requiring a decision or material evidence that invalidates an assumption. Label the result as a proposal or observation, state what remains undecided and link the reviewable artifact/revision. Do not publish every iteration or treat permission to publish as acceptance. Existing authorization and any stricter design-evidence gates still apply.
 
 After approval, record the accepted scope, exact artifact/revision where applicable, approval source and material reservations concisely. Distinguish completed checks from future qualification. Link detailed reports, coverage matrices and validation artifacts instead of copying them into comments; when no durable report exists, summarize the evidence needed to assess the result rather than creating a duplicate record just for a link. Official procedures still run as required; their full conversational output need not be republished in the tracker.
 
@@ -36,6 +36,14 @@ Synchronize the integration branch without losing local work. Applications norma
 Delivery topic branches MUST use `feature/<issue>-<slug>`, `bugfix/<issue>-<slug>` or `tech/<issue>-<slug>`. These are the only permitted topic-branch formats. Keep changes bounded, commits coherent and verification tied to the exact final tree. Push and open a **draft** PR when delivery is authorized. Use `Closes #N` only for complete delivery, `Refs #N` for intentional partial work and explain why.
 
 Report the draft PR and evidence. Readiness and merge remain human-directed; an instruction to implement is not an instruction to merge. Direct integration-branch pushes require explicit direction for small nonfunctional maintenance; never use them to bypass a behavior/contract/dependency/migration/security/CI review.
+
+## Visual evidence in pull requests
+
+When a PR changes visible UI, include screenshots of the running PR revision in its description or an attached PR comment. Show the affected screens and relevant states, including changed responsive layouts or themes where applicable. Use before/after captures when they clarify the change, and add a short recording when motion or interaction needs it.
+
+Identify the captured commit/build, scenario or state, and platform: browser/device and viewport where relevant. Embed the evidence or use durable links accessible to reviewers; local paths and chat-only images do not preserve PR evidence. Use demonstration data and exclude private information, credentials and private diagnostics.
+
+If execution or capture is unavailable, state the missing evidence, reason and unverified scope in the PR. Existing stricter project evidence gates still apply. Captures establish the observed rendering or interaction; they do not replace functional checks or constitute design, native, provider or production approval. Nonvisual changes require no unrelated screenshots.
 
 ## Explicitly requested merge
 
