@@ -20,6 +20,8 @@ export const appearanceColors = {
   light: {
     canvas: "#FCFCFD",
     surface: reference.white,
+    subtle: "#2021240F",
+    mediaPlaceholder: "#EDEDEE",
     raised: "#FFFFFFF7",
     border: "#20212424",
     text: "#1C1C1E",
@@ -31,6 +33,8 @@ export const appearanceColors = {
   dark: {
     canvas: "#0D0D0E",
     surface: "#19191A",
+    subtle: "#FFFFFF14",
+    mediaPlaceholder: "#2B2B2D",
     raised: "#181819F5",
     border: "#FFFFFF2E",
     text: "#F7F7F8",
@@ -75,8 +79,8 @@ export const membershipColors = {
 
 /** Core, Typography, Motion and Platform roles needed by the initial controls, without a styling engine. */
 export const tokens = {
-  spacing: { xs: 4, sm: 8, md: 12, lg: 16, section: 24, label: 6 },
-  radius: { control: 12, sheet: 22, full: 999 },
+  spacing: { xs: 4, sm: 8, md: 12, compact: 10, lg: 16, section: 24, label: 6 },
+  radius: { control: 12, media: 16, sheet: 22, full: 999 },
   size: { control: 48, multiline: 96, actionIcon: 24, loading: 20 },
   touchTarget: { ios: 44, android: 48 },
   borderWidth: 1,
