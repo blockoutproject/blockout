@@ -22,6 +22,7 @@ export function ImageFieldExamplesScreen() {
   const [images, setImages] = useState<ImageFieldImage[]>([]);
   const [multiple, setMultiple] = useState(false);
   const [compact, setCompact] = useState(false);
+  const [contain, setContain] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [fail, setFail] = useState(false);
   const [error, setError] = useState<string>();
@@ -37,6 +38,11 @@ export function ImageFieldExamplesScreen() {
         {[
           { label: "Plusieurs images", value: multiple, change: setMultiple },
           { label: "Taille compacte", value: compact, change: setCompact },
+          {
+            label: "Respecter les proportions",
+            value: contain,
+            change: setContain,
+          },
           { label: "Désactivé", value: disabled, change: setDisabled },
           { label: "Erreur de préparation", value: fail, change: setFail },
         ].map((option) => (
@@ -67,6 +73,7 @@ export function ImageFieldExamplesScreen() {
         />
         <ImageField
           label="Image de démonstration"
+          contentFit={contain ? "contain" : "cover"}
           helper="PNG/JPEG, 5 Mio maximum. Aucun envoi."
           images={images}
           multiple={multiple}

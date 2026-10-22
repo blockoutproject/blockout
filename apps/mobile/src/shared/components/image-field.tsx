@@ -39,6 +39,9 @@ export interface ImageFieldProps {
   disabled?: boolean;
   size?: "standard" | "compact";
   chooseLabel?: string;
+  retryLabel?: string;
+  /** Thumbnail fitting only; use contain for logos. Original assets and full previews retain their proportions. */
+  contentFit?: "cover" | "contain";
   replaceLabel?: string;
   removeLabel?: string;
   helper?: string;
@@ -56,6 +59,8 @@ export function ImageField({
   disabled = false,
   size = "standard",
   chooseLabel = "Choisir une image",
+  retryLabel = "Réessayer",
+  contentFit = "cover",
   replaceLabel = "Changer l’image",
   removeLabel = "Supprimer l’image",
   helper,
@@ -72,6 +77,11 @@ export function ImageField({
   const message = error ?? selectionError;
   const unavailable = disabled || busy;
   const compact = size === "compact";
+  const selectionLabel = busy
+    ? "Chargement…"
+    : message
+      ? retryLabel
+      : chooseLabel;
 
   useEffect(() => {
     active.current = true;
@@ -137,7 +147,7 @@ export function ImageField({
                 source={{ uri: image.uri }}
                 accessible={false}
                 cachePolicy="none"
-                contentFit="cover"
+                contentFit={contentFit}
                 style={[
                   styles.thumbnail,
                   compact && styles.compactThumbnail,
@@ -179,7 +189,7 @@ export function ImageField({
       {(images.length === 0 || multiple) && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={busy ? "Chargement…" : chooseLabel}
+          accessibilityLabel={selectionLabel}
           accessibilityHint={message ?? helper}
           accessibilityState={{ disabled: unavailable, busy }}
           disabled={unavailable}
@@ -221,7 +231,7 @@ export function ImageField({
             )}
           </View>
           <Text style={[styles.label, { color: colors.text }]}>
-            {busy ? "Chargement…" : chooseLabel}
+            {selectionLabel}
           </Text>
         </Pressable>
       )}

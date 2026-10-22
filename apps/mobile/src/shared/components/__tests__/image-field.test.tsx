@@ -420,3 +420,23 @@ it("keeps preview dismissal available when native image decoding fails", async (
   ).toBeOnTheScreen();
   expect(screen.queryByText(/private file path/)).not.toBeOnTheScreen();
 });
+
+it("offers the caller's retry meaning after an empty-field validation error", async () => {
+  // Given
+  launch.mockResolvedValue({ canceled: false, assets: [photo] });
+  const { user, onSelect } = await renderField({
+    error: "Cette capture ne peut pas être utilisée.",
+    retryLabel: "Choisir une autre capture",
+  });
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Choisir une autre capture" }),
+  );
+
+  // Then
+  expect(onSelect).toHaveBeenCalledWith([photo], undefined);
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Cette capture ne peut pas être utilisée.",
+  );
+});
