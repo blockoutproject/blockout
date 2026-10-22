@@ -127,27 +127,12 @@ const config: ExpoConfig = {
     [
       "expo-font",
       {
-        android: {
-          fonts: [
-            {
-              fontFamily: "Outfit",
-              fontDefinitions: [
-                { path: "./assets/fonts/Outfit-Regular.ttf", weight: 400 },
-                { path: "./assets/fonts/Outfit-Medium.ttf", weight: 500 },
-                { path: "./assets/fonts/Outfit-SemiBold.ttf", weight: 600 },
-                { path: "./assets/fonts/Outfit-Bold.ttf", weight: 700 },
-              ],
-            },
-          ],
-        },
-        ios: {
-          fonts: [
-            "./assets/fonts/Outfit-Regular.ttf",
-            "./assets/fonts/Outfit-Medium.ttf",
-            "./assets/fonts/Outfit-SemiBold.ttf",
-            "./assets/fonts/Outfit-Bold.ttf",
-          ],
-        },
+        fonts: [
+          "./assets/fonts/Outfit-Regular.ttf",
+          "./assets/fonts/Outfit-Medium.ttf",
+          "./assets/fonts/Outfit-SemiBold.ttf",
+          "./assets/fonts/Outfit-Bold.ttf",
+        ],
       },
     ],
     [
