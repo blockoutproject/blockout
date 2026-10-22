@@ -18,7 +18,7 @@ export interface SheetProps extends PropsWithChildren {
   onClose: () => void;
   title: string;
   message?: string;
-  /** Disable for short content in a native fitToContents route; its root keeps its natural height. */
+  /** Disable for compact content in a native fitToContents route; its root keeps its natural height. */
   scrollable?: boolean;
 }
 
@@ -32,7 +32,10 @@ export function Sheet({
 }: SheetProps) {
   const { colors } = useTheme();
   const content = (
-    <SafeAreaView edges={["bottom"]} style={styles.content}>
+    <SafeAreaView
+      edges={["bottom"]}
+      style={[styles.content, !scrollable && styles.compactContent]}
+    >
       <View style={styles.introduction}>
         <View style={styles.titleRow}>
           <Text
@@ -75,6 +78,7 @@ export function Sheet({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.section },
+  compactContent: { gap: tokens.spacing.sm },
   introduction: { gap: tokens.spacing.xs },
   titleRow: {
     flexDirection: "row",
