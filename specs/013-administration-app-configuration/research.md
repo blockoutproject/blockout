@@ -40,6 +40,8 @@ The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions
 
 **Alternatives:** One global editing revision creates unrelated maintenance/version conflicts. Per-field revisions and automatic merge avoid rare simultaneous iOS/Android conflicts at extra cost; the owner accepted those conflicts. No additional ETag protocol, event history, distributed cache or settings service is selected.
 
+**Implementation binding:** The two fixed identities share `access_settings` with independent `@Version` values. A scalar JPQL constructor projection reads both in one statement, avoiding later entity hydration. The selected generator groups all six public/private operations into `ApplicationAccessApi`; `AdministrationSettingsController` implements that interface once, rather than adding two controllers with duplicate generated mappings. This preserves the public/private authorization boundary in the use cases.
+
 ## Native versions, stores and optional media
 
 **Decision:** Compare three numeric components of the published native version, without build numbers, suffixes or version ranges. `expo-application.nativeApplicationVersion` supplies Android versionName and iOS CFBundleShortVersionString. Use ordinary parsing/comparison of validated numeric components; no version-range library is needed. Use native Linking for approved HTTPS store URLs. The operator checks actual download availability manually before raising a threshold. [Expo Application SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/application/), [Expo Linking SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/linking/).

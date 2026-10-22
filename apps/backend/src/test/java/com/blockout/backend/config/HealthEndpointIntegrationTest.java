@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.blockout.backend.access.application.AccessSettingsStore;
 import com.blockout.backend.access.application.PermissionStore;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.EstablishAccount;
@@ -51,6 +52,7 @@ class HealthEndpointIntegrationTest {
   @MockitoBean private AccountStore accounts;
   @MockitoBean private EstablishAccount establishment;
   @MockitoBean private PermissionStore permissions;
+  @MockitoBean private AccessSettingsStore settings;
 
   @MockitoBean(name = "dbHealthIndicator", answers = Answers.CALLS_REAL_METHODS)
   private HealthIndicator database;

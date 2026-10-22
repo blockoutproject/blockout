@@ -29,6 +29,13 @@ export const appearanceColors = {
     icon: "#1C1C1E",
     error: "#B42340",
     focus: "#555555",
+    // F12 maintenance control: Product Design 5978:48721 and 1450:14015.
+    successAction: "#287E63",
+    onSuccessAction: reference.white,
+    successSubtle: "#287E6314",
+    onSuccessSubtle: "#287E63",
+    warning: "#F4C66A",
+    onWarning: reference.neutral900,
   },
   dark: {
     canvas: "#0D0D0E",
@@ -42,6 +49,13 @@ export const appearanceColors = {
     icon: "#F7F7F8",
     error: "#FFB3C3",
     focus: "#F7F7F8",
+    // The action remains the same green; subtle feedback follows the dark semantic mode.
+    successAction: "#287E63",
+    onSuccessAction: reference.white,
+    successSubtle: "#76BCA614",
+    onSuccessSubtle: "#76BCA6",
+    warning: "#F4C66A",
+    onWarning: reference.neutral900,
   },
 };
 
@@ -80,7 +94,7 @@ export const membershipColors = {
 /** Core, Typography, Motion and Platform roles needed by the initial controls, without a styling engine. */
 export const tokens = {
   spacing: { xs: 4, sm: 8, md: 12, compact: 10, lg: 16, section: 24, label: 6 },
-  radius: { control: 12, media: 16, sheet: 22, full: 999 },
+  radius: { badge: 8, control: 12, media: 16, sheet: 22, full: 999 },
   size: { control: 48, multiline: 96, actionIcon: 24, loading: 20 },
   touchTarget: { ios: 44, android: 48 },
   borderWidth: 1,

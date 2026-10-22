@@ -1,0 +1,370 @@
+import { Alert } from "react-native";
+import { QueryClientProvider, QueryObserver } from "@tanstack/react-query";
+import { render, screen, userEvent } from "@testing-library/react-native";
+import { createQueryClient } from "../../../shared/query/query-client";
+import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import {
+  credentialsFor,
+  mockClient,
+} from "../../accounts/test-support/native-auth0";
+import {
+  getMaintenanceSettings,
+  changeMaintenanceSettings,
+  setMaintenanceActivation,
+  getApplicationVersionSettings,
+  changeApplicationVersionSettings,
+  getApplicationAccess,
+  getGetApplicationAccessQueryKey,
+} from "../../../../.generated/mobile";
+import { ApiError } from "../../../shared/api/api-fetch";
+import { MaintenanceSettingsScreen } from "../screens/maintenance-settings-screen";
+
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
+jest.mock("../../onboarding/initialize-v2-installation", () => ({
+  initializeV2Installation: jest.fn(),
+}));
+jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
+  __esModule: true,
+  default: jest.fn(() => mockClient),
+}));
+jest.mock("react-native-auth0", () =>
+  jest
+    .requireActual("../../accounts/test-support/native-auth0")
+    .nativeAuth0Module(),
+);
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useRouter: () => ({ back: jest.fn() }),
+}));
+// Node Fetch replaces native networking only. Every request reaches the actual Spring provider.
+jest.mock("expo/fetch", () => ({
+  fetch: async (url: RequestInfo | URL, options?: RequestInit) => {
+    if (String(url).endsWith("/application-access")) mockPublicReads++;
+    const response = await jest.requireActual("node-fetch")(url, options);
+    if (options?.method === "PATCH") {
+      mockPatchCount++;
+      if (mockLoseNextResponse) {
+        mockLoseNextResponse = false;
+        throw new TypeError("Response lost after server commit");
+      }
+    }
+    return response;
+  },
+}));
+let mockLoseNextResponse = false;
+let mockPatchCount = 0;
+let mockPublicReads = 0;
+let client = createQueryClient();
+const environment = { ...process.env };
+const provider = process.env.BLOCKOUT_ACCESS_PROVIDER_URL;
+const one = {
+  headers: {
+    Authorization: `Bearer ${process.env.BLOCKOUT_ACCESS_EDITOR_ONE ?? ""}`,
+  },
+};
+const two = {
+  headers: {
+    Authorization: `Bearer ${process.env.BLOCKOUT_ACCESS_EDITOR_TWO ?? ""}`,
+  },
+};
+const suite = provider ? describe : describe.skip;
+
+suite("real PostgreSQL/provider/generated consumer integration", () => {
+  beforeEach(async () => {
+    jest
+      .spyOn(Alert, "alert")
+      .mockImplementation((_title, _message, buttons) =>
+        buttons?.at(-1)?.onPress?.(),
+      );
+    Object.assign(process.env, {
+      EXPO_PUBLIC_API_URL: provider,
+      EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+      EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+    });
+    client = createQueryClient();
+    mockLoseNextResponse = false;
+    mockPatchCount = 0;
+    mockPublicReads = 0;
+    jest.mocked(initializeV2Installation).mockResolvedValue();
+    mockClient.credentialsManager.hasValidCredentials
+      .mockReset()
+      .mockResolvedValue(true);
+    mockClient.credentialsManager.getCredentials.mockReset().mockResolvedValue({
+      ...credentialsFor("auth0|first"),
+      accessToken: process.env.BLOCKOUT_ACCESS_EDITOR_ONE ?? "",
+    });
+    mockClient.credentialsManager.clearCredentials
+      .mockReset()
+      .mockResolvedValue();
+    const maintenance = await getMaintenanceSettings(one);
+    const inactive = await setMaintenanceActivation(
+      { revision: maintenance.revision, active: false },
+      one,
+    );
+    await changeMaintenanceSettings(
+      { revision: inactive.revision, message: "Prepared", imageUrl: null },
+      one,
+    );
+    const versions = await getApplicationVersionSettings(one);
+    await changeApplicationVersionSettings(
+      {
+        revision: versions.revision,
+        ios: { minimumVersion: null, storeUrl: null },
+        android: { minimumVersion: null, storeUrl: null },
+        message: null,
+      },
+      one,
+    );
+    mockPatchCount = 0;
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+    client.clear();
+    process.env = { ...environment };
+  });
+
+  it("returns complete public state and publishes content only after explicit activation", async () => {
+    // Given
+    const current = await getMaintenanceSettings(one);
+    // When
+    const saved = await changeMaintenanceSettings(
+      { revision: current.revision, message: "Published later" },
+      one,
+    );
+    const inactive = await getApplicationAccess();
+    await setMaintenanceActivation(
+      { revision: saved.revision, active: true },
+      two,
+    );
+    const active = await getApplicationAccess();
+    // Then
+    expect(inactive.maintenance).toMatchObject({
+      active: false,
+      message: null,
+      imageUrl: null,
+    });
+    expect(active.maintenance).toMatchObject({
+      active: true,
+      message: "Published later",
+    });
+    const corrected = await changeMaintenanceSettings(
+      {
+        revision: active.maintenance.revision,
+        message: "Corrected while active",
+      },
+      one,
+    );
+    expect(corrected.active).toBe(true);
+    expect((await getApplicationAccess()).maintenance.message).toBe(
+      "Corrected while active",
+    );
+  });
+  it("allows independent groups while excluding simultaneous same-group edits", async () => {
+    // Given
+    const maintenance = await getMaintenanceSettings(one);
+    const versions = await getApplicationVersionSettings(two);
+    // When
+    const independent = await Promise.all([
+      changeMaintenanceSettings(
+        { revision: maintenance.revision, message: "Independent" },
+        one,
+      ),
+      changeApplicationVersionSettings(
+        { revision: versions.revision, message: "Update" },
+        two,
+      ),
+    ]);
+    const competing = await Promise.allSettled([
+      changeMaintenanceSettings(
+        { revision: independent[0].revision, message: "First" },
+        one,
+      ),
+      changeMaintenanceSettings(
+        { revision: independent[0].revision, message: "Second" },
+        two,
+      ),
+    ]);
+    // Then
+    expect(independent[1].revision).toBe(versions.revision + 1);
+    expect(
+      competing.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    const failure = competing.find((result) => result.status === "rejected");
+    expect(failure?.status === "rejected" && failure.reason).toMatchObject({
+      status: 409,
+      problem: { type: "urn:blockout:problem:stale-revision" },
+    });
+  });
+  it("shares one platform revision and refuses invalid complete results atomically", async () => {
+    // Given
+    const current = await getApplicationVersionSettings(one);
+    const ios = await changeApplicationVersionSettings(
+      {
+        revision: current.revision,
+        ios: {
+          minimumVersion: "2.10.0",
+          storeUrl: "https://apps.apple.com/fr/app/blockout/id123",
+        },
+      },
+      one,
+    );
+    // When / Then
+    await expect(
+      changeApplicationVersionSettings(
+        {
+          revision: current.revision,
+          android: {
+            minimumVersion: "2.0.0",
+            storeUrl:
+              "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
+          },
+        },
+        two,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      changeApplicationVersionSettings(
+        {
+          revision: ios.revision,
+          ios: { storeUrl: null },
+          message: "Rejected atomically",
+        },
+        two,
+      ),
+    ).rejects.toMatchObject({ status: 422 });
+    await expect(
+      changeApplicationVersionSettings(
+        {
+          revision: ios.revision,
+          android: {
+            minimumVersion: "9007199254740992.0.0",
+            storeUrl:
+              "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
+          },
+        },
+        two,
+      ),
+    ).rejects.toMatchObject({ status: 422 });
+    expect(await getApplicationVersionSettings(one)).toEqual(ios);
+    const maintenance = await getMaintenanceSettings(one);
+    await expect(
+      changeMaintenanceSettings(
+        {
+          revision: maintenance.revision,
+          imageUrl: "http://assets.example.invalid/a.png",
+        },
+        one,
+      ),
+    ).rejects.toBeInstanceOf(ApiError);
+    expect(await getMaintenanceSettings(one)).toEqual(maintenance);
+  });
+  it("preserves a real conflicting draft through reread and explicit resubmission", async () => {
+    // Given
+    await renderEditor();
+    const user = await draft("First editor draft");
+    const current = await getMaintenanceSettings(two);
+    await changeMaintenanceSettings(
+      { revision: current.revision, message: "Other editor" },
+      two,
+    );
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Enregistrer le contenu" }),
+    );
+    // Then
+    await screen.findByRole("button", { name: "Relire les réglages" });
+    expect(screen.getByDisplayValue("First editor draft")).toBeOnTheScreen();
+    expect((await getMaintenanceSettings(two)).message).toBe("Other editor");
+    const writes = mockPatchCount;
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Relire les réglages" }),
+    );
+    // Then
+    await screen.findByText(
+      "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
+    );
+    expect(mockPatchCount).toBe(writes);
+    expect(screen.getByDisplayValue("First editor draft")).toBeOnTheScreen();
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Enregistrer le contenu" }),
+    );
+    // Then
+    await screen.findByText("Contenu enregistré.");
+    expect((await getMaintenanceSettings(two)).message).toBe(
+      "First editor draft",
+    );
+  });
+  it("retains a committed lost-response draft and invalidates without refetching public admission", async () => {
+    // Given
+    const publicKey = getGetApplicationAccessQueryKey();
+    const full = await getApplicationAccess();
+    client.setQueryData(publicKey, full);
+    const observer = new QueryObserver(client, {
+      queryKey: publicKey,
+      queryFn: () => getApplicationAccess(),
+      staleTime: Infinity,
+    });
+    const stopObserving = observer.subscribe(() => {});
+    await renderEditor();
+    const user = await draft("Committed despite lost response");
+    mockLoseNextResponse = true;
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Enregistrer le contenu" }),
+    );
+    // Then
+    await screen.findByRole("button", { name: "Relire les réglages" });
+    expect((await getMaintenanceSettings(two)).message).toBe(
+      "Committed despite lost response",
+    );
+    expect(
+      screen.getByDisplayValue("Committed despite lost response"),
+    ).toBeOnTheScreen();
+    const writes = mockPatchCount;
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Relire les réglages" }),
+    );
+    // Then
+    await screen.findByText(
+      "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
+    );
+    expect(mockPatchCount).toBe(writes);
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Enregistrer le contenu" }),
+    );
+    // Then
+    await screen.findByText("Contenu enregistré.");
+    expect(client.getQueryState(publicKey)?.isInvalidated).toBe(true);
+    expect(client.getQueryData(publicKey)).toEqual(full);
+    expect(mockPublicReads).toBe(1);
+    stopObserving();
+  });
+});
+/** Mounts the actual form component with its real F05/Query owners, outside production route admission. */
+async function renderEditor() {
+  await render(<MaintenanceSettingsScreen />, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <AccountSessionProvider>{children}</AccountSessionProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    ),
+  });
+  await screen.findByLabelText("Message de maintenance");
+}
+/** Edits the real RHF-controlled native input; the server receives only the generated mutation. */
+async function draft(message: string) {
+  const user = userEvent.setup();
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(screen.getByLabelText("Message de maintenance"), message);
+  return user;
+}

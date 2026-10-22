@@ -22,24 +22,33 @@ const containerGradient = {
   y2: 99.282,
 };
 
-/** Primary regular action: the caller owns effects, busy state and the full accessible label. */
+/** Regular action: the caller owns effects, busy state, variant and the full accessible label. */
 export interface ButtonProps {
   label: string;
   onPress: PressableProps["onPress"];
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
+  /** Approved flat success or bordered secondary action; primary retains its context gradient. */
+  variant?: "primary" | "success" | "secondary";
 }
 
-/** Presents a primary action with source-owned gradient geometry and native unavailable states. */
+/** Presents approved action variants with source-owned paints and native unavailable states. */
 export function Button({
   label,
   onPress,
   disabled = false,
   loading = false,
   fullWidth = false,
+  variant = "primary",
 }: ButtonProps) {
-  const { context } = useTheme();
+  const { context, colors } = useTheme();
+  const foreground =
+    variant === "primary"
+      ? context.onAction
+      : variant === "success"
+        ? colors.onSuccessAction
+        : colors.text;
   const gradient = fullWidth ? containerGradient : contentGradient;
   const background = `<svg xmlns="http://www.w3.org/2000/svg" width="${gradient.width}" height="48" viewBox="0 0 ${gradient.width} 48" preserveAspectRatio="none">
     <defs><linearGradient id="fill" x1="${gradient.x1}" y1="${gradient.y1}" x2="${gradient.x2}" y2="${gradient.y2}" gradientUnits="userSpaceOnUse">
@@ -56,14 +65,21 @@ export function Button({
         styles.action,
         fullWidth ? styles.container : styles.content,
         {
-          backgroundColor: context.primary,
+          backgroundColor:
+            variant === "primary"
+              ? context.primary
+              : variant === "success"
+                ? colors.successAction
+                : colors.raised,
+          borderWidth: variant === "secondary" ? tokens.borderWidth : 0,
+          borderColor: colors.border,
           opacity: disabled
             ? tokens.opacity.disabled
             : pressed
               ? tokens.opacity.pressed
               : 1,
           boxShadow:
-            disabled || pressed
+            disabled || pressed || variant !== "primary"
               ? []
               : [
                   {
@@ -76,19 +92,21 @@ export function Button({
         },
       ]}
     >
-      <Image
-        accessible={false}
-        source={{ uri: `data:image/svg+xml;base64,${btoa(background)}` }}
-        recyclingKey={`${context.actionStart}/${context.actionEnd}`}
-        contentFit="fill"
-        style={styles.gradient}
-      />
-      {loading && <LoadingIndicator color={context.onAction} />}
+      {variant === "primary" && (
+        <Image
+          accessible={false}
+          source={{ uri: `data:image/svg+xml;base64,${btoa(background)}` }}
+          recyclingKey={`${context.actionStart}/${context.actionEnd}`}
+          contentFit="fill"
+          style={styles.gradient}
+        />
+      )}
+      {loading && <LoadingIndicator color={foreground} />}
       <Text
         style={[
           styles.label,
           !fullWidth && styles.contentLabel,
-          { color: context.onAction },
+          { color: foreground },
         ]}
         numberOfLines={2}
         ellipsizeMode="tail"

@@ -70,7 +70,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
    * @param suppliedHeaders framework headers such as Allow and Accept
    * @return a non-cacheable problem response
    */
-  private ResponseEntity<Object> safeProblem(
+  protected ResponseEntity<Object> safeProblem(
       HttpStatusCode status, String type, HttpHeaders suppliedHeaders) {
     ProblemResponse problem =
         new ProblemResponse(

@@ -13,4 +13,29 @@
                              referencedTableName="account" referencedColumnNames="id"
                              constraintName="fk_account_permission_account" onDelete="CASCADE"/>
   </changeSet>
+  <changeSet id="access-settings" author="blockout">
+    <createTable tableName="access_settings">
+      <column name="id" type="VARCHAR(255)"><constraints primaryKey="true" primaryKeyName="pk_access_settings" nullable="false"/></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="active" type="BOOLEAN"/>
+      <column name="message" type="TEXT"/>
+      <column name="image_url" type="TEXT"/>
+      <column name="ios_minimum_version" type="TEXT"/>
+      <column name="ios_store_url" type="TEXT"/>
+      <column name="android_minimum_version" type="TEXT"/>
+      <column name="android_store_url" type="TEXT"/>
+    </createTable>
+    <!-- Native checks protect the fixed aggregate identities and safe managed version range. -->
+    <sql>ALTER TABLE access_settings ADD CONSTRAINT ck_access_settings_identity CHECK (id IN ('maintenance', 'versions'))</sql>
+    <sql>ALTER TABLE access_settings ADD CONSTRAINT ck_access_settings_revision CHECK (revision BETWEEN 0 AND 9007199254740991)</sql>
+    <sql>ALTER TABLE access_settings ADD CONSTRAINT ck_access_settings_group CHECK (
+      (id = 'maintenance' AND active IS NOT NULL AND message IS NOT NULL AND ios_minimum_version IS NULL AND ios_store_url IS NULL AND android_minimum_version IS NULL AND android_store_url IS NULL)
+      OR (id = 'versions' AND active IS NULL AND image_url IS NULL))</sql>
+    <insert tableName="access_settings">
+      <column name="id" value="maintenance"/>
+      <column name="active" valueBoolean="false"/>
+      <column name="message" value="Nous intervenons sur le service. Vous pouvez réessayer plus tard."/>
+    </insert>
+    <insert tableName="access_settings"><column name="id" value="versions"/></insert>
+  </changeSet>
 </databaseChangeLog>

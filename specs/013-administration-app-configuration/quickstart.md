@@ -42,3 +42,31 @@ On 2026-10-22, the 20 semantic cases in `apps/mobile/src/features/access/__tests
 An unsigned local iOS development build succeeded for the reserved iOS 17 simulator, with Sentry's native `SENTRY_DISABLE_AUTO_UPLOAD=true` option. A direct `/administration` link rendered the existing closed-admission refusal in light and dark appearances. This proves local compilation and the bounded refusal only, not operator, provider, physical-device or complete design qualification. The technical entry follows approved [Account 4868:5908](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4868-5908), F13 tokens and bundled Outfit; no operator-session visual acceptance is claimed. Text scaling retains the accepted [F13 iOS limitation](../003-shared-quality/quickstart.md#native-mobile-and-approved-design), without a remount or local dependency patch.
 
 Admission remains closed by default through the existing F05 composition boundary. T028/#180 owns separate operational routes and version/maintenance guards; T019, T037 and F01 own the linked destination screens. T011, T031 and the remaining integrated/native scenarios above remain unqualified. Entry visibility supplies no domain grant, temporary bypass, F09 owner power or F11 legal publication.
+
+## Atomic settings — T012–T020
+
+On 2026-10-23, the generated-interface MVC/value suites passed 51 cases and the migrated PostgreSQL suite passed 20 cases. They exercise required/current revisions, shape and whole-result validation, safe integer limits, independent grants, omission/null/value, stale and matching no-ops, simultaneous same-group commits, independent groups, shared iOS/Android revisions, content versus activation, commit-time no-op checks and both account-lock/revocation orders. Complete public reads use one SQL statement and hide inactive prepared content. Missing, invalid and inaccessible settings return the canonical 503; one structured diagnostic records only the bounded settings operation, outcome and failure category, without rejected values or dependency messages.
+
+The 21 semantic maintenance tests use the real form, RHF, Query and F05 session owners with controlled native credentials and HTTP. They cover initial loading/failure, dirty drafts, explicit removal, URL/blank-text refusals, image display failure, independent activation, confirmation cancellation, failed permission refresh, successful grant revocation, conflicts and failed rereads. A revoked grant retains an existing draft read-only with both commands disabled; even a previously opened native confirmation sends no mutation after revocation. The initial behavior tests failed before implementation. These tests establish JavaScript behavior, not native rendering or provider sign-in.
+
+T020 additionally runs five generated TypeScript/form cases against the actual Spring HTTP provider and isolated migrated PostgreSQL. Only native credential I/O and the short-lived test JWT issuer/JWKS are controlled; settings/account HTTP is real. Two editors exercise concurrent conflicts, independent groups, shared platform revisions, active content changes and invalid whole-result refusal. The lost-response case drops the response after the server commits, preserves the draft, rereads without replay, then requires explicit resubmission. An observed full public query remains invalidated without being refetched or replaced by a partial save. The Java integration test launches the existing Jest runner; it adds no E2E framework or external Auth0 dependency.
+
+After dependency installation and generation, run this boundary with Docker available:
+
+```sh
+BLOCKOUT_ACCESS_CONSUMERS_TEST=true ./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=AdministrationSettingsWebMvcTest,AccessSettingsValidationTest \
+  -Dit.test=AccessSettingsIntegrationTest,AccessSettingsConsumersIntegrationTest,HealthEndpointIntegrationTest
+npm run test --workspace=@blockout/mobile -- \
+  --runTestsByPath src/features/access/__tests__/maintenance-settings.test.tsx
+```
+
+For the complete repository check when private per-application `.env.local` files exist, disable Nx's local dotenv loading so synthetic security tests keep their committed inputs:
+
+```sh
+NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false BLOCKOUT_ACCESS_CONSUMERS_TEST=true npm run verify
+```
+
+The native component follows the approved maintenance controls in [inactive light 1450:14015](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1450-14015), [inactive dark 1470:13907](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1470-13907) and [active control 5978:48721](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5978-48721), using F13 tokens, original bundled SVG icons, inline URL preview and native confirmations. A local iOS 17 development build compiled and launched with the real native Auth0 SDK, then opened hosted preproduction sign-in. Interactive component captures, keyboard/back behavior, theme comparison and native accessibility remain unavailable: the hosted login view did not accept clicks or text, including manual input and simulator restarts. No operator-form screenshot or native qualification is claimed. The dedicated test account and its credentials remain private and ignored; no provider configuration was changed.
+
+T019 remains open for this bounded native component evidence. T020's real generated/provider/PostgreSQL evidence above is complete; full root/admission integration remains with T028/T031 and US5. No production admission was forced open. Android native execution, physical devices, store/provider qualification and the accepted F13 iOS text-scaling limit remain outside the evidence reported here.
