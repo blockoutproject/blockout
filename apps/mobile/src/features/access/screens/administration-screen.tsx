@@ -47,7 +47,7 @@ export function AdministrationScreen({ admitted }: AdministrationScreenProps) {
         </IconButton>
         <Text
           accessibilityRole="header"
-          style={[tokens.typography.heading, { color: colors.text }]}
+          style={[styles.title, { color: colors.text }]}
         >
           Administration technique
         </Text>
@@ -101,6 +101,7 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   backIcon: { width: tokens.size.actionIcon, height: tokens.size.actionIcon },
+  title: { ...tokens.typography.heading, flex: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
   command: {
     ...tokens.typography.strong,
