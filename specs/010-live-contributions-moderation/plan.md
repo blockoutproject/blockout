@@ -115,7 +115,7 @@ Approved Product Design references:
 - [Historical-version reports, light](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4736-32107).
 - Current-state recovery in [moderation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5569-48570) and the [personal contributions](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5558-70675).
 
-Existing library instances and product patterns cover the previously approved content; the presentation revision adds no business requirement or library primitive. Published-instance synchronization for the changed presentation remains to verify through F13. Existing approvals remain authoritative elsewhere. The 206 prototype tests, TypeScript and build passed; browser inspection included narrow/dark report display and uncertain-response reactivation. Figma captures establish the inspected layouts only, not native accessibility or provider behavior.
+Existing library instances and product patterns cover the previously approved content; the presentation revision adds no business requirement or library primitive. Published-instance synchronization for the changed presentation is verified by [F13’s scoped receipt evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design). Existing approvals remain authoritative elsewhere. The 206 prototype tests, TypeScript and build passed; browser inspection included narrow/dark report display and uncertain-response reactivation. Figma captures establish the inspected layouts only, not native accessibility or provider behavior.
 
 ## Verification and delivery
 

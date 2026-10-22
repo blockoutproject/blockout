@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Owner-agreed functional baseline with the 2026-10-22 presentation simplification integrated. Current prototype/Figma evidence and its publication limits are tracked in [F13 #138](../003-shared-quality/quickstart.md#native-mobile-and-approved-design); unchanged approvals remain applicable. Technical decisions are recorded in [plan.md](plan.md); implementation qualification remains pending.
+**Status**: Owner-agreed functional baseline with the 2026-10-22 presentation simplification integrated. Current prototype/Figma evidence and scoped publication/receipt results are tracked in [F13 #138](../003-shared-quality/quickstart.md#native-mobile-and-approved-design); unchanged approvals remain applicable. Technical decisions are recorded in [plan.md](plan.md); implementation qualification remains pending.
 
 **Input**: [#261](https://github.com/blockoutproject/blockout-legacy/issues/261), F05 in the [specification navigation](../../README.md#specifications). Define guest access, onboarding, sign-in, profile creation and editing, already linked identities, sessions, account-age evidence and voluntary deletion through a possible return. Detailed paid entitlements belong to F09; migration belongs to F14.
 
