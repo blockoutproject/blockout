@@ -1,7 +1,9 @@
 package com.blockout.backend.accounts.infrastructure;
 
 import com.blockout.backend.accounts.application.AccountStore;
+import com.blockout.backend.accounts.application.ProfilePhoto;
 import com.blockout.backend.accounts.domain.Account;
+import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class JpaAccountStore implements AccountStore {
   private final AccountRepository accounts;
+  private final AccountPhotoRepository photos;
   private final AccountPersistenceMapper mapper;
 
   /** {@inheritDoc} */
@@ -34,6 +37,23 @@ public class JpaAccountStore implements AccountStore {
   @Override
   public boolean hasPhoto(UUID id) {
     return accounts.hasPhoto(id);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<ProfilePhoto> photo(UUID id) {
+    return photos.findById(id).map(AccountPhotoEntity::photo);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void changeProfile(
+      UUID id, String username, ProfilePhotoActionEnum photoAction, ProfilePhoto photo) {
+    if (username != null) accounts.findById(id).orElseThrow().setUsername(username);
+    if (photoAction != null) photos.findById(id).orElseThrow().replace(photo);
+    // Flush inside the use case so only the named username constraint becomes a business refusal.
+    accounts.flush();
   }
 
   /** {@inheritDoc} */

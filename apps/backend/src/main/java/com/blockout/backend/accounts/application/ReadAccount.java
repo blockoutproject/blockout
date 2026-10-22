@@ -51,6 +51,23 @@ public class ReadAccount {
   }
 
   /**
+   * Reads private photo bytes after the same original-owner check as profile access.
+   *
+   * @param issuer validated issuer
+   * @param subject validated subject
+   * @param id original business UUID
+   * @return accepted PNG/JPEG bytes
+   * @throws AccountNotFoundException when the account/photo is absent or belongs to another owner
+   */
+  public ProfilePhoto photo(String issuer, String subject, UUID id) {
+    accounts
+        .findById(id)
+        .filter(account -> issuer.equals(account.issuer()) && subject.equals(account.subject()))
+        .orElseThrow(AccountNotFoundException::new);
+    return accounts.photo(id).orElseThrow(AccountNotFoundException::new);
+  }
+
+  /**
    * Composes current local presentation facts inside this read transaction.
    *
    * @param account already authorized local account

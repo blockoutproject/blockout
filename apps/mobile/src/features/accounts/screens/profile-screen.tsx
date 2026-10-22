@@ -1,7 +1,10 @@
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text } from "react-native";
+import {
+  KeyboardAwareScrollView,
+  KeyboardProvider,
+} from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { Button } from "../../../shared/components/button";
@@ -12,6 +15,7 @@ import {
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useCurrentAccount } from "../api/use-current-account";
+import { ProfileForm } from "../components/profile-form";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { useAccountSession } from "../session/account-session-provider";
 
@@ -20,8 +24,23 @@ export interface ProfileScreenProps {
   admitted: boolean;
 }
 
-/** Minimal read-only profile from local account data; edits, photos and erasure retain their later owners. */
+/** Each platform uses its accepted single keyboard mechanism for this ordinary bounded form. */
+const ProfileScrollView =
+  Platform.OS === "ios" ? ScrollView : KeyboardAwareScrollView;
+
+/** Current owner profile with an isolated editable draft; admission remains controlled by F12. */
 export function ProfileScreen({ admitted }: ProfileScreenProps) {
+  return Platform.OS === "android" ? (
+    <KeyboardProvider>
+      <ProfileContent admitted={admitted} />
+    </KeyboardProvider>
+  ) : (
+    <ProfileContent admitted={admitted} />
+  );
+}
+
+/** Retains confirmed profile content and its draft through a failed background refresh. */
+function ProfileContent({ admitted }: ProfileScreenProps) {
   const session = useAccountSession();
   const account = useCurrentAccount();
   const router = useRouter();
@@ -43,7 +62,11 @@ export function ProfileScreen({ admitted }: ProfileScreenProps) {
   }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ProfileScrollView
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.content}
+      >
         {!admitted ? (
           <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
         ) : (
@@ -52,7 +75,7 @@ export function ProfileScreen({ admitted }: ProfileScreenProps) {
               accessibilityRole="header"
               style={[tokens.typography.heading, { color: colors.text }]}
             >
-              Mon profil
+              Modifier mon profil
             </Text>
             {session.status === "restoring" ||
             (session.status === "authenticated" && account.isPending) ? (
@@ -62,69 +85,32 @@ export function ProfileScreen({ admitted }: ProfileScreenProps) {
                 label="Se connecter"
                 onPress={() => router.replace("/sign-in")}
               />
-            ) : account.isError ? (
+            ) : (
               <>
-                <RequestError
-                  message={
-                    missing
-                      ? "Votre compte Blockout est introuvable."
-                      : "Votre profil Blockout est indisponible."
-                  }
-                  onRetry={() => void account.refetch()}
-                  retrying={account.isFetching}
-                />
+                {account.isError && (
+                  <RequestError
+                    message={
+                      missing
+                        ? "Votre compte Blockout est introuvable."
+                        : "Votre profil Blockout est indisponible."
+                    }
+                    onRetry={() => void account.refetch()}
+                    retrying={account.isFetching}
+                  />
+                )}
                 {missing && (
                   <Button
                     label="Se connecter"
                     onPress={() => router.replace("/sign-in")}
                   />
                 )}
-              </>
-            ) : (
-              account.data && (
-                <View
-                  style={[
-                    styles.profile,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Image
-                    accessible
-                    accessibilityRole="image"
-                    accessibilityLabel="Avatar par défaut"
-                    source={require("../../../../assets/accounts/user-round.svg")}
-                    tintColor={colors.icon}
-                    style={[
-                      styles.avatar,
-                      { backgroundColor: colors.mediaPlaceholder },
-                    ]}
-                    contentFit="contain"
+                {account.data && (
+                  <ProfileForm
+                    key={`${session.generation}:${account.data.accountId}`}
+                    account={account.data}
                   />
-                  <Text
-                    style={[tokens.typography.label, { color: colors.text }]}
-                  >
-                    Pseudo
-                  </Text>
-                  <Text
-                    style={[tokens.typography.body, { color: colors.text }]}
-                  >
-                    {account.data.username}
-                  </Text>
-                  <Text
-                    style={[tokens.typography.label, { color: colors.text }]}
-                  >
-                    Adresse e-mail
-                  </Text>
-                  <Text
-                    style={[tokens.typography.body, { color: colors.text }]}
-                  >
-                    {account.data.email}
-                  </Text>
-                </View>
-              )
+                )}
+              </>
             )}
             {guestError && (
               <RequestError message="La déconnexion locale a échoué. Réessayez." />
@@ -137,23 +123,11 @@ export function ProfileScreen({ admitted }: ProfileScreenProps) {
             <PublicAccountLinks />
           </>
         )}
-      </ScrollView>
+      </ProfileScrollView>
     </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
-  profile: {
-    borderWidth: tokens.borderWidth,
-    borderRadius: tokens.radius.sheet,
-    padding: tokens.spacing.lg,
-    gap: tokens.spacing.sm,
-  },
-  avatar: {
-    width: 92,
-    height: 92,
-    borderRadius: tokens.radius.media,
-    alignSelf: "center",
-  },
 });

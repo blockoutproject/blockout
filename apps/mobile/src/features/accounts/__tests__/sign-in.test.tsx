@@ -25,6 +25,10 @@ import { SignInScreen } from "../screens/sign-in-screen";
 import { ProfileScreen } from "../screens/profile-screen";
 import { credentialsFor, mockClient } from "../test-support/native-auth0";
 
+// The installed library controls native keyboard I/O; form and session behavior remain real.
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -269,7 +273,7 @@ it("never bootstraps an absent account during restoration or a profile read retr
   expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
 });
 
-it("renders only the minimal local profile and default avatar after ordinary restoration", async () => {
+it("renders the local editable profile after ordinary restoration", async () => {
   // Given
   mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
   mockFetch.mockImplementation(async () => json(account));
@@ -278,10 +282,10 @@ it("renders only the minimal local profile and default avatar after ordinary res
   await renderJourney(<ProfileScreen admitted />);
 
   // Then
-  expect(await screen.findByText("Player_169")).toBeOnTheScreen();
-  expect(screen.getByText("shared@example.invalid")).toBeOnTheScreen();
+  expect(await screen.findByDisplayValue("Player_169")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("shared@example.invalid")).toBeOnTheScreen();
   expect(
-    screen.getByRole("image", { name: "Avatar par défaut" }),
+    screen.getByRole("button", { name: "Choisir une photo de profil" }),
   ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),

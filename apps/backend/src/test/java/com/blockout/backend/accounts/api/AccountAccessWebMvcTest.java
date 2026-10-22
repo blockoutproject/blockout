@@ -59,6 +59,8 @@ class AccountAccessWebMvcTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private AccountStore store;
   @MockitoBean private EstablishAccount establishment;
+  @MockitoBean private com.blockout.backend.accounts.application.ChangeAccountProfile changes;
+  @MockitoBean private com.blockout.backend.accounts.infrastructure.ProfilePhotoProcessor photos;
   @MockitoBean private CurrentPermissions permissions;
   @MockitoBean private AccountAdmission admission;
 
@@ -262,6 +264,9 @@ class AccountAccessWebMvcTest {
   /**
    * Supplies validated synthetic JWTs only for this MVC slice; the real signature suite owns trust
    * validation.
+   *
+   * @param client scenario-owned allowed or refused client identifier
+   * @return controlled JWT request postprocessor
    */
   private static RequestPostProcessor principal(String client) {
     return jwt()

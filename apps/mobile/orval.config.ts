@@ -12,6 +12,12 @@ export default defineConfig({
       clean: true,
       override: {
         operations: {
+          changeAccountProfile: {
+            formData: {
+              path: "src/features/accounts/api/profile-form-data.ts",
+              name: "profileFormData",
+            },
+          },
           createSupportRequest: {
             formData: {
               path: "src/features/support/api/support-form-data.ts",

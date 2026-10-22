@@ -1,6 +1,7 @@
 package com.blockout.backend.accounts.application;
 
 import com.blockout.backend.accounts.domain.Account;
+import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,6 +35,26 @@ public interface AccountStore {
    * @return whether that lifecycle currently has a photo
    */
   boolean hasPhoto(UUID id);
+
+  /**
+   * Loads only the original account's accepted pixels; callers authorize the owner first.
+   *
+   * @param id original lifecycle UUID
+   * @return accepted photo, or empty when absent
+   */
+  Optional<ProfilePhoto> photo(UUID id);
+
+  /**
+   * Applies supplied profile fields to an already locked original row and flushes uniqueness.
+   * Omitted values preserve the locked current state; replacement/removal update all photo columns.
+   *
+   * @param id original UUID locked by the caller
+   * @param username normalized supplied username, or null to preserve
+   * @param photoAction supplied canonical photo intent, or null to preserve
+   * @param photo prepared replacement pixels, otherwise null
+   */
+  void changeProfile(
+      UUID id, String username, ProfilePhotoActionEnum photoAction, ProfilePhoto photo);
 
   /**
    * Locks the original account until the caller's transaction completes. Acquire any domain root

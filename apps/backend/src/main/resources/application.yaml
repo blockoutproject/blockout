@@ -14,7 +14,8 @@ spring:
     multipart:
       max-file-size: 5242880B
       max-request-size: 27262976B
-      file-size-threshold: 0B
+      # Keep bounded accepted parts in memory; profile photos have no staged upload on disk.
+      file-size-threshold: 5242880B
   jpa:
     open-in-view: false
     hibernate:
