@@ -7,7 +7,12 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
-import { AuthError, WebAuthError, WebAuthErrorCodes } from "react-native-auth0";
+import {
+  AuthError,
+  WebAuthError,
+  WebAuthErrorCodes,
+  type Credentials,
+} from "react-native-auth0";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -113,13 +118,15 @@ afterEach(() => {
 /** Actual providers, controlled native/HTTP I/O and independently supplied F12 admission. */
 async function renderJourney(content = <SignInScreen admitted />) {
   const client = queryClient;
-  return render(
-    <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <AccountSessionProvider>{content}</AccountSessionProvider>
-      </ThemeProvider>
-    </QueryClientProvider>,
-  );
+  return render(content, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>
+        <ThemeProvider>
+          <AccountSessionProvider>{children}</AccountSessionProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    ),
+  });
 }
 
 /** Local lifecycle action for delayed-response tests; the sole real session owner handles invalidation. */
@@ -373,6 +380,88 @@ it("does not admit login or profile navigation through a controlled F12 refusal"
   ).not.toBeOnTheScreen();
   expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
   expect(mockFetch).not.toHaveBeenCalled();
+});
+
+it.each(["while blocked", "after readmission"])(
+  "requires an explicit retry when interrupted login finishes %s",
+  async (completion) => {
+    // Given
+    const login = Promise.withResolvers<Credentials>();
+    mockClient.webAuth.authorize.mockReturnValue(login.promise);
+    const user = userEvent.setup();
+    const journey = await renderJourney();
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+    // When
+    await journey.rerender(<SignInScreen admitted={false} />);
+    if (completion === "after readmission")
+      await journey.rerender(<SignInScreen admitted />);
+    await act(async () => login.resolve(credentialsFor("auth0|one")));
+    if (completion === "while blocked")
+      await journey.rerender(<SignInScreen admitted />);
+
+    // Then
+    expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+    // Then
+    expect(mockClient.webAuth.authorize).toHaveBeenCalledTimes(1);
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
+    ).toHaveLength(1);
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
+  },
+);
+
+it("allows a new login after admission withdrawal and completed local sign-out", async () => {
+  // Given
+  const login = Promise.withResolvers<Credentials>();
+  mockClient.webAuth.authorize.mockReturnValueOnce(login.promise);
+  const user = userEvent.setup();
+  const journey = await renderJourney(
+    <>
+      <SignInScreen admitted />
+      <EndSession />
+    </>,
+  );
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+  await journey.rerender(
+    <>
+      <SignInScreen admitted={false} />
+      <EndSession />
+    </>,
+  );
+  await act(async () => login.resolve(credentialsFor("auth0|one")));
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Quitter la session" }));
+  await journey.rerender(
+    <>
+      <SignInScreen admitted />
+      <EndSession />
+    </>,
+  );
+
+  // Then
+  expect(mockClient.credentialsManager.clearCredentials).toHaveBeenCalledTimes(
+    1,
+  );
+  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+  // Then
+  expect(mockClient.webAuth.authorize).toHaveBeenCalledTimes(2);
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
+  ).toHaveLength(1);
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
 });
 
 it("preserves guest access when F14 initialization fails before restoration", async () => {

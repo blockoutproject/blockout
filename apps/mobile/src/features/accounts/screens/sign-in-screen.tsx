@@ -18,8 +18,20 @@ export interface SignInScreenProps {
   admitted: boolean;
 }
 
-/** One hosted-login entry, explicit profile establishment and a public guest exit; no return-action replay. */
+/** Keeps login intent scoped to admitted navigation; blocking access discards the local journey. */
 export function SignInScreen({ admitted }: SignInScreenProps) {
+  const { colors } = useTheme();
+  return admitted ? (
+    <SignInJourney />
+  ) : (
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
+      <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
+    </SafeAreaView>
+  );
+}
+
+/** Owns one admitted login attempt; late native completion cannot restart a discarded journey. */
+function SignInJourney() {
   const router = useRouter();
   const session = useAccountSession();
   const { colors, membership } = useTheme();
@@ -40,8 +52,7 @@ export function SignInScreen({ admitted }: SignInScreenProps) {
     if (
       !loginSucceeded ||
       loginStarted.current ||
-      session.status !== "authenticated" ||
-      !admitted
+      session.status !== "authenticated"
     )
       return;
     loginStarted.current = true;
@@ -54,11 +65,11 @@ export function SignInScreen({ admitted }: SignInScreenProps) {
         if (session.isCurrent(session.generation)) router.replace("/profile");
       },
     });
-  }, [loginSucceeded, session, admitted, mutate, router]);
+  }, [loginSucceeded, session, mutate, router]);
 
   /** Starts either hosted authentication or a targeted retry using still-valid SDK credentials. */
   async function signIn() {
-    if (busy || !admitted) return;
+    if (busy) return;
     setLoginError(undefined);
     if (session.status === "authenticated") {
       mutate(session, {
@@ -100,12 +111,6 @@ export function SignInScreen({ admitted }: SignInScreenProps) {
     }
   }
 
-  if (!admitted)
-    return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
-        <RequestError message="L’accès à l’application doit être vérifié avant de continuer." />
-      </SafeAreaView>
-    );
   const missingEmail =
     establishment.error instanceof ApiError &&
     establishment.error.problem?.type ===
