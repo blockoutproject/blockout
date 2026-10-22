@@ -1,0 +1,241 @@
+import { waitFor } from "@testing-library/react-native";
+import Purchases from "react-native-purchases";
+import { createSessionGeneration } from "../../accounts";
+import { createProSession } from "../pro-session";
+import { customerInfo, entitlement } from "../test-support/customer-info";
+
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    expoConfig: { extra: { revenueCat: { iosApiKey: "test_public" } } },
+  },
+}));
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../test-support/native-purchases").mockPurchases,
+}));
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+
+const a = "00000000-0000-4000-8000-000000000001";
+const b = "00000000-0000-4000-8000-000000000002";
+const info = customerInfo({
+  active: {},
+  all: {},
+  verification: Purchases.VERIFICATION_RESULT.NOT_REQUESTED,
+});
+let session: ReturnType<typeof createSessionGeneration>;
+let owner: ReturnType<typeof createProSession>;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  jest.mocked(Purchases.isConfigured).mockResolvedValue(true);
+  jest.mocked(Purchases.isAnonymous).mockResolvedValue(false);
+  jest
+    .mocked(Purchases.logIn)
+    .mockResolvedValue({ customerInfo: info, created: false });
+  jest.mocked(Purchases.logOut).mockResolvedValue(info);
+  jest.mocked(Purchases.getCustomerInfo).mockResolvedValue(info);
+  session = createSessionGeneration();
+  owner = createProSession();
+  // Real F05 publication, with only RevenueCat I/O controlled.
+  session.subscribe(() => owner.setTarget(session.getSnapshot()));
+});
+
+it("waits for a usable UUID before configuring once and reading current information", async () => {
+  // Given
+  owner.setTarget(session.getSnapshot());
+  expect(Purchases.configure).not.toHaveBeenCalled();
+
+  // When
+  session.setAccount(session.getSnapshot().generation, a);
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+  );
+  session.setAccount(session.getSnapshot().generation, b);
+
+  // Then
+  await waitFor(() => expect(Purchases.logIn).toHaveBeenCalledWith(b));
+  expect(Purchases.configure).toHaveBeenCalledTimes(1);
+  expect(Purchases.configure).toHaveBeenCalledWith({
+    apiKey: "test_public",
+    appUserID: a,
+  });
+});
+
+it("preserves current login-supplied active rights if the following ordinary read fails", async () => {
+  // Given
+  session.setAccount(session.getSnapshot().generation, a);
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+  );
+  const active = { "Blockout Pro": entitlement() };
+  const loginInfo = customerInfo({
+    active,
+    all: active,
+    verification: Purchases.VERIFICATION_RESULT.NOT_REQUESTED,
+  });
+  jest
+    .mocked(Purchases.logIn)
+    .mockResolvedValueOnce({ customerInfo: loginInfo, created: false });
+  jest
+    .mocked(Purchases.getCustomerInfo)
+    .mockRejectedValueOnce(new Error("private SDK data"));
+
+  // When
+  session.setAccount(session.getSnapshot().generation, b);
+
+  // Then
+  await waitFor(() =>
+    expect(owner.getSnapshot().verificationFailed).toBe(true),
+  );
+  expect(owner.getSnapshot().evidence?.customerInfo).toBe(loginInfo);
+});
+
+it("finishes configuration before logging out when its account is erased", async () => {
+  // Given
+  const configured = Promise.withResolvers<boolean>();
+  jest.mocked(Purchases.isConfigured).mockReturnValueOnce(configured.promise);
+  session.setAccount(session.getSnapshot().generation, a);
+
+  // When
+  session.invalidate();
+
+  // Then
+  expect(owner.getSnapshot().evidence).toBeNull();
+  expect(Purchases.logOut).not.toHaveBeenCalled();
+  configured.resolve(true);
+  await waitFor(() => expect(Purchases.logOut).toHaveBeenCalledTimes(1));
+  expect(Purchases.getCustomerInfo).not.toHaveBeenCalled();
+});
+
+it.each([a, b])(
+  "settles configuration before applying the latest target %s, skipping obsolete guests",
+  async (target) => {
+    // Given: configure is void; isConfigured is the SDK's asynchronous setup check.
+    const configured = Promise.withResolvers<boolean>();
+    jest.mocked(Purchases.isConfigured).mockReturnValueOnce(configured.promise);
+    session.setAccount(session.getSnapshot().generation, a);
+
+    // When
+    session.invalidate();
+    session.setAccount(session.getSnapshot().generation, target);
+    expect(owner.getSnapshot().evidence?.customerInfo ?? null).toBeNull();
+    expect(Purchases.logIn).not.toHaveBeenCalled();
+    expect(Purchases.logOut).not.toHaveBeenCalled();
+    configured.resolve(true);
+
+    // Then
+    await waitFor(() =>
+      expect(owner.getSnapshot().evidence?.session).toEqual(
+        session.getSnapshot(),
+      ),
+    );
+    await waitFor(() =>
+      expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+    );
+    expect(Purchases.logIn).toHaveBeenCalledTimes(1);
+    expect(Purchases.logIn).toHaveBeenCalledWith(target);
+    expect(Purchases.logOut).not.toHaveBeenCalled();
+  },
+);
+
+it("clears immediately on accepted erasure and waits for login before native logout", async () => {
+  // Given
+  session.setAccount(session.getSnapshot().generation, a);
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+  );
+  const login =
+    Promise.withResolvers<Awaited<ReturnType<typeof Purchases.logIn>>>();
+  jest.mocked(Purchases.logIn).mockReturnValueOnce(login.promise);
+  session.setAccount(session.getSnapshot().generation, b);
+
+  // When
+  session.invalidate();
+
+  // Then
+  expect(owner.getSnapshot().evidence).toBeNull();
+  expect(Purchases.logOut).not.toHaveBeenCalled();
+  login.resolve({ customerInfo: info, created: false });
+  await waitFor(() => expect(Purchases.logOut).toHaveBeenCalledTimes(1));
+  expect(owner.getSnapshot().evidence).toBeNull();
+});
+
+it("waits for logout before login and skips an intermediate known account", async () => {
+  // Given
+  session.setAccount(session.getSnapshot().generation, a);
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+  );
+  const logout = Promise.withResolvers<typeof info>();
+  jest.mocked(Purchases.logOut).mockReturnValueOnce(logout.promise);
+  session.invalidate();
+  await waitFor(() => expect(Purchases.logOut).toHaveBeenCalledTimes(1));
+
+  // When
+  session.setAccount(session.getSnapshot().generation, b);
+  session.setAccount(session.getSnapshot().generation, a);
+  expect(Purchases.logIn).not.toHaveBeenCalled();
+  logout.resolve(info);
+
+  // Then
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+  );
+  expect(Purchases.logIn).toHaveBeenCalledTimes(1);
+  expect(Purchases.logIn).toHaveBeenCalledWith(a);
+});
+
+it("leaves a failed current association unavailable until explicit retry", async () => {
+  // Given
+  session.setAccount(session.getSnapshot().generation, a);
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+  );
+  jest
+    .mocked(Purchases.logIn)
+    .mockRejectedValueOnce(new Error("private SDK payload"));
+  session.setAccount(session.getSnapshot().generation, b);
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.association).toBe("failed"),
+  );
+
+  // When
+  owner.setTarget(session.getSnapshot());
+  await owner.refresh(session.getSnapshot());
+  expect(Purchases.logIn).toHaveBeenCalledTimes(1);
+  owner.retry(session.getSnapshot());
+
+  // Then
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+  );
+  expect(Purchases.logIn).toHaveBeenCalledTimes(2);
+});
+
+it.each([a, b])("rejects an old read across A → guest → %s", async (target) => {
+  // Given
+  const read = Promise.withResolvers<typeof info>();
+  jest.mocked(Purchases.getCustomerInfo).mockReturnValueOnce(read.promise);
+  session.setAccount(session.getSnapshot().generation, a);
+  await waitFor(() =>
+    expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(1),
+  );
+  const old = session.getSnapshot();
+
+  // When
+  session.invalidate();
+  session.setAccount(session.getSnapshot().generation, target);
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
+  );
+  read.resolve({ ...info, originalAppUserId: "obsolete-synthetic-customer" });
+  await read.promise;
+  await owner.refresh(old);
+  owner.retry(old);
+
+  // Then
+  expect(owner.getSnapshot().evidence?.session).toEqual(session.getSnapshot());
+  expect(owner.getSnapshot().evidence?.customerInfo).toBe(info);
+  expect(Purchases.configure).toHaveBeenCalledTimes(1);
+});

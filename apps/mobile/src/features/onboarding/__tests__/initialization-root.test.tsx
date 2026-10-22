@@ -8,6 +8,12 @@ import RootLayout from "../../../app/_layout";
 import { useAccountSession } from "../../accounts/session/account-session-provider";
 import { credentialsFor } from "../../accounts/test-support/native-auth0";
 
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
+
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   Stack: jest.fn(),
