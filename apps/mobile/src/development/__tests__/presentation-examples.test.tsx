@@ -5,7 +5,7 @@ import { FormExampleScreen } from "../presentation-examples";
 
 // Keep form behavior real; the installed library supplies its native keyboard double.
 jest.mock("react-native-keyboard-controller", () =>
-  require("react-native-keyboard-controller/jest"),
+  jest.requireActual("react-native-keyboard-controller/jest"),
 );
 
 jest.unmock("react-native/Libraries/Utilities/useColorScheme");
