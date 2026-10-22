@@ -12,6 +12,17 @@
     <mapstruct.version>1.6.3</mapstruct.version>
   </properties>
   <dependencies>
+    <!-- OkHttp 5 exposes its JVM classes through this artifact for Maven compilation. -->
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-jvm</artifactId>
+      <version>5.2.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.auth0</groupId>
+      <artifactId>auth0</artifactId>
+      <version>5.4.0</version>
+    </dependency>
     <dependency>
       <groupId>org.opensearch.client</groupId>
       <artifactId>opensearch-java</artifactId>

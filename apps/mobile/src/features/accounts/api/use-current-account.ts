@@ -1,0 +1,85 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useAuth0 } from "react-native-auth0";
+import {
+  establishAccount,
+  getGetMyAccountQueryKey,
+  getMyAccount,
+} from "../../../../.generated/mobile";
+import { AccountResponse } from "../../../../.generated/schemas/index.zod";
+import { ApiError } from "../../../shared/api/api-fetch";
+import { getSessionQueryKey } from "../../../shared/query/query-client";
+import {
+  useAccountSession,
+  type AccountSession,
+} from "../session/account-session-provider";
+
+/** Reads the local profile on restoration; absence is never converted into establishment. */
+export function useCurrentAccount() {
+  const session = useAccountSession();
+  const auth = useAuth0();
+  const query = useQuery({
+    // The root observer retains the active account; detached private generations retain no cache.
+    gcTime: 0,
+    queryKey: getSessionQueryKey(session.generation, getGetMyAccountQueryKey()),
+    enabled: session.status === "authenticated",
+    queryFn: async ({ signal }) => {
+      const credentials = await auth.getCredentials();
+      if (!credentials) throw new ApiError("http", 401);
+      return getMyAccount({
+        signal,
+        session,
+        headers: { Authorization: `Bearer ${credentials.accessToken}` },
+      });
+    },
+  });
+  useEffect(() => {
+    if (
+      query.error instanceof ApiError &&
+      query.error.status === 404 &&
+      session.accountId
+    ) {
+      session.invalidate();
+    } else if (query.data && !query.isError) {
+      session.setAccount(session.generation, query.data.accountId);
+    }
+  }, [query.data, query.error, query.isError, session]);
+  return query;
+}
+
+/**
+ * Explicit mutation only: login success or a targeted user retry supplies the captured session.
+ * The generated POST has two success statuses, so its canonical response schema is supplied explicitly.
+ */
+export function useEstablishAccount() {
+  const auth = useAuth0();
+  const client = useQueryClient();
+  return useMutation({
+    gcTime: 0,
+    mutationFn: async (session: AccountSession) => {
+      try {
+        const credentials = await auth.getCredentials();
+        if (!credentials) throw new ApiError("http", 401);
+        const account = await establishAccount({
+          session,
+          schema: AccountResponse,
+          headers: { Authorization: `Bearer ${credentials.accessToken}` },
+        });
+        const queryKey = getSessionQueryKey(
+          session.generation,
+          getGetMyAccountQueryKey(),
+        );
+        await client.cancelQueries({ queryKey, exact: true });
+        if (!session.isCurrent(session.generation))
+          throw new ApiError("cancelled");
+        client.setQueryData(queryKey, account);
+        return account;
+      } catch (error) {
+        // Credential preparation precedes the shared transport's generation guard.
+        if (!session.isCurrent(session.generation))
+          throw new ApiError("cancelled");
+        throw error;
+      }
+    },
+  });
+}

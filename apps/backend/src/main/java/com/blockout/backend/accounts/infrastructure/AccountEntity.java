@@ -48,6 +48,9 @@ public class AccountEntity {
   @Setter(AccessLevel.PACKAGE)
   private Instant principalCreatedAt;
 
+  @Column(name = "photo_bytes")
+  private byte[] photoBytes;
+
   /**
    * Creates a lifecycle from validated identity evidence; native validation runs before
    * persistence.

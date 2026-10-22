@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.blockout.backend.access.application.PermissionStore;
 import com.blockout.backend.accounts.application.AccountStore;
+import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +49,7 @@ class HealthEndpointIntegrationTest {
   @MockitoBean private SportingStore sportingStore;
   @MockitoBean private CollectionStore collectionStore;
   @MockitoBean private AccountStore accounts;
+  @MockitoBean private EstablishAccount establishment;
   @MockitoBean private PermissionStore permissions;
 
   @MockitoBean(name = "dbHealthIndicator", answers = Answers.CALLS_REAL_METHODS)

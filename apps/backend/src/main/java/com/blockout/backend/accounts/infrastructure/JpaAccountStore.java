@@ -32,6 +32,12 @@ public class JpaAccountStore implements AccountStore {
 
   /** {@inheritDoc} */
   @Override
+  public boolean hasPhoto(UUID id) {
+    return accounts.hasPhoto(id);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public Optional<Account> lockById(UUID id) {
     return accounts.lockById(id).map(mapper::toDomain);

@@ -16,7 +16,7 @@ Delete the original account and its local personal data synchronously, then atte
 
 **Language/Version**: Java/Spring Boot backend and TypeScript/Expo mobile; versions follow the [F13 technical context](../003-shared-quality/plan.md#technical-context).
 
-**Primary Dependencies**: Spring Security resource server, JPA/Hibernate and ordinary PostgreSQL transactions; native `react-native-auth0`, Expo ImagePicker/ImageManipulator and TanStack Query. RevenueCat integration follows F09; contract tooling follows [F13](../003-shared-quality/contracts/README.md). Inspected SDK evidence is in [research](research.md#native-authentication-and-environment-boundary).
+**Primary Dependencies**: Spring Security resource server, JPA/Hibernate and ordinary PostgreSQL transactions; native `react-native-auth0`, Expo ImagePicker/ImageManipulator and TanStack Query. Backend Management operations use official `auth0-java` 5.4.0, with Spring OAuth2 Client supplying server credentials; the [integration decision](research.md#backend-management-api-integration) owns the bounded transports and rationale. RevenueCat integration follows F09; contract tooling follows [F13](../003-shared-quality/contracts/README.md). Inspected SDK evidence is in [research](research.md#native-authentication-and-environment-boundary).
 
 **Storage**: F13 PostgreSQL for accounts and photo bytes; no pending-erasure row. Native Auth0 secure credential storage; business cache and session generation in memory only. RevenueCat's standard cache remains separate.
 

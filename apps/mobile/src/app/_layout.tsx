@@ -2,7 +2,8 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
+import { useCurrentAccount } from "../features/accounts/api/use-current-account";
 import {
   AccountSessionProvider,
   useAccountSession,
@@ -33,14 +34,22 @@ function Navigation() {
   );
 }
 
+/** Restores only the existing local account; neither absence nor restoration triggers POST. */
+function CurrentAccountObserver() {
+  useCurrentAccount();
+  return null;
+}
+
 /** Composes session, cache and live appearance around navigation with native route presentation. */
 function RootLayout() {
   const [queryClient] = useState(createQueryClient);
+  useEffect(() => () => queryClient.clear(), [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AccountSessionProvider>
+          <CurrentAccountObserver />
           <Navigation />
         </AccountSessionProvider>
       </ThemeProvider>
