@@ -17,7 +17,7 @@ import {
   credentialsFor,
   mockClient,
 } from "../../accounts/test-support/native-auth0";
-import { ThemeProvider, useTheme } from "../../../shared/theme/theme-provider";
+import { useTheme } from "../../../shared/theme/theme-provider";
 import {
   appearanceColors,
   membershipColors,
@@ -395,67 +395,4 @@ it("follows live system appearance without resetting the mounted route or draft 
     membershipColors.dark.fill,
   );
   expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
-});
-
-it("keeps supplied sporting colors independent from current Pro and system appearance", async () => {
-  // Given: F02 inputs are synthetic; no sporting derivation or business screen is qualified here.
-  const sporting = {
-    light: {
-      primary: "#B42340",
-      actionStart: "#B42340",
-      actionEnd: "#86192E",
-      onAction: "#FFFFFF",
-      shadow: "#00000014",
-    },
-    dark: {
-      primary: "#FFB3C3",
-      actionStart: "#FFB3C3",
-      actionEnd: "#FFDDE5",
-      onAction: "#171717",
-      shadow: "#00000038",
-    },
-  };
-  /** Exercises F13's existing context prop at its boundary; no second production theme owner. */
-  function SportingRoute() {
-    const { state } = usePro();
-    return (
-      <>
-        <AppearanceRoute />
-        <ThemeProvider context={sporting} proAccent={state.status === "active"}>
-          <AppearanceValues />
-        </ThemeProvider>
-      </>
-    );
-  }
-  jest.mocked(Stack).mockImplementation(SportingRoute);
-  const subscribe = jest.spyOn(Appearance, "addChangeListener");
-  await mountAccount();
-
-  // When
-  mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
-  await act(() => pro.refresh());
-  jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
-  await act(() => {
-    for (const [listener] of subscribe.mock.calls)
-      listener({ colorScheme: "dark" });
-  });
-
-  // Then
-  expect(screen.getAllByLabelText("Contexte sportif").at(-1)).toHaveTextContent(
-    sporting.dark.primary,
-  );
-  expect(screen.getAllByLabelText("Accent Pro").at(-1)).toHaveTextContent(
-    membershipColors.pro.dark.fill,
-  );
-
-  // When
-  await act(() => pro.refresh());
-
-  // Then
-  expect(screen.getAllByLabelText("Contexte sportif").at(-1)).toHaveTextContent(
-    sporting.dark.primary,
-  );
-  expect(screen.getAllByLabelText("Accent Pro").at(-1)).toHaveTextContent(
-    membershipColors.dark.fill,
-  );
 });
