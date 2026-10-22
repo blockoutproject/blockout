@@ -39,9 +39,12 @@ export function useProfileEditing(accountId: string) {
     getGetMyAccountQueryKey(),
   );
 
-  /** Admits only confirmed current-session data, cancelling an older profile read before cache replacement. */
+  /** Admits confirmed current-session data after cancelling obsolete profile and photo reads. */
   async function accept(account: AccountResponse) {
-    await client.cancelQueries({ queryKey: currentKey, exact: true });
+    await Promise.all([
+      client.cancelQueries({ queryKey: currentKey, exact: true }),
+      client.cancelQueries({ queryKey: photoKey, exact: true }),
+    ]);
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
     client.setQueryData(currentKey, account);
     void client.invalidateQueries({ queryKey: photoKey, exact: true });

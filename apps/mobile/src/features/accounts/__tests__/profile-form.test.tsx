@@ -431,3 +431,86 @@ it.each(["preparation", "save"])(
     expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
   },
 );
+
+it("cancels an initial photo read before refreshing the accepted replacement", async () => {
+  // Given
+  const reads: {
+    signal?: AbortSignal | null;
+    resolve: (response: Response) => void;
+  }[] = [];
+  mockFetch.mockImplementation(async (url, request) => {
+    if (String(url).endsWith("/photo"))
+      return new Promise((resolve) =>
+        reads.push({ signal: request?.signal, resolve }),
+      );
+    return json({ ...account, hasPhoto: true });
+  });
+  // FileReader is native I/O; the real generated binary call and Query lifecycle remain under test.
+  const previousReader = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "FileReader",
+  );
+  const nativeRead = jest.fn<void, [Blob]>();
+  /** Controlled native reader: one successful decode completes the preview boundary. */
+  class PhotoReader {
+    result = "data:image/png;base64,accepted";
+    onload?: () => void;
+    onerror?: () => void;
+    /** Completes this test's native preview conversion without changing query behavior. */
+    readAsDataURL(blob: Blob) {
+      nativeRead(blob);
+      this.onload?.();
+    }
+  }
+  Object.defineProperty(globalThis, "FileReader", {
+    configurable: true,
+    value: PhotoReader,
+  });
+  try {
+    const user = await renderProfile();
+    await waitFor(() => expect(reads).toHaveLength(1));
+    jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: "file:///source.heic", width: 64, height: 64 }],
+    });
+    await user.press(
+      screen.getByRole("button", { name: "Choisir une photo de profil" }),
+    );
+    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await screen.findByText("Profil enregistré.");
+
+    // Then
+    await waitFor(() => expect(reads).toHaveLength(2));
+    expect(reads[0].signal?.aborted).toBe(true);
+    await act(async () =>
+      reads[1].resolve(
+        new Response(png, { headers: { "Content-Type": "image/png" } }),
+      ),
+    );
+    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+    await act(async () =>
+      reads[0].resolve(
+        new Response(png, { headers: { "Content-Type": "image/png" } }),
+      ),
+    );
+    expect(
+      screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
+    ).toBeOnTheScreen();
+    expect(nativeRead).toHaveBeenCalledTimes(1);
+  } finally {
+    // Settle this test's controlled transport even if its regression assertion fails.
+    await act(async () =>
+      reads.forEach(({ resolve }) =>
+        resolve(
+          new Response(png, { headers: { "Content-Type": "image/png" } }),
+        ),
+      ),
+    );
+    if (previousReader)
+      Object.defineProperty(globalThis, "FileReader", previousReader);
+    else Reflect.deleteProperty(globalThis, "FileReader");
+  }
+});
