@@ -2,6 +2,22 @@
 
 This guide prepares [isolated restoration and compatible rollback](#inputs-and-isolation) under F13 and [V1-to-V2 continuity](#private-continuity-inventory) under F14. Each operation needs its own authorization and evidence; preparing these instructions performs none of them.
 
+## Auth0 V1 default-role isolation
+
+[F14 T019](../../specs/014-v1-v2-transition/tasks.md) and [#162](https://github.com/blockoutproject/blockout/issues/162) restrict the existing `assign-default-role` post-login Action to the retained V1 native client. Obtain authorization for this exact tenant/Action operation before editing or deploying it. V2 permissions remain PostgreSQL-owned; no replacement role endpoint, identity linking, credential rotation or V1 retirement is included.
+
+1. Confirm the V1 native application's exact client ID from its current Auth0 registration and production callback identities. Record the bound Action's deployed version, runtime and dependencies, and keep a recoverable source copy privately outside this public repository. Do not open or copy secret values. Stop if another draft or concurrent revision differs from the reviewed source.
+2. Insert this guard as the first executable statement of `exports.onExecutePostLogin`, before reading secrets, roles or user data. The public client ID below was verified for the retained V1 registration; reverify the target before another execution. Match neither the display name nor a client-ID prefix.
+
+   ```js
+   if (event.client.client_id !== "L3AotVuEqikyNrCQexkf6S3D1LZjk69E") return;
+   ```
+
+3. Keep V1's executable body unchanged. With synthetic data and controlled HTTP, verify its existing-role claim, encoded assignment request, five-second timeout, claims after assignment and login-blocking assignment failure. Verify non-V1 clients with and without prior roles produce neither legacy HTTP nor legacy claims, even when legacy secrets are unavailable. Auth0 documents the trusted [initiating client](https://auth0.com/docs/actions/reference/post-login/post-login-event-object#event-client) and [controlled Action tests](https://auth0.com/docs/customize/actions/unit-test).
+4. In Auth0's native tester, exercise the candidate with a non-V1 client, both with and without roles, and V1 with an already assigned synthetic role. Do not send a synthetic roleless V1 identity to the real assignment endpoint: that test can perform a production write. Controlled tests establish their own boundaries, not a real mobile login or population continuity.
+5. Deploy the reviewed version of the already-bound Action and verify its published version and unchanged post-login binding. Have the owner perform a real V1 sign-in with the existing application/account, then inspect the corresponding Auth0 outcome privately. Record safe version/results and remaining limits in the owning [qualification guide](../../specs/014-v1-v2-transition/quickstart.md). Full V2 native sign-in and prior-role categories remain T021-owned.
+6. If the scoped change breaks V1, use Auth0's native [Version History / Revert](https://auth0.com/docs/customize/actions/manage-versions) for the recorded prior version, verify its deployed binding and repeat the affected check. Reread uncertain deployment results before repeating an operation; create no retry service or extra Action.
+
 ## Restore and rollback scope
 
 This procedure implements [F13 T056](../../specs/003-shared-quality/tasks.md) preparation. It authorizes no backup activation, provider change or restoration. **Presence does not mean validated restoration.** The [initial restore cases](../../specs/003-shared-quality/quickstart.md#initial-restore-and-activation-condition) require actual isolated evidence under T057 before relying on V2 protection.
