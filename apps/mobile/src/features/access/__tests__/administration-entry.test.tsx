@@ -461,10 +461,16 @@ it("keeps direct route admission closed with no F12 composition, even with a man
   );
 
   // When
-  await renderAdministration(<AdministrationRoute />);
+  await renderAdministration(
+    <>
+      <AdministrationEntry />
+      <AdministrationRoute />
+    </>,
+  );
+  await screen.findByRole("link", { name: "Administration technique" });
 
   // Then
-  expect(await screen.findByRole("alert")).toHaveTextContent(
+  expect(screen.getByRole("alert")).toHaveTextContent(
     "L’accès à l’application doit être vérifié avant de continuer.",
   );
   expect(
