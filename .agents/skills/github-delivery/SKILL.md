@@ -39,7 +39,7 @@ Report the draft PR and evidence. Readiness and merge remain human-directed; an 
 
 ## Visual evidence in pull requests
 
-When a PR changes visible UI, upload representative screenshots of the running PR revision as GitHub attachments in a top-level comment in the PR’s Conversation tab. Show the affected screens and relevant states, including changed responsive layouts or themes where applicable. Use before/after captures when they clarify the change, and add a short recording when motion or interaction needs it.
+When a PR changes visible UI, upload representative screenshots of the running PR revision as GitHub attachments in a top-level comment in the PR’s Conversation tab. Prefer the supported `gh pr comment --attach` flow with a current official GitHub CLI to publish the comment and attachments together. Verify the returned comment and attachment URLs before delivery. Show the affected screens and relevant states, including changed responsive layouts or themes where applicable. Use before/after captures when they clarify the change, and add a short recording when motion or interaction needs it.
 
 Identify the captured commit/build, scenario or state, and platform: browser/device and viewport where relevant. Keep review captures and recordings out of Git, including specification folders. Use GitHub attachment URLs in the comment; the PR description may link to that comment. Local paths and chat-only images do not preserve PR evidence. Use demonstration data and exclude private information, credentials and private diagnostics.
 
