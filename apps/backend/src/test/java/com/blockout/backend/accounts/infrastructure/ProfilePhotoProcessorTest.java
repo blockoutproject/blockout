@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.accounts.application.ProfilePhoto;
 import com.blockout.backend.accounts.application.exception.InvalidProfilePhotoException;
+import com.blockout.backend.accounts.application.exception.UnsupportedProfilePhotoException;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /** Synthetic image pixels exercise actual ImageIO decoding/encoding without private assets. */
@@ -27,9 +29,16 @@ class ProfilePhotoProcessorTest {
   private final ProfilePhotoProcessor processor = new ProfilePhotoProcessor();
 
   @ParameterizedTest
-  @CsvSource({"png,image/png,1", "png,image/png,1024", "jpeg,image/jpeg,32"})
+  @CsvSource({
+    "png,image/png,image/png,1",
+    "png,image/png,image/png,1024",
+    "jpeg,image/jpeg,image/jpeg,32",
+    "png,IMAGE/PNG,image/png,2",
+    "jpeg,Image/Jpeg,image/jpeg,2"
+  })
   @DisplayName("Reencodes supported square pixels without retaining trailing source data")
-  void reencodesPixels(String format, String mediaType, int dimension) throws Exception {
+  void reencodesPixels(String format, String mediaType, String expectedMediaType, int dimension)
+      throws Exception {
     // Given
     byte[] pixels = image(format, dimension, dimension);
     ByteArrayOutputStream original = new ByteArrayOutputStream();
@@ -40,7 +49,7 @@ class ProfilePhotoProcessorTest {
     ProfilePhoto photo = processor.prepare(original.toByteArray(), mediaType);
 
     // Then
-    assertThat(photo.mediaType()).isEqualTo(mediaType);
+    assertThat(photo.mediaType()).isEqualTo(expectedMediaType);
     assertThat(photo.dimension()).isEqualTo(dimension);
     assertThat(ImageIO.read(new ByteArrayInputStream(photo.bytes())).getWidth())
         .isEqualTo(dimension);
@@ -58,6 +67,19 @@ class ProfilePhotoProcessorTest {
     // When / Then
     assertThatThrownBy(() -> processor.prepare(original, "image/png"))
         .isInstanceOf(InvalidProfilePhotoException.class);
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {"image/*", "image/gif", "not a media type"})
+  @DisplayName("Refuses missing, malformed or unsupported media declarations")
+  void rejectsUnsupportedDeclaration(String mediaType) throws Exception {
+    // Given
+    byte[] original = image("png", 2, 2);
+
+    // When / Then
+    assertThatThrownBy(() -> processor.prepare(original, mediaType))
+        .isInstanceOf(UnsupportedProfilePhotoException.class);
   }
 
   @ParameterizedTest

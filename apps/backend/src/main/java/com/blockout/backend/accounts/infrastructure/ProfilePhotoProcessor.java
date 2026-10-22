@@ -13,6 +13,8 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
+import org.springframework.http.InvalidMediaTypeException;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 /** Prepares bounded photo pixels before the SQL transaction. */
@@ -23,14 +25,21 @@ public class ProfilePhotoProcessor {
    * streams remain in memory; callers finish this step before acquiring the account lock.
    *
    * @param bytes compressed original part, at most 5 MiB
-   * @param mediaType declared media type, checked against detected content
+   * @param mediaType case-insensitive declared media type, checked against detected content
    * @return reencoded pixels with their actual type and square dimension
    * @throws InvalidProfilePhotoException for unreadable, spoofed or out-of-bounds pixels
    * @throws ProfilePhotoTooLargeException for excessive input or output bytes
    * @throws UnsupportedProfilePhotoException for an unsupported media declaration
    */
   public ProfilePhoto prepare(byte[] bytes, String mediaType) {
-    if (!"image/png".equals(mediaType) && !"image/jpeg".equals(mediaType))
+    MediaType declaredType;
+    try {
+      declaredType = MediaType.parseMediaType(mediaType);
+    } catch (InvalidMediaTypeException failure) {
+      throw new UnsupportedProfilePhotoException();
+    }
+    if (!MediaType.IMAGE_PNG.equalsTypeAndSubtype(declaredType)
+        && !MediaType.IMAGE_JPEG.equalsTypeAndSubtype(declaredType))
       throw new UnsupportedProfilePhotoException();
     if (bytes.length > 5 * 1024 * 1024) throw new ProfilePhotoTooLargeException();
     try (MemoryCacheImageInputStream input =
@@ -40,13 +49,13 @@ public class ProfilePhotoProcessor {
       ImageReader reader = readers.next();
       try {
         String format = reader.getFormatName();
-        String detected =
+        MediaType detected =
             switch (format.toUpperCase(java.util.Locale.ROOT)) {
-              case "PNG" -> "image/png";
-              case "JPEG" -> "image/jpeg";
+              case "PNG" -> MediaType.IMAGE_PNG;
+              case "JPEG" -> MediaType.IMAGE_JPEG;
               default -> throw new InvalidProfilePhotoException();
             };
-        if (!detected.equals(mediaType)) throw new InvalidProfilePhotoException();
+        if (!detected.equalsTypeAndSubtype(declaredType)) throw new InvalidProfilePhotoException();
         reader.setInput(input, true, true);
         int dimension = reader.getWidth(0);
         if (dimension < 1 || dimension > 1024 || dimension != reader.getHeight(0))
@@ -58,7 +67,7 @@ public class ProfilePhotoProcessor {
         }
         byte[] prepared = bytesOut.toByteArray();
         if (prepared.length > 5 * 1024 * 1024) throw new ProfilePhotoTooLargeException();
-        return new ProfilePhoto(prepared, detected, dimension);
+        return new ProfilePhoto(prepared, detected.toString(), dimension);
       } finally {
         reader.dispose();
       }
