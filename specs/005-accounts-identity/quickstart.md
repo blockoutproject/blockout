@@ -12,6 +12,10 @@ Prepare synthetic principals for shared email, existing linked identities, missi
 2. **Race creation and profile edits** with PostgreSQL Testcontainers: one principal, competing usernames, disjoint fields and the same field. **Expected:** one account per principal, case-insensitive username uniqueness, shared email allowed, omitted fields preserved and last accepted supplied value retained. A supplied unchanged username succeeds; an empty change document is refused.
 3. **Save and remove photos** together with username changes; submit malformed, oversized and non-square content. **Expected:** atomic save, previous profile preserved on refusal, accepted pixels within the contract bounds without unrelated metadata, removal only by explicit intent.
 
+### Profile editing construction
+
+The profile MVC, ImageIO and PostgreSQL suites exercise the generated multipart/binary boundary, whole-save refusals, original-row locking, competing usernames, omitted fields, replacement/removal and deletion races. Image preparation finishes before the SQL transaction; bounded accepted multipart parts and ImageIO streams remain in memory. The mobile form/preparation suites retain real RHF/Zod, Query, session generation and generated transport, with controlled native/network I/O. They cover preserved drafts, explicit photo intent, original-target rereads after uncertain responses and delayed work across A → guest → A. Run them through the normal README verification commands. These construction checks do not qualify actual native crop, provider login, F12 admission or the physical-device cases in T049/#188.
+
 ## Authentication and isolation
 
 ### Account access construction

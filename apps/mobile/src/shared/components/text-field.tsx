@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Ref } from "react";
 import {
   StyleSheet,
   Text,
@@ -11,6 +11,8 @@ import { tokens } from "../theme/tokens";
 
 /** A native input contract; features retain values, validation, submission and secure-entry decisions. */
 export interface TextFieldProps extends TextInputProps {
+  /** Forwards form-owned native focus to this input after validation errors. */
+  ref?: Ref<TextInput>;
   label: string;
   helper?: string;
   error?: string;

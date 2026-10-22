@@ -1,5 +1,6 @@
 package com.blockout.backend.accounts.infrastructure;
 
+import com.blockout.backend.shared.validation.TextTrimming;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -37,6 +38,7 @@ public class AccountEntity {
   @NotBlank
   @Pattern(regexp = "[A-Za-z0-9._-]{3,32}")
   @Column(nullable = false, length = 32)
+  @Setter(AccessLevel.PACKAGE)
   private String username;
 
   @NotBlank
@@ -62,7 +64,7 @@ public class AccountEntity {
       String issuer, String subject, String username, String email, Instant principalCreatedAt) {
     this.issuer = issuer;
     this.subject = subject;
-    this.username = username == null ? null : username.strip();
+    this.username = TextTrimming.trim(username);
     this.email = email;
     this.principalCreatedAt = principalCreatedAt;
   }

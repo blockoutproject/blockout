@@ -24,6 +24,10 @@ import { AdministrationEntry } from "../components/administration-entry";
 import { AdministrationScreen } from "../screens/administration-screen";
 import AdministrationRoute from "../../../app/administration";
 
+// The installed library controls native keyboard I/O; profile and admission behavior remain real.
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -491,8 +495,8 @@ it("inserts the administration entry without replacing the current profile or it
   expect(
     await screen.findByRole("link", { name: "Administration technique" }),
   ).toBeOnTheScreen();
-  expect(screen.getByText(account.username)).toBeOnTheScreen();
-  expect(screen.getByText(account.email)).toBeOnTheScreen();
+  expect(screen.getByDisplayValue(account.username)).toBeOnTheScreen();
+  expect(screen.getByDisplayValue(account.email)).toBeOnTheScreen();
   expect(
     screen.getByRole("link", { name: "Confidentialité" }),
   ).toBeOnTheScreen();

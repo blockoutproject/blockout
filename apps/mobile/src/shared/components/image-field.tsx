@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+import { Image, type ImageSource } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
@@ -50,6 +50,8 @@ export interface ImageFieldProps {
   removeLabel?: string;
   helper?: string;
   error?: string;
+  /** Owner-approved empty illustration; error and selection/preview behavior stay shared. */
+  placeholderSource?: ImageSource | number;
 }
 
 /** Uses the system image library and a full-screen preview while leaving every accepted value with its owner. */
@@ -71,6 +73,7 @@ export function ImageField({
   removeLabel = "Supprimer l’image",
   helper,
   error,
+  placeholderSource,
 }: ImageFieldProps) {
   const { colors } = useTheme();
   const [busy, setBusy] = useState(false);
@@ -228,7 +231,8 @@ export function ImageField({
                 source={
                   message
                     ? require("../../../assets/icons/image-off.svg")
-                    : require("../../../assets/icons/image.svg")
+                    : (placeholderSource ??
+                      require("../../../assets/icons/image.svg"))
                 }
                 accessible={false}
                 tintColor={colors.icon}

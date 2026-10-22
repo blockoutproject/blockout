@@ -31,7 +31,9 @@ class SupportPropertiesTest {
           MultipartProperties multipart = context.getBean(MultipartProperties.class);
           assertThat(multipart.getMaxFileSize().toBytes()).isEqualTo(5_242_880);
           assertThat(multipart.getMaxRequestSize().toBytes()).isEqualTo(27_262_976);
-          assertThat(multipart.getFileSizeThreshold().toBytes()).isZero();
+          // Accepted parts stay in bounded memory; profile images have no staged disk upload.
+          assertThat(multipart.getFileSizeThreshold().toBytes())
+              .isEqualTo(multipart.getMaxFileSize().toBytes());
         });
   }
 

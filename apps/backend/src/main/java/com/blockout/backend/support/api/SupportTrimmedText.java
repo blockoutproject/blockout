@@ -1,5 +1,6 @@
 package com.blockout.backend.support.api;
 
+import com.blockout.backend.shared.validation.TextTrimming;
 import tools.jackson.databind.util.StdConverter;
 
 /**
@@ -15,23 +16,6 @@ public final class SupportTrimmedText extends StdConverter<String, String> {
    */
   @Override
   public String convert(String value) {
-    if (value == null) return null;
-    int start = 0;
-    int end = value.length();
-    while (start < end && isWhitespace(value.charAt(start))) start++;
-    while (end > start && isWhitespace(value.charAt(end - 1))) end--;
-    return value.substring(start, end);
-  }
-
-  /**
-   * Recognizes ECMAScript whitespace and line terminators, all within the Basic Multilingual Plane.
-   *
-   * @param character current outer UTF-16 character
-   * @return whether ordinary JavaScript trim would remove this character
-   */
-  private static boolean isWhitespace(char character) {
-    return Character.isSpaceChar(character)
-        || (character >= '\t' && character <= '\r')
-        || character == '\ufeff';
+    return TextTrimming.trim(value);
   }
 }
