@@ -1,5 +1,6 @@
 import { Link } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { Image } from "expo-image";
+import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -18,7 +19,14 @@ export function PublicAccountLinks() {
         href="/legals/privacy"
         style={[styles.link, { color: colors.secondaryText }]}
       >
-        Confidentialité
+        <Image
+          accessible={false}
+          source={require("../../../../assets/icons/privacy.svg")}
+          tintColor={colors.icon}
+          style={styles.icon}
+          contentFit="contain"
+        />
+        <Text> Confidentialité</Text>
       </Link>
       <Link
         href="/support"
@@ -45,4 +53,5 @@ const styles = StyleSheet.create({
     maxWidth: 240,
     textAlign: "center",
   },
+  icon: { width: 20, height: 20 },
 });

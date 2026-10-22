@@ -15,6 +15,7 @@ import {
 import { initializeSentry } from "../shared/observability/sentry";
 import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
 import { ProProvider, usePro } from "../features/pro";
+import { sheetScreenOptions } from "../shared/components/sheet";
 
 initializeSentry();
 
@@ -30,7 +31,12 @@ function Navigation() {
   return (
     <>
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen
+          name="sign-in-invitation"
+          options={{ ...sheetScreenOptions, sheetAllowedDetents: [0.5] }}
+        />
+      </Stack>
     </>
   );
 }
