@@ -11,6 +11,7 @@ import {
 } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { AdministrationEntry } from "../../access/components/administration-entry";
 import { useCurrentAccount } from "../api/use-current-account";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { useAccountSession } from "../session/account-session-provider";
@@ -126,6 +127,7 @@ export function ProfileScreen({ admitted }: ProfileScreenProps) {
                 </View>
               )
             )}
+            <AdministrationEntry />
             {guestError && (
               <RequestError message="La déconnexion locale a échoué. Réessayez." />
             )}

@@ -1,6 +1,6 @@
 # Qualification guide: administration and access
 
-This dossier does not initialize an application runtime. Commands already available for this repository are in [README verification](../../README.md#verification). The scenarios below are for later authorized implementation; they are not reported as executed. Use F13's selected test tools and generated consumers, not invented Nx targets or an additional E2E framework.
+Commands available for this repository are in [README verification](../../README.md#verification). The scenarios below remain future qualification unless explicitly covered by the scoped evidence at the end of this guide. Use F13's selected test tools and generated consumers, not invented Nx targets or an additional E2E framework.
 
 ## Prerequisites
 
@@ -32,3 +32,13 @@ Before public distribution, establish the owner normally with the production bin
 Restart/deploy again and verify that saved settings survive. In an isolated rehearsal, correct an invalidating operator mistake using ordinary authorized SQL, advancing the edited revision and validating the complete result. No hidden bootstrap endpoint, reset or dedicated recovery tool is expected.
 
 Record actual native/provider/concurrency outcomes when these scenarios run. Documentation formatting, link checks and OpenAPI lint alone establish none of those outcomes.
+
+## Permission presentation — T006/T010
+
+On 2026-10-22, the 20 semantic cases in `apps/mobile/src/features/access/__tests__/administration-entry.test.tsx` passed using real F05 session/Query owners and generated transport, with controlled native credentials and HTTP. They cover absent/false/literal-true/additive capabilities, invalid known values, independent technical commands, revocation, failed refresh and explicit retry, guest access, late generations including return to the same account, closed default route admission, back navigation and preservation of profile/public links. The initial presentation run observed 16 behavioral failures before implementation. No protected mutation or bypass header is produced by presentation.
+
+`npm run verify` passed, including backend/collector verification, contract generation, and all 29 mobile suites/324 tests, TypeScript, ESLint, iOS/Android JavaScript exports and Expo Doctor. The profile change inserts only `AdministrationEntry`; the dedicated F05 `current-account.ts` export preserves the pure session entry point used by other consumers.
+
+An unsigned local iOS development build succeeded for the reserved iOS 17 simulator, with Sentry's native `SENTRY_DISABLE_AUTO_UPLOAD=true` option. A direct `/administration` link rendered the existing closed-admission refusal in light and dark appearances. This proves local compilation and the bounded refusal only, not operator, provider, physical-device or complete design qualification. The technical entry follows approved [Account 4868:5908](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4868-5908), F13 tokens and bundled Outfit; no operator-session visual acceptance is claimed. Text scaling retains the accepted [F13 iOS limitation](../003-shared-quality/quickstart.md#native-mobile-and-approved-design), without a remount or local dependency patch.
+
+Admission remains closed by default through the existing F05 composition boundary. T028/#180 owns separate operational routes and version/maintenance guards; T019, T037 and F01 own the linked destination screens. T011, T031 and the remaining integrated/native scenarios above remain unqualified. Entry visibility supplies no domain grant, temporary bypass, F09 owner power or F11 legal publication.
