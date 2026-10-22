@@ -55,20 +55,16 @@ export function ProProvider({ children }: PropsWithChildren) {
   useLayoutEffect(() => () => proSession.setTarget(null), []);
 
   useEffect(() => {
-    /** Reads ordinary foreground state without changing SDK cache policy. */
+    /** Untagged SDK events and foreground entry trigger current reads under the SDK cache policy. */
     function readCurrent() {
       void proSession.refresh(getSnapshot());
     }
-    /** Untagged payloads only signal a read, including when an earlier read has not settled. */
-    function readUpdated() {
-      proSession.signalUpdate(getSnapshot());
-    }
-    Purchases.addCustomerInfoUpdateListener(readUpdated);
+    Purchases.addCustomerInfoUpdateListener(readCurrent);
     const foreground = AppState.addEventListener("change", (state) => {
       if (state === "active") readCurrent();
     });
     return () => {
-      Purchases.removeCustomerInfoUpdateListener(readUpdated);
+      Purchases.removeCustomerInfoUpdateListener(readCurrent);
       foreground.remove();
     };
   }, [getSnapshot]);

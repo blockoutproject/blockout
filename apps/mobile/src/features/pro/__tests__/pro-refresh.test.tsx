@@ -143,39 +143,81 @@ it("rejects a detached read and callbacks after provider remount into the same b
   );
 });
 
-it("rereads after an operation even when an earlier read was already in flight", async () => {
+it("reads operation completion without waiting for an earlier read and rejects its late result", async () => {
   // Given
   await mountAccount();
   const earlier = Promise.withResolvers<CustomerInfo>();
-  mockPurchases.getCustomerInfo.mockReturnValueOnce(earlier.promise);
+  const active = { "Blockout Pro": entitlement() };
+  mockPurchases.getCustomerInfo
+    .mockReturnValueOnce(earlier.promise)
+    .mockResolvedValueOnce(
+      customerInfo({
+        active,
+        all: active,
+        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+      }),
+    );
   let refresh: Promise<void> | undefined;
   let completion: Promise<void> | undefined;
   await act(() => {
     refresh = pro.refresh();
-    completion = pro.completeOperation("completed");
   });
-  const active = { "Blockout Pro": entitlement() };
-  mockPurchases.getCustomerInfo.mockResolvedValueOnce(
-    customerInfo({
-      active,
-      all: active,
-      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-    }),
-  );
 
   // When
+  await act(() => {
+    completion = pro.completeOperation("completed");
+  });
+
+  // Then: current operation evidence is usable while the unrelated earlier read is still pending.
+  expect(screen.getByText("Pro: active")).toBeOnTheScreen();
+  expect(pro.state).toEqual(
+    expect.objectContaining({ operation: "completed" }),
+  );
   await act(async () => {
     earlier.resolve(info);
     await refresh;
     await completion;
   });
+  expect(screen.getByText("Pro: active")).toBeOnTheScreen();
+});
+
+it("keeps current verification busy when an older read fails", async () => {
+  // Given
+  await mountAccount();
+  const earlier = Promise.withResolvers<CustomerInfo>();
+  const current = Promise.withResolvers<CustomerInfo>();
+  mockPurchases.getCustomerInfo
+    .mockReturnValueOnce(earlier.promise)
+    .mockReturnValueOnce(current.promise);
+  let first: Promise<void> | undefined;
+  let latest: Promise<void> | undefined;
+  await act(() => {
+    first = pro.refresh();
+    latest = pro.refresh();
+  });
+
+  // When
+  await act(async () => {
+    earlier.reject(new Error("synthetic old failure"));
+    await first;
+  });
 
   // Then
+  expect(pro.refreshing).toBe(true);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  const active = { "Blockout Pro": entitlement() };
+  await act(async () => {
+    current.resolve(
+      customerInfo({
+        active,
+        all: active,
+        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+      }),
+    );
+    await latest;
+  });
   expect(screen.getByText("Pro: active")).toBeOnTheScreen();
-  expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(3);
-  expect(pro.state).toEqual(
-    expect.objectContaining({ operation: "completed" }),
-  );
+  expect(pro.refreshing).toBe(false);
 });
 
 it("treats an old listener payload as a signal to read B rather than publish A's rights", async () => {
@@ -215,7 +257,7 @@ it.each([
   { previousActive: false, expected: "active" },
   { previousActive: true, expected: "inactive" },
 ])(
-  "rereads a coalesced SDK signal after a pending read when current state becomes $expected",
+  "reads SDK signals without waiting for an earlier read when current state becomes $expected",
   async ({ previousActive, expected }) => {
     // Given: SDK output is controlled; listener payloads have no F05 attribution.
     await mountAccount();
@@ -234,28 +276,25 @@ it.each([
     const pending = Promise.withResolvers<CustomerInfo>();
     mockPurchases.getCustomerInfo
       .mockReturnValueOnce(pending.promise)
-      .mockResolvedValueOnce(current);
-    const readsBefore = mockPurchases.getCustomerInfo.mock.calls.length;
+      .mockResolvedValue(current);
     let refresh: Promise<void> | undefined;
     await act(() => {
       refresh = pro.refresh();
     });
 
-    // When: a burst of updates requires one follow-up read, not a queue of payloads.
+    // When: both signals read the SDK; their untagged payloads remain irrelevant.
     await act(() => {
-      listener(current);
-      listener(current);
+      listener(previous);
+      listener(previous);
     });
+
+    // Then: current rights do not wait for the earlier promise, and its late result cannot replace them.
+    expect(screen.getByText(`Pro: ${expected}`)).toBeOnTheScreen();
     await act(async () => {
       pending.resolve(previous);
       await refresh;
     });
-
-    // Then
-    expect(await screen.findByText(`Pro: ${expected}`)).toBeOnTheScreen();
-    expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(
-      readsBefore + 2,
-    );
+    expect(screen.getByText(`Pro: ${expected}`)).toBeOnTheScreen();
   },
 );
 

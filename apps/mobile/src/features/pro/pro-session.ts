@@ -48,11 +48,7 @@ export function createProSession() {
     refreshing: false,
     verificationFailed: false,
   };
-  let read: {
-    session: SessionSnapshot;
-    promise: Promise<void>;
-    reread: boolean;
-  } | null = null;
+  let currentRead: symbol | null = null;
   const listeners = new Set<() => void>();
 
   /** Notifies React without storing a derived entitlement or a second session generation. */
@@ -69,36 +65,34 @@ export function createProSession() {
     );
   }
 
-  /** Reads with native caching, retaining independent current rights on a failed refresh. */
-  function refresh(session: SessionSnapshot): Promise<void> {
-    if (!isAssociated(session)) return Promise.resolve();
-    if (read && sameSession(read.session, session)) return read.promise;
+  /** Starts an SDK read per trigger; only its latest current-session result updates presentation. */
+  async function refresh(session: SessionSnapshot): Promise<void> {
+    if (!isAssociated(session)) return;
+    const request = Symbol();
+    currentRead = request;
     publish({ ...snapshot, refreshing: true });
-    const request = { session, promise: Promise.resolve(), reread: false };
-    read = request;
-    request.promise = (async () => {
-      try {
-        const customerInfo = await Purchases.getCustomerInfo();
-        if (isAssociated(session) && read === request && snapshot.evidence) {
-          publish({
-            evidence: { ...snapshot.evidence, customerInfo },
-            refreshing: false,
-            verificationFailed: false,
-          });
-        }
-      } catch {
-        diagnose("read", "failed");
-        if (isAssociated(session) && read === request) {
-          publish({ ...snapshot, refreshing: false, verificationFailed: true });
-        }
-      } finally {
-        if (read === request) {
-          read = null;
-          if (request.reread) void refresh(session);
-        }
+    try {
+      const customerInfo = await Purchases.getCustomerInfo();
+      if (
+        isAssociated(session) &&
+        currentRead === request &&
+        snapshot.evidence
+      ) {
+        publish({
+          evidence: { ...snapshot.evidence, customerInfo },
+          refreshing: false,
+          verificationFailed: false,
+        });
       }
-    })();
-    return request.promise;
+    } catch {
+      diagnose("read", "failed");
+      if (isAssociated(session) && currentRead === request) {
+        // A failed refresh never withdraws independently known current rights.
+        publish({ ...snapshot, refreshing: false, verificationFailed: true });
+      }
+    } finally {
+      if (currentRead === request) currentRead = null;
+    }
   }
 
   /** Settles one mutation before applying the newest desired target, without retaining a queue. */
@@ -176,7 +170,7 @@ export function createProSession() {
     setTarget(next: SessionSnapshot | null) {
       if (sameSession(target, next)) return;
       target = next;
-      read = null;
+      currentRead = null;
       publish({
         evidence: next?.accountId
           ? {
@@ -193,13 +187,6 @@ export function createProSession() {
     },
 
     refresh,
-
-    /** Coalesces SDK change signals during a read, then rereads only the still-associated session. */
-    signalUpdate(session: SessionSnapshot) {
-      if (!isAssociated(session)) return;
-      if (read && sameSession(read.session, session)) read.reread = true;
-      else void refresh(session);
-    },
 
     /** Retries only an explicit, still-current request; ordinary refresh never retries identity. */
     retry(session: SessionSnapshot) {
@@ -226,7 +213,7 @@ export function createProSession() {
       void associate();
     },
 
-    /** Records an attributed outcome and rereads after any earlier read, without replaying a transaction. */
+    /** Records an attributed outcome and reads native state directly, without replaying a transaction. */
     async completeOperation(session: SessionSnapshot, operation: ProOperation) {
       if (!isAssociated(session) || !snapshot.evidence) return;
       publish({ ...snapshot, evidence: { ...snapshot.evidence, operation } });
@@ -236,7 +223,6 @@ export function createProSession() {
         operation === "failed"
       )
         diagnose("operation", operation);
-      if (read && sameSession(read.session, session)) await read.promise;
       await refresh(session);
     },
   };

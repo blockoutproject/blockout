@@ -14,6 +14,7 @@ import { ProProvider, usePro, type ProContext } from "../pro-provider";
 import { ProVerification } from "../components/pro-verification";
 import { customerInfo } from "./customer-info";
 import { mockPurchases } from "./native-purchases";
+import * as proSessionModule from "../pro-session";
 
 /** Ordinary real-provider descendant; captured APIs expose actions without mocking their behavior. */
 function Probe({ capture, onSupport }: ProHarnessProps) {
@@ -48,9 +49,15 @@ export function ProHarness(props: ProHarnessProps) {
   );
 }
 
-/** Prepares synthetic credentials and native results; no HTTP establishment or provider is contacted. */
+/** Starts a fresh real Pro owner per test, alongside synthetic credentials and native I/O results. */
 export function prepareProNativeIO() {
   jest.clearAllMocks();
+  // Remounts within one test retain this owner; unrelated tests never inherit its native lifecycle.
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
