@@ -6,7 +6,8 @@ import type { ProOperation } from "./pro-state";
 
 /**
  * Uses documented SDK purchase outcomes; no error itself grants or withdraws rights.
- * RevenueCat network/offline errors allow an explicit retry; store failures may have charged.
+ * Known SDK failures allow another explicit attempt; store failures may have charged.
+ * Unknown errors and an operation still in progress retain F09's verification requirement.
  * @see https://www.revenuecat.com/docs/test-and-launch/errors
  */
 export function purchaseErrorOutcome(code: PURCHASES_ERROR_CODE): ProOperation {
@@ -20,19 +21,12 @@ export function purchaseErrorOutcome(code: PURCHASES_ERROR_CODE): ProOperation {
     case codes.RECEIPT_ALREADY_IN_USE_ERROR:
     case codes.RECEIPT_IN_USE_BY_OTHER_SUBSCRIBER_ERROR:
       return "already-owned";
-    case codes.PURCHASE_NOT_ALLOWED_ERROR:
-    case codes.PURCHASE_INVALID_ERROR:
-    case codes.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR:
-    case codes.INELIGIBLE_ERROR:
-    case codes.INSUFFICIENT_PERMISSIONS_ERROR:
-    case codes.CONFIGURATION_ERROR:
-    case codes.INVALID_CREDENTIALS_ERROR:
-    case codes.NETWORK_ERROR:
-    case codes.OFFLINE_CONNECTION_ERROR:
-      return "failed";
-    default:
-      // Store/unknown failures and an operation already in progress still need verification.
+    case codes.STORE_PROBLEM_ERROR:
+    case codes.UNKNOWN_ERROR:
+    case codes.OPERATION_ALREADY_IN_PROGRESS_ERROR:
       return "uncertain";
+    default:
+      return "failed";
   }
 }
 

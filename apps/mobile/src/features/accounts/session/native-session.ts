@@ -15,6 +15,9 @@ export function requiresReauthentication(error: unknown): boolean {
     case CredentialsManagerErrorCodes.NO_REFRESH_TOKEN:
     case CredentialsManagerErrorCodes.INVALID_CREDENTIALS:
     case CredentialsManagerErrorCodes.SESSION_EXPIRED:
+    case CredentialsManagerErrorCodes.DPOP_KEY_MISSING:
+    case CredentialsManagerErrorCodes.DPOP_KEY_MISMATCH:
+    case CredentialsManagerErrorCodes.DPOP_NOT_CONFIGURED:
       return true;
     default:
       return (

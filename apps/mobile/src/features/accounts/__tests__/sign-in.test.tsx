@@ -7,7 +7,10 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
-import type { Credentials } from "react-native-auth0";
+import {
+  CredentialsManagerErrorCodes,
+  type Credentials,
+} from "react-native-auth0";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -171,6 +174,34 @@ it("establishes explicitly after successful hosted login without replaying a pro
   ).toHaveLength(1);
   await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
   expect(mockNavigate).not.toHaveBeenCalledWith("/protected-action");
+});
+
+it("offers explicit login when stored DPoP credentials cannot serve the Bearer configuration", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.getCredentials.mockRejectedValueOnce({
+    code: CredentialsManagerErrorCodes.DPOP_NOT_CONFIGURED,
+    message: "Stored credentials require DPoP",
+  });
+  const user = userEvent.setup();
+  await renderJourney();
+  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(1);
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+  // Then
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
+  ).toHaveLength(1);
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
 });
 
 it.each([
