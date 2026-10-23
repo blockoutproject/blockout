@@ -24,6 +24,25 @@ afterEach(() => {
   process.env = originalEnv;
 });
 
+it("provides French photo-library purpose text without enabling camera or microphone access", () => {
+  // Given: Blockout owns the permission explanation; the system owns its presentation.
+
+  // When
+  const { default: config } =
+    jest.requireActual<typeof import("../app.config")>("../app.config");
+
+  // Then
+  expect(config.plugins).toContainEqual([
+    "expo-image-picker",
+    {
+      photosPermission:
+        "Blockout accède à vos photos pour vous permettre de choisir une image.",
+      cameraPermission: false,
+      microphonePermission: false,
+    },
+  ]);
+});
+
 it("uses Google sample app IDs with delayed measurement and no configured V2 ad units", () => {
   // Given: no advertising inputs.
 

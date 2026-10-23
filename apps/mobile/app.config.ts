@@ -125,7 +125,12 @@ const config: ExpoConfig = {
     ],
     [
       "expo-image-picker",
-      { cameraPermission: false, microphonePermission: false },
+      {
+        photosPermission:
+          "Blockout accède à vos photos pour vous permettre de choisir une image.",
+        cameraPermission: false,
+        microphonePermission: false,
+      },
     ],
     [
       "expo-font",
