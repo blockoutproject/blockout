@@ -66,11 +66,7 @@ const account = {
 let stored: import("../../../../.generated/schemas/index.zod").MaintenanceSettingsResponse =
   { ...initial };
 beforeEach(() => {
-  jest
-    .spyOn(Alert, "alert")
-    .mockImplementation((_title, _message, buttons) =>
-      buttons?.at(-1)?.onPress?.(),
-    );
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   client = createQueryClient();
   stored = { ...initial };
   Object.assign(process.env, {
@@ -122,6 +118,14 @@ function json(value: unknown, status = 200) {
     },
   });
 }
+/** Finds a named choice in the displayed native alert without accepting it during setup. */
+function nativeAction(label: string): AlertButton {
+  const button = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find((choice) => choice.text === label);
+  if (!button) throw new Error(`The native action ${label} is missing`);
+  return button;
+}
 /** Changes the actual native text field without replacing form state. */
 async function editMessage(message = "Mon brouillon") {
   const user = userEvent.setup();
@@ -140,8 +144,10 @@ it("shows loading before any known state can be saved", async () => {
           finish = resolve;
         }),
   );
+
   // When
   await renderSettings();
+
   // Then
   await waitFor(() =>
     expect(
@@ -172,8 +178,10 @@ it("does not publish defaults after an initial load failure", async () => {
           503,
         ),
   );
+
   // When
   await renderSettings();
+
   // Then
   expect(
     await screen.findByText("Les réglages de maintenance sont indisponibles."),
@@ -192,10 +200,13 @@ it("separates content preparation from explicit activation", async () => {
       return json({ ...stored, revision: 3, message: "Mon brouillon" });
     return json(stored);
   });
+
   // When
   await user.press(
     screen.getByRole("button", { name: "Enregistrer le contenu" }),
   );
+  await act(async () => nativeAction("Enregistrer").onPress?.());
+
   // Then
   await screen.findByText("Contenu enregistré.");
   const writes = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
@@ -216,10 +227,13 @@ it("sends the desired active state independently of dirty content", async () => 
       ? json({ ...stored, revision: 3, active: true })
       : json(stored),
   );
+
   // When
   await user.press(
     screen.getByRole("button", { name: "Activer la maintenance" }),
   );
+  await act(async () => nativeAction("Activer").onPress?.());
+
   // Then
   await screen.findByLabelText("Maintenance active");
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
@@ -239,6 +253,7 @@ it("preserves a dirty draft after a background query update", async () => {
     .findAll()
     .find((q) => q.queryKey.includes(getGetMaintenanceSettingsQueryKey()[0]));
   if (!query) throw new Error("The real settings query is missing");
+
   // When
   await act(async () => {
     client.setQueryData(query.queryKey, {
@@ -247,6 +262,7 @@ it("preserves a dirty draft after a background query update", async () => {
       message: "Autre éditeur",
     });
   });
+
   // Then
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
 });
@@ -255,10 +271,12 @@ it("refuses blank text before sending any mutation", async () => {
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
   const user = await editMessage("   ");
+
   // When
   await user.press(
     screen.getByRole("button", { name: "Enregistrer le contenu" }),
   );
+
   // Then
   expect(
     await screen.findByText("Saisissez un message de maintenance."),
@@ -276,10 +294,12 @@ it("refuses an invalid image URL without losing the draft", async () => {
     screen.getByLabelText("URL de l’image"),
     "http://unsafe.example.invalid/image.png",
   );
+
   // When
   await user.press(
     screen.getByRole("button", { name: "Enregistrer le contenu" }),
   );
+
   // Then
   expect(
     await screen.findByText(
@@ -299,10 +319,13 @@ it("clears the optional image using explicit null", async () => {
   const user = userEvent.setup();
   await user.clear(screen.getByLabelText("URL de l’image"));
   mockFetch.mockImplementation(async () => json({ ...initial, revision: 3 }));
+
   // When
   await user.press(
     screen.getByRole("button", { name: "Enregistrer le contenu" }),
   );
+  await act(async () => nativeAction("Enregistrer").onPress?.());
+
   // Then
   await screen.findByText("Contenu enregistré.");
   const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PATCH");
@@ -319,12 +342,14 @@ it("keeps text and actions usable when preview display fails", async () => {
   };
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
+
   // When
   fireEvent(
     screen.getByLabelText("Aperçu de l’image de maintenance"),
     "error",
     { nativeEvent: { error: "Unavailable" } },
   );
+
   // Then
   expect(
     await screen.findByText("L’image ne peut pas être affichée."),
@@ -351,10 +376,13 @@ it.each([400, 403, 422])(
         status,
       ),
     );
+
     // When
     await user.press(
       screen.getByRole("button", { name: "Enregistrer le contenu" }),
     );
+    await act(async () => nativeAction("Enregistrer").onPress?.());
+
     // Then
     expect(
       await screen.findByText(
@@ -390,10 +418,13 @@ it.each(["conflict", "lost"])(
       }
       return json({ ...stored, revision: 3, message: "Autre éditeur" });
     });
+
     // When
     await user.press(
       screen.getByRole("button", { name: "Enregistrer le contenu" }),
     );
+    await act(async () => nativeAction("Enregistrer").onPress?.());
+
     // Then
     expect(
       await screen.findByRole("button", { name: "Relire les réglages" }),
@@ -403,20 +434,25 @@ it.each(["conflict", "lost"])(
     ).toBeDisabled();
     expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
     expect(writes).toBe(1);
+
     // When
     await user.press(
       screen.getByRole("button", { name: "Relire les réglages" }),
     );
+
     // Then
     await screen.findByText(
       "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
     );
     expect(writes).toBe(1);
     expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+
     // When
     await user.press(
       screen.getByRole("button", { name: "Enregistrer le contenu" }),
     );
+    await act(async () => nativeAction("Enregistrer").onPress?.());
+
     // Then
     await screen.findByText("Contenu enregistré.");
     const calls = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
@@ -426,6 +462,7 @@ it.each(["conflict", "lost"])(
 it("keeps the production route closed until native admission is composed", async () => {
   // Given / When
   await renderSettings(<MaintenanceRoute />);
+
   // Then
   expect(
     await screen.findByText(
@@ -442,11 +479,13 @@ it("cancels content confirmation without sending a mutation", async () => {
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
   const user = await editMessage();
-  jest.mocked(Alert.alert).mockImplementation(() => {});
+
   // When
   await user.press(
     screen.getByRole("button", { name: "Enregistrer le contenu" }),
   );
+  await act(async () => nativeAction("Annuler").onPress?.());
+
   // Then
   await waitFor(() =>
     expect(Alert.alert).toHaveBeenCalledWith(
@@ -465,11 +504,13 @@ it("cancels activation confirmation without changing the saved state", async () 
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
   const user = userEvent.setup();
-  jest.mocked(Alert.alert).mockImplementation(() => {});
+
   // When
   await user.press(
     screen.getByRole("button", { name: "Activer la maintenance" }),
   );
+  await act(async () => nativeAction("Annuler").onPress?.());
+
   // Then
   expect(Alert.alert).toHaveBeenCalledWith(
     "Activer la maintenance ?",
@@ -504,6 +545,7 @@ it("retains a draft through a failed permission refresh", async () => {
         )
       : json(stored),
   );
+
   // When
   await act(async () => {
     await client.refetchQueries({
@@ -511,6 +553,7 @@ it("retains a draft through a failed permission refresh", async () => {
       exact: true,
     });
   });
+
   // Then
   expect(
     await screen.findByText("Les permissions du compte sont indisponibles."),
@@ -521,19 +564,18 @@ it("retains a draft through a failed permission refresh", async () => {
   ).toBeDisabled();
 });
 
-it.each(["Enregistrer le contenu", "Activer la maintenance"])(
+it.each([
+  ["Enregistrer le contenu", "Enregistrer"],
+  ["Activer la maintenance", "Activer"],
+])(
   "retains a read-only draft and blocks a held %s confirmation after revocation",
-  async (action) => {
+  async (action, confirmation) => {
     // Given
     await renderSettings();
     await screen.findByDisplayValue(initial.message);
     const user = await editMessage();
-    let confirmAction: AlertButton["onPress"];
-    jest.mocked(Alert.alert).mockImplementation((_title, _message, buttons) => {
-      confirmAction = buttons?.at(-1)?.onPress;
-    });
     await user.press(screen.getByRole("button", { name: action }));
-    const confirm = confirmAction;
+    const confirm = nativeAction(confirmation).onPress;
     if (!confirm) throw new Error("The native confirmation is missing");
     const accountQuery = client
       .getQueryCache()
@@ -612,6 +654,7 @@ it("keeps a conflicting draft blocked through a failed settings reread", async (
   await user.press(
     screen.getByRole("button", { name: "Enregistrer le contenu" }),
   );
+  await act(async () => nativeAction("Enregistrer").onPress?.());
   await screen.findByRole("button", { name: "Relire les réglages" });
   await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
 

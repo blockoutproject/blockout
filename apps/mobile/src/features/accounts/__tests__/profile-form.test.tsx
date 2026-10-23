@@ -209,9 +209,9 @@ it("retains a dirty draft on background refetch and whole-save username refusal"
     .getQueryCache()
     .findAll()
     .find(({ queryKey }) => queryKey.includes("/accounts/me"))?.queryKey;
-  expect(key).toBeDefined();
+  if (!key) throw new Error("The real current-account query is missing");
   await act(() =>
-    client.setQueryData(key!, { ...account, username: "Other_device" }),
+    client.setQueryData(key, { ...account, username: "Other_device" }),
   );
   mockFetch.mockImplementation(async () =>
     json(
@@ -230,7 +230,7 @@ it("retains a dirty draft on background refetch and whole-save username refusal"
   // Then
   await screen.findByText("Ce pseudo est déjà utilisé.");
   expect(screen.getByDisplayValue("My_draft")).toBeOnTheScreen();
-  expect(client.getQueryData(key!)).toMatchObject({ username: "Other_device" });
+  expect(client.getQueryData(key)).toMatchObject({ username: "Other_device" });
 });
 
 it("preserves the draft when native crop is cancelled or permission is refused", async () => {

@@ -116,7 +116,7 @@ export const tokens = {
   opacity: { disabled: 0.45, pressed: 0.9 },
   elevation: { offsetX: 0, offsetY: 4, blur: 10 },
   motion: { slow: 480 },
-  // Exact static face names preserve intermediate weights on Android versions before API 28.
+  // Select the bundled static face explicitly so approved weights stay consistent across platforms.
   typography: {
     body: { fontFamily: "Outfit-Regular", fontSize: 14, lineHeight: 20 },
     strong: { fontFamily: "Outfit-SemiBold", fontSize: 14, lineHeight: 20 },

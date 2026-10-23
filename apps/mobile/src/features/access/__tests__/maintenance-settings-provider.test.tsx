@@ -1,6 +1,6 @@
-import { Alert } from "react-native";
+import { Alert, type AlertButton } from "react-native";
 import { QueryClientProvider, QueryObserver } from "@tanstack/react-query";
-import { render, screen, userEvent } from "@testing-library/react-native";
+import { act, render, screen, userEvent } from "@testing-library/react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
@@ -75,11 +75,7 @@ const suite = provider ? describe : describe.skip;
 
 suite("real PostgreSQL/provider/generated consumer integration", () => {
   beforeEach(async () => {
-    jest
-      .spyOn(Alert, "alert")
-      .mockImplementation((_title, _message, buttons) =>
-        buttons?.at(-1)?.onPress?.(),
-      );
+    jest.spyOn(Alert, "alert").mockImplementation(() => {});
     Object.assign(process.env, {
       EXPO_PUBLIC_API_URL: provider,
       EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -130,6 +126,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
   it("returns complete public state and publishes content only after explicit activation", async () => {
     // Given
     const current = await getMaintenanceSettings(one);
+
     // When
     const saved = await changeMaintenanceSettings(
       { revision: current.revision, message: "Published later" },
@@ -141,6 +138,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
       two,
     );
     const active = await getApplicationAccess();
+
     // Then
     expect(inactive.maintenance).toMatchObject({
       active: false,
@@ -167,6 +165,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     // Given
     const maintenance = await getMaintenanceSettings(one);
     const versions = await getApplicationVersionSettings(two);
+
     // When
     const independent = await Promise.all([
       changeMaintenanceSettings(
@@ -188,6 +187,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
         two,
       ),
     ]);
+
     // Then
     expect(independent[1].revision).toBe(versions.revision + 1);
     expect(
@@ -212,6 +212,7 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
       },
       one,
     );
+
     // When / Then
     await expect(
       changeApplicationVersionSettings(
@@ -271,29 +272,37 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
       { revision: current.revision, message: "Other editor" },
       two,
     );
+
     // When
     await user.press(
       screen.getByRole("button", { name: "Enregistrer le contenu" }),
     );
+    await act(async () => nativeAction("Enregistrer").onPress?.());
+
     // Then
     await screen.findByRole("button", { name: "Relire les réglages" });
     expect(screen.getByDisplayValue("First editor draft")).toBeOnTheScreen();
     expect((await getMaintenanceSettings(two)).message).toBe("Other editor");
     const writes = mockPatchCount;
+
     // When
     await user.press(
       screen.getByRole("button", { name: "Relire les réglages" }),
     );
+
     // Then
     await screen.findByText(
       "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
     );
     expect(mockPatchCount).toBe(writes);
     expect(screen.getByDisplayValue("First editor draft")).toBeOnTheScreen();
+
     // When
     await user.press(
       screen.getByRole("button", { name: "Enregistrer le contenu" }),
     );
+    await act(async () => nativeAction("Enregistrer").onPress?.());
+
     // Then
     await screen.findByText("Contenu enregistré.");
     expect((await getMaintenanceSettings(two)).message).toBe(
@@ -314,10 +323,13 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     await renderEditor();
     const user = await draft("Committed despite lost response");
     mockLoseNextResponse = true;
+
     // When
     await user.press(
       screen.getByRole("button", { name: "Enregistrer le contenu" }),
     );
+    await act(async () => nativeAction("Enregistrer").onPress?.());
+
     // Then
     await screen.findByRole("button", { name: "Relire les réglages" });
     expect((await getMaintenanceSettings(two)).message).toBe(
@@ -327,19 +339,24 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
       screen.getByDisplayValue("Committed despite lost response"),
     ).toBeOnTheScreen();
     const writes = mockPatchCount;
+
     // When
     await user.press(
       screen.getByRole("button", { name: "Relire les réglages" }),
     );
+
     // Then
     await screen.findByText(
       "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
     );
     expect(mockPatchCount).toBe(writes);
+
     // When
     await user.press(
       screen.getByRole("button", { name: "Enregistrer le contenu" }),
     );
+    await act(async () => nativeAction("Enregistrer").onPress?.());
+
     // Then
     await screen.findByText("Contenu enregistré.");
     expect(client.getQueryState(publicKey)?.isInvalidated).toBe(true);
@@ -348,6 +365,14 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     stopObserving();
   });
 });
+/** Finds a named choice in the displayed native alert without accepting it during setup. */
+function nativeAction(label: string): AlertButton {
+  const button = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find((choice) => choice.text === label);
+  if (!button) throw new Error(`The native action ${label} is missing`);
+  return button;
+}
 /** Mounts the actual form component with its real F05/Query owners, outside production route admission. */
 async function renderEditor() {
   await render(<MaintenanceSettingsScreen />, {

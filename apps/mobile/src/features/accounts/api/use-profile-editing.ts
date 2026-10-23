@@ -123,7 +123,7 @@ export function useProfilePhoto(accountId: string, hasPhoto: boolean) {
   });
 }
 
-/** Converts a validated binary response into an in-memory URI supported by native Image. */
+/** Converts a successful owner-only binary response into an in-memory URI supported by native Image. */
 function photoPreview(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

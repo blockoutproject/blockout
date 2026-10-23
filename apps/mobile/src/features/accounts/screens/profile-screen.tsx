@@ -14,7 +14,7 @@ import {
 } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import { AdministrationEntry } from "../../access/components/administration-entry";
+import { AdministrationEntry } from "../../access/entry";
 import { ProEntry } from "../../pro/entry";
 import {
   useCurrentAccount,
