@@ -298,7 +298,7 @@ it("retains the old image and caller validation error when preparation rejects u
   ).toBeOnTheScreen();
 });
 
-it("exposes busy state during owner preparation and recovers safely from rejection", async () => {
+it("blocks reselection during owner preparation and recovers safely from rejection", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
   let rejectPreparation: (error: Error) => void = () => {};
@@ -329,6 +329,15 @@ it("exposes busy state during owner preparation and recovers safely from rejecti
       disabled: true,
     }),
   ).toBeOnTheScreen();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Chargement…", disabled: true }),
+  );
+
+  // Then
+  expect(launch).toHaveBeenCalledTimes(1);
+  expect(onSelect).toHaveBeenCalledTimes(1);
 
   // When
   await act(async () => {

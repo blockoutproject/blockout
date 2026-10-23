@@ -59,12 +59,13 @@ public class FfvbDiscovery {
             .anyMatch(element -> season.equals(element.attr("value")));
     Map<String, SportingObservation.Pool> pools = new LinkedHashMap<>();
     for (Element link : links) {
-      String value = link.hasAttr("href") ? link.attr("href") : link.attr("value");
+      String attribute = link.hasAttr("href") ? "href" : "value";
+      String value = link.attr(attribute);
       if (!value.contains("vbspo_calendrier.php")) continue;
       String pack = pack(link);
       if (excludedCompetition(pack + " " + link.text())) continue;
       try {
-        URI calendar = url.resolve(value);
+        URI calendar = URI.create(link.absUrl(attribute));
         Map<String, String> fields = query(calendar);
         if (EXCLUDED.contains(fields.getOrDefault("codent", ""))) continue;
         if (season.equals(fields.get("saison"))
@@ -211,7 +212,8 @@ public class FfvbDiscovery {
   }
 
   /**
-   * Selects only published navigation to native frames, selectors, menus and scoped archives.
+   * Selects only published navigation to native frames, selectors, menus and scoped archives,
+   * resolving attributes against jsoup's document base.
    *
    * @param bytes bounded entry HTML
    * @param url entry base
@@ -223,7 +225,7 @@ public class FfvbDiscovery {
     for (Element link : page.select("frame[src], iframe[src], a[href], option[value]")) {
       String attribute = link.hasAttr("src") ? "src" : link.hasAttr("href") ? "href" : "value";
       try {
-        URI target = url.resolve(link.attr(attribute));
+        URI target = URI.create(link.absUrl(attribute));
         String path = target.getPath();
         if ("www.ffvbbeach.org".equalsIgnoreCase(target.getHost())
             && path != null

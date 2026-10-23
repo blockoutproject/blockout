@@ -192,7 +192,7 @@ public interface CollectionApiMapper {
    * @return safe operational view without raw provider data
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = "scopeLabel", expression = "java(source.scopeId().toString())")
+  @Mapping(target = "scopeLabel", source = "scopeId")
   @Mapping(
       target = "lastSuccessAt",
       source = "lastSuccessAt",

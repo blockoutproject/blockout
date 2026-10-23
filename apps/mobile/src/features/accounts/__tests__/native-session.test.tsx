@@ -149,6 +149,9 @@ it.each([
   CredentialsManagerErrorCodes.NO_REFRESH_TOKEN,
   CredentialsManagerErrorCodes.INVALID_CREDENTIALS,
   CredentialsManagerErrorCodes.SESSION_EXPIRED,
+  CredentialsManagerErrorCodes.DPOP_KEY_MISSING,
+  CredentialsManagerErrorCodes.DPOP_KEY_MISMATCH,
+  CredentialsManagerErrorCodes.DPOP_NOT_CONFIGURED,
   "invalid_grant",
 ])(
   "requires sign-in and invalidates private work after confirmed %s",

@@ -25,7 +25,12 @@ public class LnvCalendarParser {
 
   /** Interpreted calendar and qualified logos keyed by native team identity, not club identity. */
   public record Read(SportingObservation.Calendar calendar, Map<String, URI> logos) {
-    /** Detaches the passage's selected media references. */
+    /**
+     * Detaches the passage's selected media references.
+     *
+     * @param calendar usable matches and any attributable failures
+     * @param logos published images keyed by participating native team identity
+     */
     public Read {
       logos = Map.copyOf(logos);
     }
@@ -218,7 +223,8 @@ public class LnvCalendarParser {
   }
 
   /**
-   * Extracts a literal published navigation URL without executing JavaScript.
+   * Resolves HTML anchors through jsoup and extracts the provider's literal onclick URL without
+   * executing JavaScript. Foreign anchors cannot be rewritten into local match references.
    *
    * @param row native match row
    * @param base current calendar URL
@@ -227,12 +233,19 @@ public class LnvCalendarParser {
   private URI detail(Element row, URI base) {
     Set<URI> references = new LinkedHashSet<>();
     for (Element element : row.select("[onclick], a[href]")) {
-      Matcher match =
-          MATCH.matcher(element.hasAttr("href") ? element.attr("href") : element.attr("onclick"));
-      if (match.find()) references.add(base.resolve(match.group()));
+      if (element.hasAttr("href")) {
+        URI target = URI.create(element.absUrl("href"));
+        if (target.getPath() != null && target.getPath().endsWith("/MatchStatistics.aspx"))
+          references.add(target);
+      } else {
+        Matcher match = MATCH.matcher(element.attr("onclick"));
+        if (match.find()) references.add(base.resolve(match.group()));
+      }
     }
     if (references.size() != 1) throw LnvPage.invalid();
-    return references.iterator().next();
+    URI detail = references.iterator().next();
+    if (!base.getHost().equalsIgnoreCase(detail.getHost())) throw LnvPage.invalid();
+    return detail;
   }
 
   /**
