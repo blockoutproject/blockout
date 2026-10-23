@@ -1,10 +1,10 @@
 package com.blockout.backend.contributions.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.access.application.AccessSettingsStore;
@@ -32,12 +32,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -150,7 +153,7 @@ class ContributionAccessTest {
     ResultActions response = mvc.perform(owner(ACCOUNT).header("Authorization", "Bearer " + token));
 
     // Then
-    response.andExpect(status().isOk());
+    response.andExpect(status().isOk()).andExpect(jsonPath("$").value(ACCOUNT.toString()));
   }
 
   @Test
@@ -201,72 +204,56 @@ class ContributionAccessTest {
         .andExpect(status().isOk());
   }
 
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "guest",
-        "malformed",
-        "wrong-issuer",
-        "wrong-audience",
-        "collector",
-        "wrong-client"
-      })
+  /**
+   * Supplies explicit trust failures without interpreting scenario labels in the test body.
+   *
+   * @return scenario label, optional signed bearer and expected HTTP refusal
+   */
+  static Stream<Arguments> refusedCredentials() {
+    return Stream.of(
+        Arguments.of("guest", null, 401),
+        Arguments.of("malformed", "malformed", 401),
+        Arguments.of(
+            "wrong issuer",
+            token("https://other.example.invalid/", "mobile-test", "mobile-client", false),
+            401),
+        Arguments.of("wrong audience", token(issuer, "production", "mobile-client", false), 401),
+        Arguments.of("collector", token(issuer, "collector-test", "collector-client", false), 401),
+        Arguments.of("wrong client", token(issuer, "mobile-test", "other-client", false), 403));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("refusedCredentials")
   @DisplayName("Refuses untrusted credentials before account or grant effects")
-  void refusesCredentials(String kind) throws Exception {
+  void refusesCredentials(String scenario, String bearer, int expectedStatus) throws Exception {
     // Given
     MockHttpServletRequestBuilder request = owner(ACCOUNT);
-    if (!kind.equals("guest"))
-      request.header(
-          "Authorization",
-          "Bearer "
-              + (kind.equals("malformed")
-                  ? "malformed"
-                  : token(
-                      kind.equals("wrong-issuer") ? "https://other.example.invalid/" : issuer,
-                      kind.equals("wrong-audience")
-                          ? "production"
-                          : kind.equals("collector") ? "collector-test" : "mobile-test",
-                      kind.equals("collector")
-                          ? "collector-client"
-                          : kind.equals("wrong-client") ? "other-client" : "mobile-client",
-                      false)));
+    if (bearer != null) request.header("Authorization", "Bearer " + bearer);
 
     // When
     ResultActions response = mvc.perform(request);
 
     // Then
-    if (kind.equals("wrong-client")) response.andExpect(status().isForbidden());
-    else response.andExpect(status().isUnauthorized());
+    response.andExpect(status().is(expectedStatus));
     verifyNoInteractions(accounts, permissions, settings);
   }
 
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "read",
-        "history",
-        "publish",
-        "replace",
-        "withdraw",
-        "approve",
-        "reject",
-        "reactivate"
-      })
-  @DisplayName("One stream-only grant permits every video moderation context")
-  void admitsCompleteModeration(String action) throws Exception {
+  @Test
+  @DisplayName("One stream-only grant admits the shared video moderation context")
+  void admitsStreamModerator() throws Exception {
     // Given
     when(permissions.findByAccountId(ACCOUNT)).thenReturn(Set.of(Permission.MODERATE_STREAM_LINKS));
 
     // When
     ResultActions response =
         mvc.perform(
-            moderator(action)
+            moderator()
                 .header(
                     "Authorization",
                     "Bearer " + token(issuer, "mobile-test", "mobile-client", false)));
 
     // Then
-    response.andExpect(status().isOk());
+    response.andExpect(status().isOk()).andExpect(jsonPath("$").value(ACCOUNT.toString()));
   }
 
   @ParameterizedTest
@@ -283,7 +270,7 @@ class ContributionAccessTest {
     // When
     ResultActions response =
         mvc.perform(
-            moderator("publish")
+            moderator()
                 .header(
                     "Authorization",
                     "Bearer " + token(issuer, "mobile-test", "mobile-client", true)));
@@ -301,59 +288,49 @@ class ContributionAccessTest {
     String bearer = token(issuer, "mobile-test", "mobile-client", false);
 
     // When
-    ResultActions first =
-        mvc.perform(moderator("read").header("Authorization", "Bearer " + bearer));
+    ResultActions first = mvc.perform(moderator().header("Authorization", "Bearer " + bearer));
 
     // Then
     first.andExpect(status().isOk());
-    mvc.perform(moderator("approve").header("Authorization", "Bearer " + bearer))
+    mvc.perform(moderator().header("Authorization", "Bearer " + bearer))
         .andExpect(status().isForbidden());
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"none", "stream-only", "bypass-only", "both"})
+  /**
+   * Supplies exact grants and the expected outcome of explicit personal bypass.
+   *
+   * @return independent current-grant combinations with no inferred extra power
+   */
+  static Stream<Arguments> maintenanceGrants() {
+    return Stream.of(
+        Arguments.of("none", Set.of(), 403),
+        Arguments.of("stream only", Set.of(Permission.MODERATE_STREAM_LINKS), 403),
+        Arguments.of("bypass only", Set.of(Permission.BYPASS_MAINTENANCE), 403),
+        Arguments.of(
+            "both", Set.of(Permission.MODERATE_STREAM_LINKS, Permission.BYPASS_MAINTENANCE), 200));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("maintenanceGrants")
   @DisplayName("Keeps explicit maintenance bypass separate from stream moderation")
-  void separatesMaintenance(String grants) throws Exception {
+  void separatesMaintenance(String scenario, Set<Permission> grants, int bypassStatus)
+      throws Exception {
     // Given
     when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, true, "Maintenance", null));
-    when(permissions.findByAccountId(ACCOUNT))
-        .thenReturn(
-            switch (grants) {
-              case "stream-only" -> Set.of(Permission.MODERATE_STREAM_LINKS);
-              case "bypass-only" -> Set.of(Permission.BYPASS_MAINTENANCE);
-              case "both" ->
-                  Set.of(Permission.MODERATE_STREAM_LINKS, Permission.BYPASS_MAINTENANCE);
-              default -> Set.of();
-            });
+    when(permissions.findByAccountId(ACCOUNT)).thenReturn(grants);
     String bearer = token(issuer, "mobile-test", "mobile-client", false);
 
     // When
-    ResultActions ordinary =
-        mvc.perform(moderator("publish").header("Authorization", "Bearer " + bearer));
+    ResultActions ordinary = mvc.perform(moderator().header("Authorization", "Bearer " + bearer));
     ResultActions bypass =
         mvc.perform(
-            moderator("publish")
+            moderator()
                 .header("Authorization", "Bearer " + bearer)
                 .header("Blockout-Maintenance-Bypass", "true"));
 
     // Then
     ordinary.andExpect(status().isServiceUnavailable());
-    if (grants.equals("both")) bypass.andExpect(status().isOk());
-    else bypass.andExpect(status().isForbidden());
-  }
-
-  @Test
-  @DisplayName("Stream-only context supplies no unrelated or bypass grant")
-  void exposesOnlyStreamCapability() {
-    // Given
-    ContributionContext context = new ContributionContext(ACCOUNT, true);
-
-    // When
-    context.requireModeration();
-
-    // Then
-    assertThat(context.accountId()).isEqualTo(ACCOUNT);
-    assertThat(context.moderateStreamLinks()).isTrue();
+    bypass.andExpect(status().is(bypassStatus));
   }
 
   /**
@@ -367,15 +344,12 @@ class ContributionAccessTest {
   }
 
   /**
-   * Selects a private moderation probe using the same capability for every action.
+   * Selects the private moderation context probe without simulating business actions.
    *
-   * @param action scenario label; no action is executed
    * @return moderation request builder for the original actor
    */
-  private static MockHttpServletRequestBuilder moderator(String action) {
-    return get("/administration/stream-moderation")
-        .param("actor", ACCOUNT.toString())
-        .param("action", action);
+  private static MockHttpServletRequestBuilder moderator() {
+    return get("/administration/stream-moderation").param("actor", ACCOUNT.toString());
   }
 
   /**
@@ -434,14 +408,13 @@ class ContributionAccessTest {
     }
 
     /**
-     * Checks the original moderator for any video action without performing effects.
+     * Checks the original moderator context without performing business effects.
      *
      * @param actor original command actor
-     * @param action scenario label; confers no privilege
      * @return admitted original moderator identity
      */
     @GetMapping("/administration/stream-moderation")
-    UUID moderation(@RequestParam UUID actor, @RequestParam String action) {
+    UUID moderation(@RequestParam UUID actor) {
       ContributionContext context = requests.current();
       context.requireOriginalAccount(actor);
       context.requireModeration();

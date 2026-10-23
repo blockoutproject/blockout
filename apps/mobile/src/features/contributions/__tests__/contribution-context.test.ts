@@ -174,22 +174,14 @@ it.each(["B", accountId])(
       })
       .catch((error: unknown) => error);
     const success = jest.fn();
-    const pendingWrite = client
-      .getMutationCache()
-      .build(client, {
-        mutationKey: contributionKeys.report(captured, versionId),
-        mutationFn: () =>
-          createStreamReport(
-            accountId,
-            versionId,
-            { reason: "Synthetic reason" },
-            { session: captured },
-          ),
-        onSuccess: success,
-      })
-      .execute(undefined)
+    const pendingWrite = createStreamReport(
+      accountId,
+      versionId,
+      { reason: "Synthetic reason" },
+      { session: captured },
+    )
+      .then(success)
       .catch((error: unknown) => error);
-    await Promise.resolve();
 
     // When
     owner.invalidate();
