@@ -150,7 +150,7 @@ function Journey(props: ProPresentationScreenProps) {
   );
 }
 
-/** Mounts native boundaries within their actual account, query and appearance owners. */
+/** Mounts actual providers; each scenario explicitly establishes its account and chooses its entry. */
 async function mount(props: ProPresentationScreenProps = { admitted: true }) {
   await render(
     <QueryClientProvider client={client}>
@@ -164,30 +164,25 @@ async function mount(props: ProPresentationScreenProps = { admitted: true }) {
     </QueryClientProvider>,
   );
   await waitFor(() => expect(account.status).toBe("authenticated"));
+}
+
+it("hosts the explicit V2 offering unchanged and dismisses to the originating profile", async () => {
+  // Given
+  await mount();
   await act(() =>
     account.setAccount(
       account.generation,
       "00000000-0000-4000-8000-000000000251",
     ),
   );
-  await waitFor(() =>
-    expect(
-      pro.state.status === "active" ||
-        pro.state.status === "inactive" ||
-        (pro.state.status === "unavailable" &&
-          pro.state.reason === "customer-info"),
-    ).toBe(true),
-  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
   await userEvent.press(
     screen.getByRole("button", {
-      name: props.management ? "Gérer ou restaurer mes achats" : "Blockout Pro",
+      name: "Blockout Pro",
     }),
   );
-}
-
-it("hosts the explicit V2 offering unchanged and dismisses to the originating profile", async () => {
-  // Given
-  await mount();
   await screen.findByText("Native paywall double");
 
   // When
@@ -215,6 +210,20 @@ it("hosts the explicit V2 offering unchanged and dismisses to the originating pr
 it("refuses a repeated native initiation and shows confirmed payment without claiming inactive rights are active", async () => {
   // Given
   await mount();
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: "Blockout Pro",
+    }),
+  );
   await screen.findByText("Native paywall double");
   const resume = jest.fn();
   const callbacks = mockPaywall;
@@ -278,6 +287,20 @@ it.each(["gift", "unknown"])(
     } else
       mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
     await mount();
+    await act(() =>
+      account.setAccount(
+        account.generation,
+        "00000000-0000-4000-8000-000000000251",
+      ),
+    );
+    await screen.findByRole("button", {
+      name: "Gérer ou restaurer mes achats",
+    });
+    await userEvent.press(
+      screen.getByRole("button", {
+        name: "Blockout Pro",
+      }),
+    );
     await screen.findByText("Native management double");
 
     // When
@@ -292,6 +315,20 @@ it.each(["gift", "unknown"])(
 it("removes old-session native content and rejects old purchase, dismissal and support callbacks", async () => {
   // Given
   await mount();
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: "Blockout Pro",
+    }),
+  );
   await screen.findByText("Native paywall double");
   const callbacks = mockPaywall;
 
@@ -313,6 +350,20 @@ it("prepares only the identified F10 Custom Action with close-before-navigation 
   // Given: the destination is a controlled navigation boundary until #239/T032 implements it.
   const support = jest.fn(() => expect(mockRouter.back).toHaveBeenCalled());
   await mount({ admitted: true, management: true, onSupport: support });
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: "Gérer ou restaurer mes achats",
+    }),
+  );
   await screen.findByText("Native management double");
   mockRouter.back.mockClear();
 
@@ -351,6 +402,20 @@ it.each(["absent", "failed"])(
         new Error("private provider data"),
       );
     await mount();
+    await act(() =>
+      account.setAccount(
+        account.generation,
+        "00000000-0000-4000-8000-000000000251",
+      ),
+    );
+    await screen.findByRole("button", {
+      name: "Gérer ou restaurer mes achats",
+    });
+    await userEvent.press(
+      screen.getByRole("button", {
+        name: "Blockout Pro",
+      }),
+    );
 
     // When / Then
     expect(
@@ -368,6 +433,20 @@ it.each(["absent", "failed"])(
 it("keeps management independently reachable and leaves absent F10 integration unbound", async () => {
   // Given
   await mount({ admitted: true, management: true });
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: "Gérer ou restaurer mes achats",
+    }),
+  );
   await screen.findByText("Native management double");
 
   // When
@@ -389,6 +468,20 @@ it("rejects a late offering response after the opening session changes", async (
   const read = Promise.withResolvers<PurchasesOfferings>();
   mockPurchases.getOfferings.mockReturnValueOnce(read.promise);
   await mount();
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: "Blockout Pro",
+    }),
+  );
   await waitFor(() =>
     expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1),
   );
@@ -415,6 +508,20 @@ it.each([
   async (code, message) => {
     // Given
     await mount();
+    await act(() =>
+      account.setAccount(
+        account.generation,
+        "00000000-0000-4000-8000-000000000251",
+      ),
+    );
+    await screen.findByRole("button", {
+      name: "Gérer ou restaurer mes achats",
+    });
+    await userEvent.press(
+      screen.getByRole("button", {
+        name: "Blockout Pro",
+      }),
+    );
     await screen.findByText("Native paywall double");
 
     // When
@@ -441,6 +548,20 @@ it.each([
 it("announces only current SDK-active ad-free activation from the completion callback", async () => {
   // Given
   await mount();
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: "Blockout Pro",
+    }),
+  );
   await screen.findByText("Native paywall double");
   const active = { "Blockout Pro": entitlement() };
   mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
@@ -478,6 +599,20 @@ it("keeps navigation usable while the offer loads and drops presentation intent 
   const read = Promise.withResolvers<PurchasesOfferings>();
   mockPurchases.getOfferings.mockReturnValueOnce(read.promise);
   await mount();
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: "Blockout Pro",
+    }),
+  );
 
   // When
   expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
@@ -496,6 +631,20 @@ it("explicitly retries a failed offer from the profile and then opens the offici
   // Given
   mockPurchases.getOfferings.mockRejectedValueOnce(new Error("unavailable"));
   await mount();
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: "Blockout Pro",
+    }),
+  );
   await screen.findByText(/La lecture de l’offre Pro a échoué/);
   expect(mockRouter.navigate).not.toHaveBeenCalled();
 
@@ -511,6 +660,20 @@ it("explicitly retries a failed offer from the profile and then opens the offici
 it("does not reopen a cached paywall when a new explicit offering read fails", async () => {
   // Given
   await mount();
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: "Blockout Pro",
+    }),
+  );
   await screen.findByText("Native paywall double");
   await act(() => mockPaywall.onDismiss?.());
   mockRouter.navigate.mockClear();
@@ -532,6 +695,20 @@ it("allows B's explicit entry while A's abandoned offering read is still pending
   const oldRead = Promise.withResolvers<PurchasesOfferings>();
   mockPurchases.getOfferings.mockReturnValueOnce(oldRead.promise);
   await mount();
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000251",
+    ),
+  );
+  await screen.findByRole("button", {
+    name: "Gérer ou restaurer mes achats",
+  });
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: "Blockout Pro",
+    }),
+  );
 
   // When
   await act(() => account.invalidate());

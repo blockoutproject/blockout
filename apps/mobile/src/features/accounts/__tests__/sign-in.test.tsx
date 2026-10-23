@@ -258,7 +258,7 @@ it("never bootstraps an absent account during restoration or a profile read retr
   // Given
   mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
   const user = userEvent.setup();
-  await renderJourney(<ProfileScreen admitted />);
+  await renderJourney(<ProfileScreen admitted proEntry={null} />);
   expect(
     await screen.findByText("Votre compte Blockout est introuvable."),
   ).toBeOnTheScreen();
@@ -279,7 +279,7 @@ it("renders the local editable profile after ordinary restoration", async () => 
   mockFetch.mockImplementation(async () => json(account));
 
   // When
-  await renderJourney(<ProfileScreen admitted />);
+  await renderJourney(<ProfileScreen admitted proEntry={null} />);
 
   // Then
   expect(await screen.findByDisplayValue("Player_169")).toBeOnTheScreen();
@@ -303,7 +303,7 @@ it.each(["sign-in", "profile"])(
       <>
         <AccountReadProbe />
         {entry === "profile" ? (
-          <ProfileScreen admitted />
+          <ProfileScreen admitted proEntry={null} />
         ) : (
           <SignInScreen admitted />
         )}
@@ -351,7 +351,7 @@ it.each(["sign-in", "profile"])(
       <>
         <AccountReadProbe />
         {entry === "profile" ? (
-          <ProfileScreen admitted />
+          <ProfileScreen admitted proEntry={null} />
         ) : (
           <SignInScreen admitted />
         )}

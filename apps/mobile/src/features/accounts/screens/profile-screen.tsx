@@ -15,7 +15,6 @@ import {
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { AdministrationEntry } from "../../access/entry";
-import { ProEntry } from "../../pro/entry";
 import {
   useCurrentAccount,
   useEstablishAccount,
@@ -27,8 +26,8 @@ import { useAccountSession } from "../session/account-session-provider";
 /** Current ordinary admission; identification reads do not grant profile navigation. */
 export interface ProfileScreenProps {
   admitted: boolean;
-  /** Route-owned F09 entry keeps this ordinary profile independent of the native billing SDK. */
-  proEntry?: ReactNode;
+  /** Required route-owned F09 composition; focused consumers may explicitly omit it with null. */
+  proEntry: ReactNode;
 }
 
 /** Each platform uses its accepted single keyboard mechanism for this ordinary bounded form. */
@@ -135,9 +134,7 @@ function ProfileContent({ admitted, proEntry }: ProfileScreenProps) {
               onPress={() => void continueAsGuest()}
               loading={session.status === "signing-out"}
             />
-            {proEntry ?? (
-              <ProEntry onOpenPresentation={() => router.push("/pro")} />
-            )}
+            {proEntry}
             <PublicAccountLinks />
           </>
         )}

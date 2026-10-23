@@ -489,7 +489,7 @@ it("inserts the administration entry without replacing the current profile or it
   );
 
   // When
-  await renderAdministration(<ProfileScreen admitted />);
+  await renderAdministration(<ProfileScreen admitted proEntry={null} />);
 
   // Then
   expect(
