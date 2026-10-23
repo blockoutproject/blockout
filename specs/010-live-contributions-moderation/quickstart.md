@@ -18,6 +18,8 @@ The #223 foundation uses the existing pinned F13 stack, generators and ignored o
 
 `ContributionAccessTest` composes real signature/environment checks, F05 identity resolution and F12 admission/grants against controlled account/settings/transaction adapters. `contribution-context.test.ts` uses the real session owner, generated calls and Query to qualify keys, native infinite-query page parameters and late reads/writes across A → guest/B → A even without effective cancellation. Strict unknown-command rejection is proved at MVC; Orval's request schemas check known fields, while generated Fetch validates consumed responses once. These are contract/context proofs, not business endpoints, SQL locking/erasure, device, design or provider qualification. Later mutations must recheck identity/grants under their ordered locks.
 
+Automated foundation qualification on 2026-10-24 passed 53 Java and 52 mobile cases. Full README verification passed formatting, contract lint/bundling/generation, backend/collector verification, mobile lint/types/tests and iOS/Android JavaScript exports (930 backend, 211 collector and 555 mobile tests passed; six existing opt-in skips). CI's Alloy validation and deterministic regeneration of 306 ignored files passed. The full command remains failed because Expo Doctor passed 19/20: its live recommendations require newer patches for Expo, dev-client, file-system, font, image and router than the unchanged baseline pins. No dependency upgrade or check suppression is included; this external version-check failure remains visible for delivery review.
+
 ## Versions, quotas and concurrency
 
 With JUnit/Spring MVC/Testcontainers PostgreSQL and the real mappings/schema:
