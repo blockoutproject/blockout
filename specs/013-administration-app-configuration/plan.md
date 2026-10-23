@@ -12,7 +12,7 @@ Keep current action grants in PostgreSQL, assigned manually by the product owner
 
 **Language/Version**: Java 25 LTS and TypeScript; Expo SDK 58 / React Native 0.88 / React 19.3.0 under the accepted [F13 foundation](../003-shared-quality/plan.md).
 
-**Primary Dependencies**: Spring Boot 4.1.1 and its managed Spring Security/JPA/Hibernate; native Auth0 SDK; Expo Router, expo-application and Linking; TanStack Query. Reuse F13's Redocly 2.62.1, OpenAPI Generator 7.26.0 and Orval 8.41.0 chain. Platform-compatible unpinned patches are resolved during executable work; no dependency installation or upgrade is performed here.
+**Primary Dependencies**: Spring Boot 4.1.1 and its managed Spring Security/JPA/Hibernate; native Auth0 SDK; Expo Router, expo-application and Linking; TanStack Query. Reuse F13's Redocly 2.62.1, OpenAPI Generator 7.26.0 and Orval 8.41.0 chain. Platform-compatible unpinned patches are resolved during executable work.
 
 **Storage**: PostgreSQL 18.6; two singleton settings rows and account–permission associations. Mobile access state, bypass intent and business cache remain in memory. Auth0 alone retains secure credentials.
 
@@ -56,11 +56,11 @@ specs/013-administration-app-configuration/
 └── checklists/requirements.md
 ```
 
-Canonical HTTP changes live under `contracts/http/mobile/access/`, referenced by the existing mobile root and account schema. No tasks are generated.
+Canonical HTTP changes live under `contracts/http/mobile/access/`, referenced by the existing mobile root and account schema.
 
-### Future source structure
+### Source structure
 
-F12 occupies feature-owned application/domain/persistence/HTTP packages in `apps/backend` and an access/administration feature in `apps/mobile`. Thin Expo Router layouts consume its state. Account reads call F12 permission projection in-process. Collector ingestion and background domain work do not call the mobile admission endpoint. No runtime directories are created by this delivery.
+F12 occupies feature-owned application/domain/persistence/HTTP packages in `apps/backend` and an access/administration feature in `apps/mobile`. Thin Expo Router layouts consume its state. Account reads call F12 permission projection in-process. Collector ingestion and background domain work do not call the mobile admission endpoint.
 
 ## Responsibilities and authorization
 

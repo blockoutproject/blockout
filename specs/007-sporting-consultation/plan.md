@@ -57,7 +57,7 @@ specs/007-sporting-consultation/
 └── quickstart.md
 ```
 
-### Source code (planned, not initialized)
+### Planned source code
 
 ```text
 contracts/http/mobile/consultation/   # Canonical public resource contracts

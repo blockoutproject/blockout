@@ -8,8 +8,6 @@
 
 Provide public club, team and pool discovery through the existing backend and mobile application. PostgreSQL remains sporting truth; OpenSearch supplies tolerant candidates with strict filters and complete pagination on unchanged data. Current sporting rules govern every returned representation. After-commit updates and a regular full rebuild maintain the derived indexes without a broker, durable work queue or recovery platform.
 
-This dossier formalizes the accepted plan. It does not initialize the product, provision a search service or generate implementation tasks. Runtime qualifications remain outstanding.
-
 ## Technical Context
 
 **Language/Version**: Java 25 Temurin/Spring Boot 4.1.1 and TypeScript/Expo SDK 58, React Native 0.88, React 19.3.0 under [F13](../003-shared-quality/plan.md#technical-context).
@@ -37,7 +35,7 @@ This dossier formalizes the accepted plan. It does not initialize the product, p
 | I — Specification   | Accepted format/gender search, scoped division abbreviations and matching limits are integrated into F04. No revision journal or implicit behavioral replacement.                                                                                                               |
 | II — Ownership      | F02 owns identities, effective data, aliases, classification and visibility; F04 owns candidate matching and browsing; F03 owns destinations. F13 incorporates only the additional derived infrastructure.                                                                      |
 | III — Design        | The [existing discovery approval](spec.md#user-scenarios--testing) covers the unchanged field, filters, examples, cards and retry states. Backend matching/indexing decisions introduce no material visual or interaction change; no new prototype or Figma approval is needed. |
-| IV — Contracts      | Extend the canonical mobile root. Reuse existing representations and errors where meanings match; no editable contract copy or generated output in this dossier. Integrated generation remains future evidence.                                                                 |
+| IV — Contracts      | Extend the canonical mobile root. Reuse existing representations and errors where meanings match; no editable contract copy or committed generated output. Boundary suites qualify generation; owning tasks qualify business behavior.                                          |
 | V — Proportionality | Native search, transaction events, one scheduler and atomic aliases. No PIT lifecycle, durable outbox, distributed locks, custom relevance engine or separate operator UI. Alternatives and limits reside in [research](research.md).                                           |
 | Prerequisites       | The accepted [F03 plan](../007-sporting-consultation/plan.md) and F02/F13/shared identity/access/privacy decisions supply the required boundaries. No unresolved design or product arbitration remains.                                                                         |
 
@@ -58,7 +56,7 @@ specs/008-search-discovery/
 └── checklists/requirements.md
 ```
 
-### Source code (planned, not initialized)
+### Source code
 
 ```text
 contracts/http/mobile/discovery/  # Canonical search/read definitions
@@ -66,7 +64,7 @@ apps/backend/                    # Search application cases and OpenSearch adapt
 apps/mobile/                     # Existing discovery queries and visit state
 ```
 
-**Structure Decision**: Use the F13 applications and feature-first boundaries. Search consumes the sporting application API, not another module's JPA entities/repositories. Its engine port has a real external responsibility; no generic repository or query-builder framework is introduced. Generated interfaces, DTOs, clients and bundles remain build outputs. No `tasks.md` is produced here.
+**Structure Decision**: Use the F13 applications and feature-first boundaries. Search consumes the sporting application API, not another module's JPA entities/repositories. Its engine port has a real external responsibility; no generic repository or query-builder framework is introduced. Generated interfaces, DTOs, clients and bundles remain build outputs.
 
 ## Matching and current data
 
@@ -118,4 +116,4 @@ Run one isolated OpenSearch instance per environment with its own volume/configu
 
 Search indexes are disposable derivatives. PostgreSQL backups preserve the authoritative inputs; restoration rebuilds indexes before search is usable. No extra backup chain, Dashboards deployment or operator screen. Existing private logs/metrics and native Grafana alerts expose failed targeted/rebuild work and last successful rebuild; an alert closure is not proof of search recovery. Exclude query text, city values, credentials and raw engine/provider payloads from telemetry.
 
-[Research](research.md) records documentation and static evidence; [quickstart](quickstart.md) defines future proofs. Run README formatting, contract and local-link checks on the final tree. Runtime engine/client integration, native behavior, restoration and deployment have not been executed. Publish only the scoped documentary draft PR; merging, tasks and product implementation require their own authorization.
+[Research](research.md) records decision rationale; [quickstart](quickstart.md) distinguishes implemented engine/client and contract checks from outstanding business, native, restoration and deployment qualifications. Run the [README verification commands](../../README.md#verification) for affected boundaries; [tasks](tasks.md) track the remaining work.

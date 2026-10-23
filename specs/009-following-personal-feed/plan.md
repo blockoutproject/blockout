@@ -54,7 +54,7 @@ specs/009-following-personal-feed/
 
 ### Source Code (repository root)
 
-Planned integration locations; not initialized by this delivery:
+Planned integration locations:
 
 ```text
 apps/backend/       # follow use cases, persistence projections and HTTP adapters

@@ -22,7 +22,7 @@ This plan defines the common technical foundation. F05/F12 own the reconciled id
 
 **Target Platform**: Native iOS (minimum 16.4) and Android phones (minimum Android 10 / API 29), French Blockout-owned content; native development builds. Existing Hostinger VPS, Dokploy/Traefik; Grafana Cloud Free with Alloy, Sentry Free. Expo Go is not supplier-compatibility evidence. Native qualification follows FR-029’s application-minimum/latest-runtime rule and declares any simulator substitution in the actual build/device matrix; F14 retains its transition qualifications.
 
-**Project Type**: Mobile app plus one modular business backend and one independently deployed ingestion application, with two HTTP surfaces served by the same backend.
+**Project Type**: Mobile app plus one modular business backend and one independently deployed ingestion application; the backend serves mobile, ingestion and legacy update surfaces.
 
 **Performance Goals**: None beyond accepted domain timing, ordinary bounded waits and correct behavior. No concurrency, latency-percentile, load, capacity or monthly availability programme.
 

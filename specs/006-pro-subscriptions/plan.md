@@ -60,7 +60,7 @@ specs/006-pro-subscriptions/
 
 ### Source Code (repository root)
 
-Planned locations, not initialized here:
+Feature locations:
 
 ```text
 apps/mobile/src/features/pro/      # SDK state, provider presentation and account-safe callbacks

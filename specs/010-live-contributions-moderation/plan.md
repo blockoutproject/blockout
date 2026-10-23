@@ -55,7 +55,7 @@ specs/010-live-contributions-moderation/
 └── quickstart.md
 ```
 
-### Source code (planned, not initialized)
+### Planned source code
 
 ```text
 apps/backend/   # contribution use cases, persistence and generated HTTP adapters
@@ -119,7 +119,7 @@ Existing library instances and product patterns cover the previously approved co
 
 ## Verification and delivery
 
-Use [quickstart.md](quickstart.md) for implementation qualification and the [README checks](../../README.md#verification) for this documentary delivery. Reconcile owning specs and interfaces together in a draft PR to develop. The PR is a planning review; no executable product implementation, tasks, merge, provider action or issue closure follows automatically.
+Use [quickstart.md](quickstart.md) for implementation qualification and the [README checks](../../README.md#verification) for affected boundaries. Owning specifications and interfaces remain consistent throughout implementation; [tasks](tasks.md) track the work.
 
 ## Complexity Tracking
 

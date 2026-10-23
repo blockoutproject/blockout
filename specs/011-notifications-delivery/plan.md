@@ -55,7 +55,7 @@ specs/011-notifications-delivery/
 └── quickstart.md
 ```
 
-### Source code (planned, not initialized)
+### Planned source code
 
 ```text
 apps/backend/   # notifications application boundary, persistence and Expo adapter
@@ -66,7 +66,7 @@ contracts/http/mobile/notifications/
 └── schemas.yaml
 ```
 
-Use feature-owned application services and persistence ports inside the existing applications. Generated DTOs stay at HTTP boundaries. No new deployable, collector endpoint or generated output is introduced by this planning delivery.
+Use feature-owned application services and persistence ports inside the existing applications. Generated DTOs stay at HTTP boundaries and generated output remains outside Git. No new deployable or collector endpoint is needed.
 
 ## Announcement processing
 

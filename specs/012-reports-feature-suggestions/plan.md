@@ -28,7 +28,7 @@ Provide one shared private problem/suggestion form to guests and signed-in peopl
 
 **Constraints**: Five PNG/JPEG files, each at most 5 MiB after preparation; complete acceptance; confidential storage and diagnostics; no automatic resend, receipt registry, mobile status read, support history or post-confirmation editor. Current global access gates remain effective.
 
-**Scale/Scope**: One intake operation for problems and suggestions, private operator handling and an independent generic signal. No provider configuration, application implementation, tasks or automatic merge/closure.
+**Scale/Scope**: One intake operation for problems and suggestions, private operator handling and an independent generic signal.
 
 ## Constitution Check
 
@@ -57,7 +57,7 @@ specs/012-reports-feature-suggestions/
 └── quickstart.md
 ```
 
-### Source code (planned, not initialized)
+### Source code
 
 ```text
 apps/backend/   # support validation, GitHub/CLI adapter and independent Discord signal

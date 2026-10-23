@@ -58,7 +58,7 @@ specs/005-accounts-identity/
 └── contracts/README.md
 ```
 
-The HTTP source remains `contracts/http/mobile/openapi.yaml`, with account definitions referenced from its `accounts/` directory and common technical primitives under `contracts/http/common/`. No tasks are generated here.
+The HTTP source remains `contracts/http/mobile/openapi.yaml`, with account definitions referenced from its `accounts/` directory and common technical primitives under `contracts/http/common/`.
 
 ### Source Code (repository root)
 

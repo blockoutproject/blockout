@@ -26,7 +26,7 @@ Preserve Auth0 identities, applicable Pro rights and manually maintained club lo
 
 **Performance Goals**: No added throughput, capacity, availability or maintenance-duration objective. Preserve actual source-cycle, transaction and provider timing constraints.
 
-**Constraints**: No loss of indispensable continuity evidence; no email identity matching; no import notification burst; no old writers after cutover; current privacy obligations before restoration. No provider mutation, real-data export, application runtime or tasks in this delivery.
+**Constraints**: No loss of indispensable continuity evidence; no email identity matching; no import notification burst; no old writers after cutover; current privacy obligations before restoration.
 
 **Scale/Scope**: One transition, the current sporting season and three completed seasons, both stores and the actual existing subscriber/identity categories.
 
@@ -57,7 +57,7 @@ specs/014-v1-v2-transition/
 └── quickstart.md
 ```
 
-### Source code (planned, not initialized)
+### Source code
 
 ```text
 apps/backend/                         # existing owners and legacy status adapter

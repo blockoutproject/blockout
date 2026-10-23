@@ -84,4 +84,4 @@ Concurrent explicit age retrieval and profile saves apply immutable field-owned 
 
 **Rationale:** [HTTP semantics](https://www.rfc-editor.org/rfc/rfc9110.html) and [atomic PATCH semantics](https://www.rfc-editor.org/rfc/rfc5789.html) fit these observable effects. No separate photo-write routes, login/logout API, job resource or bulk endpoint has a real consumer need. A 204 confirms local resource removal after bounded external attempts; a 404 confirms original resource absence, not physical provider purge. No monitor resource is needed.
 
-**Qualification:** multipart JSON/file binding, optional-field preservation, unknown-request rejection, additional-response tolerance, nullable dates and PNG/JPEG response handling must pass the integrated Java/TypeScript chain before adoption. This documentation task does not compile a production runtime or generate its clients.
+**Qualification:** multipart JSON/file binding, optional-field preservation, unknown-request rejection, additional-response tolerance, nullable dates and PNG/JPEG response handling must pass the integrated Java/TypeScript chain before adoption.

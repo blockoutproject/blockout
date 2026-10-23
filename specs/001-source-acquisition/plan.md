@@ -8,7 +8,7 @@
 
 A separately deployed Java collector reads supported official FFVB and LNV sources and sends normalized observations to the existing backend. The backend remains the sole PostgreSQL business writer. Native scheduling, bounded HTTP reads, source-specific parsing and current operational state implement the accepted cadences and manual controls without a queue platform, retained raw documents or automatic pipeline recovery.
 
-This delivery produces planning artifacts and the agreed specification/design reconciliation. It creates no product runtime, tasks or provider configuration. The scoped prototype and Figma revisions are approved; runtime qualification remains future work.
+The scoped prototype and Figma revisions are approved. [Tasks](tasks.md) track implementation and remaining qualifications.
 
 ## Technical Context
 
@@ -58,7 +58,7 @@ specs/001-source-acquisition/
 └── checklists/requirements.md
 ```
 
-### Source Code (planned, not initialized)
+### Source Code
 
 ```text
 apps/collector/     # scheduling, provider adapters, generated backend client

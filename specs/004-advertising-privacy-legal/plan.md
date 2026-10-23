@@ -58,7 +58,7 @@ specs/004-advertising-privacy-legal/
 └── quickstart.md
 ```
 
-No `tasks.md` is generated. Specifications and planning artifacts are reviewed together after design reconciliation.
+Specifications and planning artifacts are reviewed together after design reconciliation.
 
 ### Source Code (repository root)
 

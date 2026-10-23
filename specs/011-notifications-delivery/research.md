@@ -32,7 +32,7 @@
 
 ## Association identity and native lifecycle
 
-**Decision.** Random installation UUID, fresh association UUID per sign-in, native token listener and ordinary registration opportunities. Guard removal by exact association and invalidation by its current JPA revision. No persisted logout retry. Keep current-account match navigation independent from notification read success. Reset the app-controlled badge at sign-out/account change or confirmed erasure. Leave presented system notifications to platform behavior; handle and clear tap responses only for ordinary navigation. Keep the foreground receive listener for discreet inbox refresh, without an added presentation handler.
+**Decision.** Random installation UUID, fresh association UUID per sign-in, native token listener and ordinary registration opportunities. Guard removal by exact association and invalidation by its current JPA revision. No persisted logout retry. Keep current-account match navigation independent from notification read success. Reset the app-controlled badge at sign-out/account change or confirmed erasure. Leave presented system notifications to platform behavior; handle and clear tap responses only for ordinary navigation. Keep the foreground receive listener for discreet inbox refresh alongside the SDK handler that suppresses presentation.
 
 **Rationale.** An address rotates and proves no ownership. A distinct association prevents an old logout or receipt from removing a newer binding, including returning to the same account. Native events and ordinary lifecycle refresh satisfy best-effort synchronization without polling or background tasks. A push from a former account does not justify requesting that account's inbox.
 
@@ -46,4 +46,4 @@
 
 **Rationale.** F07 adds a private domain capability to the same backend. Existing projections have the same public sporting meaning; private ownership/read/family data stays in F07. A read-only true intent is repeatable, and the connection association is a resource with PUT/DELETE semantics. No task resource is needed for best-effort push.
 
-**Evidence limits.** Official documentation and accepted source plans support the design. No integrated application build, generated Java/TypeScript compilation, native push, restored database or provider configuration has been executed. The [quickstart](quickstart.md) names the remaining qualifications. Design approvals are recorded separately in the plan and cannot be inferred from these sources.
+**Evidence limits.** Official documentation and accepted source plans support the design. Generated boundary checks do not qualify F07 business integration, native push, restoration or provider configuration. The [quickstart](quickstart.md) names those qualifications. Design approvals are recorded separately in the plan and cannot be inferred from these sources.
