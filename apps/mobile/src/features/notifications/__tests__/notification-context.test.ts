@@ -5,7 +5,7 @@ import {
   markNotificationRead,
   deletePushSubscription,
 } from "../../../../.generated/mobile";
-import { createSessionGeneration } from "../../accounts/session/session-generation";
+import { createSessionGeneration } from "../../accounts";
 import {
   bindSessionQueries,
   createQueryClient,
@@ -122,9 +122,14 @@ it("uses one native infinite-query entry with cursor in pageParam", async () => 
   }
 });
 
-it.each([null, b, a])(
-  "removes obsolete inbox/summary/detail across A → guest → %s",
-  async (nextAccount) => {
+it.each<{ label: string; transitions: (string | null)[] }>([
+  { label: "guest", transitions: [null] },
+  { label: "guest → B", transitions: [null, b] },
+  { label: "guest → A", transitions: [null, a] },
+  { label: "B → A", transitions: [b, a] },
+])(
+  "removes obsolete inbox/summary/detail across A → $label",
+  async ({ transitions }) => {
     // Given: real Query/session/transport; Fetch deliberately completes despite cancellation.
     const owner = createSessionGeneration();
     owner.setAccount(owner.getSnapshot().generation, a);
@@ -150,10 +155,11 @@ it.each([null, b, a])(
       .catch((error: unknown) => error);
 
     // When
-    owner.invalidate();
-    if (nextAccount)
-      owner.setAccount(owner.getSnapshot().generation, nextAccount);
-    const current = nextAccount
+    for (const accountId of transitions) {
+      if (accountId === null) owner.invalidate();
+      else owner.setAccount(owner.getSnapshot().generation, accountId);
+    }
+    const current = owner.getSnapshot().accountId
       ? getNotificationKeys(owner.getSnapshot())
       : undefined;
     if (current) client.setQueryData(current.summary, { unreadCount: 0 });
@@ -174,9 +180,14 @@ it.each([null, b, a])(
   },
 );
 
-it.each([null, b, a])(
-  "rejects obsolete callbacks without a cancellation signal after A → guest → %s",
-  async (nextAccount) => {
+it.each<{ label: string; transitions: (string | null)[] }>([
+  { label: "guest", transitions: [null] },
+  { label: "guest → B", transitions: [null, b] },
+  { label: "guest → A", transitions: [null, a] },
+  { label: "B → A", transitions: [b, a] },
+])(
+  "rejects obsolete callbacks without a cancellation signal after A → $label",
+  async ({ transitions }) => {
     // Given
     const owner = createSessionGeneration();
     owner.setAccount(owner.getSnapshot().generation, a);
@@ -198,9 +209,10 @@ it.each([null, b, a])(
     await reading.promise;
 
     // When
-    owner.invalidate();
-    if (nextAccount)
-      owner.setAccount(owner.getSnapshot().generation, nextAccount);
+    for (const accountId of transitions) {
+      if (accountId === null) owner.invalidate();
+      else owner.setAccount(owner.getSnapshot().generation, accountId);
+    }
     body.resolve({ ...notificationResponse(), read: true });
 
     // Then
