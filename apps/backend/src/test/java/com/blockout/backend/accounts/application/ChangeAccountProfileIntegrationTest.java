@@ -9,6 +9,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.blockout.backend.access.application.MaintenanceAdmission;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.accounts.application.exception.InvalidProfileChangeException;
 import com.blockout.backend.accounts.application.exception.UsernameUnavailableException;
@@ -74,7 +75,7 @@ class ChangeAccountProfileIntegrationTest {
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private MockMvc mvc;
-  @MockitoBean private AccountAdmission admission;
+  @MockitoBean private MaintenanceAdmission admission;
   @MockitoSpyBean private ProfilePhotoProcessor photos;
   private TransactionTemplate transaction;
   private UUID id;

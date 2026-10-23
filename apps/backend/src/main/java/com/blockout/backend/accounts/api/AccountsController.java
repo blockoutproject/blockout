@@ -1,5 +1,6 @@
 package com.blockout.backend.accounts.api;
 
+import com.blockout.backend.access.api.MaintenanceBypass;
 import com.blockout.backend.accounts.application.AccountAdmission;
 import com.blockout.backend.accounts.application.ChangeAccountProfile;
 import com.blockout.backend.accounts.application.EstablishAccount;
@@ -19,7 +20,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -49,7 +49,7 @@ public class AccountsController implements AccountsApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<AccountResponse> establishAccount(Boolean bypass) {
-    Optional<UUID> admitted = requireOrdinaryAccess(bypass);
+    Optional<UUID> admitted = requireOrdinaryAccess();
     JwtAuthenticationToken principal = principal();
     EstablishAccount.Outcome outcome =
         admitted.isPresent()
@@ -91,7 +91,7 @@ public class AccountsController implements AccountsApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<AccountResponse> getAccount(UUID id, Boolean bypass) {
-    requireOrdinaryAccess(id, bypass);
+    requireOrdinaryAccess(id);
     JwtAuthenticationToken principal = principal();
     return response(
         true,
@@ -103,7 +103,7 @@ public class AccountsController implements AccountsApi {
   @Override
   public ResponseEntity<AccountResponse> changeAccountProfile(
       UUID id, ChangeAccountProfileRequest metadata, Boolean bypass, MultipartFile image) {
-    requireOrdinaryAccess(id, bypass);
+    requireOrdinaryAccess(id);
     requireProfileParts();
     ProfilePhotoActionEnum action = metadata.getPhotoAction();
     if ((action == ProfilePhotoActionEnum.REPLACE) != (image != null))
@@ -146,14 +146,14 @@ public class AccountsController implements AccountsApi {
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<Void> eraseAccount(UUID id, Boolean bypass) {
-    requireOrdinaryAccess(id, bypass);
+    requireOrdinaryAccess(id);
     throw new AccountUnavailableException();
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<Resource> getAccountPhoto(UUID id, Boolean bypass) {
-    requireOrdinaryAccess(id, bypass);
+    requireOrdinaryAccess(id);
     JwtAuthenticationToken principal = principal();
     ProfilePhoto photo =
         reads.photo(
@@ -168,33 +168,24 @@ public class AccountsController implements AccountsApi {
   /**
    * Requires F12's current policy; only current-account identification skips ordinary admission.
    *
-   * @param bypass explicit personal intent forwarded unchanged to the policy owner
    * @return the existing bypass-authorized lifecycle, or empty for inactive maintenance
-   * @throws InvalidProfileChangeException for noncanonical or repeated bypass headers
+   * @throws org.springframework.web.server.ResponseStatusException for invalid bypass syntax
    */
-  private Optional<UUID> requireOrdinaryAccess(Boolean bypass) {
-    java.util.List<String> intent =
-        Collections.list(request.getHeaders("Blockout-Maintenance-Bypass"));
-    if (intent.size() > 1
-        || intent.stream().anyMatch(value -> !Set.of("true", "false").contains(value))) {
-      throw new InvalidProfileChangeException();
-    }
+  private Optional<UUID> requireOrdinaryAccess() {
+    boolean bypass = MaintenanceBypass.requested(request);
     JwtAuthenticationToken principal = principal();
     return admission.requireOrdinaryAccess(
-        principal.getToken().getIssuer().toString(),
-        principal.getToken().getSubject(),
-        Boolean.TRUE.equals(bypass));
+        principal.getToken().getIssuer().toString(), principal.getToken().getSubject(), bypass);
   }
 
   /**
    * Keeps active personal bypass bound to the same original resource as the account operation.
    *
    * @param original original UUID named by the generated account operation
-   * @param bypass explicit personal intent
    * @throws AccountNotFoundException when bypass admitted a different account lifecycle
    */
-  private void requireOrdinaryAccess(UUID original, Boolean bypass) {
-    if (requireOrdinaryAccess(bypass).filter(id -> !original.equals(id)).isPresent()) {
+  private void requireOrdinaryAccess(UUID original) {
+    if (requireOrdinaryAccess().filter(id -> !original.equals(id)).isPresent()) {
       throw new AccountNotFoundException();
     }
   }

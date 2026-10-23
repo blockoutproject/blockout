@@ -56,6 +56,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   JsonBodyLimitAdvice.class
 })
 @DisplayName("Sporting ingestion request limits")
+@MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class SportingIngestionWebMvcTest {
   @Autowired private MockMvc mvc;
   @MockitoBean private MatchAcceptanceService matches;

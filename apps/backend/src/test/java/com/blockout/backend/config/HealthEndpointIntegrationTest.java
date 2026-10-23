@@ -7,8 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.access.application.AccessSettingsStore;
+import com.blockout.backend.access.application.MaintenanceAdmission;
 import com.blockout.backend.access.application.PermissionStore;
-import com.blockout.backend.accounts.application.AccountAdmission;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.collection.application.port.CollectionStore;
@@ -54,7 +54,7 @@ class HealthEndpointIntegrationTest {
   @MockitoBean private EstablishAccount establishment;
   @MockitoBean private PermissionStore permissions;
   @MockitoBean private AccessSettingsStore settings;
-  @MockitoBean private AccountAdmission admission;
+  @MockitoBean private MaintenanceAdmission admission;
 
   @MockitoBean(name = "dbHealthIndicator", answers = Answers.CALLS_REAL_METHODS)
   private HealthIndicator database;

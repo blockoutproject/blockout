@@ -64,6 +64,7 @@ import org.springframework.transaction.TransactionSystemException;
 })
 @DisplayName("Atomic administration settings HTTP")
 @ExtendWith(OutputCaptureExtension.class)
+@MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class AdministrationSettingsWebMvcTest {
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000175");
   @Autowired private MockMvc mvc;

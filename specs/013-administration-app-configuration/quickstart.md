@@ -88,3 +88,25 @@ The prerequisite F05/F12 account-admission binding is covered by 22 Spring/Postg
 The earlier [Lucide receipt at `d84ce9b`](https://github.com/blockoutproject/blockout/pull/447#issuecomment-6361961498) retains the initial light/inactive and dark/active icon comparison on both platforms. Current SDK qualification is recorded above.
 
 T019's component implementation and the scoped native interactions above are complete. T020's real generated/provider/PostgreSQL evidence is complete; full root/admission integration remains with T028/T031 and US5. Physical-device, screen-reader and store/provider qualification, the deferred iOS minimum-endpoint form journey and the accepted F13 iOS text-scaling limit remain outside this evidence.
+
+## Shared maintenance admission — T021/T025/T026
+
+On 2026-10-23, the shared HTTP matrix covers ordinary direct calls, exact method/resource exceptions, canonical single-valued bypass intent, typed versus generic unavailability, inconsistent inactive refusals, no-store and absence of Retry-After. The initial matrix observed 16 behavioral failures before implementation. Existing MVC slices explicitly isolate the added SQL policy collaborator; the account suites retain the same admission binding.
+
+The Spring/PostgreSQL suite uses actual migrated settings, current account/grant queries, security, F12 writes, F02 authorization, health and F14 legacy serialization. Its test-owned ordinary read proves the shared admission boundary without simulating the unfinished discovery implementation. Cases cover explicit intent on otherwise public reads, guests, current/revoked/missing account grants, independent management/domain rights, committed activation, generic invalid settings, separate ingestion authorization and the in-process read. A further failing regression exposed cached JPA state inside a caller transaction; a short separate read transaction now observes the committed activation. The existing 22 account integration cases continue to own profile/photo/establishment/erasure refusal, original-lifecycle binding and already-admitted short-operation ordering.
+
+The mobile parser is exercised through the actual generated-schema Fetch boundary: only maintenance type, matching HTTP/body status 503, active maintenance and nonblank text yield a restriction. Generic/unknown categories, missing/inactive/malformed data, unsafe revisions and non-HTTP failures remain unavailability. It returns no minimum-version or admission decision. It intentionally leaves observation ordering and root/transport bypass composition to #180.
+
+The complete README verification passed with `NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false BLOCKOUT_ACCESS_CONSUMERS_TEST=true npm run verify`: backend 570 unit/MVC cases and 308 integration cases, including 33 shared-matrix, 10 shared PostgreSQL and 22 preserved account-admission cases; collector 201 unit and 8 integration cases; mobile 39 suites/448 tests, ESLint, TypeScript, both JavaScript exports and Expo Doctor 20/20. The mobile standalone run skips five settings-provider cases; the enabled Spring consumer runner passes those same five against actual HTTP/PostgreSQL. The focused parser contributes 12 transport/semantic cases. Generated outputs remain ignored. These checks establish their stated boundaries, not native/provider/design approval.
+
+Run the focused boundaries after dependency installation and contract generation:
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=MaintenanceAdmissionWebMvcTest,AccountAccessWebMvcTest,AccountProfileWebMvcTest \
+  -Dit.test=MaintenanceAdmissionIntegrationTest,AccountMaintenanceAdmissionIntegrationTest
+npm run test --workspace=@blockout/mobile -- \
+  --runTestsByPath src/features/access/__tests__/maintenance-problem.test.ts
+```
+
+No native screen, Auth0/RevenueCat/store operation or real source collection was exercised by this lot. T022–T024/T027–T031, actual F07 handoff/inbox/purge and the existing iOS 17/text-scaling qualifications remain open with their owners. The in-process reader is available for F07; no final notification consumer or provider stop/recall guarantee is claimed.

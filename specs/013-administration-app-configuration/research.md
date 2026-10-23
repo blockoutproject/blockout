@@ -56,6 +56,10 @@ The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions
 
 **Rationale and limit:** No cancellation, distributed barrier or polling is needed. Concurrent activation and a send are ordered at the send's admission check; already admitted handoffs may finish, and provider recall is not promised. Routine logs follow F13 without a new incident ledger.
 
+**Implementation binding:** The mobile security chain applies admission after native authentication/authorization. Explicit method/resource matches leave operational action checks with their owners; unknown administration routes and F08 moderation remain ordinary. Exact implemented F05 account methods keep their existing `AccountAdmission` binding, so admission is not repeated around provider I/O. One F12 header parser supplies canonical intent to both adapters. The filter delegates failures to the existing MVC Problem Details mapping; ingestion, health and the legacy read keep their separate security chains. [Spring filter placement](https://docs.spring.io/spring-security/reference/servlet/architecture.html), [MVC exception resolution](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet/exceptionhandlers.html).
+
+The in-process current-maintenance read uses a short native `REQUIRES_NEW` read transaction. A PostgreSQL regression demonstrated that joining an existing caller transaction can reuse its hydrated settings entity after a separately committed activation. The independent persistence context avoids that stale read without changing the accepted-operation boundary or implementing the F07 handoff consumer.
+
 ## First production preparation
 
 **Decision:** Initialize maintenance inactive with a usable message, no image and no minimum thresholds. Before public V2 publication, use the production binary in its test channel to establish the owner's account normally, manually grant rights, verify administration, then activate maintenance if public opening is deferred. Later restarts/deployments preserve stored settings.

@@ -60,6 +60,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   JsonBodyLimitAdvice.class
 })
 @DisplayName("Source preparation HTTP boundary")
+@MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class SourcePreparationWebMvcTest {
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000166");
   private static final UUID SOURCE = UUID.fromString("00000000-0000-4000-8000-000000000167");
