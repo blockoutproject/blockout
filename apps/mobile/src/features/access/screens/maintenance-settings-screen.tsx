@@ -1,5 +1,5 @@
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   KeyboardAwareScrollView,
@@ -50,11 +50,10 @@ function MaintenanceContent({ onDirtyChange }: MaintenanceSettingsScreenProps) {
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={styles.header}>
         <IconButton label="Retour" onPress={() => router.back()}>
-          <Image
+          <ChevronLeft
             accessible={false}
-            source={require("../../../../assets/icons/chevron-left.svg")}
-            tintColor={colors.icon}
-            style={styles.icon}
+            size={tokens.size.actionIcon}
+            color={colors.icon}
           />
         </IconButton>
         <Text
@@ -129,6 +128,5 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   title: { ...tokens.typography.heading, flex: 1 },
-  icon: { width: tokens.size.actionIcon, height: tokens.size.actionIcon },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.lg },
 });

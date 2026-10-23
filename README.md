@@ -169,7 +169,7 @@ Native projects are generated and ignored. After changing native dependencies or
 
 Shared native UI follows the [F13 theme and component boundaries](specs/003-shared-quality/plan.md#native-ui-and-approved-design). The [native validation guide](specs/003-shared-quality/quickstart.md#native-mobile-and-approved-design) owns Figma comparison and accessibility scenarios.
 
-Bundled Outfit files come unchanged from [`@expo-google-fonts/outfit` 0.4.3](https://www.npmjs.com/package/@expo-google-fonts/outfit/v/0.4.3), under the included [OFL license](apps/mobile/assets/fonts/OFL.txt). SVG icons come from the UI Library sources linked in the native validation guide.
+Bundled Outfit files come unchanged from [`@expo-google-fonts/outfit` 0.4.3](https://www.npmjs.com/package/@expo-google-fonts/outfit/v/0.4.3), under the included [OFL license](apps/mobile/assets/fonts/OFL.txt). Interface icons use named components from [`lucide-react-native`](https://lucide.dev/guide/react-native), rendered through the Expo-compatible `react-native-svg`; sizes and colors follow the shared theme. The Blockout logo, photography and outlined artwork remain image assets, independently of interface icons.
 
 `Blockout Local` uses development-only `com.blockout.local` identifiers and a blank route. F14 owns retained store identities and production candidates. There is no web target or mock identity provider. Android emulators reach a host API through `10.0.2.2`; physical phones need the host's LAN address. `EXPO_PUBLIC_*` values are public bundle configuration, never secrets.
 

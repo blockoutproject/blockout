@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+import { LoaderCircle } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, StyleSheet } from "react-native";
 import Animated, {
@@ -49,11 +49,11 @@ export function LoadingIndicator({ color }: { color: string }) {
 
   return (
     <Animated.View style={[styles.slot, style]} accessible={false}>
-      <Image
-        source={require("../../../assets/icons/loading.svg")}
-        tintColor={color}
-        style={styles.slot}
-        contentFit="contain"
+      <LoaderCircle
+        accessible={false}
+        size={tokens.size.loading}
+        color={color}
+        nonScalingStroke
       />
     </Animated.View>
   );

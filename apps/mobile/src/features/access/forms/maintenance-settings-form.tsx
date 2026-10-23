@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
+import { FileText, Wrench } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Alert, StyleSheet, Text, View } from "react-native";
@@ -185,11 +186,10 @@ export function MaintenanceSettingsForm({
         ]}
       >
         <View style={styles.heading}>
-          <Image
+          <Wrench
             accessible={false}
-            source={require("../../../../assets/icons/maintenance.svg")}
-            tintColor={colors.icon}
-            style={styles.icon}
+            size={tokens.size.actionIcon}
+            color={colors.icon}
           />
           <View style={styles.state}>
             <Text style={[tokens.typography.strong, { color: colors.text }]}>
@@ -244,11 +244,10 @@ export function MaintenanceSettingsForm({
         ]}
       >
         <View style={styles.heading}>
-          <Image
+          <FileText
             accessible={false}
-            source={require("../../../../assets/icons/maintenance-text.svg")}
-            tintColor={colors.icon}
-            style={styles.icon}
+            size={tokens.size.actionIcon}
+            color={colors.icon}
           />
           <Text style={[tokens.typography.strong, { color: colors.text }]}>
             Écran affiché
@@ -349,7 +348,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.compact,
   },
-  icon: { width: tokens.size.actionIcon, height: tokens.size.actionIcon },
   state: { gap: tokens.spacing.sm, flex: 1 },
   badge: {
     ...tokens.typography.metadata,

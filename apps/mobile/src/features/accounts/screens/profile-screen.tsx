@@ -15,6 +15,7 @@ import {
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { AdministrationEntry } from "../../access/components/administration-entry";
+import { ProEntry } from "../../pro/entry";
 import {
   useCurrentAccount,
   useEstablishAccount,
@@ -132,6 +133,8 @@ function ProfileContent({ admitted }: ProfileScreenProps) {
               onPress={() => void continueAsGuest()}
               loading={session.status === "signing-out"}
             />
+            {/* T025/#251 supplies the real native presentation command; no placeholder route is registered. */}
+            <ProEntry onOpenPresentation={null} />
             <PublicAccountLinks />
           </>
         )}

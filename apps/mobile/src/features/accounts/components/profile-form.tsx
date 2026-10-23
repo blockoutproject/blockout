@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { UserRound } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
@@ -153,7 +154,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
           label="Photo de profil"
           images={images}
           allowsEditing
-          placeholderSource={require("../../../../assets/accounts/user-round.svg")}
+          placeholderIcon={UserRound}
           aspect={[1, 1]}
           disabled={busy}
           chooseLabel="Choisir une photo de profil"
