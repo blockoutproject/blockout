@@ -1,4 +1,3 @@
-import { PURCHASES_ERROR_CODE } from "@revenuecat/purchases-typescript-internal";
 import type { PurchasesOfferings } from "react-native-purchases";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -18,7 +17,6 @@ import {
   AccountSessionProvider,
   useAccountSession,
 } from "../../accounts/session/account-session-provider";
-import { mockClient } from "../../accounts/test-support/native-auth0";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { ProProvider, usePro, type ProContext } from "../pro-provider";
@@ -31,6 +29,8 @@ import { prepareProNativeIO } from "../test-support/pro-harness";
 import { mockPurchases } from "../test-support/native-purchases";
 import { customerInfo, entitlement } from "../test-support/customer-info";
 import { v2Offering } from "../test-support/offering";
+
+const { PURCHASES_ERROR_CODE } = mockPurchases;
 
 jest.mock("expo-constants", () => ({
   __esModule: true,
@@ -82,15 +82,12 @@ jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest
-    .requireActual("../../accounts/test-support/native-auth0")
-    .nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../../accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
 
 let mockPaywall: ComponentProps<typeof RevenueCatUI.Paywall>;
 let mockCenter: CustomerCenterViewProps;
@@ -497,7 +494,12 @@ it("rejects a late offering response after the opening session changes", async (
 
 it.each([
   [PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR, /Le paiement est en attente/],
-  [PURCHASES_ERROR_CODE.NETWORK_ERROR, /Le résultat de l’achat est incertain/],
+  [PURCHASES_ERROR_CODE.NETWORK_ERROR, /L’achat n’a pas abouti/],
+  [PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR, /L’achat n’a pas abouti/],
+  [
+    PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR,
+    /Le résultat de l’achat est incertain/,
+  ],
   [
     PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR,
     /Cet achat est déjà détenu/,

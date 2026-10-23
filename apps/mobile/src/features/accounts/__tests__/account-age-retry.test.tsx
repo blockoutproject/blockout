@@ -16,7 +16,7 @@ import {
   AccountSessionProvider,
   useAccountSession,
 } from "../session/account-session-provider";
-import { credentialsFor, mockClient } from "../test-support/native-auth0";
+import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 
 // Native and HTTP I/O are controlled; SDK React context, Query, transport and form remain real.
 jest.mock("react-native-keyboard-controller", () =>
@@ -25,13 +25,13 @@ jest.mock("react-native-keyboard-controller", () =>
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest.requireActual("../test-support/native-auth0").nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ replace: jest.fn() }),
@@ -90,19 +90,13 @@ beforeEach(() => {
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
   });
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
-  mockClient.credentialsManager.hasValidCredentials
-    .mockReset()
-    .mockResolvedValue(true);
-  mockClient.credentialsManager.getCredentials
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|one"));
-  mockClient.credentialsManager.clearCredentials
-    .mockReset()
-    .mockResolvedValue();
-  mockClient.credentialsManager.saveCredentials.mockReset().mockResolvedValue();
-  mockClient.webAuth.authorize
-    .mockReset()
-    .mockResolvedValue(credentialsFor("auth0|one"));
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.saveCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth.mockReset().mockResolvedValue(credentialsFor("auth0|one"));
   jest
     .mocked(ImagePicker.launchImageLibraryAsync)
     .mockReset()
@@ -183,7 +177,7 @@ it("keeps profile editing and current administration access usable while age is 
   expect(
     mockFetch.mock.calls.every(([, request]) => request?.method !== "POST"),
   ).toBe(true);
-  expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
 it("does not offer an age retry when reliable evidence is already available", async () => {
@@ -199,7 +193,7 @@ it("does not offer an age retry when reliable evidence is already available", as
   expect(
     screen.queryByRole("button", { name: retryLabel }),
   ).not.toBeOnTheScreen();
-  expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(
     mockFetch.mock.calls.every(([, request]) => request?.method !== "POST"),
   ).toBe(true);
@@ -255,7 +249,7 @@ it("retries the existing POST with valid credentials while preserving the userna
     ([, request]) => request?.method === "POST",
   )?.[1];
   expect(write?.body).toBeUndefined();
-  expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
 it.each(["network", "missing", "invalid"])(
@@ -288,7 +282,7 @@ it.each(["network", "missing", "invalid"])(
     expect(
       mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
     ).toHaveLength(1);
-    expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 
     // When: another attempt requires a new user action.
     mockFetch.mockImplementation(async () =>

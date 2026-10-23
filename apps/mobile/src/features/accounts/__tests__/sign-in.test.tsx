@@ -7,12 +7,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
-import {
-  AuthError,
-  WebAuthError,
-  WebAuthErrorCodes,
-  type Credentials,
-} from "react-native-auth0";
+import type { Credentials } from "react-native-auth0";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -23,7 +18,7 @@ import {
 import { useCurrentAccount } from "../api/use-current-account";
 import { SignInScreen } from "../screens/sign-in-screen";
 import { ProfileScreen } from "../screens/profile-screen";
-import { credentialsFor, mockClient } from "../test-support/native-auth0";
+import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 
 // The installed library controls native keyboard I/O; form and session behavior remain real.
 jest.mock("react-native-keyboard-controller", () =>
@@ -32,13 +27,13 @@ jest.mock("react-native-keyboard-controller", () =>
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest.requireActual("../test-support/native-auth0").nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ replace: mockNavigate, push: mockNavigate }),
@@ -87,19 +82,13 @@ beforeEach(() => {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
   });
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
-  mockClient.credentialsManager.hasValidCredentials
-    .mockReset()
-    .mockResolvedValue(false);
-  mockClient.credentialsManager.getCredentials
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
+  mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|one"));
-  mockClient.credentialsManager.saveCredentials.mockReset().mockResolvedValue();
-  mockClient.credentialsManager.clearCredentials
-    .mockReset()
-    .mockResolvedValue();
-  mockClient.webAuth.authorize
-    .mockReset()
-    .mockResolvedValue(credentialsFor("auth0|one"));
+  mockAuth0.saveCredentials.mockReset().mockResolvedValue();
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth.mockReset().mockResolvedValue(credentialsFor("auth0|one"));
   mockNavigate.mockReset();
   mockFetch
     .mockReset()
@@ -159,7 +148,7 @@ it("allows guest continuation without opening Auth0 or establishing an account",
 
   // Then
   expect(mockNavigate).toHaveBeenCalledWith("/");
-  expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
@@ -173,13 +162,10 @@ it("establishes explicitly after successful hosted login without replaying a pro
 
   // Then
   await screen.findByRole("button", { name: "Continuer en tant qu’invité" });
-  expect(mockClient.webAuth.authorize).toHaveBeenCalledWith(
-    {
-      audience: "mobile-test",
-      scope: "openid profile email offline_access",
-    },
-    undefined,
-  );
+  expect(mockAuth0.webAuth.mock.calls[0].slice(4, 6)).toEqual([
+    "mobile-test",
+    "openid profile email offline_access",
+  ]);
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
   ).toHaveLength(1);
@@ -188,24 +174,17 @@ it("establishes explicitly after successful hosted login without replaying a pro
 });
 
 it.each([
-  [WebAuthErrorCodes.USER_CANCELLED, "Connexion annulée."],
-  [WebAuthErrorCodes.ACCESS_DENIED, "Connexion refusée."],
-  [
-    WebAuthErrorCodes.NETWORK_ERROR,
-    "La connexion est indisponible. Réessayez.",
-  ],
+  ["a0.session.user_cancelled", "Connexion annulée."],
+  ["access_denied", "Connexion refusée."],
+  ["a0.network_error", "La connexion est indisponible. Réessayez."],
 ])(
   "keeps guest access after native login outcome %s",
-  async (type, message) => {
+  async (code, message) => {
     // Given
-    mockClient.webAuth.authorize.mockRejectedValue(
-      new WebAuthError(
-        new AuthError("WebAuthError", "private native diagnostics", {
-          code:
-            type === WebAuthErrorCodes.ACCESS_DENIED ? "access_denied" : type,
-        }),
-      ),
-    );
+    mockAuth0.webAuth.mockRejectedValue({
+      code,
+      message: "private native diagnostics",
+    });
     const user = userEvent.setup();
     await renderJourney();
 
@@ -247,7 +226,7 @@ it("retries missing initial email explicitly without asking for another valid lo
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
-  expect(mockClient.webAuth.authorize).toHaveBeenCalledTimes(1);
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
   ).toHaveLength(2);
@@ -256,7 +235,7 @@ it("retries missing initial email explicitly without asking for another valid lo
 
 it("never bootstraps an absent account during restoration or a profile read retry", async () => {
   // Given
-  mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const user = userEvent.setup();
   await renderJourney(<ProfileScreen admitted proEntry={null} />);
   expect(
@@ -270,12 +249,12 @@ it("never bootstraps an absent account during restoration or a profile read retr
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
   ).toHaveLength(0);
-  expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
 it("renders the local editable profile after ordinary restoration", async () => {
   // Given
-  mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockFetch.mockImplementation(async () => json(account));
 
   // When
@@ -296,7 +275,7 @@ it.each(["sign-in", "profile"])(
   "enters guest mode from an authenticated %s screen without retaining private account state",
   async (entry) => {
     // Given
-    mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
     mockFetch.mockImplementation(async () => json(account));
     const user = userEvent.setup();
     await renderJourney(
@@ -320,9 +299,7 @@ it.each(["sign-in", "profile"])(
 
     // Then
     await waitFor(() =>
-      expect(
-        mockClient.credentialsManager.clearCredentials,
-      ).toHaveBeenCalledTimes(1),
+      expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1),
     );
     expect(
       await screen.findByText("Current account: unavailable"),
@@ -341,8 +318,8 @@ it.each(["sign-in", "profile"])(
   "does not announce guest mode when native clearing fails on %s",
   async (entry) => {
     // Given
-    mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-    mockClient.credentialsManager.clearCredentials.mockRejectedValue(
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    mockAuth0.clearCredentials.mockRejectedValue(
       new Error("private storage failure"),
     );
     mockFetch.mockImplementation(async () => json(account));
@@ -382,7 +359,7 @@ it("does not admit login or profile navigation through a controlled F12 refusal"
   expect(
     screen.queryByRole("button", { name: "Se connecter" }),
   ).not.toBeOnTheScreen();
-  expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
@@ -391,7 +368,7 @@ it.each(["while blocked", "after readmission"])(
   async (completion) => {
     // Given
     const login = Promise.withResolvers<Credentials>();
-    mockClient.webAuth.authorize.mockReturnValue(login.promise);
+    mockAuth0.webAuth.mockReturnValue(login.promise);
     const user = userEvent.setup();
     const journey = await renderJourney();
     await user.press(screen.getByRole("button", { name: "Se connecter" }));
@@ -413,7 +390,7 @@ it.each(["while blocked", "after readmission"])(
     await user.press(screen.getByRole("button", { name: "Se connecter" }));
 
     // Then
-    expect(mockClient.webAuth.authorize).toHaveBeenCalledTimes(1);
+    expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
     expect(
       mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
     ).toHaveLength(1);
@@ -424,7 +401,7 @@ it.each(["while blocked", "after readmission"])(
 it("allows a new login after admission withdrawal and completed local sign-out", async () => {
   // Given
   const login = Promise.withResolvers<Credentials>();
-  mockClient.webAuth.authorize.mockReturnValueOnce(login.promise);
+  mockAuth0.webAuth.mockReturnValueOnce(login.promise);
   const user = userEvent.setup();
   const journey = await renderJourney(
     <>
@@ -451,9 +428,7 @@ it("allows a new login after admission withdrawal and completed local sign-out",
   );
 
   // Then
-  expect(mockClient.credentialsManager.clearCredentials).toHaveBeenCalledTimes(
-    1,
-  );
+  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
   expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
   expect(mockFetch).not.toHaveBeenCalled();
 
@@ -461,7 +436,7 @@ it("allows a new login after admission withdrawal and completed local sign-out",
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
 
   // Then
-  expect(mockClient.webAuth.authorize).toHaveBeenCalledTimes(2);
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(2);
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
   ).toHaveLength(1);
@@ -483,10 +458,8 @@ it("preserves guest access when F14 initialization fails before restoration", as
 
   // Then
   expect(mockNavigate).toHaveBeenCalledWith("/");
-  expect(
-    mockClient.credentialsManager.hasValidCredentials,
-  ).not.toHaveBeenCalled();
-  expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+  expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
 it("rejects a late establishment response after local session invalidation", async () => {
@@ -527,9 +500,9 @@ function AccountReadProbe() {
 
 it("discards a credential failure from an obsolete establishment session", async () => {
   // Given
-  mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const credentials = Promise.withResolvers<never>();
-  mockClient.credentialsManager.getCredentials
+  mockAuth0.getCredentials
     .mockResolvedValueOnce(credentialsFor("auth0|one"))
     .mockReturnValue(credentials.promise);
   const user = userEvent.setup();
@@ -544,9 +517,7 @@ it("discards a credential failure from an obsolete establishment session", async
   );
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
   await waitFor(() =>
-    expect(mockClient.credentialsManager.getCredentials).toHaveBeenCalledTimes(
-      2,
-    ),
+    expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(2),
   );
 
   // When
@@ -571,12 +542,10 @@ it("discards a credential failure from an obsolete establishment session", async
 it("suspends account reads throughout native credential clearing", async () => {
   // Given
   jest.useFakeTimers();
-  mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockFetch.mockImplementation(async () => json(account));
   const clearing = Promise.withResolvers<void>();
-  mockClient.credentialsManager.clearCredentials.mockReturnValue(
-    clearing.promise,
-  );
+  mockAuth0.clearCredentials.mockReturnValue(clearing.promise);
   const user = userEvent.setup();
   await renderJourney(
     <>

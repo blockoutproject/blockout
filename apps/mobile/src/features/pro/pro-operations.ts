@@ -4,7 +4,11 @@ import Purchases, {
 } from "react-native-purchases";
 import type { ProOperation } from "./pro-state";
 
-/** Maps native purchase outcomes conservatively; no error itself grants or withdraws rights. */
+/**
+ * Uses documented SDK purchase outcomes; no error itself grants or withdraws rights.
+ * RevenueCat network/offline errors allow an explicit retry; store failures may have charged.
+ * @see https://www.revenuecat.com/docs/test-and-launch/errors
+ */
 export function purchaseErrorOutcome(code: PURCHASES_ERROR_CODE): ProOperation {
   const codes = Purchases.PURCHASES_ERROR_CODE;
   switch (code) {
@@ -23,9 +27,11 @@ export function purchaseErrorOutcome(code: PURCHASES_ERROR_CODE): ProOperation {
     case codes.INSUFFICIENT_PERMISSIONS_ERROR:
     case codes.CONFIGURATION_ERROR:
     case codes.INVALID_CREDENTIALS_ERROR:
+    case codes.NETWORK_ERROR:
+    case codes.OFFLINE_CONNECTION_ERROR:
       return "failed";
     default:
-      // Store/network/unknown failures may have lost a response after charging.
+      // Store/unknown failures and an operation already in progress still need verification.
       return "uncertain";
   }
 }

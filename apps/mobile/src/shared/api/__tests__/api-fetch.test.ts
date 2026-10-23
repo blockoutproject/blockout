@@ -412,6 +412,30 @@ it("preserves caller cancellation without replay", async () => {
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 
+it("rejects cancellation after the body completes before admitting a response", async () => {
+  // Given: body completion wins the Fetch race; the transport still owns cache admission.
+  const controller = new AbortController();
+  const body = applicationAccessResponse();
+  const response = new Response(null, {
+    headers: { "Content-Type": "application/json" },
+  });
+  jest.spyOn(response, "json").mockImplementation(async () => {
+    controller.abort(new Error("Caller cancelled"));
+    return body;
+  });
+  mockFetch.mockResolvedValue(response);
+
+  // When
+  const result = getApplicationAccess({ signal: controller.signal });
+
+  // Then
+  await expect(result).rejects.toMatchObject({
+    kind: "cancelled",
+    message: "La demande n’a pas pu aboutir. Réessayez.",
+  });
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+});
+
 it.each([0, 0.5, Number.POSITIVE_INFINITY])(
   "rejects an invalid timeout of %s before sending",
   async (timeoutMs) => {

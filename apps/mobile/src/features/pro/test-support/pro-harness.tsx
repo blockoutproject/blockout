@@ -6,7 +6,7 @@ import {
 import type { AccountSession } from "../../accounts";
 import {
   credentialsFor,
-  mockClient,
+  mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -61,15 +61,11 @@ export function prepareProNativeIO() {
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
-  mockClient.credentialsManager.hasValidCredentials
-    .mockReset()
-    .mockResolvedValue(true);
-  mockClient.credentialsManager.getCredentials
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|synthetic"));
-  mockClient.credentialsManager.clearCredentials
-    .mockReset()
-    .mockResolvedValue();
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
   mockPurchases.isConfigured.mockReset().mockResolvedValue(true);
   mockPurchases.isAnonymous.mockReset().mockResolvedValue(false);
   const info = customerInfo({

@@ -9,13 +9,13 @@ import {
   type ProSessionState,
 } from "../pro-state";
 
-// Keep upstream enum values without loading native/browser SDK transports in this pure-state suite.
+// Preserve public SDK constants while replacing native I/O in this pure-state suite.
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: {
-    VERIFICATION_RESULT: jest.requireActual(
-      "@revenuecat/purchases-typescript-internal",
-    ).VERIFICATION_RESULT,
+    VERIFICATION_RESULT: jest.requireActual<
+      typeof import("react-native-purchases")
+    >("react-native-purchases").default.VERIFICATION_RESULT,
   },
 }));
 const { VERIFICATION_RESULT } = Purchases;

@@ -1,9 +1,7 @@
 import type { PurchasesOffering } from "react-native-purchases";
-import {
-  PACKAGE_TYPE,
-  PRODUCT_CATEGORY,
-  PRODUCT_TYPE,
-} from "@revenuecat/purchases-typescript-internal";
+const { PACKAGE_TYPE, PRODUCT_CATEGORY, PRODUCT_TYPE } = jest.requireActual<
+  typeof import("react-native-purchases")
+>("react-native-purchases");
 
 /** Fictional store terms, deliberately different from launch pricing; native fields pass through unchanged. */
 export const v2Offering: PurchasesOffering = {

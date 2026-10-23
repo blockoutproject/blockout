@@ -8,6 +8,7 @@ import {
 } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import type { SessionSnapshot } from "../../accounts";
 import { useAccountSession } from "../../accounts/current-account";
 import { usePro } from "../pro-provider";
 import { canPurchasePro } from "../pro-offering";
@@ -23,13 +24,13 @@ export function ProProfileEntry() {
   const offering = useProOffering();
   const { colors } = useTheme();
   const session = account.getSnapshot();
-  const request = useRef<symbol | null>(null);
+  const request = useRef<SessionSnapshot | null>(null);
   useFocusEffect(
     useCallback(
       () => () => {
         request.current = null;
       },
-      [session.generation, session.accountId],
+      [],
     ),
   );
   const connected =
@@ -41,9 +42,14 @@ export function ProProfileEntry() {
 
   /** Keeps offer loading on the profile and abandons presentation intent when focus/session changes. */
   async function open() {
-    if (!connected || request.current) return;
-    const captured = account.getSnapshot();
-    const attempt = Symbol();
+    if (!connected) return;
+    const attempt = { ...account.getSnapshot() };
+    if (
+      request.current?.generation === attempt.generation &&
+      request.current.accountId === attempt.accountId
+    )
+      return;
+    // A previous session's pending read cannot block a new explicit opening.
     request.current = attempt;
     try {
       if (canPurchasePro(state)) {
@@ -52,8 +58,8 @@ export function ProProfileEntry() {
       }
       if (
         request.current === attempt &&
-        account.isCurrent(captured.generation) &&
-        account.getSnapshot().accountId === captured.accountId
+        account.isCurrent(attempt.generation) &&
+        account.getSnapshot().accountId === attempt.accountId
       )
         router.navigate("/pro");
     } finally {

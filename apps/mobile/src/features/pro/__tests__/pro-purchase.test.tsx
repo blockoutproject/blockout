@@ -1,9 +1,10 @@
 import { waitFor } from "@testing-library/react-native";
-import { PURCHASES_ERROR_CODE } from "@revenuecat/purchases-typescript-internal";
 import { createProSession } from "../pro-session";
 import { purchaseErrorOutcome } from "../pro-operations";
 import { mockPurchases } from "../test-support/native-purchases";
 import { customerInfo, entitlement } from "../test-support/customer-info";
+
+const { PURCHASES_ERROR_CODE } = mockPurchases;
 
 jest.mock("expo-constants", () => ({
   __esModule: true,
@@ -38,14 +39,20 @@ it.each([
   [PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR, "already-owned"],
   [PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR, "uncertain"],
-  [PURCHASES_ERROR_CODE.NETWORK_ERROR, "uncertain"],
+  [PURCHASES_ERROR_CODE.NETWORK_ERROR, "failed"],
+  [PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR, "uncertain"],
   [PURCHASES_ERROR_CODE.UNKNOWN_ERROR, "uncertain"],
 ])(
   "maps native error %s to %s without inferring entitlement",
   (code, expected) => {
-    // Given / When / Then
-    expect(purchaseErrorOutcome(code)).toBe(expected);
+    // Given: native errors, unlike a missing completion, have documented purchase outcomes.
+
+    // When
+    const outcome = purchaseErrorOutcome(code);
+
+    // Then
+    expect(outcome).toBe(expected);
   },
 );
 
@@ -69,6 +76,29 @@ it("refuses duplicate starts and keeps a lost response uncertain after closure a
   expect(owner.getSnapshot().evidence?.operation).toBe("uncertain");
   expect(owner.beginPurchase(session)).toBe(false);
 });
+
+it.each([
+  PURCHASES_ERROR_CODE.NETWORK_ERROR,
+  PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR,
+])(
+  "allows an explicit new purchase after SDK network error %s",
+  async (code) => {
+    // Given
+    const owner = createProSession();
+    owner.setTarget(session);
+    await waitFor(() =>
+      expect(owner.getSnapshot().evidence?.association).toBe("associated"),
+    );
+    owner.beginPurchase(session);
+
+    // When
+    await owner.completeOperation(session, purchaseErrorOutcome(code));
+
+    // Then
+    expect(owner.getSnapshot().evidence?.operation).toBe("failed");
+    expect(owner.beginPurchase(session)).toBe(true);
+  },
+);
 
 it("keeps confirmed payment separate from activation when verification is unavailable", async () => {
   // Given

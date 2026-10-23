@@ -8,7 +8,6 @@ import {
 import { AppState } from "react-native";
 import type { CustomerInfo } from "react-native-purchases";
 import type { AccountSession } from "../../accounts";
-import { mockClient } from "../../accounts/test-support/native-auth0";
 import type { ProContext } from "../pro-provider";
 import { customerInfo, entitlement } from "../test-support/customer-info";
 import { mockPurchases } from "../test-support/native-purchases";
@@ -28,15 +27,12 @@ jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest
-    .requireActual("../../accounts/test-support/native-auth0")
-    .nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../../accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
 
 let account: AccountSession;
 let pro: ProContext;

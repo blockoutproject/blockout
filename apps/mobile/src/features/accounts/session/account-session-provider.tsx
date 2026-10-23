@@ -3,7 +3,6 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
-  useRef,
   useState,
   useSyncExternalStore,
   type PropsWithChildren,
@@ -78,7 +77,8 @@ export function AccountSessionProvider({ children }: PropsWithChildren) {
         const clientId = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
         if (!domain || !clientId)
           throw new Error("Native authentication is not configured");
-        const client = new Auth0({ domain, clientId });
+        // The mobile API accepts Bearer tokens; DPoP requires a separate resource-server contract.
+        const client = new Auth0({ domain, clientId, useDPoP: false });
         await initializeV2Installation(client);
         if (!cancelled)
           setInitialization({ status: "ready", domain, clientId });
@@ -111,6 +111,7 @@ export function AccountSessionProvider({ children }: PropsWithChildren) {
       key={restorationAttempt}
       domain={initialization.domain}
       clientId={initialization.clientId}
+      useDPoP={false}
     >
       {content}
     </Auth0Provider>
@@ -136,17 +137,9 @@ function SessionScope({
   >("idle");
   const [session] = useState(createSessionGeneration);
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
-  const subject = auth.user?.sub ?? null;
-  const previousSubject = useRef<string | null>(null);
   const reauthenticationRequired = requiresReauthentication(auth.error);
 
   useLayoutEffect(() => () => session.invalidate(), [session]);
-  useLayoutEffect(() => {
-    if (previousSubject.current !== subject) {
-      session.invalidate();
-      previousSubject.current = subject;
-    }
-  }, [session, subject]);
   useLayoutEffect(() => {
     if (reauthenticationRequired) session.invalidate();
   }, [session, reauthenticationRequired]);
