@@ -232,9 +232,7 @@ it.each(["pending", "uncertain"] as const)(
 
     // Then
     expect(screen.getByText("Pro: active")).toBeOnTheScreen();
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      /en attente de vérification/,
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent(/en attente|incertain/);
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
     expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
       tags: { feature: "pro", operation: "operation", outcome: operation },

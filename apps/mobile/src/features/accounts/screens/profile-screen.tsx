@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Platform, ScrollView, StyleSheet, Text } from "react-native";
 import {
   KeyboardAwareScrollView,
@@ -27,6 +27,8 @@ import { useAccountSession } from "../session/account-session-provider";
 /** Current ordinary admission; identification reads do not grant profile navigation. */
 export interface ProfileScreenProps {
   admitted: boolean;
+  /** Route-owned F09 feedback keeps this ordinary profile independent of the native billing SDK. */
+  proFeedback?: ReactNode;
 }
 
 /** Each platform uses its accepted single keyboard mechanism for this ordinary bounded form. */
@@ -34,18 +36,18 @@ const ProfileScrollView =
   Platform.OS === "ios" ? ScrollView : KeyboardAwareScrollView;
 
 /** Current owner profile with an isolated editable draft; admission remains controlled by F12. */
-export function ProfileScreen({ admitted }: ProfileScreenProps) {
+export function ProfileScreen(props: ProfileScreenProps) {
   return Platform.OS === "android" ? (
     <KeyboardProvider>
-      <ProfileContent admitted={admitted} />
+      <ProfileContent {...props} />
     </KeyboardProvider>
   ) : (
-    <ProfileContent admitted={admitted} />
+    <ProfileContent {...props} />
   );
 }
 
 /** Retains confirmed profile content and its draft through a failed background refresh. */
-function ProfileContent({ admitted }: ProfileScreenProps) {
+function ProfileContent({ admitted, proFeedback }: ProfileScreenProps) {
   const session = useAccountSession();
   const account = useCurrentAccount();
   const router = useRouter();
@@ -133,8 +135,8 @@ function ProfileContent({ admitted }: ProfileScreenProps) {
               onPress={() => void continueAsGuest()}
               loading={session.status === "signing-out"}
             />
-            {/* T025/#251 supplies the real native presentation command; no placeholder route is registered. */}
-            <ProEntry onOpenPresentation={null} />
+            <ProEntry onOpenPresentation={() => router.push("/pro")} />
+            {proFeedback}
             <PublicAccountLinks />
           </>
         )}

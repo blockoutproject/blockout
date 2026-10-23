@@ -4,7 +4,12 @@ import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import type { CustomerInfo } from "react-native-purchases";
 import type { SessionSnapshot } from "../accounts";
-import type { ProOperation, ProSessionState } from "./pro-state";
+import {
+  getProState,
+  type ProOperation,
+  type ProSessionState,
+} from "./pro-state";
+import { canPurchasePro } from "./pro-offering";
 
 /** Current native evidence and verification lifecycle; rights remain SDK-owned. */
 export interface ProSessionSnapshot {
@@ -155,6 +160,30 @@ export function createProSession() {
     }
   }
 
+  /** Applies attributed callback evidence before the ordinary read, preserving confirmed payment on read failure. */
+  async function completeOperation(
+    session: SessionSnapshot,
+    operation: ProOperation,
+    customerInfo?: CustomerInfo,
+  ) {
+    if (!isAssociated(session) || !snapshot.evidence) return;
+    publish({
+      ...snapshot,
+      evidence: {
+        ...snapshot.evidence,
+        operation,
+        customerInfo: customerInfo ?? snapshot.evidence.customerInfo,
+      },
+    });
+    if (
+      operation === "pending" ||
+      operation === "uncertain" ||
+      operation === "failed"
+    )
+      diagnose("operation", operation);
+    await refresh(session);
+  }
+
   return {
     getSnapshot: () => snapshot,
 
@@ -213,18 +242,34 @@ export function createProSession() {
       void associate();
     },
 
-    /** Records an attributed outcome and reads native state directly, without replaying a transaction. */
-    async completeOperation(session: SessionSnapshot, operation: ProOperation) {
-      if (!isAssociated(session) || !snapshot.evidence) return;
-      publish({ ...snapshot, evidence: { ...snapshot.evidence, operation } });
+    /** Atomically reserves one native explicit purchase; this does not execute or replay store payment. */
+    beginPurchase(session: SessionSnapshot): boolean {
       if (
-        operation === "pending" ||
-        operation === "uncertain" ||
-        operation === "failed"
+        !isAssociated(session) ||
+        !snapshot.evidence ||
+        !canPurchasePro(
+          getProState(
+            { status: "authenticated", getSnapshot: () => session },
+            snapshot.evidence,
+          ),
+        )
       )
-        diagnose("operation", operation);
-      await refresh(session);
+        return false;
+      publish({
+        ...snapshot,
+        evidence: { ...snapshot.evidence, operation: "purchasing" },
+      });
+      return true;
     },
+
+    /** Closing an in-flight presentation proves no cancellation; verification is the only follow-up. */
+    async dismissPresentation(session: SessionSnapshot) {
+      if (!isAssociated(session)) return;
+      if (snapshot.evidence?.operation === "purchasing")
+        await completeOperation(session, "uncertain");
+    },
+
+    completeOperation,
   };
 }
 

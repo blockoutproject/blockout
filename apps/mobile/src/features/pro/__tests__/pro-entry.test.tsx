@@ -211,40 +211,8 @@ it("removes the guest presentation immediately when its F05 generation changes",
   expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
 });
 
-it("leaves the signed-in entry honestly unavailable until the T025 host is connected", async () => {
-  // Given
-  mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-  await render(
-    <ThemeProvider>
-      <AccountSessionProvider>
-        <SessionProbe />
-        <ProEntry onOpenPresentation={null} />
-      </AccountSessionProvider>
-    </ThemeProvider>,
-  );
-  await screen.findByText("Session: authenticated");
-  await act(() =>
-    account.setAccount(
-      account.generation,
-      "00000000-0000-4000-8000-000000000246",
-    ),
-  );
-
-  // When
-  const user = userEvent.setup();
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-
-  // Then
-  expect(screen.getByRole("button", { name: "Blockout Pro" })).toBeDisabled();
-  expect(
-    screen.getByText("La présentation Pro n’est pas encore disponible."),
-  ).toBeOnTheScreen();
-  expect(mockRouter.push).not.toHaveBeenCalled();
-  expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
-});
-
-it("requires a new explicit press after ordinary sign-in before calling a supplied native host command", async () => {
-  // Given: only the future host command is controlled; F05 sign-in and generation publication are real.
+it("requires a new explicit press after ordinary sign-in before calling a native host command", async () => {
+  // Given: only the host navigation command is controlled; F05 sign-in and generation publication are real.
   const present = jest.fn();
   mockClient.webAuth.authorize.mockResolvedValue(
     credentialsFor("auth0|entry-test"),

@@ -33,6 +33,10 @@ function Navigation() {
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen
+          name="pro"
+          options={{ presentation: "fullScreenModal", headerShown: false }}
+        />
+        <Stack.Screen
           name="sign-in-invitation"
           options={{
             ...sheetScreenOptions,
