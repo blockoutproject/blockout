@@ -54,6 +54,7 @@ import org.springframework.test.web.servlet.ResultActions;
   SportingExceptionHandler.class
 })
 @DisplayName("Division administration HTTP boundary")
+@MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class DivisionAdministrationWebMvcTest {
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000002");

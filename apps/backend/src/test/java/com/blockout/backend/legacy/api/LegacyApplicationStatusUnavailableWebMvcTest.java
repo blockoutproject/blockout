@@ -25,6 +25,8 @@ import org.springframework.test.web.servlet.ResultActions;
   LegacyApplicationStatusMapperImpl.class
 })
 @DisplayName("Unconfigured legacy retirement")
+@org.springframework.test.context.bean.override.mockito.MockitoBean(
+    types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class LegacyApplicationStatusUnavailableWebMvcTest {
   @Autowired private MockMvc mvc;
 

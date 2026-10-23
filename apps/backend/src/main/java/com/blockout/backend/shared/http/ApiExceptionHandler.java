@@ -33,6 +33,15 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(MaintenanceRequiredException.class)
   ResponseEntity<Object> maintenanceRequired(MaintenanceRequiredException failure) {
     MaintenanceSettings maintenance = failure.getMaintenance();
+    if (!maintenance.active()) {
+      LOG.atError()
+          .addKeyValue("operation", "maintenance_refusal")
+          .addKeyValue("outcome", "unavailable")
+          .addKeyValue("reason", "inactive_maintenance")
+          .log("Inconsistent maintenance refusal");
+      return safeProblem(
+          HttpStatus.SERVICE_UNAVAILABLE, "urn:blockout:problem:unavailable", new HttpHeaders());
+    }
     AccessProblemResponse problem =
         new AccessProblemResponse(
                 URI.create("urn:blockout:problem:maintenance"), "Service Unavailable", 503)

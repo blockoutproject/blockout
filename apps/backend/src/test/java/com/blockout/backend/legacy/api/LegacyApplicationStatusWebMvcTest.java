@@ -37,6 +37,8 @@ import org.springframework.test.web.servlet.ResultActions;
   LegacyApplicationStatusMapperImpl.class
 })
 @DisplayName("Legacy application update status")
+@org.springframework.test.context.bean.override.mockito.MockitoBean(
+    types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class LegacyApplicationStatusWebMvcTest {
   @Autowired private MockMvc mvc;
 

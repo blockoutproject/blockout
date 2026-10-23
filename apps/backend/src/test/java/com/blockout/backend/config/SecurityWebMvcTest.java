@@ -55,6 +55,8 @@ import org.springframework.web.multipart.MultipartFile;
 @WebMvcTest(controllers = SecurityWebMvcTest.BoundaryAdapter.class)
 @Import({SecurityConfiguration.class, SecurityWebMvcTest.BoundaryAdapter.class})
 @DisplayName("Environment-specific bearer authentication")
+@org.springframework.test.context.bean.override.mockito.MockitoBean(
+    types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class SecurityWebMvcTest {
   private static final String ACCOUNT = "/accounts/00000000-0000-4000-8000-000000000001";
   private static HttpServer keys;

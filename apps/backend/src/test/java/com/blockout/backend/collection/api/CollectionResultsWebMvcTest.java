@@ -58,6 +58,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   CollectionExceptionHandler.class
 })
 @DisplayName("Current collection results and terminal HTTP boundary")
+@MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class CollectionResultsWebMvcTest {
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000153");
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000154");

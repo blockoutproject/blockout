@@ -55,6 +55,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   CollectionExceptionHandler.class
 })
 @DisplayName("Generated collector operations HTTP contract")
+@MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class CollectionContractWebMvcTest {
   @Autowired private MockMvc mvc;
 
