@@ -23,18 +23,13 @@ import {
 } from "../../accounts/test-support/native-auth0";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { prepareProNativeIO } from "../test-support/pro-harness";
+import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { mockPurchases } from "../test-support/native-purchases";
 import { ProEntry } from "../components/pro-entry";
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
-jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("expo-constants", () => ({
-  __esModule: true,
-  default: { expoConfig: { extra: { revenueCat: {} } } },
-}));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: {
@@ -72,9 +67,23 @@ let client = createQueryClient();
 const message = "Connectez-vous pour utiliser Blockout Pro";
 
 beforeEach(() => {
-  prepareProNativeIO();
   client = createQueryClient();
-  mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(false);
+  Object.assign(process.env, {
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+  });
+  jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
+  mockClient.credentialsManager.hasValidCredentials
+    .mockReset()
+    .mockResolvedValue(false);
+  mockClient.credentialsManager.getCredentials
+    .mockReset()
+    .mockResolvedValue(credentialsFor("auth0|entry-test"));
+  mockClient.credentialsManager.clearCredentials
+    .mockReset()
+    .mockResolvedValue();
+  mockClient.credentialsManager.saveCredentials.mockReset().mockResolvedValue();
+  mockClient.webAuth.authorize.mockReset();
   mockRouter.canGoBack.mockReturnValue(true);
 });
 afterEach(async () => {
