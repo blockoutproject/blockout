@@ -18,7 +18,7 @@ import { ProfileScreen } from "../../accounts/screens/profile-screen";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
   credentialsFor,
-  mockClient,
+  mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { AdministrationEntry } from "../components/administration-entry";
 import { AdministrationScreen } from "../screens/administration-screen";
@@ -31,15 +31,13 @@ jest.mock("react-native-keyboard-controller", () =>
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest
-    .requireActual("../../accounts/test-support/native-auth0")
-    .nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../../accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ replace: jest.fn(), back: mockBack }),
@@ -73,16 +71,12 @@ beforeEach(() => {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
   });
   jest.mocked(initializeV2Installation).mockResolvedValue();
-  mockClient.credentialsManager.hasValidCredentials
-    .mockReset()
-    .mockResolvedValue(true);
-  mockClient.credentialsManager.getCredentials
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|operator"));
-  mockClient.credentialsManager.clearCredentials
-    .mockReset()
-    .mockResolvedValue();
-  mockClient.webAuth.authorize
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|operator"));
   mockFetch.mockReset().mockImplementation(async () => json(account));
@@ -364,7 +358,7 @@ it("discards an account response completed after the F05 generation ends", async
 
 it("offers no commands to a guest and performs no current-account read", async () => {
   // Given
-  mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(false);
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
 
   // When
   await renderAdministration();

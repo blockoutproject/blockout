@@ -19,7 +19,7 @@ import { ProfileScreen } from "../../accounts/screens/profile-screen";
 import { SignInInvitationScreen } from "../../accounts/screens/sign-in-invitation-screen";
 import {
   credentialsFor,
-  mockClient,
+  mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -42,15 +42,13 @@ jest.mock("react-native-purchases", () => ({
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest
-    .requireActual("../../accounts/test-support/native-auth0")
-    .nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../../accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => mockRouter,
@@ -80,17 +78,13 @@ beforeEach(() => {
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
   });
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
-  mockClient.credentialsManager.hasValidCredentials
-    .mockReset()
-    .mockResolvedValue(false);
-  mockClient.credentialsManager.getCredentials
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
+  mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|entry-test"));
-  mockClient.credentialsManager.clearCredentials
-    .mockReset()
-    .mockResolvedValue();
-  mockClient.credentialsManager.saveCredentials.mockReset().mockResolvedValue();
-  mockClient.webAuth.authorize.mockReset();
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.saveCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth.mockReset();
   mockRouter.canGoBack.mockReturnValue(true);
 });
 afterEach(async () => {
@@ -206,7 +200,7 @@ it("replaces the invitation with ordinary sign-in, without any continuation para
   // Then
   expect(mockRouter.replace).toHaveBeenCalledWith("/sign-in");
   expect(mockRouter.push).not.toHaveBeenCalled();
-  expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
 });
 
@@ -221,16 +215,14 @@ it("removes the guest presentation immediately when its F05 generation changes",
   await waitFor(() => expect(mockRouter.back).toHaveBeenCalledTimes(1));
   expect(screen.queryByText(message)).not.toBeOnTheScreen();
   expect(mockRouter.push).not.toHaveBeenCalled();
-  expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
 it("requires a new explicit press after ordinary sign-in before calling a native host command", async () => {
   // Given: only the host navigation command is controlled; F05 sign-in and generation publication are real.
   const present = jest.fn();
-  mockClient.webAuth.authorize.mockResolvedValue(
-    credentialsFor("auth0|entry-test"),
-  );
-  mockClient.credentialsManager.saveCredentials.mockResolvedValue();
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|entry-test"));
+  mockAuth0.saveCredentials.mockResolvedValue();
   await mount(<ProEntry onOpenPresentation={present} />);
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));

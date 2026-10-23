@@ -1,6 +1,7 @@
 package com.blockout.collector.acquisition.lnv;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
@@ -14,6 +15,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.hc.core5.http.NameValuePair;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -22,6 +24,42 @@ import org.junit.jupiter.params.provider.ValueSource;
 /** Native bounded HTTP caching against an isolated origin; no live image or document is fetched. */
 @DisplayName("LNV auxiliary documents and native image caching")
 class LnvDocumentsAndImagesTest {
+  @Test
+  @DisplayName("Document postbacks retain native submitted controls without disabled fields")
+  void preservesSubmittedFormControls() {
+    // Given
+    URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
+    String html =
+        """
+        <form method=post action="MatchStatistics.aspx?mID=990&ID=901">
+        <input type=hidden name=__VIEWSTATE value=synthetic-state>
+        <input type=hidden name=disabled-state value=not-submitted disabled>
+        <select name=language><option value=fr selected>French</option></select>
+        <input type=checkbox name=confirmed value=yes checked>
+        <input type=checkbox name=unchecked value=no>
+        <div id=NativeTabs><ul><li class=rtsLI>Scoresheet</li></ul></div>
+        <input type=hidden id=NativeTabs_State name=Native$Tabs$State value='{"selectedIndexes":[]}'>
+        </form><script>
+        $create(Telerik.Web.UI.RadTabStrip, {"_postBackReference":"__doPostBack('actual$Control','arguments')","clientStateFieldID":"NativeTabs_State","tabData":[{"value":"sheet"}]}, null, null, $get("NativeTabs"));
+        </script>
+        """;
+
+    // When
+    LnvDocumentReferences.Form form =
+        new LnvDocumentReferences().form(html.getBytes(StandardCharsets.UTF_8), page, "Scoresheet");
+
+    // Then
+    assertThat(form.fields())
+        .extracting(NameValuePair::getName, NameValuePair::getValue)
+        .contains(
+            tuple("__VIEWSTATE", "synthetic-state"),
+            tuple("language", "fr"),
+            tuple("confirmed", "yes"));
+    assertThat(form.fields())
+        .extracting(NameValuePair::getName)
+        .doesNotContain("disabled-state", "unchecked");
+  }
+
   @ParameterizedTest
   @ValueSource(ints = {200, 304})
   @DisplayName("Revalidation distinguishes a changed image body from cached 304 reuse")
@@ -146,6 +184,8 @@ class LnvDocumentsAndImagesTest {
         <Score>0-3</Score></Match></Journee></Competition></Calendrier>
         """;
     LnvDocumentReferences documents = new LnvDocumentReferences();
+
+    // When
     SportingObservation.InformationSheet sheet =
         documents.informationSheet(
             xml.getBytes(StandardCharsets.UTF_8),
@@ -156,6 +196,8 @@ class LnvDocumentsAndImagesTest {
             "002",
             LocalDate.of(2026, 10, 17),
             associations);
+
+    // Then
     assertThat(sheet.matchCode()).isEqualTo("00AA");
     assertThat(sheet.organizerReference()).isEqualTo("AALNV");
     assertThat(

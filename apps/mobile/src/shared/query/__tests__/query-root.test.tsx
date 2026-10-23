@@ -5,7 +5,7 @@ import { useState, type ComponentType } from "react";
 import { Pressable, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 import { useAccountSession } from "../../../features/accounts/session/account-session-provider";
-import { mockClient } from "../../../features/accounts/test-support/native-auth0";
+import { mockAuth0 } from "../../../features/accounts/test-support/native-auth0";
 import { getSessionQueryKey } from "../query-client";
 
 jest.mock("react-native-purchases", () => ({
@@ -23,15 +23,13 @@ jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
   wrap: (component: ComponentType) => component,
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest
-    .requireActual("../../../features/accounts/test-support/native-auth0")
-    .nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../../../features/accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
@@ -46,13 +44,9 @@ beforeEach(() => {
   jest.useFakeTimers();
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
-  mockClient.credentialsManager.hasValidCredentials
-    .mockReset()
-    .mockResolvedValue(false);
-  mockClient.credentialsManager.clearCredentials
-    .mockReset()
-    .mockResolvedValue();
-  mockClient.webAuth.clearSession.mockReset().mockResolvedValue();
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuthLogout.mockReset().mockResolvedValue();
 });
 afterEach(async () => {
   await jest.runOnlyPendingTimersAsync();
@@ -138,9 +132,7 @@ it("scopes the route cache to the lifetime of one root", async () => {
 it("removes private cache at local invalidation even when remote logout fails", async () => {
   // Given: the root, session, Query and SDK React provider are real; native browser I/O rejects.
   jest.mocked(Stack).mockImplementation(CacheConsumer);
-  mockClient.webAuth.clearSession.mockRejectedValue(
-    new Error("Provider unavailable"),
-  );
+  mockAuth0.webAuthLogout.mockRejectedValue(new Error("Provider unavailable"));
   const user = userEvent.setup();
   await render(<RootLayout />);
   await user.press(screen.getByRole("button", { name: "Update cached count" }));

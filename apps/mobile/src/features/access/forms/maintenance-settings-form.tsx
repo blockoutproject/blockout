@@ -60,7 +60,6 @@ export function MaintenanceSettingsForm({
     control,
     handleSubmit,
     reset,
-    getFieldState,
     formState: { errors, isSubmitting, dirtyFields },
   } = useForm<MaintenanceValues>({
     resolver: zodResolver(schema),
@@ -128,8 +127,8 @@ export function MaintenanceSettingsForm({
     if (!session.isCurrent(session.generation) || rereadRequired || busy)
       return;
     const body: ChangeMaintenanceRequest = { revision: baseline.revision };
-    if (getFieldState("message").isDirty) body.message = draft.message;
-    if (getFieldState("imageUrl").isDirty)
+    if (dirtyFields.message) body.message = draft.message;
+    if (dirtyFields.imageUrl)
       body.imageUrl = draft.imageUrl === "" ? null : draft.imageUrl;
     try {
       const accepted = await editing.content.mutateAsync(body);

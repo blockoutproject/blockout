@@ -134,7 +134,7 @@ export async function apiFetch(
         throw new ApiError("schema");
       }
     }
-    if (requestSignal.aborted) throw requestSignal.reason;
+    requestSignal.throwIfAborted();
     assertCurrentSession(session);
     return data;
   } catch (error) {

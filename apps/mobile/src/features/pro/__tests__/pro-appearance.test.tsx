@@ -15,7 +15,7 @@ import { useAccountSession } from "../../accounts/session/account-session-provid
 import type { AccountSession } from "../../accounts";
 import {
   credentialsFor,
-  mockClient,
+  mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
@@ -51,15 +51,13 @@ jest.mock("@sentry/react-native", () => ({
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest
-    .requireActual("../../accounts/test-support/native-auth0")
-    .nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../../accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
 jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
 
 const a = "00000000-0000-4000-8000-000000000001";
@@ -292,9 +290,7 @@ it("rejects previous-session gold through A → guest → A, including a late ac
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.light.fill,
   );
-  mockClient.webAuth.authorize.mockResolvedValueOnce(
-    credentialsFor("auth0|synthetic"),
-  );
+  mockAuth0.webAuth.mockResolvedValueOnce(credentialsFor("auth0|synthetic"));
   await act(() => account.signIn("https://api.example.invalid"));
   await act(() => account.setAccount(account.generation, a));
   await screen.findByText("Pro: inactive");

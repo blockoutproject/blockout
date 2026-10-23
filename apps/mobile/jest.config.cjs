@@ -4,9 +4,9 @@ module.exports = {
   preset: "jest-expo",
   // Reanimated owns its Jest resolver; use its supported JavaScript implementation.
   resolver: "react-native-reanimated/jest/resolver",
-  // Sentry's native conditional exports select ESM across its SDK packages.
+  // Sentry and RevenueCat's public entry points include ESM SDK packages.
   transformIgnorePatterns: expoPreset.transformIgnorePatterns.map((pattern) =>
-    pattern.replace("@sentry/react-native", "@sentry"),
+    pattern.replace("@sentry/react-native", "@sentry|@revenuecat"),
   ),
   testMatch: ["**/__tests__/**/*.test.[jt]s?(x)"],
   clearMocks: true,

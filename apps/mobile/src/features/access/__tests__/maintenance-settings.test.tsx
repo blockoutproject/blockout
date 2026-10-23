@@ -14,7 +14,7 @@ import { AccountSessionProvider } from "../../accounts/session/account-session-p
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
   credentialsFor,
-  mockClient,
+  mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { getGetMaintenanceSettingsQueryKey } from "../../../../.generated/mobile";
 import { MaintenanceSettingsScreen } from "../screens/maintenance-settings-screen";
@@ -26,15 +26,13 @@ jest.mock("react-native-keyboard-controller", () =>
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest
-    .requireActual("../../accounts/test-support/native-auth0")
-    .nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../../accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ back: jest.fn() }),
@@ -75,15 +73,11 @@ beforeEach(() => {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
   });
   jest.mocked(initializeV2Installation).mockResolvedValue();
-  mockClient.credentialsManager.hasValidCredentials
-    .mockReset()
-    .mockResolvedValue(true);
-  mockClient.credentialsManager.getCredentials
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|operator"));
-  mockClient.credentialsManager.clearCredentials
-    .mockReset()
-    .mockResolvedValue();
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
   mockFetch
     .mockReset()
     .mockImplementation(async (url) =>

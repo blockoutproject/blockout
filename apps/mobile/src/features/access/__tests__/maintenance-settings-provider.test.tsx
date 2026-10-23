@@ -7,7 +7,7 @@ import { AccountSessionProvider } from "../../accounts/session/account-session-p
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
   credentialsFor,
-  mockClient,
+  mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import {
   getMaintenanceSettings,
@@ -27,15 +27,13 @@ jest.mock("react-native-keyboard-controller", () =>
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest
-    .requireActual("../../accounts/test-support/native-auth0")
-    .nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../../accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ back: jest.fn() }),
@@ -86,16 +84,12 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
     mockPatchCount = 0;
     mockPublicReads = 0;
     jest.mocked(initializeV2Installation).mockResolvedValue();
-    mockClient.credentialsManager.hasValidCredentials
-      .mockReset()
-      .mockResolvedValue(true);
-    mockClient.credentialsManager.getCredentials.mockReset().mockResolvedValue({
+    mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+    mockAuth0.getCredentials.mockReset().mockResolvedValue({
       ...credentialsFor("auth0|first"),
       accessToken: process.env.BLOCKOUT_ACCESS_EDITOR_ONE ?? "",
     });
-    mockClient.credentialsManager.clearCredentials
-      .mockReset()
-      .mockResolvedValue();
+    mockAuth0.clearCredentials.mockReset().mockResolvedValue();
     const maintenance = await getMaintenanceSettings(one);
     const inactive = await setMaintenanceActivation(
       { revision: maintenance.revision, active: false },

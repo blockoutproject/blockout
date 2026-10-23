@@ -14,9 +14,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.FormElement;
 import org.jsoup.parser.Parser;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
@@ -47,17 +49,22 @@ public class LnvDocumentReferences {
       Pattern.compile("__doPostBack\\('([^']+)'\\s*,\\s*'arguments'\\)");
   private static final JsonMapper JSON = JsonMapper.builder().build();
 
-  /** Exact ordinary form request; hidden state remains ephemeral and never reaches diagnostics. */
+  /** Exact ordinary form request; submitted state stays ephemeral and never reaches diagnostics. */
   public record Form(URI action, List<NameValuePair> fields) {
-    /** Detaches the source's hidden fields for one request. */
+    /**
+     * Detaches the source's submitted fields for one request.
+     *
+     * @param action qualified source form action
+     * @param fields native submitted controls with the selected postback state
+     */
     public Form {
       fields = List.copyOf(fields);
     }
   }
 
   /**
-   * Resolves the actual published document tab and native postback control without executing
-   * scripts.
+   * Resolves the published document tab and postback state, preserving jsoup's submitted form
+   * controls without executing scripts.
    *
    * @param html complete match page
    * @param page qualified match URL
@@ -85,19 +92,19 @@ public class LnvDocumentReferences {
                 : Integer.toString(selected);
         Matcher event = EVENT.matcher(configuration.path("_postBackReference").asText());
         if (!index.matches("[0-9]+") || !event.matches()) throw LnvPage.invalid();
-        Element form = strip.closest("form");
-        if (form == null || !form.attr("method").equalsIgnoreCase("post")) throw LnvPage.invalid();
+        if (!(strip.closest("form") instanceof FormElement form)
+            || !form.attr("method").equalsIgnoreCase("post")) throw LnvPage.invalid();
         List<NameValuePair> fields = new ArrayList<>();
         String state = configuration.path("clientStateFieldID").asText();
         Element previous = document.getElementById(state);
         String stateName = previous == null ? state : previous.attr("name");
         if (stateName.isBlank()) throw LnvPage.invalid();
-        for (Element input : form.select("input[type=hidden][name]")) {
-          String name = input.attr("name");
+        for (Connection.KeyVal field : form.formData()) {
+          String name = field.key();
           if (name.equals("__EVENTTARGET")
               || name.equals("__EVENTARGUMENT")
               || name.equals(stateName)) continue;
-          fields.add(new BasicNameValuePair(name, input.attr("value")));
+          fields.add(new BasicNameValuePair(name, field.value()));
         }
         fields.add(new BasicNameValuePair("__EVENTTARGET", event.group(1)));
         fields.add(

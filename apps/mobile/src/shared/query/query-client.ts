@@ -7,6 +7,7 @@ import {
 /**
  * Creates the root's in-memory cache with explicit business request recovery.
  * Offline attempts reach the bounded transport instead of waiting for reconnect.
+ * Native defaults disable mutation retries and reconnect refetches in `always` mode.
  * Feature owners supply their approved refresh triggers and freshness/expiry rules.
  */
 export function createQueryClient() {
@@ -18,11 +19,9 @@ export function createQueryClient() {
         retryOnMount: false,
         refetchOnMount: false,
         refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
       },
       mutations: {
         networkMode: "always",
-        retry: false,
       },
     },
   });

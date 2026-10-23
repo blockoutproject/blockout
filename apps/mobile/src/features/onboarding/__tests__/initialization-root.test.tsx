@@ -3,10 +3,13 @@ import { act, render, screen, userEvent } from "@testing-library/react-native";
 import { Stack } from "expo-router";
 import type { ComponentType } from "react";
 import { Pressable, Text } from "react-native";
-import { useAuth0, type Credentials } from "react-native-auth0";
+import { useAuth0 } from "react-native-auth0";
 import RootLayout from "../../../app/_layout";
 import { useAccountSession } from "../../accounts/session/account-session-provider";
-import { credentialsFor } from "../../accounts/test-support/native-auth0";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "../../accounts/test-support/native-auth0";
 
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
@@ -28,23 +31,13 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   ),
 );
 // Keep the initializer and SDK React integration real; control only native I/O.
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest
-    .requireActual("../../accounts/test-support/native-auth0")
-    .nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../../accounts/test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
 
-const mockClient = {
-  credentialsManager: {
-    clearCredentials: jest.fn<Promise<void>, []>(),
-    hasValidCredentials: jest.fn<Promise<boolean>, []>(),
-    getCredentials: jest.fn<Promise<Credentials>, []>(),
-  },
-};
 const marker = "blockout:v2-initialized";
 const originalConfiguration = {
   EXPO_PUBLIC_AUTH0_DOMAIN: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
@@ -55,13 +48,13 @@ beforeEach(async () => {
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   await AsyncStorage.clear();
-  mockClient.credentialsManager.clearCredentials
+  mockAuth0.hasValidAuth0InstanceWithConfiguration
     .mockReset()
-    .mockResolvedValue();
-  mockClient.credentialsManager.hasValidCredentials
-    .mockReset()
-    .mockResolvedValue(false);
-  mockClient.credentialsManager.getCredentials.mockReset();
+    .mockResolvedValue(true);
+  mockAuth0.initializeAuth0WithConfiguration.mockClear();
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
+  mockAuth0.getCredentials.mockReset();
   jest.mocked(Stack).mockImplementation(InitializationConsumer);
 });
 
@@ -97,11 +90,10 @@ it.each(["native clearing", "marker persistence"] as const)(
   "waits for %s before admitting routes and SDK restoration",
   async (pendingStep) => {
     // Given
+    mockAuth0.hasValidAuth0InstanceWithConfiguration.mockResolvedValue(false);
     const completion = Promise.withResolvers<void>();
     if (pendingStep === "native clearing") {
-      mockClient.credentialsManager.clearCredentials.mockReturnValueOnce(
-        completion.promise,
-      );
+      mockAuth0.clearCredentials.mockReturnValueOnce(completion.promise);
     } else {
       const write = AsyncStorage.setItem;
       jest
@@ -116,13 +108,9 @@ it.each(["native clearing", "marker persistence"] as const)(
     await render(<RootLayout />);
 
     // Then
-    expect(
-      mockClient.credentialsManager.clearCredentials,
-    ).toHaveBeenCalledTimes(1);
+    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Public content")).not.toBeOnTheScreen();
-    expect(
-      mockClient.credentialsManager.hasValidCredentials,
-    ).not.toHaveBeenCalled();
+    expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
     expect(await AsyncStorage.getItem(marker)).toBeNull();
 
     // When
@@ -131,10 +119,13 @@ it.each(["native clearing", "marker persistence"] as const)(
     // Then
     expect(screen.getByText("Public content")).toBeOnTheScreen();
     expect(screen.getByText("Authentication: guest")).toBeOnTheScreen();
-    expect(
-      mockClient.credentialsManager.hasValidCredentials,
-    ).toHaveBeenCalledTimes(1);
+    expect(mockAuth0.hasValidCredentials).toHaveBeenCalledTimes(1);
     expect(await AsyncStorage.getItem(marker)).toBe("true");
+    expect(mockAuth0.initializeAuth0WithConfiguration).toHaveBeenCalled();
+    for (const configuration of mockAuth0.initializeAuth0WithConfiguration.mock
+      .calls) {
+      expect(configuration[3]).toBe(false);
+    }
   },
 );
 
@@ -144,9 +135,7 @@ it.each(["native clearing", "marker persistence"] as const)(
     // Given
     const error = new Error("Storage unavailable");
     if (failure === "native clearing") {
-      mockClient.credentialsManager.clearCredentials.mockRejectedValueOnce(
-        error,
-      );
+      mockAuth0.clearCredentials.mockRejectedValueOnce(error);
     } else {
       jest.spyOn(AsyncStorage, "setItem").mockRejectedValueOnce(error);
     }
@@ -156,9 +145,7 @@ it.each(["native clearing", "marker persistence"] as const)(
     expect(
       screen.getByText("Authentication: initialization-error"),
     ).toBeOnTheScreen();
-    expect(
-      mockClient.credentialsManager.hasValidCredentials,
-    ).not.toHaveBeenCalled();
+    expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
     expect(await AsyncStorage.getItem(marker)).toBeNull();
 
     // When
@@ -168,12 +155,8 @@ it.each(["native clearing", "marker persistence"] as const)(
 
     // Then
     expect(screen.getByText("Authentication: guest")).toBeOnTheScreen();
-    expect(
-      mockClient.credentialsManager.clearCredentials,
-    ).toHaveBeenCalledTimes(2);
-    expect(
-      mockClient.credentialsManager.hasValidCredentials,
-    ).toHaveBeenCalledTimes(1);
+    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(2);
+    expect(mockAuth0.hasValidCredentials).toHaveBeenCalledTimes(1);
     expect(await AsyncStorage.getItem(marker)).toBe("true");
   },
 );
@@ -181,10 +164,8 @@ it.each(["native clearing", "marker persistence"] as const)(
 it("restores the ordinary SDK identity on subsequent launches without clearing it again", async () => {
   // Given
   await AsyncStorage.setItem(marker, "true");
-  mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-  mockClient.credentialsManager.getCredentials.mockResolvedValue(
-    credentialsFor("auth0|current"),
-  );
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|current"));
   const root = await render(<RootLayout />);
   expect(screen.getByText("Identity: auth0|current")).toBeOnTheScreen();
 
@@ -195,6 +176,6 @@ it("restores the ordinary SDK identity on subsequent launches without clearing i
   // Then
   expect(screen.getByText("Authentication: authenticated")).toBeOnTheScreen();
   expect(screen.getByText("Identity: auth0|current")).toBeOnTheScreen();
-  expect(mockClient.credentialsManager.clearCredentials).not.toHaveBeenCalled();
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
   expect(await AsyncStorage.getItem(marker)).toBe("true");
 });

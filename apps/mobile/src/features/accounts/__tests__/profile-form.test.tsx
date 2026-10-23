@@ -16,7 +16,7 @@ import {
   useAccountSession,
 } from "../session/account-session-provider";
 import { ProfileScreen } from "../screens/profile-screen";
-import { credentialsFor, mockClient } from "../test-support/native-auth0";
+import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 
 // The installed library controls native keyboard I/O; form and session behavior remain real.
 jest.mock("react-native-keyboard-controller", () =>
@@ -25,13 +25,13 @@ jest.mock("react-native-keyboard-controller", () =>
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest.requireActual("../test-support/native-auth0").nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
+
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ replace: jest.fn() }),
@@ -90,23 +90,17 @@ beforeEach(() => {
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
   });
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
-  mockClient.credentialsManager.hasValidCredentials
-    .mockReset()
-    .mockResolvedValue(true);
-  mockClient.credentialsManager.getCredentials
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|one"));
-  mockClient.credentialsManager.clearCredentials
-    .mockReset()
-    .mockResolvedValue();
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
   jest
     .mocked(ImagePicker.launchImageLibraryAsync)
     .mockReset()
     .mockResolvedValue({ canceled: true, assets: null });
-  mockClient.credentialsManager.saveCredentials.mockReset().mockResolvedValue();
-  mockClient.webAuth.authorize
-    .mockReset()
-    .mockResolvedValue(credentialsFor("auth0|one"));
+  mockAuth0.saveCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth.mockReset().mockResolvedValue(credentialsFor("auth0|one"));
   mockContext.renderAsync.mockReset().mockResolvedValue(mockImage);
   mockImage.saveAsync
     .mockReset()
@@ -351,6 +345,45 @@ it("submits prepared replacement then explicit removal without a username edit",
   expect(remove).toHaveLength(1);
   expect(await (remove[0][1] as Blob).text()).toBe('{"photoAction":"remove"}');
 });
+
+it.each([
+  {
+    username: "Chosen",
+    metadata: { username: "Chosen", photoAction: "replace" },
+  },
+  { username: "Original", metadata: { photoAction: "replace" } },
+])(
+  "sends only the current dirty username with photo replacement: $username",
+  async ({ username, metadata }) => {
+    // Given
+    const user = await renderProfile();
+    await user.clear(screen.getByLabelText("Pseudo"));
+    await user.type(screen.getByLabelText("Pseudo"), "Temporary");
+    await user.clear(screen.getByLabelText("Pseudo"));
+    await user.type(screen.getByLabelText("Pseudo"), username);
+    jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: "file:///source.heic", width: 64, height: 64 }],
+    });
+    await user.press(
+      screen.getByRole("button", { name: "Choisir une photo de profil" }),
+    );
+    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // Then
+    await screen.findByText("Profil enregistré.");
+    const writes = mockFetch.mock.calls.filter(
+      ([, request]) => request?.method === "PATCH",
+    );
+    expect(writes).toHaveLength(1);
+    const body = writes[0][1]?.body as FormData;
+    const encodedMetadata = body.get("metadata") as Blob;
+    expect(JSON.parse(await encodedMetadata.text())).toEqual(metadata);
+  },
+);
 
 it("retains the previous prepared choice and username when another preparation fails", async () => {
   // Given

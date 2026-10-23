@@ -66,8 +66,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
     setValue,
     setError,
     reset,
-    getFieldState,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, dirtyFields },
   } = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: { username: account.username, photo: { action: "keep" } },
@@ -100,7 +99,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
   async function submit(values: ProfileValues) {
     if (needsRead || preparing) return;
     const metadata: ChangeAccountProfileBody["metadata"] = {};
-    if (getFieldState("username").isDirty || values.photo.action === "keep")
+    if (dirtyFields.username || values.photo.action === "keep")
       metadata.username = values.username;
     if (values.photo.action !== "keep")
       metadata.photoAction = values.photo.action;

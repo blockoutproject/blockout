@@ -24,13 +24,25 @@
     <checkstyle.version>14.3.0</checkstyle.version>
     <openapi-generator.version>7.26.0</openapi-generator.version>
     <jackson-databind-nullable.version>0.2.12</jackson-databind-nullable.version>
+    <argLine/>
   </properties>
   <build>
     <plugins>
+      <!-- Mockito's documented Java 21+ setup supplies instrumentation at JVM startup. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals><goal>properties</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
           <includes>
             <include>**/*Test.java</include>
           </includes>
@@ -43,6 +55,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
+          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
           <includes>
             <include>**/*IntegrationTest.java</include>
           </includes>

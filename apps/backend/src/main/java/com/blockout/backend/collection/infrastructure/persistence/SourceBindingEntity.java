@@ -5,6 +5,8 @@ import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -24,7 +26,10 @@ import org.hibernate.annotations.OptimisticLock;
 @Entity
 @Table(name = "collection_source_binding")
 class SourceBindingEntity {
-  @Id private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
+
   private UUID seasonId;
 
   @Enumerated(EnumType.STRING)
@@ -59,7 +64,6 @@ class SourceBindingEntity {
       CollectionProviderEnum provider,
       String organizerReference,
       String candidateUrl) {
-    this.id = UUID.randomUUID();
     this.seasonId = seasonId;
     this.provider = provider;
     this.organizerReference = organizerReference;

@@ -16,6 +16,7 @@ import org.apache.hc.core5.net.URIBuilder;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.FormElement;
 import org.springframework.stereotype.Component;
 
 /**
@@ -134,8 +135,8 @@ public class FfvbDiscovery {
   }
 
   /**
-   * Reads actual shared-round group fields; neither matchday nor match-code prefixes establish
-   * groups.
+   * Reads submitted shared-round form controls through jsoup; neither matchday nor match-code
+   * prefixes establish groups.
    *
    * @param page native page DOM
    * @param url actual round page URL
@@ -145,11 +146,10 @@ public class FfvbDiscovery {
    */
   private SportingObservation.Catalog round(
       Document page, URI url, String season, String organizer) {
-    Element form = page.selectFirst("form[action$=vbspo_calendrier_export.php]");
-    if (form == null) return null;
+    if (!(page.selectFirst("form[action$=vbspo_calendrier_export.php]")
+        instanceof FormElement form)) return null;
     Map<String, String> fields = new LinkedHashMap<>();
-    form.select("input[name]")
-        .forEach(input -> fields.put(input.attr("name"), input.attr("value")));
+    form.formData().forEach(field -> fields.put(field.key(), field.value()));
     String division = fields.get("cal_coddiv");
     String tour = fields.get("cal_codtour");
     if (!"".equals(fields.get("cal_codpoule"))

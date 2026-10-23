@@ -2,9 +2,9 @@ import type Purchases from "react-native-purchases";
 
 /** Native I/O double only; each suite controls outcomes and resets its own lifecycle. */
 export const mockPurchases = {
-  PURCHASES_ERROR_CODE: jest.requireActual(
-    "@revenuecat/purchases-typescript-internal",
-  ).PURCHASES_ERROR_CODE,
+  PURCHASES_ERROR_CODE: jest.requireActual<
+    typeof import("react-native-purchases")
+  >("react-native-purchases").PURCHASES_ERROR_CODE,
   configure: jest.fn<
     ReturnType<typeof Purchases.configure>,
     Parameters<typeof Purchases.configure>
@@ -30,7 +30,7 @@ export const mockPurchases = {
     ReturnType<typeof Purchases.setLogHandler>,
     Parameters<typeof Purchases.setLogHandler>
   >(),
-  VERIFICATION_RESULT: jest.requireActual(
-    "@revenuecat/purchases-typescript-internal",
-  ).VERIFICATION_RESULT,
+  VERIFICATION_RESULT: jest.requireActual<
+    typeof import("react-native-purchases")
+  >("react-native-purchases").default.VERIFICATION_RESULT,
 };

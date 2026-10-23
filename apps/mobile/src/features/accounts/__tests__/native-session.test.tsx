@@ -1,29 +1,23 @@
 import { act, renderHook } from "@testing-library/react-native";
-import {
-  AuthError,
-  CredentialsManagerError,
-  CredentialsManagerErrorCodes,
-  useAuth0,
-} from "react-native-auth0";
+import { CredentialsManagerErrorCodes, useAuth0 } from "react-native-auth0";
 import { eraseAccount } from "../../../../.generated/mobile";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
   AccountSessionProvider,
   useAccountSession,
 } from "../session/account-session-provider";
-import { credentialsFor, mockClient } from "../test-support/native-auth0";
+import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 // Keep Auth0's provider, reducer, hooks and error classes real; control native I/O only.
-jest.mock(require.resolve("react-native-auth0/src/Auth0.ts"), () => ({
-  __esModule: true,
-  default: jest.fn(() => mockClient),
-}));
-jest.mock("react-native-auth0", () =>
-  jest.requireActual("../test-support/native-auth0").nativeAuth0Module(),
-);
+jest.mock("react-native-auth0", () => {
+  jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
+    "../test-support/native-auth0",
+  ).mockAuth0;
+  return jest.requireActual("react-native-auth0");
+});
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
@@ -45,20 +39,14 @@ beforeEach(() => {
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();
-  mockClient.credentialsManager.hasValidCredentials
-    .mockReset()
-    .mockResolvedValue(true);
-  mockClient.credentialsManager.getCredentials
+  mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+  mockAuth0.getCredentials
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|a"));
-  mockClient.credentialsManager.clearCredentials
-    .mockReset()
-    .mockResolvedValue();
-  mockClient.credentialsManager.saveCredentials.mockReset().mockResolvedValue();
-  mockClient.webAuth.authorize
-    .mockReset()
-    .mockResolvedValue(credentialsFor("auth0|a"));
-  mockClient.webAuth.clearSession.mockReset().mockResolvedValue();
+  mockAuth0.clearCredentials.mockReset().mockResolvedValue();
+  mockAuth0.saveCredentials.mockReset().mockResolvedValue();
+  mockAuth0.webAuth.mockReset().mockResolvedValue(credentialsFor("auth0|a"));
+  mockAuth0.webAuthLogout.mockReset().mockResolvedValue();
   mockFetch.mockReset();
 });
 
@@ -77,15 +65,6 @@ function useSessionControls() {
   return { auth: useAuth0(), session: useAccountSession() };
 }
 
-/** Creates the same public error class and code exposed by the native credential manager. */
-function credentialError(code: string) {
-  return new CredentialsManagerError(
-    new AuthError("CredentialsManagerError", "Credentials unavailable", {
-      code,
-    }),
-  );
-}
-
 it("restores and renews through the SDK without replaying an uncertain mutation", async () => {
   // Given
   const hook = await renderHook(useSessionControls, {
@@ -101,7 +80,7 @@ it("restores and renews through the SDK without replaying an uncertain mutation"
     ...credentialsFor("auth0|a"),
     accessToken: "renewed-token",
   };
-  mockClient.credentialsManager.getCredentials.mockResolvedValueOnce(renewed);
+  mockAuth0.getCredentials.mockResolvedValueOnce(renewed);
 
   // When
   await act(async () => {
@@ -114,8 +93,8 @@ it("restores and renews through the SDK without replaying an uncertain mutation"
   expect(hook.result.current.session.generation).toBe(captured.generation);
   expect(hook.result.current.session.status).toBe("authenticated");
   expect(mockFetch).toHaveBeenCalledTimes(1);
-  expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
-  expect(mockClient.credentialsManager.clearCredentials).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
 
 it.each([
@@ -136,14 +115,14 @@ it.each([
       );
     });
     const captured = hook.result.current.session;
-    const failure = credentialError(code);
-    mockClient.credentialsManager.getCredentials.mockRejectedValueOnce(failure);
+    const failure = { code, message: "Credentials unavailable" };
+    mockAuth0.getCredentials.mockRejectedValueOnce(failure);
 
     // When
     await act(async () => {
-      await expect(hook.result.current.auth.getCredentials()).rejects.toBe(
-        failure,
-      );
+      await expect(
+        hook.result.current.auth.getCredentials(),
+      ).rejects.toMatchObject(failure);
     });
 
     // Then
@@ -160,10 +139,8 @@ it.each([
 
     // Then
     expect(hook.result.current.session.status).toBe("authenticated");
-    expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
-    expect(
-      mockClient.credentialsManager.clearCredentials,
-    ).not.toHaveBeenCalled();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
   },
 );
 
@@ -187,14 +164,14 @@ it.each([
       );
     });
     const captured = hook.result.current.session;
-    const failure = credentialError(code);
-    mockClient.credentialsManager.getCredentials.mockRejectedValueOnce(failure);
+    const failure = { code, message: "Credentials unavailable" };
+    mockAuth0.getCredentials.mockRejectedValueOnce(failure);
 
     // When
     await act(async () => {
-      await expect(hook.result.current.auth.getCredentials()).rejects.toBe(
-        failure,
-      );
+      await expect(
+        hook.result.current.auth.getCredentials(),
+      ).rejects.toMatchObject(failure);
     });
 
     // Then
@@ -209,7 +186,7 @@ it.each([
         "account-a",
       ),
     ).toBe(false);
-    expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   },
 );
 
@@ -222,7 +199,7 @@ it.each(["success", "cancelled", "failed"] as const)(
     });
     const captured = hook.result.current.session;
     const browser = Promise.withResolvers<void>();
-    mockClient.webAuth.clearSession.mockReturnValueOnce(browser.promise);
+    mockAuth0.webAuthLogout.mockReturnValueOnce(browser.promise);
     let logout: Promise<void>;
 
     // When
@@ -233,26 +210,26 @@ it.each(["success", "cancelled", "failed"] as const)(
     await act(async () => {
       if (outcome === "success") browser.resolve();
       else
-        browser.reject(
-          new AuthError("Browser error", outcome, {
-            code:
-              outcome === "cancelled"
-                ? "a0.session.user_cancelled"
-                : "a0.network_error",
-          }),
-        );
+        browser.reject({
+          message: outcome,
+          code:
+            outcome === "cancelled"
+              ? "a0.session.user_cancelled"
+              : "a0.network_error",
+        });
       await logout;
     });
 
     // Then
     expect(hook.result.current.session.status).toBe("guest");
     expect(hook.result.current.session.accountId).toBeNull();
-    expect(
-      mockClient.credentialsManager.clearCredentials,
-    ).toHaveBeenCalledTimes(1);
-    expect(mockClient.webAuth.clearSession).toHaveBeenCalledWith(
+    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
+    expect(mockAuth0.webAuthLogout).toHaveBeenCalledWith(
+      "com.blockout.test.auth0",
+      false,
+      "com.blockout.test.auth0://identity.example.invalid/ios/com.blockout.test/callback",
       undefined,
-      undefined,
+      false,
     );
   },
 );
@@ -263,23 +240,26 @@ it("surfaces a failed local clear without restoring invalidated private work", a
     wrapper: AccountSessionProvider,
   });
   const captured = hook.result.current.session;
-  mockClient.webAuth.clearSession.mockRejectedValueOnce(
+  mockAuth0.webAuthLogout.mockRejectedValueOnce(
     new Error("Browser unavailable"),
   );
-  const failure = credentialError(CredentialsManagerErrorCodes.STORE_FAILED);
-  mockClient.credentialsManager.clearCredentials.mockRejectedValueOnce(failure);
+  const failure = {
+    code: CredentialsManagerErrorCodes.STORE_FAILED,
+    message: "Credentials unavailable",
+  };
+  mockAuth0.clearCredentials.mockRejectedValueOnce(failure);
 
   // When
   await act(async () => {
-    await expect(hook.result.current.session.signOut()).rejects.toBe(failure);
+    await expect(hook.result.current.session.signOut()).rejects.toMatchObject(
+      failure,
+    );
   });
 
   // Then
   expect(captured.isCurrent(captured.generation)).toBe(false);
   expect(hook.result.current.session.accountId).toBeNull();
-  expect(mockClient.credentialsManager.clearCredentials).toHaveBeenCalledTimes(
-    1,
-  );
+  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
 });
 
 it("clears credentials locally without requiring browser logout", async () => {
@@ -297,10 +277,8 @@ it("clears credentials locally without requiring browser logout", async () => {
   // Then
   expect(captured.isCurrent(captured.generation)).toBe(false);
   expect(hook.result.current.session.status).toBe("guest");
-  expect(mockClient.credentialsManager.clearCredentials).toHaveBeenCalledTimes(
-    1,
-  );
-  expect(mockClient.webAuth.clearSession).not.toHaveBeenCalled();
+  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
+  expect(mockAuth0.webAuthLogout).not.toHaveBeenCalled();
 });
 
 it("does not retry a native storage failure after successful browser logout", async () => {
@@ -308,17 +286,20 @@ it("does not retry a native storage failure after successful browser logout", as
   const hook = await renderHook(useSessionControls, {
     wrapper: AccountSessionProvider,
   });
-  const failure = credentialError(CredentialsManagerErrorCodes.STORE_FAILED);
-  mockClient.credentialsManager.clearCredentials.mockRejectedValueOnce(failure);
+  const failure = {
+    code: CredentialsManagerErrorCodes.STORE_FAILED,
+    message: "Credentials unavailable",
+  };
+  mockAuth0.clearCredentials.mockRejectedValueOnce(failure);
 
   // When
   await act(async () => {
-    await expect(hook.result.current.session.signOut()).rejects.toBe(failure);
+    await expect(hook.result.current.session.signOut()).rejects.toMatchObject(
+      failure,
+    );
   });
 
   // Then
-  expect(mockClient.webAuth.clearSession).toHaveBeenCalledTimes(1);
-  expect(mockClient.credentialsManager.clearCredentials).toHaveBeenCalledTimes(
-    1,
-  );
+  expect(mockAuth0.webAuthLogout).toHaveBeenCalledTimes(1);
+  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
 });
