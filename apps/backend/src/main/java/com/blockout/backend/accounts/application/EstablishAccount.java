@@ -4,6 +4,7 @@ import com.blockout.backend.accounts.application.exception.AccountUnavailableExc
 import com.blockout.backend.accounts.application.exception.ProviderEmailUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -35,9 +36,42 @@ public class EstablishAccount {
    */
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public Outcome establish(String issuer, String subject) {
+    return establish(issuer, subject, null);
+  }
+
+  /**
+   * Establishes only the existing lifecycle admitted by personal maintenance bypass. Its erasure or
+   * replacement before capture refuses the request before provider I/O; it never becomes creation.
+   *
+   * @param issuer exact validated issuer
+   * @param subject exact validated subject
+   * @param admittedAccount original non-null business UUID authorized at admission
+   * @return committed existing account with current evidence
+   * @throws AccountUnavailableException if that original disappears or is replaced
+   */
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  public Outcome establishExisting(String issuer, String subject, UUID admittedAccount) {
+    return establish(issuer, subject, Objects.requireNonNull(admittedAccount));
+  }
+
+  /**
+   * Captures the account once, retaining any admission constraint through the existing commit path.
+   *
+   * @param issuer exact validated issuer
+   * @param subject exact validated subject
+   * @param admittedAccount required bypass lifecycle, or null for ordinary explicit establishment
+   * @return locally committed account and creation outcome
+   * @throws AccountUnavailableException when an admitted original is absent or replaced
+   * @throws ProviderEmailUnavailableException when unconstrained creation lacks a usable address
+   */
+  private Outcome establish(String issuer, String subject, UUID admittedAccount) {
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     Optional<Account> original =
         transaction.execute(status -> accounts.findByPrincipal(issuer, subject));
+    if (admittedAccount != null
+        && original.filter(account -> admittedAccount.equals(account.id())).isEmpty()) {
+      throw new AccountUnavailableException();
+    }
     PrincipalReader.Evidence evidence;
     boolean unavailable = false;
     try {
@@ -69,6 +103,8 @@ public class EstablishAccount {
    * @param evidence available minimal evidence
    * @param providerUnavailable distinguishes provider failure from a successful read without email
    * @return locally committed outcome
+   * @throws AccountUnavailableException when the captured original has disappeared
+   * @throws ProviderEmailUnavailableException when creation lacks usable provider email
    */
   private Outcome commit(
       String issuer,

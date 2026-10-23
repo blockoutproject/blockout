@@ -1,6 +1,10 @@
 package com.blockout.backend.shared.http;
 
+import com.blockout.backend.access.domain.MaintenanceRequiredException;
+import com.blockout.backend.access.domain.MaintenanceSettings;
+import com.blockout.backend.generated.mobile.model.AccessProblemResponse;
 import com.blockout.backend.generated.mobile.model.ProblemResponse;
+import com.blockout.backend.generated.mobile.model.PublicMaintenanceResponse;
 import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +23,30 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   private static final Logger LOG = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+  /**
+   * Publishes the active restriction observed at admission, without claiming a reopening time.
+   *
+   * @param failure current maintenance refusal, distinct from unavailable configuration/provider
+   * @return the generated typed, non-cacheable maintenance problem
+   */
+  @ExceptionHandler(MaintenanceRequiredException.class)
+  ResponseEntity<Object> maintenanceRequired(MaintenanceRequiredException failure) {
+    MaintenanceSettings maintenance = failure.getMaintenance();
+    AccessProblemResponse problem =
+        new AccessProblemResponse(
+                URI.create("urn:blockout:problem:maintenance"), "Service Unavailable", 503)
+            .maintenance(
+                new PublicMaintenanceResponse(
+                    maintenance.revision(),
+                    true,
+                    maintenance.message(),
+                    maintenance.imageUrl() == null ? null : URI.create(maintenance.imageUrl())));
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+        .cacheControl(org.springframework.http.CacheControl.noStore())
+        .body(problem);
+  }
 
   /** {@inheritDoc} */
   @Override

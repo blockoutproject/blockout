@@ -90,7 +90,7 @@ class AccountAccessWebMvcTest {
         .andExpect(jsonPath("$.permissions.moderateStreamLinks").value(false));
     if (created) response.andExpect(header().string("Location", "/accounts/" + ID));
     else response.andExpect(header().doesNotExist("Location"));
-    verify(admission).requireOrdinaryAccess(false);
+    verify(admission).requireOrdinaryAccess(ISSUER, "auth0|one", false);
   }
 
   @Test
@@ -145,7 +145,9 @@ class AccountAccessWebMvcTest {
   @DisplayName("Applies ordinary admission to original reads and establishment only")
   void requiresOrdinaryAdmission() throws Exception {
     // Given
-    doThrow(new AccountUnavailableException()).when(admission).requireOrdinaryAccess(false);
+    doThrow(new AccountUnavailableException())
+        .when(admission)
+        .requireOrdinaryAccess(ISSUER, "auth0|one", false);
 
     // When
     mvc.perform(post("/accounts").with(principal("mobile-test")))
@@ -236,7 +238,9 @@ class AccountAccessWebMvcTest {
   @DisplayName("Forwards explicit bypass intent to the controlled admission owner")
   void forwardsBypassIntent() throws Exception {
     // Given
-    doThrow(new AccountUnavailableException()).when(admission).requireOrdinaryAccess(true);
+    doThrow(new AccountUnavailableException())
+        .when(admission)
+        .requireOrdinaryAccess(ISSUER, "auth0|one", true);
 
     // When
     mvc.perform(
@@ -245,7 +249,7 @@ class AccountAccessWebMvcTest {
                 .with(principal("mobile-test")))
         // Then
         .andExpect(status().isServiceUnavailable());
-    verify(admission).requireOrdinaryAccess(true);
+    verify(admission).requireOrdinaryAccess(ISSUER, "auth0|one", true);
     verifyNoInteractions(establishment);
   }
 
