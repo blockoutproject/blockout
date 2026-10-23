@@ -12,6 +12,7 @@ import com.blockout.backend.collection.application.service.CollectionCycleServic
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.model.PoolKey;
@@ -194,8 +195,8 @@ class CollectionAdmissionIntegrationTest {
                 new TransactionTemplate(transactions)
                     .executeWithoutResult(
                         status ->
-                            cycles.requireObservation(
-                                CYCLE, admitted.cycle().cycleOrder(), 1, SOURCE)))
+                            cycles.requireTarget(
+                                CYCLE, SOURCE, CollectionTargetKindEnum.DISCOVERY)))
         .isInstanceOf(CollectionConflictException.class);
   }
 

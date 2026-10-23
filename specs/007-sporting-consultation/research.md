@@ -24,7 +24,7 @@
 
 **Decision**: Use `react-native-maps` 1.27.2 with Apple Maps on iOS and Google Maps on Android. Keep the approved Blockout markers, location selection and participant summaries. Use only accepted municipality coordinates, group coincident points without displacement, and request no device location. Native basemap behavior replaces the former requirement to detect every tile failure; zero and partial location coverage remain explicit.
 
-**Rationale**: The [Expo map-view integration](https://docs.expo.dev/versions/latest/sdk/map-view/) supports this ordinary platform split within the accepted Expo 57 baseline. Google key restrictions and build configuration are future implementation work, not provider changes in this task.
+**Rationale**: The [Expo map-view integration](https://docs.expo.dev/versions/latest/sdk/map-view/) supports this ordinary platform split within the accepted Expo 58 baseline. Google key restrictions and build configuration are future implementation work, not provider changes in this task.
 
 **Alternatives**: `expo-maps` was still alpha in the examined documentation, with relevant Apple marker interactions requiring a newer iOS minimum. A timer or tile-error detector cannot reliably establish basemap failure. Google-only maps on both platforms adds an iOS integration the accepted experience does not need.
 
@@ -52,7 +52,7 @@
 
 **Alternatives**: System external readers do not guarantee reading without another installed application. A Google Drive viewer adds a third-party dependency and disclosure of the source URL. A custom PDF renderer or patched dependency would duplicate supported native rendering.
 
-**Evidence limits**: The examined supporting package was `react-native-blob-util` 0.25.1. Published config plugins 14.0.2 declare Expo >=56 compatibility; unpublished repository versions are not selected. PDF reader source/release notes address Android page-size compatibility, but no Expo 57/RN 0.86 native build, physical-device rendering, cancellation or cleanup has been executed here. Qualify the declared package combination before adoption; failure reopens this boundary rather than authorizing a fork or a changed minimum platform.
+**Evidence limits**: The examined supporting package was `react-native-blob-util` 0.25.1. Published config plugins 14.0.2 declare Expo >=56 compatibility; unpublished repository versions are not selected. PDF reader source/release notes address Android page-size compatibility, but no Expo 58/RN 0.88 native build, physical-device rendering, cancellation or cleanup has been executed here. Qualify the declared package combination before adoption; failure reopens this boundary rather than authorizing a fork or a changed minimum platform.
 
 ## Contracts, privacy and operations
 

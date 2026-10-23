@@ -8,7 +8,7 @@ import {
 } from "react";
 import { AppState } from "react-native";
 import Purchases from "react-native-purchases";
-import { useAccountSession } from "../accounts/session/account-session-provider";
+import { useAccountSession } from "../accounts/current-account";
 import { getProState, type ProOperation, type ProState } from "./pro-state";
 import { proSession } from "./pro-session";
 

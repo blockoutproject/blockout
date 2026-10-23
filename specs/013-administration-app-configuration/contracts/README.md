@@ -44,4 +44,4 @@ No hypermedia framework is introduced: the concrete mobile consumes generated fi
 
 ## Qualification
 
-Run Redocly lint/bundle against both roots, then qualify the actual F13 Java/TypeScript generators and consumers during authorized executable work. Exercise nullable PATCH values, omitted nested platform fields, safe-integer revisions, boolean permissions including extra/absent fields, all AccountResponse producers, typed maintenance errors and wrong-environment tokens. The [quickstart](../quickstart.md) distinguishes those future qualifications from this delivery's document/schema checks.
+Run Redocly lint/bundle against all canonical roots, then qualify the actual F13 Java/TypeScript generators and consumers. Exercise nullable PATCH values, omitted nested platform fields, safe-integer revisions, boolean permissions including extra/absent fields, all AccountResponse producers, typed maintenance errors and wrong-environment tokens. The [quickstart](../quickstart.md) records completed boundary checks and remaining qualifications separately.

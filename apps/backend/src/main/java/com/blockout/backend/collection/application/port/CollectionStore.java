@@ -248,15 +248,6 @@ public interface CollectionStore {
   CollectionState.SnapshotPage targets(UUID cycleId, int page, int size);
 
   /**
-   * Checks membership in the immutable authorized scope.
-   *
-   * @param cycleId admitted cycle
-   * @param scopeId stable sporting/source identity
-   * @return whether that identity belongs to the frozen snapshot
-   */
-  boolean containsTarget(UUID cycleId, UUID scopeId);
-
-  /**
    * Checks the exact admitted acquisition role.
    *
    * @param cycleId current context

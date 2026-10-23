@@ -10,7 +10,12 @@ import {
   setPoolPresentation,
 } from "../../../../.generated/mobile";
 import { GetApplicationAccess200 } from "../../../../.generated/schemas/index.zod";
-import { apiFetch, type ApiFetchOptions } from "../api-fetch";
+import {
+  ApiError,
+  apiFetch,
+  isUncertainMutationFailure,
+  type ApiFetchOptions,
+} from "../api-fetch";
 
 const accountId = "00000000-0000-4000-8000-000000000001";
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -34,6 +39,28 @@ afterEach(() => {
   } else {
     process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
   }
+});
+
+// Given
+it.each([
+  ["network failure", new ApiError("network"), true],
+  ["timeout", new ApiError("timeout"), true],
+  ["unreadable response", new ApiError("schema"), true],
+  ["cancellation", new ApiError("cancelled"), true],
+  ["server failure", new ApiError("http", 500), true],
+  ["unavailable service", new ApiError("http", 503), true],
+  ["configuration failure", new ApiError("configuration"), false],
+  ["validation refusal", new ApiError("http", 400), false],
+  ["permission refusal", new ApiError("http", 403), false],
+  ["conflict", new ApiError("http", 409), false],
+  ["unclassified error", new Error("unexpected"), false],
+  ["no error", null, false],
+])("classifies mutation uncertainty for %s", (_case, error, expected) => {
+  // When
+  const uncertain = isUncertainMutationFailure(error);
+
+  // Then
+  expect(uncertain).toBe(expected);
 });
 
 it("validates the generated response exactly once and accepts additive nested data", async () => {

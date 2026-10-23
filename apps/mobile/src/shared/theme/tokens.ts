@@ -29,6 +29,13 @@ export const appearanceColors = {
     icon: "#1C1C1E",
     error: "#B42340",
     focus: "#555555",
+    // F12 maintenance control: Product Design 5978:48721 and 1450:14015.
+    successAction: "#287E63",
+    onSuccessAction: reference.white,
+    successSubtle: "#287E6314",
+    onSuccessSubtle: "#287E63",
+    warning: "#F4C66A",
+    onWarning: reference.neutral900,
   },
   dark: {
     canvas: "#0D0D0E",
@@ -42,6 +49,13 @@ export const appearanceColors = {
     icon: "#F7F7F8",
     error: "#FFB3C3",
     focus: "#F7F7F8",
+    // The action remains the same green; subtle feedback follows the dark semantic mode.
+    successAction: "#287E63",
+    onSuccessAction: reference.white,
+    successSubtle: "#76BCA614",
+    onSuccessSubtle: "#76BCA6",
+    warning: "#F4C66A",
+    onWarning: reference.neutral900,
   },
 };
 
@@ -89,7 +103,7 @@ export const tokens = {
     section: 24,
     label: 6,
   },
-  radius: { control: 12, media: 16, sheet: 22, full: 999 },
+  radius: { badge: 8, control: 12, media: 16, sheet: 22, full: 999 },
   size: {
     control: 48,
     multiline: 96,
@@ -102,7 +116,7 @@ export const tokens = {
   opacity: { disabled: 0.45, pressed: 0.9 },
   elevation: { offsetX: 0, offsetY: 4, blur: 10 },
   motion: { slow: 480 },
-  // Exact static face names preserve intermediate weights on Android versions before API 28.
+  // Select the bundled static face explicitly so approved weights stay consistent across platforms.
   typography: {
     body: { fontFamily: "Outfit-Regular", fontSize: 14, lineHeight: 20 },
     strong: { fontFamily: "Outfit-SemiBold", fontSize: 14, lineHeight: 20 },

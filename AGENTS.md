@@ -50,6 +50,10 @@ On `develop` and `main`, administrator enforcement is enabled (`isAdminEnforced:
 
 Before delivery, review every added or modified handwritten test against the applicable testing skill and its canonical examples; passing checks alone do not establish compliance.
 
+For native UI checks, prefer the official [agent-device skill](.agents/skills/agent-device/SKILL.md) and [setup](README.md#native-ui-checks). Target the task's device and session explicitly; use desktop automation for host setup or unsupported interactions, and diagnose repeated unchanged failures.
+
+Reuse compatible development builds and task-owned services/devices. Prefer standalone Android Emulator and compact Device Hub windows, and serialize desktop interactions.
+
 Use the actual [README verification commands](README.md#verification), Nx npm/Maven targets and committed [CI](.github/workflows/ci.yml). Check structure, links and formatting for guidance changes, and execute the affected application checks for source/configuration changes. Applications run on the host; local Compose owns PostgreSQL infrastructure. Keep generated outputs ignored and use native development builds for mobile runtime evidence.
 
 Validate affected boundaries proportionately and report passed, failed and unavailable evidence. Documentation checks, application startup and mobile JavaScript exports do not establish design, native or provider approval. Preserve official Spec Kit imports; constitution changes use `speckit-constitution`, and personal skills are copied from their reviewed bank.

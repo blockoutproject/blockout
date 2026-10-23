@@ -2,7 +2,7 @@
 
 **Branch**: `tech/43-f02-technical-plan` | **Date**: 2026-10-13 | **Spec**: [spec.md](spec.md)
 
-**Input**: F02 specification and owner-approved preparatory plan for [#43](https://github.com/blockoutproject/blockout/issues/43).
+**Input**: [spec.md](spec.md) and the accepted [F13 foundation](../003-shared-quality/plan.md).
 
 **Status**: Accepted technical decisions and scoped design; runtime qualification remains pending.
 
@@ -39,7 +39,7 @@ Keep one authoritative sporting model in the modular backend. The separate colle
 | III — Design      | Existing accepted journeys remain inputs. The owner explicitly approved prototype `236e6a2`, then the corresponding Figma reconciliation on 2026-10-13. Both scoped design gates are satisfied; native accessibility and production behavior remain unqualified. |
 | IV — Contracts    | F13 canonical HTTP roots own authored schemas; native contracts reference them without editable duplicates. Boundary suites qualify generation/serialization; story tasks qualify business operations.                                                           |
 | V — Simplicity    | Per-match transactions, existing row locks and next ordinary collection replace whole-calendar atomicity, recovery journals and retries. No additional scheduler for logos.                                                                                      |
-| Prerequisites     | Native blocker #42 is closed. Scoped design approvals are recorded below; runtime qualifications remain prerequisites for implementation adoption.                                                                                                               |
+| Prerequisites     | The accepted [F13 plan](../003-shared-quality/plan.md) supplies the shared foundation. Scoped design approvals are recorded below; runtime qualifications remain prerequisites for implementation adoption.                                                      |
 
 No constitutional exception is required. The [research](research.md) states the evidence limits and required runtime qualifications.
 

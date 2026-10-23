@@ -2,7 +2,7 @@
 
 **Branch**: `tech/52-live-contributions-moderation` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
 
-**Input**: [#52](https://github.com/blockoutproject/blockout/issues/52), its owning specification and the owner-approved preparatory plan. This delivery produces planning artifacts and reconciled design/specifications, not the product runtime.
+**Input**: [spec.md](spec.md), [F02 sporting data](../002-sporting-data/plan.md) and [F09 entitlements](../006-pro-subscriptions/plan.md).
 
 ## Summary
 
@@ -10,7 +10,7 @@ Add account-owned stream contributions, exact-version reports and a complete vid
 
 ## Technical Context
 
-**Language/Version**: Java 25 / Spring Boot 4.1.1 and TypeScript / Expo 57 / React Native 0.86 / React 19.2.3, under [F13](../003-shared-quality/plan.md).
+**Language/Version**: Java 25 / Spring Boot 4.1.1 and TypeScript / Expo 58 / React Native 0.88 / React 19.3.0, under [F13](../003-shared-quality/plan.md).
 
 **Primary Dependencies**: Existing Spring Data JPA/Hibernate, Java URI/time libraries, TanStack Query and the F13 generated HTTP boundary. No video-provider SDK or new dependency.
 
@@ -36,10 +36,10 @@ Pre-research and post-design checks pass for this scoped planning delivery:
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | I — Specification     | Agreed behavior is integrated into F08's current requirements; F05/F11 erasure and F12 moderation ownership agree.                                                                                 |
 | II — Domain ownership | F02 owns identities/results/visibility; F03 public consultation; F05 account lifecycle; F07 notification semantics; F12 assignment/admission. The interfaces below reconcile their affected plans. |
-| III — Design          | The owner explicitly approved prototype 5413817 and then the scoped Figma report in the #52 conversation. Exact references and evidence limits appear below.                                       |
+| III — Design          | The owner explicitly approved prototype 5413817 and then the scoped Figma report in the planning conversation. Exact references and evidence limits appear below.                                  |
 | IV — Contracts        | Extend the canonical mobile OpenAPI root. Generated interfaces/DTOs/clients follow F13; generation and integrated consumer compilation remain future qualification, not a claimed result.          |
 | V — Simplicity        | Native database/query mechanisms, local URI parsing and current-state reads suffice. No request registry, quota counters/reset job, search index, polling or dismissed-report workflow.            |
-| Prerequisites         | Native blockers #43 and #48 are closed. No product implementation, provider configuration, tasks or automatic merge/closure is authorized.                                                         |
+| Prerequisites         | The accepted [F02](../002-sporting-data/plan.md) and [F09](../006-pro-subscriptions/plan.md) plans supply sporting and entitlement boundaries; provider and native qualification remain separate.  |
 
 ## Project Structure
 
@@ -55,7 +55,7 @@ specs/010-live-contributions-moderation/
 └── quickstart.md
 ```
 
-### Source code (planned, not initialized)
+### Planned source code
 
 ```text
 apps/backend/   # contribution use cases, persistence and generated HTTP adapters
@@ -104,9 +104,9 @@ After an uncertain mutation, perform one bounded current read: owner context/mem
 
 ## Design reconciliation and evidence
 
-The 2026-10-22 presentation revision replaces form/history sheets with ordinary screens and simple confirmations with native dialogs. The inspected Product Design revision includes [contribution](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5512-148457), [dark/narrow contribution](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5517-54389) and [abandonment semantics](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5554-69452). The final prototype revision, captures and library-instance synchronization status are tracked in [F13 #138 evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design). The following earlier references retain their domain content and stable node identities; older captures do not establish the revised container or native behavior.
+The 2026-10-22 presentation revision replaces form/history sheets with ordinary screens and simple confirmations with native dialogs. The inspected Product Design revision includes [contribution](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5512-148457), [dark/narrow contribution](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5517-54389) and [abandonment semantics](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5554-69452). The final prototype revision, captures and library-instance synchronization status are tracked in [F13 presentation evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design). The following earlier references retain their domain content and stable node identities; older captures do not establish the revised container or native behavior.
 
-The owner approved [prototype 5413817](https://github.com/blockoutproject/product-prototype/commit/54138170f14775fe11132aaa61433329059cbfbb) and explicitly authorized its publication. The subsequent Figma report was separately approved in the same #52 conversation. Its scope is complete video-moderation actions, erased report reasons with retained counts, historical reports after new-version reactivation and ordinary current-state recovery.
+The owner approved [prototype 5413817](https://github.com/blockoutproject/product-prototype/commit/54138170f14775fe11132aaa61433329059cbfbb) and explicitly authorized its publication. The subsequent Figma report was separately approved in the same planning conversation. Its scope is complete video-moderation actions, erased report reasons with retained counts, historical reports after new-version reactivation and ordinary current-state recovery.
 
 Approved Product Design references:
 
@@ -119,7 +119,7 @@ Existing library instances and product patterns cover the previously approved co
 
 ## Verification and delivery
 
-Use [quickstart.md](quickstart.md) for implementation qualification and the [README checks](../../README.md#verification) for this documentary delivery. Reconcile owning specs and interfaces together in a draft PR to develop. The PR is a planning review; no executable product implementation, tasks, merge, provider action or issue closure follows automatically.
+Use [quickstart.md](quickstart.md) for implementation qualification and the [README checks](../../README.md#verification) for affected boundaries. Owning specifications and interfaces remain consistent throughout implementation; [tasks](tasks.md) track the work.
 
 ## Complexity Tracking
 

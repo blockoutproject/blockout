@@ -44,6 +44,9 @@ const config: ExpoConfig = {
   platforms: ["ios", "android"],
   plugins: [
     "expo-router",
+    "expo-image",
+    "expo-status-bar",
+    "expo-web-browser",
     ["react-native-auth0", { domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN }],
     [
       "react-native-google-mobile-ads",
@@ -122,7 +125,12 @@ const config: ExpoConfig = {
     ],
     [
       "expo-image-picker",
-      { cameraPermission: false, microphonePermission: false },
+      {
+        photosPermission:
+          "Blockout accède à vos photos pour vous permettre de choisir une image.",
+        cameraPermission: false,
+        microphonePermission: false,
+      },
     ],
     [
       "expo-font",
@@ -138,15 +146,16 @@ const config: ExpoConfig = {
     [
       "expo-build-properties",
       {
-        // Google Mobile Ads 25.4 metadata requires a newer compiler than RN's 2.1 default.
-        android: { kotlinVersion: "2.2.21" },
-        // Expo 57 requires scene lifecycle opt-in when building with Xcode 27.
-        ios: { enableSceneSupport: true },
+        android: {
+          minSdkVersion: 29,
+          // The transitive Room 2.2.5 rule keeps this class but drops its reflected constructor in R8 full mode.
+          extraProguardRules:
+            "-keepclassmembers class androidx.work.impl.WorkDatabase_Impl { public <init>(); }",
+        },
       },
     ],
-    "./plugins/with-android-kotlin-compiler.cjs",
     [
-      "@sentry/react-native/expo",
+      "@sentry/react-native",
       {
         organization: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,

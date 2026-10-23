@@ -36,7 +36,7 @@ The [attachment client](https://github.com/cli/cli/blob/v2.102.0/internal/attach
 
 ## Form, images and multipart boundary
 
-**Decision:** Reuse React Hook Form/Zod, TanStack Query and the shared image control. Use SDK-compatible [Expo ImagePicker](https://docs.expo.dev/versions/v57.0.0/sdk/imagepicker/) and [ImageManipulator](https://docs.expo.dev/versions/v57.0.0/sdk/imagemanipulator/) with no forced crop. One bounded preparation preserves proportions and produces PNG/JPEG; a still-too-large or failed image must be corrected or removed explicitly.
+**Decision:** Reuse React Hook Form/Zod, TanStack Query and the shared image control. Use SDK-compatible [Expo ImagePicker](https://docs.expo.dev/versions/v58.0.0/sdk/imagepicker/) and [ImageManipulator](https://docs.expo.dev/versions/v58.0.0/sdk/imagemanipulator/) with no forced crop. One bounded preparation preserves proportions and produces PNG/JPEG; a still-too-large or failed image must be corrected or removed explicitly.
 
 **Rationale:** Ordinary picker/manipulator operations provide the needed preparation without a custom editor or iterative compression loop. The current form owns text and temporary image references; account/session changes discard them and reject old responses. A request without images remains valid.
 

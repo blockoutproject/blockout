@@ -4,7 +4,7 @@ description: "Implementation tasks for F02 sporting identity, integration and li
 
 # Tasks: Sporting identity, integration and lifecycle
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#84](https://github.com/blockoutproject/blockout/issues/84) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning artifacts and [constitution](../../.specify/memory/constitution.md). [F13 tasks](../003-shared-quality/tasks.md) own workspace, generation, transport, schema lifecycle and shared controls.
 

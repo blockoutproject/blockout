@@ -24,6 +24,25 @@ afterEach(() => {
   process.env = originalEnv;
 });
 
+it("provides French photo-library purpose text without enabling camera or microphone access", () => {
+  // Given: Blockout owns the permission explanation; the system owns its presentation.
+
+  // When
+  const { default: config } =
+    jest.requireActual<typeof import("../app.config")>("../app.config");
+
+  // Then
+  expect(config.plugins).toContainEqual([
+    "expo-image-picker",
+    {
+      photosPermission:
+        "Blockout accède à vos photos pour vous permettre de choisir une image.",
+      cameraPermission: false,
+      microphonePermission: false,
+    },
+  ]);
+});
+
 it("uses Google sample app IDs with delayed measurement and no configured V2 ad units", () => {
   // Given: no advertising inputs.
 
@@ -158,3 +177,26 @@ it.each([
     "Production candidates must not contain RevenueCat Test Store keys.",
   );
 });
+
+it.each(["local", "development", "preview", "production"])(
+  "requires Android 10 through native build properties in %s",
+  (variant) => {
+    // Given: the same supported OS floor applies to every installable variant.
+    if (variant !== "local") {
+      process.env.APP_VARIANT = variant;
+      process.env.EXPO_PROJECT_SLUG = "synthetic-project";
+    }
+
+    // When
+    const { default: config } =
+      jest.requireActual<typeof import("../app.config")>("../app.config");
+
+    // Then
+    expect(config.plugins).toContainEqual([
+      "expo-build-properties",
+      expect.objectContaining({
+        android: expect.objectContaining({ minSdkVersion: 29 }),
+      }),
+    ]);
+  },
+);

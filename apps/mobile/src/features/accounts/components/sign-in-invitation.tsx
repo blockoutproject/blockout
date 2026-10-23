@@ -121,4 +121,4 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.md },
-});
+} as const);

@@ -26,6 +26,6 @@ Public and private operations use no-store. Existing BadRequest, Unauthorized, F
 
 The additions preserve existing wire behavior. Extracting identical F03 calendar parameters into named owner references changes no accepted route or parameter. Public sporting responses stay account-independent. Additive response properties are allowed; requests have explicit required fields and reject extras. The OpenAPI descriptions explain API behavior without feature identifiers or planning history.
 
-Use F13's OpenAPI 3.0.4 / Redocly / OpenAPI Generator / Orval pipeline unchanged. Generated Java interfaces/DTOs and mobile types/functions/Zod remain derived build outputs. The future [qualification guide](../quickstart.md) covers compilation, validation and authorization; this documentation delivery initializes no runtime or generation configuration.
+Use F13's OpenAPI 3.0.4 / Redocly / OpenAPI Generator / Orval pipeline unchanged. Generated Java interfaces/DTOs and mobile types/functions/Zod remain derived build outputs. The [qualification guide](../quickstart.md) covers compilation, validation and authorization.
 
 F07 consumes confirmed relation identities through an in-process application boundary, not a new HTTP API. It owns the consequences for recipients and cancelled deliveries; the displayed season never becomes a notification preference. The collector is not a consumer of these private operations.

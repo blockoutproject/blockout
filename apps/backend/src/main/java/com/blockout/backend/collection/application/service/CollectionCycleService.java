@@ -115,25 +115,6 @@ public class CollectionCycleService {
   }
 
   /**
-   * Checks the logical token and scope while retaining the same fence through the caller's write.
-   *
-   * @param id admitted control cycle
-   * @param cycleOrder order carried with the observation
-   * @param readOrdinal ordinal allocated before the provider read
-   * @param scopeId frozen source/pool/club scope; child writes pass their admitted parent scope
-   * @return authorized control context, including backend-only initial-import mode
-   */
-  @Transactional(propagation = Propagation.MANDATORY)
-  public Cycle requireObservation(UUID id, long cycleOrder, long readOrdinal, UUID scopeId) {
-    Cycle cycle = requireRunningControl(id);
-    if (cycle.cycleOrder() != cycleOrder
-        || readOrdinal < 1
-        || readOrdinal > CollectorRuntimeService.MAX_SAFE_INTEGER
-        || !store.containsTarget(id, scopeId)) throw invalidContext();
-    return cycle;
-  }
-
-  /**
    * Projects current scheduling intent without consuming it.
    *
    * @param incarnationId registered current process

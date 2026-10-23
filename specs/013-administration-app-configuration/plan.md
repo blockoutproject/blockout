@@ -2,7 +2,7 @@
 
 **Branch**: `tech/46-administration-access-plan` | **Date**: 2026-10-14 | **Spec**: [spec.md](spec.md)
 
-**Input**: Current F12 specification and accepted decisions for [#46](https://github.com/blockoutproject/blockout/issues/46). Delivery produces planning artifacts and coordinated specifications/contracts, not application implementation or tasks.
+**Input**: [spec.md](spec.md) and the accepted [F13](../003-shared-quality/plan.md), [F05](../005-accounts-identity/plan.md), [F02](../002-sporting-data/plan.md) and [F11](../004-advertising-privacy-legal/plan.md) plans.
 
 ## Summary
 
@@ -10,9 +10,9 @@ Keep current action grants in PostgreSQL, assigned manually by the product owner
 
 ## Technical Context
 
-**Language/Version**: Java 25 LTS and TypeScript; Expo SDK 57 / React Native 0.86 / React 19.2.3 under the accepted [F13 foundation](../003-shared-quality/plan.md).
+**Language/Version**: Java 25 LTS and TypeScript; Expo SDK 58 / React Native 0.88 / React 19.3.0 under the accepted [F13 foundation](../003-shared-quality/plan.md).
 
-**Primary Dependencies**: Spring Boot 4.1.1 and its managed Spring Security/JPA/Hibernate; native Auth0 SDK; Expo Router, expo-application and Linking; TanStack Query. Reuse F13's Redocly 2.62.1, OpenAPI Generator 7.26.0 and Orval 8.41.0 chain. Platform-compatible unpinned patches are resolved during executable work; no dependency installation or upgrade is performed here.
+**Primary Dependencies**: Spring Boot 4.1.1 and its managed Spring Security/JPA/Hibernate; native Auth0 SDK; Expo Router, expo-application and Linking; TanStack Query. Reuse F13's Redocly 2.62.1, OpenAPI Generator 7.26.0 and Orval 8.41.0 chain. Platform-compatible unpinned patches are resolved during executable work.
 
 **Storage**: PostgreSQL 18.6; two singleton settings rows and account–permission associations. Mobile access state, bypass intent and business cache remain in memory. Auth0 alone retains secure credentials.
 
@@ -32,14 +32,14 @@ Keep current action grants in PostgreSQL, assigned manually by the product owner
 
 The [constitution](../../.specify/memory/constitution.md) passes before research and after design for this documentary scope. Runtime qualifications remain open obligations, not claimed results.
 
-| Principle          | Evidence and boundary                                                                                                                                                                                                                                                                                               |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I — Product intent | Accepted choices are integrated into the owning specifications; account/session and transition consumers are reconciled.                                                                                                                                                                                            |
-| II — Ownership     | F12 owns admission and grants; F05 owns account lifecycle; domain commands and provider duties stay with their owners.                                                                                                                                                                                              |
-| III — Design       | Existing [F12 scoped approvals](spec.md#clarifications) remain applicable. The #138 presentation revision removes text-entry sheets without adding a business journey; no interactive sign-in entry or illustration is introduced. Silent renewal and technical account reading do not change the approved layouts. |
-| IV — Contracts     | One canonical mobile API, generated provider/mobile consumers, shared errors. No plan-local editable copy or generated source is committed.                                                                                                                                                                         |
-| V — Simplicity     | Ordinary framework mechanisms, two settings aggregates and manual assignment; alternatives and limits are in [research](research.md).                                                                                                                                                                               |
-| Prerequisites      | #44 is closed; accepted F13/F05/F02/F11 decisions and scoped design evidence were checked. No withdrawn dossier selects this architecture.                                                                                                                                                                          |
+| Principle          | Evidence and boundary                                                                                                                                                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I — Product intent | Accepted choices are integrated into the owning specifications; account/session and transition consumers are reconciled.                                                                                                                                                                                                  |
+| II — Ownership     | F12 owns admission and grants; F05 owns account lifecycle; domain commands and provider duties stay with their owners.                                                                                                                                                                                                    |
+| III — Design       | Existing [F12 scoped approvals](spec.md#clarifications) remain applicable. The 2026-10-22 presentation revision removes text-entry sheets without adding a business journey; no interactive sign-in entry or illustration is introduced. Silent renewal and technical account reading do not change the approved layouts. |
+| IV — Contracts     | One canonical mobile API, generated provider/mobile consumers, shared errors. No plan-local editable copy or generated source is committed.                                                                                                                                                                               |
+| V — Simplicity     | Ordinary framework mechanisms, two settings aggregates and manual assignment; alternatives and limits are in [research](research.md).                                                                                                                                                                                     |
+| Prerequisites      | The accepted [F05 identity plan](../005-accounts-identity/plan.md), F13/F02/F11 decisions and scoped design evidence supply the prerequisites. No withdrawn dossier selects this architecture.                                                                                                                            |
 
 ## Project Structure
 
@@ -56,11 +56,11 @@ specs/013-administration-app-configuration/
 └── checklists/requirements.md
 ```
 
-Canonical HTTP changes live under `contracts/http/mobile/access/`, referenced by the existing mobile root and account schema. No tasks are generated.
+Canonical HTTP changes live under `contracts/http/mobile/access/`, referenced by the existing mobile root and account schema.
 
-### Future source structure
+### Source structure
 
-F12 occupies feature-owned application/domain/persistence/HTTP packages in `apps/backend` and an access/administration feature in `apps/mobile`. Thin Expo Router layouts consume its state. Account reads call F12 permission projection in-process. Collector ingestion and background domain work do not call the mobile admission endpoint. No runtime directories are created by this delivery.
+F12 occupies feature-owned application/domain/persistence/HTTP packages in `apps/backend` and an access/administration feature in `apps/mobile`. Thin Expo Router layouts consume its state. Account reads call F12 permission projection in-process. Collector ingestion and background domain work do not call the mobile admission endpoint.
 
 ## Responsibilities and authorization
 
@@ -86,7 +86,7 @@ A maintenance refusal is 503 with a specific Problem Details type and current ma
 
 ## Mobile state and native behavior
 
-Minimum-version and store-link inputs remain inline in the existing configuration page or an ordinary edit route. Preserve all fields, platform separation, independent save groups, dirty values and conflict/uncertainty rules. Use [F13 ordinary form composition](../003-shared-quality/plan.md#native-ui-and-approved-design); no keyboard form sheet, fixed action footer or private resize calculation is needed. Revised presentation captures are tracked by [F13 #138](../003-shared-quality/quickstart.md#native-mobile-and-approved-design); prior gate approvals and runtime admission rules remain unchanged.
+Minimum-version and store-link inputs remain inline in the existing configuration page or an ordinary edit route. Preserve all fields, platform separation, independent save groups, dirty values and conflict/uncertainty rules. Use [F13 ordinary form composition](../003-shared-quality/plan.md#native-ui-and-approved-design); no keyboard form sheet, fixed action footer or private resize calculation is needed. Revised presentation captures are tracked by [F13 presentation evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design); prior gate approvals and runtime admission rules remain unchanged.
 
 At cold start, initiate the public complete check independently of Auth0 restoration. First V2 use must complete [F14 local credential initialization](../014-v1-v2-transition/plan.md#installation-initialization) before Auth0Provider mounts; this does not delay the public check or reset it on every later release. Use the native Auth0 provider and Credentials Manager, not Expo's mock storage example. Load the existing account when credentials are usable; `GET /accounts/me` returns its current permission projection, without a provider lookup or automatic account creation. Failure to identify a privileged account never grants operator entry. A transient identity failure neither erases credentials nor transforms the session into another account.
 

@@ -28,7 +28,7 @@
 
 **Alternatives:** another tenant adds account/configuration cost without an accepted requirement; public signup on a shared production-enabled connection would weaken the intended boundary. Federated global logout, ephemeral-session policy changes, bespoke refresh timers and custom JWT claims are not selected.
 
-**Evidence:** [Auth0 connection signup scope](https://support.auth0.com/center/s/article/disable-sign-ups-for-a-specific-application); [`react-native-auth0` 5.11.1 provider implementation](https://github.com/auth0/react-native-auth0/blob/v5.11.1/src/hooks/Auth0Provider.tsx). Native callbacks, cancellation, logout failure, retained token validity and the actual client/connection settings still require device/provider qualification. No settings were changed during planning.
+**Evidence:** [Auth0 connection signup scope](https://support.auth0.com/center/s/article/disable-sign-ups-for-a-specific-application); [`react-native-auth0` 5.11.1 provider implementation](https://github.com/auth0/react-native-auth0/blob/v5.11.1/src/hooks/Auth0Provider.tsx). F13 selects `react-native-auth0` 5.11.3 for [Expo SDK 58 scene compatibility](https://github.com/auth0/react-native-auth0/releases/tag/v5.11.3); the SDK config plugin leaves URL forwarding to Expo rather than inserting an obsolete AppDelegate override. Native callbacks, cancellation, logout failure, retained token validity and the actual client/connection settings still require device/provider qualification. No settings were changed during planning.
 
 ## Atomic profile and square photo
 
@@ -40,7 +40,7 @@ The native preparation adapter uses Expo FileSystem's `File` on the prepared out
 
 **Alternatives:** no custom native cropping library/editor, persistent staging store, image job, quality-search loop or photo synchronization service. No optimistic revision UX is needed for owner edits with accepted per-field last-write behavior. A URL-only remote image would not preserve the accepted erasure/backup guarantees.
 
-**Evidence:** [Expo SDK 57 ImagePicker](https://docs.expo.dev/versions/v57.0.0/sdk/imagepicker/) documents editing and the platform-specific square behavior; [ImageManipulator](https://docs.expo.dev/versions/v57.0.0/sdk/imagemanipulator/) supplies resize/PNG output. ImagePicker documents an iOS high-resolution crop issue; real large/rotated library assets must be qualified rather than presumed correct. [Java 25 ImageIO](https://docs.oracle.com/en/java/javase/25/docs/api/java.desktop/javax/imageio/ImageIO.html) provides ordinary pixel read/write. The owner excludes native selection/crop and hosted Auth0 UI from prototype/Figma reproduction. The web prototype retains the shared in-app image field and does not prove native asset permissions, encoding or crop correctness.
+**Evidence:** [Expo SDK 58 ImagePicker](https://docs.expo.dev/versions/v58.0.0/sdk/imagepicker/) documents editing and the platform-specific square behavior; [ImageManipulator](https://docs.expo.dev/versions/v58.0.0/sdk/imagemanipulator/) supplies resize/PNG output. ImagePicker documents an iOS high-resolution crop issue; real large/rotated library assets must be qualified rather than presumed correct. [Java 25 ImageIO](https://docs.oracle.com/en/java/javase/25/docs/api/java.desktop/javax/imageio/ImageIO.html) provides ordinary pixel read/write. The owner excludes native selection/crop and hosted Auth0 UI from prototype/Figma reproduction. The web prototype retains the shared in-app image field and does not prove native asset permissions, encoding or crop correctness.
 
 ## Session isolation and push removal
 
@@ -84,4 +84,4 @@ Concurrent explicit age retrieval and profile saves apply immutable field-owned 
 
 **Rationale:** [HTTP semantics](https://www.rfc-editor.org/rfc/rfc9110.html) and [atomic PATCH semantics](https://www.rfc-editor.org/rfc/rfc5789.html) fit these observable effects. No separate photo-write routes, login/logout API, job resource or bulk endpoint has a real consumer need. A 204 confirms local resource removal after bounded external attempts; a 404 confirms original resource absence, not physical provider purge. No monitor resource is needed.
 
-**Qualification:** multipart JSON/file binding, optional-field preservation, unknown-request rejection, additional-response tolerance, nullable dates and PNG/JPEG response handling must pass the integrated Java/TypeScript chain before adoption. This documentation task does not compile a production runtime or generate its clients.
+**Qualification:** multipart JSON/file binding, optional-field preservation, unknown-request rejection, additional-response tolerance, nullable dates and PNG/JPEG response handling must pass the integrated Java/TypeScript chain before adoption.

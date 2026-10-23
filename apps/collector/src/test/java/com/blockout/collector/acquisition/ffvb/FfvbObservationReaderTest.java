@@ -85,7 +85,7 @@ class FfvbObservationReaderTest {
             List.of(origin.toString()),
             Duration.ofSeconds(3),
             16384,
-            0,
+            1,
             1,
             1,
             20,
@@ -102,6 +102,79 @@ class FfvbObservationReaderTest {
   void stopPeer() throws IOException {
     if (http != null) http.close();
     if (server != null) server.stop(0);
+  }
+
+  @Test
+  @DisplayName("Rejects a redirect that removes the full-calendar context")
+  void rejectsRedirectedRecentCalendar() {
+    // Given
+    server.createContext(
+        "/redirect.php",
+        exchange -> {
+          exchange.getResponseHeaders().add("Location", "/vbspo_calendrier.php");
+          exchange.sendResponseHeaders(302, -1);
+          exchange.close();
+        });
+    CollectionBackend.Target target =
+        target("TST", null, null).toBuilder().url(url.resolve("/redirect.php")).build();
+    when(clock.instant()).thenReturn(HTML_TIME);
+    FfvbAcquisition.Resource resource = reader.read(reader.resourceUrl(target));
+
+    // When / Then
+    assertThatThrownBy(() -> resource.calendar(target))
+        .isInstanceOf(FfvbAcquisitionException.class)
+        .hasMessage("A complete FFVB calendar is required");
+    assertThat(htmlReads).hasValue(1);
+    assertThat(exportReads).hasValue(0);
+  }
+
+  @Test
+  @DisplayName("Resolves a relocated page's relative export against the actual response URL")
+  void resolvesRedirectedExport() {
+    // Given
+    AtomicInteger relocatedExports = new AtomicInteger();
+    server.createContext(
+        "/redirect.php",
+        exchange -> {
+          exchange
+              .getResponseHeaders()
+              .add("Location", "/relocated/vbspo_calendrier.php?calend=COMPLET");
+          exchange.sendResponseHeaders(302, -1);
+          exchange.close();
+        });
+    server.createContext(
+        "/relocated/vbspo_calendrier.php",
+        exchange -> {
+          byte[] body = html.getBytes(FfvbPage.CHARSET);
+          exchange.sendResponseHeaders(200, body.length);
+          try (exchange) {
+            exchange.getResponseBody().write(body);
+          }
+        });
+    server.createContext(
+        "/relocated/vbspo_calendrier_export.php",
+        exchange -> {
+          relocatedExports.incrementAndGet();
+          exchange.getRequestBody().readAllBytes();
+          byte[] body = csv.getBytes(FfvbPage.CHARSET);
+          exchange.sendResponseHeaders(200, body.length);
+          try (exchange) {
+            exchange.getResponseBody().write(body);
+          }
+        });
+    CollectionBackend.Target target =
+        target("TST", null, null).toBuilder().url(url.resolve("/redirect.php")).build();
+    when(clock.instant()).thenReturn(HTML_TIME, EXPORT_TIME);
+
+    // When
+    FfvbAcquisition.Read<SportingObservation.Calendar> result =
+        reader.read(reader.resourceUrl(target)).calendar(target);
+
+    // Then
+    assertThat(result.observation().matches()).hasSize(1);
+    assertThat(result.observedAt()).isEqualTo(EXPORT_TIME);
+    assertThat(relocatedExports).hasValue(1);
+    assertThat(exportReads).hasValue(0);
   }
 
   @Test

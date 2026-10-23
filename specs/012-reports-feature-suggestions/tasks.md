@@ -4,7 +4,7 @@ description: "Implementation tasks for F10 private support and suggestions"
 
 # Tasks: F10 private support and suggestions
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#95](https://github.com/blockoutproject/blockout/issues/95) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning sources, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). These are future implementation tasks. They authorize no provider configuration, private submission or production activation. Real private attachment access and exceptional image erasure must be qualified before real support content is accepted.
 
@@ -29,7 +29,7 @@ description: "Implementation tasks for F10 private support and suggestions"
 
 **Purpose**: Reuse the selected applications and prepare fictional fixtures.
 
-- [x] T001 Verify F13 T001–T017 and actual owner readiness through `apps/backend/pom.xml`, `apps/mobile/package.json` and `README.md`: Java 25/Spring Boot 4.1.1, Expo 57/React Native 0.86/React 19.2.3, generated clients, JUnit/Jest and existing RHF/Zod/Query. Add SDK-compatible ImagePicker/ImageManipulator only if absent during implementation; no stack upgrade, new service or test framework.
+- [x] T001 Verify F13 T001–T017 and actual owner readiness through `apps/backend/pom.xml`, `apps/mobile/package.json` and `README.md`: Java 25/Spring Boot 4.1.1, Expo 58/React Native 0.88/React 19.3.0, generated clients, JUnit/Jest and existing RHF/Zod/Query. Add SDK-compatible ImagePicker/ImageManipulator only if absent during implementation; no stack upgrade, new service or test framework.
 - [x] T002 Prepare fictional metadata, Unicode, PNG/JPEG, corrupt/disguised images and exact/over-limit cases in `apps/backend/src/test/resources/support/` and `apps/mobile/src/features/support/__tests__/fixtures.ts`. Include zero/five/six images, 5 MiB = 5242880 bytes and 26 MiB = 27262976 bytes total multipart boundaries. Never copy private tickets, contacts, photos or provider payloads into fixtures.
 
 ---

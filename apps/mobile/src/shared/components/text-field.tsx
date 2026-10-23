@@ -5,6 +5,7 @@ import {
   TextInput,
   View,
   type TextInputProps,
+  type TextInputInstance,
 } from "react-native";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
@@ -12,7 +13,7 @@ import { tokens } from "../theme/tokens";
 /** A native input contract; features retain values, validation, submission and secure-entry decisions. */
 export interface TextFieldProps extends TextInputProps {
   /** Forwards form-owned native focus to this input after validation errors. */
-  ref?: Ref<TextInput>;
+  ref?: Ref<TextInputInstance>;
   label: string;
   helper?: string;
   error?: string;

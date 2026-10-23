@@ -57,7 +57,7 @@ function NavigationSurfaces() {
   );
 }
 
-it.each(["light", "dark", null, "unspecified"] as const)(
+it.each(["light", "dark", null] as const)(
   "uses the native initial appearance %s with light as the absent-scheme fallback",
   async (scheme) => {
     // Given

@@ -36,12 +36,14 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.task.TaskRejectedException;
 
+/** Exercises native transport limits against isolated peers, never live source providers. */
 @DisplayName("Bounded provider HTTP reads")
 class ProviderHttpClientTest {
   private HttpServer server;
   private URI origin;
   private ExecutorService peers;
 
+  /** Starts an isolated origin with two workers so stalled responses cannot block every request. */
   @BeforeEach
   void startPeer() throws Exception {
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -51,6 +53,7 @@ class ProviderHttpClientTest {
     origin = URI.create("http://127.0.0.1:" + server.getAddress().getPort());
   }
 
+  /** Releases the test-owned listener and workers after each transport scenario. */
   @AfterEach
   void stopPeer() {
     server.stop(0);

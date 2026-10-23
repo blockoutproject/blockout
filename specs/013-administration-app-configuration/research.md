@@ -2,7 +2,7 @@
 
 ## Authority and evidence
 
-The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions for [#46](https://github.com/blockoutproject/blockout/issues/46) govern this dossier. Research is documentary; no native build, provider change, database experiment or generated consumer compilation was performed. The installed [Spec Kit 1.1.3 planning procedure](https://github.com/github/spec-kit/blob/v1.1.3/templates/commands/plan.md) defines the artifacts. Withdrawn technical dossiers are not inputs.
+The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions recorded below govern these technical decisions. Documentation establishes feasibility; [quickstart](quickstart.md) records actual boundary/native results and remaining qualifications. Withdrawn technical dossiers are not inputs.
 
 ## Current business permissions
 
@@ -40,9 +40,11 @@ The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions
 
 **Alternatives:** One global editing revision creates unrelated maintenance/version conflicts. Per-field revisions and automatic merge avoid rare simultaneous iOS/Android conflicts at extra cost; the owner accepted those conflicts. No additional ETag protocol, event history, distributed cache or settings service is selected.
 
+**Implementation binding:** The two fixed identities share `access_settings` with independent `@Version` values. A scalar JPQL constructor projection reads both in one statement, avoiding later entity hydration. The selected generator groups all six public/private operations into `ApplicationAccessApi`; `AdministrationSettingsController` implements that interface once, rather than adding two controllers with duplicate generated mappings. This preserves the public/private authorization boundary in the use cases.
+
 ## Native versions, stores and optional media
 
-**Decision:** Compare three numeric components of the published native version, without build numbers, suffixes or version ranges. `expo-application.nativeApplicationVersion` supplies Android versionName and iOS CFBundleShortVersionString. Use ordinary parsing/comparison of validated numeric components; no version-range library is needed. Use native Linking for approved HTTPS store URLs. The operator checks actual download availability manually before raising a threshold. [Expo Application SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/application/), [Expo Linking SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/linking/).
+**Decision:** Compare three numeric components of the published native version, without build numbers, suffixes or version ranges. `expo-application.nativeApplicationVersion` supplies Android versionName and iOS CFBundleShortVersionString. Use ordinary parsing/comparison of validated numeric components; no version-range library is needed. Use native Linking for approved HTTPS store URLs. The operator checks actual download availability manually before raising a threshold. [Expo Application SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/application/), [Expo Linking SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/linking/).
 
 **Limit:** Metadata may be null; with an applicable threshold, use the existing unavailable-access presentation. URL syntax and a successful open do not prove version availability or installation. Native/store qualification remains future work. The rule selects no OTA or build-number compatibility policy.
 

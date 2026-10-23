@@ -3,10 +3,9 @@ package com.blockout.collector.acquisition.infrastructure.backend;
 import com.blockout.collector.acquisition.application.SportingBackend;
 import com.blockout.collector.acquisition.application.SportingObservation;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
-import java.nio.file.Path;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 
 /** Seven generated sporting operations with native OAuth, Jackson decoding and no write replay. */
@@ -67,7 +66,7 @@ public class SportingObservationClient implements SportingBackend {
   /** {@inheritDoc} */
   @Override
   public SportingObservation.Outcome logo(
-      UUID id, SportingObservation.Context context, Path image) {
+      UUID id, SportingObservation.Context context, byte[] image) {
     return BackendExchange.once(
         () ->
             mapper.toView(
@@ -76,7 +75,7 @@ public class SportingObservationClient implements SportingBackend {
                     context.cycleId(),
                     context.readOrdinal(),
                     mapper.toDate(context.observedAt()),
-                    new FileSystemResource(image),
+                    new ByteArrayResource(image),
                     context.providerPublishedAt() == null
                         ? null
                         : mapper.toDate(context.providerPublishedAt()))));

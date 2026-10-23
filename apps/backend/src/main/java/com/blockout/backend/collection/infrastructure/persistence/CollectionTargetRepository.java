@@ -19,15 +19,6 @@ interface CollectionTargetRepository
   Slice<CollectionTargetEntity> findByCycleIdOrderByKindAscScopeIdAsc(UUID cycleId, Pageable page);
 
   /**
-   * Checks stable domain identity membership.
-   *
-   * @param cycleId current authorized cycle
-   * @param scopeId domain identity
-   * @return membership in the admitted snapshot
-   */
-  boolean existsByCycleIdAndScopeId(UUID cycleId, UUID scopeId);
-
-  /**
    * Checks the admitted role as well as its resource identity.
    *
    * @param cycleId current admitted context

@@ -16,8 +16,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -30,7 +28,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -367,16 +364,15 @@ class SportingObservationClientTest {
 
   @Test
   @DisplayName("Sends original image bytes with separate publication and observation timestamps")
-  void sendsImageEvidence(@TempDir Path directory) throws IOException {
+  void sendsImageEvidence() {
     // Given
     byte[] image =
         Base64.getDecoder()
             .decode(
                 "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jf1kAAAAASUVORK5CYII=");
-    Path file = Files.write(directory.resolve("logo.png"), image);
 
     // When
-    client.logo(ID, CONTEXT, file);
+    client.logo(ID, CONTEXT, image);
 
     // Then
     assertThat(received).isEqualTo(image);

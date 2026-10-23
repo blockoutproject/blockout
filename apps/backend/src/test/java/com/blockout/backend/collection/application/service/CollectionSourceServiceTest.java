@@ -1,4 +1,4 @@
-package com.blockout.backend.collection.application;
+package com.blockout.backend.collection.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -11,8 +11,6 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.port.CollectionStore;
-import com.blockout.backend.collection.application.service.CollectionSourceService;
-import com.blockout.backend.collection.application.service.CollectorRuntimeService;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
@@ -22,6 +20,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 /** Discovery decisions with controlled owner ports; database atomicity is qualified separately. */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Source discovery decisions")
 class CollectionSourceServiceTest {
   private static final UUID STARTUP = UUID.fromString("00000000-0000-4000-8000-000000000171");
   private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000172");
@@ -77,9 +77,11 @@ class CollectionSourceServiceTest {
             new CollectionSeasonView(
                 SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.CLOSED, 4));
 
-    // When / Then
-    assertThatThrownBy(() -> service.observe(proposal()))
-        .isInstanceOf(CollectionConflictException.class);
+    // When
+    ThrowingCallable observe = () -> service.observe(proposal());
+
+    // Then
+    assertThatThrownBy(observe).isInstanceOf(CollectionConflictException.class);
     verifyNoInteractions(store);
   }
 

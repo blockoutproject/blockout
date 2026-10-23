@@ -2,9 +2,9 @@
 
 **Branch**: `tech/45-advertising-privacy-plan` | **Date**: 2026-10-14 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/004-advertising-privacy-legal/spec.md`; [issue #45](https://github.com/blockoutproject/blockout/issues/45).
+**Input**: [spec.md](spec.md) and the accepted [F13 foundation](../003-shared-quality/plan.md).
 
-**Scope**: Technical planning and reconciled specifications/design for #45; product runtime and provider configuration remain future work.
+**Scope**: Technical planning and reconciled specifications/design for F11; product runtime and provider configuration remain future work.
 
 ## Summary
 
@@ -28,7 +28,7 @@ Use the native Google Mobile Ads/UMP integration and Meta mediation for eligible
 
 **Constraints**: Native provider treatment and consent govern ad eligibility; unavailable ads never delay sporting access. EU27 store distribution preserves existing users and entitlements outside those storefronts.
 
-**Scale/Scope**: One shared interstitial placement per mobile platform; Google and Meta mediation; three public legal documents; existing club contact fields. No product implementation, store/provider changes, task generation or automatic issue closure in #45.
+**Scale/Scope**: One shared interstitial placement per mobile platform; Google and Meta mediation; three public legal documents; existing club contact fields. This plan does not establish product implementation or store/provider configuration.
 
 ## Constitution Check
 
@@ -58,11 +58,11 @@ specs/004-advertising-privacy-legal/
 └── quickstart.md
 ```
 
-No `tasks.md` is generated. Specifications and planning artifacts are reviewed together after design reconciliation.
+Specifications and planning artifacts are reviewed together after design reconciliation.
 
 ### Source Code (repository root)
 
-Planned locations within F13's future workspace; these application directories are not initialized by #45:
+Planned application locations within the [F13 workspace](../003-shared-quality/plan.md#project-structure):
 
 ```text
 apps/mobile/src/features/advertising/     # age, eligibility, provider integration and single ad lifecycle
@@ -73,7 +73,7 @@ contracts/http/mobile/openapi.yaml       # existing contact representations; one
 
 **Structure Decision**: Keep the mobile runtime in the advertising owner, with thin calls from actual sporting transitions. Reuse F05/F09 session/entitlement state and F02 contact transactions; do not add a service per feature or a generic provider framework. Map stable extensionless `/legals/{kind}` URLs to the bundled HTML resources through ordinary backend routing.
 
-Blockout-owned age/privacy controls consume the [F13 UI foundation](../003-shared-quality/plan.md#native-ui-and-approved-design) before screen integration. F11 retains the age-selector behavior and privacy composition; shared buttons, fields and sheets supply presentation. The privacy menu closes before the short correction sheet opens; cancellation restores privacy navigation without changing the declaration. Never stack the two sheets or turn the age selector into a text-entry form. Native UMP and browser surfaces retain their provider/platform ownership and qualification. The changed sequencing/design evidence follows [F13 #138](../003-shared-quality/quickstart.md#native-mobile-and-approved-design); other approved age content remains unchanged.
+Blockout-owned age/privacy controls consume the [F13 UI foundation](../003-shared-quality/plan.md#native-ui-and-approved-design) before screen integration. F11 retains the age-selector behavior and privacy composition; shared buttons, fields and sheets supply presentation. The privacy menu closes before the short correction sheet opens; cancellation restores privacy navigation without changing the declaration. Never stack the two sheets or turn the age selector into a text-entry form. Native UMP and browser surfaces retain their provider/platform ownership and qualification. The changed sequencing/design evidence follows [F13 presentation evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design); other approved age content remains unchanged.
 
 ## Advertising integration
 

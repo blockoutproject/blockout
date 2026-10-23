@@ -1,6 +1,6 @@
 # Quickstart: qualify contributions and moderation
 
-This repository contains planning and contracts, not the application runtime. Run the [README checks](../../README.md#verification) for this delivery. The following scenarios are future integrated qualifications; use the actual workspace targets once implemented rather than inventing Maven, Nx or Expo commands now.
+Run the [README verification commands](../../README.md#verification) for the existing workspace. The scenarios below require the F08 implementations and integrations tracked in [tasks](tasks.md); shared checks alone do not qualify them.
 
 ## Prerequisites
 

@@ -33,10 +33,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.transaction.CannotCreateTransactionException;
 
 /**
  * Real generated controller/mapper/read boundary, with controlled F12 admission and persistence.
@@ -90,7 +93,7 @@ class AccountAccessWebMvcTest {
         .andExpect(jsonPath("$.permissions.moderateStreamLinks").value(false));
     if (created) response.andExpect(header().string("Location", "/accounts/" + ID));
     else response.andExpect(header().doesNotExist("Location"));
-    verify(admission).requireOrdinaryAccess(false);
+    verify(admission).requireOrdinaryAccess(ISSUER, "auth0|one", false);
   }
 
   @Test
@@ -123,6 +126,45 @@ class AccountAccessWebMvcTest {
     verifyNoInteractions(establishment);
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"database", "transaction"})
+  @DisplayName("Reports unavailable account storage with the canonical non-cacheable 503")
+  void reportsUnavailableStorage(String boundary) throws Exception {
+    // Given
+    RuntimeException failure =
+        boundary.equals("database")
+            ? new DataAccessResourceFailureException("Synthetic private connection details")
+            : new CannotCreateTransactionException("Synthetic private connection details");
+    when(store.findByPrincipal(ISSUER, "auth0|one")).thenThrow(failure);
+
+    // When
+    mvc.perform(get("/accounts/me").with(principal("mobile-test")))
+        // Then
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"))
+        .andExpect(jsonPath("$.status").value(503))
+        .andExpect(jsonPath("$.detail").doesNotExist())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(establishment, admission);
+  }
+
+  @Test
+  @DisplayName("Keeps unexpected storage integrity failures distinct from temporary unavailability")
+  void preservesUnexpectedIntegrityFailure() throws Exception {
+    // Given
+    when(store.findByPrincipal(ISSUER, "auth0|one"))
+        .thenThrow(new DataIntegrityViolationException("Synthetic private constraint details"));
+
+    // When
+    mvc.perform(get("/accounts/me").with(principal("mobile-test")))
+        // Then
+        .andExpect(status().isInternalServerError())
+        .andExpect(jsonPath("$.type").value("about:blank"))
+        .andExpect(jsonPath("$.detail").doesNotExist())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(establishment, admission);
+  }
+
   @Test
   @DisplayName("Hides another principal's original UUID")
   void hidesAnotherOwner() throws Exception {
@@ -145,7 +187,9 @@ class AccountAccessWebMvcTest {
   @DisplayName("Applies ordinary admission to original reads and establishment only")
   void requiresOrdinaryAdmission() throws Exception {
     // Given
-    doThrow(new AccountUnavailableException()).when(admission).requireOrdinaryAccess(false);
+    doThrow(new AccountUnavailableException())
+        .when(admission)
+        .requireOrdinaryAccess(ISSUER, "auth0|one", false);
 
     // When
     mvc.perform(post("/accounts").with(principal("mobile-test")))
@@ -236,7 +280,9 @@ class AccountAccessWebMvcTest {
   @DisplayName("Forwards explicit bypass intent to the controlled admission owner")
   void forwardsBypassIntent() throws Exception {
     // Given
-    doThrow(new AccountUnavailableException()).when(admission).requireOrdinaryAccess(true);
+    doThrow(new AccountUnavailableException())
+        .when(admission)
+        .requireOrdinaryAccess(ISSUER, "auth0|one", true);
 
     // When
     mvc.perform(
@@ -245,7 +291,7 @@ class AccountAccessWebMvcTest {
                 .with(principal("mobile-test")))
         // Then
         .andExpect(status().isServiceUnavailable());
-    verify(admission).requireOrdinaryAccess(true);
+    verify(admission).requireOrdinaryAccess(ISSUER, "auth0|one", true);
     verifyNoInteractions(establishment);
   }
 

@@ -4,7 +4,7 @@ description: "Implementation tasks for F01 acquisition and source operations"
 
 # Tasks: F01 acquisition and source operations
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#88](https://github.com/blockoutproject/blockout/issues/88) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Current accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md), including the F13 native UI foundation. This file schedules future implementation; authoring it performs no application setup, provider access, reconstruction or production operation.
 

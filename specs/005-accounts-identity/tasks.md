@@ -4,7 +4,7 @@ description: "Implementation tasks for F05 accounts, sessions and erasure"
 
 # Tasks: F05 accounts, sessions and erasure
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#85](https://github.com/blockoutproject/blockout/issues/85) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). The selected stack and approved design remain applicable. This file schedules future implementation; its creation performs no runtime setup, provider configuration or destructive qualification.
 
