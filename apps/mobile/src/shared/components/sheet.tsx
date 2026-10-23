@@ -78,7 +78,12 @@ export function Sheet({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.section },
-  compactContent: { gap: tokens.spacing.sm },
+  // Product Design's 24-point handle area + 8-point header inset; the grabber is drawn by the native route.
+  compactContent: {
+    paddingTop: tokens.spacing.section + tokens.spacing.sm,
+    paddingBottom: tokens.spacing.xl,
+    gap: tokens.spacing.md,
+  },
   introduction: { gap: tokens.spacing.xs },
   titleRow: {
     flexDirection: "row",

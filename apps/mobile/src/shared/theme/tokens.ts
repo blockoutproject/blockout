@@ -79,9 +79,24 @@ export const membershipColors = {
 
 /** Core, Typography, Motion and Platform roles needed by the initial controls, without a styling engine. */
 export const tokens = {
-  spacing: { xs: 4, sm: 8, md: 12, compact: 10, lg: 16, section: 24, label: 6 },
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    compact: 10,
+    lg: 16,
+    xl: 20,
+    section: 24,
+    label: 6,
+  },
   radius: { control: 12, media: 16, sheet: 22, full: 999 },
-  size: { control: 48, multiline: 96, actionIcon: 24, loading: 20 },
+  size: {
+    control: 48,
+    multiline: 96,
+    actionIcon: 24,
+    controlIcon: 20,
+    loading: 20,
+  },
   touchTarget: { ios: 44, android: 48 },
   borderWidth: 1,
   opacity: { disabled: 0.45, pressed: 0.9 },

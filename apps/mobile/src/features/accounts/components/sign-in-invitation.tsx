@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { ChevronRight } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../../../shared/components/button";
 import { Sheet } from "../../../shared/components/sheet";
@@ -66,7 +67,12 @@ export function SignInInvitation({
           <Text style={[tokens.typography.strong, { color: colors.text }]}>
             {message}
           </Text>
-          <Button label="Se connecter" fullWidth onPress={onSignIn} />
+          <Button
+            label="Se connecter"
+            fullWidth
+            trailingIcon={ChevronRight}
+            onPress={onSignIn}
+          />
         </View>
       </View>
     </Sheet>
@@ -114,5 +120,5 @@ const styles = StyleSheet.create({
     height: "142.90%",
     zIndex: 1,
   },
-  content: { padding: tokens.spacing.md, gap: tokens.spacing.sm },
+  content: { padding: tokens.spacing.lg, gap: tokens.spacing.md },
 });
