@@ -2,7 +2,7 @@
 
 **Branch**: `tech/49-sporting-consultation-plan` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
 
-**Input**: Accepted preparatory decisions for [#49](https://github.com/blockoutproject/blockout/issues/49), F03 and the approved prerequisite plans.
+**Input**: [spec.md](spec.md), [F02 sporting data](../002-sporting-data/plan.md) and [F09 entitlements](../006-pro-subscriptions/plan.md).
 
 **Status**: Technical dossier for review. Preparatory decisions and both scoped design revisions are approved; native and integrated runtime qualification remains pending. No product implementation is authorized.
 
@@ -39,7 +39,7 @@ Expose public club, team, pool and match reads from the existing modular backend
 | III — Design      | Existing design remains accepted outside the changed scope. Prototype `a53ec86` is approved, with native reader/provider interfaces deliberately excluded from design mockups. The owner also explicitly approved the corresponding Figma translation. Both scoped gates are satisfied; native/provider behavior remains unqualified. |
 | IV — Contracts    | Extend the canonical mobile and ingestion roots, not a feature-local copy. Generated compilation and runtime validation remain future evidence.                                                                                                                                                                                       |
 | V — Simplicity    | Ordinary queries, library cache configuration, native maps and PDF rendering; no replicated read model, scheduler, custom cursor store or recovery subsystem.                                                                                                                                                                         |
-| Prerequisites     | Native blockers #43 and #48 are closed. Scoped prototype and Figma approvals are recorded below.                                                                                                                                                                                                                                      |
+| Prerequisites     | The accepted [F02](../002-sporting-data/plan.md) and [F09](../006-pro-subscriptions/plan.md) plans supply sporting and entitlement boundaries. Scoped prototype and Figma approvals are recorded below.                                                                                                                               |
 
 No constitutional exception is requested. The post-design assessment preserves the same ownership, contract and simplicity constraints; no unresolved design gate remains.
 
@@ -111,4 +111,4 @@ The narrow document exception changes F01/F02 wording and their affected plan/co
 
 The owner approved [prototype `a53ec86`](https://github.com/blockoutproject/product-prototype/commit/a53ec86), limiting Figma to actual Blockout document actions and annotations rather than PDF contents or native provider interfaces. The corresponding [light](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5362-41722) and [dark](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5362-42954) views reuse the existing information pattern; native maps are documented in [the map pattern](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1035-9522). The owner explicitly approved this limited Figma report on 2026-10-15 after prototype approval. Prototype/Figma show only the Blockout action and fictitious text marking the full-screen reader handoff. No PDF-body mockup, native-reader screen or native-provider rendering is claimed as design evidence. Existing approvals remain valid for unchanged journeys. Current prototype checks prove only fictional web behavior; native/source/contract integration remains subject to [quickstart.md](quickstart.md).
 
-Run the README documentation and contract checks on the final tree, verify local links and owner/consumer consistency, and publish a draft PR to develop for #49. No product runtime, tasks, automatic merge, issue closure or next issue follows from this delivery.
+Run the README documentation and contract checks on the final tree and verify local links and owner/consumer consistency. These checks establish no product runtime or native qualification; publication follows [repository delivery policy](../../AGENTS.md#git-delivery).

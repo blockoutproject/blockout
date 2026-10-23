@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Reviewed for #42: data and images share the 30-minute/30-day backup policy, with one initial isolated restore and no backup notifications or recurring verification. Application alert closure is distinct from business recovery; ordinary mobile retries are explicit. Owner/consumer consistency and the applicable [F05](../../005-accounts-identity/spec.md) and [F12](../../013-administration-app-configuration/spec.md) design prerequisites were checked. This checklist establishes neither runtime qualification nor delivered software.
+- Reviewed: data and images share the 30-minute/30-day backup policy, with one initial isolated restore and no backup notifications or recurring verification. Application alert closure is distinct from business recovery; ordinary mobile retries are explicit. Owner/consumer consistency and the applicable [F05](../../005-accounts-identity/spec.md) and [F12](../../013-administration-app-configuration/spec.md) design prerequisites were checked. This checklist establishes neither runtime qualification nor delivered software.

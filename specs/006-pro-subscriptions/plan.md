@@ -2,7 +2,7 @@
 
 **Branch**: `tech/48-pro-entitlements-plan` | **Date**: 2026-10-14 | **Spec**: [F09](spec.md)
 
-**Input**: [#48](https://github.com/blockoutproject/blockout/issues/48), the approved [F13 foundation](../003-shared-quality/plan.md), [F05 account lifecycle](../005-accounts-identity/plan.md) and [F11 advertising](../004-advertising-privacy-legal/plan.md).
+**Input**: [spec.md](spec.md), [F13 foundation](../003-shared-quality/plan.md), [F05 account lifecycle](../005-accounts-identity/plan.md) and [F11 advertising](../004-advertising-privacy-legal/plan.md).
 
 **Status**: Prepared for PR review. The guest-entry prototype and Figma translation are explicitly approved; see [design evidence](spec.md#assumptions-and-dependencies). This dossier authorizes no production implementation or provider configuration.
 
@@ -97,7 +97,7 @@ Use official `RevenueCatUI.CustomerCenterView` alone in the same native route ho
 
 Configure the native management and no-active-purchase paths with restoration and the F10 Custom Action where supported. Leave the Customer Center purchase offering unset: purchasing uses the explicitly selected V2 paywall, never an implicit `current` offering from another entry. Disable the built-in Contact Support action and in-app tickets so they do not create a second support channel. Qualify shared configuration changes against V1 during coexistence before publishing them. If Customer Center cannot load, the person can close it and use the existing F10 entry from the profile; assistance does not depend on RevenueCat availability. No custom provider error screen is added.
 
-Prototype/Figma contain only fictitious text identifying the RevenueCat handoff; no offer, purchase, restoration or provider error UI is drawn. Updated captures are tracked by [F13 #138](../003-shared-quality/quickstart.md#native-mobile-and-approved-design). Those mocks establish navigation intent, not provider or store acceptance.
+Prototype/Figma contain only fictitious text identifying the RevenueCat handoff; no offer, purchase, restoration or provider error UI is drawn. Updated captures are tracked by [F13 presentation evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design). Those mocks establish navigation intent, not provider or store acceptance.
 
 No receipts, complete SDK objects or customer payloads are automatically attached to support. Operator verification and private records follow F10/F11. Unsupported cross-store restoration uses that process without forced repurchase, identity merging or an automatic gift.
 
@@ -115,4 +115,4 @@ F05's local-first deletion and bounded provider attempts remain unchanged. Failu
 
 [Research](research.md) records official documentation, source inspection and bounded console observations. [Quickstart](quickstart.md) defines future integrated qualifications. No native build, purchase, restoration, gift rendering or account-switch transaction has been qualified here.
 
-The scoped prototype and Figma approvals are recorded in the specification. Review specifications and native planning artifacts together through a draft PR to `develop`, with repository documentary checks and owning/consumer consistency verified. Do not generate tasks, configure providers, implement the product, merge or close #48 automatically.
+The scoped prototype and Figma approvals are recorded in the specification. Check specifications and native planning artifacts together for documentary consistency and owner/consumer coverage. Publication follows [repository delivery policy](../../AGENTS.md#git-delivery); these artifacts establish no provider or runtime qualification.

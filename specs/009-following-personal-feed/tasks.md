@@ -4,7 +4,7 @@ description: "Implementation tasks for F06 following and the personal feed"
 
 # Tasks: F06 following and the personal feed
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#92](https://github.com/blockoutproject/blockout/issues/92) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). This delivery prepares implementation; it creates no application, migration, provider configuration or production data. Runtime, generated-consumer and native evidence remains future work.
 

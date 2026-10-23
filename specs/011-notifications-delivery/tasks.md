@@ -4,7 +4,7 @@ description: "Implementation tasks for F07 notifications, inbox and push"
 
 # Tasks: F07 notifications, inbox and push
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#94](https://github.com/blockoutproject/blockout/issues/94) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning sources, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). This artifact prepares implementation, not application initialization, provider configuration or production operations. Documentation checks establish no runtime, SQL, generated-consumer or device result.
 

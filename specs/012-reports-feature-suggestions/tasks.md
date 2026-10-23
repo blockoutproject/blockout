@@ -4,7 +4,7 @@ description: "Implementation tasks for F10 private support and suggestions"
 
 # Tasks: F10 private support and suggestions
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#95](https://github.com/blockoutproject/blockout/issues/95) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning sources, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). These are future implementation tasks. They authorize no provider configuration, private submission or production activation. Real private attachment access and exceptional image erasure must be qualified before real support content is accepted.
 

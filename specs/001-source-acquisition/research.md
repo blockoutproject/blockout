@@ -2,7 +2,7 @@
 
 ## Scope and evidence
 
-Decisions below implement the accepted [F01 scope](spec.md) and reuse the [F13 stack](../003-shared-quality/plan.md), [F02 integration](../002-sporting-data/plan.md) and [F12 authorization](../013-administration-app-configuration/plan.md). Public-source reads were authorized explicitly for #47. Observations dated 2026-10-14 are representative evidence, not exhaustive coverage or production qualification. No raw HTML/CSV, personal contact value or credential is retained here. Withdrawn technical dossiers and independent V1 repositories were not planning inputs.
+Decisions below implement the accepted [F01 scope](spec.md) and reuse the [F13 stack](../003-shared-quality/plan.md), [F02 integration](../002-sporting-data/plan.md) and [F12 authorization](../013-administration-app-configuration/plan.md). Public-source reads were explicitly authorized for this research. Observations dated 2026-10-14 are representative evidence, not exhaustive coverage or production qualification. No raw HTML/CSV, personal contact value or credential is retained here. Withdrawn technical dossiers and independent V1 repositories were not planning inputs.
 
 ## Runtime and bounded transport
 

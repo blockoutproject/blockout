@@ -6,7 +6,7 @@
 
 **Status**: Accepted functional baseline; the [technical dossier](plan.md) formalizes the planning decisions. Implementation qualification remains pending.
 
-**Input**: [#264](https://github.com/blockoutproject/blockout-legacy/issues/264), F04 in the [specification navigation](../../README.md#specifications). Define public discovery and search for clubs, teams and pools, their filters, seasons, ordering, complete browsing and recovery states. Identities and visibility remain governed by [F02](../002-sporting-data/spec.md), destinations by [F03](../007-sporting-consultation/spec.md) and shared quality by [F13](../003-shared-quality/spec.md). No other searchable resource type or new mockup is added; the technical dossier owns engine and contract choices.
+**Input**: F04 in the [specification navigation](../../README.md#specifications). Define public discovery and search for clubs, teams and pools, their filters, seasons, ordering, complete browsing and recovery states. Identities and visibility remain governed by [F02](../002-sporting-data/spec.md), destinations by [F03](../007-sporting-consultation/spec.md) and shared quality by [F13](../003-shared-quality/spec.md). No other searchable resource type or new mockup is added; the technical dossier owns engine and contract choices.
 
 ## User Scenarios & Testing
 

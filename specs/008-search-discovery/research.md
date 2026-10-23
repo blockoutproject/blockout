@@ -1,6 +1,6 @@
 # Research: search and discovery
 
-**Scope**: Decisions for [F04](spec.md) and [#50](https://github.com/blockoutproject/blockout/issues/50). Official documentation and scoped static code inspection inform this dossier. They do not establish integrated runtime behavior.
+**Scope**: Decisions for [F04](spec.md). Official documentation and scoped static code inspection inform this dossier. They do not establish integrated runtime behavior.
 
 ## Search engine and client
 

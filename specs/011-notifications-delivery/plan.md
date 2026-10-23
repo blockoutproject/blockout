@@ -2,7 +2,7 @@
 
 **Branch**: `tech/53-f07-notifications` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
 
-**Input**: [#53](https://github.com/blockoutproject/blockout/issues/53), the owning specification and the owner-approved preparatory plan. This delivery formalizes design and contracts, not application code or provider configuration.
+**Input**: [spec.md](spec.md), [F06 follows](../009-following-personal-feed/plan.md), [F08 contributions](../010-live-contributions-moderation/plan.md) and [F12 admission](../013-administration-app-configuration/plan.md).
 
 ## Summary
 
@@ -32,14 +32,14 @@ Keep sporting announcement facts and personal inbox entries in the existing back
 
 The initial design baseline and the scoped prototype and Figma approvals below satisfy the design prerequisite. This post-design check preserves the implementation and provider qualification limits.
 
-| Principle         | Application                                                                                                                                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| I — Specification | Accepted changes are integrated into the current F07 requirements, including actual trigger-time audience, ordinary refresh and a common 29-day consultation cutoff.                                         |
-| II — Ownership    | Sporting facts remain F02/F03/F08, follows F06, accounts F05, access F12 and privacy/transition F11/F14. F07 owns announcements, inbox and destinations.                                                     |
-| III — Design      | Prototype `18f3834` and its scoped Figma reconciliation were explicitly approved in this conversation on 2026-10-15. Unchanged scope keeps its existing approvals; native push behavior remains unqualified. |
-| IV — Contracts    | Extend the canonical mobile root; keep the F13 dialect and generation chain. Application generation/compilation remain future qualifications.                                                                |
-| V — Simplicity    | Native Spring scheduling, transactions and HTTP; native Expo presentation and receipts. No delivery ledger, broker, retry engine or mobile polling.                                                          |
-| Prerequisites     | Native blockers #51, #52 and #46 are closed. No tasks, product implementation, provider configuration, automatic merge or issue closure.                                                                     |
+| Principle         | Application                                                                                                                                                                                                                                                                               |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I — Specification | Accepted changes are integrated into the current F07 requirements, including actual trigger-time audience, ordinary refresh and a common 29-day consultation cutoff.                                                                                                                      |
+| II — Ownership    | Sporting facts remain F02/F03/F08, follows F06, accounts F05, access F12 and privacy/transition F11/F14. F07 owns announcements, inbox and destinations.                                                                                                                                  |
+| III — Design      | Prototype `18f3834` and its scoped Figma reconciliation were explicitly approved in this conversation on 2026-10-15. Unchanged scope keeps its existing approvals; native push behavior remains unqualified.                                                                              |
+| IV — Contracts    | Extend the canonical mobile root; keep the F13 dialect and generation chain. Application generation/compilation remain future qualifications.                                                                                                                                             |
+| V — Simplicity    | Native Spring scheduling, transactions and HTTP; native Expo presentation and receipts. No delivery ledger, broker, retry engine or mobile polling.                                                                                                                                       |
+| Prerequisites     | The accepted [F06](../009-following-personal-feed/plan.md), [F08](../010-live-contributions-moderation/plan.md) and [F12](../013-administration-app-configuration/plan.md) plans supply follows, contributions and admission boundaries; runtime/provider qualification remains separate. |
 
 ## Project Structure
 

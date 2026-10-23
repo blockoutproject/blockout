@@ -2,7 +2,7 @@
 
 **Branch**: `tech/55-v1-v2-transition` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
 
-**Input**: [#55](https://github.com/blockoutproject/blockout/issues/55) and the owner-approved preparatory plan. This delivery formalizes transition decisions, the legacy contract and scoped specification/design reconciliation. It executes no migration, product implementation or provider configuration.
+**Input**: [spec.md](spec.md), [F01 acquisition](../001-source-acquisition/plan.md), [F04 discovery](../008-search-discovery/plan.md), [F07 notifications](../011-notifications-delivery/plan.md) and [F10 support](../012-reports-feature-suggestions/plan.md).
 
 **Status**: Prepared for planning review. The common discovery prototype is approved and its faithfully reconciled Figma scope is covered by the owner's explicit advance approval. Native/provider qualifications remain future release prerequisites.
 
@@ -34,14 +34,14 @@ Preserve Auth0 identities, applicable Pro rights and manually maintained club lo
 
 The approved initial product baseline permits this scoped planning feedback loop. Post-design review confirms the following boundaries. The owner's explicit approval timing instruction is recorded in [Design reconciliation](#design-reconciliation).
 
-| Principle         | Application                                                                                                                                                                                                 |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I — Specification | F14 owns transition outcomes. F05 onboarding and session references, F09 pricing, F11 onboarding dependency and F12 admission are reconciled in their current texts.                                        |
-| II — Ownership    | Identity, entitlement, sport, push and access remain with F05/F09/F02/F07/F12. F14 coordinates their transition without duplicating their models.                                                           |
-| III — Design      | Prototype approved; faithful Figma translation verified within the owner's explicit advance approval. Existing approvals remain valid for unchanged journeys. See the scoped timing instruction below.      |
-| IV — Contracts    | One canonical legacy status root preserves the already distributed wire contract; existing V2 roots remain authoritative for ordinary use. Server generation and actual V1 compatibility remain to qualify. |
-| V — Simplicity    | Native providers, a manual logo freeze, ordinary store release controls and one compatibility read. No identity migration engine, incremental image synchronization, dual writes or automatic rollback.     |
-| Prerequisites     | Native issue blockers #47, #50, #53 and #54 are closed. Future release prerequisites are explicit in the sequence below and in quickstart; documentary completion does not satisfy them.                    |
+| Principle         | Application                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I — Specification | F14 owns transition outcomes. F05 onboarding and session references, F09 pricing, F11 onboarding dependency and F12 admission are reconciled in their current texts.                                                                                                                                                                                                         |
+| II — Ownership    | Identity, entitlement, sport, push and access remain with F05/F09/F02/F07/F12. F14 coordinates their transition without duplicating their models.                                                                                                                                                                                                                            |
+| III — Design      | Prototype approved; faithful Figma translation verified within the owner's explicit advance approval. Existing approvals remain valid for unchanged journeys. See the scoped timing instruction below.                                                                                                                                                                       |
+| IV — Contracts    | One canonical legacy status root preserves the already distributed wire contract; existing V2 roots remain authoritative for ordinary use. Server generation and actual V1 compatibility remain to qualify.                                                                                                                                                                  |
+| V — Simplicity    | Native providers, a manual logo freeze, ordinary store release controls and one compatibility read. No identity migration engine, incremental image synchronization, dual writes or automatic rollback.                                                                                                                                                                      |
+| Prerequisites     | The accepted [F01](../001-source-acquisition/plan.md), [F04](../008-search-discovery/plan.md), [F07](../011-notifications-delivery/plan.md) and [F10](../012-reports-feature-suggestions/plan.md) plans supply the prerequisite boundaries. Future release prerequisites are explicit in the sequence below and in quickstart; documentary completion does not satisfy them. |
 
 ## Project Structure
 

@@ -2,7 +2,7 @@
 
 **Branch**: `tech/54-private-support-plan` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
 
-**Input**: [#54](https://github.com/blockoutproject/blockout/issues/54) and the owner-approved preparatory plan. This delivery formalizes the design and contract; it does not implement the application or configure providers.
+**Input**: [spec.md](spec.md), [F05 identity](../005-accounts-identity/plan.md) and [F11 privacy](../004-advertising-privacy-legal/plan.md).
 
 **Status**: Planning dossier with the scoped prototype and Figma approvals recorded below. Native and provider qualifications remain future implementation checks.
 
@@ -34,14 +34,14 @@ Provide one shared private problem/suggestion form to guests and signed-in peopl
 
 The initial approved baseline permitted this scoped planning feedback loop. Both scoped approvals below are now recorded; the post-design check passes within this planning-only scope.
 
-| Principle         | Application                                                                                                                                                                                                    |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| I — Specification | F10 owns the synchronous submission and explicit-retry behavior; current requirements integrate these decisions without session narration.                                                                     |
-| II — Ownership    | F11 owns privacy and exceptional rights handling, F12 global access and F13 common controls/diagnostics. Their affected support/backup statements are reconciled.                                              |
-| III — Design      | Prototype `14f88bb` and its scoped Figma reconciliation were explicitly approved in this conversation on 2026-10-15. The exact affected references appear below; provider/native behavior remains unqualified. |
-| IV — Contracts    | Extend the canonical mobile root with one multipart operation and shared errors. No copied contract, bespoke encoder or generated-output patch. Integration generation/compilation remains to qualify.         |
-| V — Simplicity    | Native GitHub issues/attachments, ordinary labels, one HTTP form submission and manual exceptional cleanup. No durable ticket/work registry, background retry or storage synchronization.                      |
-| Prerequisites     | Native blockers #44 and #45 are closed. Private provider configuration and qualification are future implementation prerequisites, not claimed executions.                                                      |
+| Principle         | Application                                                                                                                                                                                                                                                          |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I — Specification | F10 owns the synchronous submission and explicit-retry behavior; current requirements integrate these decisions without session narration.                                                                                                                           |
+| II — Ownership    | F11 owns privacy and exceptional rights handling, F12 global access and F13 common controls/diagnostics. Their affected support/backup statements are reconciled.                                                                                                    |
+| III — Design      | Prototype `14f88bb` and its scoped Figma reconciliation were explicitly approved in this conversation on 2026-10-15. The exact affected references appear below; provider/native behavior remains unqualified.                                                       |
+| IV — Contracts    | Extend the canonical mobile root with one multipart operation and shared errors. No copied contract, bespoke encoder or generated-output patch. Integration generation/compilation remains to qualify.                                                               |
+| V — Simplicity    | Native GitHub issues/attachments, ordinary labels, one HTTP form submission and manual exceptional cleanup. No durable ticket/work registry, background retry or storage synchronization.                                                                            |
+| Prerequisites     | The accepted [F05](../005-accounts-identity/plan.md) and [F11](../004-advertising-privacy-legal/plan.md) plans supply identity/privacy boundaries. Private provider configuration and qualification are future implementation prerequisites, not claimed executions. |
 
 ## Project Structure
 

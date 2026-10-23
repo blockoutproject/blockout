@@ -4,7 +4,7 @@ description: "Implementation tasks for F14 V1-to-V2 continuity and transition"
 
 # Tasks: F14 V1-to-V2 continuity and transition
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#96](https://github.com/blockoutproject/blockout/issues/96) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning sources, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). This is an implementation and future transition work list, not authorization to inspect independent repositories, export personal data, change providers/prices, reset data, publish or retire production. Each external/destructive operation below requires its own authorization and actual prerequisites.
 

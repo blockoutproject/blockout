@@ -6,7 +6,7 @@
 
 **Status**: Accepted functional baseline; the technical dossier is available for review. Implementation qualification remains pending.
 
-**Input**: [#265](https://github.com/blockoutproject/blockout-legacy/issues/265), F06 in the [specification navigation](../../README.md#specifications). Define following teams and pools, associated lists and counters, and match selection for the personal calendar. [F02](../002-sporting-data/spec.md) owns identities and visibility, [F03](../007-sporting-consultation/spec.md) calendars and [F05](../005-accounts-identity/spec.md) accounts. No club follows or automatic seasonal transfer is introduced. The [technical plan](plan.md) defines the implementation boundaries and qualifications.
+**Input**: F06 in the [specification navigation](../../README.md#specifications). Define following teams and pools, associated lists and counters, and match selection for the personal calendar. [F02](../002-sporting-data/spec.md) owns identities and visibility, [F03](../007-sporting-consultation/spec.md) calendars and [F05](../005-accounts-identity/spec.md) accounts. No club follows or automatic seasonal transfer is introduced. The [technical plan](plan.md) defines the implementation boundaries and qualifications.
 
 ## User Scenarios & Testing
 

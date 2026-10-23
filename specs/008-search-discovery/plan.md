@@ -2,7 +2,7 @@
 
 **Branch**: `tech/50-search-discovery-plan` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
 
-**Input**: Accepted preparatory decisions for [#50](https://github.com/blockoutproject/blockout/issues/50), F04 and its approved prerequisite plans.
+**Input**: [spec.md](spec.md) and the accepted [F03 consultation](../007-sporting-consultation/plan.md) and [F02 sporting data](../002-sporting-data/plan.md) plans.
 
 ## Summary
 
@@ -39,7 +39,7 @@ This dossier formalizes the accepted plan. It does not initialize the product, p
 | III — Design        | The [existing discovery approval](spec.md#user-scenarios--testing) covers the unchanged field, filters, examples, cards and retry states. Backend matching/indexing decisions introduce no material visual or interaction change; no new prototype or Figma approval is needed. |
 | IV — Contracts      | Extend the canonical mobile root. Reuse existing representations and errors where meanings match; no editable contract copy or generated output in this dossier. Integrated generation remains future evidence.                                                                 |
 | V — Proportionality | Native search, transaction events, one scheduler and atomic aliases. No PIT lifecycle, durable outbox, distributed locks, custom relevance engine or separate operator UI. Alternatives and limits reside in [research](research.md).                                           |
-| Prerequisites       | Native blocker #49 is closed; F02/F03/F13 and shared identity/access/privacy decisions are available. No unresolved design or product arbitration remains.                                                                                                                      |
+| Prerequisites       | The accepted [F03 plan](../007-sporting-consultation/plan.md) and F02/F13/shared identity/access/privacy decisions supply the required boundaries. No unresolved design or product arbitration remains.                                                                         |
 
 No constitutional exception is required. Passing this documentary gate does not establish runtime compatibility. A failed qualification blocks adoption of the affected mechanism rather than permitting an invented workaround.
 

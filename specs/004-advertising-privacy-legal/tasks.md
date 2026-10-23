@@ -4,7 +4,7 @@ description: "Implementation tasks for F11 advertising, privacy and legal"
 
 # Tasks: F11 advertising, privacy and legal
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#86](https://github.com/blockoutproject/blockout/issues/86) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). The approved stack, native mechanisms and scoped design remain the baseline. This task list authorizes no implementation, provider/store change, public legal publication or deployment by itself.
 

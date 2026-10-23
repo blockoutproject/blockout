@@ -4,7 +4,7 @@ description: "Implementation tasks for F03 sporting consultation and navigation"
 
 # Tasks: F03 sporting consultation and navigation
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#90](https://github.com/blockoutproject/blockout/issues/90) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). Native/provider/generated-consumer evidence remains future implementation work; drafting this file initializes no runtime and performs no provider operation.
 

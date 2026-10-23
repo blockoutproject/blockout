@@ -2,7 +2,7 @@
 
 **Branch**: `tech/51-following-personal-feed` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
 
-**Input**: [#51](https://github.com/blockoutproject/blockout/issues/51), the owning specification and the owner-approved planning decisions in the task conversation.
+**Input**: [spec.md](spec.md) and the accepted decisions recorded in [research.md](research.md).
 
 ## Summary
 

@@ -1,6 +1,6 @@
 # Research: following and personal feed
 
-The decisions below implement the accepted F06 intent and the owner's #51 arbitrations. Documentation and inspected library code establish feasibility; they are not integrated application qualification.
+The decisions below implement the accepted [F06 specification](spec.md) and the owner decisions recorded below. Documentation and inspected library code establish feasibility; they are not integrated application qualification.
 
 ## Shared immediate follow state
 

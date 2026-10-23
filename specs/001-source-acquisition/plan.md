@@ -2,7 +2,7 @@
 
 **Branch**: `tech/47-source-acquisition-plan` | **Date**: 2026-10-14 | **Spec**: [Source acquisition](spec.md)
 
-**Input**: `specs/001-source-acquisition/spec.md`, [#47](https://github.com/blockoutproject/blockout/issues/47), and the approved F02, F12 and F13 plans.
+**Input**: [spec.md](spec.md), [F02](../002-sporting-data/plan.md), [F12](../013-administration-app-configuration/plan.md) and [F13](../003-shared-quality/plan.md).
 
 ## Summary
 
@@ -125,7 +125,7 @@ The [research](research.md) separates official documented capabilities, direct p
 
 ## Design acceptance
 
-The 2026-10-22 presentation decision keeps source URL editing inline in the existing preparation screen or in an ordinary edit route, and moves typed season closure to an ordinary screen. Retain every field, validation, consequence, exact season-label safeguard and pending/active-season rule. Simple confirmations use native alerts. Updated presentation captures are tracked by [F13 #138](../003-shared-quality/quickstart.md#native-mobile-and-approved-design); the following earlier references remain valid for unchanged content and stable node identities, not proof of the revised container.
+The 2026-10-22 presentation decision keeps source URL editing inline in the existing preparation screen or in an ordinary edit route, and moves typed season closure to an ordinary screen. Retain every field, validation, consequence, exact season-label safeguard and pending/active-season rule. Simple confirmations use native alerts. Updated presentation captures are tracked by [F13 presentation evidence](../003-shared-quality/quickstart.md#native-mobile-and-approved-design); the following earlier references remain valid for unchanged content and stable node identities, not proof of the revised container.
 
 The owner explicitly approved [prototype e5fd3f7](https://github.com/blockoutproject/product-prototype/commit/e5fd3f7e2b544cde9f6efd781ee045830f0fb67e) and then its Figma translation in this planning conversation on 2026-10-14. The scope is requested-versus-running collection, cancellation of pending intent on pause, and preparation/launch of an unlaunched source within an active season without unlocking other bindings.
 

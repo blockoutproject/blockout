@@ -4,7 +4,7 @@ description: "Implementation tasks for F04 search and discovery"
 
 # Tasks: F04 search and discovery
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#91](https://github.com/blockoutproject/blockout/issues/91) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). T001–T007's dependency and request/context qualification is recorded in the [quickstart](quickstart.md#contracts-and-access); later business, native-device, deployment and restoration evidence remains future work.
 

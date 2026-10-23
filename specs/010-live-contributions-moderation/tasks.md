@@ -4,7 +4,7 @@ description: "Implementation tasks for F08 live contributions and moderation"
 
 # Tasks: F08 live contributions and moderation
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md), for [#93](https://github.com/blockoutproject/blockout/issues/93) under [#82](https://github.com/blockoutproject/blockout/issues/82).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning sources, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). This artifact prepares implementation; it creates no runtime, migration, provider operation or deployment. Documentation checks do not establish SQL, generated-consumer or native qualification.
 

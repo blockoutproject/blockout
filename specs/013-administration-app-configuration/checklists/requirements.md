@@ -33,4 +33,4 @@
 
 - Reviewed against the existing accepted specification on 2026-10-12. This checklist assesses requirements quality, not implementation or design approval.
 
-- Reviewed for #42: the three blocking gates have consistent retry/store actions, no help/legal/sign-in bypass, and maintenance administration limited to an already usable authorized session. F05/F10/F11/F14 consumers are reconciled. Both scoped design approvals and the provisional-artwork limit are referenced in the [specification](../spec.md); runtime qualification remains separate.
+- Reviewed: the three blocking gates have consistent retry/store actions, no help/legal/sign-in bypass, and maintenance administration limited to an already usable authorized session. F05/F10/F11/F14 consumers are reconciled. Both scoped design approvals and the provisional-artwork limit are referenced in the [specification](../spec.md); runtime qualification remains separate.

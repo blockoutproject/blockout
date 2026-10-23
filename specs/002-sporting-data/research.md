@@ -1,6 +1,6 @@
 # Research: sporting identity and integration
 
-**Authority**: [F02 specification](spec.md), [accepted F13 baseline](../003-shared-quality/research.md), [#43](https://github.com/blockoutproject/blockout/issues/43).
+**Authority**: [F02 specification](spec.md), [accepted F13 baseline](../003-shared-quality/research.md).
 
 ## Identity and professional coverage
 

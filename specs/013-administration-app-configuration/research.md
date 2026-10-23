@@ -2,7 +2,7 @@
 
 ## Authority and evidence
 
-The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions for [#46](https://github.com/blockoutproject/blockout/issues/46) govern this dossier. Research is documentary; no native build, provider change, database experiment or generated consumer compilation was performed. The installed [Spec Kit 1.1.3 planning procedure](https://github.com/github/spec-kit/blob/v1.1.3/templates/commands/plan.md) defines the artifacts. Withdrawn technical dossiers are not inputs.
+The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions recorded below govern this dossier. Research is documentary; no native build, provider change, database experiment or generated consumer compilation was performed. The installed [Spec Kit 1.1.3 planning procedure](https://github.com/github/spec-kit/blob/v1.1.3/templates/commands/plan.md) defines the artifacts. Withdrawn technical dossiers are not inputs.
 
 ## Current business permissions
 
