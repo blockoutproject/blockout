@@ -12,17 +12,18 @@ import type {
   MaintenanceSettingsResponse,
   SetMaintenanceActivationRequest,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
+import {
+  ApiError,
+  isUncertainMutationFailure,
+} from "../../../shared/api/api-fetch";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useAccountSession } from "../../accounts/current-account";
 
 /** A conflict or possibly committed write requires an explicit current-state read before resubmission. */
 export function requiresSettingsReread(error: unknown) {
   return (
-    error instanceof ApiError &&
-    (error.status === 409 ||
-      ["network", "timeout", "schema", "cancelled"].includes(error.kind) ||
-      (error.status !== undefined && error.status >= 500))
+    isUncertainMutationFailure(error) ||
+    (error instanceof ApiError && error.status === 409)
   );
 }
 

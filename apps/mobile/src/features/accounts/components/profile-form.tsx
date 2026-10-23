@@ -7,7 +7,10 @@ import type {
   AccountResponse,
   ChangeAccountProfileBody,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
+import {
+  ApiError,
+  isUncertainMutationFailure,
+} from "../../../shared/api/api-fetch";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
 import {
@@ -17,11 +20,7 @@ import {
 import { TextField } from "../../../shared/components/text-field";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import {
-  isUncertainProfileSave,
-  useProfileEditing,
-  useProfilePhoto,
-} from "../api/use-profile-editing";
+import { useProfileEditing, useProfilePhoto } from "../api/use-profile-editing";
 import {
   prepareProfilePhoto,
   type PreparedProfilePhoto,
@@ -73,7 +72,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
     defaultValues: { username: account.username, photo: { action: "keep" } },
   });
   const draft = useWatch({ control, name: "photo" });
-  const uncertain = isUncertainProfileSave(save.error);
+  const uncertain = isUncertainMutationFailure(save.error);
   const needsRead = uncertain && !original.isSuccess;
   const busy = preparing || isSubmitting || original.isFetching;
   const images =
@@ -128,7 +127,7 @@ export function ProfileForm({ account }: ProfileFormProps) {
           message:
             "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
         });
-      if (isUncertainProfileSave(error)) await original.refetch();
+      if (isUncertainMutationFailure(error)) await original.refetch();
     }
   }
 

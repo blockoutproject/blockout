@@ -41,6 +41,15 @@ export class ApiError<
 /** Supplies the transport error type to Orval's generated Query consumers. */
 export type ErrorType<TProblem> = ApiError<TProblem>;
 
+/** Identifies transport failures that cannot establish whether a mutation committed; recovery belongs to its caller. */
+export function isUncertainMutationFailure(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (["network", "timeout", "schema", "cancelled"].includes(error.kind) ||
+      (error.status !== undefined && error.status >= 500))
+  );
+}
+
 /**
  * Resolves backend references and validates JSON once before a generated consumer succeeds.
  * Expo Fetch owns cancellation and timeout delivery. Admission rechecks cancellation because a

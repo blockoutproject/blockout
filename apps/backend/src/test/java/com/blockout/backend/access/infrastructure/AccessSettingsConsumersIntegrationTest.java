@@ -12,10 +12,10 @@ import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -132,8 +132,7 @@ class AccessSettingsConsumersIntegrationTest {
 
     // When
     Process consumer = builder.start();
-    boolean finished = consumer.waitFor(90, TimeUnit.SECONDS);
-    if (!finished) consumer.destroyForcibly();
+    boolean finished = AccessSettingsConsumerProcess.waitFor(consumer, Duration.ofSeconds(90));
 
     // Then
     assertThat(finished)

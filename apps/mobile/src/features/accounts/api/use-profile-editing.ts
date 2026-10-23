@@ -16,15 +16,6 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useAccountSession } from "../session/account-session-provider";
 
-/** A lost or invalid successful response can follow a committed write and requires an original reread. */
-export function isUncertainProfileSave(error: unknown) {
-  return (
-    error instanceof ApiError &&
-    (["network", "timeout", "schema", "cancelled"].includes(error.kind) ||
-      (error.status !== undefined && error.status >= 500))
-  );
-}
-
 /** Owns one original-target save and explicit reconciliation through the generated clients and private cache. */
 export function useProfileEditing(accountId: string) {
   const session = useAccountSession();
