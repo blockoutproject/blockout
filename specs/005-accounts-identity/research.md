@@ -28,7 +28,7 @@
 
 **Alternatives:** another tenant adds account/configuration cost without an accepted requirement; public signup on a shared production-enabled connection would weaken the intended boundary. Federated global logout, ephemeral-session policy changes, bespoke refresh timers and custom JWT claims are not selected.
 
-**Evidence:** [Auth0 connection signup scope](https://support.auth0.com/center/s/article/disable-sign-ups-for-a-specific-application); [`react-native-auth0` 5.11.1 provider implementation](https://github.com/auth0/react-native-auth0/blob/v5.11.1/src/hooks/Auth0Provider.tsx). Native callbacks, cancellation, logout failure, retained token validity and the actual client/connection settings still require device/provider qualification. No settings were changed during planning.
+**Evidence:** [Auth0 connection signup scope](https://support.auth0.com/center/s/article/disable-sign-ups-for-a-specific-application); [`react-native-auth0` 5.11.1 provider implementation](https://github.com/auth0/react-native-auth0/blob/v5.11.1/src/hooks/Auth0Provider.tsx). F13 selects `react-native-auth0` 5.11.3 for [Expo SDK 58 scene compatibility](https://github.com/auth0/react-native-auth0/releases/tag/v5.11.3); the SDK config plugin leaves URL forwarding to Expo rather than inserting an obsolete AppDelegate override. Native callbacks, cancellation, logout failure, retained token validity and the actual client/connection settings still require device/provider qualification. No settings were changed during planning.
 
 ## Atomic profile and square photo
 

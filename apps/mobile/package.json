@@ -44,7 +44,7 @@
     "react": "19.3.0",
     "react-hook-form": "7.90.0",
     "react-native": "0.88.0",
-    "react-native-auth0": "5.11.2",
+    "react-native-auth0": "5.11.3",
     "react-native-google-mobile-ads": "17.2.0",
     "react-native-keyboard-controller": "1.22.7",
     "react-native-purchases": "10.13.0",
