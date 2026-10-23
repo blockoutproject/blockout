@@ -14,9 +14,12 @@ dependencies {
 `;
 
 /**
- * Supplies Android's standard Java API compatibility library through Expo prebuild.
- * Expo 57's build-properties plugin exposes no desugaring option. Repeated prebuilds
- * retain one configuration block without patching dependency sources.
+ * Exceptional workaround for Expo Dev Launcher 57.0.21's API 24 startup crash.
+ * BuildProperties 57.0.22 exposes no desugaring option, so this mod adds Android's
+ * standard compatibility configuration to app Gradle, once across prebuilds.
+ * It affects all Android variants; a production need has not been established.
+ * Reassess on Expo upgrades and remove after the documented unpatched API 24 check.
+ * @see ../../../specs/003-shared-quality/research.md#native-ui-projection-and-system-appearance
  * @type {import("expo/config-plugins").ConfigPlugin}
  */
 module.exports = function withAndroidDesugaring(config) {
