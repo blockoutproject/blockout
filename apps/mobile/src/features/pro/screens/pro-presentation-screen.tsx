@@ -53,7 +53,7 @@ export function ProPresentationScreen({
     !management &&
     (purchaseAllowed ||
       (state.status !== "guest" && state.operation === "purchasing"));
-  const offering = useProOffering(admitted && current && showPaywall);
+  const offering = useProOffering();
 
   /** Removes the route once, even when native dismissal follows a completion callback. */
   const close = useCallback(() => {
@@ -76,9 +76,7 @@ export function ProPresentationScreen({
       !admitted ||
       !current ||
       !associated ||
-      (showPaywall &&
-        !offering.isFetching &&
-        (offering.isError || offering.data === null))
+      (showPaywall && (!offering.data || offering.isError))
     ) {
       close();
     }
@@ -87,39 +85,42 @@ export function ProPresentationScreen({
     current,
     associated,
     showPaywall,
-    offering.isFetching,
-    offering.isError,
     offering.data,
+    offering.isError,
     close,
   ]);
 
   if (!admitted || !current || !associated) return null;
   if (showPaywall) {
-    if (!offering.data || offering.isFetching) return null;
+    if (!offering.data || offering.isError) return null;
     return (
       <RevenueCatUI.Paywall
         style={styles.provider}
         options={{ offering: offering.data }}
         onPurchasePackageInitiated={({ resume }) =>
-          resume(isCurrentPresentation() && beginPurchase())
+          resume(!closed.current && isCurrentPresentation() && beginPurchase())
         }
         onPurchaseCompleted={({ customerInfo }) => {
           if (!isCurrentPresentation()) return;
+          if (closed.current) {
+            void refresh();
+            return;
+          }
           void completeOperation("purchased", customerInfo);
           close();
         }}
         onPurchaseCancelled={() => {
-          if (!isCurrentPresentation()) return;
+          if (closed.current || !isCurrentPresentation()) return;
           void completeOperation("cancelled");
           close();
         }}
         onPurchaseError={({ error }) => {
-          if (!isCurrentPresentation()) return;
+          if (closed.current || !isCurrentPresentation()) return;
           void completeOperation(purchaseErrorOutcome(error.code));
           close();
         }}
         onDismiss={() => {
-          if (!isCurrentPresentation()) return;
+          if (closed.current || !isCurrentPresentation()) return;
           void dismissPresentation();
           close();
         }}

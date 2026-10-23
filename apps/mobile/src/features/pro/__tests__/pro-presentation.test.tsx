@@ -22,7 +22,7 @@ import { mockClient } from "../../accounts/test-support/native-auth0";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { ProProvider, usePro, type ProContext } from "../pro-provider";
-import { ProProfileFeedback } from "../components/pro-profile-feedback";
+import { ProProfileEntry } from "../components/pro-profile-entry";
 import {
   ProPresentationScreen,
   type ProPresentationScreenProps,
@@ -49,6 +49,14 @@ jest.mock("expo-constants", () => ({
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => mockRouter,
+  useFocusEffect: (callback: () => () => void) => {
+    const { useEffect } = jest.requireActual("react");
+    useEffect(() => {
+      const cleanup = callback();
+      mockLoseFocus = cleanup;
+      return cleanup;
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
@@ -86,10 +94,12 @@ jest.mock("react-native-auth0", () =>
 
 let mockPaywall: ComponentProps<typeof RevenueCatUI.Paywall>;
 let mockCenter: CustomerCenterViewProps;
+let mockLoseFocus: (() => void) | undefined;
 const mockRouter = {
   back: jest.fn(),
   replace: jest.fn(),
   push: jest.fn(),
+  navigate: jest.fn(),
   canGoBack: jest.fn(() => true),
 };
 let account: AccountSession;
@@ -100,6 +110,7 @@ const previousEnvironment = { ...process.env };
 beforeEach(() => {
   prepareProNativeIO();
   client = createQueryClient();
+  mockRouter.navigate.mockImplementation(() => openPresentation());
   mockPurchases.getOfferings
     .mockReset()
     .mockResolvedValue({ current: null, all: { v2: v2Offering } });
@@ -133,7 +144,7 @@ function Journey(props: ProPresentationScreenProps) {
   return (
     <>
       <Probe />
-      <ProProfileFeedback />
+      <ProProfileEntry />
       {visible && <ProPresentationScreen {...props} />}
     </>
   );
@@ -167,7 +178,11 @@ async function mount(props: ProPresentationScreenProps = { admitted: true }) {
           pro.state.reason === "customer-info"),
     ).toBe(true),
   );
-  await act(openPresentation);
+  await userEvent.press(
+    screen.getByRole("button", {
+      name: props.management ? "Gérer ou restaurer mes achats" : "Blockout Pro",
+    }),
+  );
 }
 
 it("hosts the explicit V2 offering unchanged and dismisses to the originating profile", async () => {
@@ -180,6 +195,13 @@ it("hosts the explicit V2 offering unchanged and dismisses to the originating pr
     mockPaywall.onDismiss?.();
     mockPaywall.onDismiss?.();
   });
+  const resume = jest.fn();
+  await act(() =>
+    mockPaywall.onPurchasePackageInitiated?.({
+      packageBeingPurchased: v2Offering.availablePackages[0],
+      resume,
+    }),
+  );
 
   // Then
   expect(mockPaywall.options?.offering).toBe(v2Offering);
@@ -187,6 +209,7 @@ it("hosts the explicit V2 offering unchanged and dismisses to the originating pr
     mockPaywall.options?.offering?.availablePackages[0].product.priceString,
   ).toBe("4,29 €");
   expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  expect(resume).toHaveBeenCalledWith(false);
 });
 
 it("refuses a repeated native initiation and shows confirmed payment without claiming inactive rights are active", async () => {
@@ -315,7 +338,7 @@ it("prepares only the identified F10 Custom Action with close-before-navigation 
 });
 
 it.each(["absent", "failed"])(
-  "returns from an %s offer with honest profile feedback and no fallback",
+  "keeps an %s offer on the profile with honest feedback and no fallback",
   async (scenario) => {
     // Given
     if (scenario === "absent")
@@ -337,7 +360,7 @@ it.each(["absent", "failed"])(
           : /La lecture de l’offre Pro a échoué/,
       ),
     ).toBeOnTheScreen();
-    expect(mockRouter.back).toHaveBeenCalled();
+    expect(mockRouter.back).not.toHaveBeenCalled();
     expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
   },
 );
@@ -354,7 +377,7 @@ it("keeps management independently reachable and leaves absent F10 integration u
   );
 
   // Then
-  expect(mockRouter.push).toHaveBeenCalledWith({
+  expect(mockRouter.navigate).toHaveBeenCalledWith({
     pathname: "/pro",
     params: { management: "1" },
   });
@@ -448,4 +471,83 @@ it("announces only current SDK-active ad-free activation from the completion cal
     ),
   ).toBeOnTheScreen();
   expect(screen.getByText("Pro: active")).toBeOnTheScreen();
+});
+
+it("keeps navigation usable while the offer loads and drops presentation intent on leaving the profile", async () => {
+  // Given
+  const read = Promise.withResolvers<PurchasesOfferings>();
+  mockPurchases.getOfferings.mockReturnValueOnce(read.promise);
+  await mount();
+
+  // When
+  expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Gérer ou restaurer mes achats" }),
+  ).toBeEnabled();
+  await act(() => mockLoseFocus?.());
+  await act(() => read.resolve({ current: null, all: { v2: v2Offering } }));
+
+  // Then
+  expect(mockRouter.navigate).not.toHaveBeenCalled();
+  expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
+});
+
+it("explicitly retries a failed offer from the profile and then opens the official component", async () => {
+  // Given
+  mockPurchases.getOfferings.mockRejectedValueOnce(new Error("unavailable"));
+  await mount();
+  await screen.findByText(/La lecture de l’offre Pro a échoué/);
+  expect(mockRouter.navigate).not.toHaveBeenCalled();
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Native paywall double")).toBeOnTheScreen();
+  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2);
+  expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+});
+
+it("does not reopen a cached paywall when a new explicit offering read fails", async () => {
+  // Given
+  await mount();
+  await screen.findByText("Native paywall double");
+  await act(() => mockPaywall.onDismiss?.());
+  mockRouter.navigate.mockClear();
+  mockPurchases.getOfferings.mockRejectedValueOnce(new Error("unavailable"));
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
+  // Then
+  expect(
+    await screen.findByText(/La lecture de l’offre Pro a échoué/),
+  ).toBeOnTheScreen();
+  expect(mockRouter.navigate).not.toHaveBeenCalled();
+  expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
+});
+
+it("allows B's explicit entry while A's abandoned offering read is still pending", async () => {
+  // Given
+  const oldRead = Promise.withResolvers<PurchasesOfferings>();
+  mockPurchases.getOfferings.mockReturnValueOnce(oldRead.promise);
+  await mount();
+
+  // When
+  await act(() => account.invalidate());
+  await act(() =>
+    account.setAccount(
+      account.generation,
+      "00000000-0000-4000-8000-000000000252",
+    ),
+  );
+  await screen.findByText("Pro: inactive");
+  await userEvent.press(screen.getByRole("button", { name: "Blockout Pro" }));
+  await screen.findByText("Native paywall double");
+  await act(() => oldRead.resolve({ current: null, all: { v2: v2Offering } }));
+
+  // Then
+  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2);
+  expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+  expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
 });

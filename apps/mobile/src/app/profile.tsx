@@ -1,4 +1,4 @@
-import { ProProfileFeedback } from "../features/pro/presentation";
+import { ProProfileEntry } from "../features/pro/presentation";
 import { useAccountAdmission } from "../features/accounts/components/account-admission";
 import { ProfileScreen } from "../features/accounts/screens/profile-screen";
 
@@ -7,7 +7,7 @@ export default function ProfileRoute() {
   return (
     <ProfileScreen
       admitted={useAccountAdmission()}
-      proFeedback={<ProProfileFeedback />}
+      proEntry={<ProProfileEntry />}
     />
   );
 }

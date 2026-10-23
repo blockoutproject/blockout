@@ -27,8 +27,8 @@ import { useAccountSession } from "../session/account-session-provider";
 /** Current ordinary admission; identification reads do not grant profile navigation. */
 export interface ProfileScreenProps {
   admitted: boolean;
-  /** Route-owned F09 feedback keeps this ordinary profile independent of the native billing SDK. */
-  proFeedback?: ReactNode;
+  /** Route-owned F09 entry keeps this ordinary profile independent of the native billing SDK. */
+  proEntry?: ReactNode;
 }
 
 /** Each platform uses its accepted single keyboard mechanism for this ordinary bounded form. */
@@ -47,7 +47,7 @@ export function ProfileScreen(props: ProfileScreenProps) {
 }
 
 /** Retains confirmed profile content and its draft through a failed background refresh. */
-function ProfileContent({ admitted, proFeedback }: ProfileScreenProps) {
+function ProfileContent({ admitted, proEntry }: ProfileScreenProps) {
   const session = useAccountSession();
   const account = useCurrentAccount();
   const router = useRouter();
@@ -135,8 +135,9 @@ function ProfileContent({ admitted, proFeedback }: ProfileScreenProps) {
               onPress={() => void continueAsGuest()}
               loading={session.status === "signing-out"}
             />
-            <ProEntry onOpenPresentation={() => router.push("/pro")} />
-            {proFeedback}
+            {proEntry ?? (
+              <ProEntry onOpenPresentation={() => router.push("/pro")} />
+            )}
             <PublicAccountLinks />
           </>
         )}

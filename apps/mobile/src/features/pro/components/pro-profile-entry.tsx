@@ -1,23 +1,37 @@
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useRef } from "react";
 import { Text } from "react-native";
 import { Button } from "../../../shared/components/button";
-import { RequestError } from "../../../shared/components/request-feedback";
+import {
+  RequestError,
+  RequestLoading,
+} from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useAccountSession } from "../../accounts/current-account";
 import { usePro } from "../pro-provider";
 import { canPurchasePro } from "../pro-offering";
 import { useProOffering } from "../use-pro-offering";
+import { ProEntry } from "./pro-entry";
 import { ProVerification } from "./pro-verification";
 
-/** App-owned operation feedback within the existing profile; all purchase/management content stays native. */
-export function ProProfileFeedback() {
+/** Profile entry and app-owned operation feedback; all purchase/management content stays native. */
+export function ProProfileEntry() {
   const router = useRouter();
   const account = useAccountSession();
   const { state, retry } = usePro();
-  const offering = useProOffering(false);
+  const offering = useProOffering();
   const { colors } = useTheme();
   const session = account.getSnapshot();
+  const request = useRef<symbol | null>(null);
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        request.current = null;
+      },
+      [session.generation, session.accountId],
+    ),
+  );
   const connected =
     account.status === "authenticated" && session.accountId !== null;
   const associated =
@@ -25,17 +39,45 @@ export function ProProfileFeedback() {
     state.status === "inactive" ||
     (state.status === "unavailable" && state.reason === "customer-info");
 
+  /** Keeps offer loading on the profile and abandons presentation intent when focus/session changes. */
+  async function open() {
+    if (!connected || request.current) return;
+    const captured = account.getSnapshot();
+    const attempt = Symbol();
+    request.current = attempt;
+    try {
+      if (canPurchasePro(state)) {
+        const result = await offering.refetch();
+        if (result.isError || !result.data) return;
+      }
+      if (
+        request.current === attempt &&
+        account.isCurrent(captured.generation) &&
+        account.getSnapshot().accountId === captured.accountId
+      )
+        router.navigate("/pro");
+    } finally {
+      if (request.current === attempt) request.current = null;
+    }
+  }
+
   return (
     <>
+      <ProEntry
+        opening={offering.isFetching}
+        onOpenPresentation={() => void open()}
+      />
       {connected && (
         <>
           <ProVerification />
+          {offering.isFetching && <RequestLoading />}
           {associated && (
             <Button
               label="Gérer ou restaurer mes achats"
               onPress={() => {
+                request.current = null;
                 if (account.isCurrent(session.generation))
-                  router.push({
+                  router.navigate({
                     pathname: "/pro",
                     params: { management: "1" },
                   });
@@ -72,10 +114,8 @@ export function ProProfileFeedback() {
                     ? "La lecture de l’offre Pro a échoué. Réessayez depuis Blockout Pro."
                     : "Aucune offre Pro n’est disponible. Réessayez depuis Blockout Pro."
                 }
-                onRetry={() => {
-                  if (account.isCurrent(session.generation))
-                    router.push("/pro");
-                }}
+                onRetry={() => void open()}
+                retrying={offering.isFetching}
               />
             )}
         </>

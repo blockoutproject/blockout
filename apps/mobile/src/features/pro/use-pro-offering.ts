@@ -1,14 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import { useAccountSession } from "../accounts/current-account";
-import { canPurchasePro, loadProOffering } from "./pro-offering";
-import { usePro } from "./pro-provider";
+import { loadProOffering } from "./pro-offering";
 import { getSessionQueryKey } from "../../shared/query/query-client";
 
-/** Session-scoped offering request; only an explicit provider entry enables it, never a guest or uncertain purchase. */
-export function useProOffering(requested: boolean) {
+/** Observes the session-scoped offer. The entry owner explicitly refetches after checking purchase eligibility. */
+export function useProOffering() {
   const account = useAccountSession();
-  const { state } = usePro();
   const session = account.getSnapshot();
   const configured: unknown =
     Constants.expoConfig?.extra?.revenueCat?.offeringIdentifier;
@@ -20,8 +18,7 @@ export function useProOffering(requested: boolean) {
       offeringId,
     ]),
     queryFn: () => loadProOffering(offeringId),
-    enabled: requested && canPurchasePro(state),
+    enabled: false,
     retry: false,
-    refetchOnMount: "always",
   });
 }
