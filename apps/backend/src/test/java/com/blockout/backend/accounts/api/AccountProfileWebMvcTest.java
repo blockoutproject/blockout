@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.access.application.CurrentPermissions;
-import com.blockout.backend.accounts.application.AccountAdmission;
+import com.blockout.backend.access.application.MaintenanceAdmission;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.accounts.application.ProfilePhoto;
@@ -66,7 +66,7 @@ class AccountProfileWebMvcTest {
   @MockitoBean private AccountStore store;
   @MockitoBean private EstablishAccount establishment;
   @MockitoBean private CurrentPermissions permissions;
-  @MockitoBean private AccountAdmission admission;
+  @MockitoBean private MaintenanceAdmission admission;
 
   @ParameterizedTest
   @ValueSource(

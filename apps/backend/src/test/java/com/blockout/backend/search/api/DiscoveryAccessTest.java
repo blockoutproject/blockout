@@ -64,6 +64,7 @@ import org.springframework.web.server.ResponseStatusException;
   DiscoveryAccessTest.AccessAdapter.class
 })
 @DisplayName("Discovery shared access boundaries")
+@MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class DiscoveryAccessTest {
   private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
   @Autowired MockMvc mvc;
