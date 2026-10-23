@@ -106,6 +106,9 @@ it("distinguishes target type, identity, owner and same-account sessions", () =>
   // Then
   expect(state).not.toEqual(followStateKey(returned, target));
   expect(mutation).not.toEqual(followMutationKey(returned, target));
+  expect(followMutationKey(returned, target)).not.toEqual(
+    followMutationKey({ ...returned, accountId: b }, target),
+  );
   expect(followStateKey(returned, target)).not.toEqual(
     followStateKey(returned, { type: "pool", id: b }),
   );

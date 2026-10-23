@@ -282,27 +282,18 @@ public class FollowingContractTest {
   public static class Adapter implements FollowingApi {
     private final HttpServletRequest request;
     private final FollowingRequest requests;
-    FollowContext context;
     Long page;
     UUID season;
 
     /**
+     * Supplies the feature binder and current request; endpoint responses remain controlled.
+     *
      * @param request native current request used to inspect uncollapsed query values
+     * @param requests production original-owner and query binding
      */
     public Adapter(HttpServletRequest request, FollowingRequest requests) {
       this.request = request;
       this.requests = requests;
-    }
-
-    /**
-     * Uses production query and original-owner binding; no persistence is simulated.
-     *
-     * @param account original owner, or null only for a public count
-     * @param shape declared operation query shape
-     */
-    private void bind(UUID account, QueryShape shape) {
-      requests.validateQuery(request, shape);
-      if (account != null) requests.requireOwner(account);
     }
 
     /**
@@ -320,8 +311,8 @@ public class FollowingContractTest {
     @Override
     public ResponseEntity<FollowStateResponse> getTeamFollowState(
         UUID accountId, UUID teamId, Boolean bypass) {
-      bind(null, QueryShape.MEMBER);
-      context = requests.member(accountId, FollowContext.TargetType.TEAM, teamId);
+      requests.validateQuery(request, QueryShape.MEMBER);
+      requests.member(accountId, FollowContext.TargetType.TEAM, teamId);
       return response(new FollowStateResponse(false));
     }
 
@@ -329,15 +320,15 @@ public class FollowingContractTest {
     @Override
     public ResponseEntity<FollowStateResponse> replaceTeamFollowState(
         UUID accountId, UUID teamId, ReplaceFollowStateRequest body, Boolean bypass) {
-      bind(null, QueryShape.MEMBER);
-      context = requests.member(accountId, FollowContext.TargetType.TEAM, teamId);
+      requests.validateQuery(request, QueryShape.MEMBER);
+      requests.member(accountId, FollowContext.TargetType.TEAM, teamId);
       return response(new FollowStateResponse(body.getFollowing()));
     }
 
     /** {@inheritDoc} */
     @Override
     public ResponseEntity<FollowerCountResponse> getTeamFollowerCount(UUID teamId, Boolean bypass) {
-      bind(null, QueryShape.MEMBER);
+      requests.validateQuery(request, QueryShape.MEMBER);
       return response(new FollowerCountResponse(9007199254740991L));
     }
 
@@ -345,7 +336,8 @@ public class FollowingContractTest {
     @Override
     public ResponseEntity<TeamFollowsResponse> listTeamFollows(
         UUID accountId, Boolean bypass, UUID seasonId, Long page) {
-      bind(accountId, QueryShape.LIST);
+      requests.validateQuery(request, QueryShape.LIST);
+      requests.requireOwner(accountId);
       this.page = page;
       this.season = seasonId;
       return response(new TeamFollowsResponse(List.of()));
@@ -355,8 +347,8 @@ public class FollowingContractTest {
     @Override
     public ResponseEntity<FollowStateResponse> getPoolFollowState(
         UUID accountId, UUID poolId, Boolean bypass) {
-      bind(null, QueryShape.MEMBER);
-      context = requests.member(accountId, FollowContext.TargetType.POOL, poolId);
+      requests.validateQuery(request, QueryShape.MEMBER);
+      requests.member(accountId, FollowContext.TargetType.POOL, poolId);
       return response(new FollowStateResponse(false));
     }
 
@@ -364,15 +356,15 @@ public class FollowingContractTest {
     @Override
     public ResponseEntity<FollowStateResponse> replacePoolFollowState(
         UUID accountId, UUID poolId, ReplaceFollowStateRequest body, Boolean bypass) {
-      bind(null, QueryShape.MEMBER);
-      context = requests.member(accountId, FollowContext.TargetType.POOL, poolId);
+      requests.validateQuery(request, QueryShape.MEMBER);
+      requests.member(accountId, FollowContext.TargetType.POOL, poolId);
       return response(new FollowStateResponse(body.getFollowing()));
     }
 
     /** {@inheritDoc} */
     @Override
     public ResponseEntity<FollowerCountResponse> getPoolFollowerCount(UUID poolId, Boolean bypass) {
-      bind(null, QueryShape.MEMBER);
+      requests.validateQuery(request, QueryShape.MEMBER);
       return response(new FollowerCountResponse(9007199254740991L));
     }
 
@@ -380,7 +372,8 @@ public class FollowingContractTest {
     @Override
     public ResponseEntity<PoolFollowsResponse> listPoolFollows(
         UUID accountId, Boolean bypass, UUID seasonId, Long page) {
-      bind(accountId, QueryShape.LIST);
+      requests.validateQuery(request, QueryShape.LIST);
+      requests.requireOwner(accountId);
       this.page = page;
       this.season = seasonId;
       return response(new PoolFollowsResponse(List.of()));
@@ -389,7 +382,8 @@ public class FollowingContractTest {
     /** {@inheritDoc} */
     @Override
     public ResponseEntity<FollowOptionsResponse> getFollowOptions(UUID accountId, Boolean bypass) {
-      bind(accountId, QueryShape.MEMBER);
+      requests.validateQuery(request, QueryShape.MEMBER);
+      requests.requireOwner(accountId);
       return response(new FollowOptionsResponse(List.of()));
     }
 
@@ -402,7 +396,8 @@ public class FollowingContractTest {
         Boolean bypass,
         UUID seasonId,
         LocalDate nextDay) {
-      bind(accountId, QueryShape.CALENDAR);
+      requests.validateQuery(request, QueryShape.CALENDAR);
+      requests.requireOwner(accountId);
       return response(
           new PersonalMatchCalendarResponse(
               false,

@@ -76,7 +76,7 @@ export function followMutationKey(
     target.type === "team"
       ? getReplaceTeamFollowStateMutationKey()
       : getReplacePoolFollowStateMutationKey();
-  return privateKey(owner, [...generated, owner.accountId, target.id], false);
+  return privateKey(owner, [...generated, target.id], false);
 }
 
 /**
