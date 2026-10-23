@@ -143,3 +143,60 @@ it("rejects old starts and completions across A → guest → A and restarts fro
   expect(restarted.getSnapshot().evidence?.operation).toBe("idle");
   expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(2);
 });
+
+it.each(["purchased", "already-owned"] as const)(
+  "allows a new explicit acquisition after %s was recognized as paid active and then expired",
+  async (operation) => {
+    // Given
+    const owner = createProSession();
+    owner.setTarget(session);
+    await waitFor(() =>
+      expect(owner.getSnapshot().evidence?.association).toBe("associated"),
+    );
+    const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
+    const paid = customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    });
+    mockPurchases.getCustomerInfo.mockResolvedValue(paid);
+
+    // When
+    await owner.completeOperation(session, operation, paid);
+    mockPurchases.getCustomerInfo.mockResolvedValue(inactive);
+    await owner.refresh(session);
+
+    // Then
+    expect(owner.beginPurchase(session)).toBe(true);
+  },
+);
+
+it.each(["purchased", "pending", "uncertain", "already-owned"] as const)(
+  "does not resolve %s from an independent gift that later expires",
+  async (operation) => {
+    // Given
+    const owner = createProSession();
+    owner.setTarget(session);
+    await waitFor(() =>
+      expect(owner.getSnapshot().evidence?.association).toBe("associated"),
+    );
+    const active = {
+      "Blockout Pro": entitlement({ store: "PROMOTIONAL", willRenew: false }),
+    };
+    const gift = customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    });
+    mockPurchases.getCustomerInfo.mockResolvedValue(gift);
+
+    // When
+    await owner.completeOperation(session, operation, gift);
+    mockPurchases.getCustomerInfo.mockResolvedValue(inactive);
+    await owner.refresh(session);
+
+    // Then
+    expect(owner.getSnapshot().evidence?.operation).toBe(operation);
+    expect(owner.beginPurchase(session)).toBe(false);
+  },
+);

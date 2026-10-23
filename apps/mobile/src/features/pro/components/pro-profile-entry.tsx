@@ -98,14 +98,17 @@ export function ProProfileEntry() {
               onRetry={retry}
             />
           )}
-          {state.status === "active" && state.operation === "purchased" && (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[tokens.typography.body, { color: colors.text }]}
-            >
-              Blockout Pro est actif : les publicités Blockout sont désactivées.
-            </Text>
-          )}
+          {state.status === "active" &&
+            (state.operation === "purchased" ||
+              state.operation === "completed") && (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[tokens.typography.body, { color: colors.text }]}
+              >
+                Blockout Pro est actif : les publicités Blockout sont
+                désactivées.
+              </Text>
+            )}
           {canPurchasePro(state) &&
             (offering.isError || offering.data === null) && (
               <RequestError

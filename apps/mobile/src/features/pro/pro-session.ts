@@ -10,6 +10,7 @@ import {
   type ProSessionState,
 } from "./pro-state";
 import { canPurchasePro } from "./pro-offering";
+import { verifiedProOperation } from "./pro-operations";
 
 /** Current native evidence and verification lifecycle; rights remain SDK-owned. */
 export interface ProSessionSnapshot {
@@ -84,7 +85,14 @@ export function createProSession() {
         snapshot.evidence
       ) {
         publish({
-          evidence: { ...snapshot.evidence, customerInfo },
+          evidence: {
+            ...snapshot.evidence,
+            customerInfo,
+            operation: verifiedProOperation(
+              snapshot.evidence.operation,
+              customerInfo,
+            ),
+          },
           refreshing: false,
           verificationFailed: false,
         });
@@ -171,7 +179,10 @@ export function createProSession() {
       ...snapshot,
       evidence: {
         ...snapshot.evidence,
-        operation,
+        operation: verifiedProOperation(
+          operation,
+          customerInfo ?? snapshot.evidence.customerInfo,
+        ),
         customerInfo: customerInfo ?? snapshot.evidence.customerInfo,
       },
     });

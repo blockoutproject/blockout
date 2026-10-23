@@ -1,4 +1,7 @@
-import Purchases, { type PURCHASES_ERROR_CODE } from "react-native-purchases";
+import Purchases, {
+  type CustomerInfo,
+  type PURCHASES_ERROR_CODE,
+} from "react-native-purchases";
 import type { ProOperation } from "./pro-state";
 
 /** Maps native purchase outcomes conservatively; no error itself grants or withdraws rights. */
@@ -25,4 +28,21 @@ export function purchaseErrorOutcome(code: PURCHASES_ERROR_CODE): ProOperation {
       // Store/network/unknown failures may have lost a response after charging.
       return "uncertain";
   }
+}
+
+/**
+ * Settles a confirmed/owned purchase once the SDK recognizes purchased native rights.
+ * An independent gift or unknown origin cannot resolve payment; pending/uncertain transactions
+ * still need their native outcome rather than an inference from another valid entitlement.
+ */
+export function verifiedProOperation(
+  operation: ProOperation,
+  customerInfo: CustomerInfo | null,
+): ProOperation {
+  const entitlement = customerInfo?.entitlements.active["Blockout Pro"];
+  return (operation === "purchased" || operation === "already-owned") &&
+    entitlement?.ownershipType === "PURCHASED" &&
+    ["APP_STORE", "PLAY_STORE", "TEST_STORE"].includes(entitlement.store)
+    ? "completed"
+    : operation;
 }
