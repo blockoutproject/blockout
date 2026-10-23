@@ -26,6 +26,8 @@ import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { mockPurchases } from "../test-support/native-purchases";
 import { ProEntry } from "../components/pro-entry";
+import { ProProfileEntry } from "../components/pro-profile-entry";
+import { ProProvider } from "../pro-provider";
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
@@ -52,7 +54,12 @@ jest.mock("react-native-auth0", () =>
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => mockRouter,
+  useFocusEffect: (callback: () => () => void) => {
+    const { useEffect } = jest.requireActual("react");
+    useEffect(callback, [callback]);
+  },
 }));
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 // Navigation commands are controlled; the actual F05 session, invitation, F13 controls and profile render.
 const mockRouter = {
@@ -119,7 +126,11 @@ async function mount(content: React.ReactNode) {
 
 it("places a distinct Pro action before Privacy in the existing admitted profile", async () => {
   // Given
-  await mount(<ProfileScreen admitted />);
+  await mount(
+    <ProProvider>
+      <ProfileScreen admitted proEntry={<ProProfileEntry />} />
+    </ProProvider>,
+  );
 
   // When
   const user = userEvent.setup();
@@ -144,7 +155,9 @@ it("keeps Pro and its direct invitation behind ordinary F12 admission", async ()
   // Given
   await mount(
     <>
-      <ProfileScreen admitted={false} />
+      <ProProvider>
+        <ProfileScreen admitted={false} proEntry={<ProProfileEntry />} />
+      </ProProvider>
       <SignInInvitationScreen admitted={false} message={message} />
     </>,
   );
@@ -211,40 +224,8 @@ it("removes the guest presentation immediately when its F05 generation changes",
   expect(mockClient.webAuth.authorize).not.toHaveBeenCalled();
 });
 
-it("leaves the signed-in entry honestly unavailable until the T025 host is connected", async () => {
-  // Given
-  mockClient.credentialsManager.hasValidCredentials.mockResolvedValue(true);
-  await render(
-    <ThemeProvider>
-      <AccountSessionProvider>
-        <SessionProbe />
-        <ProEntry onOpenPresentation={null} />
-      </AccountSessionProvider>
-    </ThemeProvider>,
-  );
-  await screen.findByText("Session: authenticated");
-  await act(() =>
-    account.setAccount(
-      account.generation,
-      "00000000-0000-4000-8000-000000000246",
-    ),
-  );
-
-  // When
-  const user = userEvent.setup();
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-
-  // Then
-  expect(screen.getByRole("button", { name: "Blockout Pro" })).toBeDisabled();
-  expect(
-    screen.getByText("La présentation Pro n’est pas encore disponible."),
-  ).toBeOnTheScreen();
-  expect(mockRouter.push).not.toHaveBeenCalled();
-  expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
-});
-
-it("requires a new explicit press after ordinary sign-in before calling a supplied native host command", async () => {
-  // Given: only the future host command is controlled; F05 sign-in and generation publication are real.
+it("requires a new explicit press after ordinary sign-in before calling a native host command", async () => {
+  // Given: only the host navigation command is controlled; F05 sign-in and generation publication are real.
   const present = jest.fn();
   mockClient.webAuth.authorize.mockResolvedValue(
     credentialsFor("auth0|entry-test"),

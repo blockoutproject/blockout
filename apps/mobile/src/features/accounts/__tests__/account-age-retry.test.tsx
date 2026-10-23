@@ -121,13 +121,13 @@ afterEach(() => {
   process.env = previousEnvironment;
 });
 
-/** Real profile composition with current permissions and an independently admitted F12 boundary. */
+/** Real profile/account owners and F12 admission; the unrelated F09 composition is explicitly omitted. */
 async function renderProfile(admitted = true) {
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
         <AccountSessionProvider>
-          <ProfileScreen admitted={admitted} />
+          <ProfileScreen admitted={admitted} proEntry={null} />
           <SessionActions />
         </AccountSessionProvider>
       </ThemeProvider>

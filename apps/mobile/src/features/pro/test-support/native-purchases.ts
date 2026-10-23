@@ -2,6 +2,9 @@ import type Purchases from "react-native-purchases";
 
 /** Native I/O double only; each suite controls outcomes and resets its own lifecycle. */
 export const mockPurchases = {
+  PURCHASES_ERROR_CODE: jest.requireActual(
+    "@revenuecat/purchases-typescript-internal",
+  ).PURCHASES_ERROR_CODE,
   configure: jest.fn<
     ReturnType<typeof Purchases.configure>,
     Parameters<typeof Purchases.configure>
@@ -14,6 +17,7 @@ export const mockPurchases = {
   >(),
   logOut: jest.fn<ReturnType<typeof Purchases.logOut>, []>(),
   getCustomerInfo: jest.fn<ReturnType<typeof Purchases.getCustomerInfo>, []>(),
+  getOfferings: jest.fn<ReturnType<typeof Purchases.getOfferings>, []>(),
   addCustomerInfoUpdateListener: jest.fn<
     ReturnType<typeof Purchases.addCustomerInfoUpdateListener>,
     Parameters<typeof Purchases.addCustomerInfoUpdateListener>

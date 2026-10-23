@@ -118,13 +118,13 @@ afterEach(() => {
   process.env = previousEnvironment;
 });
 
-/** Real session, Query, theme, form and generated HTTP with controlled native/network I/O. */
+/** Real account/form owners with controlled I/O; the unrelated F09 composition is explicitly omitted. */
 async function renderProfile() {
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
         <AccountSessionProvider>
-          <ProfileScreen admitted />
+          <ProfileScreen admitted proEntry={null} />
           <SessionActions />
         </AccountSessionProvider>
       </ThemeProvider>

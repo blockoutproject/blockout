@@ -5,26 +5,27 @@ import { useAccountSession } from "../../accounts/current-account";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
-/**
- * T025 supplies the native route command when implemented. Null explicitly keeps account entry unavailable;
- * guests always use the one F05 invitation, without consulting RevenueCat or retaining an action.
- */
+/** Profile command supplied by the native host owner; guests always take the ordinary F05 invitation. */
 export interface ProEntryProps {
-  onOpenPresentation: (() => void) | null;
+  onOpenPresentation: () => void;
+  /** Only this entry waits for the native offering; other profile navigation remains available. */
+  opening?: boolean;
 }
 
 /** Profile action only; native offering selection, entitlement presentation and operations remain T025-owned. */
-export function ProEntry({ onOpenPresentation }: ProEntryProps) {
+export function ProEntry({
+  onOpenPresentation,
+  opening = false,
+}: ProEntryProps) {
   const account = useAccountSession();
   const router = useRouter();
   const { colors } = useTheme();
   const session = account.getSnapshot();
   const guest = account.status === "guest";
   const available =
-    guest ||
-    (account.status === "authenticated" &&
-      session.accountId !== null &&
-      onOpenPresentation !== null);
+    !opening &&
+    (guest ||
+      (account.status === "authenticated" && session.accountId !== null));
 
   return (
     <View style={styles.group}>
@@ -34,12 +35,12 @@ export function ProEntry({ onOpenPresentation }: ProEntryProps) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Blockout Pro"
-        accessibilityState={{ disabled: !available }}
+        accessibilityState={{ disabled: !available, busy: opening }}
         disabled={!available}
         onPress={() => {
           if (!account.isCurrent(session.generation)) return;
           if (guest) router.push("/sign-in-invitation");
-          else onOpenPresentation?.();
+          else onOpenPresentation();
         }}
         style={({ pressed }) => [
           styles.row,
@@ -58,13 +59,6 @@ export function ProEntry({ onOpenPresentation }: ProEntryProps) {
         />
         <Text style={[styles.label, { color: colors.text }]}>Blockout Pro</Text>
       </Pressable>
-      {!guest && onOpenPresentation === null && (
-        <Text
-          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-        >
-          La présentation Pro n’est pas encore disponible.
-        </Text>
-      )}
     </View>
   );
 }

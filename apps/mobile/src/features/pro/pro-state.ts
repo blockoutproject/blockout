@@ -6,7 +6,15 @@ import type { AccountSession, SessionSnapshot } from "../accounts";
 
 /** Transient operation presentation, independent of SDK entitlement and never persisted. */
 export type ProOperation =
-  "idle" | "cancelled" | "pending" | "failed" | "uncertain" | "completed";
+  | "idle"
+  | "purchasing"
+  | "cancelled"
+  | "pending"
+  | "failed"
+  | "uncertain"
+  | "purchased"
+  | "already-owned"
+  | "completed";
 
 /**
  * Evidence captured for one F05 session by the native association/read owner.

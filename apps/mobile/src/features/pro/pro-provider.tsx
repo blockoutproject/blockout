@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -8,6 +9,7 @@ import {
 } from "react";
 import { AppState } from "react-native";
 import Purchases from "react-native-purchases";
+import type { CustomerInfo } from "react-native-purchases";
 import { useAccountSession } from "../accounts/current-account";
 import { getProState, type ProOperation, type ProState } from "./pro-state";
 import { proSession } from "./pro-session";
@@ -22,7 +24,14 @@ export interface ProContext {
   /** Explicitly retries current association or verification, never a purchase or restore. */
   retry(): void;
   /** Consumes an attributed native operation outcome and rereads ordinary SDK state. */
-  completeOperation(operation: ProOperation): Promise<void>;
+  completeOperation(
+    operation: ProOperation,
+    customerInfo?: CustomerInfo,
+  ): Promise<void>;
+  /** Reserves one eligible native purchase synchronously; false must resume(false) at the SDK boundary. */
+  beginPurchase(): boolean;
+  /** Records an interrupted purchase as uncertain without cancelling the store transaction. */
+  dismissPresentation(): Promise<void>;
 }
 
 const ProSessionContext = createContext<ProContext | null>(null);
@@ -72,16 +81,32 @@ export function ProProvider({ children }: PropsWithChildren) {
   const current =
     native.evidence?.session.generation === session.generation &&
     native.evidence.session.accountId === session.accountId;
+  const refresh = useCallback(() => proSession.refresh(session), [session]);
+  const retry = useCallback(() => proSession.retry(session), [session]);
+  const completeOperation = useCallback(
+    (operation: ProOperation, customerInfo?: CustomerInfo) =>
+      proSession.completeOperation(session, operation, customerInfo),
+    [session],
+  );
+  const beginPurchase = useCallback(
+    () => proSession.beginPurchase(session),
+    [session],
+  );
+  const dismissPresentation = useCallback(
+    () => proSession.dismissPresentation(session),
+    [session],
+  );
   return (
     <ProSessionContext
       value={{
         state: getProState(account, native.evidence),
         refreshing: current && native.refreshing,
         verificationFailed: current && native.verificationFailed,
-        refresh: () => proSession.refresh(session),
-        retry: () => proSession.retry(session),
-        completeOperation: (operation) =>
-          proSession.completeOperation(session, operation),
+        refresh,
+        retry,
+        completeOperation,
+        beginPurchase,
+        dismissPresentation,
       }}
     >
       {children}
