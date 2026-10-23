@@ -167,6 +167,17 @@ npx nx run mobile:serve
 
 Native projects are generated and ignored. After changing native dependencies or configuration, regenerate them with `npm exec --workspace=@blockout/mobile -- expo prebuild --clean` before launching. The `expo-build-properties` plugin enables the [UIKit scene lifecycle required by Xcode 27](https://docs.expo.dev/versions/v57.0.0/sdk/build-properties/#pluginconfigtypeios) while retaining Expo SDK 57.
 
+### Native UI checks
+
+Install [agent-device](https://oss.callstack.com/agent-device/docs/installation) once on each execution host with the platform tools above:
+
+```sh
+npm install --global agent-device@0.21.31
+agent-device doctor
+```
+
+The [official skill](.agents/skills/agent-device/SKILL.md) is copied unchanged from [Callstack v0.21.31](https://github.com/callstack/agent-device/tree/v0.21.31/skills/agent-device), with its [MIT license](.agents/skills/agent-device/LICENSE).
+
 Shared native UI follows the [F13 theme and component boundaries](specs/003-shared-quality/plan.md#native-ui-and-approved-design). The [native validation guide](specs/003-shared-quality/quickstart.md#native-mobile-and-approved-design) owns Figma comparison and accessibility scenarios.
 
 Bundled Outfit files come unchanged from [`@expo-google-fonts/outfit` 0.4.3](https://www.npmjs.com/package/@expo-google-fonts/outfit/v/0.4.3), under the included [OFL license](apps/mobile/assets/fonts/OFL.txt). Interface icons use named components from [`lucide-react-native`](https://lucide.dev/guide/react-native), rendered through the Expo-compatible `react-native-svg`; sizes and colors follow the shared theme. The Blockout logo, photography and outlined artwork remain image assets, independently of interface icons.
