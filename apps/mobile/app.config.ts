@@ -141,7 +141,12 @@ const config: ExpoConfig = {
     [
       "expo-build-properties",
       {
-        android: { minSdkVersion: 29 },
+        android: {
+          minSdkVersion: 29,
+          // The transitive Room 2.2.5 rule keeps this class but drops its reflected constructor in R8 full mode.
+          extraProguardRules:
+            "-keepclassmembers class androidx.work.impl.WorkDatabase_Impl { public <init>(); }",
+        },
       },
     ],
     [
