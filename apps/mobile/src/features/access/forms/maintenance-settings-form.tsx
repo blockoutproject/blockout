@@ -60,7 +60,7 @@ export function MaintenanceSettingsForm({
     control,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting, dirtyFields },
+    formState: { errors, isSubmitting, isDirty, dirtyFields },
   } = useForm<MaintenanceValues>({
     resolver: zodResolver(schema),
     defaultValues: values(settings),
@@ -75,13 +75,10 @@ export function MaintenanceSettingsForm({
   const rereadRequired = needsRead || settings.revision > baseline.revision;
   const validPreview =
     imageUrl !== "" && imageSchema.safeParse(imageUrl).success;
-  // Subscribe to dirty fields so RHF's documented keepDirtyValues reconciliation retains them.
-  const dirty = Object.keys(dirtyFields).length > 0;
-
   useEffect(() => {
-    onDirtyChange?.(dirty);
+    onDirtyChange?.(isDirty);
     return () => onDirtyChange?.(false);
-  }, [dirty, onDirtyChange]);
+  }, [isDirty, onDirtyChange]);
 
   /** Confirms content preparation with the native F13 confirmation, independently of activation. */
   function confirmContent(draft: MaintenanceValues) {
@@ -300,7 +297,7 @@ export function MaintenanceSettingsForm({
         {validPreview && previewFailure === imageUrl && (
           <RequestError message="L’image ne peut pas être affichée." />
         )}
-        {dirty && (
+        {isDirty && (
           <Text
             style={[
               tokens.typography.metadata,
@@ -315,7 +312,7 @@ export function MaintenanceSettingsForm({
           label="Enregistrer le contenu"
           onPress={() => void handleSubmit(confirmContent)()}
           disabled={busy || rereadRequired}
-          loading={isSubmitting}
+          loading={isSubmitting || editing.content.isPending}
         />
       </View>
       {feedback && (

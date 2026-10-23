@@ -8,6 +8,9 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,6 +24,63 @@ import org.junit.jupiter.params.provider.ValueSource;
 class LnvObservationsTest {
   private static final URI CALENDAR =
       URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+
+  @Test
+  @DisplayName("Calendar detail anchors retain the HTML document base")
+  void resolvesDetailDocumentBase() throws Exception {
+    // Given
+    Document page;
+    try (InputStream input = getClass().getResourceAsStream("/acquisition/lnv/calendar.html")) {
+      page = Jsoup.parse(input, StandardCharsets.UTF_8.name(), CALENDAR.toString());
+    }
+    page.head().appendElement("base").attr("href", "https://lnv-web.dataproject.com/published/");
+    for (Element row : page.select("[id$=_MatchRow]")) {
+      row.select("[onclick]").removeAttr("onclick");
+      row.appendElement("a")
+          .attr("href", "MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902")
+          .text("Details");
+    }
+
+    // When
+    LnvCalendarParser.Read read =
+        new LnvCalendarParser().parse(bytes(page.html()), CALENDAR, "901", "902", "903");
+
+    // Then
+    assertThat(read.calendar().matches())
+        .singleElement()
+        .satisfies(
+            match ->
+                assertThat(match.detailUrl())
+                    .isEqualTo(
+                        URI.create(
+                            "https://lnv-web.dataproject.com/published/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902")));
+  }
+
+  @Test
+  @DisplayName("A foreign detail anchor is not reconstructed as a local match URL")
+  void rejectsForeignDetailAnchor() throws Exception {
+    // Given
+    Document page;
+    try (InputStream input = getClass().getResourceAsStream("/acquisition/lnv/calendar.html")) {
+      page = Jsoup.parse(input, StandardCharsets.UTF_8.name(), CALENDAR.toString());
+    }
+    for (Element row : page.select("[id$=_MatchRow]")) {
+      row.select("[onclick]").removeAttr("onclick");
+      row.appendElement("a")
+          .attr(
+              "href", "https://foreign.example/MatchStatistics.aspx?mID=990&ID=901&CID=903&PID=902")
+          .text("Details");
+    }
+
+    // When
+    LnvCalendarParser.Read read =
+        new LnvCalendarParser().parse(bytes(page.html()), CALENDAR, "901", "902", "903");
+
+    // Then
+    assertThat(read.calendar().complete()).isFalse();
+    assertThat(read.calendar().matches()).isEmpty();
+    assertThat(read.calendar().failures()).isNotEmpty();
+  }
 
   @ParameterizedTest
   @ValueSource(strings = {"Alterna VOLSTAR", "Saforelle VOLSTAR", "VOLSTAR Masculine 2"})
