@@ -119,8 +119,6 @@ public interface AccessApiMapper {
    * @param value generated URI presence, including a present null
    */
   default JsonNullable<String> text(JsonNullable<URI> value) {
-    return value.isPresent()
-        ? JsonNullable.of(value.get() == null ? null : value.get().toString())
-        : JsonNullable.undefined();
+    return value.map(uri -> uri == null ? null : uri.toString());
   }
 }

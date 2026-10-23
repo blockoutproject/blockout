@@ -41,11 +41,21 @@ function MaintenanceContent({ onDirtyChange }: MaintenanceSettingsScreenProps) {
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
   const session = useAccountSession();
-  const editing = useMaintenanceSettings(
-    permissions?.manageMaintenance === true,
-  );
+  const canManage = permissions?.manageMaintenance === true;
+  const editing = useMaintenanceSettings(canManage);
   const { colors } = useTheme();
   const router = useRouter();
+  const settings =
+    sessionStatus === "authenticated" ? editing.query.data : undefined;
+  const accessError = account.isError ? (
+    <RequestError
+      message="Les permissions du compte sont indisponibles."
+      onRetry={() => void account.refetch()}
+      retrying={account.isFetching}
+    />
+  ) : !canManage ? (
+    <RequestError message="Cette action nécessite une permission dédiée." />
+  ) : null;
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={styles.header}>
@@ -71,50 +81,34 @@ function MaintenanceContent({ onDirtyChange }: MaintenanceSettingsScreenProps) {
         {sessionStatus === "restoring" ||
         (sessionStatus === "authenticated" && account.isPending) ? (
           <RequestLoading />
-        ) : editing.query.data && sessionStatus === "authenticated" ? (
+        ) : (
           <>
-            {account.isError && (
-              <RequestError
-                message="Les permissions du compte sont indisponibles."
-                onRetry={() => void account.refetch()}
-                retrying={account.isFetching}
+            {accessError}
+            {settings ? (
+              <MaintenanceSettingsForm
+                key={`${session.generation}:${session.accountId}`}
+                settings={settings}
+                editing={editing}
+                disabled={!canManage}
+                onDirtyChange={onDirtyChange}
               />
+            ) : (
+              !accessError &&
+              (editing.query.isError ? (
+                <RequestError
+                  message="Les réglages de maintenance sont indisponibles."
+                  onRetry={() => void editing.query.refetch()}
+                  retrying={editing.query.isFetching}
+                />
+              ) : (
+                <RequestLoading />
+              ))
             )}
-            {!account.isError && permissions?.manageMaintenance !== true && (
-              <RequestError message="Cette action nécessite une permission dédiée." />
-            )}
-            <MaintenanceSettingsForm
-              key={`${session.generation}:${session.accountId}`}
-              settings={editing.query.data}
-              editing={editing}
-              disabled={
-                account.isError || permissions?.manageMaintenance !== true
-              }
-              onDirtyChange={onDirtyChange}
-            />
-            {editing.query.isError && (
+            {settings && editing.query.isError && (
               <RequestError message="La relecture a échoué. Votre brouillon est conservé." />
             )}
           </>
-        ) : account.isError ? (
-          <RequestError
-            message="Les permissions du compte sont indisponibles."
-            onRetry={() => void account.refetch()}
-            retrying={account.isFetching}
-          />
-        ) : permissions?.manageMaintenance !== true ? (
-          <RequestError message="Cette action nécessite une permission dédiée." />
-        ) : !editing.query.data ? (
-          editing.query.isError ? (
-            <RequestError
-              message="Les réglages de maintenance sont indisponibles."
-              onRetry={() => void editing.query.refetch()}
-              retrying={editing.query.isFetching}
-            />
-          ) : (
-            <RequestLoading />
-          )
-        ) : null}
+        )}
       </FormScrollView>
     </SafeAreaView>
   );
