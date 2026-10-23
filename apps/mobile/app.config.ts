@@ -145,6 +145,7 @@ const config: ExpoConfig = {
       },
     ],
     "./plugins/with-android-kotlin-compiler.cjs",
+    "./plugins/with-android-desugaring.cjs",
     [
       "@sentry/react-native/expo",
       {
