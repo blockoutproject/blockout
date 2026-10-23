@@ -8,6 +8,8 @@ import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
@@ -27,7 +29,10 @@ import lombok.Setter;
 @Entity
 @Table(name = "collection_control")
 class CollectionControlEntity {
-  @Id private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
+
   private UUID seasonId;
 
   @Enumerated(EnumType.STRING)
@@ -67,7 +72,6 @@ class CollectionControlEntity {
    * @param family competition family for this season
    */
   CollectionControlEntity(UUID seasonId, CollectionFamilyEnum family) {
-    this.id = UUID.randomUUID();
     this.seasonId = seasonId;
     this.family = family;
     this.enabled = true;

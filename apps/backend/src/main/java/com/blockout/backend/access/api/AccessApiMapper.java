@@ -84,34 +84,21 @@ public interface AccessApiMapper {
    *
    * @param source generated content request after shape validation
    */
-  default MaintenanceChange toCommand(ChangeMaintenanceRequest source) {
-    return new MaintenanceChange(
-        source.getRevision(), source.getMessage(), text(source.getImageUrl()));
-  }
+  MaintenanceChange toCommand(ChangeMaintenanceRequest source);
 
   /**
    * Preserves nested platform omission and nullable shared update text.
    *
    * @param source generated versions request after shape validation
    */
-  default VersionChange toCommand(ChangeApplicationVersionsRequest source) {
-    return new VersionChange(
-        source.getRevision(),
-        toCommand(source.getIos()),
-        toCommand(source.getAndroid()),
-        source.getMessage());
-  }
+  VersionChange toCommand(ChangeApplicationVersionsRequest source);
 
   /**
    * Preserves an omitted platform independently from an explicitly cleared optional property.
    *
    * @param source optional generated nested platform request
    */
-  default PlatformChange toCommand(ChangePlatformVersionRequest source) {
-    return source == null
-        ? null
-        : new PlatformChange(source.getMinimumVersion(), text(source.getStoreUrl()));
-  }
+  PlatformChange toCommand(ChangePlatformVersionRequest source);
 
   /**
    * Converts a generated nullable URI without collapsing explicit null into absence.
