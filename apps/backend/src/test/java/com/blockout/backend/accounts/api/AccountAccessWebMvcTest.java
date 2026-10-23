@@ -33,10 +33,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.transaction.CannotCreateTransactionException;
 
 /**
  * Real generated controller/mapper/read boundary, with controlled F12 admission and persistence.
@@ -121,6 +124,45 @@ class AccountAccessWebMvcTest {
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:not-found"))
         .andExpect(header().string("Cache-Control", "no-store"));
     verifyNoInteractions(establishment);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"database", "transaction"})
+  @DisplayName("Reports unavailable account storage with the canonical non-cacheable 503")
+  void reportsUnavailableStorage(String boundary) throws Exception {
+    // Given
+    RuntimeException failure =
+        boundary.equals("database")
+            ? new DataAccessResourceFailureException("Synthetic private connection details")
+            : new CannotCreateTransactionException("Synthetic private connection details");
+    when(store.findByPrincipal(ISSUER, "auth0|one")).thenThrow(failure);
+
+    // When
+    mvc.perform(get("/accounts/me").with(principal("mobile-test")))
+        // Then
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"))
+        .andExpect(jsonPath("$.status").value(503))
+        .andExpect(jsonPath("$.detail").doesNotExist())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(establishment, admission);
+  }
+
+  @Test
+  @DisplayName("Keeps unexpected storage integrity failures distinct from temporary unavailability")
+  void preservesUnexpectedIntegrityFailure() throws Exception {
+    // Given
+    when(store.findByPrincipal(ISSUER, "auth0|one"))
+        .thenThrow(new DataIntegrityViolationException("Synthetic private constraint details"));
+
+    // When
+    mvc.perform(get("/accounts/me").with(principal("mobile-test")))
+        // Then
+        .andExpect(status().isInternalServerError())
+        .andExpect(jsonPath("$.type").value("about:blank"))
+        .andExpect(jsonPath("$.detail").doesNotExist())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(establishment, admission);
   }
 
   @Test

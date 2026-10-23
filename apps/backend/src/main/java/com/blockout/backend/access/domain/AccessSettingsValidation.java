@@ -1,5 +1,6 @@
 package com.blockout.backend.access.domain;
 
+import com.blockout.backend.shared.validation.TextTrimming;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URLDecoder;
@@ -41,7 +42,7 @@ public final class AccessSettingsValidation {
       if (required) throw new IllegalArgumentException("Missing message");
       return null;
     }
-    String trimmed = value.replaceAll("^[\\s\\p{Z}\\uFEFF]+|[\\s\\p{Z}\\uFEFF]+$", "");
+    String trimmed = TextTrimming.trim(value);
     if (trimmed.isEmpty()) throw new IllegalArgumentException("Empty message");
     return trimmed;
   }
