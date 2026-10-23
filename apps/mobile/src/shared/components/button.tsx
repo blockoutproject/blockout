@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import type { LucideIcon } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, type PressableProps } from "react-native";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
@@ -29,6 +30,8 @@ export interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
+  /** Decorative trailing glyph from the library; busy state replaces it with the shared indicator. */
+  trailingIcon?: LucideIcon;
 }
 
 /** Presents a primary action with source-owned gradient geometry and native unavailable states. */
@@ -38,6 +41,7 @@ export function Button({
   disabled = false,
   loading = false,
   fullWidth = false,
+  trailingIcon: TrailingIcon,
 }: ButtonProps) {
   const { context } = useTheme();
   const gradient = fullWidth ? containerGradient : contentGradient;
@@ -83,7 +87,9 @@ export function Button({
         contentFit="fill"
         style={styles.gradient}
       />
-      {loading && <LoadingIndicator color={context.onAction} />}
+      {loading && !TrailingIcon && (
+        <LoadingIndicator color={context.onAction} />
+      )}
       <Text
         style={[
           styles.label,
@@ -95,6 +101,16 @@ export function Button({
       >
         {label}
       </Text>
+      {TrailingIcon &&
+        (loading ? (
+          <LoadingIndicator color={context.onAction} />
+        ) : (
+          <TrailingIcon
+            accessible={false}
+            size={tokens.size.controlIcon}
+            color={context.onAction}
+          />
+        ))}
     </Pressable>
   );
 }

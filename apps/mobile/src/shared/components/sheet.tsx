@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+import { X } from "lucide-react-native";
 import type { PropsWithChildren } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,42 +18,59 @@ export interface SheetProps extends PropsWithChildren {
   onClose: () => void;
   title: string;
   message?: string;
+  /** Disable for compact content in a native fitToContents route; its root keeps its natural height. */
+  scrollable?: boolean;
 }
 
-/** Keeps short content and its actions in native scrolling, with system bottom spacing. */
-export function Sheet({ onClose, title, message, children }: SheetProps) {
+/** Supplies system bottom spacing and either scrolling or natural-height content for its native route. */
+export function Sheet({
+  onClose,
+  title,
+  message,
+  scrollable = true,
+  children,
+}: SheetProps) {
   const { colors } = useTheme();
+  const content = (
+    <SafeAreaView
+      edges={["bottom"]}
+      style={[styles.content, !scrollable && styles.compactContent]}
+    >
+      <View style={styles.introduction}>
+        <View style={styles.titleRow}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.title, { color: colors.text }]}
+          >
+            {title}
+          </Text>
+          <IconButton label="Fermer" onPress={onClose}>
+            <X
+              accessible={false}
+              size={tokens.size.actionIcon}
+              color={colors.icon}
+            />
+          </IconButton>
+        </View>
+        {message && (
+          <Text style={[styles.message, { color: colors.secondaryText }]}>
+            {message}
+          </Text>
+        )}
+      </View>
+      {children}
+    </SafeAreaView>
+  );
+
+  if (!scrollable)
+    return <View style={{ backgroundColor: colors.surface }}>{content}</View>;
+
   return (
     <ScrollView
       style={[styles.screen, { backgroundColor: colors.surface }]}
       nestedScrollEnabled
     >
-      <SafeAreaView edges={["bottom"]} style={styles.content}>
-        <View style={styles.introduction}>
-          <View style={styles.titleRow}>
-            <Text
-              accessibilityRole="header"
-              style={[styles.title, { color: colors.text }]}
-            >
-              {title}
-            </Text>
-            <IconButton label="Fermer" onPress={onClose}>
-              <Image
-                source={require("../../../assets/icons/close.svg")}
-                style={styles.closeIcon}
-                tintColor={colors.icon}
-                contentFit="contain"
-              />
-            </IconButton>
-          </View>
-          {message && (
-            <Text style={[styles.message, { color: colors.secondaryText }]}>
-              {message}
-            </Text>
-          )}
-        </View>
-        {children}
-      </SafeAreaView>
+      {content}
     </ScrollView>
   );
 }
@@ -61,6 +78,12 @@ export function Sheet({ onClose, title, message, children }: SheetProps) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: tokens.spacing.lg, gap: tokens.spacing.section },
+  // Product Design's 24-point handle area + 8-point header inset; the grabber is drawn by the native route.
+  compactContent: {
+    paddingTop: tokens.spacing.section + tokens.spacing.sm,
+    paddingBottom: tokens.spacing.xl,
+    gap: tokens.spacing.md,
+  },
   introduction: { gap: tokens.spacing.xs },
   titleRow: {
     flexDirection: "row",
@@ -68,6 +91,5 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.md,
   },
   title: { ...tokens.typography.heading, flex: 1 },
-  closeIcon: { width: tokens.size.actionIcon, height: tokens.size.actionIcon },
   message: tokens.typography.body,
 });

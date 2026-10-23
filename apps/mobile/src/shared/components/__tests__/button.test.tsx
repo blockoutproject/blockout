@@ -1,28 +1,38 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
+import { ChevronRight } from "lucide-react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { Button } from "../button";
 
-it("announces the complete action and activates it once", async () => {
-  // Given
-  const onPress = jest.fn();
-  const user = userEvent.setup();
-  const label = "Enregistrer les modifications de cette compétition";
-  await render(
-    <ThemeProvider>
-      <Button label={label} onPress={onPress} />
-    </ThemeProvider>,
-  );
+it.each([
+  { name: "plain", trailingIcon: undefined },
+  { name: "trailing glyph", trailingIcon: ChevronRight },
+])(
+  "announces one complete action and activates it once: $name",
+  async ({ trailingIcon }) => {
+    // Given
+    const onPress = jest.fn();
+    const user = userEvent.setup();
+    const label = "Enregistrer les modifications de cette compétition";
+    await render(
+      <ThemeProvider>
+        <Button label={label} onPress={onPress} trailingIcon={trailingIcon} />
+      </ThemeProvider>,
+    );
 
-  // When
-  await user.press(screen.getByRole("button", { name: label }));
+    // When
+    await user.press(screen.getByRole("button", { name: label }));
 
-  // Then
-  expect(onPress).toHaveBeenCalledTimes(1);
-});
+    // Then
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+  },
+);
 
 it.each([
-  { disabled: true, loading: false },
-  { disabled: false, loading: true },
+  { disabled: true, loading: false, trailingIcon: undefined },
+  { disabled: false, loading: true, trailingIcon: undefined },
+  { disabled: true, loading: false, trailingIcon: ChevronRight },
+  { disabled: false, loading: true, trailingIcon: ChevronRight },
 ])("prevents activation while unavailable: %j", async (state) => {
   // Given
   const onPress = jest.fn();

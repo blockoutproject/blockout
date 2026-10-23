@@ -1,5 +1,11 @@
-import { Image, type ImageSource } from "expo-image";
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import {
+  Image as ImageIcon,
+  ImageOff,
+  X,
+  type LucideIcon,
+} from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -50,8 +56,8 @@ export interface ImageFieldProps {
   removeLabel?: string;
   helper?: string;
   error?: string;
-  /** Owner-approved empty illustration; error and selection/preview behavior stay shared. */
-  placeholderSource?: ImageSource | number;
+  /** Owner-selected Lucide empty-state glyph; error and selection/preview behavior stay shared. */
+  placeholderIcon?: LucideIcon;
 }
 
 /** Uses the system image library and a full-screen preview while leaving every accepted value with its owner. */
@@ -73,7 +79,7 @@ export function ImageField({
   removeLabel = "Supprimer l’image",
   helper,
   error,
-  placeholderSource,
+  placeholderIcon: PlaceholderIcon = ImageIcon,
 }: ImageFieldProps) {
   const { colors } = useTheme();
   const [busy, setBusy] = useState(false);
@@ -226,18 +232,17 @@ export function ImageField({
           >
             {busy ? (
               <LoadingIndicator color={colors.icon} />
-            ) : (
-              <Image
-                source={
-                  message
-                    ? require("../../../assets/icons/image-off.svg")
-                    : (placeholderSource ??
-                      require("../../../assets/icons/image.svg"))
-                }
+            ) : message ? (
+              <ImageOff
                 accessible={false}
-                tintColor={colors.icon}
-                contentFit="contain"
-                style={styles.icon}
+                size={tokens.size.actionIcon}
+                color={colors.icon}
+              />
+            ) : (
+              <PlaceholderIcon
+                accessible={false}
+                size={tokens.size.actionIcon}
+                color={colors.icon}
               />
             )}
           </View>
@@ -274,10 +279,10 @@ export function ImageField({
               label="Fermer l’aperçu"
               onPress={() => setPreviewId(undefined)}
             >
-              <Image
-                source={require("../../../assets/icons/close.svg")}
-                tintColor={colors.icon}
-                style={styles.icon}
+              <X
+                accessible={false}
+                size={tokens.size.actionIcon}
+                color={colors.icon}
               />
             </IconButton>
             {previewError && (
@@ -337,7 +342,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   compactThumbnail: { width: 64, height: 64 },
-  icon: { width: tokens.size.actionIcon, height: tokens.size.actionIcon },
   action: {
     minWidth: tokens.touchTarget.ios,
     minHeight: tokens.size.control,
