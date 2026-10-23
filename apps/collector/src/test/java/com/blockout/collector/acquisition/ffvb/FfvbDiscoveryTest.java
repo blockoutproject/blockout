@@ -52,6 +52,41 @@ class FfvbDiscoveryTest {
           "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=LIRA&saison=2026/2027");
 
   @Test
+  @DisplayName("Shared-round context uses submitted controls instead of disabled input values")
+  void readsSubmittedRoundContext() {
+    // Given
+    URI round =
+        URI.create(
+            "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?saison=2026/2027&codent=LIRA&division=YOUTH&tour=01");
+    String html =
+        """
+        <form action=vbspo_calendrier_export.php>
+        <input name=cal_saison value=2026/2027>
+        <input name=cal_codent value=LIRA>
+        <input name=cal_codpoule value="">
+        <select name=cal_coddiv><option value=YOUTH selected>Youth</option></select>
+        <input name=cal_codtour value=01>
+        <input name=cal_codent value=DISABLED disabled>
+        </form>
+        <table><tr><td><input name=poule value=GROUP-A></td></tr></table>
+        """;
+
+    // When
+    SportingObservation.Catalog catalog = parse(html, round, "LIRA");
+
+    // Then
+    assertThat(catalog.complete()).isTrue();
+    assertThat(catalog.pools())
+        .singleElement()
+        .satisfies(
+            pool -> {
+              assertThat(pool.competitionReference()).isEqualTo("YOUTH");
+              assertThat(pool.groupReference()).isEqualTo("GROUP-A");
+              assertThat(pool.tourReference()).isEqualTo("01");
+            });
+  }
+
+  @Test
   @DisplayName("National selectors use published headings and exclude CDF options")
   void discoversNationalSelectors() {
     // Given
