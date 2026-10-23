@@ -35,7 +35,8 @@ public class LnvDiscovery {
   }
 
   /**
-   * Selects published calendar phase links belonging to the expected championship.
+   * Selects published calendar phase links belonging to the expected championship, using jsoup's
+   * HTML base and query-relative URL resolution.
    *
    * @param bytes bounded official championship HTML
    * @param url actual page base
@@ -47,7 +48,7 @@ public class LnvDiscovery {
     for (Element link : LnvPage.parse(bytes, url).select("a[href]")) {
       URI target;
       try {
-        target = url.resolve(link.attr("href"));
+        target = URI.create(link.absUrl("href"));
       } catch (IllegalArgumentException failure) {
         throw LnvPage.invalid();
       }

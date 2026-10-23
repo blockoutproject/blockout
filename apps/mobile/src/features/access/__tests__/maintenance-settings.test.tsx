@@ -189,11 +189,12 @@ it("separates content preparation from explicit activation", async () => {
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
   const user = await editMessage();
-  mockFetch.mockImplementation(async (url, options) => {
-    if (options?.method === "PATCH")
-      return json({ ...stored, revision: 3, message: "Mon brouillon" });
-    return json(stored);
-  });
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PATCH"
+      ? response.promise
+      : Promise.resolve(json(stored)),
+  );
 
   // When
   await user.press(
@@ -201,8 +202,31 @@ it("separates content preparation from explicit activation", async () => {
   );
   await act(async () => nativeAction("Enregistrer").onPress?.());
 
+  try {
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: "Enregistrer le contenu",
+        busy: true,
+      }),
+    ).toBeDisabled();
+  } finally {
+    // When
+    await act(async () =>
+      response.resolve(
+        json({ ...stored, revision: 3, message: "Mon brouillon" }),
+      ),
+    );
+  }
+
   // Then
   await screen.findByText("Contenu enregistré.");
+  expect(
+    screen.getByRole("button", {
+      name: "Enregistrer le contenu",
+      busy: false,
+    }),
+  ).toBeEnabled();
   const writes = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
   expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
     revision: 2,
@@ -440,6 +464,9 @@ it.each(["conflict", "lost"])(
     );
     expect(writes).toBe(1);
     expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    expect(
+      screen.getByText("Modifications non enregistrées"),
+    ).toBeOnTheScreen();
 
     // When
     await user.press(
@@ -449,6 +476,9 @@ it.each(["conflict", "lost"])(
 
     // Then
     await screen.findByText("Contenu enregistré.");
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen();
     const calls = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
     expect(JSON.parse(String(calls[1][1]?.body)).revision).toBe(3);
   },

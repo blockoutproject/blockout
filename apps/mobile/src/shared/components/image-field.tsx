@@ -25,8 +25,9 @@ export interface ImageFieldImage {
  * Controlled image interaction, without upload, persistence or business validation.
  * The caller retains values until it accepts selection/removal. `onSelect` receives native
  * picker assets, including any requested native crop, and the replaced identity (absent for additions).
- * It owns preparation with Expo ImageManipulator when needed, actual PNG/JPEG validation and the 5 MiB upload bound
- * after preparation; picker metadata alone is not content validation. Only the profile owner
+ * The owning feature uses Expo ImageManipulator for native preparation when needed, checks the 5 MiB upload bound
+ * after preparation, and validates actual PNG/JPEG content on the server; picker metadata is not content validation.
+ * Only the profile owner
  * prepares squares. Sporting owners decide removal/restoration; F10 owns private files.
  * Owners invalidate session-specific callbacks and unmount/key this field when its owner changes.
  * `selectionLimit` is the caller's remaining native selection capacity (positive when multiple).
@@ -87,7 +88,6 @@ export function ImageField({
   const [previewId, setPreviewId] = useState<string>();
   const [previewError, setPreviewError] = useState(false);
   const active = useRef(true);
-  const selecting = useRef(false);
   const preview = images.find((image) => image.id === previewId);
   const message = error ?? selectionError;
   const unavailable = disabled || busy;
@@ -107,8 +107,7 @@ export function ImageField({
 
   /** Cancelling preserves values; native failures never disclose paths or provider diagnostics. */
   async function select(replaceId?: string) {
-    if (disabled || selecting.current) return;
-    selecting.current = true;
+    if (unavailable) return;
     setBusy(true);
     setSelectionError(undefined);
     try {
@@ -127,7 +126,6 @@ export function ImageField({
       if (active.current)
         setSelectionError("Impossible de sélectionner l’image. Réessayez.");
     } finally {
-      selecting.current = false;
       if (active.current) setBusy(false);
     }
   }

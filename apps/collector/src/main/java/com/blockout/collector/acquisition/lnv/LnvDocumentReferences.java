@@ -64,7 +64,7 @@ public class LnvDocumentReferences {
 
   /**
    * Resolves the published document tab and postback state, preserving jsoup's submitted form
-   * controls without executing scripts.
+   * controls and HTML action resolution without executing scripts.
    *
    * @param html complete match page
    * @param page qualified match URL
@@ -116,7 +116,7 @@ public class LnvDocumentReferences {
                 : JSON.createObjectNode();
         clientState.putArray("selectedIndexes").add(index);
         fields.add(new BasicNameValuePair(stateName, JSON.writeValueAsString(clientState)));
-        URI action = form.attr("action").isBlank() ? page : page.resolve(form.attr("action"));
+        URI action = form.attr("action").isBlank() ? page : URI.create(form.absUrl("action"));
         if (!page.getHost().equalsIgnoreCase(action.getHost())
             || !LnvPage.query(page).get("mID").equals(LnvPage.query(action).get("mID")))
           throw LnvPage.invalid();
