@@ -16,7 +16,7 @@ description: "Implementation tasks for F08 live contributions and moderation"
 
 - `[P]` identifies independent files with no unfinished dependency between marked tasks; wait for the phase prerequisites.
 - `[USn]` identifies the specification story. Setup, foundation and polish have no story label.
-- All checkboxes are future work. Cross-feature task references explicitly name their owner.
+- Unchecked tasks remain future work. Cross-feature task references explicitly name their owner.
 
 ## Path Conventions
 
@@ -29,8 +29,8 @@ description: "Implementation tasks for F08 live contributions and moderation"
 
 **Purpose**: Reuse the selected applications, contract tooling and database posture.
 
-- [ ] T001 Verify F13 T001–T017's foundation in `apps/backend/pom.xml`, `apps/mobile/package.json`, `apps/mobile/orval.config.ts` and `README.md`: Java 25/Spring Boot 4.1.1, PostgreSQL 18.6, Expo 58/React Native 0.88/React 19.3.0, pinned TanStack Query and existing JUnit/Testcontainers/Jest tooling. Reuse Java URI/time, JPA and native forms; no dependency upgrade or video-provider client. Resolve only the bounded owner inputs below.
-- [ ] T002 Inspect `apps/backend/src/main/resources/db/changelog/db.changelog-master.xml` and actual environment posture through `README.md`; extend the mutable XML baseline only while every environment is disposable and no retained version has run, otherwise append immutable changes. Preserve F13 application/migration role separation; no reset or speculative release migration.
+- [x] T001 Verify F13 T001–T017's foundation in `apps/backend/pom.xml`, `apps/mobile/package.json`, `apps/mobile/orval.config.ts` and `README.md`: Java 25/Spring Boot 4.1.1, PostgreSQL 18.6, Expo 58/React Native 0.88/React 19.3.0, pinned TanStack Query and existing JUnit/Testcontainers/Jest tooling. Reuse Java URI/time, JPA and native forms; no dependency upgrade or video-provider client. Resolve only the bounded owner inputs below.
+- [x] T002 Inspect `apps/backend/src/main/resources/db/changelog/db.changelog-master.xml` and actual environment posture through `README.md`; extend the mutable XML baseline only while every environment is disposable and no retained version has run, otherwise append immutable changes. Preserve F13 application/migration role separation; no reset or speculative release migration.
 
 ---
 
@@ -38,9 +38,9 @@ description: "Implementation tasks for F08 live contributions and moderation"
 
 **Purpose**: Establish canonical transport and current original-account context for all stories.
 
-- [ ] T003 [P] Write failing generated-binding cases in `apps/backend/src/test/java/com/blockout/backend/contributions/api/ContributionContractTest.java` and `apps/mobile/src/features/contributions/__tests__/contribution-contract.test.ts` using test-scoped adapters. Cover finite enums, strict requests/null rejection, additive responses, required/absent/nullable fields, twenty-item pages with maximum 107374182, counts through 9007199254740991, opaque nonempty revisions and F13 one-time JSON validation. Include null erased reasons, omitted erased owner/actor names, optional private schedule/result and public contribution ID only with a contributed URL.
-- [ ] T004 [P] Write failing current-access/session cases in `apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAccessTest.java` and `apps/mobile/src/features/contributions/__tests__/contribution-context.test.ts`. Cover original usable UUID, another/erased/recreated account, invalid/wrong-environment/collector credentials, F12 admission/explicit bypass, absent capability, complete stream-only moderation grant and no Pro privilege. Reject old callbacks through A → guest/B → A even when cancellation fails.
-- [ ] T005 Define focused context values in `apps/backend/src/main/java/com/blockout/backend/contributions/application/ContributionContext.java` and query/mutation keys in `apps/mobile/src/features/contributions/api/contribution-keys.ts`, making T004 pass with F05/F12. Reuse `stream-links.moderate` / `moderateStreamLinks` for every video action without another publication/withdrawal grant, unrelated power or implicit maintenance bypass. Keys distinguish account/session, match/version and filters; page is the native infinite-query parameter. Public F03 state stays outside private keys; no second session owner or persistent DTO store.
+- [x] T003 [P] Write failing generated-binding cases in `apps/backend/src/test/java/com/blockout/backend/contributions/api/ContributionContractTest.java` and `apps/mobile/src/features/contributions/__tests__/contribution-contract.test.ts` using test-scoped adapters. Cover finite enums, strict requests/null rejection, additive responses, required/absent/nullable fields, twenty-item pages with maximum 107374182, counts through 9007199254740991, opaque nonempty revisions and F13 one-time JSON validation. Include null erased reasons, omitted erased owner/actor names, optional private schedule/result and public contribution ID only with a contributed URL.
+- [x] T004 [P] Write failing current-access/session cases in `apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAccessTest.java` and `apps/mobile/src/features/contributions/__tests__/contribution-context.test.ts`. Cover original usable UUID, another/erased/recreated account, invalid/wrong-environment/collector credentials, F12 admission/explicit bypass, absent capability, complete stream-only moderation grant and no Pro privilege. Reject old callbacks through A → guest/B → A even when cancellation fails.
+- [x] T005 Define focused context values in `apps/backend/src/main/java/com/blockout/backend/contributions/application/ContributionContext.java` and query/mutation keys in `apps/mobile/src/features/contributions/api/contribution-keys.ts`, making T004 pass with F05/F12. Reuse `stream-links.moderate` / `moderateStreamLinks` for every video action without another publication/withdrawal grant, unrelated power or implicit maintenance bypass. Keys distinguish account/session, match/version and filters; page is the native infinite-query parameter. Public F03 state stays outside private keys; no second session owner or persistent DTO store.
 
 **Checkpoint**: Contract/context boundaries are testable. Controlled inputs allow isolated work; actual-owner qualifications remain mandatory for integrated readiness.
 
