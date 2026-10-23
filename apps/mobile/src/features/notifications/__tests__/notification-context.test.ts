@@ -15,6 +15,13 @@ import { notificationResponse } from "../test-support/notification-data";
 
 const a = "00000000-0000-4000-8000-000000000237";
 const b = "00000000-0000-4000-8000-000000000238";
+const accountTransitions: { label: string; transitions: (string | null)[] }[] =
+  [
+    { label: "guest", transitions: [null] },
+    { label: "guest → B", transitions: [null, b] },
+    { label: "guest → A", transitions: [null, a] },
+    { label: "B → A", transitions: [b, a] },
+  ];
 const originalUrl = process.env.EXPO_PUBLIC_API_URL;
 const mockFetch = jest.fn<
   Promise<Response>,
@@ -122,12 +129,7 @@ it("uses one native infinite-query entry with cursor in pageParam", async () => 
   }
 });
 
-it.each<{ label: string; transitions: (string | null)[] }>([
-  { label: "guest", transitions: [null] },
-  { label: "guest → B", transitions: [null, b] },
-  { label: "guest → A", transitions: [null, a] },
-  { label: "B → A", transitions: [b, a] },
-])(
+it.each(accountTransitions)(
   "removes obsolete inbox/summary/detail across A → $label",
   async ({ transitions }) => {
     // Given: real Query/session/transport; Fetch deliberately completes despite cancellation.
@@ -180,12 +182,7 @@ it.each<{ label: string; transitions: (string | null)[] }>([
   },
 );
 
-it.each<{ label: string; transitions: (string | null)[] }>([
-  { label: "guest", transitions: [null] },
-  { label: "guest → B", transitions: [null, b] },
-  { label: "guest → A", transitions: [null, a] },
-  { label: "B → A", transitions: [b, a] },
-])(
+it.each(accountTransitions)(
   "rejects obsolete callbacks without a cancellation signal after A → $label",
   async ({ transitions }) => {
     // Given

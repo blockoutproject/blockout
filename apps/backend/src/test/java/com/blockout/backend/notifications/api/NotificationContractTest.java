@@ -108,8 +108,8 @@ class NotificationContractTest {
   }
 
   @Test
-  @DisplayName("Keeps twenty entries, absent end cursor and exact authored int64 summary")
-  void preservesPageAndSummary() throws Exception {
+  @DisplayName("Keeps twenty entries with an absent end cursor")
+  void preservesPageBoundary() throws Exception {
     // Given / When
     mvc.perform(get(ROOT + "/notifications"))
         // Then
@@ -117,17 +117,37 @@ class NotificationContractTest {
         .andExpect(jsonPath("$.notifications.length()").value(20))
         .andExpect(jsonPath("$.nextCursor").doesNotExist())
         .andExpect(header().string("Cache-Control", "no-store"));
-    mvc.perform(get(ROOT + "/notification-summary"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.unreadCount").value(4294967296L))
-        .andExpect(jsonPath("$.nextExpiryAt").value("2026-11-22T01:02:03.123456Z"));
-    assertThat(json.writeValueAsString(new NotificationSummaryResponse(0L)))
-        .isEqualTo("{\"unreadCount\":0}");
   }
 
   @Test
-  @DisplayName("Rejects oversized arrays and negative counts through generated constraints")
-  void validatesResponseBounds() {
+  @DisplayName("Serializes the authored int64 count with its precise expiry")
+  void preservesSummaryPrecision() throws Exception {
+    // Given / When
+    mvc.perform(get(ROOT + "/notification-summary"))
+        // Then
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.unreadCount").value(4294967296L))
+        .andExpect(jsonPath("$.nextExpiryAt").value("2026-11-22T01:02:03.123456Z"));
+  }
+
+  @Test
+  @DisplayName("Omits expiry for a zero-count summary")
+  void omitsZeroExpiry() {
+    // Given
+    NotificationSummaryResponse summary = new NotificationSummaryResponse(0L);
+
+    // When
+    JsonNode encoded = json.readTree(json.writeValueAsString(summary));
+
+    // Then
+    assertThat(encoded.path("unreadCount").isIntegralNumber()).isTrue();
+    assertThat(encoded.path("unreadCount").asLong()).isZero();
+    assertThat(encoded.path("nextExpiryAt").isMissingNode()).isTrue();
+  }
+
+  @Test
+  @DisplayName("Rejects arrays beyond twenty entries through generated constraints")
+  void validatesPageBound() {
     // Given
     List<NotificationResponse> entries =
         new ArrayList<>(java.util.Collections.nCopies(20, entry(NotificationFamilyEnum.RESULT)));
@@ -136,7 +156,16 @@ class NotificationContractTest {
     assertThat(validator.validate(new NotificationsResponse(entries))).isEmpty();
     entries.add(entry(NotificationFamilyEnum.RESULT));
     assertThat(validator.validate(new NotificationsResponse(entries))).isNotEmpty();
-    assertThat(validator.validate(new NotificationSummaryResponse(-1L))).isNotEmpty();
+  }
+
+  @Test
+  @DisplayName("Rejects negative counts through generated constraints")
+  void validatesSummaryBound() {
+    // Given
+    NotificationSummaryResponse summary = new NotificationSummaryResponse(-1L);
+
+    // When / Then
+    assertThat(validator.validate(summary)).isNotEmpty();
   }
 
   @ParameterizedTest
@@ -224,7 +253,7 @@ class NotificationContractTest {
   }
 
   @Test
-  @DisplayName("Does not echo the private address or parse a body for 204 removal")
+  @DisplayName("Returns created association identities without echoing the private address")
   void preservesSubscriptionProjection() throws Exception {
     // Given / When
     mvc.perform(
@@ -236,10 +265,25 @@ class NotificationContractTest {
         .andExpect(header().string("Location", ROOT + "/push-subscriptions/" + ID))
         .andExpect(jsonPath("$.id").value(ID.toString()))
         .andExpect(jsonPath("$.expoPushToken").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("Returns 204 without a removal representation")
+  void preservesNoContentRemoval() throws Exception {
+    // Given / When
     mvc.perform(delete(ROOT + "/push-subscriptions/" + ID))
+        // Then
         .andExpect(status().isNoContent())
         .andExpect(content().string(""));
-    mvc.perform(delete(ROOT + "/notifications/" + ID)).andExpect(status().isMethodNotAllowed());
+  }
+
+  @Test
+  @DisplayName("Provides no manual notification deletion operation")
+  void refusesManualDeletion() throws Exception {
+    // Given / When
+    mvc.perform(delete(ROOT + "/notifications/" + ID))
+        // Then
+        .andExpect(status().isMethodNotAllowed());
   }
 
   /**

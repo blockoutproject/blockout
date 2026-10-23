@@ -54,10 +54,12 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Real F05 resolution and HTTP security/filter with controlled account storage and F12 decision.
@@ -80,7 +82,7 @@ class NotificationAccessTest {
   private static HttpServer keys;
   private static RSAKey signingKey;
   @Autowired private MockMvc mvc;
-  @Autowired private Adapter adapter;
+  @Autowired private JsonMapper json;
   @MockitoBean private AccountStore store;
   @MockitoBean private MaintenanceAdmission admission;
 
@@ -159,12 +161,16 @@ class NotificationAccessTest {
     // When
     mvc.perform(get(path(A)).header("Authorization", "Bearer " + token("mobile-test", issuer)))
         // Then
-        .andExpect(status().isOk());
-    assertThat(adapter.context.accountId()).isEqualTo(A);
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.accountId").value(A.toString()));
   }
 
   /**
    * Signs explicit environment claims for the real Spring decoder, with a bounded valid lifetime.
+   *
+   * @param audience selected synthetic environment audience
+   * @param tokenIssuer trusted or deliberately foreign issuer
+   * @return signed bearer for the real security filter
    */
   private static String token(String audience, String tokenIssuer) {
     JwtClaimsSet claims =
@@ -192,14 +198,20 @@ class NotificationAccessTest {
     when(store.findByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(account(A)));
 
     // When
-    mvc.perform(get(path(A)).with(principal("mobile-test"))).andExpect(status().isOk());
-    NotificationContext captured = adapter.context;
+    MvcResult first =
+        mvc.perform(get(path(A)).with(principal("mobile-test")))
+            .andExpect(status().isOk())
+            .andReturn();
+    NotificationContext captured =
+        json.readValue(first.getResponse().getContentAsString(), NotificationContext.class);
     when(store.findByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(account(B)));
 
     // Then
     assertThat(captured.accountId()).isEqualTo(A);
     mvc.perform(get(path(A)).with(principal("mobile-test"))).andExpect(status().isNotFound());
-    mvc.perform(get(path(B)).with(principal("mobile-test"))).andExpect(status().isOk());
+    mvc.perform(get(path(B)).with(principal("mobile-test")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.accountId").value(B.toString()));
     assertThat(captured.accountId()).isEqualTo(A);
   }
 
@@ -374,7 +386,6 @@ class NotificationAccessTest {
   @RestController
   static class Adapter {
     private final NotificationRequest requests;
-    private NotificationContext context;
 
     /**
      * Injects the production owner resolver.
@@ -389,12 +400,11 @@ class NotificationAccessTest {
      * Captures admitted immutable context without reading an inbox.
      *
      * @param accountId original UUID from the requested resource
-     * @return empty test-only success after owner resolution
+     * @return captured owner for HTTP assertions, not the future production summary representation
      */
     @GetMapping("/accounts/{accountId}/notification-summary")
-    ResponseEntity<Void> summary(@PathVariable UUID accountId) {
-      context = requests.owner(accountId);
-      return ResponseEntity.ok().build();
+    ResponseEntity<NotificationContext> summary(@PathVariable UUID accountId) {
+      return ResponseEntity.ok(requests.owner(accountId));
     }
   }
 }
