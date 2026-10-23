@@ -309,12 +309,6 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
-  public boolean containsTarget(UUID cycleId, UUID scopeId) {
-    return targets.existsByCycleIdAndScopeId(cycleId, scopeId);
-  }
-
-  /** {@inheritDoc} */
-  @Override
   public Optional<CollectionState.Target> target(
       UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind) {
     return targets
