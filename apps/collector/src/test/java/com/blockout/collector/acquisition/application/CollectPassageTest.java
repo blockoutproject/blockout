@@ -41,7 +41,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -51,6 +51,13 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 @ExtendWith(OutputCaptureExtension.class)
 @DisplayName("Bounded admitted passage and uncertain terminal writes")
 class CollectPassageTest {
+  /** Distinguishes an actual supplier image from native cache reuse or acquisition failure. */
+  private enum ImageOutcome {
+    FRESH,
+    CACHED,
+    FAILED
+  }
+
   private static final Instant NOW = Instant.parse("2026-10-19T12:00:00Z");
   private static final UUID CONTROL = UUID.fromString("00000000-0000-4000-8000-000000000153");
   private static final UUID POOL = UUID.fromString("00000000-0000-4000-8000-000000000154");
@@ -133,10 +140,10 @@ class CollectPassageTest {
   }
 
   @ParameterizedTest
-  @ValueSource(booleans = {false, true})
+  @EnumSource(ImageOutcome.class)
   @DisplayName(
       "Only new resolved matches get first detail while independent team image attempts remain bounded")
-  void enrichesNewMatchesWithinCalendar(boolean imageUnavailable) {
+  void enrichesNewMatchesWithinCalendar(ImageOutcome imageOutcome) {
     // Given
     CollectorLifecycle.AdmittedCycle admitted = admit(false);
     UUID newMatch = UUID.fromString("00000000-0000-4000-8000-000000000171");
@@ -145,6 +152,8 @@ class CollectPassageTest {
     UUID away = UUID.fromString("00000000-0000-4000-8000-000000000174");
     URI page = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
     URI logo = URI.create("https://images.dataproject.com/lnv/home.png");
+    byte[] image = {1, 2, 3};
+    Instant imageReadAt = NOW.minusSeconds(10);
     CollectionBackend.Target target =
         target(CollectionTargetKindEnum.CALENDAR).toBuilder()
             .provider(CollectionProviderEnum.LNV)
@@ -202,9 +211,16 @@ class CollectPassageTest {
         .thenReturn(
             new SportingObservation.Outcome(
                 "new", ObservationOutcomeEnum.ACCEPTED, newMatch, null, null, null));
-    if (imageUnavailable)
+    if (imageOutcome == ImageOutcome.FAILED)
       when(lnv.image(logo)).thenThrow(new IllegalArgumentException("Unavailable image"));
-    else when(lnv.image(logo)).thenReturn(null);
+    else if (imageOutcome == ImageOutcome.CACHED) when(lnv.image(logo)).thenReturn(null);
+    else {
+      when(lnv.image(logo)).thenReturn(new LnvAcquisition.Read<>(image, imageReadAt));
+      when(sporting.logo(any(), any(), eq(image)))
+          .thenReturn(
+              new SportingObservation.Outcome(
+                  null, ObservationOutcomeEnum.ACCEPTED, null, null, null, null));
+    }
     when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
 
     // When
@@ -214,17 +230,39 @@ class CollectPassageTest {
     verify(sporting).detail(eq(newMatch), any(), eq(facts));
     verify(sporting, never()).detail(eq(oldMatch), any(), any());
     verify(lnv, times(2)).image(logo);
-    verify(sporting, never()).logo(any(), any(), any());
+    if (imageOutcome == ImageOutcome.FRESH) {
+      ArgumentCaptor<SportingObservation.Context> contexts =
+          ArgumentCaptor.forClass(SportingObservation.Context.class);
+      verify(sporting, times(2)).logo(any(), contexts.capture(), eq(image));
+      assertThat(contexts.getAllValues())
+          .allSatisfy(
+              context -> {
+                assertThat(context.cycleId()).isEqualTo(admitted.getCycle().id());
+                assertThat(context.observedAt()).isEqualTo(imageReadAt);
+              });
+    } else verify(sporting, never()).logo(any(), any(), any());
     ArgumentCaptor<CollectionBackend.Result> evidence =
         ArgumentCaptor.forClass(CollectionBackend.Result.class);
-    verify(backend, times(imageUnavailable ? 6 : 4))
+    int logoResults =
+        switch (imageOutcome) {
+          case FRESH -> 4;
+          case FAILED -> 2;
+          case CACHED -> 0;
+        };
+    verify(backend, times(4 + logoResults))
         .record(eq(admitted.getCycle().id()), evidence.capture());
     assertThat(
             evidence.getAllValues().stream()
                 .filter(item -> item.stage() == CollectionStageEnum.LOGO)
                 .toList())
-        .hasSize(imageUnavailable ? 2 : 0)
-        .allSatisfy(item -> assertThat(item.outcome()).isEqualTo(CollectionOutcomeEnum.FAILED));
+        .hasSize(logoResults)
+        .allSatisfy(
+            item ->
+                assertThat(item.outcome())
+                    .isEqualTo(
+                        imageOutcome == ImageOutcome.FAILED
+                            ? CollectionOutcomeEnum.FAILED
+                            : CollectionOutcomeEnum.SUCCESS));
   }
 
   @Test

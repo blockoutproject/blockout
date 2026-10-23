@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 
+import com.blockout.collector.acquisition.application.CollectionBackend;
+import com.blockout.collector.acquisition.application.CollectionBackendFailure;
 import com.blockout.collector.acquisition.infrastructure.CollectorStartup;
 import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
@@ -27,6 +29,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.oauth2.client.ClientCredentialsOAuth2AuthorizedClientProvider;
@@ -56,6 +60,7 @@ class IngestionAuthenticationIntegrationTest {
   private static volatile boolean disconnectWrite;
   private static volatile CountDownLatch release;
   @Autowired private ApiClient client;
+  @Autowired private CollectionBackend backend;
   @Autowired private OAuth2AuthorizedClientService clients;
   @Autowired private ClientCredentialsOAuth2AuthorizedClientProvider provider;
 
@@ -280,6 +285,31 @@ class IngestionAuthenticationIntegrationTest {
 
     // Then
     assertThat(failure).isInstanceOf(OAuth2AuthorizationException.class);
+    assertThat(tokens).hasValue(1);
+    assertThat(writes).hasValue(0);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName(
+      "Classifies failed credentials before a backend write without replaying either request")
+  void classifiesUnsentBackendWrite(boolean timeout) {
+    // Given
+    refuseToken = !timeout;
+    stallToken = timeout;
+    UUID incarnation = UUID.fromString("00000000-0000-4000-8000-000000000001");
+
+    // When
+    Throwable failure = catchThrowable(() -> backend.register(0, incarnation));
+
+    // Then
+    assertThat(failure)
+        .isInstanceOfSatisfying(
+            CollectionBackendFailure.class,
+            classified -> {
+              assertThat(classified.getKind()).isEqualTo(CollectionBackendFailure.Kind.REJECTED);
+              assertThat(classified.getCause()).isInstanceOf(OAuth2AuthorizationException.class);
+            });
     assertThat(tokens).hasValue(1);
     assertThat(writes).hasValue(0);
   }

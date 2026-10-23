@@ -6,10 +6,7 @@ import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
-import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -797,7 +794,7 @@ public class CollectPassage {
   }
 
   /**
-   * Uploads only a new supplier image read and always removes its transient upload file.
+   * Uploads only a new supplier image read, using its original bounded bytes directly.
    *
    * @param context admitted passage
    * @param team backend-resolved team, absent on rejected identity
@@ -837,16 +834,13 @@ public class CollectPassage {
         null,
         read.observedAt(),
         null);
-    Path image = null;
     try {
-      image = Files.createTempFile("blockout-logo-", ".image");
-      Files.write(image, read.observation());
       SportingObservation.Outcome outcome =
           sporting.logo(
               team,
               new SportingObservation.Context(
                   context.getCycle().id(), ordinal, read.observedAt(), null),
-              image);
+              read.observation());
       record(
           context,
           team,
@@ -871,27 +865,6 @@ public class CollectPassage {
           null,
           clock.instant(),
           failureReason(failure));
-    } catch (IOException failure) {
-      record(
-          context,
-          team,
-          CollectionStageEnum.LOGO,
-          ordinal,
-          CollectionPhaseEnum.INTEGRATION,
-          CollectionOutcomeEnum.FAILED,
-          null,
-          null,
-          clock.instant(),
-          "Transient image unavailable");
-    } finally {
-      if (image != null)
-        try {
-          Files.deleteIfExists(image);
-        } catch (IOException failure) {
-          log.atError()
-              .addKeyValue("operation", "logo_cleanup")
-              .log("Transient image cleanup failed");
-        }
     }
   }
 

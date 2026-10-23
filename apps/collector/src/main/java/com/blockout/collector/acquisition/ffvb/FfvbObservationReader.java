@@ -58,8 +58,8 @@ public class FfvbObservationReader implements FfvbAcquisition {
   @Override
   public Resource read(URI url) {
     try {
-      byte[] body = http.get(url).join();
-      return new SharedResource(url, new Read<>(body, clock.instant()));
+      ProviderHttpClient.Response response = http.page(url).join();
+      return fromPage(response, clock.instant());
     } catch (RuntimeException failure) {
       throw readFailure(failure);
     }

@@ -4,6 +4,7 @@ import com.blockout.collector.acquisition.application.CollectionBackendFailure;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
@@ -13,7 +14,8 @@ import org.springframework.web.client.RestClientResponseException;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class BackendExchange {
   /**
-   * Classifies one native HTTP/decoding failure without disclosing its response payload.
+   * Classifies one native credential, HTTP or decoding failure without disclosing its payload.
+   * Credential acquisition fails before the business exchange, so that write is known unsent.
    *
    * @param operation single generated exchange
    * @param <T> mapped application result
@@ -22,6 +24,8 @@ final class BackendExchange {
   static <T> T once(Supplier<T> operation) {
     try {
       return operation.get();
+    } catch (OAuth2AuthorizationException failure) {
+      throw new CollectionBackendFailure(CollectionBackendFailure.Kind.REJECTED, failure);
     } catch (RestClientResponseException failure) {
       CollectionBackendFailure.Kind kind =
           switch (failure.getStatusCode().value()) {

@@ -1,6 +1,5 @@
 package com.blockout.collector.acquisition.application;
 
-import java.nio.file.Path;
 import java.util.UUID;
 
 /** Explicit F02 observation boundary; every mutation is attempted once, never replayed. */
@@ -76,8 +75,8 @@ public interface SportingBackend {
    *
    * @param id authorized professional team
    * @param context actual image-read evidence
-   * @param image transient image owned by the caller
+   * @param image original bounded source bytes, retained only for this request
    * @return F02 acceptance
    */
-  SportingObservation.Outcome logo(UUID id, SportingObservation.Context context, Path image);
+  SportingObservation.Outcome logo(UUID id, SportingObservation.Context context, byte[] image);
 }
