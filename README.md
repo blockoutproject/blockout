@@ -182,6 +182,8 @@ Shared native UI follows the [F13 theme and component boundaries](specs/003-shar
 
 Bundled Outfit files come unchanged from [`@expo-google-fonts/outfit` 0.4.3](https://www.npmjs.com/package/@expo-google-fonts/outfit/v/0.4.3), under the included [OFL license](apps/mobile/assets/fonts/OFL.txt). Interface icons use named components from [`lucide-react-native`](https://lucide.dev/guide/react-native), rendered through the Expo-compatible `react-native-svg`; sizes and colors follow the shared theme. The Blockout logo, photography and outlined artwork remain image assets, independently of interface icons.
 
+Android builds require Android 10 / API 29 through Expo BuildProperties. Native qualification uses this minimum and the latest stable runtime with the real Auth0 browser handoff.
+
 `Blockout Local` uses development-only `com.blockout.local` identifiers and a blank route. F14 owns retained store identities and production candidates. There is no web target or mock identity provider. Android emulators reach a host API through `10.0.2.2`; physical phones need the host's LAN address. `EXPO_PUBLIC_*` values are public bundle configuration, never secrets.
 
 The [canonical HTTP roots](specs/003-shared-quality/contracts/README.md) cover mobile, ingestion and the legacy update read. Redocly's minimal ruleset checks source structure and references without inferring a product license; generation and current consumer checks run through [verification](#verification). Integrated business and provider qualifications remain with the owning feature tasks.

@@ -20,7 +20,7 @@ This plan defines the common technical foundation. F05/F12 own the reconciled id
 
 **Testing**: JUnit, Spring MVC and Testcontainers PostgreSQL for Java; Jest Expo and React Native Testing Library for mobile; reproducible physical iOS/Android qualifications. No additional E2E framework.
 
-**Target Platform**: Native iOS (minimum 16.4) and Android phones, French Blockout-owned content; native development builds. Existing Hostinger VPS, Dokploy/Traefik; Grafana Cloud Free with Alloy, Sentry Free. Expo Go is not supplier-compatibility evidence. Native qualification follows FR-029’s SDK-minimum/latest-runtime rule and declares any simulator substitution in the actual build/device matrix; F14 retains its transition qualifications.
+**Target Platform**: Native iOS (minimum 16.4) and Android phones (minimum Android 10 / API 29), French Blockout-owned content; native development builds. Existing Hostinger VPS, Dokploy/Traefik; Grafana Cloud Free with Alloy, Sentry Free. Expo Go is not supplier-compatibility evidence. Native qualification follows FR-029’s application-minimum/latest-runtime rule and declares any simulator substitution in the actual build/device matrix; F14 retains its transition qualifications.
 
 **Project Type**: Mobile app plus one modular business backend and one independently deployed ingestion application, with two HTTP surfaces served by the same backend.
 

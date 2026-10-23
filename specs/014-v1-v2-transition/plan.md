@@ -20,7 +20,7 @@ Preserve Auth0 identities, applicable Pro rights and manually maintained club lo
 
 **Testing**: Existing JUnit/Spring MVC/Testcontainers and Jest Expo/React Native Testing Library; actual signed iOS/Android upgrade and provider qualification. Current repository checks cover documentation and OpenAPI only.
 
-**Target Platform**: Existing production app identities on iOS 16.4+ and Android API 24+ subject to the selected dependencies' native qualification; existing VPS/Dokploy deployment under F13. Older iOS support and a dedicated compensation process are outside scope.
+**Target Platform**: Existing production app identities on iOS 16.4+ and Android 10 / API 29+ subject to the selected dependencies' native qualification; existing VPS/Dokploy deployment under F13. Older iOS support and a dedicated compensation process are outside scope.
 
 **Project Type**: Existing modular backend, collector and native mobile, with a one-time manually controlled transition.
 
