@@ -1,4 +1,4 @@
-import { Alert } from "react-native";
+import { Alert, type AlertButton } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -528,7 +528,7 @@ it.each(["Enregistrer le contenu", "Activer la maintenance"])(
     await renderSettings();
     await screen.findByDisplayValue(initial.message);
     const user = await editMessage();
-    let confirmAction: (() => void) | undefined;
+    let confirmAction: AlertButton["onPress"];
     jest.mocked(Alert.alert).mockImplementation((_title, _message, buttons) => {
       confirmAction = buttons?.at(-1)?.onPress;
     });

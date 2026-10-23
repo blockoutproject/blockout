@@ -113,7 +113,7 @@ export function ImageField({
     setSelectionError(undefined);
     try {
       const allowsMultipleSelection = multiple && replaceId === undefined;
-      // SDK 57's image-only system library requires no broad photo permission request.
+      // The SDK's image-only system library requires no broad photo permission request.
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         allowsEditing: allowsEditing && !allowsMultipleSelection,
@@ -362,4 +362,4 @@ const styles = StyleSheet.create({
   previewError: { ...tokens.typography.body, margin: tokens.spacing.lg },
   viewer: { flex: 1 },
   fullImage: { flex: 1, width: "100%" },
-});
+} as const);

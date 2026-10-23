@@ -59,17 +59,16 @@ export function ImageFieldExamplesScreen() {
         ))}
         <Button
           label="Charger un aperçu de test"
-          onPress={() =>
-            setImages([
-              {
-                id: "sample",
-                uri: Image.resolveAssetSource(
-                  require("./assets/image-field-sample.png"),
-                ).uri,
-                label: "Image de test",
-              },
-            ])
-          }
+          onPress={() => {
+            const source = Image.resolveAssetSource(
+              require("./assets/image-field-sample.png"),
+            );
+            if (source) {
+              setImages([
+                { id: "sample", uri: source.uri, label: "Image de test" },
+              ]);
+            }
+          }}
         />
         <ImageField
           label="Image de démonstration"

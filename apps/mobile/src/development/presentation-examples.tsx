@@ -162,16 +162,18 @@ export function FormExampleScreen({
         <Button
           label="Confirmer"
           fullWidth
-          onPress={handleSubmit((values) =>
-            Alert.alert(
-              "Confirmer le formulaire ?",
-              "Les valeurs saisies seront transmises après confirmation.",
-              [
-                { text: "Annuler", style: "cancel" },
-                { text: "Confirmer", onPress: () => onConfirm(values) },
-              ],
-            ),
-          )}
+          onPress={() =>
+            void handleSubmit((values) =>
+              Alert.alert(
+                "Confirmer le formulaire ?",
+                "Les valeurs saisies seront transmises après confirmation.",
+                [
+                  { text: "Annuler", style: "cancel" },
+                  { text: "Confirmer", onPress: () => onConfirm(values) },
+                ],
+              ),
+            )()
+          }
         />
       </SafeAreaView>
     </FormScrollView>

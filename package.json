@@ -23,10 +23,10 @@
     "generate": "nx run-many -t generate --output-style=static"
   },
   "overrides": {
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native-reanimated": "4.5.1",
-    "react-native-worklets": "0.10.1"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native-reanimated": "4.7.1",
+    "react-native-worklets": "0.13.0"
   },
   "devDependencies": {
     "@redocly/cli": "2.62.1",

@@ -364,4 +364,4 @@ const styles = StyleSheet.create({
     borderWidth: tokens.borderWidth,
   },
   preview: { width: "100%", height: tokens.size.multiline },
-});
+} as const);

@@ -165,7 +165,7 @@ npx nx run mobile:ios
 npx nx run mobile:serve
 ```
 
-Native projects are generated and ignored. After changing native dependencies or configuration, regenerate them with `npm exec --workspace=@blockout/mobile -- expo prebuild --clean` before launching. The `expo-build-properties` plugin enables the [UIKit scene lifecycle required by Xcode 27](https://docs.expo.dev/versions/v57.0.0/sdk/build-properties/#pluginconfigtypeios) while retaining Expo SDK 57.
+Native projects are generated and ignored. After changing native dependencies or configuration, regenerate them with `npm exec --workspace=@blockout/mobile -- expo prebuild --clean` before launching. Expo SDK 58 generates the [UIKit scene lifecycle required by Xcode 27](https://expo.dev/changelog/sdk-58) by default; no scene-support opt-in or custom Kotlin compiler plugin is needed.
 
 ### Native UI checks
 

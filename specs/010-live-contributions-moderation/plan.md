@@ -10,7 +10,7 @@ Add account-owned stream contributions, exact-version reports and a complete vid
 
 ## Technical Context
 
-**Language/Version**: Java 25 / Spring Boot 4.1.1 and TypeScript / Expo 57 / React Native 0.86 / React 19.2.3, under [F13](../003-shared-quality/plan.md).
+**Language/Version**: Java 25 / Spring Boot 4.1.1 and TypeScript / Expo 58 / React Native 0.88 / React 19.3.0, under [F13](../003-shared-quality/plan.md).
 
 **Primary Dependencies**: Existing Spring Data JPA/Hibernate, Java URI/time libraries, TanStack Query and the F13 generated HTTP boundary. No video-provider SDK or new dependency.
 

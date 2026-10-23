@@ -14,7 +14,7 @@ No Pro HTTP endpoint, backend rights mirror, gift ledger, webhook, polling, pers
 
 ## Technical Context
 
-**Language/Version**: TypeScript with Expo SDK 57, React Native 0.86 and React 19.2.3, under [F13](../003-shared-quality/plan.md#technical-context).
+**Language/Version**: TypeScript with Expo SDK 58, React Native 0.88 and React 19.3.0, under [F13](../003-shared-quality/plan.md#technical-context).
 
 **Primary Dependencies**: Paired `react-native-purchases` and `react-native-purchases-ui` 10.13.0, with their bundled native dependencies; existing account/navigation and F11 integrations. No direct override of the bundled native versions.
 

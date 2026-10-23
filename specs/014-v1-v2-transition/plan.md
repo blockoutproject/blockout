@@ -12,7 +12,7 @@ Preserve Auth0 identities, applicable Pro rights and manually maintained club lo
 
 ## Technical Context
 
-**Language/Version**: Java 25 / Spring Boot 4.1.1, TypeScript / Expo SDK 57 / React Native 0.86 / React 19.2.3, from [F13](../003-shared-quality/plan.md).
+**Language/Version**: Java 25 / Spring Boot 4.1.1, TypeScript / Expo SDK 58 / React Native 0.88 / React 19.3.0, from [F13](../003-shared-quality/plan.md).
 
 **Primary Dependencies**: Existing Auth0 native SDK from [F05](../005-accounts-identity/plan.md), RevenueCat/store integration from [F09](../006-pro-subscriptions/plan.md), Expo-compatible AsyncStorage for non-sensitive installation flags, EAS native build/signing and F07 Expo Push configuration. Executable versions are pinned in `apps/mobile/package.json`. Existing PostgreSQL/JPA, F01 acquisition and F04 projection. No new service or migration framework.
 

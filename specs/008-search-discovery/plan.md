@@ -12,7 +12,7 @@ This dossier formalizes the accepted plan. It does not initialize the product, p
 
 ## Technical Context
 
-**Language/Version**: Java 25 Temurin/Spring Boot 4.1.1 and TypeScript/Expo SDK 57, React Native 0.86, React 19.2.3 under [F13](../003-shared-quality/plan.md#technical-context).
+**Language/Version**: Java 25 Temurin/Spring Boot 4.1.1 and TypeScript/Expo SDK 58, React Native 0.88, React 19.3.0 under [F13](../003-shared-quality/plan.md#technical-context).
 
 **Primary Dependencies**: OpenSearch 3.9.0, official `opensearch-java` 3.10.0 with Apache HttpClient 5 transport; existing Spring transaction events and scheduling, JPA/Hibernate, TanStack Query and F13 OpenAPI generation. No Spring Data OpenSearch layer. Java 25/client integration is a qualification gate; the published client matrix does not list Java 25.
 

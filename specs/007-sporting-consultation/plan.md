@@ -12,7 +12,7 @@ Expose public club, team, pool and match reads from the existing modular backend
 
 ## Technical Context
 
-**Language/Version**: Java 25/Spring Boot 4.1.1 and TypeScript/Expo SDK 57, React Native 0.86 and React 19.2.3, under the [F13 baseline](../003-shared-quality/plan.md#technical-context).
+**Language/Version**: Java 25/Spring Boot 4.1.1 and TypeScript/Expo SDK 58, React Native 0.88 and React 19.3.0, under the [F13 baseline](../003-shared-quality/plan.md#technical-context).
 
 **Primary Dependencies**: Spring Data JPA/Hibernate, PostgreSQL time-zone operations, Expo Router, TanStack Query and the F13 generated HTTP boundary. `react-native-maps` 1.27.2; `react-native-pdf` 7.0.5 with its native dependency/configuration described in [research.md](research.md). Exact integrated package compatibility remains a native qualification gate, not permission for an implicit upgrade.
 

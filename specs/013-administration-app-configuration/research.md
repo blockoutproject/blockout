@@ -44,7 +44,7 @@ The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions
 
 ## Native versions, stores and optional media
 
-**Decision:** Compare three numeric components of the published native version, without build numbers, suffixes or version ranges. `expo-application.nativeApplicationVersion` supplies Android versionName and iOS CFBundleShortVersionString. Use ordinary parsing/comparison of validated numeric components; no version-range library is needed. Use native Linking for approved HTTPS store URLs. The operator checks actual download availability manually before raising a threshold. [Expo Application SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/application/), [Expo Linking SDK 57](https://docs.expo.dev/versions/v57.0.0/sdk/linking/).
+**Decision:** Compare three numeric components of the published native version, without build numbers, suffixes or version ranges. `expo-application.nativeApplicationVersion` supplies Android versionName and iOS CFBundleShortVersionString. Use ordinary parsing/comparison of validated numeric components; no version-range library is needed. Use native Linking for approved HTTPS store URLs. The operator checks actual download availability manually before raising a threshold. [Expo Application SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/application/), [Expo Linking SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/linking/).
 
 **Limit:** Metadata may be null; with an applicable threshold, use the existing unavailable-access presentation. URL syntax and a successful open do not prove version availability or installation. Native/store qualification remains future work. The rule selects no OTA or build-number compatibility policy.
 

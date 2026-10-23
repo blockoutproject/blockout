@@ -71,4 +71,4 @@ const styles = StyleSheet.create({
     width: "67.06%",
     height: "80.40%",
   },
-});
+} as const);

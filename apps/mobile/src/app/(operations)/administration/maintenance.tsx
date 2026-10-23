@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Alert } from "react-native";
-import { useNavigation } from "expo-router";
-import { usePreventRemove } from "expo-router/react-navigation";
+import { usePreventRemove } from "expo-router";
 import { useAccountAdmission } from "../../../features/accounts/components/account-admission";
 import { MaintenanceSettingsScreen } from "../../../features/access/screens/maintenance-settings-screen";
 import { RequestError } from "../../../shared/components/request-feedback";
@@ -17,8 +16,7 @@ export default function MaintenanceRoute() {
 /** Uses the installed router's supported native removal guard for explicit draft discard. */
 function AdmittedMaintenance() {
   const [dirty, setDirty] = useState(false);
-  const navigation = useNavigation();
-  usePreventRemove(dirty, ({ data }) => {
+  usePreventRemove(dirty, ({ repeat }) => {
     Alert.alert(
       "Abandonner les modifications ?",
       "Votre brouillon n’a pas été enregistré.",
@@ -27,7 +25,10 @@ function AdmittedMaintenance() {
         {
           text: "Abandonner",
           style: "destructive",
-          onPress: () => navigation.dispatch(data.action),
+          onPress: () => {
+            setDirty(false);
+            repeat();
+          },
         },
       ],
     );

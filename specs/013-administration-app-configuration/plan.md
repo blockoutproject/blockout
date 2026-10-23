@@ -10,7 +10,7 @@ Keep current action grants in PostgreSQL, assigned manually by the product owner
 
 ## Technical Context
 
-**Language/Version**: Java 25 LTS and TypeScript; Expo SDK 57 / React Native 0.86 / React 19.2.3 under the accepted [F13 foundation](../003-shared-quality/plan.md).
+**Language/Version**: Java 25 LTS and TypeScript; Expo SDK 58 / React Native 0.88 / React 19.3.0 under the accepted [F13 foundation](../003-shared-quality/plan.md).
 
 **Primary Dependencies**: Spring Boot 4.1.1 and its managed Spring Security/JPA/Hibernate; native Auth0 SDK; Expo Router, expo-application and Linking; TanStack Query. Reuse F13's Redocly 2.62.1, OpenAPI Generator 7.26.0 and Orval 8.41.0 chain. Platform-compatible unpinned patches are resolved during executable work; no dependency installation or upgrade is performed here.
 

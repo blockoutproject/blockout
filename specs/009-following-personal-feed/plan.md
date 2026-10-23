@@ -10,7 +10,7 @@ Provide account-owned team/pool follows, public counts and a personal sporting c
 
 ## Technical Context
 
-**Language/Version**: Java 25 / Spring Boot 4.1.1 and TypeScript / Expo 57 / React Native 0.86 / React 19.2.3, as selected by [F13](../003-shared-quality/plan.md).
+**Language/Version**: Java 25 / Spring Boot 4.1.1 and TypeScript / Expo 58 / React Native 0.88 / React 19.3.0, as selected by [F13](../003-shared-quality/plan.md).
 
 **Primary Dependencies**: Existing Spring Data JPA/Hibernate, TanStack Query and generated HTTP boundary. Query 5.104.2 is the inspected native-mechanism evidence, not permission for an implicit dependency upgrade.
 

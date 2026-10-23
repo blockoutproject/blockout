@@ -44,6 +44,9 @@ const config: ExpoConfig = {
   platforms: ["ios", "android"],
   plugins: [
     "expo-router",
+    "expo-image",
+    "expo-status-bar",
+    "expo-web-browser",
     ["react-native-auth0", { domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN }],
     [
       "react-native-google-mobile-ads",
@@ -138,15 +141,11 @@ const config: ExpoConfig = {
     [
       "expo-build-properties",
       {
-        // Google Mobile Ads 25.4 metadata requires a newer compiler than RN's 2.1 default.
-        android: { kotlinVersion: "2.2.21", minSdkVersion: 29 },
-        // Expo 57 requires scene lifecycle opt-in when building with Xcode 27.
-        ios: { enableSceneSupport: true },
+        android: { minSdkVersion: 29 },
       },
     ],
-    "./plugins/with-android-kotlin-compiler.cjs",
     [
-      "@sentry/react-native/expo",
+      "@sentry/react-native",
       {
         organization: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,

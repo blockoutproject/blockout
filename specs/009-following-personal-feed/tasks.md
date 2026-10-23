@@ -29,7 +29,7 @@ description: "Implementation tasks for F06 following and the personal feed"
 
 **Purpose**: Reuse the actual workspace, original-account access and sporting owners.
 
-- [ ] T001 Verify F13 T001–T017 through `apps/backend/pom.xml`, `apps/mobile/orval.config.ts` and `README.md`: Java 25/Spring Boot 4.1.1, PostgreSQL 18.6, Expo 57/React Native 0.86/React 19.2.3, generated consumers and ordinary JUnit/Testcontainers/Jest tooling. Use the pinned Query version; research's inspected 5.104.2 is no implicit upgrade. Wait only for the bounded foundation and actual F02/F03/F05 inputs needed by each task.
+- [ ] T001 Verify F13 T001–T017 through `apps/backend/pom.xml`, `apps/mobile/orval.config.ts` and `README.md`: Java 25/Spring Boot 4.1.1, PostgreSQL 18.6, Expo 58/React Native 0.88/React 19.3.0, generated consumers and ordinary JUnit/Testcontainers/Jest tooling. Use the pinned Query version; research's inspected 5.104.2 is no implicit upgrade. Wait only for the bounded foundation and actual F02/F03/F05 inputs needed by each task.
 - [ ] T002 Inspect the existing Liquibase include/baseline state in `apps/backend/src/main/resources/db/changelog/db.changelog-master.xml` and actual database posture through `README.md`; extend the mutable XML baseline only while all environments are disposable and no retained version has run, otherwise append immutable changes. Reuse application/migration role separation and actual test commands; no reset or speculative release migration.
 
 ---
