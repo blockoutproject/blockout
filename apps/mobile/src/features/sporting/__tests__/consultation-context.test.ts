@@ -318,6 +318,80 @@ it("keeps each calendar selector, category and grouping zone in its generated co
   );
 });
 
+it.each(["session", "bypass"] as const)(
+  "starts a fresh current read instead of deduplicating on the old %s promise",
+  async (change) => {
+    // Given: real Query identity/observer with a native response that ignores cancellation.
+    const session = createSessionGeneration();
+    session.setAccount(session.getSnapshot().generation, sportingId);
+    const bypass = createMaintenanceBypass();
+    if (change === "bypass") bypass.request(session.getSnapshot(), true);
+    const credentials = async () => ({ accessToken: "synthetic-token" });
+    /** Supplies controlled F12 options for the exact captured intent; the real owner owns grants. */
+    function capture() {
+      const intent = bypass.getSnapshot();
+      return createConsultationQueries(
+        { ...session.getSnapshot(), isCurrent: session.isCurrent },
+        {
+          bypass: intent,
+          request: (options) => ({
+            ...options,
+            signal:
+              intent && options.signal
+                ? AbortSignal.any([options.signal, intent.signal])
+                : options.signal,
+            headers: intent
+              ? { ...options.headers, "Blockout-Maintenance-Bypass": "true" }
+              : options.headers,
+          }),
+        },
+        credentials,
+      );
+    }
+    const previous = capture();
+    const oldResponse = Promise.withResolvers<Response>();
+    const started = Promise.withResolvers<void>();
+    mockFetch
+      .mockImplementationOnce(() => {
+        started.resolve();
+        return oldResponse.promise;
+      })
+      .mockResolvedValue(Response.json(clubDetail("Current")));
+    const client = createQueryClient();
+    const observer = new QueryObserver(client, previous.club(sportingId));
+    const unsubscribe = observer.subscribe(() => {});
+    const oldResult = client
+      .fetchQuery(previous.club(sportingId))
+      .catch((error: unknown) => error);
+    await started.promise;
+
+    try {
+      // When
+      if (change === "session") session.invalidate();
+      else {
+        bypass.clear();
+        bypass.request(session.getSnapshot(), true);
+      }
+      const current = capture();
+      const options = current.club(sportingId);
+      observer.setOptions(options);
+      const result = client.fetchQuery(options);
+      oldResponse.resolve(Response.json(clubDetail("Obsolete")));
+
+      // Then
+      await expect(result).resolves.toEqual(clubDetail("Current"));
+      await oldResult;
+      expect(observer.getCurrentResult().data).toEqual(clubDetail("Current"));
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(options.queryKey).not.toEqual(previous.club(sportingId).queryKey);
+      expect(current.club(sportingId).queryKey).toEqual(options.queryKey);
+    } finally {
+      unsubscribe();
+      client.clear();
+    }
+  },
+);
+
 it.each([
   { category: "upcoming" as const, timeZone: "UTC" },
   { clubId: sportingId, category: "upcoming" as const, timeZone: "UTC" },

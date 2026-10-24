@@ -5,11 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
+import com.blockout.backend.generated.mobile.model.MatchCalendarResponse;
 import com.blockout.backend.generated.mobile.model.MatchDetailResponse;
 import com.blockout.backend.generated.mobile.model.MatchDocumentKindEnum;
 import com.blockout.backend.generated.mobile.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.SportingDivisionResponse;
 import com.blockout.backend.generated.mobile.model.StandingsAvailabilityEnum;
+import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.ConsultationViews.Classification;
 import com.blockout.backend.sporting.application.ConsultationViews.Division;
 import com.blockout.backend.sporting.application.ConsultationViews.Document;
@@ -35,8 +37,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -229,24 +231,27 @@ class ConsultationContractTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{\"category\":\"future\"}",
-        "{\"schedule\":{\"localDate\":\"2026-02-30\"}}",
-        "{\"category\":1}",
-        "{\"schedule\":null}"
-      })
-  @DisplayName("Rejects invalid known generated response fields at configured decoding")
-  void rejectsKnownFields(String match) {
-    // Given
-    String body = "{\"match\":" + match + ",\"documents\":[]}";
+  @CsvSource(
+      delimiter = '|',
+      value = {"category|\"future\"", "category|1", "evaluatedAt|\"tomorrow\"", "nextDay|null"})
+  @DisplayName("Rejects an invalid known field in an otherwise valid generated calendar")
+  void rejectsKnownFields(String field, String value) {
+    // Given: the complete valid control must decode before its one-field mutation is tested.
+    ConsultationViews.Calendar calendar =
+        new ConsultationViews.Calendar(
+            CalendarCategoryEnum.UPCOMING, "Europe/Paris", OBSERVED, List.of(), null);
+    String valid = json.writeValueAsString(mapper.toResponse(calendar));
+    assertThat(validator.validate(json.readValue(valid, MatchCalendarResponse.class))).isEmpty();
+    tools.jackson.databind.node.ObjectNode body =
+        (tools.jackson.databind.node.ObjectNode) json.readTree(valid);
+    body.set(field, json.readTree(value));
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable decode =
-        () -> json.readValue(body, MatchDetailResponse.class);
+        () -> json.readValue(body.toString(), MatchCalendarResponse.class);
 
     // Then
-    assertThatThrownBy(decode).isInstanceOf(RuntimeException.class);
+    assertThatThrownBy(decode).isInstanceOf(RuntimeException.class).hasMessageContaining(field);
   }
 
   @Test
