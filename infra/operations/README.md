@@ -148,3 +148,45 @@ This is the T024 preparation consumed by T049 **immediately before authorized re
 
 4. Record the actual check times, covered sources/interval, current outcomes, remaining uncertainty and owner of accepted unresolved effects privately. Provider activity can continue: if a later accepted change or delay makes the checked state stale before the dependent action, refresh the affected current checks and evidence. No manual freeze or timestamp guarantees a global provider snapshot. Do not proceed when necessary continuity or accepted-effect evidence remains unavailable.
 5. Reassess the destruction gates above and hand the result to the authorized release operator. A failed check permits correction or retry while sources remain protected, never automatic destructive continuation or partial opening. For restoration of a retained copy, use the existing [F13 reconciliation before access or sends](#reconcile-before-access-or-sends); current F05/F09/F11 restrictions take precedence and unresolved affected access stays closed. After opening, recovery remains V2 repair or compatible restoration.
+
+## Collection inspection and explicit recovery
+
+F01 retains current intent, cycles and scope results, not an execution history. The backend is the sole database writer. A lost response is not proof that the write failed. Keep the original control/cycle/source identity in the private operational case; never paste credentials, provider documents, locality or private diagnostics into this repository or a public issue. [F01's ordered cases](../../specs/001-source-acquisition/quickstart.md#ordered-uncertainty-cases-t044-preparation) distinguish response loss before and after acceptance.
+
+Use the authorized environment's existing private token process. With `BACKEND_URL`, `COLLECTION_CYCLE_ID`, `COLLECTION_CONTROL_ID` and `SOURCE_BINDING_ID` explicitly set to the affected environment/scope, the actual read routes are:
+
+```sh
+curl --fail-with-body --silent --show-error \
+  --header "Authorization: Bearer ${COLLECTOR_ACCESS_TOKEN}" \
+  "${BACKEND_URL}/ingestion/collector-runtime"
+curl --fail-with-body --silent --show-error \
+  --header "Authorization: Bearer ${COLLECTOR_ACCESS_TOKEN}" \
+  "${BACKEND_URL}/ingestion/collection-cycles/${COLLECTION_CYCLE_ID}"
+curl --fail-with-body --silent --show-error \
+  --header "Authorization: Bearer ${OPERATOR_ACCESS_TOKEN}" \
+  "${BACKEND_URL}/administration/collection-controls/${COLLECTION_CONTROL_ID}"
+curl --fail-with-body --silent --show-error \
+  --header "Authorization: Bearer ${OPERATOR_ACCESS_TOKEN}" \
+  "${BACKEND_URL}/administration/source-bindings/${SOURCE_BINDING_ID}"
+```
+
+The first two reads require the collector's current ingestion audience/client and `sporting:ingest` scope. The last two require a usable current operator account with `collection.manage`; they remain individually authorized under maintenance and confer no minimum-mobile-version bypass. Use private shell handling without tracing; keep output private. Read failure is unresolved evidence, never permission to replay a mutation. For a lost admission response inspect the **original** cycle UUID, not a newly allocated cycle. For a lost sporting response preserve accepted independent facts; do not resend the write. For terminal response loss, a matching completed cycle confirms acceptance. If completion/validation acceptance still cannot be confirmed, the affected operation remains blocked even while the collector is alive.
+
+Inspect the current deployment in its verified Dokploy Raw Compose application directory. Use the exact project for the affected environment and the existing files; the following preproduction commands are valid only in that application's directory:
+
+```sh
+docker compose --project-name blockout-preproduction --env-file .env --file docker-compose.yml ps collector
+docker compose --project-name blockout-preproduction --env-file .env --file docker-compose.yml logs --tail 100 collector
+```
+
+After explicit operational authorization, if unresolved unfinished work requires incarnation replacement, wait for any active delivery/migration to finish and restart only that collector:
+
+```sh
+docker compose --project-name blockout-preproduction --env-file .env --file docker-compose.yml restart --no-deps collector
+```
+
+For production, every project argument must be `blockout-production` in its own verified directory. Never run both collectors for one environment. Confirm the native restart result, the new runtime incarnation and the affected current cycle/source reads. Registration waits for admitted transactions, preserves their commits and makes unfinished old cycles interrupted; it does not replay their work. A completed cycle/accepted qualification survives. An interrupted candidate needs a new **explicit** validation request at its reread revision if still applicable. Ordinary collection uses its next eligible opportunity. A restart is neither confirmed business recovery nor permission to close an alert without affected-scope evidence.
+
+For a local task-owned collector, the actual launcher is `npx nx run collector:serve` from that worktree after its private environment is loaded as described in [local development](../../README.md#local-development). Stop its original foreground process with Ctrl-C and relaunch explicitly only for an authorized isolated environment. This command now enables scheduled reads after registration: do not point it at live FFVB/LNV/IGN merely to inspect or test a build. Do not stop another worktree's process or use Compose for host applications.
+
+Source repair starts with read-only inspection of the canonical season, candidate, accepted binding and affected result. An unlocked source in an open season uses the existing candidate edit, explicit validation and (when required) exact-season confirmation, then selected launch; a candidate edit invalidates prior evidence. Pause and restart never unlock accepted references. There is no supported generic post-launch source-repair/reset command: a demonstrated defect in a locked binding requires an individually authorized, reviewed, narrowly scoped technical change through the existing [migration/delivery process](../dokploy/README.md#promotion-and-native-deployment), preserving accepted facts, locks and current revisions. Do not invent an ad hoc SQL unlock, broad reset or runtime repair endpoint. CLOSED remains terminal, with no repair workflow that reopens or recollects it.
