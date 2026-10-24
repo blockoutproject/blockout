@@ -24,7 +24,7 @@ import {
   credentialsFor,
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
-import { CollectionSeasonsScreen } from "../screens/collection-seasons-screen";
+import { CollectionDashboardScreen } from "../screens/collection-dashboard-screen";
 import { SeasonPreparationScreen } from "../screens/season-preparation-screen";
 import { ProviderSourcesScreen } from "../screens/provider-sources-screen";
 import { SourcePreparationScreen } from "../screens/source-preparation-screen";
@@ -230,10 +230,10 @@ function AccountActions() {
   );
 }
 
-it("lists canonical seasons and opens their preparation without a dashboard", async () => {
+it("lists canonical seasons in the production collection overview", async () => {
   // Given
   const user = userEvent.setup();
-  await renderPreparation(<CollectionSeasonsScreen />);
+  await renderPreparation(<CollectionDashboardScreen />);
 
   // When
   await user.press(
@@ -277,7 +277,7 @@ it("shows an honest empty season list and recovers an initial read failure expli
     String(url).endsWith("/collection-seasons") ? refused(503) : reads(url),
   );
   const user = userEvent.setup();
-  await renderPreparation(<CollectionSeasonsScreen />);
+  await renderPreparation(<CollectionDashboardScreen />);
   await screen.findByText("Les saisons sont indisponibles.");
 
   // When
@@ -286,7 +286,7 @@ it("shows an honest empty season list and recovers an initial read failure expli
       ? json({ items: [] })
       : reads(url),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
 
   // Then
   expect(await screen.findByText("Aucune saison découverte")).toBeOnTheScreen();

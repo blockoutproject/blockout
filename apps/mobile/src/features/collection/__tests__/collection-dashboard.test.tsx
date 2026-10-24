@@ -652,3 +652,116 @@ it.each(["settled", "in-flight"])(
     ).toHaveLength(1);
   },
 );
+
+it("keeps a newer running read when an older accepted pending acknowledgement arrives", async () => {
+  // Given
+  const pending = Promise.withResolvers<Response>();
+  const geocoding = control({
+    id: "00000000-0000-4000-8000-000000000195",
+    family: "geocoding",
+    seasonId: undefined,
+  });
+  peer.controls = [control(), geocoding];
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST" ? pending.promise : peer.reads(url, options),
+  );
+  const view = await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    peer.client,
+  );
+
+  // When
+  await pressAction("Relancer");
+  await confirm("Relancer");
+  await view.rerender(<CollectionControlScreen family="geocoding" />);
+  await screen.findByRole("header", { name: "Géocodage" });
+  peer.controls = [
+    control({
+      revision: 5,
+      cycle: {
+        id: "00000000-0000-4000-8000-000000000193",
+        state: "running",
+        mode: "manual",
+        startedAt: "2026-10-24T12:00:00Z",
+      },
+    }),
+    geocoding,
+  ];
+  await view.rerender(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+  );
+  await screen.findByText("Collecte en cours");
+  await act(async () =>
+    pending.resolve(
+      json(
+        control({
+          revision: 4,
+          pendingRequestId: "00000000-0000-4000-8000-000000000192",
+        }),
+        202,
+      ),
+    ),
+  );
+  await waitFor(() => expect(peer.client.isMutating()).toBe(0));
+
+  // Then
+  expect(screen.getByText("Collecte en cours")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Collecte demandée · en attente de démarrage"),
+  ).toBeNull();
+  expect(screen.getByRole("button", { name: "En cours" })).toBeDisabled();
+});
+
+it("keeps completion freshness already read at the same editing revision as a delayed pause acknowledgement", async () => {
+  // Given
+  const cycle = {
+    id: "00000000-0000-4000-8000-000000000193",
+    state: "running" as const,
+    mode: "manual" as const,
+    startedAt: "2026-10-24T12:00:00Z",
+  };
+  const pending = Promise.withResolvers<Response>();
+  const geocoding = control({
+    id: "00000000-0000-4000-8000-000000000195",
+    family: "geocoding",
+    seasonId: undefined,
+  });
+  peer.controls = [control({ cycle }), geocoding];
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT" ? pending.promise : peer.reads(url, options),
+  );
+  const view = await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    peer.client,
+  );
+
+  // When
+  await pressAction("Mettre en pause");
+  await confirm("Mettre en pause");
+  await view.rerender(<CollectionControlScreen family="geocoding" />);
+  await screen.findByRole("header", { name: "Géocodage" });
+  peer.controls = [
+    control({
+      revision: 4,
+      enabled: false,
+      cycle: {
+        ...cycle,
+        state: "completed",
+        completedAt: "2026-10-24T12:01:00Z",
+      },
+    }),
+    geocoding,
+  ];
+  await view.rerender(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+  );
+  await screen.findByText("Dernier cycle terminé");
+  await act(async () =>
+    pending.resolve(json(control({ revision: 4, enabled: false, cycle }))),
+  );
+  await waitFor(() => expect(peer.client.isMutating()).toBe(0));
+
+  // Then
+  expect(screen.getByText("Dernier cycle terminé")).toBeOnTheScreen();
+  expect(screen.queryByText("Collecte en cours")).toBeNull();
+});

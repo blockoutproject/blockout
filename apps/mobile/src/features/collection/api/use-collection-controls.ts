@@ -89,12 +89,14 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
       ),
     getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
   });
-  /** Cancels older reads before installing a confirmed command; other controls and their results remain untouched. */
+  /** Installs a confirmed command only when no same/newer revision was already read, preserving completion freshness. */
   async function accept(value: CollectionControlResponse) {
     await client.cancelQueries({ queryKey: key, exact: true });
     if (!authority.session.isCurrent(authority.session.generation))
       throw new ApiError("cancelled");
-    client.setQueryData(key, value);
+    client.setQueryData<CollectionControlResponse>(key, (current) =>
+      current && current.revision >= value.revision ? current : value,
+    );
     void client.invalidateQueries({
       queryKey: getSessionQueryKey(
         authority.session.generation,

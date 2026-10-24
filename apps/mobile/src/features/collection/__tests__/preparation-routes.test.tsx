@@ -615,6 +615,70 @@ it("retains a typed closure draft across protected-route removal and cancels thr
   ).toBe(false);
 });
 
+it("preserves uncertain closure after discarding its text and reopening before acknowledgement", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const pending = Promise.withResolvers<Response>();
+  const user = userEvent.setup();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST" ? pending.promise : serve(url),
+  );
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () => router.push(`/collection/${seasonId}`));
+  await user.press(
+    await screen.findByRole("button", { name: "Clôturer la saison" }),
+  );
+  await user.type(
+    await screen.findByLabelText("Nom exact de la saison"),
+    "2026/2027",
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Clôturer définitivement" }),
+  );
+  await screen.findByRole("button", {
+    name: "Clôturer définitivement",
+    busy: true,
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Annuler" }));
+  const discard = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find((choice) => choice.text === "Abandonner");
+  if (!discard?.onPress) throw new Error("Missing native discard confirmation");
+  await act(async () => discard.onPress?.());
+  await user.press(
+    await screen.findByRole("button", { name: "Clôturer la saison" }),
+  );
+  await screen.findByRole("button", {
+    name: "Clôturer définitivement",
+    busy: true,
+  });
+  await act(async () => pending.reject(new TypeError("Lost acknowledgement")));
+  await screen.findByRole("button", {
+    name: "Clôturer définitivement",
+    busy: false,
+  });
+  await user.type(
+    await screen.findByLabelText("Nom exact de la saison"),
+    "2026/2027",
+  );
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Clôturer définitivement" }),
+  ).toBeDisabled();
+  expect(
+    screen.getByText(
+      "Le résultat doit être vérifié avant une nouvelle action.",
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
+});
+
 it.each([{ manageMaintenance: true }, { bypassMaintenance: true }])(
   "refuses a collection deep link with unrelated rights %j",
   async (permissions) => {

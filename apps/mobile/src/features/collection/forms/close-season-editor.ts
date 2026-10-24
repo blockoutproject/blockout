@@ -9,29 +9,23 @@ import type {
 export interface CloseSeasonValues {
   confirmation: string;
 }
-/** The editing revision and uncertainty survive admission removal alongside the original RHF control. */
-interface ClosureState {
-  baseline: CollectionSeasonResponse;
-  needsRead: boolean;
-  feedback?: string;
-}
 /** One season's transient closure draft; no persistence or automatic command replay. */
 interface ClosureEditor {
   generation: string;
   seasonId: string;
   form: ReturnType<typeof createFormControl<CloseSeasonValues>>;
   /** Returns the revision against which the operator is currently deciding. */
-  getSnapshot(): ClosureState;
-  /** Observes revision and feedback; field subscription remains RHF-owned. */
+  getSnapshot(): CollectionSeasonResponse;
+  /** Observes the editing revision; field subscription remains RHF-owned. */
   subscribe(listener: () => void): () => void;
   /** Publishes an accepted response or explicit reread without replacing entered text. */
-  update(state: ClosureState): void;
+  update(season: CollectionSeasonResponse): void;
   /** Removes the F05 lifecycle observer. */
   release(): void;
 }
 let current: ClosureEditor | undefined;
 
-/** Explicit cancel/discard and F05 invalidation release the single retained closure draft. */
+/** Discards typed text and its editing revision; sent-command reconciliation has an independent session lifetime. */
 export function discardCloseSeasonEditor() {
   current?.release();
   current = undefined;
@@ -48,7 +42,7 @@ export function closeSeasonEditor(
   )
     return current;
   discardCloseSeasonEditor();
-  let state: ClosureState = { baseline: season, needsRead: false };
+  let state = season;
   const listeners = new Set<() => void>();
   const editor: ClosureEditor = {
     generation: session.generation,

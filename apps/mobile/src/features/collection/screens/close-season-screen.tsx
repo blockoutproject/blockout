@@ -28,6 +28,7 @@ import {
   type CloseSeasonValues,
 } from "../forms/close-season-editor";
 import { usePreparationDiscard } from "../forms/use-preparation-discard";
+import { collectionCommandContext } from "../forms/collection-command-context";
 
 const closureSchema = z.object({ confirmation: z.string() });
 
@@ -74,7 +75,14 @@ function ClosureForm({
   const router = useRouter();
   const mounted = useRef(false);
   const [editor] = useState(() => closeSeasonEditor(session, season));
-  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const baseline = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const [command] = useState(() =>
+    collectionCommandContext(session, `closure/${season.id}`),
+  );
+  const commandState = useSyncExternalStore(
+    command.subscribe,
+    command.getSnapshot,
+  );
   const {
     control,
     handleSubmit,
@@ -93,7 +101,7 @@ function ClosureForm({
     isSubmitting ||
     editing.season.isFetching;
   const needsRead =
-    state.needsRead || current.revision !== state.baseline.revision;
+    commandState.needsRead || current.revision !== baseline.revision;
   useEffect(() => {
     setDirty(isDirty && !closed);
     return () => setDirty(false);
@@ -111,28 +119,24 @@ function ClosureForm({
       busy ||
       closed ||
       needsRead ||
-      editor.getSnapshot().needsRead ||
+      command.getSnapshot().needsRead ||
       editing.season.isError ||
       values.confirmation !== current.label ||
-      values.confirmation !== state.baseline.label
+      values.confirmation !== baseline.label
     )
       return;
-    editor.update({
-      ...editor.getSnapshot(),
-      needsRead: true,
-      feedback: undefined,
-    });
+    command.update({ needsRead: true });
     try {
       const accepted = await editing.close.mutateAsync({
-        revision: state.baseline.revision,
+        revision: baseline.revision,
         confirmation: values.confirmation,
       });
       if (!session.isCurrent(session.generation)) return;
-      editor.update({ baseline: accepted, needsRead: false });
+      editor.update(accepted);
+      command.update({ needsRead: false });
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
-      editor.update({
-        ...editor.getSnapshot(),
+      command.update({
         needsRead: requiresCollectionReread(error),
         feedback: requiresCollectionReread(error)
           ? "Le résultat doit être vérifié avant une nouvelle action."
@@ -146,20 +150,15 @@ function ClosureForm({
     if (busy) return;
     const read = await editing.season.refetch();
     if (!mounted.current || !session.isCurrent(session.generation)) return;
-    if (
-      read.isError ||
-      !read.data ||
-      read.data.revision < state.baseline.revision
-    ) {
-      editor.update({
-        ...editor.getSnapshot(),
+    if (read.isError || !read.data || read.data.revision < baseline.revision) {
+      command.update({
         needsRead: true,
         feedback: "La relecture a échoué. Votre saisie est conservée.",
       });
       return;
     }
-    editor.update({
-      baseline: read.data,
+    editor.update(read.data);
+    command.update({
       needsRead: false,
       feedback:
         "État relu. Vérifiez le nom de la saison avant une nouvelle action.",
@@ -218,7 +217,7 @@ function ClosureForm({
               needsRead ||
               editing.season.isError ||
               confirmation !== current.label ||
-              confirmation !== state.baseline.label
+              confirmation !== baseline.label
             }
             loading={editing.saving}
             onPress={() => void handleSubmit(close)()}
@@ -235,16 +234,16 @@ function ClosureForm({
           )}
         </PreparationCard>
       )}
-      {state.feedback && (
+      {commandState.feedback && (
         <Text
           accessibilityRole="alert"
           accessibilityLiveRegion="polite"
           style={[tokens.typography.body, { color: colors.text }]}
         >
-          {state.feedback}
+          {commandState.feedback}
         </Text>
       )}
-      {editing.season.isError && !state.feedback && (
+      {editing.season.isError && !commandState.feedback && (
         <RequestError message="La relecture a échoué. Votre saisie est conservée." />
       )}
       {!closed && (
