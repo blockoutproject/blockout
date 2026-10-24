@@ -29,7 +29,7 @@ public class SeasonService {
   }
 
   /**
-   * Locks the same canonical season used by classification and future terminal closure.
+   * Locks the same canonical season used by classification and terminal acquisition closure.
    *
    * @param id canonical season identity; caller has already acquired its runtime fence
    * @return current lifecycle held through the caller transaction

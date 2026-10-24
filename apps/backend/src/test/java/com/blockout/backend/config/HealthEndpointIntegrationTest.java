@@ -12,6 +12,7 @@ import com.blockout.backend.access.application.PermissionStore;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.collection.application.port.CollectionStore;
+import com.blockout.backend.sporting.application.port.SportingReadStore;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,7 @@ class HealthEndpointIntegrationTest {
 
   // Business persistence is outside the operational HTTP boundary qualified by this context.
   @MockitoBean private SportingStore sportingStore;
+  @MockitoBean private SportingReadStore sportingReads;
   @MockitoBean private CollectionStore collectionStore;
   @MockitoBean private AccountStore accounts;
   @MockitoBean private EstablishAccount establishment;

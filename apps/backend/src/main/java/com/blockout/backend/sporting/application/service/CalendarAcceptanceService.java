@@ -62,13 +62,16 @@ public class CalendarAcceptanceService {
     int unchanged = count(outcomes, ObservationOutcomeEnum.UNCHANGED);
     int stale = count(outcomes, ObservationOutcomeEnum.STALE);
     int rejected = count(outcomes, ObservationOutcomeEnum.REJECTED);
+    boolean reconciled = false;
     if (observation.complete() && stale == 0 && rejected == 0) {
       try {
-        matches.finish(
-            poolId,
-            observation.context(),
-            order,
-            distinct.isEmpty() && observation.contextSlots().isEmpty());
+        reconciled =
+            matches.finish(
+                poolId,
+                observation.context(),
+                order,
+                distinct.keySet(),
+                distinct.isEmpty() && observation.contextSlots().isEmpty());
       } catch (RuntimeException failure) {
         log.atWarn()
             .addKeyValue("operation", "sporting_calendar_completion")
@@ -77,8 +80,8 @@ public class CalendarAcceptanceService {
             .log("Calendar completion refused; earlier commits remain accepted");
       }
     }
-    // Visibility reconciliation is deliberately owned by US5, not inferred from marking completion.
-    return new ObservationOutcome.Calendar(outcomes, accepted, unchanged, stale, rejected, false);
+    return new ObservationOutcome.Calendar(
+        outcomes, accepted, unchanged, stale, rejected, reconciled);
   }
 
   /**

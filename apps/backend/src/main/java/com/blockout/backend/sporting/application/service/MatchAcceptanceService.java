@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -107,9 +108,10 @@ public class MatchAcceptanceService {
         identities.identifyMatch(
             poolId, candidate.nativeMatchReference(), candidate.home(), candidate.away());
     if (created) schedule = store.lockMatchSchedule(match.id());
+    boolean restored = store.restoreCalendarPresence(match.id());
     boolean changed =
         acceptSchedule(schedule, expected, context, candidate.facts(), candidate.detailUrl());
-    ObservationOutcome result = success(match, created || namesChanged || changed);
+    ObservationOutcome result = success(match, created || namesChanged || changed || restored);
     return new ObservationOutcome(
         result.sourceReference(),
         result.outcome(),
@@ -121,18 +123,23 @@ public class MatchAcceptanceService {
   }
 
   /**
-   * Recognizes only a still-current fully processed calendar as completed. Public absence effects
-   * remain with the following lifecycle increment; this method does not claim those effects.
+   * Reconciles absence only after still-current successful processing. Empty initial reconstruction
+   * preserves retained history; an already completed token cannot reconcile twice.
    *
    * @param poolId qualified pool
    * @param context original read attribution
    * @param expected original logical token
+   * @param presentReferences exact successful native encounter references
    * @param empty whether the qualified calendar has no matches or context slots
    * @return whether current completion was recorded
    */
   @Transactional
   public boolean finish(
-      UUID poolId, MatchObservation.Context context, ObservationOrder expected, boolean empty) {
+      UUID poolId,
+      MatchObservation.Context context,
+      ObservationOrder expected,
+      Set<String> presentReferences,
+      boolean empty) {
     CollectionState.Target target =
         cycles.requireTarget(context.cycleId(), poolId, CollectionTargetKindEnum.CALENDAR);
     CalendarState state = store.calendarState(poolId);
@@ -140,7 +147,8 @@ public class MatchAcceptanceService {
       return false;
     if (empty && cycles.get(context.cycleId()).mode() == CollectionModeEnum.INITIAL_IMPORT)
       return false;
-    if (!expected.equals(state.completed())) store.completeCalendar(poolId, expected);
+    if (expected.equals(state.completed())) return false;
+    store.completeCalendar(poolId, expected, presentReferences, empty);
     return true;
   }
 

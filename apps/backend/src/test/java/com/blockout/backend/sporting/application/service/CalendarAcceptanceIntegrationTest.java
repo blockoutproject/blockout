@@ -190,7 +190,7 @@ class CalendarAcceptanceIntegrationTest {
     assertThat(date("M1")).isNull();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
         .isEqualTo(1);
-    assertThat(matches.finish(pool, context(1), older, false)).isFalse();
+    assertThat(matches.finish(pool, context(1), older, java.util.Set.of("M1"), false)).isFalse();
   }
 
   @Test

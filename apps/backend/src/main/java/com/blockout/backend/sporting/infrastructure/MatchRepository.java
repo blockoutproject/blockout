@@ -13,6 +13,14 @@ import org.springframework.data.jpa.repository.Query;
 /** Native Spring Data access to the sporting match owner. */
 interface MatchRepository extends JpaRepository<MatchEntity, UUID> {
   /**
+   * Loads retained encounters for a qualified completed calendar.
+   *
+   * @param poolId still-current calendar scope
+   * @return retained encounters without result-dependent filtering
+   */
+  List<MatchEntity> findByPoolId(UUID poolId);
+
+  /**
    * Selects current qualified detail references.
    *
    * @param poolId eligible LNV pool
