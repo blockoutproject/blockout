@@ -40,14 +40,13 @@ public class AnnouncementRecipients {
                 new Target(TargetType.TEAM, match.awayTeamId()),
                 new Target(TargetType.POOL, match.poolId())));
     List<UUID> candidates = follows.recipients(targets).keySet().stream().sorted().toList();
-    Set<UUID> usable = new HashSet<>();
+    List<UUID> usable = new ArrayList<>();
     for (UUID accountId : candidates) if (accounts.lock(accountId)) usable.add(accountId);
     Map<UUID, Set<Relation>> current = follows.recipients(targets);
     List<Recipient> recipients = new ArrayList<>();
-    for (UUID accountId : candidates) {
+    for (UUID accountId : usable) {
       Set<Relation> relations = current.getOrDefault(accountId, Set.of());
-      if (usable.contains(accountId) && !relations.isEmpty())
-        recipients.add(new Recipient(accountId, relations));
+      if (!relations.isEmpty()) recipients.add(new Recipient(accountId, relations));
     }
     return List.copyOf(recipients);
   }

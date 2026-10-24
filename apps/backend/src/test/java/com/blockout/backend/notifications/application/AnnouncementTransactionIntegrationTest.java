@@ -2,6 +2,7 @@ package com.blockout.backend.notifications.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.following.application.FollowStore.Relation;
@@ -85,7 +86,7 @@ class AnnouncementTransactionIntegrationTest {
   @DynamicPropertySource
   static void database(DynamicPropertyRegistry properties) throws Exception {
     System.out.println(
-        "#245 worktree /Users/hugo/.codex/worktrees/1b21/blockout container "
+        "Announcement PostgreSQL container "
             + DATABASE.getContainerId()
             + " PostgreSQL port "
             + DATABASE.getMappedPort(5432));
@@ -435,6 +436,43 @@ class AnnouncementTransactionIntegrationTest {
     assertThat(
             sql.queryForObject("SELECT result_composition FROM match_announcement", String.class))
         .isEqualTo(NotificationFamily.PLAIN_RESULT.name());
+  }
+
+  @Test
+  @DisplayName("Creating an existing notification UUID cannot reset its retained read state")
+  void rejectsExistingPersonalIdentity() {
+    // Given
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    NotificationStore.Entry original =
+        transaction.execute(
+            status -> {
+              roots(MATCH);
+              return processor.process(transition(MATCH, false)).getFirst().entry();
+            });
+    transaction.executeWithoutResult(
+        status -> {
+          accounts.lock(ACCOUNT);
+          entities.find(NotificationEntity.class, original.id()).markRead();
+        });
+
+    // When
+    Throwable duplicate =
+        catchThrowable(
+            () ->
+                transaction.executeWithoutResult(
+                    status -> {
+                      roots(MATCH);
+                      accounts.lock(ACCOUNT);
+                      notifications.create(original);
+                    }));
+
+    // Then
+    assertThat(
+            sql.queryForObject(
+                "SELECT is_read FROM notification WHERE id=?", Boolean.class, original.id()))
+        .isTrue();
+    assertThat(duplicate).isInstanceOf(DataIntegrityViolationException.class);
+    assertThat(count("notification")).isEqualTo(1);
   }
 
   @Test

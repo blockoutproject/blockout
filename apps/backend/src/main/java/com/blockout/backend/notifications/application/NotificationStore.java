@@ -25,6 +25,7 @@ public interface NotificationStore {
 
   /**
    * Inserts one unread personal entry under its original account lock; failures abort this match.
+   * An existing UUID must fail rather than merge into a retained entry or reset its read state.
    *
    * @param entry immutable allocation with no copied sporting text
    */
