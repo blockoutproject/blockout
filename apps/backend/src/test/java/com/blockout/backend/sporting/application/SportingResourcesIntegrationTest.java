@@ -201,6 +201,12 @@ class SportingResourcesIntegrationTest {
     TeamCandidate away = new TeamCandidate("PRO-AWAY", "Professional away", null, null);
     MatchView professional = identities.identifyMatch(first, "PRO1", home, away);
     identities.identifyMatch(second, "PRO2", home, away);
+    List<UUID> byUuid =
+        List.of(first, second).stream()
+            .sorted(java.util.Comparator.comparing(UUID::toString))
+            .toList();
+    sql.update("UPDATE sporting_pool SET manual_name='Zulu' WHERE id=?", byUuid.getFirst());
+    sql.update("UPDATE sporting_pool SET manual_name='Alpha' WHERE id=?", byUuid.getLast());
 
     // When
     ConsultationViews.TeamDetail result = resources.team(professional.homeTeamId());
@@ -210,10 +216,38 @@ class SportingResourcesIntegrationTest {
     assertThat(result.team().club()).isNull();
     assertThat(result.participations())
         .extracting(value -> value.pool().id())
-        .containsExactlyElementsOf(
-            List.of(first, second).stream()
-                .sorted(java.util.Comparator.comparing(UUID::toString))
-                .toList());
+        .containsExactly(byUuid.getLast(), byUuid.getFirst());
+  }
+
+  @Test
+  @DisplayName("Reads every club team beyond F02's batch size without publishing hidden seasons")
+  void readsCompleteLargeClub() {
+    // Given
+    for (int index = 0; index < 200; index++) {
+      identities.identifyMatch(
+          scope.pool(),
+          "LARGE-" + index,
+          new TeamCandidate(null, "Team " + index, "00203", "Club"),
+          new TeamCandidate(null, "Away", "00204", "Other"));
+    }
+    UUID hiddenSeason = seasons.getOrCreate(2024).id();
+    UUID hiddenPool = pool(hiddenSeason, CollectionProviderEnum.FFVB, "HIDDEN");
+    identities.identifyMatch(
+        hiddenPool,
+        "RETAINED",
+        new TeamCandidate(null, "Retained", "00203", "Club"),
+        new TeamCandidate(null, "Other", "00206", null));
+    sql.update("UPDATE sporting_pool SET catalog_eligible=FALSE WHERE id=?", hiddenPool);
+
+    // When
+    ConsultationViews.ClubDetail detail = resources.club(club);
+    ConsultationViews.ClubTeams teams =
+        resources.clubTeams(new ClubSeasonRequest(club, scope.season()));
+
+    // Then
+    assertThat(detail.seasons()).extracting(value -> value.id()).containsExactly(scope.season());
+    assertThat(teams.items()).hasSize(201);
+    assertThat(teams.items()).extracting(value -> value.team().id()).doesNotHaveDuplicates();
   }
 
   @Test

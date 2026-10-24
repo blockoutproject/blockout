@@ -7,6 +7,7 @@ import com.blockout.backend.generated.mobile.model.ResultStateEnum;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -93,5 +94,45 @@ class MatchPresentationTest {
     // Then
     assertThat(before).isEqualTo(CalendarCategoryEnum.COMPLETED);
     assertThat(after).isEqualTo(CalendarCategoryEnum.UPCOMING);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"Europe/Paris", "America/New_York"})
+  @DisplayName("Classifies the same accepted instant independently of its displayed offset")
+  void preservesCategoryAcrossZones(String zone) {
+    // Given
+    Instant kickoff = Instant.parse("2026-09-19T22:30:00Z");
+    ConsultationViews.Schedule schedule =
+        new ConsultationViews.Schedule(
+            LocalDate.of(2026, 9, 20),
+            kickoff.atZone(ZoneId.of(zone)).toOffsetDateTime(),
+            "Europe/Paris",
+            null);
+    Instant now = Instant.parse("2026-09-20T04:30:00Z");
+
+    // When
+    CalendarCategoryEnum result = MatchPresentation.category(schedule, null, now);
+
+    // Then
+    assertThat(result).isEqualTo(CalendarCategoryEnum.COMPLETED);
+  }
+
+  @Test
+  @DisplayName("Reapplies the current schedule after an early definitive result is withdrawn")
+  void reappliesScheduleAfterResultWithdrawal() {
+    // Given
+    Instant now = Instant.parse("2026-10-24T12:00:00Z");
+    ConsultationViews.Schedule schedule =
+        new ConsultationViews.Schedule(LocalDate.of(2026, 11, 1), null, null, null);
+    ConsultationViews.Result accepted =
+        new ConsultationViews.Result(ResultStateEnum.FINAL, 3, 0, null, null);
+
+    // When
+    CalendarCategoryEnum published = MatchPresentation.category(schedule, accepted, now);
+    CalendarCategoryEnum withdrawn = MatchPresentation.category(schedule, null, now);
+
+    // Then
+    assertThat(published).isEqualTo(CalendarCategoryEnum.COMPLETED);
+    assertThat(withdrawn).isEqualTo(CalendarCategoryEnum.UPCOMING);
   }
 }

@@ -24,6 +24,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -104,7 +105,20 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
         .map(
             input ->
                 new ConsultationViews.TeamDetail(
-                    teamSummary(teamId), input.poolIds().stream().map(this::poolSummary).toList()));
+                    teamSummary(teamId),
+                    input.poolIds().stream()
+                        .map(this::poolSummary)
+                        .sorted(
+                            Comparator.comparingLong(
+                                    (ConsultationViews.PoolSummary value) ->
+                                        value.season().startYear())
+                                .reversed()
+                                .thenComparing(
+                                    ConsultationViews.PoolSummary::competitionName,
+                                    Comparator.nullsLast(Comparator.naturalOrder()))
+                                .thenComparing(value -> value.pool().name())
+                                .thenComparing(value -> value.pool().id().toString()))
+                        .toList()));
   }
 
   /** {@inheritDoc} */
@@ -180,7 +194,15 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
             .setParameter("club", clubId)
             .setParameter("season", seasonId)
             .getResultList();
-    return owners.publicInputs(Kind.TEAM, new LinkedHashSet<>(ids));
+    List<SportingPublicInput> result = new ArrayList<>();
+    // F02 bounds each hydration call, not the complete club response or retained history.
+    for (int start = 0; start < ids.size(); start += 200) {
+      result.addAll(
+          owners.publicInputs(
+              Kind.TEAM,
+              new LinkedHashSet<>(ids.subList(start, Math.min(start + 200, ids.size())))));
+    }
+    return List.copyOf(result);
   }
 
   /**
