@@ -26,6 +26,8 @@ The PostgreSQL suite explicitly migrates this worktree's disposable PostgreSQL 1
 
 Validation on 2026-10-24 at `44a1b77`: `CI=true NX_DAEMON=false NX_ISOLATE_PLUGINS=false npm run verify -- --parallel=1` passed all five Nx tasks without cache: formatting, canonical contract checks/generation, backend (1,357 passed, one existing opt-in skipped), collector (259 passed), mobile lint/types (895 tests passed, five existing opt-in skipped), both platform JavaScript exports and Expo Doctor 20/20. The existing database-free health HTTP context now replaces `NotificationStore`, consistently with its other controlled business persistence ports; its 14 cases pass. Local Java is Microsoft OpenJDK 25.0.4. Generated outputs remain ignored; `git diff --check` passes.
 
+The persistence follow-up at `e657dd3` passes `CI=true NX_DAEMON=false NX_ISOLATE_PLUGINS=false npx nx run backend:verify --skipNxCache`: both backend and contract-bundle tasks succeed; 1,358 backend cases pass with the same one opt-in skipped. The new PostgreSQL regression first observed a retained read entry reverting to unread through `save`/`merge`; native JPA insertion now rejects the duplicate identity and preserves the committed entry. The focused F07 suites pass 43 cases, alongside the 14-case health HTTP suite. No schema, HTTP, collector or mobile source changed in this follow-up.
+
 These controlled inputs do not qualify the actual F02/F08 producer binding or publication eligibility (T013–T014 / #252), the F05 erasure orchestrator or actual asynchronous sender (T040 / #291), inbox HTTP/mobile, scheduled purge, native devices, provider delivery or restoration. No production optional/no-op hook or transport call was added.
 
 ## Essential scenarios
