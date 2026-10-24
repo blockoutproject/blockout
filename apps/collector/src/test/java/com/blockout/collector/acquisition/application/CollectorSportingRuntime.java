@@ -3,7 +3,6 @@ package com.blockout.collector.acquisition.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.ingestion.IngestionTestClient;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -30,7 +29,6 @@ import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.web.client.RestClient;
 
 /**
  * Suite-owned executable backend and local signing keys. Only identity and provider inputs are
@@ -128,20 +126,12 @@ final class CollectorSportingRuntime implements AutoCloseable {
    * Uses the existing production-configured pool/converters, with a native test interceptor for
    * response loss or observation. No backend result is fabricated.
    *
-   * @param transport pool owned and closed by the calling test
    * @param interceptor controlled request/response boundary
-   * @return generated authenticated client for the actual local backend
+   * @return caller-owned authenticated client and its connection pool
    */
-  ApiClient client(IngestionTestClient transport, ClientHttpRequestInterceptor interceptor) {
-    RestClient rest =
-        ApiClient.buildRestClientBuilder()
-            .requestFactory(transport.factory())
-            .requestInterceptor(interceptor)
-            .build();
-    ApiClient client = new ApiClient(rest);
-    client.setBasePath(baseUrl);
+  IngestionTestClient connect(ClientHttpRequestInterceptor interceptor) {
     Instant now = Instant.now();
-    client.setBearerToken(
+    String token =
         new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(signingKey)))
             .encode(
                 JwtEncoderParameters.from(
@@ -155,17 +145,10 @@ final class CollectorSportingRuntime implements AutoCloseable {
                         .claim("azp", "local-collector")
                         .claim("scope", "sporting:ingest")
                         .build()))
-            .getTokenValue());
-    return client;
-  }
-
-  /**
-   * Opens a production-configured bounded pool for this test's generated exchanges.
-   *
-   * @return caller-owned transport; its placeholder bearer is replaced by {@link #client}
-   */
-  IngestionTestClient transport() {
-    return IngestionTestClient.connect(baseUrl);
+            .getTokenValue();
+    IngestionTestClient transport = IngestionTestClient.connect(baseUrl, interceptor);
+    transport.api().setBearerToken(token);
+    return transport;
   }
 
   /**

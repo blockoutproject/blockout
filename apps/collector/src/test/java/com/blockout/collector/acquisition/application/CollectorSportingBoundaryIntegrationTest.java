@@ -51,7 +51,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Opt-in real collector → generated HTTP → executable backend → migrated PostgreSQL qualification.
@@ -112,30 +111,21 @@ class CollectorSportingBoundaryIntegrationTest {
             System.getProperty("qualification.migration-password"))) {
       ScriptUtils.executeSqlScript(connection, new ClassPathResource("collector-sporting.sql"));
     }
-    transport = runtime.transport();
-    ApiClient api =
-        runtime.client(
-            transport,
+    transport =
+        runtime.connect(
             (request, body, execution) -> {
               String path = request.getURI().getPath();
-              requests.add(
-                  new Request(
-                      request.getMethod(),
-                      path,
-                      JsonMapper.builder()
-                          .build()
-                          .readTree(
-                              body.length == 0
-                                  ? "{}".getBytes(java.nio.charset.StandardCharsets.UTF_8)
-                                  : body)));
+              requests.add(new Request(request.getMethod(), path, body));
               if (path.endsWith("/calendar-observations")) beforeCalendar.run();
               ClientHttpResponse response = execution.execute(request, body);
               if (path.equals(lostPath)
                   && request.getMethod() != HttpMethod.GET
                   && loseResponse.compareAndSet(true, false)) {
-                assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-                response.close();
-                throw new IOException("Synthetic lost acknowledgement after actual backend commit");
+                try (response) {
+                  assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+                  throw new IOException(
+                      "Synthetic lost acknowledgement after actual backend commit");
+                }
               }
               if (loseAdmissionRead
                   && request.getMethod() == HttpMethod.GET
@@ -145,6 +135,7 @@ class CollectorSportingBoundaryIntegrationTest {
               }
               return response;
             });
+    ApiClient api = transport.api();
     backend =
         new CollectionBackendClient(
             new CollectorOperationsApi(api),
@@ -213,11 +204,15 @@ class CollectorSportingBoundaryIntegrationTest {
                 "SELECT accepted_cycle_order FROM sporting_match", Long.class))
         .isEqualTo(context.getCycle().cycleOrder());
     assertThat(
-            requests.stream()
-                .filter(request -> request.path().endsWith("/calendar-observations"))
-                .findFirst()
-                .orElseThrow()
-                .body()
+            transport
+                .api()
+                .getJsonMapper()
+                .readTree(
+                    requests.stream()
+                        .filter(request -> request.path().endsWith("/calendar-observations"))
+                        .findFirst()
+                        .orElseThrow()
+                        .body())
                 .at("/context/readOrdinal")
                 .asLong())
         .isEqualTo(2);
@@ -278,7 +273,8 @@ class CollectorSportingBoundaryIntegrationTest {
             runtime.sql.queryForObject(
                 "SELECT result_composition FROM match_announcement", String.class))
         .isEqualTo(initialImport ? null : "PLAIN_RESULT");
-    JsonNode sent = requests.getLast().body().get("context");
+    JsonNode sent =
+        transport.api().getJsonMapper().readTree(requests.getLast().body()).get("context");
     assertThat(sent.propertyNames())
         .containsExactlyInAnyOrder("cycleId", "readOrdinal", "observedAt");
   }
@@ -486,11 +482,7 @@ class CollectorSportingBoundaryIntegrationTest {
             .getFirst()
             .resourceId();
     long revision = backend.current().revision();
-    try (Connection blocker =
-            DriverManager.getConnection(
-                System.getProperty("qualification.database-url"),
-                System.getProperty("qualification.database-user"),
-                System.getProperty("qualification.database-password"));
+    try (Connection blocker = runtime.sql.getDataSource().getConnection();
         ExecutorService workers = Executors.newFixedThreadPool(2)) {
       blocker.setAutoCommit(false);
       int blockerPid;
@@ -561,19 +553,18 @@ class CollectorSportingBoundaryIntegrationTest {
    * @return connection whose real lock wait has been observed
    */
   private int awaitBlockedBy(int blockerPid) {
-    await()
-        .atMost(Duration.ofSeconds(10))
-        .until(
-            () ->
-                Boolean.TRUE.equals(
-                    runtime.sql.queryForObject(
-                        "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE ? = ANY(pg_blocking_pids(pid)))",
-                        Boolean.class,
-                        blockerPid)));
-    return runtime.sql.queryForObject(
-        "SELECT pid FROM pg_stat_activity WHERE ? = ANY(pg_blocking_pids(pid))",
-        Integer.class,
-        blockerPid);
+    List<Integer> blocked =
+        await()
+            .atMost(Duration.ofSeconds(10))
+            .until(
+                () ->
+                    runtime.sql.queryForList(
+                        "SELECT pid FROM pg_stat_activity WHERE ? = ANY(pg_blocking_pids(pid))",
+                        Integer.class,
+                        blockerPid),
+                pids -> !pids.isEmpty());
+    assertThat(blocked).hasSize(1);
+    return blocked.getFirst();
   }
 
   /**
@@ -654,6 +645,12 @@ class CollectorSportingBoundaryIntegrationTest {
         .count();
   }
 
-  /** One recorded native exchange; no credential or response body is retained. */
-  private record Request(HttpMethod method, String path, JsonNode body) {}
+  /**
+   * One recorded native exchange; JSON is decoded only by assertions that inspect a payload.
+   *
+   * @param method actual HTTP method
+   * @param path canonical resource path, without credentials
+   * @param body synthetic request bytes supplied by the native interceptor
+   */
+  private record Request(HttpMethod method, String path, byte[] body) {}
 }
