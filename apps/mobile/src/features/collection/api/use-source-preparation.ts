@@ -108,12 +108,10 @@ export function useCollectionSeasons() {
   return { authority, query };
 }
 
-/** Reads one season with the same generated, session-scoped key across preparation destinations. */
-function useSeason(
-  seasonId: string,
-  authority: ReturnType<typeof useCollectionAuthority>,
-) {
-  return useQuery({
+/** Reads only the season needed by provider navigation, sharing its session-scoped cache with editors. */
+export function useCollectionSeason(seasonId: string) {
+  const authority = useCollectionAuthority();
+  const season = useQuery({
     queryKey: getSessionQueryKey(
       authority.session.generation,
       getGetCollectionSeasonQueryKey(seasonId),
@@ -123,18 +121,18 @@ function useSeason(
     queryFn: async ({ signal }) =>
       getCollectionSeason(seasonId, { ...(await authority.request()), signal }),
   });
+  return { authority, season };
 }
 
 /** Complete configuration reads and atomic selected-source launch; selection and drafts belong to the forms. */
 export function useSeasonPreparation(seasonId: string) {
-  const authority = useCollectionAuthority();
+  const { authority, season } = useCollectionSeason(seasonId);
   const client = useQueryClient();
-  const season = useSeason(seasonId, authority);
-  const mutationScope = getSessionQueryKey(
+  const seasonKey = getSessionQueryKey(
     authority.session.generation,
     getGetCollectionSeasonQueryKey(seasonId),
   );
-  const saving = useIsMutating({ mutationKey: mutationScope }) > 0;
+  const saving = useIsMutating({ mutationKey: seasonKey }) > 0;
   const sourcesKey = getSessionQueryKey(
     authority.session.generation,
     getListCollectionSourcesQueryKey(seasonId),
@@ -154,16 +152,10 @@ export function useSeasonPreparation(seasonId: string) {
     if (!authority.session.isCurrent(authority.session.generation))
       throw new ApiError("cancelled");
     void client.invalidateQueries({ queryKey: sourcesKey, exact: true });
-    void client.invalidateQueries({
-      queryKey: getSessionQueryKey(
-        authority.session.generation,
-        getGetCollectionSeasonQueryKey(seasonId),
-      ),
-      exact: true,
-    });
+    void client.invalidateQueries({ queryKey: seasonKey, exact: true });
   }
   const create = useMutation({
-    mutationKey: [...mutationScope, ...getCreateCollectionSourceMutationKey()],
+    mutationKey: [...seasonKey, ...getCreateCollectionSourceMutationKey()],
     gcTime: 0,
     mutationFn: async (body: CreateSourceBindingRequest) => {
       const accepted = await createCollectionSource(
@@ -176,7 +168,7 @@ export function useSeasonPreparation(seasonId: string) {
     },
   });
   const launch = useMutation({
-    mutationKey: [...mutationScope, ...getLaunchCollectionSourcesMutationKey()],
+    mutationKey: [...seasonKey, ...getLaunchCollectionSourcesMutationKey()],
     gcTime: 0,
     mutationFn: async (body: LaunchCollectionSourcesRequest) => {
       const accepted = await launchCollectionSources(
@@ -186,22 +178,10 @@ export function useSeasonPreparation(seasonId: string) {
       );
       if (!authority.session.isCurrent(authority.session.generation))
         throw new ApiError("cancelled");
-      await client.cancelQueries({
-        queryKey: getSessionQueryKey(
-          authority.session.generation,
-          getGetCollectionSeasonQueryKey(seasonId),
-        ),
-        exact: true,
-      });
+      await client.cancelQueries({ queryKey: seasonKey, exact: true });
       if (!authority.session.isCurrent(authority.session.generation))
         throw new ApiError("cancelled");
-      client.setQueryData(
-        getSessionQueryKey(
-          authority.session.generation,
-          getGetCollectionSeasonQueryKey(seasonId),
-        ),
-        accepted,
-      );
+      client.setQueryData(seasonKey, accepted);
       void client.invalidateQueries({ queryKey: sourcesKey, exact: true });
       void client.invalidateQueries({
         queryKey: getSessionQueryKey(
@@ -218,9 +198,8 @@ export function useSeasonPreparation(seasonId: string) {
 
 /** Candidate commands use canonical generated decoders, with explicit status reads and no polling. */
 export function useSourcePreparation(seasonId: string, sourceId: string) {
-  const authority = useCollectionAuthority();
+  const { authority, season } = useCollectionSeason(seasonId);
   const client = useQueryClient();
-  const season = useSeason(seasonId, authority);
   const queryKey = getSessionQueryKey(
     authority.session.generation,
     getGetCollectionSourceQueryKey(sourceId),

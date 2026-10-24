@@ -7,7 +7,7 @@ import {
 } from "../../../shared/components/request-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { useSeasonPreparation } from "../api/use-source-preparation";
+import { useCollectionSeason } from "../api/use-source-preparation";
 import {
   CollectionAccessFeedback,
   PreparationLink,
@@ -17,8 +17,7 @@ import {
 
 /** Opens each official provider's source preparation, including unlaunched sources in an active season. */
 export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
-  const editing = useSeasonPreparation(seasonId);
-  const { authority, season } = editing;
+  const { authority, season } = useCollectionSeason(seasonId);
   const router = useRouter();
   const { colors } = useTheme();
   return (

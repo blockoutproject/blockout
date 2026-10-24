@@ -83,9 +83,6 @@ export function SourceCandidateForm({
     !authority.enabled ||
     editing.saving ||
     isSubmitting ||
-    editing.candidate.isPending ||
-    editing.validation.isPending ||
-    editing.confirmation.isPending ||
     editing.source.isFetching ||
     editing.season.isFetching;
   const rereadRequired = needsRead || current.revision > baseline.revision;
@@ -238,10 +235,9 @@ export function SourceCandidateForm({
   }
   /** Opens only the saved candidate/accepted URL; native linking failure leaves all preparation controls usable. */
   async function openOfficialSource() {
-    const url = current.acceptedUrl ?? current.candidateUrl;
-    if (!url || !candidateUrlSchema.safeParse(url).success) return;
+    if (!officialUrl || !savedUrl) return;
     try {
-      await Linking.openURL(url);
+      await Linking.openURL(savedUrl);
     } catch {
       if (session.isCurrent(session.generation))
         editor.update({

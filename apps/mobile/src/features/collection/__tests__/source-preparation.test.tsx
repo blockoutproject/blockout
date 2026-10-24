@@ -25,6 +25,7 @@ import {
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { CollectionSeasonsScreen } from "../screens/collection-seasons-screen";
+import { SeasonPreparationScreen } from "../screens/season-preparation-screen";
 import { ProviderSourcesScreen } from "../screens/provider-sources-screen";
 import { SourcePreparationScreen } from "../screens/source-preparation-screen";
 import { SourceChildrenScreen } from "../screens/source-children-screen";
@@ -244,6 +245,30 @@ it("lists canonical seasons and opens their preparation without a dashboard", as
     pathname: "/collection/[seasonId]",
     params: { seasonId },
   });
+});
+
+it("opens provider preparation without loading unused source configuration", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPreparation(<SeasonPreparationScreen seasonId={seasonId} />);
+
+  // When
+  await user.press(
+    await screen.findByRole("button", {
+      name: "LNV, Les trois championnats professionnels",
+    }),
+  );
+
+  // Then
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/collection/[seasonId]/[provider]",
+    params: { seasonId, provider: "lnv" },
+  });
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      String(url).includes("/source-bindings"),
+    ),
+  ).toBe(false);
 });
 
 it("shows an honest empty season list and recovers an initial read failure explicitly", async () => {
@@ -809,6 +834,22 @@ it("adds only an unqualified candidate for the explicit provider and current sea
     organizerReference: "137",
     candidateUrl,
   });
+
+  // When
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Relire l’état" })).toBeEnabled(),
+  );
+  await user.press(screen.getByRole("button", { name: "Relire l’état" }));
+  await screen.findByText(
+    "État relu. Vérifiez votre saisie avant une nouvelle action.",
+  );
+  await user.press(screen.getByRole("button", { name: "Ajouter une source" }));
+
+  // Then
+  expect(
+    screen.getByLabelText("Référence de l’organisateur ou du championnat"),
+  ).toHaveDisplayValue("");
+  expect(screen.getByLabelText("URL officielle")).toHaveDisplayValue("");
 });
 
 it("keeps a manual draft read-only when the reread establishes terminal season closure", async () => {

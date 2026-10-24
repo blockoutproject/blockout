@@ -10,12 +10,12 @@ import {
   type CreateSourceValues,
 } from "../schemas/source-candidate";
 
-/** A manual supported candidate; its owner returns true only after confirmed creation. */
+/** A manual supported candidate; its owner handles outcomes and resets the retained control after acceptance. */
 export interface CreateSourceFormProps {
   formControl: UseFormProps<CreateSourceValues>["formControl"];
   disabled: boolean;
   saving: boolean;
-  onSubmit: (values: CreateSourceValues) => Promise<boolean>;
+  onSubmit: (values: CreateSourceValues) => Promise<void>;
   onDirtyChange?: (dirty: boolean) => void;
 }
 
@@ -30,7 +30,6 @@ export function CreateSourceForm({
   const {
     control,
     handleSubmit,
-    reset,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<CreateSourceValues>({
     formControl,
@@ -40,10 +39,6 @@ export function CreateSourceForm({
     onDirtyChange?.(isDirty);
     return () => onDirtyChange?.(false);
   }, [isDirty, onDirtyChange]);
-  /** Resets only a definitely accepted candidate; all failed values remain editable after reconciliation. */
-  async function submit(values: CreateSourceValues) {
-    if (await onSubmit(values)) reset();
-  }
   return (
     <View style={preparationStyles.form}>
       <Controller
@@ -86,7 +81,7 @@ export function CreateSourceForm({
       <Button
         label="Enregistrer la source"
         fullWidth
-        onPress={() => void handleSubmit(submit)()}
+        onPress={() => void handleSubmit(onSubmit)()}
         disabled={disabled || saving || isSubmitting}
         loading={saving}
       />

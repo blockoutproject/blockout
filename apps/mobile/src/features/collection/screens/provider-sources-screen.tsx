@@ -113,8 +113,6 @@ function ProviderPreparation({
   const busy =
     !authority.enabled ||
     editing.saving ||
-    editing.create.isPending ||
-    editing.launch.isPending ||
     editing.season.isFetching ||
     editing.sources.isFetching;
   const rereadRequired = needsRead || season.revision > baseline.revision;
@@ -130,15 +128,7 @@ function ProviderPreparation({
   const canLaunch =
     !closed &&
     selection.length > 0 &&
-    selection.every((id) =>
-      sources.some(
-        (source) =>
-          source.id === id &&
-          source.validation === "qualified" &&
-          !source.launched &&
-          (source.locked ? source.acceptedUrl : source.candidateUrl),
-      ),
-    );
+    selection.every((id) => ready.includes(id));
   const Icon = provider === "lnv" ? Trophy : Globe;
 
   /** Leaves selection and manual values intact; only uncertain/conflicting commands require reconciliation. */
@@ -156,26 +146,25 @@ function ProviderPreparation({
         feedback: "L’action a été refusée. Votre saisie est conservée.",
       });
   }
-  /** Adds a candidate for this explicit provider/season; success never implies qualification or periodic launch. */
+  /** Adds a candidate and resets its retained fields only on acceptance, without qualification or periodic launch. */
   async function create(values: CreateSourceValues) {
-    if (busy || closed || rereadRequired) return false;
+    if (busy || closed || rereadRequired) return;
     try {
       await editing.create.mutateAsync({
         seasonRevision: baseline.revision,
         provider,
         ...values,
       });
-      if (!session.isCurrent(session.generation)) return false;
+      if (!session.isCurrent(session.generation)) return;
+      editor.form.reset();
       editor.update({
         ...editor.getSnapshot(),
         adding: false,
         needsRead: true,
         feedback: "Source ajoutée. Relisez l’état avant une nouvelle action.",
       });
-      return true;
     } catch (error) {
       failed(error);
-      return false;
     }
   }
   /** Presents the actual selected labels; a native confirmation never broadens the atomic launch scope. */
