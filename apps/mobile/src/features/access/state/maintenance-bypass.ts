@@ -1,8 +1,14 @@
+import { randomUUID } from "expo-crypto";
 import type { SessionSnapshot } from "../../accounts/session/session-generation";
 
 /** Explicit personal intent, scoped to F05; clearing it cancels captured bypass work without replay. */
 export function createMaintenanceBypass() {
-  let owner: (SessionSnapshot & { readonly signal: AbortSignal }) | undefined;
+  let owner:
+    | (SessionSnapshot & {
+        readonly intentId: string;
+        readonly signal: AbortSignal;
+      })
+    | undefined;
   let cancellation: AbortController | undefined;
   const listeners = new Set<() => void>();
   /** Discards intent at a lifecycle, grant or complete inactive-maintenance boundary. */
@@ -23,12 +29,16 @@ export function createMaintenanceBypass() {
         listeners.delete(listener);
       };
     },
-    /** Records only a deliberate currently eligible account choice; eligibility includes the native minimum. */
+    /**
+     * Records a deliberate choice with one identity shared by all consumers until cancellation.
+     * Eligibility is supplied by current F12 admission, including the native minimum.
+     */
     request(session: SessionSnapshot, eligible: boolean): boolean {
       if (!eligible || !session.accountId) return false;
       cancellation?.abort();
       cancellation = new AbortController();
       owner = {
+        intentId: randomUUID(),
         generation: session.generation,
         accountId: session.accountId,
         signal: cancellation.signal,
