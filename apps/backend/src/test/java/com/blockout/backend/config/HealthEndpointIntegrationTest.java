@@ -12,6 +12,7 @@ import com.blockout.backend.access.application.PermissionStore;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.collection.application.port.CollectionStore;
+import com.blockout.backend.following.application.FollowStore;
 import com.blockout.backend.sporting.application.port.SportingReadStore;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import org.junit.jupiter.api.DisplayName;
@@ -53,6 +54,7 @@ class HealthEndpointIntegrationTest {
   @MockitoBean private SportingReadStore sportingReads;
   @MockitoBean private CollectionStore collectionStore;
   @MockitoBean private AccountStore accounts;
+  @MockitoBean private FollowStore follows;
   @MockitoBean private EstablishAccount establishment;
   @MockitoBean private PermissionStore permissions;
   @MockitoBean private AccessSettingsStore settings;
