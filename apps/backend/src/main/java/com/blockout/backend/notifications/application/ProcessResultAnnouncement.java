@@ -43,16 +43,18 @@ public class ProcessResultAnnouncement {
     boolean previousFinal = isFinal(transition.previous());
     boolean currentFinal = isFinal(transition.current());
     if (!previousFinal && !currentFinal) return List.of();
+    boolean eligible =
+        !previousFinal
+            && currentFinal
+            && !transition.firstObservation()
+            && !transition.reconstruction()
+            && transition.viewable();
     NotificationFamily family =
         transition.publicLink()
             ? NotificationFamily.ENRICHED_RESULT
             : NotificationFamily.PLAIN_RESULT;
-    store.saveFacts(previous.consumeResult(family));
-    if (previousFinal
-        || !currentFinal
-        || transition.firstObservation()
-        || transition.reconstruction()
-        || !transition.viewable()) return List.of();
+    store.saveFacts(previous.consumeResult(eligible ? family : null));
+    if (!eligible) return List.of();
     List<Created> created = new ArrayList<>();
     for (Recipient recipient : recipients.select(transition.match())) {
       UUID id = UUID.randomUUID();

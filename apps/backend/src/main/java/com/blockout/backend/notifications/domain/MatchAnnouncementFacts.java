@@ -10,7 +10,7 @@ import java.util.UUID;
  * @param liveProcessed consumed live category
  * @param resultProcessed consumed result category, including silent discovery/reconstruction
  * @param postResultProcessed consumed post-result category
- * @param resultComposition fixed result family, absent before result processing
+ * @param resultComposition fixed eligible result family, absent before processing or after silence
  */
 public record MatchAnnouncementFacts(
     UUID matchId,
@@ -19,17 +19,17 @@ public record MatchAnnouncementFacts(
     boolean postResultProcessed,
     NotificationFamily resultComposition) {
   /**
-   * Requires a result composition exactly when the result category has been processed.
+   * Allows silent processing without an emitted composition; an enriched event consumes replay.
    *
    * @param matchId required original match
    * @param liveProcessed live allowance
    * @param resultProcessed result allowance
    * @param postResultProcessed post-result allowance
-   * @param resultComposition plain/enriched result only, or null before processing
+   * @param resultComposition plain/enriched result only, or null when no eligible event was emitted
    */
   public MatchAnnouncementFacts {
     Objects.requireNonNull(matchId);
-    if (resultProcessed != (resultComposition != null)
+    if ((!resultProcessed && resultComposition != null)
         || (resultComposition != null
             && resultComposition != NotificationFamily.PLAIN_RESULT
             && resultComposition != NotificationFamily.ENRICHED_RESULT)
@@ -71,7 +71,7 @@ public record MatchAnnouncementFacts(
   /**
    * Fixes composition once, consuming replay with an enriched result; repeats preserve all facts.
    *
-   * @param family selected plain/enriched composition under the match lock
+   * @param family eligible plain/enriched composition, or null for silent processing
    * @return monotone processed facts
    */
   public MatchAnnouncementFacts consumeResult(NotificationFamily family) {

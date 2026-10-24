@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 
 /** Isolated accepted-transition policy; real producer binding belongs to F07 T013/T014. */
 @DisplayName("Result announcement policy")
@@ -53,7 +54,7 @@ class ResultAnnouncementTest {
 
   @ParameterizedTest
   @CsvSource({"true,false,true", "false,true,true", "false,false,false"})
-  @DisplayName("Consumes suppressed final discoveries, reconstruction and hidden results silently")
+  @DisplayName("Silent final processing preserves the category for a genuinely later publication")
   void suppressesHistoricOrHidden(boolean discovery, boolean reconstruction, boolean visible) {
     // Given
     when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
@@ -66,10 +67,12 @@ class ResultAnnouncementTest {
         .isEmpty();
 
     // Then
-    verify(store)
-        .saveFacts(
-            new MatchAnnouncementFacts(
-                MATCH, false, true, true, NotificationFamily.ENRICHED_RESULT));
+    ArgumentCaptor<MatchAnnouncementFacts> recorded =
+        ArgumentCaptor.forClass(MatchAnnouncementFacts.class);
+    verify(store).saveFacts(recorded.capture());
+    assertThat(recorded.getValue().resultProcessed()).isTrue();
+    assertThat(recorded.getValue().postResultProcessed()).isFalse();
+    assertThat(recorded.getValue().resultComposition()).isNull();
     verifyNoInteractions(recipients);
   }
 
@@ -90,7 +93,7 @@ class ResultAnnouncementTest {
   }
 
   @Test
-  @DisplayName("Preserves the plain allowance for a genuinely later publication after discovery")
+  @DisplayName("Discovery without a link records no emitted result composition")
   void preservesLaterPublication() {
     // Given
     when(store.facts(MATCH)).thenReturn(MatchAnnouncementFacts.empty(MATCH));
@@ -99,9 +102,10 @@ class ResultAnnouncementTest {
     processor.process(transition(null, result(ResultStateEnum.FINAL), true, false, true, false));
 
     // Then
-    verify(store)
-        .saveFacts(
-            new MatchAnnouncementFacts(MATCH, false, true, false, NotificationFamily.PLAIN_RESULT));
+    ArgumentCaptor<MatchAnnouncementFacts> recorded =
+        ArgumentCaptor.forClass(MatchAnnouncementFacts.class);
+    verify(store).saveFacts(recorded.capture());
+    assertThat(recorded.getValue().resultComposition()).isNull();
   }
 
   @Test
@@ -115,9 +119,11 @@ class ResultAnnouncementTest {
     processor.process(transition(result(ResultStateEnum.FINAL), null, false, false, true, false));
 
     // Then
-    verify(store)
-        .saveFacts(
-            new MatchAnnouncementFacts(MATCH, false, true, false, NotificationFamily.PLAIN_RESULT));
+    ArgumentCaptor<MatchAnnouncementFacts> recorded =
+        ArgumentCaptor.forClass(MatchAnnouncementFacts.class);
+    verify(store).saveFacts(recorded.capture());
+    assertThat(recorded.getValue().resultProcessed()).isTrue();
+    assertThat(recorded.getValue().resultComposition()).isNull();
     verifyNoInteractions(recipients);
   }
 

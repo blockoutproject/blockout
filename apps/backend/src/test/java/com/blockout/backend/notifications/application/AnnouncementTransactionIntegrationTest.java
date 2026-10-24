@@ -473,6 +473,49 @@ class AnnouncementTransactionIntegrationTest {
         .isFalse();
   }
 
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  @DisplayName(
+      "Silent final discovery or reconstruction with a link preserves the later-publication allowance")
+  void preservesUnusedPostResultCategory(boolean discovery) {
+    // Given
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    Transition silent =
+        new Transition(
+            new MatchView(MATCH, POOL, "controlled", HOME, AWAY),
+            null,
+            new Result(ResultStateEnum.FINAL, 3, 1, null),
+            discovery,
+            !discovery,
+            true,
+            true,
+            ORIGIN);
+
+    // When
+    transaction.executeWithoutResult(
+        status -> {
+          roots(MATCH);
+          processor.process(silent);
+        });
+    transaction.executeWithoutResult(
+        status -> {
+          roots(MATCH);
+          processor.process(transition(MATCH, true));
+        });
+
+    // Then
+    assertThat(count("notification")).isZero();
+    assertThat(sql.queryForObject("SELECT result_processed FROM match_announcement", Boolean.class))
+        .isTrue();
+    assertThat(
+            sql.queryForObject(
+                "SELECT post_result_processed FROM match_announcement", Boolean.class))
+        .isFalse();
+    assertThat(
+            sql.queryForObject("SELECT result_composition FROM match_announcement", String.class))
+        .isNull();
+  }
+
   @Test
   @DisplayName("Locks the complete candidate set in sorted account UUID order")
   void sortsAccountLocks() throws Exception {
