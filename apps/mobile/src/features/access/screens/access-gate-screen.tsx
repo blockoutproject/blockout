@@ -1,10 +1,12 @@
+import { applicationUpdateMessage } from "../application-update-message";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { RotateCw } from "lucide-react-native";
+import { RotateCw, X } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Defs, Image as SvgImage, Mask, Rect } from "react-native-svg";
+import { IconButton } from "../../../shared/components/icon-button";
 import { Button } from "../../../shared/components/button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -23,6 +25,8 @@ interface GateViewProps {
   checking: boolean;
   onRetry(): void;
   onAdministration?: () => void;
+  /** Local presentation only; closing a preview never changes admission. */
+  onClose?: () => void;
 }
 
 /** Full-width stage centers its content and decorative rails together; only foreground controls own side margins. */
@@ -32,6 +36,7 @@ function GateView({
   checking,
   onRetry,
   onAdministration,
+  onClose,
 }: GateViewProps) {
   const { colors } = useTheme();
   const [failedImage, setFailedImage] = useState<string | null>(null);
@@ -50,9 +55,7 @@ function GateView({
   } else if (update) {
     title = "Mets Blockout\nà jour.";
     badge = "MISE À JOUR";
-    message =
-      snapshot.versions?.message ??
-      "Une nouvelle version de Blockout est obligatoire pour continuer à utiliser l’application.";
+    message = snapshot.versions?.message ?? applicationUpdateMessage;
   }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
@@ -83,8 +86,17 @@ function GateView({
             { color: colors.text, borderColor: colors.border },
           ]}
         >
-          {badge}
+          {onClose ? "APERÇU" : badge}
         </Text>
+        {onClose && (
+          <IconButton label="Fermer l’aperçu" onPress={onClose}>
+            <X
+              accessible={false}
+              size={tokens.size.actionIcon}
+              color={colors.icon}
+            />
+          </IconButton>
+        )}
       </View>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.stage}>
@@ -149,7 +161,14 @@ function GateView({
           )}
         </View>
         <View style={styles.actions}>
-          {update && versions?.storeUrl ? (
+          {onClose ? (
+            <Button
+              fullWidth
+              label="Mettre à jour l’application"
+              onPress={() => {}}
+              disabled
+            />
+          ) : update && versions?.storeUrl ? (
             <StoreAction key={versions.storeUrl} url={versions.storeUrl} />
           ) : (
             <Button
@@ -175,6 +194,38 @@ function GateView({
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/** Presents only the unsaved shared update copy; no store handoff, publication or admission occurs. */
+export function ApplicationVersionsPreview({
+  message,
+  onClose,
+}: {
+  message: string | null;
+  onClose(): void;
+}) {
+  return (
+    <GateView
+      snapshot={{
+        checking: false,
+        versions: {
+          revision: 0,
+          ios: { minimumVersion: null, storeUrl: null },
+          android: { minimumVersion: null, storeUrl: null },
+          message,
+        },
+      }}
+      presentation={{
+        gate: "update",
+        ordinary: false,
+        version: "outdated",
+        versions: undefined,
+      }}
+      checking={false}
+      onRetry={() => {}}
+      onClose={onClose}
+    />
   );
 }
 
