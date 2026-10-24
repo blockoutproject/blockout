@@ -1,9 +1,4 @@
-import {
-  useIsMutating,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
   getClubPresentation,
@@ -36,6 +31,7 @@ import type {
   DivisionResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useAccountSession } from "../../accounts/current-account";
 import { useOperationalVersionAdmission } from "../../access/operational-version-admission";
@@ -68,8 +64,6 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
           ? getGetPoolPresentationQueryKey(target.id)
           : getGetDivisionQueryKey(target.id);
   const queryKey = getSessionQueryKey(session.generation, generatedKey);
-  const mutationKey = [...queryKey, "save"];
-  const saving = useIsMutating({ mutationKey, exact: true }) > 0;
 
   /** Rechecks current F05/F12 authority after credentials; the server still owns resource authorization. */
   async function request(signal?: AbortSignal) {
@@ -124,7 +118,6 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     },
   });
   const save = useMutation({
-    mutationKey,
     gcTime: 0,
     mutationFn: async ({
       revision,
@@ -135,9 +128,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     }): Promise<Presentation> => {
       const options = await request();
       const image =
-        values.logo.action === "replace"
-          ? { image: values.logo.prepared.file }
-          : {};
+        values.logo.action === "replace" ? { image: values.logo.prepared } : {};
       const common = { revision, logoAction: values.logo.action };
       const manualName = values.name === "" ? null : values.name.trim();
       const manualShortName =
@@ -226,7 +217,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
       return accepted;
     },
   });
-  return { query, save, saving };
+  return { query, save };
 }
 
 /** Loads backend-controlled binary artwork using #203's generated operations, without direct URL image requests. */
@@ -273,23 +264,10 @@ export function usePresentationLogo(
           : target.kind === "club"
             ? await getClubLogo(target.id, options)
             : await getDivisionLogo(target.id, options);
-      const uri = await logoPreview(blob);
+      const uri = await binaryImagePreview(blob);
       if (!session.isCurrent(session.generation) || signal.aborted)
         throw new ApiError("cancelled");
       return uri;
     },
-  });
-}
-
-/** Creates only an ephemeral native preview; binary responses never enter JSON validation or persistent storage. */
-function logoPreview(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new ApiError("network"));
-    reader.onload = () =>
-      typeof reader.result === "string"
-        ? resolve(reader.result)
-        : reject(new ApiError("schema"));
-    reader.readAsDataURL(blob);
   });
 }

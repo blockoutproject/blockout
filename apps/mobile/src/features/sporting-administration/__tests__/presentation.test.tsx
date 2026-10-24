@@ -91,9 +91,10 @@ const mockContext = {
   release: jest.fn(),
 };
 const mockImage = { saveAsync: jest.fn(), release: jest.fn() };
-const mockFile = new Blob([new Uint8Array([137, 80, 78, 71])], {
-  type: "image/png",
-});
+const mockFile = Object.assign(
+  new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
+  { uri: "file:///prepared.png" },
+);
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
@@ -576,18 +577,16 @@ it("ignores a held native selection after the session is invalidated", async () 
   // Given
   const user = await renderEditor();
   await screen.findByDisplayValue("Current name");
-  let finish!: (value: ImagePicker.ImagePickerResult) => void;
-  jest.mocked(ImagePicker.launchImageLibraryAsync).mockReturnValue(
-    new Promise((resolve) => {
-      finish = resolve;
-    }),
-  );
+  const selection = Promise.withResolvers<ImagePicker.ImagePickerResult>();
+  jest
+    .mocked(ImagePicker.launchImageLibraryAsync)
+    .mockReturnValue(selection.promise);
   await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
 
   // When
   await user.press(screen.getByRole("button", { name: "Quitter la session" }));
   await act(async () =>
-    finish({
+    selection.resolve({
       canceled: false,
       assets: [
         { uri: "file:///old.png", width: 120, height: 60, type: "image" },
@@ -898,20 +897,24 @@ it("rejects a delayed save result after the session has ended", async () => {
   const user = await renderEditor();
   await screen.findByDisplayValue("Current name");
   await edit("Nom complet personnalisé", "My draft");
-  let finish!: (response: Response) => void;
+  const saveResponse = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((_url, options) =>
     options?.method === "PATCH"
-      ? new Promise((resolve) => {
-          finish = resolve;
-        })
+      ? saveResponse.promise
       : Promise.resolve(json(initial)),
   );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await waitFor(() => expect(finish).toBeDefined());
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1),
+  );
 
   // When
   await user.press(screen.getByRole("button", { name: "Quitter la session" }));
-  await act(async () => finish(json({ ...initial, revision: "r2" })));
+  await act(async () =>
+    saveResponse.resolve(json({ ...initial, revision: "r2" })),
+  );
 
   // Then
   await waitFor(() =>

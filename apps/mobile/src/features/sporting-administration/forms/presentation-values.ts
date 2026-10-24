@@ -1,6 +1,6 @@
 import { z } from "zod";
+import type { File } from "expo-file-system";
 import type { Presentation } from "../api/presentation";
-import type { PreparedSportingLogo } from "../images/prepare-sporting-logo";
 
 const name = z
   .string()
@@ -24,7 +24,7 @@ export const presentationSchema = z
       z.object({ action: z.literal("automatic") }),
       z.object({
         action: z.literal("replace"),
-        prepared: z.custom<PreparedSportingLogo>(),
+        prepared: z.custom<File>(),
       }),
     ]),
   })

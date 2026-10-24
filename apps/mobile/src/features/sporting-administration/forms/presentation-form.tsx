@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import {
   ApiError,
@@ -57,16 +57,14 @@ export function PresentationForm({
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
   const { baseline, needsRead, feedback } = state;
   const [preparing, setPreparing] = useState(false);
-  const {
+  const { control, handleSubmit, setValue, setError, reset } =
+    useForm<PresentationValues>({
+      resolver: zodResolver(presentationSchema),
+      formControl: editor.form.formControl,
+    });
+  // Read the retained control's current state on remount; RHF remains the sole submission owner.
+  const { errors, isSubmitting, isDirty, dirtyFields } = useFormState({
     control,
-    handleSubmit,
-    setValue,
-    setError,
-    reset,
-    formState: { errors, isSubmitting, isDirty, dirtyFields },
-  } = useForm<PresentationValues>({
-    resolver: zodResolver(presentationSchema),
-    formControl: editor.form.formControl,
   });
   const draft = useWatch({ control, name: "logo" });
   // Subscribing to dirty fields is required by RHF's native keepDirtyValues reset option.
@@ -74,11 +72,7 @@ export function PresentationForm({
   const changed = presentation.data.revision !== baseline.data.revision;
   const rereadRequired = needsRead || changed;
   const busy =
-    disabled ||
-    preparing ||
-    isSubmitting ||
-    editing.saving ||
-    editing.query.isFetching;
+    disabled || preparing || isSubmitting || editing.query.isFetching;
   const currentLogo = baseline.kind !== "pool" ? baseline.data.logo : undefined;
   const selection = draft.action === "automatic" ? "automatic" : "effective";
   const hasLogo =

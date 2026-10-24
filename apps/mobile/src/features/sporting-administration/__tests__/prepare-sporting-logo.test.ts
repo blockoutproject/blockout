@@ -18,8 +18,14 @@ jest.mock("expo-image-manipulator", () => ({
   },
   SaveFormat: { PNG: "png" },
 }));
-const mockJpeg = new Blob([new Uint8Array(2_521_838)], { type: "image/jpeg" });
-const mockPng = new Blob([new Uint8Array(12_273_912)], { type: "image/png" });
+const mockJpeg = Object.assign(
+  new Blob([new Uint8Array(2_521_838)], { type: "image/jpeg" }),
+  { uri: "file:///original.jpg" },
+);
+const mockPng = Object.assign(
+  new Blob([new Uint8Array(12_273_912)], { type: "image/png" }),
+  { uri: "file:///rendered.png" },
+);
 
 it("preserves an admissible JPEG instead of refusing its larger lossless PNG encoding", async () => {
   // Given
@@ -36,6 +42,6 @@ it("preserves an admissible JPEG instead of refusing its larger lossless PNG enc
 
   // Then
   expect(prepared.uri).toBe(asset.uri);
-  expect(prepared.file.size).toBe(2_521_838);
-  expect(prepared.file.type).toBe("image/jpeg");
+  expect(prepared.size).toBe(2_521_838);
+  expect(prepared.type).toBe("image/jpeg");
 });
