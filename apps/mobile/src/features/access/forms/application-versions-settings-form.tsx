@@ -16,6 +16,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import type {
   ApplicationVersionsResponse,
@@ -52,6 +53,8 @@ export function ApplicationVersionsSettingsForm({
 }: ApplicationVersionsSettingsFormProps) {
   const session = useAccountSession();
   const { colors } = useTheme();
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 1;
   const mounted = useRef(false);
   const [editor] = useState(() => applicationVersionsEditor(session, settings));
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
@@ -198,7 +201,8 @@ export function ApplicationVersionsSettingsForm({
               key={platform}
               style={[
                 styles.platformCard,
-                (expanded.ios || expanded.android) && styles.expandedCard,
+                (largeText || expanded.ios || expanded.android) &&
+                  styles.expandedCard,
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
             >
@@ -349,7 +353,7 @@ export function ApplicationVersionsSettingsForm({
           </Text>
         )}
         <View style={styles.actions}>
-          <View style={styles.action}>
+          <View style={[styles.action, largeText && styles.expandedCard]}>
             <Button
               fullWidth
               variant="secondary"
@@ -358,7 +362,7 @@ export function ApplicationVersionsSettingsForm({
               disabled={busy}
             />
           </View>
-          <View style={styles.action}>
+          <View style={[styles.action, largeText && styles.expandedCard]}>
             <Button
               fullWidth
               label="Appliquer les modifications"
