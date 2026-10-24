@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,10 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 /** URL-safe encoding of only the original UTC creation instant and UUID; grants no authority. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class NotificationCursor {
-  private static final Pattern KEYS =
-      Pattern.compile(
-          "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,6})?Z/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
-
   /**
    * Encodes persisted continuation keys without retaining server-side cursor state.
    *
@@ -35,7 +30,8 @@ public final class NotificationCursor {
   }
 
   /**
-   * Decodes and validates a supplied continuation before database access.
+   * Decodes a continuation with the JDK parsers, retaining only microsecond keys in the canonical
+   * format emitted by {@link #encode}. No separate date or UUID grammar is maintained.
    *
    * @param cursor token supplied by a client, absent for a fresh traversal
    * @return exact continuation, or null
@@ -44,14 +40,17 @@ public final class NotificationCursor {
   public static Continuation decode(String cursor) {
     if (cursor == null) return null;
     try {
-      if (cursor.length() > 128 || !cursor.matches("[A-Za-z0-9_-]+"))
-        throw new IllegalArgumentException();
+      if (cursor.length() > 128) throw new IllegalArgumentException();
       String decoded = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.US_ASCII);
-      if (!KEYS.matcher(decoded).matches()) throw new IllegalArgumentException();
       int separator = decoded.indexOf('/');
-      return new Continuation(
-          Instant.parse(decoded.substring(0, separator)),
-          UUID.fromString(decoded.substring(separator + 1)));
+      if (separator < 0) throw new IllegalArgumentException();
+      Continuation keys =
+          new Continuation(
+              Instant.parse(decoded.substring(0, separator)),
+              UUID.fromString(decoded.substring(separator + 1)));
+      if (keys.createdAt().getNano() % 1000 != 0 || !cursor.equals(encode(keys)))
+        throw new IllegalArgumentException();
+      return keys;
     } catch (IllegalArgumentException | DateTimeParseException invalid) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
     }

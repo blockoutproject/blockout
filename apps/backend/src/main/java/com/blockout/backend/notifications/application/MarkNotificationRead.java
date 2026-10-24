@@ -21,7 +21,8 @@ public class MarkNotificationRead {
 
   /**
    * Marks the exact current entry read, independently of navigation. Sporting season/division/match
-   * locks precede the account; no sporting root is acquired afterward. Repetition never inserts.
+   * locks precede the account; no sporting root is acquired afterward. Reuses the authorized
+   * projection after the update confirms true; repetition never inserts.
    *
    * @param owner captured original owner
    * @param id exact personal entry
@@ -38,6 +39,13 @@ public class MarkNotificationRead {
         reads.member(owner, id, now).orElseThrow(NotificationNotFoundException::new);
     if (current.read()) return current;
     if (!writes.markRead(owner, id, now)) throw new NotificationNotFoundException();
-    return reads.member(owner, id, now).orElseThrow(NotificationNotFoundException::new);
+    return new InboxReadStore.Entry(
+        current.id(),
+        current.createdAt(),
+        current.family(),
+        current.variant(),
+        true,
+        current.match(),
+        current.publicLink());
   }
 }

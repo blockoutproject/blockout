@@ -83,14 +83,14 @@ public class JpaInboxReadAdapter implements InboxReadStore {
   /** {@inheritDoc} */
   @Override
   public Optional<UUID> matchId(NotificationContext owner, UUID id) {
-    return entities
-        .createQuery(
-            "SELECT n.matchId FROM NotificationEntity n WHERE n.id=:id AND n.accountId=:owner",
-            UUID.class)
-        .setParameter("id", id)
-        .setParameter("owner", owner.accountId())
-        .getResultStream()
-        .findFirst();
+    return Optional.ofNullable(
+        entities
+            .createQuery(
+                "SELECT n.matchId FROM NotificationEntity n WHERE n.id=:id AND n.accountId=:owner",
+                UUID.class)
+            .setParameter("id", id)
+            .setParameter("owner", owner.accountId())
+            .getSingleResultOrNull());
   }
 
   /**

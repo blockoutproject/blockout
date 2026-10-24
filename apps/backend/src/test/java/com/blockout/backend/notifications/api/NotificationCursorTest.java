@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,14 +16,20 @@ import org.springframework.web.server.ResponseStatusException;
 /** Opaque continuation precision and syntax, independent of a retained anchor or owner registry. */
 @DisplayName("Inbox continuation keys")
 class NotificationCursorTest {
-  @Test
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "2026-10-25T12:00:00Z",
+        "2026-10-25T12:00:00.123Z",
+        "2026-10-25T12:00:00.000001Z",
+        "2026-10-25T12:00:00.123456Z"
+      })
   @DisplayName("Preserves all PostgreSQL microseconds and UUID bits")
-  void preservesPrecision() {
+  void preservesPrecision(String createdAt) {
     // Given
     Continuation keys =
         new Continuation(
-            Instant.parse("2026-10-25T12:00:00.123456Z"),
-            UUID.fromString("ffffffff-ffff-4fff-bfff-ffffffffffff"));
+            Instant.parse(createdAt), UUID.fromString("ffffffff-ffff-4fff-bfff-ffffffffffff"));
 
     // When
     String cursor = NotificationCursor.encode(keys);
@@ -49,6 +54,7 @@ class NotificationCursorTest {
   @ValueSource(
       strings = {
         "2026-10-25T12:00:00.1234567Z/ffffffff-ffff-4fff-bfff-ffffffffffff",
+        "2026-10-25T12:00:00.1234560Z/ffffffff-ffff-4fff-bfff-ffffffffffff",
         "2026-02-30T12:00:00Z/ffffffff-ffff-4fff-bfff-ffffffffffff",
         "2026-10-25T12:00:00+02:00/ffffffff-ffff-4fff-bfff-ffffffffffff",
         "2026-10-25T12:00:00Z/1-1-1-1-1"

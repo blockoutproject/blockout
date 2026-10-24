@@ -55,9 +55,14 @@ keyset operations; both persisted sort values remain in the scalar projection. S
 actual operations, without changing wire routes, operation IDs or shapes or adding placeholders.
 
 Read commands reuse the existing season → division → match → account locks before reselecting
-current owner/age/visibility. Already-read entries return unchanged; the update never merges or
-inserts. Controlled personal-row removal is qualified here; actual scheduled purge, F05 erasure
-and restoration remain with T052/#267 and T051/#360.
+current owner/age/visibility. After the conditional update confirms success, the response reuses
+that authorized projection with read=true; rehydrating the same sporting/link facts adds no
+freshness guarantee under these locks. Already-read entries return unchanged; the update never
+merges or inserts. Cursor validation uses the JDK Base64/Instant/UUID parsers, microsecond precision
+and the encoder's canonical representation rather than a second date/UUID grammar. All emitted
+cursors remain valid; alternate spellings never emitted by the server are rejected. Controlled
+personal-row removal is qualified here; actual scheduled purge, F05 erasure and restoration remain
+with T052/#267 and T051/#360.
 
 ## Association identity and native lifecycle
 
