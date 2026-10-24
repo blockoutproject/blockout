@@ -63,7 +63,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Real F05 resolution and HTTP security/filter with controlled account storage and F12 decision.
  */
-@WebMvcTest(controllers = NotificationAccessTest.Adapter.class)
+@WebMvcTest(controllers = NotificationAccessWebMvcTest.Adapter.class)
 @Import({
   SecurityConfiguration.class,
   HttpConfiguration.class,
@@ -71,10 +71,10 @@ import tools.jackson.databind.json.JsonMapper;
   CurrentAccount.class,
   AccountAccess.class,
   NotificationRequest.class,
-  NotificationAccessTest.Adapter.class
+  NotificationAccessWebMvcTest.Adapter.class
 })
 @DisplayName("Notification original owner access")
-class NotificationAccessTest {
+class NotificationAccessWebMvcTest {
   private static final UUID A = UUID.fromString("00000000-0000-4000-8000-000000000237");
   private static final UUID B = UUID.fromString("00000000-0000-4000-8000-000000000238");
   private static String issuer;
