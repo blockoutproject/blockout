@@ -132,7 +132,7 @@ Use the authorized target's existing private database connection and current ope
    curl --fail-with-body --silent --show-error \
      --header "Authorization: Bearer ${OPERATOR_ACCESS_TOKEN}" \
      --output "$CURRENT_PRESENTATION" \
-     "${BACKEND_URL}/administration/clubs/${CLUB_ID}/presentation"
+     "${BACKEND_URL}/administration/clubs/${CLUB_ID}/presentation" &&
    jq --exit-status '{revision, manualName: .names.manualName, logoAction: "replace"}' \
      "$CURRENT_PRESENTATION" > "$LOGO_METADATA"
    ```
@@ -147,12 +147,12 @@ Use the authorized target's existing private database connection and current ope
      --form "metadata=@${LOGO_METADATA};type=application/json" \
      --form "image=@${PRESERVED_LOGO}" \
      --output "$SAVED_PRESENTATION" \
-     "${BACKEND_URL}/administration/clubs/${CLUB_ID}/presentation"
+     "${BACKEND_URL}/administration/clubs/${CLUB_ID}/presentation" &&
    curl --fail-with-body --silent --show-error \
      --header "Authorization: Bearer ${OPERATOR_ACCESS_TOKEN}" \
      --header "Blockout-Maintenance-Bypass: true" \
      --output "$VERIFIED_LOGO" \
-     "${BACKEND_URL}/clubs/${CLUB_ID}/logo"
+     "${BACKEND_URL}/clubs/${CLUB_ID}/logo" &&
    cmp "$PRESERVED_LOGO" "$VERIFIED_LOGO"
    ```
 

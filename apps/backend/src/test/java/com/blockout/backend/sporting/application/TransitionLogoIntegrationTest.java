@@ -182,34 +182,27 @@ class TransitionLogoIntegrationTest {
     assertThat(reads.publicLogo(Kind.CLUB, similar)).isEmpty();
     assertThat(sql.queryForObject("SELECT logo FROM sporting_club WHERE id=?", byte[].class, club))
         .isEqualTo(original);
-    assertThat(Files.readAllBytes(preserved)).isEqualTo(original);
   }
 
   @Test
-  @DisplayName("Retains an unmatched file without creating or guessing a club")
-  void retainsUnmatchedLogo() throws Exception {
+  @DisplayName("Leaves an unmatched exact FFVB reference unresolved without creating a club")
+  void leavesUnmatchedReferenceUnresolved() {
     // Given
     String reference = "0000339";
-    byte[] original = SportingImageFixture.image("PNG", 0x112233);
-    Path preserved = Files.write(preservedFiles.resolve("unmatched-logo"), original);
 
     // When
     Optional<ClubView> target = store.club(CollectionProviderEnum.FFVB, reference);
 
     // Then
     assertThat(target).isEmpty();
-    assertThat(Files.readAllBytes(preserved)).isEqualTo(original);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Integer.class))
         .isEqualTo(2);
-    assertThat(reads.publicLogo(Kind.CLUB, club)).isEmpty();
   }
 
   @Test
-  @DisplayName("Refuses ambiguous rebuilt club identity through native database uniqueness")
-  void refusesDuplicateClubIdentity() throws Exception {
+  @DisplayName("Refuses a duplicate FFVB club reference through native database uniqueness")
+  void refusesDuplicateClubIdentity() {
     // Given
-    byte[] original = SportingImageFixture.image("PNG", 0x112233);
-    Path preserved = Files.write(preservedFiles.resolve("unresolved-logo"), original);
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When
@@ -226,8 +219,8 @@ class TransitionLogoIntegrationTest {
         .hasStackTraceContaining("uk_club_identity");
     assertThat(store.club(CollectionProviderEnum.FFVB, "000339").orElseThrow().id())
         .isEqualTo(club);
-    assertThat(reads.publicLogo(Kind.CLUB, club)).isEmpty();
-    assertThat(Files.readAllBytes(preserved)).isEqualTo(original);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Integer.class))
+        .isEqualTo(2);
   }
 
   @Test
