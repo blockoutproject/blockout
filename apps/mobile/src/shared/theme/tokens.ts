@@ -36,6 +36,10 @@ export const appearanceColors = {
     onSuccessSubtle: "#287E63",
     warning: "#F4C66A",
     onWarning: reference.neutral900,
+    // F01 source status: Product Design 6664:88448 and 4823:40111.
+    info: "#52697A",
+    onInfo: reference.white,
+    errorSubtle: "#B4234014",
   },
   dark: {
     canvas: "#0D0D0E",
@@ -56,6 +60,9 @@ export const appearanceColors = {
     onSuccessSubtle: "#76BCA6",
     warning: "#F4C66A",
     onWarning: reference.neutral900,
+    info: "#A9BBC7",
+    onInfo: reference.neutral900,
+    errorSubtle: "#FFB3C314",
   },
 };
 
@@ -121,6 +128,7 @@ export const tokens = {
     body: { fontFamily: "Outfit-Regular", fontSize: 14, lineHeight: 20 },
     strong: { fontFamily: "Outfit-SemiBold", fontSize: 14, lineHeight: 20 },
     heading: { fontFamily: "Outfit-Bold", fontSize: 20, lineHeight: 26 },
+    navigation: { fontFamily: "Outfit-Bold", fontSize: 16, lineHeight: 22 },
     // Figma letter spacing is percent; React Native uses logical points (13 × 1%, 12 × 2%).
     label: {
       fontFamily: "Outfit-SemiBold",
