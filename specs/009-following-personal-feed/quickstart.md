@@ -1,6 +1,6 @@
 # Quickstart: qualify following and the personal feed
 
-The executable workspace and T001–T005 following contract/context foundation are available. The relationship, calendar and native scenarios below remain future qualifications. Use the actual [README verification commands](../../README.md#verification) and the owning task scope; passing foundation checks does not complete the later journeys.
+The executable workspace, T001–T005 contract/context foundation and T006/T007/T009/T010/T012/T013 backend relation slice are available. Full erasure orchestration, calendar and native scenarios below retain their owning qualifications. Use the actual [README verification commands](../../README.md#verification) and the owning task scope; passing foundation checks does not complete the later journeys.
 
 ## Prerequisites
 
@@ -21,6 +21,29 @@ suite is explicit qualification of the DTO bounds, not automatic outbound MVC va
 Validate/bundle the mobile root with F13's Redocly configuration, then generate and compile the Java interface/DTOs and Orval client/Zod boundary in the implemented workspace. Verify boolean state, optional season/default/continuations, reused summaries/calendar and shared errors. Validate business JSON once before caching; reject unknown request properties and tolerate additive response properties.
 
 Verify unauthenticated requests, another account, erased original account, hidden target and maintenance admission. Refusals have no mutation effects. Public count and sporting viewing work without a private account read; no identities are disclosed through counts or diagnostic output.
+
+## Durable relationship boundary
+
+`FollowStateWebMvcTest` exercises the production generated member controller with controlled
+application state, real F05 identity and F12 admission: confirmed booleans, strict bodies/queries,
+media refusal, original-owner isolation, explicit maintenance bypass and opaque no-store failures.
+`FollowRelationsIntegrationTest` uses migrated PostgreSQL 18.6 and the restricted application role
+for UUID lifecycle, FK/uniqueness, independent typed targets, current F02 visibility, retained hidden
+relations, identity corrections, rollback and competing original-account writes. Its deletion
+fixtures remove the account row under F05's lock; they do not invoke the future F05 erasure
+orchestrator or F06 participant. Those integrated races remain T011/T016 and F05 T035.
+
+`FollowEligibilityTest` and the relation integration suite exercise immutable current
+account/target/relation values, overlapping origins without duplicate recipients and the difference
+between an unchanged relation and a removed/recreated UUID. The consumer supplies exact sporting
+origins, with no display-season preference. F07 retains account/sporting lock coordination and
+notification selection, cancellation and delivery; these checks establish none of that runtime.
+
+The focused command is:
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowStateWebMvcTest,FollowEligibilityTest,FollowingContractTest,FollowAccessTest -Dit.test=FollowRelationsIntegrationTest
+```
 
 ## Relationships and calendar
 
