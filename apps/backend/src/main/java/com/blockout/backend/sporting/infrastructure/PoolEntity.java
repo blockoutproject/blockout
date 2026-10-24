@@ -39,6 +39,7 @@ public class PoolEntity {
   @Setter private String calendarUrl;
   @Setter private String standingsUrl;
   @Setter private boolean catalogEligible = true;
+  @Setter private boolean calendarEmpty;
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

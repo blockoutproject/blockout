@@ -485,13 +485,24 @@ public interface SportingStore {
   void beginCalendar(UUID poolId, ObservationOrder order);
 
   /**
-   * Marks an eligible complete calendar; visibility reconciliation is owned by the lifecycle
-   * increment.
+   * Reconciles a qualified complete calendar under the season lock, retaining all absent rows.
    *
    * @param poolId qualified pool
    * @param order still-current token
+   * @param presentReferences exact successfully processed native encounter references
+   * @param empty whether no encounters or recognized context slots were supplied
    */
-  void completeCalendar(UUID poolId, ObservationOrder order);
+  void completeCalendar(
+      UUID poolId, ObservationOrder order, Set<String> presentReferences, boolean empty);
+
+  /**
+   * Restores only an attributable calendar item and its pool's calendar-empty reason. Catalog
+   * absence and division activity remain independent.
+   *
+   * @param matchId accepted match already under the season/match lock
+   * @return whether calendar presence or calendar-empty state changed
+   */
+  boolean restoreCalendarPresence(UUID matchId);
 
   /**
    * Reads accepted match order before any identity or fact mutation.

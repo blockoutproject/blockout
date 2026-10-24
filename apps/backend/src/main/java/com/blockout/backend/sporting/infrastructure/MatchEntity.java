@@ -34,6 +34,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "sporting_match")
 public class MatchEntity {
+  @Setter private boolean present = true;
   @Setter private String detailUrl;
   @Setter private Instant reliableStart;
 

@@ -4,6 +4,8 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
+import com.blockout.backend.sporting.application.SportingProjectionChanges;
+import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.exception.UnresolvedSportingIdentityException;
@@ -36,8 +38,10 @@ import jakarta.persistence.LockModeType;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -66,6 +70,7 @@ public class JpaSportingStore implements SportingStore {
   private final ParticipationRepository participations;
   private final MatchRepository matches;
   private final SportingIdentityMapper mapper;
+  private final SportingProjectionChanges changes;
 
   /** {@inheritDoc} */
   @Override
@@ -381,7 +386,9 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   public ClubView createClub(CollectionProviderEnum provider, String reference, String sourceName) {
-    return mapper.toView(clubs.save(new ClubEntity(provider, reference, sourceName)));
+    ClubView club = mapper.toView(clubs.save(new ClubEntity(provider, reference, sourceName)));
+    changes.submit(Kind.CLUB, club.id());
+    return club;
   }
 
   /** {@inheritDoc} */
@@ -449,16 +456,27 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   public void updateTeamSourceName(UUID id, String sourceName) {
-    teams.findById(id).orElseThrow().setSourceName(sourceName);
+    TeamEntity team = teams.findById(id).orElseThrow();
+    if (!Objects.equals(team.getSourceName(), sourceName)) {
+      team.setSourceName(sourceName);
+      changes.submit(Kind.TEAM, id);
+    }
   }
 
   /** {@inheritDoc} */
   @Override
   public void participate(UUID teamId, UUID poolId) {
-    if (!participations.existsByTeamIdAndPoolId(teamId, poolId))
+    ParticipationEntity existing =
+        participations.findByTeamIdAndPoolId(teamId, poolId).orElse(null);
+    if (existing == null) {
       participations.save(
           new ParticipationEntity(
               teams.getReferenceById(teamId), pools.getReferenceById(poolId), true));
+      changes.submit(Kind.POOL, poolId);
+    } else if (!existing.isCurrent()) {
+      existing.setCurrent(true);
+      changes.submit(Kind.POOL, poolId);
+    }
   }
 
   /** {@inheritDoc} */
@@ -554,11 +572,13 @@ public class JpaSportingStore implements SportingStore {
       pool.setDivision(division);
       pool.setFormat(classification.format());
       pool.setGender(classification.gender());
+      changes.submit(Kind.POOL, pool.getId());
     }
     for (TeamEntity team : teams.findAllById(teamIds)) {
       team.setDivision(division);
       team.setFormat(classification.format());
       team.setGender(classification.gender());
+      changes.submit(Kind.TEAM, team.getId());
     }
   }
 
@@ -601,6 +621,7 @@ public class JpaSportingStore implements SportingStore {
   public DivisionDetail setDivisionActive(UUID id, boolean active) {
     DivisionEntity division = divisions.findById(id).orElseThrow();
     division.setActive(active);
+    changes.submit(Kind.DIVISION, id);
     divisions.flush();
     return mapper.toDetail(division);
   }
@@ -630,10 +651,41 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public void completeCalendar(UUID poolId, ObservationOrder order) {
+  public void completeCalendar(
+      UUID poolId, ObservationOrder order, Set<String> presentReferences, boolean empty) {
     PoolEntity pool = pools.findById(poolId).orElseThrow();
+    boolean changed = pool.isCalendarEmpty() != empty;
+    pool.setCalendarEmpty(empty);
+    Set<UUID> presentTeams = new HashSet<>();
+    for (MatchEntity match : matches.findByPoolId(poolId)) {
+      boolean present = presentReferences.contains(match.getReference());
+      changed |= match.isPresent() != present;
+      match.setPresent(present);
+      if (present) {
+        presentTeams.add(match.getHomeTeam().getId());
+        presentTeams.add(match.getAwayTeam().getId());
+      }
+    }
+    for (ParticipationEntity participation : participations.findByPoolId(poolId)) {
+      boolean present = presentTeams.contains(participation.getTeam().getId());
+      changed |= participation.isCurrent() != present;
+      participation.setCurrent(present);
+    }
     pool.setCompletedCycleOrder(order.cycleOrder());
     pool.setCompletedReadOrdinal(order.readOrdinal());
+    if (changed) changes.submit(Kind.POOL, poolId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean restoreCalendarPresence(UUID matchId) {
+    MatchEntity match = matches.findById(matchId).orElseThrow();
+    PoolEntity pool = match.getPool();
+    boolean changed = !match.isPresent() || pool.isCalendarEmpty();
+    match.setPresent(true);
+    pool.setCalendarEmpty(false);
+    if (changed) changes.submit(Kind.POOL, pool.getId());
+    return changed;
   }
 
   /** {@inheritDoc} */
@@ -677,8 +729,11 @@ public class JpaSportingStore implements SportingStore {
     }
     if (!pool.getPack().getReference().equals(candidate.packReference()))
       throw new SportingConflictException("identity-conflict", List.of());
+    boolean changed =
+        !pool.isCatalogEligible() || !Objects.equals(pool.getSourceName(), candidate.sourceName());
     pool.setSourceName(candidate.sourceName());
     pool.setCatalogEligible(true);
+    if (changed) changes.submit(Kind.POOL, pool.getId());
     if (candidate.calendarUrl() != null) pool.setCalendarUrl(candidate.calendarUrl().toString());
     if (candidate.standingsUrl() != null) pool.setStandingsUrl(candidate.standingsUrl().toString());
     return pool.getId();
@@ -698,7 +753,10 @@ public class JpaSportingStore implements SportingStore {
     if (complete)
       for (PoolEntity pool :
           pools.findBySeasonIdAndProviderAndOrganizerReference(seasonId, provider, organizer))
-        if (!presentIds.contains(pool.getId())) pool.setCatalogEligible(false);
+        if (!presentIds.contains(pool.getId()) && pool.isCatalogEligible()) {
+          pool.setCatalogEligible(false);
+          changes.submit(Kind.POOL, pool.getId());
+        }
     CatalogEntity catalog = catalogs.findById(sourceId).orElse(null);
     boolean created = catalog == null;
     if (created) catalog = new CatalogEntity(sourceId);
