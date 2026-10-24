@@ -247,7 +247,7 @@ it("lists canonical seasons and opens their preparation without a dashboard", as
   });
 });
 
-it("opens provider preparation without loading unused source configuration", async () => {
+it("opens provider controls without loading unused source configuration", async () => {
   // Given
   const user = userEvent.setup();
   await renderPreparation(<SeasonPreparationScreen seasonId={seasonId} />);
@@ -261,7 +261,7 @@ it("opens provider preparation without loading unused source configuration", asy
 
   // Then
   expect(mockPush).toHaveBeenCalledWith({
-    pathname: "/collection/[seasonId]/[provider]",
+    pathname: "/collection/[seasonId]/controls/[provider]",
     params: { seasonId, provider: "lnv" },
   });
   expect(

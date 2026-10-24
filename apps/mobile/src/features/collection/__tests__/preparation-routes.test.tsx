@@ -10,6 +10,10 @@ import CollectionLayout from "../../../app/(operations)/collection/_layout";
 import CollectionRoute from "../../../app/(operations)/collection";
 import SeasonRoute from "../../../app/(operations)/collection/[seasonId]";
 import ProviderRoute from "../../../app/(operations)/collection/[seasonId]/[provider]";
+import CompetitionRoute from "../../../app/(operations)/collection/[seasonId]/controls/[provider]";
+import ClubRoute from "../../../app/(operations)/collection/clubs/[family]";
+import CloseSeasonRoute from "../../../app/(operations)/collection/[seasonId]/closure";
+import { control } from "../test-support/collection-peer";
 import SourceRoute from "../../../app/(operations)/collection/[seasonId]/sources/[sourceId]";
 import NotFoundRoute from "../../../app/+not-found";
 import { AccessGateScreen } from "../../access/screens/access-gate-screen";
@@ -144,6 +148,10 @@ async function openRoute(path: string) {
       "(operations)/collection/index": CollectionRoute,
       "(operations)/collection/[seasonId]/index": SeasonRoute,
       "(operations)/collection/[seasonId]/[provider]": ProviderRoute,
+      "(operations)/collection/[seasonId]/controls/[provider]":
+        CompetitionRoute,
+      "(operations)/collection/clubs/[family]": ClubRoute,
+      "(operations)/collection/[seasonId]/closure": CloseSeasonRoute,
       "(operations)/collection/[seasonId]/sources/[sourceId]/index":
         SourceRoute,
       access: AccessGateScreen,
@@ -193,6 +201,12 @@ function responses(
       return Response.json(season);
     if (path.endsWith("/collection-seasons"))
       return Response.json({ items: [season] });
+    if (path.endsWith("/collection-controls"))
+      return Response.json({ items: [control({ family: "lnv", seasonId })] });
+    if (path.endsWith(`/collection-controls/${control().id}`))
+      return Response.json(control({ family: "lnv", seasonId }));
+    if (path.endsWith("/results"))
+      return Response.json({ items: [], page: 0, hasNext: false });
     throw new Error(`Unexpected controlled request ${path}`);
   };
   mockFetch.mockImplementation(serve);
@@ -513,7 +527,7 @@ it("retains the exact failed launch selection when admission removes and later r
   });
 });
 
-it("navigates through canonical season/provider preparation without a dashboard", async () => {
+it("navigates through seasonal provider controls to separate source preparation", async () => {
   // Given
   responses({ manageCollection: true });
   const user = userEvent.setup();
@@ -530,6 +544,9 @@ it("navigates through canonical season/provider preparation without a dashboard"
       name: "LNV, Les trois championnats professionnels",
     }),
   );
+  await user.press(
+    await screen.findByRole("button", { name: "Préparer les sources" }),
+  );
 
   // Then
   expect(
@@ -538,6 +555,64 @@ it("navigates through canonical season/provider preparation without a dashboard"
   expect(screen.getByLabelText("Route courante")).toHaveTextContent(
     `/collection/${seasonId}/lnv`,
   );
+});
+
+it("retains a typed closure draft across protected-route removal and cancels through native back without a write", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  const permissions = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/accounts/me") ? permissions.promise : serve(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await act(async () => router.push(`/collection/${seasonId}`));
+  await user.press(
+    await screen.findByRole("button", { name: "Clôturer la saison" }),
+  );
+  await user.type(
+    await screen.findByLabelText("Nom exact de la saison"),
+    "2026/",
+  );
+
+  // When
+  await act(async () =>
+    permissions.resolve(
+      Response.json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        { status: 503 },
+      ),
+    ),
+  );
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  mockFetch.mockImplementation(serve);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () => router.push(`/collection/${seasonId}`));
+  await user.press(
+    await screen.findByRole("button", { name: "Clôturer la saison" }),
+  );
+
+  // Then
+  expect(await screen.findByDisplayValue("2026/")).toBeOnTheScreen();
+  await user.press(screen.getByRole("button", { name: "Annuler" }));
+  const discard = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find((choice) => choice.text === "Abandonner");
+  if (!discard?.onPress) throw new Error("Missing native discard confirmation");
+  await act(async () => discard.onPress?.());
+  expect(
+    await screen.findByRole("button", { name: "Clôturer la saison" }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
+  ).toBe(false);
 });
 
 it.each([{ manageMaintenance: true }, { bypassMaintenance: true }])(

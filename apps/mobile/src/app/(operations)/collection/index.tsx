@@ -1,6 +1,6 @@
-import { CollectionSeasonsScreen } from "../../../features/collection/screens/collection-seasons-screen";
+import { CollectionDashboardScreen } from "../../../features/collection/screens/collection-dashboard-screen";
 
-/** Preparation entry remains usable before the collection dashboard is delivered. */
+/** Collection overview separates seasonal competition scopes from seasonless club controls. */
 export default function CollectionRoute() {
-  return <CollectionSeasonsScreen />;
+  return <CollectionDashboardScreen />;
 }
