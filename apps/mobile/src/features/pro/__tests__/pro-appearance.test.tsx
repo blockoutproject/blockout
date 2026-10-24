@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
   cleanup,
@@ -51,6 +52,11 @@ jest.mock("@sentry/react-native", () => ({
 jest.mock("../../onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
     "../../accounts/test-support/native-auth0",
@@ -68,7 +74,8 @@ const originalDomain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
 const originalClient = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
 
-beforeEach(() => {
+beforeEach(async () => {
+  await AsyncStorage.clear();
   prepareProNativeIO();
   // Usable UUIDs are explicitly published through F05 below; no backend is contacted.
   delete process.env.EXPO_PUBLIC_API_URL;
