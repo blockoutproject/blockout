@@ -3,7 +3,10 @@ package com.blockout.backend.sporting.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.accounts.application.AccountStore;
@@ -14,6 +17,7 @@ import com.blockout.backend.collection.application.service.CollectorRuntimeServi
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
+import com.blockout.backend.generated.mobile.model.ClubContactsResponse;
 import com.blockout.backend.generated.mobile.model.ContactModeEnum;
 import com.blockout.backend.generated.mobile.model.LogoActionEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
@@ -48,10 +52,12 @@ import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture.Scope;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.time.OffsetDateTime;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -61,6 +67,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,6 +85,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Proves presentation transactions and current reads against explicitly migrated PostgreSQL. */
 @SpringBootTest
@@ -88,6 +96,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class SportingPresentationIntegrationTest {
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private MockMvc mvc;
+  @Autowired private JsonMapper json;
   @Autowired private SportingReadService reads;
   @Autowired private SportingIdentityService identities;
   @Autowired private SeasonService seasons;
@@ -412,56 +421,315 @@ class SportingPresentationIntegrationTest {
     assertThat(details.get(account, club)).isEqualTo(current);
   }
 
-  @Test
+  @ParameterizedTest
+  @CsvSource({
+    "ADDRESS, 1 rue du Test, 2 rue du Test",
+    "CITY, Paris, Lyon",
+    "POSTAL_CODE, 75001, 69001",
+    "EMAIL, source@example.invalid, manual@example.invalid",
+    "PHONE, 0100000001, 0100000002",
+    "WEBSITE, https://source.example.invalid/, https://manual.example.invalid/"
+  })
   @DisplayName(
       "Clears restricted source/manual values and prevents collection or ordinary restoration from republishing them")
-  void preservesRestrictions() {
+  void preservesRestrictions(ContactField field, String sourceValue, String manualValue) {
     // Given
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
+    ContactField unrelated =
+        field == ContactField.WEBSITE ? ContactField.PHONE : ContactField.WEBSITE;
+    String unrelatedValue =
+        unrelated == ContactField.PHONE ? "0100000009" : "https://club.example.invalid/";
+    // Column names come only from the closed owner enum, never from a request or provider.
+    String column =
+        field == ContactField.CITY ? "municipality" : field.name().toLowerCase(Locale.ROOT);
+    String inspect =
+        "SELECT "
+            + column
+            + ","
+            + column
+            + "_manual,"
+            + column
+            + "_restricted FROM sporting_club WHERE id=?";
+    details.accept(
+        club,
+        new ClubObservation(
+            context(sheets, 1),
+            null,
+            Map.of(
+                field, JsonNullable.of(sourceValue), unrelated, JsonNullable.of(unrelatedValue))));
+    details.correct(
+        account, club, "1", Map.of(field, new ContactEdit(ContactModeEnum.MANUAL, manualValue)));
+    long editingRevision = details.get(account, club).revision();
+    UUID match =
+        sql.queryForObject("SELECT id FROM sporting_match WHERE home_team_id=?", UUID.class, team);
+    details.restrict(club, Set.of(field));
+    Contacts restricted = details.get(account, club);
+    Map<String, Object> cleared = sql.queryForMap(inspect, club);
+
+    // When
+    details.accept(
+        club,
+        new ClubObservation(context(sheets, 2), null, Map.of(field, JsonNullable.of(sourceValue))));
+    details.correct(
+        account,
+        club,
+        Long.toString(restricted.revision()),
+        Map.of(field, new ContactEdit(ContactModeEnum.SOURCE, null)));
+    UUID reconstructedTeam =
+        identities
+            .identifyMatch(
+                scope.pool(),
+                "PRESENTATION",
+                new TeamCandidate(null, "Home", "00193", "Club"),
+                new TeamCandidate(null, "Away", "00194", "Other"))
+            .homeTeamId();
+    // Synthetic restoration of forbidden old columns cannot bypass the durable current flag.
+    sql.update(
+        "UPDATE sporting_club SET " + column + "=?, " + column + "_manual=? WHERE id=?",
+        sourceValue,
+        manualValue,
+        club);
+    Contacts restored = details.get(account, club);
+    details.restrict(club, Set.of(field));
+
+    // Then
+    assertThat(restricted.revision()).isEqualTo(editingRevision + 1);
+    assertThat(restored.fields().get(field))
+        .isEqualTo(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
+    assertThat(reads.publicClubContacts(club).get(field)).isNull();
+    assertThat(cleared)
+        .containsEntry(column, null)
+        .containsEntry(column + "_manual", null)
+        .containsEntry(column + "_restricted", true);
+    assertThat(sql.queryForMap(inspect, club))
+        .containsEntry(column, null)
+        .containsEntry(column + "_manual", null)
+        .containsEntry(column + "_restricted", true);
+    assertThat(reads.publicClubContacts(club).get(unrelated)).isEqualTo(unrelatedValue);
+    assertThat(reconstructedTeam).isEqualTo(team);
+    assertThat(reads.team(team).orElseThrow().clubId()).isEqualTo(club);
+    assertThat(reads.match(match).orElseThrow().homeTeamId()).isEqualTo(team);
+  }
+
+  @ParameterizedTest
+  @EnumSource(ContactModeEnum.class)
+  @DisplayName("Rejects a contact editor opened before a restriction through the generated route")
+  void rejectsEditorsPredatingRestriction(ContactModeEnum mode) throws Exception {
+    // Given
+    String revision = Long.toString(details.get(account, club).revision());
+    details.restrict(club, Set.of(ContactField.EMAIL));
+    String value = mode == ContactModeEnum.MANUAL ? ",\"value\":\"private@example.invalid\"" : "";
+
+    // When
+    mvc.perform(
+            patch("/administration/clubs/{id}/contacts", club)
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .subject("auth0|presentation")
+                                    .claim("azp", "mobile-test")))
+                .contentType("application/json")
+                .content(
+                    "{\"revision\":\""
+                        + revision
+                        + "\",\"email\":{\"mode\":\""
+                        + mode.getValue()
+                        + "\""
+                        + value
+                        + "}}"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:stale-revision"));
+
+    // Then
+    String body =
+        mvc.perform(
+                get("/administration/clubs/{id}/contacts", club)
+                    .with(
+                        jwt()
+                            .jwt(
+                                token ->
+                                    token
+                                        .issuer("https://identity.example.invalid/")
+                                        .subject("auth0|presentation")
+                                        .claim("azp", "mobile-test"))))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    ClubContactsResponse response = json.readValue(body, ClubContactsResponse.class);
+    assertThat(response.getRevision()).isEqualTo("1");
+    assertThat(response.getEmail().getSourceValue()).isEqualTo(JsonNullable.of(null));
+    assertThat(response.getEmail().getManualValue()).isEqualTo(JsonNullable.of(null));
+    assertThat(response.getEmail().getEffectiveValue()).isEqualTo(JsonNullable.of(null));
+  }
+
+  @Test
+  @DisplayName("Division reactivation cannot authorize a restricted contact from the source")
+  void preservesRestrictionAcrossReactivation() {
+    // Given
+    CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
+    details.restrict(club, Set.of(ContactField.EMAIL));
+    sql.update(
+        "INSERT INTO account_permission(account_id,permission) VALUES (?, 'division-lifecycle.manage')",
+        account);
+    DivisionDetail inactive =
+        divisions.setActive(account, SportingIngestionFixture.DIVISION, "0", false);
+
+    // When
+    divisions.setActive(
+        account, SportingIngestionFixture.DIVISION, Long.toString(inactive.revision()), true);
     details.accept(
         club,
         new ClubObservation(
             context(sheets, 1),
             null,
             Map.of(ContactField.EMAIL, JsonNullable.of("source@example.invalid"))));
-    details.correct(
-        account,
-        club,
-        "1",
-        Map.of(
-            ContactField.EMAIL, new ContactEdit(ContactModeEnum.MANUAL, "manual@example.invalid")));
-    details.restrict(club, Set.of(ContactField.EMAIL));
-    Contacts restricted = details.get(account, club);
-
-    // When
-    details.accept(
-        club,
-        new ClubObservation(
-            context(sheets, 2),
-            null,
-            Map.of(ContactField.EMAIL, JsonNullable.of("new@example.invalid"))));
-    details.correct(
-        account,
-        club,
-        Long.toString(restricted.revision()),
-        Map.of(ContactField.EMAIL, new ContactEdit(ContactModeEnum.SOURCE, null)));
-    // Synthetic restoration of forbidden old columns cannot bypass the durable current flag.
-    sql.update(
-        "UPDATE sporting_club SET email='restored@example.invalid', email_manual='restored-manual@example.invalid' WHERE id=?",
-        club);
-    Contacts restored = details.get(account, club);
-    details.restrict(club, Set.of(ContactField.EMAIL));
 
     // Then
-    assertThat(restored.fields().get(ContactField.EMAIL))
+    assertThat(details.get(account, club).fields().get(ContactField.EMAIL))
         .isEqualTo(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
-    assertThat(reads.publicClubContacts(club).get(ContactField.EMAIL)).isNull();
     assertThat(
             sql.queryForMap(
                 "SELECT email,email_manual,email_restricted FROM sporting_club WHERE id=?", club))
         .containsEntry("email", null)
         .containsEntry("email_manual", null)
         .containsEntry("email_restricted", true);
+    assertThat(reads.publicClubContacts(club).get(ContactField.EMAIL)).isNull();
+    assertThat(reads.team(team).orElseThrow().clubId()).isEqualTo(club);
+  }
+
+  @Test
+  @DisplayName("A current restricted manual write returns 409 without changing another contact")
+  void rejectsRestrictedContactRouteAtomically() throws Exception {
+    // Given
+    details.restrict(club, Set.of(ContactField.EMAIL));
+    Contacts current = details.get(account, club);
+
+    // When
+    mvc.perform(
+            patch("/administration/clubs/{id}/contacts", club)
+                .with(
+                    jwt()
+                        .jwt(
+                            token ->
+                                token
+                                    .issuer("https://identity.example.invalid/")
+                                    .subject("auth0|presentation")
+                                    .claim("azp", "mobile-test")))
+                .contentType("application/json")
+                .content(
+                    """
+                    {"revision":"1","email":{"mode":"manual","value":"private@example.invalid"},
+                     "phone":{"mode":"manual","value":"0100000001"}}
+                    """))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:conflict"));
+
+    // Then
+    assertThat(details.get(account, club)).isEqualTo(current);
+    mvc.perform(get("/clubs/{id}", club))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.contacts.email").doesNotExist())
+        .andExpect(jsonPath("$.contacts.phone").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("A restriction waits for collection before clearing only the requested field")
+  void restrictsLatestCollectedValues() throws Exception {
+    // Given
+    CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
+    CompletableFuture<Integer> pid = new CompletableFuture<>();
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      // When
+      Future<?> pending =
+          transaction.execute(
+              status -> {
+                details.accept(
+                    club,
+                    new ClubObservation(
+                        context(sheets, 1),
+                        null,
+                        Map.of(
+                            ContactField.EMAIL, JsonNullable.of("source@example.invalid"),
+                            ContactField.PHONE, JsonNullable.of("0100000009"))));
+                Future<?> restriction =
+                    worker.submit(
+                        () ->
+                            transaction.executeWithoutResult(
+                                other -> {
+                                  pid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  details.restrict(club, Set.of(ContactField.EMAIL));
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
+                return restriction;
+              });
+      pending.get(15, TimeUnit.SECONDS);
+
+      // Then
+      assertThat(
+              sql.queryForMap(
+                  "SELECT email,email_manual,email_restricted,phone FROM sporting_club WHERE id=?",
+                  club))
+          .containsEntry("email", null)
+          .containsEntry("email_manual", null)
+          .containsEntry("email_restricted", true)
+          .containsEntry("phone", "0100000009");
+      assertThat(reads.publicClubContacts(club).get(ContactField.EMAIL)).isNull();
+      assertThat(reads.publicClubContacts(club).get(ContactField.PHONE)).isEqualTo("0100000009");
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "A contact edit waiting on a restriction rejects its obsolete revision without partial writes")
+  void rejectsEditWaitingOnRestriction() throws Exception {
+    // Given
+    String revision = Long.toString(details.get(account, club).revision());
+    CompletableFuture<Integer> pid = new CompletableFuture<>();
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      // When
+      Future<Contacts> pending =
+          transaction.execute(
+              status -> {
+                details.restrict(club, Set.of(ContactField.EMAIL));
+                Future<Contacts> correction =
+                    worker.submit(
+                        () ->
+                            transaction.execute(
+                                other -> {
+                                  pid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  return details.correct(
+                                      account,
+                                      club,
+                                      revision,
+                                      Map.of(
+                                          ContactField.EMAIL,
+                                              new ContactEdit(
+                                                  ContactModeEnum.MANUAL,
+                                                  "private@example.invalid"),
+                                          ContactField.PHONE,
+                                              new ContactEdit(
+                                                  ContactModeEnum.MANUAL, "0100000001")));
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
+                return correction;
+              });
+
+      // Then
+      assertThatThrownBy(() -> pending.get(15, TimeUnit.SECONDS))
+          .isInstanceOf(ExecutionException.class)
+          .hasCauseInstanceOf(SportingConflictException.class);
+      assertThat(details.get(account, club).fields().get(ContactField.EMAIL))
+          .isEqualTo(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
+      assertThat(reads.publicClubContacts(club).get(ContactField.PHONE)).isNull();
+    }
   }
 
   @Test
