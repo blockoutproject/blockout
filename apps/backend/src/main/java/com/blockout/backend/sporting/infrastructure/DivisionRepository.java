@@ -10,6 +10,25 @@ import org.springframework.data.jpa.repository.Query;
 
 /** Native Spring Data access to the sporting division owner. */
 interface DivisionRepository extends JpaRepository<DivisionEntity, UUID> {
+  /** Shared editor metadata excludes the image payload for both list and detail reads. */
+  String SUMMARY_SELECT =
+      """
+      SELECT d.id AS id, d.revision AS revision, d.name AS name, d.color AS color,
+          d.gradientStart AS gradientStart, d.gradientMiddle AS gradientMiddle,
+          d.gradientEnd AS gradientEnd,
+          CASE WHEN d.logo IS NOT NULL THEN TRUE ELSE FALSE END AS hasLogo, d.active AS active
+      FROM DivisionEntity d
+      """;
+
+  /**
+   * Reads complete editor metadata without loading the stored image payload.
+   *
+   * @param id configured division identity
+   * @return detached projected metadata, or empty for an unknown division
+   */
+  @Query(SUMMARY_SELECT + " WHERE d.id = :id")
+  Optional<DivisionSummary> findSummaryById(UUID id);
+
   /**
    * Holds activity stable through classification or lifecycle commit.
    *
@@ -27,14 +46,7 @@ interface DivisionRepository extends JpaRepository<DivisionEntity, UUID> {
    * @return matching configured divisions without their stored image bytes
    */
   @Query(
-      """
-      SELECT d.id AS id, d.revision AS revision, d.name AS name, d.color AS color,
-          d.gradientStart AS gradientStart, d.gradientMiddle AS gradientMiddle,
-          d.gradientEnd AS gradientEnd,
-          CASE WHEN d.logo IS NOT NULL THEN TRUE ELSE FALSE END AS hasLogo, d.active AS active
-      FROM DivisionEntity d
-      WHERE :includeInactive = TRUE OR d.active = TRUE
-      ORDER BY LOWER(d.name), d.id
-      """)
+      SUMMARY_SELECT
+          + " WHERE :includeInactive = TRUE OR d.active = TRUE ORDER BY LOWER(d.name), d.id")
   List<DivisionSummary> findConfigured(boolean includeInactive);
 }

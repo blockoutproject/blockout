@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.accounts.application.AccountStore;
+import com.blockout.backend.accounts.application.ChangeAccountProfile;
 import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.accounts.application.PrincipalReader;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
@@ -56,6 +57,7 @@ class EstablishAccountIntegrationTest {
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final Instant CREATED = Instant.parse("2020-01-02T03:04:05Z");
   @Autowired private EstablishAccount establishment;
+  @Autowired private ChangeAccountProfile profileChanges;
   @MockitoSpyBean private AccountStore accounts;
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
@@ -112,6 +114,44 @@ class EstablishAccountIntegrationTest {
       assertThat(account.principalCreatedAt()).isEqualTo(CREATED);
       assertThat(accounts.hasPhoto(account.id())).isFalse();
     }
+  }
+
+  @Test
+  @DisplayName("Preserves the concurrent winner's profile when synchronizing provider evidence")
+  void preservesConcurrentWinnerProfile() {
+    // Given
+    when(provider.read(ISSUER, "auth0|one"))
+        .thenAnswer(
+            call -> {
+              transaction.executeWithoutResult(
+                  status ->
+                      accounts.create(
+                          ISSUER, "auth0|one", "Initial_name", "initial@example.invalid", CREATED));
+              return new PrincipalReader.Evidence("updated@example.invalid", CREATED, List.of());
+            });
+    AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
+    doAnswer(
+            call -> {
+              TransactionTemplate competing = new TransactionTemplate(transactions);
+              competing.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+              competing.executeWithoutResult(
+                  status ->
+                      profileChanges.change(
+                          ISSUER, "auth0|one", call.getArgument(0), "Chosen_name", null, null));
+              return call.callRealMethod();
+            })
+        .when(target)
+        .synchronize(any(UUID.class), eq("updated@example.invalid"), eq(CREATED));
+
+    // When
+    EstablishAccount.Outcome result = establishment.establish(ISSUER, "auth0|one");
+
+    // Then
+    assertThat(result.created()).isFalse();
+    Account persisted = accounts.findById(result.account().id()).orElseThrow();
+    assertThat(persisted.username()).isEqualTo("Chosen_name");
+    assertThat(persisted.email()).isEqualTo("updated@example.invalid");
+    assertThat(result.account().username()).isEqualTo("Chosen_name");
   }
 
   @Test

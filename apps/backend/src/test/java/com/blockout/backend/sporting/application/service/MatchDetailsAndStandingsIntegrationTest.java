@@ -33,12 +33,15 @@ import com.blockout.backend.sporting.application.port.SportingStore;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -65,6 +68,7 @@ class MatchDetailsAndStandingsIntegrationTest {
   private static final OffsetDateTime FIRST = OffsetDateTime.parse("2026-10-19T12:00:00Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private EntityManager entityManager;
+  @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private SeasonService seasons;
   @Autowired private SportingIdentityService identities;
@@ -347,6 +351,101 @@ class MatchDetailsAndStandingsIntegrationTest {
     assertThat(accepted.rows().get(1).statistics()).isEmpty();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Integer.class))
         .isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("Reading a larger official table does not query statistics once per row")
+  void boundsStandingsReads() {
+    // Given
+    StandingsObservation.Row first =
+        new StandingsObservation.Row("Home", null, 1, Map.of("Ratio", "∞", "Played", "4"));
+    standings.accept(
+        scope.pool(),
+        new StandingsObservation(
+            context(2),
+            StandingsPublicationStateEnum.PUBLISHED,
+            List.of("Ratio", "Played"),
+            List.of(first)));
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      StandingsView single = table();
+      long singleReads = statistics.getPrepareStatementCount() - before;
+      List<StandingsObservation.Row> rows =
+          List.of(
+              first,
+              new StandingsObservation.Row("Second", null, 2, Map.of("Ratio", "2.5")),
+              new StandingsObservation.Row("Third", null, 3, Map.of()),
+              new StandingsObservation.Row("Fourth", null, 4, Map.of("Ratio", "1.0")),
+              new StandingsObservation.Row("Fifth", null, 5, Map.of("Ratio", "0.5")),
+              new StandingsObservation.Row("Sixth", null, 6, Map.of("Ratio", "0.0")));
+      standings.accept(
+          scope.pool(),
+          new StandingsObservation(
+              context(3),
+              StandingsPublicationStateEnum.PUBLISHED,
+              List.of("Ratio", "Played"),
+              rows));
+
+      // When
+      before = statistics.getPrepareStatementCount();
+      StandingsView larger = table();
+      long largerReads = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(larger.rows())
+          .extracting(StandingsView.Row::sourceName)
+          .containsExactly("Home", "Second", "Third", "Fourth", "Fifth", "Sixth");
+      assertThat(larger.rows().getFirst()).isEqualTo(single.rows().getFirst());
+      assertThat(larger.rows().getFirst().statistics())
+          .containsExactlyInAnyOrderEntriesOf(Map.of("Ratio", "∞", "Played", "4"));
+      assertThat(larger.rows().get(2).statistics()).isEmpty();
+      assertThat(largerReads).isEqualTo(singleReads);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "Refreshing an identical published table preserves its rows while advancing attribution")
+  void refreshesIdenticalTableWithoutReplacingRows() {
+    // Given
+    List<StandingsObservation.Row> rows =
+        List.of(new StandingsObservation.Row("Home", null, 1, Map.of("Ratio", "∞")));
+    standings.accept(
+        scope.pool(),
+        new StandingsObservation(
+            context(2), StandingsPublicationStateEnum.PUBLISHED, List.of("Ratio"), rows));
+    StandingsView previous = table();
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long inserted = statistics.getEntityInsertCount();
+      long deleted = statistics.getEntityDeleteCount();
+
+      // When
+      ObservationOutcome outcome =
+          standings.accept(
+              scope.pool(),
+              new StandingsObservation(
+                  context(3), StandingsPublicationStateEnum.PUBLISHED, List.of("Ratio"), rows));
+
+      // Then
+      assertThat(outcome.outcome()).isEqualTo(ObservationOutcomeEnum.UNCHANGED);
+      assertThat(statistics.getEntityInsertCount() - inserted).isZero();
+      assertThat(statistics.getEntityDeleteCount() - deleted).isZero();
+      StandingsView refreshed = table();
+      assertThat(refreshed.rows()).isEqualTo(previous.rows());
+      assertThat(refreshed.readOrdinal()).isEqualTo(3);
+      assertThat(refreshed.tableObservedAt()).isEqualTo(context(3).observedAt().toInstant());
+      assertThat(refreshed.tablePublishedAt()).isNull();
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
   }
 
   @Test

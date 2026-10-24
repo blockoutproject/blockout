@@ -24,14 +24,19 @@ import com.blockout.backend.sporting.application.exception.SportingResourceNotFo
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.service.SeasonService;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManagerFactory;
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -78,6 +83,7 @@ class SourcePreparationIntegrationTest {
   @Autowired private CollectionCycleService cycles;
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
+  @Autowired private EntityManagerFactory entityManagerFactory;
   @MockitoSpyBean private CollectionStore store;
   @MockitoBean private Clock clock;
   private UUID season;
@@ -107,6 +113,105 @@ class SourcePreparationIntegrationTest {
     assertThat(resolved.sourceBindingId()).isEqualTo(SOURCE);
     assertThat(store.source(SOURCE).orElseThrow()).isEqualTo(before);
     assertThat(seasons.collectionState(season).collectionRevision()).isEqualTo(revision);
+  }
+
+  @Test
+  @DisplayName("A repeated proposal loads only its exact source root")
+  void looksUpOnlyProposedSource() {
+    // Given
+    sql.update(
+        "INSERT INTO collection_source_binding(id, season_id, provider, organizer_reference, candidate_url, locked, launched, validation_state) VALUES (?, ?, 'FFVB', 'LIRA', ?, FALSE, FALSE, 'UNVALIDATED')",
+        OTHER,
+        season,
+        URL);
+    CollectionSourceService.Proposal proposal =
+        new CollectionSourceService.Proposal(
+            STARTUP,
+            2026,
+            CollectionProviderEnum.FFVB,
+            "ABCCS",
+            URI.create(URL),
+            URI.create(URL),
+            NOW);
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before =
+          statistics.getEntityStatistics(SourceBindingEntity.class.getName()).getLoadCount();
+
+      // When
+      CollectionSourceService.Resolved resolved = discovery.observe(proposal);
+      long loaded =
+          statistics.getEntityStatistics(SourceBindingEntity.class.getName()).getLoadCount()
+              - before;
+
+      // Then
+      assertThat(resolved.sourceBindingId()).isEqualTo(SOURCE);
+      assertThat(loaded).isLessThanOrEqualTo(1);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "Lists pending validation states together while retaining interrupted or missing cycles")
+  void readsValidationCyclesTogether() {
+    // Given
+    UUID missingSource = UUID.fromString("00000000-0000-4000-8000-000000000171");
+    UUID interruptedCycle = UUID.fromString("00000000-0000-4000-8000-000000000172");
+    UUID missingCycle = UUID.fromString("00000000-0000-4000-8000-000000000173");
+    sql.update(
+        "UPDATE collection_source_binding SET validation_state = 'PENDING', current_cycle_id = ? WHERE id = ?",
+        CYCLE,
+        SOURCE);
+    sql.update(
+        "INSERT INTO collection_cycle(cycle_order, id, incarnation_id, source_binding_id, started_at) VALUES (nextval('collection_cycle_order'), ?, ?, ?, ?)",
+        CYCLE,
+        STARTUP,
+        SOURCE,
+        Timestamp.from(NOW));
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      preparation.list(ACCOUNT, season);
+      long singleCycleReads = statistics.getPrepareStatementCount() - before;
+      sql.update(
+          "INSERT INTO collection_source_binding(id, season_id, provider, organizer_reference, candidate_url, locked, launched, validation_state, current_cycle_id) VALUES (?, ?, 'FFVB', 'LIRA', ?, FALSE, FALSE, 'PENDING', ?), (?, ?, 'FFVB', 'LIRB', ?, FALSE, FALSE, 'PENDING', ?)",
+          OTHER,
+          season,
+          URL,
+          interruptedCycle,
+          missingSource,
+          season,
+          URL,
+          missingCycle);
+      sql.update(
+          "INSERT INTO collection_cycle(cycle_order, id, incarnation_id, source_binding_id, started_at) VALUES (nextval('collection_cycle_order'), ?, '00000000-0000-4000-8000-000000000999', ?, ?)",
+          interruptedCycle,
+          OTHER,
+          Timestamp.from(NOW));
+      before = statistics.getPrepareStatementCount();
+
+      // When
+      List<Source> sources = preparation.list(ACCOUNT, season);
+      long listReads = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(sources).extracting(Source::id).containsExactly(SOURCE, OTHER, missingSource);
+      assertThat(sources)
+          .extracting(Source::validationState)
+          .containsExactly(
+              SourceValidationStateEnum.PENDING,
+              SourceValidationStateEnum.UNVALIDATED,
+              SourceValidationStateEnum.UNVALIDATED);
+      assertThat(listReads).isEqualTo(singleCycleReads);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
   }
 
   @Test

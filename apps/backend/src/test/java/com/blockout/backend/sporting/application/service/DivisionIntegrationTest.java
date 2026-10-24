@@ -13,7 +13,9 @@ import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
+import com.blockout.backend.sporting.infrastructure.DivisionEntity;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManagerFactory;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.sql.Connection;
@@ -28,6 +30,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,6 +62,7 @@ class DivisionIntegrationTest {
   @Autowired private SeasonService seasons;
   @Autowired private AccountStore accounts;
   @Autowired private JdbcTemplate sql;
+  @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private PlatformTransactionManager transactions;
   private UUID account;
 
@@ -105,6 +110,41 @@ class DivisionIntegrationTest {
         "INSERT INTO account_permission(account_id, permission) VALUES (?, 'division-lifecycle.manage'), (?, 'sporting-classification.manage')",
         account,
         account);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  @DisplayName("Reads division editor metadata without materializing stored image content")
+  void readsDivisionMetadataWithoutLoadingImage(boolean hasLogo) {
+    // Given
+    // Synthetic stored bytes qualify presence only; the shared validator owns image decoding.
+    DivisionDetail original =
+        divisions.create(
+            account,
+            "National 2",
+            "#112233",
+            List.of("#112233", "#445566", "#778899"),
+            hasLogo ? new byte[] {1, 2, 3} : null,
+            hasLogo ? "image/png" : null);
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long loaded = statistics.getEntityStatistics(DivisionEntity.class.getName()).getLoadCount();
+
+      // When
+      DivisionDetail result = divisions.get(account, original.id());
+
+      // Then
+      assertThat(result).isEqualTo(original);
+      assertThat(result.hasLogo()).isEqualTo(hasLogo);
+      assertThat(
+              statistics.getEntityStatistics(DivisionEntity.class.getName()).getLoadCount()
+                  - loaded)
+          .isZero();
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
   }
 
   @Test

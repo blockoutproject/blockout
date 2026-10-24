@@ -13,6 +13,15 @@ import java.util.UUID;
  */
 public interface AccountStore {
   /**
+   * Resolves only the lifecycle identity without loading profile state before a later row lock.
+   *
+   * @param issuer exact validated issuer
+   * @param subject exact validated subject
+   * @return the currently established business UUID, if any
+   */
+  Optional<UUID> findIdByPrincipal(String issuer, String subject);
+
+  /**
    * Reads the current mapping without creating an account or consulting a provider.
    *
    * @param issuer exact validated issuer

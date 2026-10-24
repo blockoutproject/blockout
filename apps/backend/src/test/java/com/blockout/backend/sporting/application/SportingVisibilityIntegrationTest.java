@@ -25,6 +25,7 @@ import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
+import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Reason;
 import com.blockout.backend.sporting.application.model.StandingsObservation;
@@ -38,6 +39,7 @@ import com.blockout.backend.sporting.application.service.SportingReadService;
 import com.blockout.backend.sporting.application.service.StandingsService;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManagerFactory;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -46,9 +48,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -69,6 +75,7 @@ class SportingVisibilityIntegrationTest {
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   private static final OffsetDateTime NOW = OffsetDateTime.parse("2026-10-19T12:00:00Z");
   @Autowired private JdbcTemplate sql;
+  @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private SeasonService seasons;
   @Autowired private SportingIdentityService identities;
@@ -113,6 +120,69 @@ class SportingVisibilityIntegrationTest {
     season = scope.season();
     pool = scope.pool();
     cycle = scope.cycle();
+  }
+
+  @ParameterizedTest
+  @EnumSource(Kind.class)
+  @DisplayName("Visibility reads only authorization facts without materializing sporting content")
+  void readsVisibilityWithoutLoadingEntities(Kind kind) {
+    // Given
+    ObservationOutcome match =
+        calendars
+            .accept(pool, calendar(1, List.of(candidate("M1", "Home", LocalDate.of(2026, 10, 1)))))
+            .outcomes()
+            .getFirst();
+    UUID id =
+        switch (kind) {
+          case CLUB -> reads.team(match.homeTeamId()).orElseThrow().clubId();
+          case TEAM -> match.homeTeamId();
+          case POOL -> pool;
+          case MATCH -> match.resourceId();
+        };
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long loaded = statistics.getEntityLoadCount();
+
+      // When
+      SportingVisibility visibility = reads.visibility(kind, id).orElseThrow();
+
+      // Then
+      assertThat(visibility.viewable()).isTrue();
+      assertThat(statistics.getEntityLoadCount() - loaded).isZero();
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
+  }
+
+  @Test
+  @DisplayName("An unclassified retained match keeps every independent hiding reason")
+  void retainsUnclassifiedMatchReasons() {
+    // Given
+    UUID match =
+        calendars
+            .accept(pool, calendar(1, List.of(candidate("M1", "Home", null))))
+            .outcomes()
+            .getFirst()
+            .resourceId();
+    sql.update(
+        "UPDATE sporting_pool SET division_id=NULL, format=NULL, gender=NULL, catalog_eligible=FALSE, calendar_empty=TRUE WHERE id=?",
+        pool);
+    sql.update("UPDATE sporting_match SET present=FALSE WHERE id=?", match);
+
+    // When
+    SportingVisibility visibility = reads.visibility(Kind.MATCH, match).orElseThrow();
+
+    // Then
+    assertThat(visibility.reasons())
+        .containsExactlyInAnyOrder(
+            Reason.UNCLASSIFIED,
+            Reason.CATALOG_ABSENT,
+            Reason.CALENDAR_EMPTY,
+            Reason.ITEM_ABSENT,
+            Reason.DATE_UNKNOWN,
+            Reason.NO_VISIBLE_PARTICIPATION);
   }
 
   @Test
@@ -179,7 +249,7 @@ class SportingVisibilityIntegrationTest {
     assertThat(reads.publicMatch(match)).isEmpty();
     assertThat(
             reads.acquisitionPools(
-                season, CollectionProviderEnum.FFVB, "SYNTHETIC", false, NOW.toInstant(), 0))
+                season, CollectionProviderEnum.FFVB, "SYNTHETIC", false, NOW.toInstant(), null))
         .extracting(reference -> reference.scopeId())
         .contains(pool);
   }

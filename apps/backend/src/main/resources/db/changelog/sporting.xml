@@ -155,6 +155,13 @@
     <addUniqueConstraint tableName="sporting_pack" columnNames="provider, season_id, organizer_reference, reference" constraintName="uk_pack_identity"/>
     <addUniqueConstraint tableName="sporting_participation" columnNames="team_id, pool_id" constraintName="uk_participation_identity"/>
     <addUniqueConstraint tableName="sporting_match" columnNames="pool_id, reference" constraintName="uk_match_identity"/>
+    <!-- Scope reads use these parent keys; the native-identity indexes lead with other columns. -->
+    <createIndex tableName="sporting_pool" indexName="ix_pool_pack">
+      <column name="pack_id"/>
+    </createIndex>
+    <createIndex tableName="sporting_participation" indexName="ix_participation_pool">
+      <column name="pool_id"/>
+    </createIndex>
     <createIndex tableName="sporting_division" indexName="uk_division_name" unique="true">
       <column name="lower(name)" computed="true"/>
     </createIndex>
@@ -277,6 +284,10 @@
     </createTable>
     <addForeignKeyConstraint baseTableName="sporting_standing_row" baseColumnNames="pool_id" referencedTableName="sporting_standings" referencedColumnNames="pool_id" constraintName="fk_standing_row_table"/>
     <addForeignKeyConstraint baseTableName="sporting_standing_row" baseColumnNames="team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_standing_row_team"/>
+    <!-- A table read/replacement must locate its rows without scanning other pools' standings. -->
+    <createIndex tableName="sporting_standing_row" indexName="ix_standing_row_pool">
+      <column name="pool_id"/>
+    </createIndex>
     <createTable tableName="sporting_standing_statistic">
       <column name="row_id" type="UUID"><constraints nullable="false"/></column>
       <column name="label" type="TEXT"><constraints nullable="false"/></column>

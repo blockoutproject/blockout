@@ -18,7 +18,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.service.SeasonService;
 import java.net.URI;
 import java.time.Instant;
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
@@ -57,7 +57,8 @@ class CollectionSourceServiceTest {
             .organizerReference("LIRA")
             .candidateUrl("https://www.ffvbbeach.org/operator-choice")
             .build();
-    when(store.sources(SEASON)).thenReturn(List.of(existing));
+    when(store.source(SEASON, CollectionProviderEnum.FFVB, "LIRA"))
+        .thenReturn(Optional.of(existing));
 
     // When
     CollectionSourceService.Resolved result = service.observe(proposal());

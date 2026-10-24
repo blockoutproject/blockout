@@ -5,6 +5,8 @@ import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,6 +50,20 @@ public class SeasonService {
   @Transactional(readOnly = true)
   public List<SportingViews.CollectionSeasonView> collectionStates() {
     return store.collectionSeasons();
+  }
+
+  /**
+   * Reads the current acquisition states required by one collection-configuration read.
+   *
+   * @param ids distinct canonical seasons; an empty selection returns no states
+   * @return current states keyed by their requested canonical identities
+   * @throws SportingResourceNotFoundException if a requested season no longer exists
+   */
+  @Transactional(readOnly = true)
+  public Map<UUID, SportingViews.CollectionSeasonView> collectionStates(Set<UUID> ids) {
+    Map<UUID, SportingViews.CollectionSeasonView> states = store.collectionSeasons(ids);
+    if (!states.keySet().equals(ids)) throw new SportingResourceNotFoundException();
+    return states;
   }
 
   /**

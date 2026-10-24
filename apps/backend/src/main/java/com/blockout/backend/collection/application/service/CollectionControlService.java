@@ -16,6 +16,8 @@ import com.blockout.backend.sporting.application.model.SportingViews.CollectionS
 import com.blockout.backend.sporting.application.service.SeasonService;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -44,11 +46,23 @@ public class CollectionControlService {
   public List<ControlView> list(UUID accountId, UUID seasonId) {
     requireRead(accountId);
     if (seasonId != null) seasons.collectionState(seasonId);
-    return store.controls(seasonId).stream()
+    List<Control> controls = store.controls(seasonId);
+    Map<UUID, Cycle> cycles =
+        store.cycles(
+            controls.stream()
+                .map(Control::currentCycleId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+    return controls.stream()
         .sorted(
             Comparator.comparing((Control control) -> control.family().getValue())
                 .thenComparing(Control::id))
-        .map(this::view)
+        .map(
+            control ->
+                new ControlView(
+                    control,
+                    control.currentCycleId() == null ? null : cycles.get(control.currentCycleId())))
         .toList();
   }
 

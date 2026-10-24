@@ -9,7 +9,7 @@ import com.blockout.backend.sporting.application.exception.SportingResourceNotFo
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.ClassificationView;
-import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
+import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.PackView;
 import com.blockout.backend.sporting.application.model.SportingViews.ParticipationView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolClassificationView;
@@ -82,7 +82,7 @@ public class ClassificationService {
     requireRead(accountId);
     store.lockPackSeason(packId);
     PackView pack = store.pack(packId).orElseThrow(SportingResourceNotFoundException::new);
-    DivisionView division = lockDivision(setting);
+    DivisionDetail division = lockDivision(setting);
     authorization.require(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
     requireRevision(revision, detail(pack).revision());
     if (Objects.equals(setting, pack.setting())) return detail(pack);
@@ -118,7 +118,7 @@ public class ClassificationService {
     PoolClassificationView pool = store.poolClassification(poolId).orElseThrow();
     PackView pack = store.pack(pool.pool().packId()).orElseThrow();
     SportingClassification effective = setting == null ? pack.setting() : setting;
-    DivisionView division = lockDivision(effective);
+    DivisionDetail division = lockDivision(effective);
     authorization.require(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
     requireRevision(revision, detail(pool, pack).revision());
     if (Objects.equals(setting, pool.setting())) return detail(pool, pack);
@@ -162,7 +162,7 @@ public class ClassificationService {
    * @return locked activity state, or null for removal
    * @throws SportingConflictException if the target is unknown
    */
-  private DivisionView lockDivision(SportingClassification classification) {
+  private DivisionDetail lockDivision(SportingClassification classification) {
     return classification == null
         ? null
         : store
@@ -177,7 +177,7 @@ public class ClassificationService {
    * @param pools authorized affected scopes
    * @throws SportingConflictException if the target is inactive
    */
-  private void requireActive(DivisionView division, List<UUID> pools) {
+  private void requireActive(DivisionDetail division, List<UUID> pools) {
     if (division != null && !division.active())
       throw new SportingConflictException("classification-conflict", pools);
   }

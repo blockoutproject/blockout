@@ -36,8 +36,10 @@ interface CollectionResultRepository
 
   /**
    * Qualifies success from both phases of every selected target and any additional child results.
+   * The known control keeps evidence lookups within the leading key of the current-result index.
    * Hibernate compares target kinds and stages through their shared string enum mapping.
    *
+   * @param controlId immutable owner of the retained cycle
    * @param cycleId frozen nonempty selection
    * @param cycleOrder current logical passage
    * @return true only when no selected role is missing and no current result failed
@@ -46,18 +48,21 @@ interface CollectionResultRepository
       """
       SELECT CASE WHEN COUNT(c) > 0 THEN TRUE ELSE FALSE END
       FROM CollectionCycleEntity c
-      WHERE c.id = :cycleId
+      WHERE c.id = :cycleId AND c.controlId = :controlId
         AND EXISTS (SELECT 1 FROM CollectionTargetEntity t WHERE t.cycleId = c.id)
         AND NOT EXISTS (SELECT 1 FROM CollectionResultEntity r
-          WHERE r.cycleOrder = :cycleOrder AND r.outcome <> CollectionOutcomeEnum.SUCCESS)
+          WHERE r.controlId = :controlId AND r.cycleOrder = :cycleOrder
+            AND r.outcome <> CollectionOutcomeEnum.SUCCESS)
         AND NOT EXISTS (
           SELECT 1 FROM CollectionTargetEntity t WHERE t.cycleId = c.id AND (
-            NOT EXISTS (SELECT 1 FROM CollectionResultEntity r WHERE r.cycleOrder = :cycleOrder
+            NOT EXISTS (SELECT 1 FROM CollectionResultEntity r
+              WHERE r.controlId = :controlId AND r.cycleOrder = :cycleOrder
               AND r.scopeId = t.scopeId AND r.stage = t.kind
               AND r.phase = CollectionPhaseEnum.ACQUISITION AND r.outcome = CollectionOutcomeEnum.SUCCESS)
-            OR NOT EXISTS (SELECT 1 FROM CollectionResultEntity r WHERE r.cycleOrder = :cycleOrder
+            OR NOT EXISTS (SELECT 1 FROM CollectionResultEntity r
+              WHERE r.controlId = :controlId AND r.cycleOrder = :cycleOrder
               AND r.scopeId = t.scopeId AND r.stage = t.kind
               AND r.phase = CollectionPhaseEnum.INTEGRATION AND r.outcome = CollectionOutcomeEnum.SUCCESS)))
       """)
-  boolean successful(UUID cycleId, long cycleOrder);
+  boolean successful(UUID controlId, UUID cycleId, long cycleOrder);
 }

@@ -17,6 +17,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -145,6 +146,17 @@ public interface CollectionStore {
   Optional<Source> source(UUID id);
 
   /**
+   * Finds the existing root without loading other source configurations.
+   *
+   * @param seasonId locked canonical season
+   * @param provider designated authority
+   * @param organizerReference exact native organizer or championship identity
+   * @return the unique current binding for that season/provider/root, if present
+   */
+  Optional<Source> source(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+
+  /**
    * Locks the candidate after its season.
    *
    * @param id candidate whose canonical season is already locked
@@ -215,6 +227,14 @@ public interface CollectionStore {
   Optional<Cycle> cycle(UUID id);
 
   /**
+   * Reads selected retained contexts against the same current runtime incarnation.
+   *
+   * @param ids cycle identities needed by one configuration list; empty selects nothing
+   * @return retained contexts keyed by identity; concurrently discarded contexts are absent
+   */
+  Map<UUID, Cycle> cycles(List<UUID> ids);
+
+  /**
    * Persists the purpose and allocates a native monotonic order.
    *
    * @param command validated admission identity/context
@@ -275,6 +295,16 @@ public interface CollectionStore {
    * @return whether the role belongs to the admitted snapshot
    */
   boolean containsTarget(UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind);
+
+  /**
+   * Checks whether any retained parent belongs to the exact admitted acquisition role.
+   *
+   * @param cycleId current context
+   * @param scopeIds candidate parent identities; may be empty
+   * @param kind required frozen role
+   * @return whether at least one parent has the required role in this snapshot
+   */
+  boolean containsAnyTarget(UUID cycleId, List<UUID> scopeIds, CollectionTargetKindEnum kind);
 
   /**
    * Serializes result writes with completion after runtime and season fencing.

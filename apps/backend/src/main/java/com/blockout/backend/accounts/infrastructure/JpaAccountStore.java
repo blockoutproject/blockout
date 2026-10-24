@@ -26,6 +26,12 @@ public class JpaAccountStore implements AccountStore {
 
   /** {@inheritDoc} */
   @Override
+  public Optional<UUID> findIdByPrincipal(String issuer, String subject) {
+    return accounts.findIdByIssuerAndSubject(issuer, subject);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public Optional<Account> findByPrincipal(String issuer, String subject) {
     return accounts.findByIssuerAndSubject(issuer, subject).map(mapper::toDomain);
   }

@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 /** Native Spring Data access to the sporting participation owner. */
 interface ParticipationRepository extends JpaRepository<ParticipationEntity, UUID> {
@@ -33,4 +34,13 @@ interface ParticipationRepository extends JpaRepository<ParticipationEntity, UUI
    */
   @EntityGraph(attributePaths = {"pool", "pool.division", "team"})
   List<ParticipationEntity> findByTeamIdIn(List<UUID> teamIds);
+
+  /**
+   * Resolves retained memberships for acquisition scope checks without hydrating sporting state.
+   *
+   * @param teamId stable sporting team
+   * @return current and absent retained pool identities
+   */
+  @Query("SELECT p.pool.id FROM ParticipationEntity p WHERE p.team.id = :teamId")
+  List<UUID> findPoolIdsByTeamId(UUID teamId);
 }

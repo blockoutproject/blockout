@@ -8,10 +8,13 @@ import com.blockout.backend.collection.application.exception.CollectionNotFoundE
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Admission;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
+import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
@@ -36,11 +39,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -49,12 +56,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+/** Real PostgreSQL admission, frozen-target and transaction-fence contracts. */
 @SpringBootTest
 @Testcontainers
 @DisplayName("Collector admission and transaction-held incarnation fence")
@@ -75,6 +85,7 @@ class CollectionAdmissionIntegrationTest {
   @Autowired private JdbcTemplate sql;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private EntityManagerFactory entityManagerFactory;
+  @MockitoSpyBean private CollectionStore store;
   private UUID season;
 
   /**
@@ -372,6 +383,308 @@ class CollectionAdmissionIntegrationTest {
                 assertThat(item.localityRevision()).isEqualTo("1");
               });
       assertThat(pageReads).isEqualTo(singleTargetReads);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
+  }
+
+  @Test
+  @DisplayName("Inserts new frozen targets without reading each assigned key first")
+  void insertsNewTargetsWithoutExistenceReads() {
+    // Given
+    cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+    List<UUID> scopes =
+        List.of(
+            UUID.fromString("00000000-0000-4000-8000-000000000163"),
+            UUID.fromString("00000000-0000-4000-8000-000000000164"),
+            UUID.fromString("00000000-0000-4000-8000-000000000165"));
+    List<CollectionState.Target> targets =
+        scopes.stream()
+            .map(
+                scope ->
+                    CollectionState.Target.builder()
+                        .scopeId(scope)
+                        .kind(CollectionTargetKindEnum.CALENDAR)
+                        .poolId(scope)
+                        .url("https://www.ffvb.org/calendar")
+                        .build())
+            .toList();
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+
+      // When
+      new TransactionTemplate(transactions)
+          .executeWithoutResult(status -> store.addTargets(CYCLE, targets));
+      long statements = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(statements).isLessThanOrEqualTo(targets.size());
+      assertThat(cycles.targets(CYCLE, 0, 50).items())
+          .filteredOn(item -> item.target().kind() == CollectionTargetKindEnum.CALENDAR)
+          .extracting(item -> item.target().scopeId())
+          .containsExactlyElementsOf(scopes);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = CollectionFamilyEnum.class,
+      names = {"CLUB_SHEETS", "GEOCODING"})
+  @DisplayName("Concurrent club creation before the page boundary preserves the admitted selection")
+  void preservesClubsAcrossConcurrentCreation(CollectionFamilyEnum family) {
+    // Given
+    sql.update(
+        "UPDATE collection_control SET season_id = NULL, family = ? WHERE id = ?",
+        family.name(),
+        CONTROL);
+    sql.update(
+        "INSERT INTO sporting_club(id, provider, reference, municipality) SELECT ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, 'FFVB', n::text, 'Paris' FROM generate_series(1000, 1200) n");
+    List<UUID> initialClubs =
+        sql.queryForList("SELECT id FROM sporting_club ORDER BY id", UUID.class);
+    AtomicBoolean changed = new AtomicBoolean();
+    TransactionTemplate independent = new TransactionTemplate(transactions);
+    independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    Mockito.doAnswer(
+            invocation -> {
+              Object result = invocation.callRealMethod();
+              if (changed.compareAndSet(false, true))
+                independent.executeWithoutResult(
+                    status ->
+                        sql.update(
+                            "INSERT INTO sporting_club(id, provider, reference, municipality) VALUES ('00000000-0000-4000-8000-000000000999', 'FFVB', '999', 'Paris')"));
+              return result;
+            })
+        .when(store)
+        .addTargets(Mockito.eq(CYCLE), Mockito.anyList());
+
+    // When
+    Admission admission = cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+
+    // Then
+    assertThat(admission.created()).isTrue();
+    assertThat(
+            sql.queryForList(
+                "SELECT scope_id FROM collection_target WHERE cycle_id = ? ORDER BY scope_id",
+                UUID.class,
+                CYCLE))
+        .containsExactlyElementsOf(initialClubs);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Long.class)).isEqualTo(202);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  @DisplayName("Concurrent division activity changes preserve every already eligible pool")
+  void preservesPoolsAcrossDivisionActivity(boolean activate) {
+    // Given
+    UUID pack = UUID.fromString("00000000-0000-4000-8000-000000000177");
+    UUID changingDivision = UUID.fromString("00000000-0000-4000-8000-000000000176");
+    sql.update(
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Synthetic division', TRUE, '#112233')",
+        DIVISION);
+    sql.update(
+        "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Changing division', ?, '#112233')",
+        changingDivision,
+        !activate);
+    sql.update(
+        "INSERT INTO sporting_pack(id, season_id, provider, organizer_reference, reference) VALUES (?, ?, 'FFVB', 'ABCCS', 'PACK')",
+        pack,
+        season);
+    sql.update(
+        "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, setting_division_id, setting_format, setting_gender, calendar_url) SELECT ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, ?, ?, 'FFVB', 'ABCCS', 'N2', n::text, 'Synthetic pool', ?, '_6X6', 'MALE', 'https://www.ffvb.org/calendar' FROM generate_series(1000, 1200) n",
+        season,
+        pack,
+        DIVISION);
+    sql.update(
+        "INSERT INTO sporting_pool(id, season_id, pack_id, provider, organizer_reference, competition_reference, reference, source_name, setting_division_id, setting_format, setting_gender, calendar_url) SELECT '00000000-0000-4000-8000-000000000999', season_id, pack_id, provider, organizer_reference, competition_reference, '999', 'Changing pool', ?, setting_format, setting_gender, calendar_url FROM sporting_pool WHERE id = '00000000-0000-4000-8000-000000001000'",
+        changingDivision);
+    List<UUID> initialPools =
+        sql.queryForList(
+            "SELECT p.id FROM sporting_pool p JOIN sporting_division d ON d.id = p.setting_division_id WHERE d.active ORDER BY p.id",
+            UUID.class);
+    AtomicBoolean changed = new AtomicBoolean();
+    TransactionTemplate independent = new TransactionTemplate(transactions);
+    independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    Mockito.doAnswer(
+            invocation -> {
+              Object result = invocation.callRealMethod();
+              List<CollectionState.Target> targets = invocation.getArgument(1);
+              if (!targets.isEmpty()
+                  && targets.getFirst().kind() == CollectionTargetKindEnum.CALENDAR
+                  && changed.compareAndSet(false, true))
+                independent.executeWithoutResult(
+                    status ->
+                        sql.update(
+                            "UPDATE sporting_division SET active = ? WHERE id = ?",
+                            activate,
+                            changingDivision));
+              return result;
+            })
+        .when(store)
+        .addTargets(Mockito.eq(CYCLE), Mockito.anyList());
+
+    // When
+    Admission admission = cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+
+    // Then
+    assertThat(admission.created()).isTrue();
+    assertThat(
+            sql.queryForList(
+                "SELECT scope_id FROM collection_target WHERE cycle_id = ? AND kind = 'CALENDAR' ORDER BY scope_id",
+                UUID.class,
+                CYCLE))
+        .containsExactlyElementsOf(initialPools);
+    assertThat(
+            sql.queryForObject(
+                "SELECT active FROM sporting_division WHERE id = ?",
+                Boolean.class,
+                changingDivision))
+        .isEqualTo(activate);
+  }
+
+  @Test
+  @DisplayName("Reads pending selections without one SQL query per control")
+  void readsControlSelectionsTogether() {
+    // Given
+    UUID otherControl = UUID.fromString("00000000-0000-4000-8000-000000000166");
+    UUID seasonless = UUID.fromString("00000000-0000-4000-8000-000000000167");
+    sql.update(
+        "INSERT INTO collection_request_source(control_id, source_binding_id) VALUES (?, ?)",
+        CONTROL,
+        SOURCE);
+    sql.update(
+        "INSERT INTO collection_request_scope(control_id, scope_id) VALUES (?, ?)",
+        CONTROL,
+        SOURCE);
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      transaction.execute(status -> store.controls());
+      long singleControlReads = statistics.getPrepareStatementCount() - before;
+      sql.update(
+          "INSERT INTO collection_control(id, season_id, family, enabled) VALUES (?, ?, 'LNV', FALSE), (?, NULL, 'GEOCODING', FALSE)",
+          otherControl,
+          season,
+          seasonless);
+      before = statistics.getPrepareStatementCount();
+
+      // When
+      List<CollectionState.Control> controls = transaction.execute(status -> store.controls());
+      long listReads = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(controls)
+          .extracting(CollectionState.Control::id)
+          .containsExactly(CONTROL, otherControl, seasonless);
+      assertThat(controls.getFirst().sourceBindingIds()).containsExactly(SOURCE);
+      assertThat(controls.getFirst().scopeIds()).containsExactly(SOURCE);
+      assertThat(controls.getLast().sourceBindingIds()).isEmpty();
+      assertThat(controls.getLast().scopeIds()).isEmpty();
+      assertThat(listReads).isEqualTo(singleControlReads);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
+  }
+
+  @Test
+  @DisplayName("Polling reads current cycle states together without reviving old work")
+  void readsWorkCyclesTogether() {
+    // Given
+    cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+    UUID completedControl = UUID.fromString("00000000-0000-4000-8000-000000000168");
+    UUID interruptedControl = UUID.fromString("00000000-0000-4000-8000-000000000169");
+    UUID completedCycle = UUID.fromString("00000000-0000-4000-8000-000000000170");
+    UUID interruptedCycle = UUID.fromString("00000000-0000-4000-8000-000000000171");
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      cycles.work(STARTUP);
+      long singleCycleReads = statistics.getPrepareStatementCount() - before;
+      sql.update(
+          "INSERT INTO collection_control(id, season_id, family, enabled, current_cycle_id) VALUES (?, ?, 'LNV', FALSE, ?), (?, NULL, 'GEOCODING', FALSE, ?)",
+          completedControl,
+          season,
+          completedCycle,
+          interruptedControl,
+          interruptedCycle);
+      sql.update(
+          "INSERT INTO collection_cycle(cycle_order, id, incarnation_id, control_id, started_at, completed_at) VALUES (nextval('collection_cycle_order'), ?, ?, ?, ?, ?), (nextval('collection_cycle_order'), ?, ?, ?, ?, NULL)",
+          completedCycle,
+          STARTUP,
+          completedControl,
+          Timestamp.from(NOW),
+          Timestamp.from(NOW.plusSeconds(1)),
+          interruptedCycle,
+          REPLACEMENT,
+          interruptedControl,
+          Timestamp.from(NOW));
+      before = statistics.getPrepareStatementCount();
+
+      // When
+      CollectionState.Work work = cycles.work(STARTUP);
+      long listReads = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(work.controls())
+          .extracting(CollectionState.ControlWork::id)
+          .containsExactly(CONTROL, completedControl, interruptedControl);
+      assertThat(work.controls())
+          .extracting(CollectionState.ControlWork::runningCycleId)
+          .containsExactly(CYCLE, null, null);
+      assertThat(listReads).isEqualTo(singleCycleReads);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
+  }
+
+  @Test
+  @DisplayName("Polling reads only its current seasonal configuration in one lookup")
+  void readsWorkSeasonsTogether() {
+    // Given
+    UUID preparing = seasons.getOrCreate(2027).id();
+    UUID closed = seasons.getOrCreate(2028).id();
+    sql.update("UPDATE sporting_season SET collection_state = 'CLOSED' WHERE id = ?", closed);
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      cycles.work(STARTUP);
+      long singleSeasonReads = statistics.getPrepareStatementCount() - before;
+      sql.update(
+          "INSERT INTO collection_control(id, season_id, family, enabled) VALUES ('00000000-0000-4000-8000-000000000172', ?, 'FFVB', FALSE), ('00000000-0000-4000-8000-000000000173', ?, 'FFVB', FALSE)",
+          preparing,
+          closed);
+      sql.update(
+          "INSERT INTO collection_source_binding(id, season_id, provider, organizer_reference, candidate_url, locked, launched, validation_state) VALUES ('00000000-0000-4000-8000-000000000174', ?, 'FFVB', 'LIRA', 'https://www.ffvb.org/candidate', FALSE, FALSE, 'PENDING'), ('00000000-0000-4000-8000-000000000175', ?, 'FFVB', 'LIRA', 'https://www.ffvb.org/candidate', FALSE, FALSE, 'PENDING')",
+          preparing,
+          closed);
+      before = statistics.getPrepareStatementCount();
+
+      // When
+      CollectionState.Work work = cycles.work(STARTUP);
+      long listReads = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(work.controls())
+          .extracting(CollectionState.ControlWork::seasonState)
+          .containsExactly(
+              CollectionSeasonStateEnum.ACTIVE,
+              CollectionSeasonStateEnum.PREPARING,
+              CollectionSeasonStateEnum.CLOSED);
+      assertThat(work.validations())
+          .singleElement()
+          .satisfies(candidate -> assertThat(candidate.seasonLabel()).isEqualTo("2027/2028"));
+      assertThat(listReads).isEqualTo(singleSeasonReads);
     } finally {
       statistics.setStatisticsEnabled(enabled);
     }

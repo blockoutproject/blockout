@@ -1,6 +1,5 @@
 package com.blockout.backend.accounts.application;
 
-import com.blockout.backend.accounts.domain.Account;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +22,7 @@ public class AccountAccess {
    */
   @Transactional(readOnly = true)
   public Optional<UUID> currentId(String issuer, String subject) {
-    return accounts.findByPrincipal(issuer, subject).map(Account::id);
+    return accounts.findIdByPrincipal(issuer, subject);
   }
 
   /**

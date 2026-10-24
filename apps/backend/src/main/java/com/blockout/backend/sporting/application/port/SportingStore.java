@@ -62,7 +62,7 @@ public interface SportingStore {
    * @param initialImport permits qualified historical references absent from the current catalog
    * @param organizerReference exact binding context
    * @param now admission instant for reliable fast windows
-   * @param page bounded pool page
+   * @param afterId exclusive last visited pool identity, or null for the first batch
    * @return qualified calendar/standings references for at most 200 selected pools
    */
   List<AcquisitionReference> acquisitionPools(
@@ -71,7 +71,7 @@ public interface SportingStore {
       String organizerReference,
       boolean initialImport,
       Instant now,
-      int page);
+      UUID afterId);
 
   /**
    * Reads qualified detail references in bounded owner pages.
@@ -88,10 +88,10 @@ public interface SportingStore {
    *
    * @param geocoding select current geocoding needs rather than club-sheet references
    * @param manual whether to revisit ordinary no-result localities
-   * @param page bounded club page
+   * @param afterId exclusive last visited club identity, or null for the first batch
    * @return stable current club references without personal values
    */
-  List<AcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, int page);
+  List<AcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, UUID afterId);
 
   /**
    * Resolves currently permitted localities in one batch.
@@ -115,6 +115,14 @@ public interface SportingStore {
    * @return canonical seasons in newest-first order
    */
   List<SportingViews.CollectionSeasonView> collectionSeasons();
+
+  /**
+   * Reads only canonical seasons needed by the current collection configuration.
+   *
+   * @param ids requested season identities; empty selects nothing
+   * @return existing acquisition states keyed by canonical identity
+   */
+  Map<UUID, SportingViews.CollectionSeasonView> collectionSeasons(Set<UUID> ids);
 
   /**
    * Advances preparation revision after a source change, optionally activating first launch.
@@ -386,6 +394,14 @@ public interface SportingStore {
   List<ParticipationView> participations(List<UUID> teamIds);
 
   /**
+   * Resolves retained team memberships without loading participant or classification state.
+   *
+   * @param teamId stable sporting team
+   * @return pool identities, including retained absent memberships; empty for an unknown team
+   */
+  List<UUID> teamPoolIds(UUID teamId);
+
+  /**
    * Replaces a complete pack default and flushes its managed editing revision.
    *
    * @param id locked pack
@@ -415,9 +431,9 @@ public interface SportingStore {
    * Locks a division after season roots and before account roots.
    *
    * @param id existing target division
-   * @return activity held stable through caller commit, or empty
+   * @return editing state and activity held stable through caller commit, or empty
    */
-  Optional<DivisionView> lockDivision(UUID id);
+  Optional<DivisionDetail> lockDivision(UUID id);
 
   /**
    * Reads complete division editing state.

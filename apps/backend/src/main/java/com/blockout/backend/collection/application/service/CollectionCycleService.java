@@ -25,9 +25,12 @@ import com.blockout.backend.sporting.application.model.SportingViews.CollectionS
 import com.blockout.backend.sporting.application.service.SeasonService;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -123,13 +126,34 @@ public class CollectionCycleService {
   @Transactional
   public Work work(UUID incarnationId) {
     runtimes.requireCurrent(incarnationId);
+    List<Control> configuration = store.controls();
+    List<Source> pending =
+        store.pendingValidations().stream().filter(source -> !source.locked()).toList();
+    Map<UUID, Cycle> contexts =
+        store.cycles(
+            configuration.stream()
+                .map(Control::currentCycleId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+    Set<UUID> seasonIds = new HashSet<>();
+    for (Control control : configuration) {
+      if (control.seasonId() != null) seasonIds.add(control.seasonId());
+    }
+    for (Source source : pending) seasonIds.add(source.seasonId());
+    Map<UUID, CollectionSeasonView> seasonStates = seasons.collectionStates(seasonIds);
     List<ControlWork> controls = new ArrayList<>();
-    for (Control control : store.controls()) {
+    for (Control control : configuration) {
       CollectionSeasonStateEnum state =
           control.seasonId() == null
               ? null
-              : seasons.collectionState(control.seasonId()).collectionState();
-      UUID running = isRunning(control.currentCycleId()) ? control.currentCycleId() : null;
+              : seasonStates.get(control.seasonId()).collectionState();
+      Cycle context =
+          control.currentCycleId() == null ? null : contexts.get(control.currentCycleId());
+      UUID running =
+          context != null && context.state() == CollectionCycleStateEnum.RUNNING
+              ? context.id()
+              : null;
       controls.add(
           new ControlWork(
               control.id(),
@@ -144,13 +168,12 @@ public class CollectionCycleService {
               control.lastStartedAt()));
     }
     List<Candidate> candidates =
-        store.pendingValidations().stream()
-            .filter(source -> !source.locked())
+        pending.stream()
             .filter(
                 source ->
-                    seasons.collectionState(source.seasonId()).collectionState()
+                    seasonStates.get(source.seasonId()).collectionState()
                         != CollectionSeasonStateEnum.CLOSED)
-            .map(source -> candidate(source, seasons.collectionState(source.seasonId())))
+            .map(source -> candidate(source, seasonStates.get(source.seasonId())))
             .toList();
     return new Work(controls, candidates);
   }

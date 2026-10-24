@@ -26,9 +26,13 @@ import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.service.SeasonService;
 import com.blockout.backend.sporting.application.service.SportingIdentityService;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManagerFactory;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -65,6 +69,7 @@ class CollectionResultIntegrationTest {
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private SportingIdentityService identities;
   @Autowired private SeasonService seasons;
+  @Autowired private EntityManagerFactory entityManagerFactory;
   private CollectionState.Cycle cycle;
 
   @Test
@@ -451,14 +456,116 @@ class CollectionResultIntegrationTest {
             null,
             null);
 
-    // When
-    results.record(cycle.id(), accepted);
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long loaded = sportingEntityLoads(statistics);
 
-    // Then
+      // When
+      results.record(cycle.id(), accepted);
+
+      // Then
+      assertThat(sportingEntityLoads(statistics) - loaded).isZero();
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
     assertThat(store.result(CONTROL, selected, stage, CollectionPhaseEnum.ACQUISITION)).isPresent();
     assertThatThrownBy(() -> results.record(cycle.id(), refused))
         .isInstanceOf(CollectionConflictException.class);
     assertThat(store.result(CONTROL, unselected, stage, CollectionPhaseEnum.ACQUISITION)).isEmpty();
+    RecordCollectionResult unknown =
+        new RecordCollectionResult(
+            UUID.fromString("00000000-0000-4000-8000-000000000999"),
+            stage,
+            CollectionPhaseEnum.ACQUISITION,
+            3,
+            OBSERVED,
+            CollectionOutcomeEnum.SUCCESS,
+            null,
+            null,
+            null,
+            null);
+    assertThatThrownBy(() -> results.record(cycle.id(), unknown))
+        .isInstanceOf(CollectionConflictException.class);
+  }
+
+  @Test
+  @DisplayName("Logo authorization keeps bounded reads across retained pool memberships")
+  void checksLogoMembershipWithBoundedReads() {
+    // Given
+    MatchView first = match("logo-membership-first");
+    RecordCollectionResult logo =
+        new RecordCollectionResult(
+            first.homeTeamId(),
+            CollectionStageEnum.LOGO,
+            CollectionPhaseEnum.ACQUISITION,
+            1,
+            OBSERVED,
+            CollectionOutcomeEnum.SUCCESS,
+            null,
+            null,
+            null,
+            null);
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      assertThatThrownBy(() -> results.record(cycle.id(), logo))
+          .isInstanceOf(CollectionConflictException.class);
+      long singlePoolReads = statistics.getPrepareStatementCount() - before;
+      for (int index = 0; index < 4; index++) {
+        MatchView another = match("logo-membership-" + index);
+        sql.update(
+            "UPDATE sporting_participation SET team_id = ?, current = FALSE WHERE team_id = ?",
+            first.homeTeamId(),
+            another.homeTeamId());
+      }
+      before = statistics.getPrepareStatementCount();
+
+      // When
+      assertThatThrownBy(() -> results.record(cycle.id(), logo))
+          .isInstanceOf(CollectionConflictException.class);
+      long severalPoolReads = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(severalPoolReads).isEqualTo(singlePoolReads);
+      assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Integer.class))
+          .isZero();
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
+    UUID retainedPool =
+        sql.queryForObject(
+            "SELECT pool_id FROM sporting_participation WHERE team_id = ? AND NOT current ORDER BY pool_id LIMIT 1",
+            UUID.class,
+            first.homeTeamId());
+    sql.update(
+        "INSERT INTO collection_target(cycle_id,scope_id,kind) VALUES (?,?,'CALENDAR')",
+        cycle.id(),
+        retainedPool);
+    results.record(cycle.id(), logo);
+    assertThat(
+            store.result(
+                CONTROL,
+                first.homeTeamId(),
+                CollectionStageEnum.LOGO,
+                CollectionPhaseEnum.ACQUISITION))
+        .isPresent();
+  }
+
+  /**
+   * Counts sporting entity hydration independently of required collection runtime and cycle locks.
+   *
+   * @param statistics enabled statistics for this isolated application context
+   * @return number of loaded sporting entities
+   */
+  private long sportingEntityLoads(Statistics statistics) {
+    return Arrays.stream(statistics.getEntityNames())
+        .filter(name -> name.startsWith("com.blockout.backend.sporting."))
+        .mapToLong(name -> statistics.getEntityStatistics(name).getLoadCount())
+        .sum();
   }
 
   /**

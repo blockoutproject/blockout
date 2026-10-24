@@ -44,7 +44,9 @@ public class CollectionTargetSelector {
   private final SeasonService seasons;
 
   /**
-   * Persists the due or explicitly requested scope inside the admission transaction.
+   * Persists the due or explicitly requested scope inside the admission transaction. Mutable club
+   * and pool eligibility advances by identity so changes behind a visited boundary cannot repeat or
+   * skip retained resources; newly eligible earlier identities wait for the next admission.
    *
    * @param cycle current admitted context, not yet returned to the collector
    * @param control locked family and exact pending selections
@@ -54,17 +56,19 @@ public class CollectionTargetSelector {
     if (season == null) {
       if (control.family() != CollectionFamilyEnum.CLUB_SHEETS
           && control.family() != CollectionFamilyEnum.GEOCODING) throw invalid();
-      for (int page = 0; ; page++) {
+      UUID afterClub = null;
+      while (true) {
         List<AcquisitionReference> references =
             sporting.acquisitionClubs(
                 control.family() == CollectionFamilyEnum.GEOCODING,
                 cycle.mode() != CollectionModeEnum.PERIODIC,
-                page);
+                afterClub);
         if (references.isEmpty()) break;
         retainDue(
             cycle,
             control,
             references.stream().map(reference -> target(reference, null, null)).toList());
+        afterClub = references.getLast().clubId();
       }
       return;
     }
@@ -112,7 +116,8 @@ public class CollectionTargetSelector {
                   .provider(source.provider())
                   .organizerReference(source.organizerReference())
                   .build()));
-      for (int page = 0; ; page++) {
+      UUID afterPool = null;
+      while (true) {
         List<AcquisitionReference> references =
             sporting.acquisitionPools(
                 season.id(),
@@ -120,7 +125,7 @@ public class CollectionTargetSelector {
                 source.organizerReference(),
                 cycle.mode() == CollectionModeEnum.INITIAL_IMPORT,
                 cycle.startedAt(),
-                page);
+                afterPool);
         if (references.isEmpty()) break;
         retainDue(
             cycle,
@@ -140,6 +145,7 @@ public class CollectionTargetSelector {
             }
           }
         }
+        afterPool = references.getLast().poolId();
       }
     }
     if (lockedReference) {

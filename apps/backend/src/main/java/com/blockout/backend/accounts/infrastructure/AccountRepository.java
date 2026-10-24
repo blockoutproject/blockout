@@ -10,6 +10,16 @@ import org.springframework.data.jpa.repository.Query;
 /** Native Spring Data queries for exact account identities and original-row locking. */
 interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
   /**
+   * Projects the exact principal's lifecycle without adding a profile to the persistence context.
+   *
+   * @param issuer exact validated issuer
+   * @param subject exact validated subject
+   * @return currently established business UUID
+   */
+  @Query("SELECT a.id FROM AccountEntity a WHERE a.issuer = :issuer AND a.subject = :subject")
+  Optional<UUID> findIdByIssuerAndSubject(String issuer, String subject);
+
+  /**
    * Finds only the exact provider principal, never an email-derived identity.
    *
    * @param issuer exact validated issuer

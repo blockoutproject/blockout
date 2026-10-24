@@ -23,6 +23,7 @@ import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.service.SeasonService;
 import com.blockout.backend.sporting.application.service.SportingReadService;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManagerFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -36,6 +37,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -82,12 +85,14 @@ class CollectionControlIntegrationTest {
   @Autowired private SportingReadService sporting;
   @Autowired private CloseCollectionSeason closure;
   @Autowired private PlatformTransactionManager transactions;
+  @Autowired private EntityManagerFactory entityManagerFactory;
   private UUID season;
 
   /**
    * Uses the real role setup and migrations in a suite-owned dynamic-port database.
    *
    * @param properties application bindings for this disposable database
+   * @throws Exception if the disposable baseline cannot be migrated
    */
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
@@ -157,6 +162,54 @@ class CollectionControlIntegrationTest {
         .containsExactly(
             UUID.fromString("00000000-0000-4000-8000-000000000001"),
             UUID.fromString("00000000-0000-4000-8000-000000000002"));
+  }
+
+  @Test
+  @DisplayName("Lists retained control cycles together while preserving family order")
+  void readsControlCyclesTogether() {
+    // Given
+    CollectionState.Cycle running =
+        cycles
+            .admit(new CollectionState.StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null))
+            .cycle();
+    UUID professional = UUID.fromString("00000000-0000-4000-8000-000000000003");
+    UUID completedCycle = UUID.fromString("00000000-0000-4000-8000-000000000195");
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      controls.list(ACCOUNT, season);
+      long singleCycleReads = statistics.getPrepareStatementCount() - before;
+      sql.update(
+          "INSERT INTO collection_control(id, season_id, family, enabled, current_cycle_id) VALUES (?, ?, 'LNV', TRUE, ?)",
+          professional,
+          season,
+          completedCycle);
+      sql.update(
+          "INSERT INTO collection_cycle(cycle_order, id, incarnation_id, control_id, started_at, completed_at) VALUES (nextval('collection_cycle_order'), ?, ?, ?, ?, ?)",
+          completedCycle,
+          STARTUP,
+          professional,
+          Timestamp.from(running.startedAt()),
+          Timestamp.from(running.startedAt().plusSeconds(1)));
+      before = statistics.getPrepareStatementCount();
+
+      // When
+      List<CollectionState.ControlView> views = controls.list(ACCOUNT, season);
+      long listReads = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(views)
+          .extracting(view -> view.control().id())
+          .containsExactly(CONTROL, professional);
+      assertThat(views)
+          .extracting(view -> view.cycle().state())
+          .containsExactly(CollectionCycleStateEnum.RUNNING, CollectionCycleStateEnum.COMPLETED);
+      assertThat(listReads).isEqualTo(singleCycleReads);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
   }
 
   @Test
@@ -494,7 +547,7 @@ class CollectionControlIntegrationTest {
     assertThat(details.getFirst().fastWindowEndsAt())
         .isEqualTo(fast ? start.plusSeconds(14400) : null);
     List<AcquisitionReference> pools =
-        sporting.acquisitionPools(season, CollectionProviderEnum.LNV, "LNV", false, now, 0);
+        sporting.acquisitionPools(season, CollectionProviderEnum.LNV, "LNV", false, now, null);
     assertThat(pools).hasSize(1);
     assertThat(pools.getFirst().fastWindowEndsAt())
         .isEqualTo(fast ? start.plusSeconds(14400) : null);
@@ -518,7 +571,7 @@ class CollectionControlIntegrationTest {
     assertThat(sporting.acquisitionDetails(pool, now, 0).getFirst().fastWindowEndsAt()).isNull();
     assertThat(
             sporting
-                .acquisitionPools(season, CollectionProviderEnum.LNV, "LNV", false, now, 0)
+                .acquisitionPools(season, CollectionProviderEnum.LNV, "LNV", false, now, null)
                 .getFirst()
                 .fastWindowEndsAt())
         .isNull();

@@ -22,13 +22,15 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
   Slice<PoolEntity> findByPackIdOrderBySourceNameAscIdAsc(UUID packId, Pageable pageable);
 
   /**
-   * Selects qualified pools with complete active acquisition settings.
+   * Selects qualified pools after the visited identity boundary despite concurrent division
+   * changes.
    *
    * @param seasonId locked canonical season
    * @param provider binding provider
    * @param initialImport permits qualified historical references absent from the current catalog
    * @param organizerReference binding root
-   * @param page bounded database page
+   * @param afterId exclusive last visited identity, or null to start
+   * @param page first page limiting the next batch
    * @return only current catalog pools with complete, active effective acquisition classification
    */
   @Query(
@@ -36,6 +38,7 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
       SELECT p FROM PoolEntity p JOIN FETCH p.pack pack
       JOIN DivisionEntity d ON d.id = COALESCE(p.setting.settingDivisionId, pack.setting.settingDivisionId)
       WHERE p.season.id = :seasonId AND p.provider = :provider AND p.organizerReference = :organizerReference
+      AND (:afterId IS NULL OR p.id > :afterId)
       AND (:initialImport = TRUE OR p.catalogEligible = TRUE) AND d.active = TRUE
       AND (p.calendarUrl IS NOT NULL OR p.standingsUrl IS NOT NULL)
       ORDER BY p.id
@@ -45,6 +48,7 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
       CollectionProviderEnum provider,
       String organizerReference,
       boolean initialImport,
+      UUID afterId,
       Pageable page);
 
   /**

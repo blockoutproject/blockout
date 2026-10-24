@@ -23,6 +23,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -79,7 +80,7 @@ public class SourcePreparationService {
   public List<Source> list(UUID accountId, UUID seasonId) {
     requireRead(accountId);
     seasons.collectionState(seasonId);
-    return store.sources(seasonId).stream().map(this::project).toList();
+    return project(store.sources(seasonId));
   }
 
   /**
@@ -146,11 +147,7 @@ public class SourcePreparationService {
     requireRevision(revision, season.collectionRevision());
     requireUrl(candidateUrl);
     if (!StringUtils.hasText(organizerReference)) throw new InvalidSourceException();
-    if (store.sources(seasonId).stream()
-        .anyMatch(
-            source ->
-                source.provider() == provider
-                    && source.organizerReference().equals(organizerReference)))
+    if (store.source(seasonId, provider, organizerReference).isPresent())
       throw new CollectionConflictException("conflict");
     Source created =
         store.createSource(seasonId, provider, organizerReference, candidateUrl.toString());
@@ -192,8 +189,7 @@ public class SourcePreparationService {
   public Source requestValidation(UUID accountId, UUID sourceId, long revision) {
     Source source = editable(accountId, sourceId, revision);
     if (source.candidateUrl() == null) throw new CollectionConflictException("conflict");
-    if (source.validationState() == SourceValidationStateEnum.PENDING && !obsolete(source))
-      return source;
+    if (project(source).validationState() == SourceValidationStateEnum.PENDING) return source;
     UUID previousCycle = source.currentCycleId();
     Source pending =
         save(
@@ -376,25 +372,46 @@ public class SourcePreparationService {
    * @return unvalidated projection for interrupted or concurrently replaced validation
    */
   private Source project(Source source) {
-    return obsolete(source)
-        ? source.toBuilder().validationState(SourceValidationStateEnum.UNVALIDATED).build()
-        : source;
+    return project(List.of(source)).getFirst();
   }
 
   /**
-   * Checks retained execution state; renewal may remove the loaded cycle between read queries.
+   * Projects pending validation contexts in one lookup while preserving the supplied source order.
+   *
+   * @param sources current bindings; accepted and never-admitted states remain unchanged
+   * @return detached states; interrupted or concurrently discarded contexts project as unvalidated
+   */
+  private List<Source> project(List<Source> sources) {
+    Map<UUID, Cycle> contexts =
+        store.cycles(
+            sources.stream()
+                .filter(this::hasPendingCycle)
+                .map(Source::currentCycleId)
+                .distinct()
+                .toList());
+    return sources.stream()
+        .map(
+            source -> {
+              if (!hasPendingCycle(source)) return source;
+              Cycle cycle = contexts.get(source.currentCycleId());
+              return cycle == null || cycle.state() == CollectionCycleStateEnum.INTERRUPTED
+                  ? source.toBuilder()
+                      .validationState(SourceValidationStateEnum.UNVALIDATED)
+                      .build()
+                  : source;
+            })
+        .toList();
+  }
+
+  /**
+   * Identifies pending intent whose projection depends on a retained admitted context.
    *
    * @param source current binding
-   * @return whether an admitted validation was interrupted or replaced; never-admitted intent stays
-   *     pending
+   * @return whether the source needs its cycle's current interruption state
    */
-  private boolean obsolete(Source source) {
+  private boolean hasPendingCycle(Source source) {
     return source.validationState() == SourceValidationStateEnum.PENDING
-        && source.currentCycleId() != null
-        && store
-            .cycle(source.currentCycleId())
-            .map(cycle -> cycle.state() == CollectionCycleStateEnum.INTERRUPTED)
-            .orElse(true);
+        && source.currentCycleId() != null;
   }
 
   /**

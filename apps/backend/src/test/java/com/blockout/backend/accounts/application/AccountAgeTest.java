@@ -41,7 +41,7 @@ class AccountAgeTest {
     Account original = account(ORIGINAL, HISTORICAL);
     AccountStore accounts = mock(AccountStore.class);
     PrincipalReader provider = mock(PrincipalReader.class);
-    when(accounts.findByPrincipal(ISSUER, SUBJECT)).thenReturn(Optional.of(original));
+    when(accounts.findIdByPrincipal(ISSUER, SUBJECT)).thenReturn(Optional.of(original.id()));
     when(accounts.synchronize(ORIGINAL, null, null))
         .thenReturn(Optional.of(original.withPrincipalEvidence(null, null)));
     if (outage) when(provider.read(ISSUER, SUBJECT)).thenThrow(new AccountUnavailableException());
@@ -65,7 +65,7 @@ class AccountAgeTest {
     // Given
     AccountStore accounts = mock(AccountStore.class);
     PrincipalReader provider = mock(PrincipalReader.class);
-    when(accounts.findByPrincipal(ISSUER, SUBJECT)).thenReturn(Optional.empty());
+    when(accounts.findIdByPrincipal(ISSUER, SUBJECT)).thenReturn(Optional.empty());
     when(provider.read(ISSUER, SUBJECT))
         .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", null, List.of()));
     when(accounts.create(eq(ISSUER), eq(SUBJECT), any(), eq("owner@example.invalid"), eq(null)))
@@ -88,7 +88,7 @@ class AccountAgeTest {
     Account original = account(ORIGINAL, null);
     AccountStore accounts = mock(AccountStore.class);
     PrincipalReader provider = mock(PrincipalReader.class);
-    when(accounts.findByPrincipal(ISSUER, SUBJECT)).thenReturn(Optional.of(original));
+    when(accounts.findIdByPrincipal(ISSUER, SUBJECT)).thenReturn(Optional.of(original.id()));
     when(provider.read(ISSUER, SUBJECT))
         .thenThrow(new AccountUnavailableException())
         .thenReturn(new PrincipalReader.Evidence(null, HISTORICAL, List.of()));
@@ -119,7 +119,7 @@ class AccountAgeTest {
     String currentSubject = providerCleanupSucceeded ? "auth0|recreated" : SUBJECT;
     AccountStore accounts = mock(AccountStore.class);
     PrincipalReader provider = mock(PrincipalReader.class);
-    when(accounts.findByPrincipal(ISSUER, currentSubject)).thenReturn(Optional.empty());
+    when(accounts.findIdByPrincipal(ISSUER, currentSubject)).thenReturn(Optional.empty());
     when(provider.read(ISSUER, currentSubject))
         .thenReturn(
             new PrincipalReader.Evidence(
