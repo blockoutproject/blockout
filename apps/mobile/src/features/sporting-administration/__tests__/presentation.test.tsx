@@ -16,6 +16,7 @@ import OperationsLayout from "../../../app/(operations)/_layout";
 import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
 import { PresentationEntry } from "../entry";
 import { useCurrentAccount } from "../../accounts/current-account";
+import { AccessGateScreen } from "../../access/screens/access-gate-screen";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { applicationAccessResponse as mockAccess } from "../../../shared/api/test-support/application-access";
@@ -66,7 +67,15 @@ jest.mock("expo-router", () => ({
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
     String(url).endsWith("/application-access")
-      ? Promise.resolve(Response.json(mockAccess()))
+      ? Promise.resolve(
+          Response.json({
+            ...mockAccess(),
+            maintenance: {
+              ...mockAccess().maintenance,
+              active: mockMaintenance,
+            },
+          }),
+        )
       : mockFetch(url, options),
 }));
 jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
@@ -110,12 +119,14 @@ const initial = { id: resourceId, kind: "team", revision: "r1", names, logo };
 let client = createQueryClient();
 let stored: unknown = initial;
 let permissions: unknown = account.permissions;
+let mockMaintenance = false;
 const environment = { ...process.env };
 
 beforeEach(() => {
   client = createQueryClient();
   stored = initial;
   permissions = account.permissions;
+  mockMaintenance = false;
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -596,11 +607,11 @@ it("ignores a held native selection after the session is invalidated", async () 
 });
 
 /** Mounts the real root/protected route; other destinations are explicit unrelated route probes. */
-async function openRoutes() {
+async function openRoutes(initialUrl = "/") {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
-      access: () => <Text>Access route</Text>,
+      access: AccessProbe,
       "(ordinary)/_layout": () => (
         <Stack screenOptions={{ headerShown: false }} />
       ),
@@ -623,9 +634,55 @@ async function openRoutes() {
       "(operations)/collection": () => <Text>Collection route</Text>,
       "(operations)/administration/presentation/[kind]/[id]": PresentationRoute,
     },
-    { initialUrl: "/" },
+    { initialUrl },
   );
 }
+/** Exposes completion of the real account read so routing assertions cannot pass before grants resolve. */
+function AccessProbe() {
+  const account = useCurrentAccount();
+  return (
+    <>
+      <AccessGateScreen />
+      <Text>
+        {account.isSuccess &&
+        account.data.permissions.manageSportingPresentation
+          ? "Presentation authority available"
+          : "Authority pending"}
+      </Text>
+    </>
+  );
+}
+
+it("does not advertise an unusable technical administration entry to a presentation-only account during maintenance", async () => {
+  // Given
+  mockMaintenance = true;
+
+  // When
+  await openRoutes("/access");
+
+  // Then
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  await screen.findByText("Presentation authority available");
+  expect(
+    screen.queryByRole("link", { name: "Accès administrateur" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("keeps a presentation-only original-target editor admitted during maintenance", async () => {
+  // Given
+  mockMaintenance = true;
+
+  // When
+  await openRoutes("/access");
+  await screen.findByText("Presentation authority available");
+  await act(async () =>
+    router.push(`/administration/presentation/team/${resourceId}`),
+  );
+
+  // Then
+  await screen.findByDisplayValue("Current name");
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+});
 /** Starts an ordinary current-account refresh through its real owner. */
 function PermissionRefresh() {
   const account = useCurrentAccount();
