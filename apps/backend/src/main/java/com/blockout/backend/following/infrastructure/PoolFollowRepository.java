@@ -1,8 +1,6 @@
 package com.blockout.backend.following.infrastructure;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -24,12 +22,4 @@ interface PoolFollowRepository extends JpaRepository<PoolFollowEntity, UUID> {
    * @param poolId exact target
    */
   void deleteByAccountIdAndPoolId(UUID accountId, UUID poolId);
-
-  /**
-   * Reads only current relations for the consumer's sporting origins, using the target index.
-   *
-   * @param ids nonempty exact target identities
-   * @return matching persisted rows, without a display-season filter
-   */
-  List<PoolFollowEntity> findByPoolIdIn(Set<UUID> ids);
 }

@@ -18,6 +18,13 @@
 
 Construction uses JPA `EntityManager.persist` for application-assigned UUIDs and dirty checking for existing match facts. Spring Data's [default new-state detection](https://docs.spring.io/spring-data/jpa/reference/jpa/entity-persistence.html) treats these non-null, unversioned IDs as existing and calls `merge`; the PostgreSQL regression demonstrates that re-creating a retained entry would then reset its read state. Direct native insertion preserves the focused application port without an artificial version, new-state flag or empty CRUD repositories. Later query owners may introduce Spring Data repositories when their actual read operations require them.
 
+F06 recipient construction uses one supported [HQL set operation](https://docs.hibernate.org/orm/7.4/querylanguage/html_single/)
+for team/pool origins. PostgreSQL [READ COMMITTED](https://www.postgresql.org/docs/18/transaction-iso.html#XACT-READ-COMMITTED)
+provides a snapshot per statement, so two separate origin reads could invent an empty union during
+committed turnover. A single `UNION ALL` fixes that boundary in its F06 adapter without a separate
+transaction, later account lock or replay. Actual Hibernate 7.4.5.Final/PostgreSQL 18.6 qualification
+is recorded in [quickstart](quickstart.md#atomic-producer-and-link-qualification--252).
+
 **Alternatives considered.** Timers persisted per match, a broker and recipient-history snapshots add state without an accepted precision/recovery requirement. Using after-commit listeners for inbox creation would break the accepted atomicity; after-commit is only the push boundary.
 
 **Evidence.** [Spring scheduling](https://docs.spring.io/spring-framework/reference/integration/scheduling.html), [transaction-bound events](https://docs.spring.io/spring-framework/reference/data-access/transaction/event.html), [Spring Data locking](https://docs.spring.io/spring-data/jpa/reference/jpa/locking.html), and the accepted [F02 concurrency contract](../002-sporting-data/plan.md#acceptance-and-concurrency). Native mechanisms are documented; rollback, lock ordering and process-loss boundaries still require actual PostgreSQL/Spring tests.

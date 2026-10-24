@@ -79,6 +79,14 @@ its accounts. These five regression expectations failed before their associated 
 cases plus the contribution HTTP conflict); the additional detail-ingestion conflict also failed
 before its translation was implemented.
 
+[The origin-snapshot regression](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/RecipientSnapshotIntegrationTest.java)
+uses Hibernate's native statement inspector to rotate real committed follows between separate
+team/pool reads. It first produced zero entries despite a continuously nonempty audience. The
+F06 adapter now reads both origins with one HQL `UNION ALL`, preserving each relation's identity
+and target type in one PostgreSQL statement snapshot. This passed on the installed Hibernate
+7.4.5.Final/PostgreSQL 18.6 together with the existing 19-case F06 SQL suite. The test hook is local
+to that scenario; the production interface, transaction isolation and selected versions are unchanged.
+
 ## Essential scenarios
 
 | Boundary        | Exercise                                                                                                                                                                                                                     | Expected result                                                                                                                                                                                                                                                                                                                                       |
