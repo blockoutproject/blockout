@@ -211,71 +211,70 @@ it.each(["personalized", "contextual", "limited"] as const)(
   },
 );
 
-it.each(["guest", "inactive"] as const)(
-  "requires current native choices and F12 admission for %s",
+describe.each(["guest", "inactive"] as const)(
+  "%s advertising admission",
   (state) => {
-    // Given
-    if (state === "guest") {
-      session.invalidate();
-      account.status = "guest";
-    }
-    const nativePro =
-      state === "guest" ? null : nativeState(session.getSnapshot());
-    const choices = {
-      session: session.getSnapshot(),
-      canRequestAds: true,
-      authorizedMode: "limited" as const,
-    };
-
-    // When
-    const results = [
-      getAdvertisingEligibility({
-        account,
-        nativePro,
+    it.each([
+      {
+        label: "blocked F12 admission",
         admission: { ordinary: false },
-        choices,
-      }),
-      getAdvertisingEligibility({
-        account,
-        nativePro,
+        choices: { canRequestAds: true, authorizedMode: "limited" },
+        canPrepareChoices: false,
+      },
+      {
+        label: "missing native choices",
         admission: { ordinary: true },
         choices: null,
-      }),
-      getAdvertisingEligibility({
-        account,
-        nativePro,
-        admission: { ordinary: true },
-        choices: { ...choices, canRequestAds: false },
-      }),
-      getAdvertisingEligibility({
-        account,
-        nativePro,
-        admission: { ordinary: true },
-        choices: { ...choices, authorizedMode: null },
-      }),
-    ];
-
-    // Then
-    expect(results[0]).toEqual({
-      canPrepareChoices: false,
-      canRequestAds: false,
-      canDisplayAds: false,
-    });
-    for (const eligibility of results.slice(1)) {
-      expect(eligibility).toEqual({
         canPrepareChoices: true,
-        canRequestAds: false,
-        canDisplayAds: false,
-      });
-    }
+      },
+      {
+        label: "native request refusal",
+        admission: { ordinary: true },
+        choices: { canRequestAds: false, authorizedMode: "limited" },
+        canPrepareChoices: true,
+      },
+      {
+        label: "no authorized advertising mode",
+        admission: { ordinary: true },
+        choices: { canRequestAds: true, authorizedMode: null },
+        canPrepareChoices: true,
+      },
+    ] as const)(
+      "rejects $label",
+      ({ admission, choices, canPrepareChoices }) => {
+        // Given
+        if (state === "guest") {
+          session.invalidate();
+          account.status = "guest";
+        }
+        const nativePro =
+          state === "guest" ? null : nativeState(session.getSnapshot());
+
+        // When
+        const eligibility = getAdvertisingEligibility({
+          account,
+          nativePro,
+          admission,
+          choices: choices
+            ? { ...choices, session: session.getSnapshot() }
+            : null,
+        });
+
+        // Then
+        expect(eligibility).toEqual({
+          canPrepareChoices,
+          canRequestAds: false,
+          canDisplayAds: false,
+        });
+      },
+    );
   },
 );
 
 it.each(["active", "inactive"] as const)(
-  "rejects A's late %s rights after switching directly to B",
-  async (state) => {
+  "rejects A's obsolete %s rights after switching directly to B",
+  (state) => {
     // Given
-    const completion = Promise.withResolvers<ProSessionState>();
     const previous = nativeState(
       session.getSnapshot(),
       state === "active" ? entitlement() : null,
@@ -283,10 +282,9 @@ it.each(["active", "inactive"] as const)(
 
     // When
     session.setAccount(session.getSnapshot().generation, b);
-    completion.resolve(previous);
     const eligibility = getAdvertisingEligibility({
       account,
-      nativePro: await completion.promise,
+      nativePro: previous,
       admission: { ordinary: true },
       choices: {
         session: session.getSnapshot(),
