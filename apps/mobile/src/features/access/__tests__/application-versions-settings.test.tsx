@@ -349,6 +349,32 @@ it.each([
     );
   },
 );
+it.each([
+  ["2.9.0", "2.10.0", true],
+  ["2.10.0", "2.9.0", false],
+  ["2.10.0", "2.10.0", false],
+  [null, "1.0.0", true],
+  ["2.10.0", "", false],
+] as const)(
+  "checks store acknowledgement for minimum %s → %s (required: %s)",
+  async (previous, next, required) => {
+    // Given
+    stored = {
+      ...initial,
+      ios: { ...initial.ios, minimumVersion: previous },
+    };
+    await renderSettings();
+    await userEvent.press(await screen.findByRole("button", { name: "iOS" }));
+
+    // When
+    await editField("Version minimale iOS", next);
+
+    // Then
+    const acknowledgement = screen.queryByRole("checkbox");
+    if (required) expect(acknowledgement).toBeOnTheScreen();
+    else expect(acknowledgement).not.toBeOnTheScreen();
+  },
+);
 it("requires store acknowledgement before raising a minimum, and cancellation preserves the draft", async () => {
   // Given
   await renderSettings();

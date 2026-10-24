@@ -149,7 +149,7 @@ The approved inputs read on 2026-10-24 are [pristine light 1563:16268](https://w
 
 The focused JavaScript suites use real Query, session, generated HTTP validation, RHF/Zod, controls and production route composition. Only HTTP/native credential inputs are controlled. Initial cases observed 18 behavioral failures before construction. Cases exercise atomic platform edits, omitted/null fields, invalid resulting state, optional fallback/preview, dirty refetch, failed loading/rereading, refusals, 409, lost or malformed responses, explicit resubmission, permission loss and held confirmations, current-manager admission without bypass, outdated-client refusal, partial observations and explicit draft discard. They establish no Auth0 operator, SQL, store or physical-device qualification.
 
-The final affected check passes generation, ESLint, TypeScript, 61 suites/929 tests, both native-platform JavaScript exports and Expo Doctor 20/20. The 34 editor/route/lifecycle cases pass. The existing five Spring-driven settings-provider cases remain skipped by standalone Jest and retain T020's separate HTTP/PostgreSQL evidence. Repository formatting and `git diff --check` pass.
+The final affected check passes generation, ESLint, TypeScript, 61 suites/934 tests, both native-platform JavaScript exports and Expo Doctor 20/20. The 39 editor/route/lifecycle cases pass, including numeric increase, decrease, equality, first minimum and removal for store acknowledgement. The existing five Spring-driven settings-provider cases remain skipped by standalone Jest and retain T020's separate HTTP/PostgreSQL evidence. Repository formatting and `git diff --check` pass.
 
 ```sh
 npm run test --workspace=@blockout/mobile -- --runTestsByPath \

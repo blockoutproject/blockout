@@ -1,6 +1,9 @@
 import { z } from "zod";
 import type { ApplicationVersionsResponse } from "../../../../.generated/schemas/index.zod";
-import { parsePublishedVersion } from "../native/installed-version";
+import {
+  installedVersionStatus,
+  parsePublishedVersion,
+} from "../native/installed-version";
 
 /** Checks the store destination locally; the backend and operator still own validation and availability. */
 function validStore(value: string, ios: boolean) {
@@ -65,13 +68,12 @@ export function raisesMinimum(
   baseline: ApplicationVersionsResponse,
 ) {
   return (["ios", "android"] as const).some((platform) => {
-    const next = parsePublishedVersion(draft[platform].minimumVersion);
-    if (!next) return false;
-    const previous = parsePublishedVersion(baseline[platform].minimumVersion);
-    if (!previous) return true;
-    for (let index = 0; index < 3; index++) {
-      if (next[index] !== previous[index]) return next[index] > previous[index];
-    }
-    return false;
+    const minimum = draft[platform].minimumVersion;
+    if (!parsePublishedVersion(minimum)) return false;
+    const previous = baseline[platform].minimumVersion;
+    return (
+      previous === null ||
+      installedVersionStatus(minimum, previous) === "outdated"
+    );
   });
 }

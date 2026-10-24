@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Defs, Image as SvgImage, Mask, Rect } from "react-native-svg";
+import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
 import { Button } from "../../../shared/components/button";
 import { RequestLoading } from "../../../shared/components/request-feedback";
@@ -16,14 +17,15 @@ import { StoreAction } from "../components/store-action";
 import { useAccessAdmission } from "../queries/use-access-admission";
 import { useApplicationAccess } from "../queries/use-application-access";
 import { accessPresentation } from "../state/access-presentation";
-import type { AccessSnapshot } from "../state/access-observations";
 
 /** Presentation of the current restriction; retry and operator entry remain explicit owner commands. */
 interface GateViewProps {
-  snapshot: AccessSnapshot;
-  presentation: ReturnType<typeof accessPresentation>;
-  checking: boolean;
-  onRetry(): void;
+  gate: ReturnType<typeof accessPresentation>["gate"];
+  maintenance?: Pick<PublicMaintenanceResponse, "message" | "imageUrl">;
+  updateMessage?: string | null;
+  storeUrl?: string | null;
+  checking?: boolean;
+  onRetry?: () => void;
   onAdministration?: () => void;
   /** Local presentation only; closing a preview never changes admission. */
   onClose?: () => void;
@@ -31,31 +33,32 @@ interface GateViewProps {
 
 /** Full-width stage centers its content and decorative rails together; only foreground controls own side margins. */
 function GateView({
-  snapshot,
-  presentation,
-  checking,
+  gate,
+  maintenance,
+  updateMessage,
+  storeUrl,
+  checking = false,
   onRetry,
   onAdministration,
   onClose,
 }: GateViewProps) {
   const { colors } = useTheme();
   const [failedImage, setFailedImage] = useState<string | null>(null);
-  const { gate, versions } = presentation;
   const update = gate === "update";
-  const maintenance = gate === "maintenance";
-  const image = maintenance ? snapshot.maintenance?.imageUrl : null;
+  const inMaintenance = gate === "maintenance";
+  const image = inMaintenance ? maintenance?.imageUrl : null;
   let title = "Accès indisponible.";
   let badge = "INDISPONIBLE";
   let message: string | null | undefined =
     "Petit temps mort pour Blockout. Réessaie dans quelques instants.";
-  if (maintenance) {
+  if (inMaintenance) {
     title = "Blockout est en maintenance";
     badge = "MAINTENANCE";
-    message = snapshot.maintenance?.message;
+    message = maintenance?.message;
   } else if (update) {
     title = "Mets Blockout\nà jour.";
     badge = "MISE À JOUR";
-    message = snapshot.versions?.message ?? applicationUpdateMessage;
+    message = updateMessage ?? applicationUpdateMessage;
   }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
@@ -161,13 +164,13 @@ function GateView({
           )}
         </View>
         <View style={styles.actions}>
-          {update && versions?.storeUrl ? (
-            <StoreAction key={versions.storeUrl} url={versions.storeUrl} />
+          {update && storeUrl ? (
+            <StoreAction key={storeUrl} url={storeUrl} />
           ) : onClose ? (
             <Button
               fullWidth
               label="Mettre à jour l’application"
-              onPress={() => {}}
+              onPress={undefined}
               disabled
             />
           ) : (
@@ -179,7 +182,7 @@ function GateView({
               onPress={onRetry}
             />
           )}
-          {maintenance && onAdministration && (
+          {inMaintenance && onAdministration && (
             <Pressable
               accessibilityRole="link"
               accessibilityLabel="Accès administrateur"
@@ -209,23 +212,9 @@ export function ApplicationVersionsPreview({
 }) {
   return (
     <GateView
-      snapshot={{
-        checking: false,
-        versions: {
-          revision: 0,
-          ios: { minimumVersion: null, storeUrl: null },
-          android: { minimumVersion: null, storeUrl: null },
-          message,
-        },
-      }}
-      presentation={{
-        gate: "update",
-        ordinary: false,
-        version: "outdated",
-        versions: { minimumVersion: null, storeUrl },
-      }}
-      checking={false}
-      onRetry={() => {}}
+      gate="update"
+      updateMessage={message}
+      storeUrl={storeUrl}
       onClose={onClose}
     />
   );
@@ -237,11 +226,10 @@ export function StartupAccessGate() {
   const presentation = accessPresentation(access.snapshot);
   return (
     <GateView
-      snapshot={access.snapshot}
-      presentation={{
-        ...presentation,
-        gate: presentation.ordinary ? "checking" : presentation.gate,
-      }}
+      gate={presentation.ordinary ? "checking" : presentation.gate}
+      maintenance={access.snapshot.maintenance}
+      updateMessage={access.snapshot.versions?.message}
+      storeUrl={presentation.versions?.storeUrl}
       checking={access.checking}
       onRetry={() => void access.retry()}
     />
@@ -254,8 +242,10 @@ export function AccessGateScreen() {
   const router = useRouter();
   return (
     <GateView
-      snapshot={access.snapshot}
-      presentation={access}
+      gate={access.gate}
+      maintenance={access.snapshot.maintenance}
+      updateMessage={access.snapshot.versions?.message}
+      storeUrl={access.versions?.storeUrl}
       checking={access.checking}
       onRetry={access.retry}
       onAdministration={
