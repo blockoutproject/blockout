@@ -48,7 +48,6 @@ public class DivisionEntity {
   @Setter private String gradientEnd;
   @Setter private byte[] logo;
   @Setter private String logoMediaType;
-  @Setter private Integer logoSize;
 
   @ElementCollection
   @CollectionTable(name = "sporting_division_term", joinColumns = @JoinColumn(name = "division_id"))
@@ -76,6 +75,5 @@ public class DivisionEntity {
     }
     this.logo = logo;
     this.logoMediaType = mediaType;
-    this.logoSize = logo == null ? null : logo.length;
   }
 }

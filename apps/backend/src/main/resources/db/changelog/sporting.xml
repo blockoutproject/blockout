@@ -22,7 +22,6 @@
       <column name="gradient_end" type="VARCHAR(7)"/>
       <column name="logo" type="BYTEA"/>
       <column name="logo_media_type" type="VARCHAR(255)"/>
-      <column name="logo_size" type="INTEGER"></column>
     </createTable>
     <createTable tableName="sporting_club">
       <column name="municipality" type="TEXT"></column>
@@ -30,7 +29,6 @@
       <column name="locality_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
       <column name="geocoded_revision" type="BIGINT"></column>
       <column name="municipality_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
-      <column name="has_coordinates" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
       <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
       <column name="reference" type="TEXT"><constraints nullable="false"/></column>
@@ -39,7 +37,6 @@
       <column name="presentation_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
       <column name="logo" type="BYTEA"></column>
       <column name="logo_media_type" type="VARCHAR(255)"></column>
-      <column name="logo_size" type="INTEGER"></column>
       <column name="contacts_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
       <column name="logo_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
       <column name="latitude" type="DOUBLE PRECISION"></column>
@@ -129,10 +126,8 @@
       <column name="manual_short_name" type="TEXT"></column>
       <column name="logo" type="BYTEA"></column>
       <column name="logo_media_type" type="VARCHAR(255)"></column>
-      <column name="logo_size" type="INTEGER"></column>
       <column name="source_logo" type="BYTEA"></column>
       <column name="source_logo_media_type" type="VARCHAR(255)"></column>
-      <column name="source_logo_size" type="INTEGER"></column>
       <column name="logo_cycle_order" type="BIGINT"></column>
       <column name="logo_read_ordinal" type="BIGINT"></column>
       <column name="logo_observed_at" type="TIMESTAMP WITH TIME ZONE"></column>

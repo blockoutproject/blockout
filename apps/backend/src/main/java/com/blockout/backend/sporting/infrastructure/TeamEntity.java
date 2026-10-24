@@ -65,10 +65,8 @@ public class TeamEntity {
 
   @Setter private byte[] logo;
   @Setter private String logoMediaType;
-  @Setter private Integer logoSize;
   @Setter private byte[] sourceLogo;
   @Setter private String sourceLogoMediaType;
-  @Setter private Integer sourceLogoSize;
   @Setter private Long logoCycleOrder;
   @Setter private Long logoReadOrdinal;
   @Setter private Instant logoObservedAt;

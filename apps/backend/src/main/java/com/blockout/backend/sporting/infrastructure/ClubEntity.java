@@ -35,7 +35,6 @@ import lombok.Setter;
 public class ClubEntity {
   @Setter private long localityRevision;
   @Setter private Long geocodedRevision;
-  @Setter private boolean hasCoordinates;
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -55,7 +54,6 @@ public class ClubEntity {
   @Setter private long logoRevision;
   @Setter private byte[] logo;
   @Setter private String logoMediaType;
-  @Setter private Integer logoSize;
   @Setter private Long detailCycleOrder;
   @Setter private Long detailReadOrdinal;
   @Setter private Instant detailObservedAt;

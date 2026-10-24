@@ -529,6 +529,33 @@ class SportingPresentationIntegrationTest {
         .contains(club);
   }
 
+  @Test
+  @DisplayName("A current municipal point needs no further automatic or manual geocoding")
+  void excludesLocatedClubFromGeocoding() {
+    // Given
+    details.correct(
+        account,
+        club,
+        "0",
+        Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.MANUAL, "Paris")));
+    CollectionState.Cycle geocoding = admitFamily("GEOCODING");
+    String revision = reads.publicLocality(club).orElseThrow().revision();
+
+    // When
+    localities.accept(
+        club,
+        new LocalityObservation(
+            context(geocoding, 1), revision, GeocodingOutcomeEnum.LOCATED, 48.86, 2.34));
+
+    // Then
+    assertThat(reads.acquisitionClubs(true, false, null))
+        .extracting(AcquisitionReference::clubId)
+        .doesNotContain(club);
+    assertThat(reads.acquisitionClubs(true, true, null))
+        .extracting(AcquisitionReference::clubId)
+        .doesNotContain(club);
+  }
+
   @ParameterizedTest
   @EnumSource(
       value = GeocodingOutcomeEnum.class,
@@ -643,7 +670,9 @@ class SportingPresentationIntegrationTest {
     assertThat(reads.publicLogo(SportingProjectionChanges.Kind.CLUB, club).orElseThrow().bytes())
         .isEqualTo(first.bytes());
     assertThat(
-            sql.queryForMap("SELECT logo_media_type,logo_size FROM sporting_club WHERE id=?", club))
+            sql.queryForMap(
+                "SELECT logo_media_type,octet_length(logo) AS logo_size FROM sporting_club WHERE id=?",
+                club))
         .containsEntry("logo_media_type", "image/png")
         .containsEntry("logo_size", first.bytes().length);
   }

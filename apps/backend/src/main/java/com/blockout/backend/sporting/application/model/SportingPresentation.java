@@ -31,12 +31,26 @@ public final class SportingPresentation {
   public record ContactValue(
       String sourceValue, String manualValue, ContactModeEnum mode, boolean restricted) {
     /**
+     * Discards restricted content at the owner boundary, including restored stored values.
+     *
+     * @param sourceValue current source value, erased when restricted
+     * @param manualValue current manual value, erased when restricted
+     * @param mode ordinary management mode
+     * @param restricted whether the durable privacy restriction prevails
+     */
+    public ContactValue {
+      if (restricted) {
+        sourceValue = null;
+        manualValue = null;
+      }
+    }
+
+    /**
      * Resolves the currently permitted value without recovering former contacts.
      *
      * @return manual, current source or deliberate absence according to the durable mode
      */
     public String effectiveValue() {
-      if (restricted) return null;
       return switch (mode) {
         case SOURCE -> sourceValue;
         case MANUAL -> manualValue;
@@ -190,13 +204,12 @@ public final class SportingPresentation {
     /**
      * Compares accepted content rather than array identity for no-op replacements.
      *
-     * @param other candidate accepted image, possibly null
+     * @param otherBytes current stored bytes, possibly absent
+     * @param otherMediaType current stored content type
      * @return whether both type and content are identical
      */
-    public boolean sameContent(Image other) {
-      return other != null
-          && mediaType.equals(other.mediaType)
-          && Arrays.equals(bytes, other.bytes);
+    public boolean sameContent(byte[] otherBytes, String otherMediaType) {
+      return mediaType.equals(otherMediaType) && Arrays.equals(bytes, otherBytes);
     }
   }
 

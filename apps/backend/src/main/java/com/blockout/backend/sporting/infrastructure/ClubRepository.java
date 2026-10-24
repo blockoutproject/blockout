@@ -25,7 +25,7 @@ interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
       """
       SELECT c FROM ClubEntity c WHERE c.provider = CollectionProviderEnum.FFVB
       AND (:afterId IS NULL OR c.id > :afterId)
-      AND (:geocoding = FALSE OR (c.hasCoordinates = FALSE AND c.city.restricted = FALSE
+      AND (:geocoding = FALSE OR (c.latitude IS NULL AND c.city.restricted = FALSE
         AND c.city.mode <> ContactModeEnum.HIDDEN
         AND (CASE WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue ELSE c.city.sourceValue END) IS NOT NULL
         AND (:manual = TRUE OR c.geocodedRevision IS NULL OR c.geocodedRevision <> c.localityRevision)))

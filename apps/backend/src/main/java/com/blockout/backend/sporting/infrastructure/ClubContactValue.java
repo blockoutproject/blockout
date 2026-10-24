@@ -30,8 +30,8 @@ class ClubContactValue {
    * @param value decided state, including its durable restriction
    */
   ClubContactValue(ContactValue value) {
-    sourceValue = value.restricted() ? null : value.sourceValue();
-    manualValue = value.restricted() ? null : value.manualValue();
+    sourceValue = value.sourceValue();
+    manualValue = value.manualValue();
     mode = value.mode();
     restricted = value.restricted();
   }
@@ -40,7 +40,6 @@ class ClubContactValue {
    * @return permitted immutable state, including when restored columns contain restricted data
    */
   ContactValue toValue() {
-    return new ContactValue(
-        restricted ? null : sourceValue, restricted ? null : manualValue, mode, restricted);
+    return new ContactValue(sourceValue, manualValue, mode, restricted);
   }
 }

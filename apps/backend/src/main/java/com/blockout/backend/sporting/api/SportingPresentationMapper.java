@@ -202,10 +202,7 @@ public interface SportingPresentationMapper {
    */
   default ContactFieldResponse toResponse(SportingPresentation.ContactValue field) {
     return new ContactFieldResponse(
-        field.mode(),
-        field.effectiveValue(),
-        field.restricted() ? null : field.sourceValue(),
-        field.restricted() ? null : field.manualValue());
+        field.mode(), field.effectiveValue(), field.sourceValue(), field.manualValue());
   }
 
   /**
