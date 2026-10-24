@@ -12,6 +12,24 @@ export default defineConfig({
       clean: true,
       override: {
         operations: {
+          setClubPresentation: {
+            formData: {
+              path: "src/features/sporting-administration/api/presentation-form-data.ts",
+              name: "presentationFormData",
+            },
+          },
+          setTeamPresentation: {
+            formData: {
+              path: "src/features/sporting-administration/api/presentation-form-data.ts",
+              name: "presentationFormData",
+            },
+          },
+          setDivisionPresentation: {
+            formData: {
+              path: "src/features/sporting-administration/api/presentation-form-data.ts",
+              name: "presentationFormData",
+            },
+          },
           changeAccountProfile: {
             formData: {
               path: "src/features/accounts/api/profile-form-data.ts",
