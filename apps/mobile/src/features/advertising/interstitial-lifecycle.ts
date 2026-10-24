@@ -7,9 +7,10 @@ import {
   type AdvertisingEligibilityInput,
   type AdvertisingChoices,
 } from "./advertising-eligibility";
-import type {
-  SportingAdTransition,
-  SportingAdTransitionResult,
+import {
+  openTransitionDestination,
+  type SportingAdTransition,
+  type SportingAdTransitionResult,
 } from "./sporting-ad-transition";
 
 /** Current owner readers; construction does not initialize or request advertising. */
@@ -88,16 +89,9 @@ export function createInterstitialLifecycle({
       complete(destination, { status: "abandoned" });
       return;
     }
-    try {
-      const opening = destination.action.open();
-      Promise.resolve(opening).then(
-        () => complete(destination, { status: "opened" }),
-        (error: unknown) =>
-          complete(destination, { status: "destination-failed", error }),
-      );
-    } catch (error) {
-      complete(destination, { status: "destination-failed", error });
-    }
+    void openTransitionDestination(destination.action.open).then((result) =>
+      complete(destination, result),
+    );
   }
 
   /** Retires callbacks first, settles the destination, then removes the SDK resource/listeners. */
@@ -225,7 +219,6 @@ export function createInterstitialLifecycle({
      */
     transition(
       action: SportingAdTransition,
-      counted: boolean,
     ): Promise<SportingAdTransitionResult> {
       if (disposed || !action.isCurrent())
         return Promise.resolve({ status: "abandoned" });
@@ -249,7 +242,6 @@ export function createInterstitialLifecycle({
       };
       const pro = getProState(input.account, input.nativePro);
       const freeAction =
-        counted &&
         input.admission.ordinary &&
         (pro.status === "guest" || pro.status === "inactive");
       if (freeAction) count = Math.min(10, count + 1);

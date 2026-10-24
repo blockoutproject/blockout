@@ -18,15 +18,33 @@ export type SportingAdTransitionResult =
   | { status: "destination-failed"; error: unknown };
 
 /**
+ * Starts the caller-validated destination immediately, without ad ownership.
+ * Synchronous and asynchronous opening failures remain with the destination's caller.
+ */
+export async function openTransitionDestination(
+  open: SportingAdTransition["open"],
+): Promise<SportingAdTransitionResult> {
+  try {
+    await open();
+    return { status: "opened" };
+  } catch (error) {
+    return { status: "destination-failed", error };
+  }
+}
+
+/**
  * Routes accepted voluntary club/team/pool/match/live intents through the shared counter.
- * Other journeys execute without an advertising opportunity. This does not grant sporting access.
+ * Other journeys execute independently of the ad's pending slot and lifetime.
+ * This does not grant sporting access.
  */
 export function openSportingAdTransition(
   lifecycle: InterstitialLifecycle,
   transition: SportingAdTransition,
 ): Promise<SportingAdTransitionResult> {
-  const counted =
+  const sporting =
     transition.voluntary &&
     ["club", "team", "pool", "match", "live"].includes(transition.kind);
-  return lifecycle.transition(transition, counted);
+  if (sporting) return lifecycle.transition(transition);
+  if (!transition.isCurrent()) return Promise.resolve({ status: "abandoned" });
+  return openTransitionDestination(transition.open);
 }

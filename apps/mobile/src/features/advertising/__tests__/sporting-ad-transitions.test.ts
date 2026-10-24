@@ -179,6 +179,44 @@ it("excludes involuntary sporting openings", async () => {
   expect(mockCreateAd).not.toHaveBeenCalled();
 });
 
+it.each([
+  { kind: "legal", voluntary: true },
+  { kind: "match", voluntary: false },
+])(
+  "keeps excluded $kind navigation independent of a pending sporting ad",
+  async ({ kind, voluntary }) => {
+    // Given
+    const { input } = advertisingContext();
+    const lifecycle = createInterstitialLifecycle({
+      adUnitId: "test-unit",
+      getInput: () => input,
+    });
+    lifecycle.preload();
+    const ad = mockCreateAd.mock.results[0].value;
+    ad.emit(AdEventType.LOADED);
+    for (let index = 0; index < 9; index++)
+      await openSportingAdTransition(lifecycle, action());
+    const sporting = action();
+    const pending = openSportingAdTransition(lifecycle, sporting);
+    const excluded = { ...action(kind), voluntary };
+
+    // When
+    const result = await openSportingAdTransition(lifecycle, excluded);
+
+    // Then
+    expect(result).toEqual({ status: "opened" });
+    expect(excluded.open).toHaveBeenCalledTimes(1);
+    expect(lifecycle.count).toBe(10);
+    expect(sporting.open).not.toHaveBeenCalled();
+    expect(openSportingAdTransition(lifecycle, sporting)).toBe(pending);
+    expect(ad.show).toHaveBeenCalledTimes(1);
+    ad.emit(AdEventType.CLOSED);
+    await pending;
+    expect(sporting.open).toHaveBeenCalledTimes(1);
+    expect(excluded.open).toHaveBeenCalledTimes(1);
+  },
+);
+
 it.each(["active", "unknown"])(
   "adds no debt for %s rights and preserves prior opportunities through rights changes",
   async (rights) => {
@@ -243,6 +281,25 @@ it.each(["active", "unknown"])(
     expect(mockCreateAd).toHaveBeenCalledTimes(2);
   },
 );
+
+it("still abandons an obsolete excluded destination without touching advertising", async () => {
+  // Given
+  const { input } = advertisingContext();
+  const lifecycle = createInterstitialLifecycle({
+    adUnitId: "test-unit",
+    getInput: () => input,
+  });
+  const destination = { ...action("legal"), isCurrent: () => false };
+
+  // When
+  const result = await openSportingAdTransition(lifecycle, destination);
+
+  // Then
+  expect(result).toEqual({ status: "abandoned" });
+  expect(destination.open).not.toHaveBeenCalled();
+  expect(lifecycle.count).toBe(0);
+  expect(mockCreateAd).not.toHaveBeenCalled();
+});
 
 it("counts free actions without authorized choices and retains the threshold when eligibility changes", async () => {
   // Given
@@ -327,11 +384,8 @@ it("deduplicates the accepted action while its asynchronous destination is openi
     adUnitId: "test-unit",
     getInput: () => input,
   });
-  let finish = () => {};
-  const opening = new Promise<void>((resolve) => {
-    finish = resolve;
-  });
-  const destination = { ...action(), open: jest.fn(() => opening) };
+  const opening = Promise.withResolvers<void>();
+  const destination = { ...action(), open: jest.fn(() => opening.promise) };
 
   // When
   const first = openSportingAdTransition(lifecycle, destination);
@@ -345,6 +399,6 @@ it("deduplicates the accepted action while its asynchronous destination is openi
   expect(destination.open).toHaveBeenCalledTimes(1);
   expect(refused).toEqual({ status: "busy" });
   expect(other.open).not.toHaveBeenCalled();
-  finish();
+  opening.resolve();
   expect(await first).toEqual({ status: "opened" });
 });
