@@ -15,7 +15,7 @@ import java.util.UUID;
  * read transaction, including every relationship. No account or Pro state is an input. F12 admits
  * ordinary HTTP/bypass before this boundary; bypass never relaxes sporting visibility. Empty means
  * unknown or currently hidden, while dependency failures propagate rather than becoming empty data.
- * Actual projection adapters and endpoints belong to the corresponding story tasks.
+ * Calendar, standings, participant and document operations are added by their owning story tasks.
  */
 public interface ConsultationReadPort {
   /**
@@ -50,30 +50,6 @@ public interface ConsultationReadPort {
    * @return current pool context, or empty when unavailable
    */
   Optional<ConsultationViews.PoolDetail> pool(UUID poolId);
-
-  /**
-   * Reads official table availability/order/freshness with only currently viewable team links.
-   *
-   * @param poolId exact viewable pool
-   * @return official table state, including stated absence; empty Optional for unavailable pool
-   */
-  Optional<ConsultationViews.Standings> standings(UUID poolId);
-
-  /**
-   * Reads viewable participants and reliable municipality points independently of standings.
-   *
-   * @param poolId exact viewable pool
-   * @return current independent participants, possibly empty; empty Optional for unavailable pool
-   */
-  Optional<ConsultationViews.Participants> participants(UUID poolId);
-
-  /**
-   * Selects complete days and their matches in one short read-only repeatable-read transaction.
-   *
-   * @param request one exact resource/season/category/zone and optional exclusive day boundary
-   * @return at most seven complete nonempty days; empty Optional for unavailable scope
-   */
-  Optional<ConsultationViews.Calendar> calendar(CalendarRequest request);
 
   /**
    * Reads a currently viewable dated match with permitted effective facts and eligible actions.

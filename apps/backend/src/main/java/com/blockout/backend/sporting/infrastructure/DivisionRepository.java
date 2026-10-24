@@ -3,6 +3,7 @@ package com.blockout.backend.sporting.infrastructure;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -28,6 +29,15 @@ interface DivisionRepository extends JpaRepository<DivisionEntity, UUID> {
    */
   @Query(SUMMARY_SELECT + " WHERE d.id = :id")
   Optional<DivisionSummary> findSummaryById(UUID id);
+
+  /**
+   * Reads metadata for the exact divisions used by one resource selection, excluding image bytes.
+   *
+   * @param ids accepted division identities in the current read transaction
+   * @return detached metadata without per-team lookups
+   */
+  @Query(SUMMARY_SELECT + " WHERE d.id IN :ids")
+  List<DivisionSummary> findSummariesByIdIn(Set<UUID> ids);
 
   /**
    * Holds activity stable through classification or lifecycle commit.
