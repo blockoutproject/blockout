@@ -8,9 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -33,23 +31,22 @@ public class SearchHydration {
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public Map<UUID, SearchPage.Summary> current(
       SearchContext context, List<SearchEngine.Candidate> candidates) {
-    Set<UUID> ids = candidates.stream().map(c -> c.position().id()).collect(Collectors.toSet());
     Map<UUID, String> cities = new HashMap<>();
     for (SearchEngine.Candidate candidate : candidates)
       cities.put(candidate.position().id(), candidate.city());
     Map<UUID, SearchPage.Summary> result = new HashMap<>();
     for (SportingPublicInput input :
-        owners.publicInputs(Kind.valueOf(context.resource().name()), ids)) {
+        owners.publicInputs(Kind.valueOf(context.resource().name()), cities.keySet())) {
       if (!Objects.equals(cities.get(input.id()), input.city()) || !matches(context, input))
         continue;
       SearchPage.Summary summary =
           switch (context.resource()) {
             case CLUB ->
                 new SearchPage.Summary(
-                    new SearchPage.Club(resources.club(input.id()).club(), input.city()),
+                    new SearchPage.Club(resources.clubIdentity(input.id()), input.city()),
                     null,
                     null);
-            case TEAM -> new SearchPage.Summary(null, resources.team(input.id()).team(), null);
+            case TEAM -> new SearchPage.Summary(null, resources.teamSummary(input.id()), null);
             case POOL -> new SearchPage.Summary(null, null, resources.pool(input.id()).pool());
           };
       result.put(input.id(), summary);

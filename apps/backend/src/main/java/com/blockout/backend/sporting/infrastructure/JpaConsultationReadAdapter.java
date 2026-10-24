@@ -46,15 +46,20 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
 
   /** {@inheritDoc} */
   @Override
+  public Optional<ConsultationViews.Identity> clubIdentity(UUID clubId) {
+    return owners.publicPresentation(Kind.CLUB, clubId).map(this::identity);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public Optional<ConsultationViews.ClubDetail> club(UUID clubId) {
-    return owners
-        .publicPresentation(Kind.CLUB, clubId)
+    return clubIdentity(clubId)
         .map(
-            presentation -> {
+            club -> {
               Map<ContactField, String> contacts = owners.publicClubContacts(clubId);
               List<SeasonView> seasons = owners.publicClubSeasons(clubId);
               return new ConsultationViews.ClubDetail(
-                  identity(presentation),
+                  club,
                   new ConsultationViews.Contacts(
                       contacts.get(ContactField.ADDRESS),
                       contacts.get(ContactField.CITY),
@@ -103,29 +108,38 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<ConsultationViews.TeamDetail> team(UUID teamId) {
+  public Optional<ConsultationViews.TeamSummary> teamSummary(UUID teamId) {
     return owners
         .publicPresentation(Kind.TEAM, teamId)
         .map(
             ignored -> {
               TeamView team = owners.team(teamId).orElseThrow();
-              return new ConsultationViews.TeamDetail(
-                  teamSummary(
-                      team, facts.divisionDetail(team.classification().divisionId()).orElseThrow()),
-                  owners.publicTeamPoolIds(teamId).stream()
-                      .map(id -> poolSummary(id).orElseThrow())
-                      .sorted(
-                          Comparator.comparingLong(
-                                  (ConsultationViews.PoolSummary value) ->
-                                      value.season().startYear())
-                              .reversed()
-                              .thenComparing(
-                                  ConsultationViews.PoolSummary::competitionName,
-                                  Comparator.nullsLast(Comparator.naturalOrder()))
-                              .thenComparing(value -> value.pool().name())
-                              .thenComparing(value -> value.pool().id().toString()))
-                      .toList());
+              return teamSummary(
+                  team, facts.divisionDetail(team.classification().divisionId()).orElseThrow());
             });
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<ConsultationViews.TeamDetail> team(UUID teamId) {
+    return teamSummary(teamId)
+        .map(
+            summary ->
+                new ConsultationViews.TeamDetail(
+                    summary,
+                    owners.publicTeamPoolIds(teamId).stream()
+                        .map(id -> poolSummary(id).orElseThrow())
+                        .sorted(
+                            Comparator.comparingLong(
+                                    (ConsultationViews.PoolSummary value) ->
+                                        value.season().startYear())
+                                .reversed()
+                                .thenComparing(
+                                    ConsultationViews.PoolSummary::competitionName,
+                                    Comparator.nullsLast(Comparator.naturalOrder()))
+                                .thenComparing(value -> value.pool().name())
+                                .thenComparing(value -> value.pool().id().toString()))
+                        .toList()));
   }
 
   /** {@inheritDoc} */

@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -126,7 +128,10 @@ class DiscoveryWebMvcTest {
     response
         .andExpect(status().isServiceUnavailable())
         .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"));
+        .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"))
+        .andExpect(jsonPath("$.title").value("Service Unavailable"))
+        .andExpect(jsonPath("$.status").value(503));
   }
 
   @Test

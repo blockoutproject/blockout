@@ -59,7 +59,7 @@ public class ReadSearch {
    */
   private SearchPage traverse(SearchContext context, SearchEngine.Position after) {
     List<SearchPage.Summary> results = new ArrayList<>();
-    List<SearchEngine.Position> beforeEligible = new ArrayList<>();
+    SearchEngine.Position beforeLastEligible = null;
     SearchEngine.Position consumed = after;
     for (int batchNumber = 0; batchNumber < 10; batchNumber++) {
       SearchEngine.Batch batch = engine.search(context, consumed, 200);
@@ -72,7 +72,7 @@ public class ReadSearch {
           SearchPage.Summary summary = current.get(candidate.position().id());
           if (summary != null) {
             if (results.size() == 20) return new SearchPage(results, consumed);
-            beforeEligible.add(consumed);
+            beforeLastEligible = consumed;
             results.add(summary);
           }
           consumed = candidate.position();
@@ -89,7 +89,7 @@ public class ReadSearch {
           .log("Search evaluation bound reached");
       throw new SearchUnavailableException();
     }
-    int withheld = results.size() - 1;
-    return new SearchPage(results.subList(0, withheld), beforeEligible.get(withheld));
+    results.removeLast();
+    return new SearchPage(results, beforeLastEligible);
   }
 }

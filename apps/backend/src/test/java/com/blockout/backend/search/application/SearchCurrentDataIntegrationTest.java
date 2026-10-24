@@ -1,9 +1,12 @@
 package com.blockout.backend.search.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.blockout.backend.search.application.SearchEngine.Candidate;
 import com.blockout.backend.search.application.SearchEngine.Position;
+import com.blockout.backend.sporting.application.ConsultationReadPort;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.util.List;
 import java.util.UUID;
@@ -16,11 +19,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/** Real migrated PostgreSQL and F02/F03 reads; engine cities are deliberate stale inputs. */
+/**
+ * Real migrated PostgreSQL and F02/F03 reads; engine cities are deliberate stale inputs. The F03
+ * spy records forbidden detail reads while executing the real owner projections.
+ */
 @SpringBootTest
 @Testcontainers
 @DisplayName("Current search hydration")
@@ -28,6 +35,7 @@ class SearchCurrentDataIntegrationTest {
   @Container static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired JdbcTemplate sql;
   @Autowired SearchHydration hydration;
+  @MockitoSpyBean ConsultationReadPort consultation;
 
   /**
    * Applies the actual baseline before Hibernate validation with the restricted application role.
@@ -110,6 +118,7 @@ class SearchCurrentDataIntegrationTest {
     assertThat(club.club().name()).isEqualTo("Current Eagles");
     assertThat(club.club().logoUrl()).isEqualTo("/clubs/" + id + "/logo");
     assertThat(club.city()).isEqualTo("Lyon");
+    verify(consultation, never()).club(id);
   }
 
   @ParameterizedTest
@@ -139,6 +148,7 @@ class SearchCurrentDataIntegrationTest {
     assertThat(summary.team().season().startYear()).isEqualTo(year);
     assertThat(summary.team().professional()).isTrue();
     assertThat(summary.team().club()).isNull();
+    verify(consultation, never()).team(fixture.team());
   }
 
   @ParameterizedTest
