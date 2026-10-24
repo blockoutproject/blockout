@@ -10,6 +10,8 @@
 
 **Evidence**: [PostgreSQL date/time functions](https://www.postgresql.org/docs/18/functions-datetime.html), [transaction isolation](https://www.postgresql.org/docs/18/transaction-iso.html), and [Hibernate 7.4 query language](https://docs.hibernate.org/orm/7.4/querylanguage/html_single/) support the relevant building blocks. The final two-query projection, generated Java models and PostgreSQL execution remain to be qualified. Known instants and date-only values follow different grouping rules; a date-only value is never converted into a fictional instant.
 
+Club seasons, club-season teams and current participation identities use focused F02 owner queries with the same current visibility predicates. This avoids loading search aliases/terms or applying the search hydration batch limit to consultation. The existing read transaction loads the addressed club and season before selecting teams; subsequent F02 presentation mapping reuses that standard JPA persistence context. Team selection excludes parent columns so a club logo is not repeated for every row, and division metadata is loaded together without image bytes. These reads retain complete selections, closed seasons and effective values without an application cache or second visibility authority.
+
 ## Retained mobile queries
 
 **Decision**: Use TanStack Query memory state and generated query functions/keys. Retained calendars disable automatic focus, reconnect and mount refetches, ordinary retries and invalidation-triggered refetches. A newly opened page reads its common information and initial tab; other tabs load when first opened. Manual refresh replaces only the active tab and, for calendars, only the first page on success. Match detail keeps its accepted focus, foreground and explicit refresh behavior.
@@ -57,6 +59,8 @@
 **Evidence limits**: The examined supporting package was `react-native-blob-util` 0.25.1. Published config plugins 14.0.2 declare Expo >=56 compatibility; unpublished repository versions are not selected. PDF reader source/release notes address Android page-size compatibility, but no Expo 58/RN 0.88 native build, physical-device rendering, cancellation or cleanup has been executed here. Qualify the declared package combination before adoption; failure reopens this boundary rather than authorizing a fork or a changed minimum platform.
 
 ## Contracts, privacy and operations
+
+**Resource implementation boundary**: The canonical `Consultation` tag groups resource and logo operations into a generated Java interface independently of pending calendars, standings, participants and documents. HTTP paths, operation identities and response meanings stay unchanged. The application read port exposes only implemented resource projections; later stories extend it. The schedule source zone is optional because F02 accepts a sporting date without a known zone. Such a date remains unchanged; neither transport nor presentation supplies a fictional zone or instant.
 
 **Decision**: Retain F13's OpenAPI 3.0.4, Redocly, OpenAPI Generator and Orval pipeline and existing Problem Details responses. Public projections contain only effective authorized values. Account, follow and editing state remain separately owned. Binary PDF/image responses are intentionally not parsed as JSON; successful JSON is validated once before caching. Common access restrictions apply to public reads and document/image delivery.
 

@@ -2,7 +2,7 @@ Club:
   get:
     operationId: getClub
     tags:
-      - Sporting
+      - Consultation
     summary: Read a club
     description:
       Returns effective presentation, permitted contacts, municipality and viewable seasons. Ordinary
@@ -45,7 +45,7 @@ ClubTeams:
   get:
     operationId: listClubTeams
     tags:
-      - Sporting
+      - Consultation
     summary: Read teams in a club season
     description:
       Returns all viewable teams for the selected club and season; an unknown season is not found. Ordinary
@@ -96,7 +96,7 @@ Team:
   get:
     operationId: getTeam
     tags:
-      - Sporting
+      - Consultation
     summary: Read a team
     description:
       Returns the team and viewable participations. A professional team may have no club. Ordinary access
@@ -139,7 +139,7 @@ Pool:
   get:
     operationId: getPool
     tags:
-      - Sporting
+      - Consultation
     summary: Read a pool
     description:
       Returns public identity, season and accepted competition context. Ordinary access is public; explicit
@@ -339,7 +339,7 @@ Match:
   get:
     operationId: getMatch
     tags:
-      - Sporting
+      - Consultation
     summary: Read a match
     description:
       Returns current sporting facts and eligible document actions. Dateless or hidden matches are unavailable.
@@ -434,7 +434,7 @@ ClubLogo:
   get:
     operationId: getClubLogo
     tags:
-      - Sporting
+      - Consultation
     summary: Read the effective club logo
     description:
       Returns the current effective image for this visible resource; missing images are not found. Ordinary
@@ -484,7 +484,7 @@ TeamLogo:
   get:
     operationId: getTeamLogo
     tags:
-      - Sporting
+      - Consultation
     summary: Read current team artwork
     description:
       Returns the selected current image for this visible team; missing images are not found. The default
@@ -543,7 +543,7 @@ DivisionLogo:
   get:
     operationId: getDivisionLogo
     tags:
-      - Sporting
+      - Consultation
     summary: Read the effective division logo
     description:
       Returns the current effective image for this visible resource; missing images are not found. Ordinary
