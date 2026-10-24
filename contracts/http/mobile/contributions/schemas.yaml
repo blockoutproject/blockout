@@ -83,7 +83,6 @@ CreateStreamContributionRequest:
         HTTP(S) address on an authorized provider domain, without credentials; retained without
         provider lookup.
       format: uri
-      minLength: 1
   required:
     - revision
     - url
@@ -128,7 +127,6 @@ CreateModeratedStreamContributionRequest:
         HTTP(S) address on an authorized provider domain, without credentials; retained without
         provider lookup.
       format: uri
-      minLength: 1
   required:
     - actorAccountId
     - revision
@@ -217,7 +215,6 @@ OwnStreamContributionResponse:
         HTTP(S) address on an authorized provider domain, without credentials; retained without
         provider lookup.
       format: uri
-      minLength: 1
     platform:
       $ref: "#/StreamPlatformEnum"
     state:
@@ -376,7 +373,6 @@ ModeratedStreamContributionResponse:
         HTTP(S) address on an authorized provider domain, without credentials; retained without
         provider lookup.
       format: uri
-      minLength: 1
     platform:
       $ref: "#/StreamPlatformEnum"
     state:

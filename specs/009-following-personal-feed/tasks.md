@@ -6,7 +6,7 @@ description: "Implementation tasks for F06 following and the personal feed"
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
-**Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). This delivery prepares implementation; it creates no application, migration, provider configuration or production data. Runtime, generated-consumer and native evidence remains future work.
+**Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). The workspace and T001–T005 contract/context foundation are implemented; later tasks retain their own qualification boundaries. This foundation creates no following table, business endpoint, provider configuration or production data. See the scoped [contract/access evidence](quickstart.md#contracts-and-access).
 
 **Tests**: A01–A28 and SC-001–006 explicitly require qualification. Write automated cases first and observe meaningful failure before their associated implementation. Prepare native/manual cases before executing them with actual prerequisites. Synthetic database evidence, real generated consumers and native journeys prove different boundaries; a documentary check proves none of them.
 
@@ -16,7 +16,7 @@ description: "Implementation tasks for F06 following and the personal feed"
 
 - **[P]** identifies distinct-file work that may run together after its prerequisites.
 - **[USn]** retains the specification's story number.
-- Paths identify future implementation or the existing qualification source. All boxes start unchecked.
+- Paths identify implementation or the existing qualification source. Checked boxes record only the completed native task scope.
 
 ## Path Conventions
 
@@ -29,8 +29,8 @@ description: "Implementation tasks for F06 following and the personal feed"
 
 **Purpose**: Reuse the actual workspace, original-account access and sporting owners.
 
-- [ ] T001 Verify F13 T001–T017 through `apps/backend/pom.xml`, `apps/mobile/orval.config.ts` and `README.md`: Java 25/Spring Boot 4.1.1, PostgreSQL 18.6, Expo 58/React Native 0.88/React 19.3.0, generated consumers and ordinary JUnit/Testcontainers/Jest tooling. Use the pinned Query version; research's inspected 5.104.2 is no implicit upgrade. Wait only for the bounded foundation and actual F02/F03/F05 inputs needed by each task.
-- [ ] T002 Inspect the existing Liquibase include/baseline state in `apps/backend/src/main/resources/db/changelog/db.changelog-master.xml` and actual database posture through `README.md`; extend the mutable XML baseline only while all environments are disposable and no retained version has run, otherwise append immutable changes. Reuse application/migration role separation and actual test commands; no reset or speculative release migration.
+- [x] T001 Verify F13 T001–T017 through `apps/backend/pom.xml`, `apps/mobile/orval.config.ts` and `README.md`: Java 25/Spring Boot 4.1.1, PostgreSQL 18.6, Expo 58/React Native 0.88/React 19.3.0, generated consumers and ordinary JUnit/Testcontainers/Jest tooling. Use the pinned Query version; research's inspected 5.104.2 is no implicit upgrade. Wait only for the bounded foundation and actual F02/F03/F05 inputs needed by each task.
+- [x] T002 Inspect the existing Liquibase include/baseline state in `apps/backend/src/main/resources/db/changelog/db.changelog-master.xml` and actual database posture through `README.md`; extend the mutable XML baseline only while all environments are disposable and no retained version has run, otherwise append immutable changes. Reuse application/migration role separation and actual test commands; no reset or speculative release migration.
 
 ---
 
@@ -38,9 +38,9 @@ description: "Implementation tasks for F06 following and the personal feed"
 
 **Purpose**: Establish canonical owner/target/context boundaries shared by the feature.
 
-- [ ] T003 [P] Write failing generated-binding cases in `apps/backend/src/test/java/com/blockout/backend/following/api/FollowingContractTest.java` and `apps/mobile/src/features/following/__tests__/following-contract.test.ts`, using test-scoped adapters where behavior is not yet implemented. Cover required boolean state, strict query/body shapes, additive responses, absent season/default/continuations, reused F03 summaries/calendar, safe errors and one-time JSON validation. Include page/nextPage maximum 107374182, twenty-item pages and count maximum 9007199254740991 without lossy coercion; actual endpoint cases remain with their stories.
-- [ ] T004 [P] Write failing original-owner/session cases in `apps/backend/src/test/java/com/blockout/backend/following/application/FollowAccessTest.java` and `apps/mobile/src/features/following/__tests__/following-context.test.ts`. Cover usable original UUID only, other/erased/replacement accounts, guest and unavailable-profile handling, no Pro requirement, F12 admission/bypass, and A → guest/B → A late responses; neither administrator nor collector credentials grant another owner's access.
-- [ ] T005 Define cohesive owner/target values in `apps/backend/src/main/java/com/blockout/backend/following/application/FollowContext.java` and native query/mutation key construction in `apps/mobile/src/features/following/api/following-keys.ts`, making the shared test-scoped boundary cases pass with F05/F12. Preserve “Keys distinguish session/account/target and, for lists/calendar, season/category/time zone.” Public count keys remain account-independent except applicable bypass context; private state never enters public sporting DTOs. Reuse generated functions/keys through F13 transport, with no second session owner, generic client wrapper or mirrored store.
+- [x] T003 [P] Write failing generated-binding cases in `apps/backend/src/test/java/com/blockout/backend/following/api/FollowingContractTest.java` and `apps/mobile/src/features/following/__tests__/following-contract.test.ts`, using test-scoped adapters where behavior is not yet implemented. Cover required boolean state, strict query/body shapes, additive responses, absent season/default/continuations, reused F03 summaries/calendar, safe errors and one-time JSON validation. Include page/nextPage maximum 107374182, twenty-item pages and count maximum 9007199254740991 without lossy coercion; actual endpoint cases remain with their stories.
+- [x] T004 [P] Write failing original-owner/session cases in `apps/backend/src/test/java/com/blockout/backend/following/application/FollowAccessTest.java` and `apps/mobile/src/features/following/__tests__/following-context.test.ts`. Cover usable original UUID only, other/erased/replacement accounts, guest and unavailable-profile handling, no Pro requirement, F12 admission/bypass, and A → guest/B → A late responses; neither administrator nor collector credentials grant another owner's access.
+- [x] T005 Define cohesive owner/target values in `apps/backend/src/main/java/com/blockout/backend/following/application/FollowContext.java` and native query/mutation key construction in `apps/mobile/src/features/following/api/following-keys.ts`, making the shared test-scoped boundary cases pass with F05/F12. Preserve “Keys distinguish session/account/target and, for lists/calendar, season/category/time zone.” Public count keys remain account-independent except applicable bypass context; private state never enters public sporting DTOs. Reuse generated functions/keys through F13 transport, with no second session owner, generic client wrapper or mirrored store.
 
 **Checkpoint**: Contract/context boundaries are testable. Each story may use controlled owner inputs while developing; its full proof waits for the named real owner integration, not every other feature's completion.
 
