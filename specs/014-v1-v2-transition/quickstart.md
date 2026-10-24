@@ -47,6 +47,16 @@ On **2026-10-22**, under the owner's explicit authorization for that provider ch
 
 This qualifies the scoped T019 restriction and sampled V1 iOS continuity. It does not qualify Android V1, a real roleless V1 account, V2 native sign-in, complete identity categories or population preservation. Actual Google/Apple and prior-role continuity remain **T021**; final Action removal remains **T050**. No V2 role-assignment endpoint, automatic grant, relinking, tenant replacement, credential rotation or V1 retirement was introduced.
 
+## Protected-logo rehearsal — T027/T028/T030
+
+The [bounded operations procedure](../../infra/operations/README.md#protected-club-logo-preservation-and-reassociation) prepares the private copy, exact target lookup and existing F02 multipart editor. No live V1 access, freeze, export or private inventory was performed for this rehearsal; those remain T029 / [#345](https://github.com/blockoutproject/blockout/issues/345).
+
+`TransitionLogoIntegrationTest` uses actual F02 identity, presentation, validation and read operations with the existing PostgreSQL 18.6 Testcontainers support and real Liquibase baseline. Its synthetic cases cover distinct `000339` / `339` identities despite identical club names, unmatched `0000339`, original PNG/JPEG bytes in PostgreSQL, a missing file, empty/corrupt content, current grant withdrawal, stale revision refusal, cross-season FFVB inheritance and a clubless LNV team with a coincident native reference. No image host, production identity, collector provider or native device is involved.
+
+Normal V2 uniqueness rejects a duplicate `(FFVB, reference)` club; the suite exercises that database refusal rather than disabling the constraint to manufacture an ambiguous target. Conflicting preserved source associations require private manual provenance resolution under the procedure; their operational resolution is not automated or qualified here. An unmatched synthetic file remains available without a guessed target or club creation. Missing/corrupt-file attempts leave current presentation unchanged; the procedure keeps affected destruction blocked.
+
+These cases establish the isolated owner boundary for T027/T030 and the prepared procedure for T028. They establish neither an actual protected-logo population/copy nor deployed V1 collector behavior, native image rendering, full A16–A24/SC-003 qualification or permission to destroy/open anything. T029/T034/T036 and all unrelated tasks remain separate. Run `./mvnw -B -ntp -pl apps/backend verify -Dtest=ImageValidatorTest -Dit.test=TransitionLogoIntegrationTest` after the ordinary contract bundle, or the complete `npx nx run backend:test` from [repository verification](../../README.md#verification); Failsafe discovers the integration suite during `verify`.
+
 ## Legacy status qualification
 
 Use both supported installed V1 store builds and the actual first V2 release for each platform. The October 15 observations were Android 1.3.5/build 84 and iOS 1.3.5/build 122; refresh that inventory before qualification rather than treating those observations as the supported population.
