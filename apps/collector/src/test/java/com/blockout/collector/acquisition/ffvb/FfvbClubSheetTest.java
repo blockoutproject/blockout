@@ -52,6 +52,21 @@ class FfvbClubSheetTest {
   }
 
   @Test
+  @DisplayName("Recognizes published field labels with a trailing colon")
+  void recognizesTrailingColonLabels() {
+    // Given
+    byte[] html = bytes(sheet("000042").replace("</td><td>", " : </td><td>"));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "000042");
+
+    // Then
+    assertThat(club.sourceName()).isEqualTo("Synthetic volley");
+    assertThat(club.city().get()).isEqualTo("Testville");
+    assertThat(club.postalCode().get()).isEqualTo("00123");
+  }
+
+  @Test
   @DisplayName("Uses the published POST action with the exact encountered reference")
   void followsPublishedForm() {
     // Given

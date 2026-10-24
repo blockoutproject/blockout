@@ -14,6 +14,7 @@ import com.blockout.backend.sporting.application.exception.UnresolvedSportingIde
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.CalendarState;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
+import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
 import com.blockout.backend.sporting.application.model.MatchDetails;
 import com.blockout.backend.sporting.application.model.MatchObservation;
@@ -181,27 +182,17 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public List<AcquisitionReference> acquisitionClubs(
+  public List<ClubAcquisitionReference> acquisitionClubs(
       boolean geocoding, boolean manual, UUID afterId) {
     return clubs.acquisitionClubs(geocoding, manual, afterId, PageRequest.of(0, 200)).stream()
         .map(
             club ->
-                new AcquisitionReference(
-                    club.getId(),
-                    geocoding
-                        ? CollectionTargetKindEnum.GEOCODING
-                        : CollectionTargetKindEnum.CLUB_SHEET,
-                    null,
-                    null,
-                    null,
-                    null,
+                new ClubAcquisitionReference(
                     club.getId(),
                     club.getReference(),
-                    null,
-                    null,
-                    null,
                     club.getProvider(),
-                    null))
+                    Objects.equals(club.getGeocodedRevision(), club.getLocalityRevision()),
+                    order(club.getLocalityCycleOrder(), club.getLocalityReadOrdinal())))
         .toList();
   }
 
@@ -218,8 +209,7 @@ public class JpaSportingStore implements SportingStore {
                         club.getCity().toValue().effectiveValue(),
                         club.getCity().toValue().effectiveValue() == null
                             ? null
-                            : club.getPostalCode().toValue().effectiveValue(),
-                        order(club.getLocalityCycleOrder(), club.getLocalityReadOrdinal()))));
+                            : club.getPostalCode().toValue().effectiveValue())));
   }
 
   /**
@@ -252,8 +242,6 @@ public class JpaSportingStore implements SportingStore {
         pool.getPack().getReference(),
         pool.getId(),
         matchId,
-        null,
-        null,
         mapper.toClassification(setting),
         url,
         windowEnd,

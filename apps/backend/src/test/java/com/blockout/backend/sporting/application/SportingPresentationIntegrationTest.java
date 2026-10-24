@@ -19,7 +19,7 @@ import com.blockout.backend.generated.mobile.model.LogoActionEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
-import com.blockout.backend.sporting.application.model.AcquisitionReference;
+import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.PoolKey;
@@ -525,7 +525,7 @@ class SportingPresentationIntegrationTest {
     assertThat(late.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
     assertThat(reads.publicLocality(club).orElseThrow().latitude()).isNull();
     assertThat(reads.acquisitionClubs(true, false, null))
-        .extracting(AcquisitionReference::clubId)
+        .extracting(ClubAcquisitionReference::clubId)
         .contains(club);
   }
 
@@ -549,10 +549,10 @@ class SportingPresentationIntegrationTest {
 
     // Then
     assertThat(reads.acquisitionClubs(true, false, null))
-        .extracting(AcquisitionReference::clubId)
+        .extracting(ClubAcquisitionReference::clubId)
         .doesNotContain(club);
     assertThat(reads.acquisitionClubs(true, true, null))
-        .extracting(AcquisitionReference::clubId)
+        .extracting(ClubAcquisitionReference::clubId)
         .doesNotContain(club);
   }
 
@@ -583,10 +583,10 @@ class SportingPresentationIntegrationTest {
     // Then
     assertThat(reads.publicLocality(club).orElseThrow().latitude()).isNull();
     assertThat(reads.acquisitionClubs(true, false, null))
-        .extracting(AcquisitionReference::clubId)
+        .extracting(ClubAcquisitionReference::clubId)
         .doesNotContain(club);
     assertThat(reads.acquisitionClubs(true, true, null))
-        .extracting(AcquisitionReference::clubId)
+        .extracting(ClubAcquisitionReference::clubId)
         .contains(club);
   }
 

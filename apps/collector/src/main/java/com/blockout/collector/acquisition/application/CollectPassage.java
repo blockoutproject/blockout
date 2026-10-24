@@ -18,7 +18,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openapitools.jackson.nullable.JsonNullable;
@@ -171,7 +170,8 @@ public class CollectPassage {
   /**
    * Acquires one seasonless target with its original current locality revision. A null permitted
    * municipality means no provider call or attempt evidence; technical failures submit no F02
-   * withdrawal and independent clubs may still proceed.
+   * withdrawal and independent clubs may still proceed. Reports acquisition and F02 acceptance
+   * separately, preserving partial field refusals and never replaying an uncertain mutation.
    *
    * @param context admitted seasonless capability
    * @param target exact club and currently permitted context from the target read
@@ -207,35 +207,12 @@ public class CollectPassage {
         point == null ? null : "IGN municipality: " + point.outcome().getValue());
     SportingObservation.Context evidence =
         new SportingObservation.Context(context.getCycle().id(), ordinal, observedAt, null);
-    SportingObservation.Club acquiredSheet = sheet;
-    SportingObservation.Locality acquiredPoint = point;
-    integrateSeasonless(
-        context,
-        target,
-        ordinal,
-        () ->
-            acquiredPoint == null
-                ? sporting.club(target.clubId(), evidence, acquiredSheet)
-                : sporting.locality(target.clubId(), evidence, acquiredPoint));
-  }
-
-  /**
-   * Reports independent F02 acceptance once, preserving secondary-field refusals as partial
-   * integration; a lost response never replays its mutation.
-   *
-   * @param context admitted capability
-   * @param target acquired club or current locality
-   * @param ordinal original pre-read order
-   * @param submit single F02 mutation, called exactly once
-   */
-  private void integrateSeasonless(
-      CollectorLifecycle.AdmittedCycle context,
-      CollectionBackend.Target target,
-      long ordinal,
-      Supplier<SportingObservation.Outcome> submit) {
     lifecycle.requireActive();
     try {
-      SportingObservation.Outcome outcome = submit.get();
+      SportingObservation.Outcome outcome =
+          target.kind() == CollectionTargetKindEnum.CLUB_SHEET
+              ? sporting.club(target.clubId(), evidence, sheet)
+              : sporting.locality(target.clubId(), evidence, point);
       record(
           context,
           target,

@@ -5,6 +5,7 @@ import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
+import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
@@ -233,9 +234,10 @@ public class SportingReadService {
    * @param geocoding selects municipal needs rather than club sheets
    * @param manual explicit family rerun may revisit ordinary no-result localities
    * @param afterId exclusive last visited club identity, or null for the first batch
-   * @return identities only; permitted locality is resolved when serving targets
+   * @return nonpersonal identities and normal-result metadata; permitted locality is read at target
+   *     service
    */
-  public List<AcquisitionReference> acquisitionClubs(
+  public List<ClubAcquisitionReference> acquisitionClubs(
       boolean geocoding, boolean manual, UUID afterId) {
     return store.acquisitionClubs(geocoding, manual, afterId);
   }

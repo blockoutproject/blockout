@@ -5,7 +5,9 @@ import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import java.time.Instant;
 import java.util.UUID;
 
-/** F02-owned qualified identity/reference for acquisition; personal locality is read separately. */
+/**
+ * F02-owned qualified seasonal competition reference; clubs use their own seasonless read context.
+ */
 public record AcquisitionReference(
     UUID scopeId,
     CollectionTargetKindEnum kind,
@@ -13,8 +15,6 @@ public record AcquisitionReference(
     String packReference,
     UUID poolId,
     UUID matchId,
-    UUID clubId,
-    String clubReference,
     SportingClassification classification,
     String url,
     Instant fastWindowEndsAt,

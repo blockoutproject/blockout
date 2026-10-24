@@ -8,14 +8,14 @@ import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
-import com.blockout.backend.sporting.application.model.AcquisitionReference;
+import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.service.SportingReadService;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,53 +39,56 @@ public class ClubAcquisitionService {
    * @return filtered nonpersonal identities and the last scanned identity; caller applies cadence
    */
   public TargetBatch targets(UUID controlId, boolean geocoding, boolean manual, UUID afterId) {
-    List<AcquisitionReference> references =
+    List<ClubAcquisitionReference> references =
         sporting.acquisitionClubs(geocoding, manual || geocoding, afterId);
     if (references.isEmpty()) return new TargetBatch(List.of(), null);
-    Set<UUID> eligible =
-        references.stream().map(AcquisitionReference::clubId).collect(Collectors.toSet());
-    if (geocoding && !manual) {
-      eligible =
-          sporting.acquisitionClubs(true, false, afterId).stream()
-              .map(AcquisitionReference::clubId)
-              .collect(Collectors.toSet());
-      Set<UUID> ordinaryEligible = Set.copyOf(eligible);
-      List<CollectionAttempt> failures =
-          store
-              .attempts(controlId, references.stream().map(AcquisitionReference::clubId).toList())
-              .stream()
-              .filter(
-                  attempt ->
-                      attempt.stage() == CollectionStageEnum.GEOCODING
-                          && attempt.outcome() == CollectionOutcomeEnum.FAILED
-                          && !ordinaryEligible.contains(attempt.scopeId()))
-              .toList();
-      Map<UUID, ClubLocalityView> accepted =
-          sporting.clubLocalities(failures.stream().map(CollectionAttempt::scopeId).toList());
-      for (CollectionAttempt failure : failures) {
-        ClubLocalityView locality = accepted.get(failure.scopeId());
-        if (locality != null
-            && (locality.order() == null
-                || new ObservationOrder(failure.cycleOrder(), failure.readOrdinal())
-                        .compareTo(locality.order())
-                    > 0)) eligible.add(failure.scopeId());
-      }
-    }
-    Set<UUID> selected = eligible;
+    Map<UUID, CollectionAttempt> attempts =
+        geocoding && !manual
+            ? store
+                .attempts(
+                    controlId, references.stream().map(ClubAcquisitionReference::clubId).toList())
+                .stream()
+                .filter(attempt -> attempt.stage() == CollectionStageEnum.GEOCODING)
+                .collect(Collectors.toMap(CollectionAttempt::scopeId, Function.identity()))
+            : Map.of();
     List<Target> targets =
         references.stream()
-            .filter(reference -> selected.contains(reference.clubId()))
+            .filter(
+                reference ->
+                    !geocoding
+                        || manual
+                        || needsGeocoding(reference, attempts.get(reference.clubId())))
             .map(
                 reference ->
                     Target.builder()
-                        .scopeId(reference.scopeId())
-                        .kind(reference.kind())
+                        .scopeId(reference.clubId())
+                        .kind(
+                            geocoding
+                                ? CollectionTargetKindEnum.GEOCODING
+                                : CollectionTargetKindEnum.CLUB_SHEET)
                         .clubId(reference.clubId())
                         .clubReference(reference.clubReference())
                         .provider(reference.provider())
                         .build())
             .toList();
     return new TargetBatch(targets, references.getLast().clubId());
+  }
+
+  /**
+   * Preserves F02's current normal result unless a later technical attempt requires another read.
+   *
+   * @param reference current owner metadata without personal locality
+   * @param attempt latest F01 geocoding acquisition evidence, absent before the first record
+   * @return true for a fresh need or a failure newer than F02's last accepted normal result
+   */
+  private boolean needsGeocoding(ClubAcquisitionReference reference, CollectionAttempt attempt) {
+    if (!reference.normalLocalityResult()) return true;
+    return attempt != null
+        && attempt.outcome() == CollectionOutcomeEnum.FAILED
+        && (reference.localityOrder() == null
+            || new ObservationOrder(attempt.cycleOrder(), attempt.readOrdinal())
+                    .compareTo(reference.localityOrder())
+                > 0);
   }
 
   /**

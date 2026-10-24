@@ -165,8 +165,8 @@ public class CollectionTargetSelector {
    * Combines qualified owner context without copying personal locality.
    *
    * @param reference eligible F02-owned identity/current configuration
-   * @param source binding for competition work, otherwise absent
-   * @param season canonical season for competition work, otherwise absent
+   * @param source qualified competition source binding
+   * @param season owning canonical competition season
    * @return frozen nonpersonal acquisition context
    */
   private Target target(
@@ -178,17 +178,13 @@ public class CollectionTargetSelector {
             .url(reference.url())
             .poolId(reference.poolId())
             .matchId(reference.matchId())
-            .clubId(reference.clubId())
-            .clubReference(reference.clubReference())
             .packReference(reference.packReference())
             .provider(reference.provider())
             .nativeMatchReference(reference.nativeMatchReference())
-            .fastWindowEndsAt(reference.fastWindowEndsAt());
-    if (source != null)
-      result
-          .sourceBindingId(source.id())
-          .organizerReference(source.organizerReference())
-          .seasonLabel(season.label());
+            .fastWindowEndsAt(reference.fastWindowEndsAt())
+            .sourceBindingId(source.id())
+            .organizerReference(source.organizerReference())
+            .seasonLabel(season.label());
     PoolKey key = reference.poolKey();
     if (key != null)
       result
