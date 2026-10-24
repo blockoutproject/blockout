@@ -11,7 +11,6 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -39,7 +38,7 @@ public class ContributionExceptionHandler {
       case STALE_REVISION -> problem(HttpStatus.CONFLICT, "stale-revision");
       case MATCH_UNAVAILABLE -> problem(HttpStatus.NOT_FOUND, "not-found");
       case ACCOUNT_AGE_UNKNOWN -> problem(HttpStatus.SERVICE_UNAVAILABLE, "unavailable");
-      case FORBIDDEN, NOT_OWNER -> throw new AccessDeniedException("Action is not permitted");
+      case FORBIDDEN, NOT_OWNER -> problem(HttpStatus.FORBIDDEN, "forbidden");
       default -> problem(HttpStatus.UNPROCESSABLE_CONTENT, "unprocessable-content");
     };
   }

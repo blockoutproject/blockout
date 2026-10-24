@@ -43,7 +43,7 @@ The scoped 2026-10-24 qualification passes 82 pure policy cases and 21 PostgreSQ
 
 T006/T008/T012–T014/T054 bind real F02 sporting roots, F05 original-account locks,
 F06 confirmed relation unions and F07 inbox/allowance persistence. `SubmitContribution`
-gathers the complete actor/audience account set before sorted locking, rereads current grants,
+gathers current version-attribution accounts together with the actor/audience before sorted locking, rereads current grants,
 age, ownership and quotas, and publishes only accepted active transitions. The same JPA store
 supplies native twenty-item `Slice` reads in a short repeatable-read application transaction.
 The generated submission interface supplies owner POST/GET and direct moderator POST without
@@ -53,6 +53,7 @@ original owner/actor, current privileges and safe refusal/outage responses.
 
 [Submission cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/infrastructure/ContributionSubmissionIntegrationTest.java),
 [private reads](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ReadOwnContributionsIntegrationTest.java)
+[attribution-lock races](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAttributionIntegrationTest.java)
 and [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
 use the actual migrated PostgreSQL 18.6 mappings and separately proxied production services.
 They qualify replacement flush ordering, immutable quota participation, third/fourth limits,
@@ -63,8 +64,8 @@ quota/DST qualifications remain in the preceding T007/T010/T011 evidence.
 
 The first real result-producer regression failed with no recorded announcement; seven timing
 cases and two real submission cases failed before their implementations. The completed targeted
-qualification passes 50 integration cases (including 14 readiness-context regressions) and the
-latest 36-case HTTP/transition/timing run. Test review used the Java-testing canonical examples:
+qualification passes 52 integration cases (including 14 readiness-context regressions) and the
+latest 38-case HTTP/transition/timing run. Test review used the Java-testing canonical examples:
 real immutable values, explicit scenario inputs, no enclosing test transaction for commit proof,
 and PostgreSQL-observed exclusion for races. Only time and the after-commit external observer
 are controlled in the cross-owner fixture; no provider request occurs.

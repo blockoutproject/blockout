@@ -54,8 +54,8 @@ continuity remains F06 T044/#263 and F07 T040/#291.
 
 The current 13-case [timing policy suite](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/LinkAnnouncementTest.java)
 includes unknown time/availability, before/at/after H, Paris/New York instants across differing
-DST weeks and consumed categories. Controlled personal-row deletion, hiding/hold and new
-quota-exempt-version fixtures prove that allowances survive those state changes; they do not
+DST weeks and consumed categories. Controlled personal-row deletion, hiding/hold and source-linked
+quota-exempt reactivation fixtures prove that allowances survive those state changes; they do not
 qualify actual moderation commands, report reset or scheduled purge (T046/#277 and T052/#267).
 No actual push/provider/device result is claimed. Provider handoff remains US4; the immutable
 `AfterCommitAnnouncements.Ready` event is its transient committed input.

@@ -4,6 +4,7 @@ import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -46,6 +47,16 @@ public interface ContributionStore {
    * @return lifetime versions, distinct daily matches and target-match participation today
    */
   ContributionQuota.Usage usage(UUID ownerId, UUID matchId, ContributionQuota.Day day);
+
+  /**
+   * Projects retained account attributions on current versions before account locking. Capabilities
+   * are rechecked after locking, so both active and pending potential write participants are
+   * included. Implementations must not attach mutable versions during this projection.
+   *
+   * @param matchId match already protected by the sporting roots
+   * @return non-null owner/publication/decision identities to unite with actor and audience
+   */
+  Set<UUID> attributionAccounts(UUID matchId);
 
   /**
    * Reads an exact version without authorizing its caller.

@@ -8,10 +8,13 @@ import com.blockout.backend.contributions.domain.ContributionVersion.DecisionKin
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Tuple;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -68,6 +71,27 @@ public class JpaContributionStore implements ContributionStore {
   @Override
   public ContributionQuota.Usage usage(UUID ownerId, UUID matchId, ContributionQuota.Day day) {
     return versions.usage(ownerId, matchId, day);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Set<UUID> attributionAccounts(UUID matchId) {
+    List<Tuple> rows =
+        entities
+            .createQuery(
+                "SELECT v.ownerId AS owner, v.publicationActorId AS publicationActor, v.decisionActorId AS decisionActor FROM ContributionVersionEntity v WHERE v.matchId = :match AND v.state IN :states",
+                Tuple.class)
+            .setParameter("match", matchId)
+            .setParameter("states", List.of(State.ACTIVE, State.PENDING))
+            .getResultList();
+    Set<UUID> accounts = new HashSet<>();
+    for (Tuple row : rows) {
+      for (String field : List.of("owner", "publicationActor", "decisionActor")) {
+        UUID account = row.get(field, UUID.class);
+        if (account != null) accounts.add(account);
+      }
+    }
+    return Set.copyOf(accounts);
   }
 
   /** {@inheritDoc} */

@@ -17,6 +17,7 @@ import com.blockout.backend.sporting.application.service.MatchContributionAccess
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +57,9 @@ public class SubmitContribution {
       throw new ContributionRejectedException(Status.INVALID_ADDRESS);
     }
     Facts facts = sporting.lock(matchId);
-    Selection selection = recipients.select(facts.match(), Set.of(accountId));
+    Set<UUID> affectedAccounts = new HashSet<>(store.attributionAccounts(matchId));
+    affectedAccounts.add(accountId);
+    Selection selection = recipients.select(facts.match(), affectedAccounts);
     if (!selection.accounts().contains(accountId)) throw new AccountNotFoundException();
     boolean moderator =
         permissions.forAccount(accountId).contains(Permission.MODERATE_STREAM_LINKS);

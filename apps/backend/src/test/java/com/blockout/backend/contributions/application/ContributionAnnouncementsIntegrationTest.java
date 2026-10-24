@@ -43,6 +43,14 @@ import org.springframework.transaction.support.TransactionTemplate;
 class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
   @Autowired private Probe probe;
 
+  @Autowired
+  private com.blockout.backend.sporting.application.service.MatchContributionAccess sportingContext;
+
+  @Autowired
+  private com.blockout.backend.notifications.application.AnnouncementRecipients recipientSelection;
+
+  @Autowired private ContributionTransitions transitions;
+
   /** Clears only this test's ephemeral handoff observations. */
   @BeforeEach
   void clearProbe() {
@@ -243,13 +251,37 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     sql.update("DELETE FROM notification");
     moderator(AUTHOR);
 
-    // When: controlled new exempt-version fixture, not an actual moderation command.
-    submit(AUTHOR, "1", "https://youtube.com/restored", true);
+    // When: explicit source-linked reactivation fixture; no actual moderation command exists here.
+    UUID reactivated = UUID.fromString("00000000-0000-4000-8000-000000000252");
+    new TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts
+                  facts = sportingContext.lock(matchId);
+              com.blockout.backend.notifications.application.AnnouncementRecipients.Selection
+                  selection = recipientSelection.select(facts.match(), java.util.Set.of(AUTHOR));
+              sql.update(
+                  "INSERT INTO contribution_version(id,match_id,address,platform,owner_id,state,created_at,quota_participating,source_version_id,publication_kind,publication_at,publication_actor_id) VALUES (?,?,?,'YOUTUBE',?,'ACTIVE',?,FALSE,?,'REACTIVATION',?,?)",
+                  reactivated,
+                  matchId,
+                  original.version().address().value(),
+                  AUTHOR,
+                  java.sql.Timestamp.from(NOW),
+                  original.version().id(),
+                  java.sql.Timestamp.from(NOW),
+                  AUTHOR);
+              sql.update(
+                  "UPDATE contribution_state SET revision=revision+1,report_hold_version_id=NULL WHERE match_id=?",
+                  matchId);
+              transitions.published(facts, selection.recipients(), NOW);
+            });
 
     // Then
     assertThat(count("notification")).isZero();
     assertThat(contributions.state(matchId).reportHoldVersionId()).isNull();
     assertThat(count("contribution_version")).isEqualTo(2);
+    assertThat(contributions.active(matchId).orElseThrow().sourceVersionId())
+        .isEqualTo(original.version().id());
   }
 
   @Test
