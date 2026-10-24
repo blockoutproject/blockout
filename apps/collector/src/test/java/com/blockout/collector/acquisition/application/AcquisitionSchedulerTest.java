@@ -89,7 +89,7 @@ class AcquisitionSchedulerTest {
     // Given
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
     scheduler.start();
     CollectionBackend.Work work =
         new CollectionBackend.Work(
@@ -124,7 +124,61 @@ class AcquisitionSchedulerTest {
     // Then: fresh ordinary opportunities remain possible after definite refusal, without supplier
     // work.
     verify(backend, times(2)).admit(any());
+    verify(backend, times(3)).current(); // Startup plus one inspection per refused admission.
     verifyNoInteractions(passages, qualification);
+  }
+
+  @Test
+  @DisplayName("A superseded work poll stops subsequent ticks without registering again")
+  void stopsSupersededWork() {
+    // Given
+    AcquisitionScheduler scheduler =
+        new AcquisitionScheduler(
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
+    scheduler.start();
+    when(backend.work(lifecycle.getIncarnationId()))
+        .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null));
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(2, REQUEST));
+
+    // When
+    tasks.get(1).run();
+    tasks.get(1).run();
+
+    // Then
+    assertThat(lifecycle.isActive()).isFalse();
+    verify(backend).work(lifecycle.getIncarnationId());
+    verify(backend, times(2)).current(); // Startup and the refused work poll.
+    verify(backend).register(0, lifecycle.getIncarnationId());
+    verify(backend, never()).admit(any());
+    verifyNoInteractions(passages, qualification, discovery);
+  }
+
+  @Test
+  @DisplayName("A candidate read refused after admission still stops a superseded process")
+  void stopsSupersededCandidateRead() {
+    // Given
+    AcquisitionScheduler scheduler =
+        new AcquisitionScheduler(
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
+    scheduler.start();
+    when(backend.work(lifecycle.getIncarnationId()))
+        .thenReturn(
+            new CollectionBackend.Work(
+                List.of(), List.of(new CollectionBackend.ValidationWork(CONTROL, 0))));
+    when(qualification.execute(any()))
+        .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null));
+    when(backend.current()).thenReturn(new CollectionBackend.Runtime(2, REQUEST));
+
+    // When
+    tasks.get(2).run();
+    tasks.get(2).run();
+
+    // Then
+    assertThat(lifecycle.isActive()).isFalse();
+    verify(backend).admit(any());
+    verify(qualification).execute(any());
+    verify(backend, times(2)).current(); // Startup and the refused candidate read.
+    verifyNoInteractions(passages, discovery);
   }
 
   @ParameterizedTest
@@ -135,7 +189,7 @@ class AcquisitionSchedulerTest {
     // Given
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
     scheduler.start();
     CollectionBackend.Work work =
         new CollectionBackend.Work(
@@ -176,7 +230,7 @@ class AcquisitionSchedulerTest {
     // Given
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
     scheduler.start();
     CollectionBackend.ControlWork running =
         new CollectionBackend.ControlWork(
@@ -224,7 +278,7 @@ class AcquisitionSchedulerTest {
     // Given
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
     scheduler.start();
     UUID clubs = UUID.fromString("00000000-0000-4000-8000-000000000001");
     UUID source = UUID.fromString("00000000-0000-4000-8000-000000000186");
@@ -275,7 +329,7 @@ class AcquisitionSchedulerTest {
     // Given
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
     scheduler.start();
     when(backend.work(lifecycle.getIncarnationId()))
         .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null));
@@ -318,7 +372,7 @@ class AcquisitionSchedulerTest {
     // Given
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
     scheduler.start();
     CollectionBackend.ControlWork before =
         new CollectionBackend.ControlWork(
@@ -379,7 +433,7 @@ class AcquisitionSchedulerTest {
     UUID other = UUID.fromString("00000000-0000-4000-8000-000000000187");
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
     scheduler.start();
     when(backend.work(lifecycle.getIncarnationId()))
         .thenReturn(
@@ -432,7 +486,7 @@ class AcquisitionSchedulerTest {
     // Given
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
     scheduler.start();
     when(backend.work(lifecycle.getIncarnationId()))
         .thenReturn(
@@ -494,8 +548,7 @@ class AcquisitionSchedulerTest {
           });
       assertThat(held.await(10, TimeUnit.SECONDS)).isTrue();
       AcquisitionScheduler scheduler =
-          new AcquisitionScheduler(
-              timer, executor, backend, lifecycle, discovery, passages, qualification);
+          new AcquisitionScheduler(timer, executor, lifecycle, discovery, passages, qualification);
       scheduler.start();
       when(backend.work(lifecycle.getIncarnationId()))
           .thenReturn(
@@ -546,7 +599,6 @@ class AcquisitionSchedulerTest {
         new AcquisitionScheduler(
             timer,
             new SyncTaskExecutor(),
-            backend,
             lifecycle,
             discovery,
             mock(CollectPassage.class),

@@ -19,7 +19,6 @@ import org.springframework.stereotype.Component;
 public class AcquisitionScheduler {
   private final TaskScheduler timer;
   private final TaskExecutor executor;
-  private final CollectionBackend backend;
   private final CollectorLifecycle lifecycle;
   private final DiscoverSeasonSources discovery;
   private final CollectPassage passages;
@@ -35,7 +34,6 @@ public class AcquisitionScheduler {
    *
    * @param timer lenient scheduling clock
    * @param executor bounded passage executor with no pending queue
-   * @param backend current intent and admission authority
    * @param lifecycle once-registered startup and uncertainty policy
    * @param discovery current entry discovery independent of seasons
    * @param passages existing admitted passage implementation
@@ -44,14 +42,12 @@ public class AcquisitionScheduler {
   public AcquisitionScheduler(
       TaskScheduler timer,
       @Qualifier("acquisitionExecutor") TaskExecutor executor,
-      CollectionBackend backend,
       CollectorLifecycle lifecycle,
       DiscoverSeasonSources discovery,
       CollectPassage passages,
       QualifySource qualification) {
     this.timer = timer;
     this.executor = executor;
-    this.backend = backend;
     this.lifecycle = lifecycle;
     this.discovery = discovery;
     this.passages = passages;
@@ -76,8 +72,7 @@ public class AcquisitionScheduler {
    *     tick
    */
   private void poll(boolean requests) {
-    lifecycle.requireActive();
-    CollectionBackend.Work work = backend.work(lifecycle.getIncarnationId());
+    CollectionBackend.Work work = lifecycle.work();
     if (requests) {
       for (CollectionBackend.ValidationWork candidate : work.validations()) {
         schedule(new Scope(null, candidate.sourceBindingId()), candidate.revision(), null);
@@ -129,11 +124,16 @@ public class AcquisitionScheduler {
       if (failure.getKind() != CollectionBackendFailure.Kind.UNCONFIRMED) heldScopes.remove(scope);
       throw failure;
     }
-    boolean confirmed =
-        scope.sourceBindingId() == null
-            ? passages.execute(context)
-            : qualification.execute(context);
-    if (confirmed) heldScopes.remove(scope);
+    try {
+      boolean confirmed =
+          scope.sourceBindingId() == null
+              ? passages.execute(context)
+              : qualification.execute(context);
+      if (confirmed) heldScopes.remove(scope);
+    } catch (CollectionBackendFailure failure) {
+      lifecycle.inspectConflict(failure);
+      throw failure;
+    }
   }
 
   /**
@@ -166,17 +166,6 @@ public class AcquisitionScheduler {
       lifecycle.requireActive();
       work.run();
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
-        try {
-          if (!lifecycle.getIncarnationId().equals(backend.current().incarnationId()))
-            lifecycle.stop();
-        } catch (CollectionBackendFailure unavailable) {
-          log.atWarn()
-              .addKeyValue("operation", "collection_schedule")
-              .addKeyValue("outcome", "runtime_unconfirmed")
-              .log("Runtime could not be confirmed; no registration was attempted");
-        }
-      }
       log.atWarn()
           .addKeyValue("operation", "collection_schedule")
           .addKeyValue("outcome", failure.getKind())

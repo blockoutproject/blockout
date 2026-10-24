@@ -40,10 +40,7 @@ public class CloseCollectionSeason {
     store.lockRuntime();
     CollectionSeasonView season = seasons.lockCollectionState(seasonId);
     List<Control> controls =
-        store.controls().stream()
-            .filter(control -> seasonId.equals(control.seasonId()))
-            .map(control -> store.lockControl(control.id()))
-            .toList();
+        store.controls(seasonId).stream().map(control -> store.lockControl(control.id())).toList();
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     if (revision != season.collectionRevision())
       throw new CollectionConflictException("stale-revision");

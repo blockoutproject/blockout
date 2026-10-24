@@ -129,6 +129,14 @@ public interface CollectionStore {
   List<Control> controls();
 
   /**
+   * Lists only controls belonging to the requested operator scope.
+   *
+   * @param seasonId selected season, or null for seasonless controls
+   * @return scoped configuration in identity order, also used for deterministic control locking
+   */
+  List<Control> controls(UUID seasonId);
+
+  /**
    * Reads the current supported source.
    *
    * @param id supported source identity

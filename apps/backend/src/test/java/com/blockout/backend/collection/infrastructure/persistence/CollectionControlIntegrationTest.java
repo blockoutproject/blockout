@@ -84,7 +84,11 @@ class CollectionControlIntegrationTest {
   @Autowired private PlatformTransactionManager transactions;
   private UUID season;
 
-  /** Uses the real role setup and migrations in a suite-owned dynamic-port database. */
+  /**
+   * Uses the real role setup and migrations in a suite-owned dynamic-port database.
+   *
+   * @param properties application bindings for this disposable database
+   */
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
@@ -125,6 +129,34 @@ class CollectionControlIntegrationTest {
         CONTROL,
         season);
     runtimes.register(0, STARTUP);
+  }
+
+  @Test
+  @DisplayName("Control lists isolate the selected season and preserve family ordering")
+  void listsSelectedScope() {
+    // Given
+    UUID professional = UUID.fromString("00000000-0000-4000-8000-000000000003");
+    UUID otherSeason = seasons.getOrCreate(2027).id();
+    sql.update(
+        "INSERT INTO collection_control(id, season_id, family, enabled) VALUES (?, ?, 'LNV', true), (?, ?, 'LNV', true)",
+        professional,
+        season,
+        UUID.fromString("00000000-0000-4000-8000-000000000194"),
+        otherSeason);
+
+    // When
+    List<CollectionState.ControlView> seasonal = controls.list(ACCOUNT, season);
+    List<CollectionState.ControlView> seasonless = controls.list(ACCOUNT, null);
+
+    // Then
+    assertThat(seasonal)
+        .extracting(view -> view.control().id())
+        .containsExactly(CONTROL, professional);
+    assertThat(seasonless)
+        .extracting(view -> view.control().id())
+        .containsExactly(
+            UUID.fromString("00000000-0000-4000-8000-000000000001"),
+            UUID.fromString("00000000-0000-4000-8000-000000000002"));
   }
 
   @Test
@@ -430,7 +462,11 @@ class CollectionControlIntegrationTest {
     assertThat(cycles.get(CYCLE).state()).isEqualTo(CollectionCycleStateEnum.COMPLETED);
   }
 
-  /** Holds the transaction for a proven competing SQL lock, with a bounded release on failures. */
+  /**
+   * Holds the transaction for a proven competing SQL lock, with a bounded release on failures.
+   *
+   * @param release latch released after the competing transaction is observably waiting
+   */
   private void awaitRelease(CountDownLatch release) {
     try {
       if (!release.await(10, TimeUnit.SECONDS))
@@ -488,7 +524,11 @@ class CollectionControlIntegrationTest {
         .isNull();
   }
 
-  /** Constructs one eligible professional match with final sets; no live provider is contacted. */
+  /**
+   * Constructs one eligible professional match with final sets; no live provider is contacted.
+   *
+   * @return pool whose match has the scenario's fixed reliable start time
+   */
   private UUID prepareProfessionalMatch() {
     UUID division = UUID.fromString("00000000-0000-4000-8000-000000000188");
     UUID pack = UUID.fromString("00000000-0000-4000-8000-000000000189");
@@ -531,7 +571,12 @@ class CollectionControlIntegrationTest {
     return pool;
   }
 
-  /** Sends one explicit manual intent at the revision read by the operator. */
+  /**
+   * Sends one explicit manual intent at the revision read by the operator.
+   *
+   * @param revision last-read control revision
+   * @return response for scenario-owned assertions
+   */
   private ResultActions request(long revision) throws Exception {
     return mvc.perform(
         post("/administration/collection-controls/{id}/requests", CONTROL)
@@ -540,7 +585,13 @@ class CollectionControlIntegrationTest {
             .content("{\"revision\":" + revision + "}"));
   }
 
-  /** Replaces desired activity without any provider interaction. */
+  /**
+   * Replaces desired activity without any provider interaction.
+   *
+   * @param revision last-read control revision
+   * @param enabled desired eligibility
+   * @return response for scenario-owned assertions
+   */
   private ResultActions activity(long revision, boolean enabled) throws Exception {
     return mvc.perform(
         put("/administration/collection-controls/{id}/activity", CONTROL)
@@ -549,7 +600,13 @@ class CollectionControlIntegrationTest {
             .content("{\"revision\":" + revision + ",\"enabled\":" + enabled + "}"));
   }
 
-  /** Sends the exact typed canonical label, without normalization. */
+  /**
+   * Sends the exact typed canonical label, without normalization.
+   *
+   * @param revision last-read season revision
+   * @param confirmation scenario's exact confirmation, including any deliberate mismatch
+   * @return response for scenario-owned assertions
+   */
   private ResultActions close(long revision, String confirmation) throws Exception {
     return mvc.perform(
         post("/administration/collection-seasons/{id}/closure", season)
@@ -558,7 +615,11 @@ class CollectionControlIntegrationTest {
             .content("{\"revision\":" + revision + ",\"confirmation\":\"" + confirmation + "\"}"));
   }
 
-  /** Supplies the real account principal; SQL owns its current permissions. */
+  /**
+   * Supplies the real account principal; SQL owns its current permissions.
+   *
+   * @return authenticated mobile principal without a maintenance bypass grant
+   */
   private RequestPostProcessor operator() {
     return jwt()
         .jwt(

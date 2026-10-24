@@ -47,6 +47,22 @@ public class CollectorLifecycle {
   }
 
   /**
+   * Reads fresh work for this startup, inspecting a conflicting runtime once without registration.
+   *
+   * @return current backend intent; no remembered configuration authorizes provider work
+   * @throws CollectionBackendFailure when the read is refused or unavailable
+   */
+  public CollectionBackend.Work work() {
+    requireActive();
+    try {
+      return backend.work(incarnationId);
+    } catch (CollectionBackendFailure failure) {
+      inspectConflict(failure);
+      throw failure;
+    }
+  }
+
+  /**
    * Allocates one cycle UUID, attempts admission once and reads that exact cycle after uncertainty.
    *
    * @param controlId selected control, absent for validation
@@ -66,14 +82,7 @@ public class CollectorLifecycle {
     try {
       cycle = backend.admit(command);
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
-        try {
-          if (!incarnationId.equals(backend.current().incarnationId())) stop();
-        } catch (CollectionBackendFailure unavailable) {
-          // This secondary read cannot make an already refused admission uncertain.
-        }
-        throw failure;
-      }
+      inspectConflict(failure);
       if (failure.getKind() != CollectionBackendFailure.Kind.UNCONFIRMED) throw failure;
       try {
         cycle = backend.cycle(command.cycleId());
@@ -96,6 +105,23 @@ public class CollectorLifecycle {
       throw new IllegalStateException("Backend did not confirm the requested runnable context");
     }
     return new AdmittedCycle(cycle);
+  }
+
+  /**
+   * Stops a superseded startup after one current-runtime read, preserving the original refusal.
+   *
+   * @param failure original work, admission or execution failure; only conflicts need inspection
+   */
+  public void inspectConflict(CollectionBackendFailure failure) {
+    if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) return;
+    try {
+      if (!incarnationId.equals(backend.current().incarnationId())) stop();
+    } catch (CollectionBackendFailure unavailable) {
+      log.atWarn()
+          .addKeyValue("operation", "collector_runtime")
+          .addKeyValue("outcome", "unconfirmed")
+          .log("Runtime could not be confirmed; the original refusal remains definitive");
+    }
   }
 
   /**

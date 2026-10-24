@@ -230,6 +230,12 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  public List<CollectionState.Control> controls(UUID seasonId) {
+    return controls.findBySeasonIdOrderById(seasonId).stream().map(mapper::toView).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public Optional<CollectionState.Source> source(UUID id) {
     return sources.findById(id).map(mapper::toView);
   }
