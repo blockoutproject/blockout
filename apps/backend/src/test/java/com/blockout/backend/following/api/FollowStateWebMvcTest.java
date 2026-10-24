@@ -1,0 +1,300 @@
+package com.blockout.backend.following.api;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.blockout.backend.access.application.AccessSettingsStore;
+import com.blockout.backend.access.application.ActionAuthorization;
+import com.blockout.backend.access.application.CurrentPermissions;
+import com.blockout.backend.access.application.MaintenanceAdmission;
+import com.blockout.backend.access.application.PermissionStore;
+import com.blockout.backend.access.domain.MaintenanceSettings;
+import com.blockout.backend.access.domain.Permission;
+import com.blockout.backend.accounts.api.CurrentAccount;
+import com.blockout.backend.accounts.application.AccountAccess;
+import com.blockout.backend.config.HttpConfiguration;
+import com.blockout.backend.config.SecurityConfiguration;
+import com.blockout.backend.following.application.FollowContext;
+import com.blockout.backend.following.application.FollowContext.Target;
+import com.blockout.backend.following.application.FollowContext.TargetType;
+import com.blockout.backend.following.application.FollowService;
+import com.blockout.backend.following.application.FollowUnavailableTargetException;
+import com.blockout.backend.shared.http.ApiExceptionHandler;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+
+/** Actual member controller, generated DTOs, F05 identity and F12 admission; SQL is controlled. */
+@WebMvcTest(FollowingController.class)
+@Import({
+  SecurityConfiguration.class,
+  HttpConfiguration.class,
+  ApiExceptionHandler.class,
+  FollowingExceptionHandler.class,
+  FollowingApiMapper.class,
+  FollowingRequest.class,
+  CurrentAccount.class,
+  MaintenanceAdmission.class,
+  ActionAuthorization.class,
+  CurrentPermissions.class
+})
+@DisplayName("Canonical follow member state")
+class FollowStateWebMvcTest {
+  private static final UUID ACCOUNT = UUID.fromString(FollowingContractTest.ACCOUNT);
+  private static final UUID TARGET = UUID.fromString(FollowingContractTest.TARGET);
+  private static final String ISSUER = "https://identity.example.invalid/";
+  @Autowired private MockMvc mvc;
+  @MockitoBean private FollowService follows;
+  @MockitoBean private AccountAccess accounts;
+  @MockitoBean private AccessSettingsStore settings;
+  @MockitoBean private PermissionStore permissions;
+  @MockitoBean private PlatformTransactionManager transactions;
+
+  /**
+   * Provides ordinary maintenance admission; owner lookup is stubbed only by admitted scenarios.
+   */
+  @BeforeEach
+  void admission() {
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+  }
+
+  @ParameterizedTest
+  @CsvSource({"team,true", "team,false", "pool,true", "pool,false"})
+  @DisplayName("Returns the confirmed boolean for a member read")
+  void readsConfirmedState(String kind, boolean confirmed) throws Exception {
+    // Given
+    when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
+    when(follows.state(context(kind))).thenReturn(confirmed);
+
+    // When / Then
+    mvc.perform(get(path(kind)).with(mobile()))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.following").value(confirmed));
+  }
+
+  @ParameterizedTest
+  @CsvSource({"team,true,false", "team,false,true", "pool,true,false", "pool,false,true"})
+  @DisplayName("Returns application confirmation rather than echoing the requested state")
+  void replacesState(String kind, boolean requested, boolean confirmed) throws Exception {
+    // Given
+    when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
+    when(follows.replace(context(kind), requested)).thenReturn(confirmed);
+
+    // When / Then
+    mvc.perform(
+            put(path(kind))
+                .with(mobile())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"following\":" + requested + "}"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.following").value(confirmed));
+    verify(follows).replace(context(kind), requested);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{}",
+        "null",
+        "{\"following\":null}",
+        "{\"following\":1}",
+        "{\"following\":\"true\"}",
+        "{\"following\":true,\"accountId\":\"other\"}"
+      })
+  @DisplayName("Rejects incomplete or coerced bodies before mutation")
+  void rejectsBody(String body) throws Exception {
+    // Given / When / Then
+    mvc.perform(
+            put(path("team")).with(mobile()).contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"));
+    verifyNoInteractions(follows);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"team", "pool"})
+  @DisplayName("Rejects all member query properties for both GET and PUT")
+  void rejectsQuery(String kind) throws Exception {
+    // Given / When / Then
+    mvc.perform(get(path(kind)).with(mobile()).param("seasonId", TARGET.toString()))
+        .andExpect(status().isBadRequest());
+    mvc.perform(
+            put(path(kind))
+                .with(mobile())
+                .param("following", "true", "false")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"following\":true}"))
+        .andExpect(status().isBadRequest());
+    verifyNoInteractions(follows);
+  }
+
+  @Test
+  @DisplayName("Rejects unsupported media before mutation")
+  void rejectsMedia() throws Exception {
+    // Given / When / Then
+    mvc.perform(put(path("pool")).with(mobile()).contentType(MediaType.TEXT_PLAIN).content("true"))
+        .andExpect(status().isUnsupportedMediaType())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unsupported-media-type"))
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(follows);
+  }
+
+  @Test
+  @DisplayName("Rejects guests and collector credentials without accessing personal state")
+  void rejectsCredentials() throws Exception {
+    // Given / When / Then
+    mvc.perform(
+            put(path("team"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"following\":true}"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    mvc.perform(get(path("team")).with(jwt().jwt(token -> token.claim("azp", "collector-test"))))
+        .andExpect(status().isForbidden())
+        .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(follows, accounts);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"erased", "other", "replacement"})
+  @DisplayName("Hides unavailable original accounts despite an administrator claim")
+  void rejectsUnavailableOwner(String lifecycle) throws Exception {
+    // Given
+    when(accounts.currentId(ISSUER, "subject"))
+        .thenReturn(lifecycle.equals("erased") ? Optional.empty() : Optional.of(TARGET));
+
+    // When / Then
+    mvc.perform(
+            put(path("pool"))
+                .with(mobile())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"following\":true}"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.detail").doesNotExist());
+    verifyNoInteractions(follows);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"team", "pool"})
+  @DisplayName("Hides missing or currently hidden targets without unsafe details")
+  void rejectsTarget(String kind) throws Exception {
+    // Given
+    when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
+    when(follows.replace(context(kind), true)).thenThrow(new FollowUnavailableTargetException());
+
+    // When / Then
+    mvc.perform(
+            put(path(kind))
+                .with(mobile())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"following\":true}"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:not-found"))
+        .andExpect(jsonPath("$.detail").doesNotExist())
+        .andExpect(header().string("Cache-Control", "no-store"));
+  }
+
+  @Test
+  @DisplayName("Translates storage unavailability into an opaque retryable read failure")
+  void rejectsUnavailableStorage() throws Exception {
+    // Given
+    when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
+    when(follows.state(any())).thenThrow(new DataAccessResourceFailureException("Private fixture"));
+
+    // When / Then
+    mvc.perform(get(path("team")).with(mobile()))
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"))
+        .andExpect(jsonPath("$.detail").doesNotExist())
+        .andExpect(header().string("Cache-Control", "no-store"));
+  }
+
+  @Test
+  @DisplayName("Requires a current explicit maintenance bypass for the original owner")
+  void admitsExplicitBypass() throws Exception {
+    // Given
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
+    when(accounts.lock(ACCOUNT)).thenReturn(true);
+    when(permissions.findByAccountId(ACCOUNT)).thenReturn(Set.of(Permission.BYPASS_MAINTENANCE));
+    when(transactions.getTransaction(any(TransactionDefinition.class)))
+        .thenReturn(new SimpleTransactionStatus());
+
+    // When / Then
+    mvc.perform(get(path("pool")).with(mobile())).andExpect(status().isServiceUnavailable());
+    verifyNoInteractions(follows);
+    mvc.perform(get(path("pool")).with(mobile()).header("Blockout-Maintenance-Bypass", "true"))
+        .andExpect(status().isOk());
+    verify(follows).state(context("pool"));
+  }
+
+  @Test
+  @DisplayName("Rejects DELETE instead of exposing a toggle or alternate removal protocol")
+  void rejectsDelete() throws Exception {
+    // Given / When / Then
+    mvc.perform(delete(path("team")).with(mobile())).andExpect(status().isMethodNotAllowed());
+    verifyNoInteractions(follows);
+  }
+
+  /** Supplies a validated mobile principal without granting another account's access. */
+  private RequestPostProcessor mobile() {
+    return jwt()
+        .jwt(
+            token ->
+                token
+                    .issuer(ISSUER)
+                    .subject("subject")
+                    .claim("azp", "mobile-test")
+                    .claim("roles", "administrator"));
+  }
+
+  /**
+   * Builds the exact typed member identity used by the generated route.
+   *
+   * @param kind canonical team or pool member kind
+   * @return admitted original owner and target
+   */
+  private FollowContext context(String kind) {
+    return new FollowContext(
+        ACCOUNT, new Target(kind.equals("team") ? TargetType.TEAM : TargetType.POOL, TARGET));
+  }
+
+  /**
+   * Builds the canonical original-account member path.
+   *
+   * @param kind canonical team or pool member kind
+   * @return exact member route
+   */
+  private String path(String kind) {
+    return "/accounts/" + ACCOUNT + "/" + kind + "-follows/" + TARGET;
+  }
+}

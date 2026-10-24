@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <changeSet id="following-baseline" author="blockout">
+    <createTable tableName="team_follow">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="account_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="team_id" type="UUID"><constraints nullable="false"/></column>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="team_follow" baseColumnNames="account_id" referencedTableName="account" referencedColumnNames="id" constraintName="fk_team_follow_account"/>
+    <addForeignKeyConstraint baseTableName="team_follow" baseColumnNames="team_id" referencedTableName="sporting_team" referencedColumnNames="id" constraintName="fk_team_follow_target"/>
+    <addUniqueConstraint tableName="team_follow" columnNames="account_id, team_id" constraintName="uk_team_follow_owner_target"/>
+    <createIndex tableName="team_follow" indexName="ix_team_follow_target">
+      <column name="team_id"/>
+    </createIndex>
+    <createTable tableName="pool_follow">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="account_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="pool_id" type="UUID"><constraints nullable="false"/></column>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="pool_follow" baseColumnNames="account_id" referencedTableName="account" referencedColumnNames="id" constraintName="fk_pool_follow_account"/>
+    <addForeignKeyConstraint baseTableName="pool_follow" baseColumnNames="pool_id" referencedTableName="sporting_pool" referencedColumnNames="id" constraintName="fk_pool_follow_target"/>
+    <addUniqueConstraint tableName="pool_follow" columnNames="account_id, pool_id" constraintName="uk_pool_follow_owner_target"/>
+    <createIndex tableName="pool_follow" indexName="ix_pool_follow_target">
+      <column name="pool_id"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>
