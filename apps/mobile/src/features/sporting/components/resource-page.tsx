@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { ApiError } from "../../../shared/api/api-fetch";
+import { resourceUnavailable } from "../model/consultation-availability";
 import { IconButton } from "../../../shared/components/icon-button";
 import {
   RequestError,
@@ -80,15 +80,6 @@ export function ResourceText({ children }: PropsWithChildren) {
     <Text style={[styles.copy, { color: colors.secondaryText }]}>
       {children}
     </Text>
-  );
-}
-
-/** A current visibility/admission refusal overrides any previously retained representation. */
-export function resourceUnavailable(error: unknown): boolean {
-  return (
-    error instanceof ApiError &&
-    error.kind === "http" &&
-    (error.status === 404 || error.status === 403 || error.status === 401)
   );
 }
 

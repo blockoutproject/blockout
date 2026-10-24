@@ -9,8 +9,8 @@ import {
   ResourceFeedback,
   ResourcePage,
   ResourceText,
-  resourceUnavailable,
 } from "../components/resource-page";
+import { resourceUnavailable } from "../model/consultation-availability";
 import {
   ContactLink,
   mapDestination,

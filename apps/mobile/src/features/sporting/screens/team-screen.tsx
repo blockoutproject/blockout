@@ -8,8 +8,8 @@ import {
   ResourcePage,
   ResourceTabs,
   ResourceText,
-  resourceUnavailable,
 } from "../components/resource-page";
+import { resourceUnavailable } from "../model/consultation-availability";
 import {
   SportingIdentity,
   SportingLink,

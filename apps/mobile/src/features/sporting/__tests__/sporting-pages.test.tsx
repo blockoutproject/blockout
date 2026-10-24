@@ -725,3 +725,48 @@ it("retries a previous common read failure on a fresh resource opening", async (
   // Then
   expect(await screen.findByText(team.team.team.name)).toBeOnTheScreen();
 });
+
+it.each(["network", "503"])(
+  "does not resurrect a forbidden club after a later %s failure",
+  async (failure) => {
+    // Given
+    const user = userEvent.setup();
+    await renderPage(<ClubScreen clubId={sportingId} />);
+    await screen.findByText(club.club.name);
+    mockFetch.mockImplementation((url: string) =>
+      url.endsWith(`/clubs/${sportingId}`)
+        ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
+        : reads(url),
+    );
+    await act(async () => {
+      await client.refetchQueries({
+        predicate: (query) => query.queryKey.includes(`/clubs/${sportingId}`),
+      });
+    });
+    await screen.findByRole("alert");
+    mockFetch.mockImplementation((url: string) =>
+      url.endsWith(`/clubs/${sportingId}`)
+        ? failure === "network"
+          ? Promise.reject(new TypeError("offline"))
+          : Promise.resolve(Response.json({ status: 503 }, { status: 503 }))
+        : reads(url),
+    );
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Impossible de charger les informations.",
+      ),
+    );
+
+    // Then
+    expect(screen.queryByText(club.club.name)).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: /Téléphone/ }),
+    ).not.toBeOnTheScreen();
+    mockFetch.mockImplementation(reads);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    expect(await screen.findByText(club.club.name)).toBeOnTheScreen();
+  },
+);
