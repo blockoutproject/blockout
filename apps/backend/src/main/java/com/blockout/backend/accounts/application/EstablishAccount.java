@@ -66,10 +66,9 @@ public class EstablishAccount {
    */
   private Outcome establish(String issuer, String subject, UUID admittedAccount) {
     TransactionTemplate transaction = new TransactionTemplate(transactions);
-    Optional<Account> original =
-        transaction.execute(status -> accounts.findByPrincipal(issuer, subject));
-    if (admittedAccount != null
-        && original.filter(account -> admittedAccount.equals(account.id())).isEmpty()) {
+    Optional<UUID> original =
+        transaction.execute(status -> accounts.findIdByPrincipal(issuer, subject));
+    if (admittedAccount != null && original.filter(admittedAccount::equals).isEmpty()) {
       throw new AccountUnavailableException();
     }
     PrincipalReader.Evidence evidence;
@@ -94,12 +93,13 @@ public class EstablishAccount {
   }
 
   /**
-   * Rechecks the captured target under the write transaction; a lost original never becomes
-   * creation.
+   * Rechecks the captured identity under the write transaction; a lost original never becomes
+   * creation. Only the identity is read before synchronization loads the current profile under its
+   * row lock, so a concurrent winner's profile cannot become stale managed state.
    *
    * @param issuer validated issuer
    * @param subject validated subject
-   * @param original mapping observed before provider I/O
+   * @param original lifecycle identity observed before provider I/O
    * @param evidence available minimal evidence
    * @param providerUnavailable distinguishes provider failure from a successful read without email
    * @return locally committed outcome
@@ -109,15 +109,15 @@ public class EstablishAccount {
   private Outcome commit(
       String issuer,
       String subject,
-      Optional<Account> original,
+      Optional<UUID> original,
       PrincipalReader.Evidence evidence,
       boolean providerUnavailable) {
-    Optional<Account> current =
-        original.isPresent() ? original : accounts.findByPrincipal(issuer, subject);
+    Optional<UUID> current =
+        original.isPresent() ? original : accounts.findIdByPrincipal(issuer, subject);
     if (current.isPresent()) {
       Account account =
           accounts
-              .synchronize(current.orElseThrow().id(), evidence.email(), evidence.createdAt())
+              .synchronize(current.orElseThrow(), evidence.email(), evidence.createdAt())
               .orElseThrow(() -> new AccountUnavailableException());
       return new Outcome(account, false);
     }

@@ -17,7 +17,6 @@ import com.blockout.backend.access.domain.MaintenanceSettings;
 import com.blockout.backend.accounts.api.CurrentAccount;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.AccountStore;
-import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.notifications.api.NotificationRequest;
@@ -156,7 +155,7 @@ class NotificationAccessTest {
   @DisplayName("Accepts a valid signed mobile bearer for its current original owner")
   void acceptsSignedOwner() throws Exception {
     // Given
-    when(store.findByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(account(A)));
+    when(store.findIdByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(A));
 
     // When
     mvc.perform(get(path(A)).header("Authorization", "Bearer " + token("mobile-test", issuer)))
@@ -195,7 +194,7 @@ class NotificationAccessTest {
   @DisplayName("Captures the usable original UUID independently of later account resolution")
   void capturesOriginal() throws Exception {
     // Given
-    when(store.findByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(account(A)));
+    when(store.findIdByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(A));
 
     // When
     MvcResult first =
@@ -204,7 +203,7 @@ class NotificationAccessTest {
             .andReturn();
     NotificationContext captured =
         json.readValue(first.getResponse().getContentAsString(), NotificationContext.class);
-    when(store.findByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(account(B)));
+    when(store.findIdByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(B));
 
     // Then
     assertThat(captured.accountId()).isEqualTo(A);
@@ -219,7 +218,7 @@ class NotificationAccessTest {
   @DisplayName("Refuses erased or not established accounts before personal data")
   void refusesAbsentAccount() throws Exception {
     // Given
-    when(store.findByPrincipal(issuer, "auth0|a")).thenReturn(Optional.empty());
+    when(store.findIdByPrincipal(issuer, "auth0|a")).thenReturn(Optional.empty());
 
     // When
     mvc.perform(get(path(A)).with(principal("mobile-test")))
@@ -233,7 +232,7 @@ class NotificationAccessTest {
   @DisplayName("No entitlement or moderation claim grants another inbox")
   void refusesForeignPrivilege(String claim) throws Exception {
     // Given
-    when(store.findByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(account(B)));
+    when(store.findIdByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(B));
 
     // When
     mvc.perform(
@@ -256,7 +255,7 @@ class NotificationAccessTest {
   @DisplayName("Fails closed when current owner storage is unavailable")
   void refusesUnavailableAccount(String boundary) throws Exception {
     // Given
-    when(store.findByPrincipal(issuer, "auth0|a"))
+    when(store.findIdByPrincipal(issuer, "auth0|a"))
         .thenThrow(
             boundary.equals("database")
                 ? new DataAccessResourceFailureException("Synthetic private details")
@@ -291,7 +290,7 @@ class NotificationAccessTest {
   @DisplayName("An explicitly admitted bypass still resolves only the owner")
   void preservesOwnerWithBypass() throws Exception {
     // Given: shared F12 accepts explicit intent; it does not grant F07 resource ownership.
-    when(store.findByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(account(B)));
+    when(store.findIdByPrincipal(issuer, "auth0|a")).thenReturn(Optional.of(B));
     when(admission.requireOrdinaryAccess(issuer, "auth0|a", true)).thenReturn(Optional.of(B));
 
     // When
@@ -350,16 +349,6 @@ class NotificationAccessTest {
 
     // Then
     verifyNoInteractions(store, admission);
-  }
-
-  /**
-   * Constructs the exact F05 business lifecycle; no provider lookups occur in this slice.
-   *
-   * @param id scenario's original or recreated account
-   * @return synthetic account resolved from the controlled store
-   */
-  private static Account account(UUID id) {
-    return new Account(id, issuer, "auth0|a", "Player", "fixture@example.invalid", null);
   }
 
   /**
