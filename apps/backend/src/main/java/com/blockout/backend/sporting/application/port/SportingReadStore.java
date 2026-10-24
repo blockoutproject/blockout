@@ -2,6 +2,8 @@ package com.blockout.backend.sporting.application.port;
 
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import java.util.List;
@@ -27,6 +29,32 @@ public interface SportingReadStore {
    * @return visible current participant identities, empty for an unknown or hidden pool
    */
   Set<UUID> viewablePoolTeamIds(UUID poolId);
+
+  /**
+   * Selects distinct seasons from currently viewable teams without hydrating search inputs.
+   *
+   * @param clubId exact retained organization
+   * @return canonical seasons newest first; closure alone never hides history
+   */
+  List<SeasonView> viewableClubSeasons(UUID clubId);
+
+  /**
+   * Selects every currently viewable team in an exact club season, fetching its season and club
+   * context.
+   *
+   * @param clubId exact retained organization
+   * @param seasonId exact canonical season without fallback
+   * @return detached team identities; their owner presentation remains readable in this transaction
+   */
+  List<TeamView> viewableClubTeams(UUID clubId, UUID seasonId);
+
+  /**
+   * Resolves current viewable participations without hydrating search aliases or terms.
+   *
+   * @param teamId exact seasonal team
+   * @return current visible pool identities in stable UUID order
+   */
+  List<UUID> viewableTeamPoolIds(UUID teamId);
 
   /**
    * Hydrates only currently eligible club/team/pool inputs from canonical data.

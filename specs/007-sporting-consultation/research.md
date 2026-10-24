@@ -10,6 +10,8 @@
 
 **Evidence**: [PostgreSQL date/time functions](https://www.postgresql.org/docs/18/functions-datetime.html), [transaction isolation](https://www.postgresql.org/docs/18/transaction-iso.html), and [Hibernate 7.4 query language](https://docs.hibernate.org/orm/7.4/querylanguage/html_single/) support the relevant building blocks. The final two-query projection, generated Java models and PostgreSQL execution remain to be qualified. Known instants and date-only values follow different grouping rules; a date-only value is never converted into a fictional instant.
 
+Club seasons and club-season teams use focused F02 owner queries with the same current visibility predicates. This avoids loading search aliases/terms or applying the search hydration batch limit to consultation. A query-specific to-one fetch plan reuses F02 presentation mapping inside the existing read transaction; it adds no application cache or second visibility authority. The [native Hibernate fetch-join mechanism](https://docs.hibernate.org/orm/7.4/querylanguage/html_single/) replaces per-team reloads. Closed seasons, effective values and complete selections remain unchanged.
+
 ## Retained mobile queries
 
 **Decision**: Use TanStack Query memory state and generated query functions/keys. Retained calendars disable automatic focus, reconnect and mount refetches, ordinary retries and invalidation-triggered refetches. A newly opened page reads its common information and initial tab; other tabs load when first opened. Manual refresh replaces only the active tab and, for calendars, only the first page on success. Match detail keeps its accepted focus, foreground and explicit refresh behavior.

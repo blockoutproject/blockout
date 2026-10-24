@@ -7,11 +7,11 @@ import com.blockout.backend.generated.mobile.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.ConsultationReadPort;
 import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.MatchPresentation;
+import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.model.MatchDetails;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
-import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
@@ -24,14 +24,12 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -43,6 +41,8 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
   private final SportingReadService owners;
   private final SportingStore facts;
   private final Clock clock;
+  private final DivisionRepository divisions;
+  private final SportingIdentityMapper persistenceMapper;
 
   /** {@inheritDoc} */
   @Override
@@ -52,15 +52,7 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
         .map(
             presentation -> {
               Map<ContactField, String> contacts = owners.publicClubContacts(clubId);
-              List<SeasonView> seasons =
-                  clubTeamInputs(clubId, null).stream()
-                      .map(input -> owners.season(input.seasonId()).orElseThrow())
-                      .distinct()
-                      .sorted(
-                          Comparator.comparingLong(SeasonView::startYear)
-                              .reversed()
-                              .thenComparing(SeasonView::id))
-                      .toList();
+              List<SeasonView> seasons = owners.publicClubSeasons(clubId);
               return new ConsultationViews.ClubDetail(
                   identity(presentation),
                   new ConsultationViews.Contacts(
@@ -87,9 +79,21 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
   public Optional<ConsultationViews.ClubTeams> clubTeams(ClubSeasonRequest request) {
     if (owners.publicPresentation(Kind.CLUB, request.clubId()).isEmpty()
         || owners.season(request.seasonId()).isEmpty()) return Optional.empty();
+    List<TeamView> selected = owners.publicClubTeams(request.clubId(), request.seasonId());
+    Map<UUID, DivisionDetail> divisionDetails =
+        selected.isEmpty()
+            ? Map.of()
+            : divisions
+                .findSummariesByIdIn(
+                    selected.stream()
+                        .map(team -> team.classification().divisionId())
+                        .collect(Collectors.toSet()))
+                .stream()
+                .map(persistenceMapper::toDetail)
+                .collect(Collectors.toMap(DivisionDetail::id, value -> value));
     List<ConsultationViews.TeamSummary> teams =
-        clubTeamInputs(request.clubId(), request.seasonId()).stream()
-            .map(input -> teamSummary(input.id()))
+        selected.stream()
+            .map(team -> teamSummary(team, divisionDetails.get(team.classification().divisionId())))
             .sorted(
                 Comparator.comparing((ConsultationViews.TeamSummary value) -> value.team().name())
                     .thenComparing(value -> value.team().id()))
@@ -100,33 +104,34 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
   /** {@inheritDoc} */
   @Override
   public Optional<ConsultationViews.TeamDetail> team(UUID teamId) {
-    return owners.publicInputs(Kind.TEAM, Set.of(teamId)).stream()
-        .findFirst()
+    return owners
+        .publicPresentation(Kind.TEAM, teamId)
         .map(
-            input ->
-                new ConsultationViews.TeamDetail(
-                    teamSummary(teamId),
-                    input.poolIds().stream()
-                        .map(this::poolSummary)
-                        .sorted(
-                            Comparator.comparingLong(
-                                    (ConsultationViews.PoolSummary value) ->
-                                        value.season().startYear())
-                                .reversed()
-                                .thenComparing(
-                                    ConsultationViews.PoolSummary::competitionName,
-                                    Comparator.nullsLast(Comparator.naturalOrder()))
-                                .thenComparing(value -> value.pool().name())
-                                .thenComparing(value -> value.pool().id().toString()))
-                        .toList()));
+            ignored -> {
+              TeamView team = owners.team(teamId).orElseThrow();
+              return new ConsultationViews.TeamDetail(
+                  teamSummary(
+                      team, facts.divisionDetail(team.classification().divisionId()).orElseThrow()),
+                  owners.publicTeamPoolIds(teamId).stream()
+                      .map(id -> poolSummary(id).orElseThrow())
+                      .sorted(
+                          Comparator.comparingLong(
+                                  (ConsultationViews.PoolSummary value) ->
+                                      value.season().startYear())
+                              .reversed()
+                              .thenComparing(
+                                  ConsultationViews.PoolSummary::competitionName,
+                                  Comparator.nullsLast(Comparator.naturalOrder()))
+                              .thenComparing(value -> value.pool().name())
+                              .thenComparing(value -> value.pool().id().toString()))
+                      .toList());
+            });
   }
 
   /** {@inheritDoc} */
   @Override
   public Optional<ConsultationViews.PoolDetail> pool(UUID poolId) {
-    return owners.publicInputs(Kind.POOL, Set.of(poolId)).stream()
-        .findFirst()
-        .map(input -> new ConsultationViews.PoolDetail(poolSummary(poolId)));
+    return poolSummary(poolId).map(ConsultationViews.PoolDetail::new);
   }
 
   /** {@inheritDoc} */
@@ -157,7 +162,7 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
               ConsultationViews.MatchSummary summary =
                   new ConsultationViews.MatchSummary(
                       matchId,
-                      poolSummary(match.poolId()),
+                      poolSummary(match.poolId()).orElseThrow(),
                       publicIdentity(Kind.TEAM, match.homeTeamId()),
                       publicIdentity(Kind.TEAM, match.awayTeamId()),
                       publicSchedule,
@@ -179,45 +184,26 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
   }
 
   /**
-   * Selects exact club/season identities in SQL, then delegates all current eligibility to F02.
-   *
-   * @param clubId current organization
-   * @param seasonId selected season, or null for all seasons
-   * @return effective authorized inputs without a second visibility predicate
-   */
-  private List<SportingPublicInput> clubTeamInputs(UUID clubId, UUID seasonId) {
-    List<UUID> ids =
-        entities
-            .createQuery(
-                "SELECT t.id FROM TeamEntity t WHERE t.club.id = :club AND (:season IS NULL OR t.season.id = :season) ORDER BY t.id",
-                UUID.class)
-            .setParameter("club", clubId)
-            .setParameter("season", seasonId)
-            .getResultList();
-    List<SportingPublicInput> result = new ArrayList<>();
-    // F02 bounds each hydration call, not the complete club response or retained history.
-    for (int start = 0; start < ids.size(); start += 200) {
-      result.addAll(
-          owners.publicInputs(
-              Kind.TEAM,
-              new LinkedHashSet<>(ids.subList(start, Math.min(start + 200, ids.size())))));
-    }
-    return List.copyOf(result);
-  }
-
-  /**
    * Combines accepted team context and effective presentation without an assumed club.
    *
-   * @param id currently visible team
+   * <p>F02 has already established eligibility; reuse its fetched owner values in the same
+   * transaction.
+   *
+   * @param team current eligible team from F02 within this read transaction
+   * @param division selected owner metadata, with image bytes excluded
    * @return exact seasonal summary
    */
-  private ConsultationViews.TeamSummary teamSummary(UUID id) {
-    TeamView team = owners.team(id).orElseThrow();
+  private ConsultationViews.TeamSummary teamSummary(TeamView team, DivisionDetail division) {
     return new ConsultationViews.TeamSummary(
-        publicIdentity(Kind.TEAM, id),
+        identity(facts.presentation(SportingProjectionChanges.Kind.TEAM, team.id()).orElseThrow()),
         owners.season(team.seasonId()).orElseThrow(),
-        classification(team.classification()),
-        team.clubId() == null ? null : publicIdentity(Kind.CLUB, team.clubId()),
+        classification(team.classification(), division),
+        team.clubId() == null
+            ? null
+            : identity(
+                facts
+                    .presentation(SportingProjectionChanges.Kind.CLUB, team.clubId())
+                    .orElseThrow()),
         team.provider() == CollectionProviderEnum.LNV);
   }
 
@@ -225,17 +211,22 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
    * Keeps known pool context only; native references are not invented competition/phase names.
    *
    * @param id current visible contextual pool
-   * @return independent accepted classification and canonical season
+   * @return independent accepted classification and canonical season, or empty when unavailable
    */
-  private ConsultationViews.PoolSummary poolSummary(UUID id) {
-    com.blockout.backend.sporting.application.model.SportingViews.PoolView pool =
-        owners.pool(id).orElseThrow();
-    return new ConsultationViews.PoolSummary(
-        publicIdentity(Kind.POOL, id),
-        owners.season(pool.key().seasonId()).orElseThrow(),
-        classification(pool.classification()),
-        null,
-        null);
+  private Optional<ConsultationViews.PoolSummary> poolSummary(UUID id) {
+    return owners
+        .publicPresentation(Kind.POOL, id)
+        .map(
+            presentation -> {
+              com.blockout.backend.sporting.application.model.SportingViews.PoolView pool =
+                  owners.pool(id).orElseThrow();
+              return new ConsultationViews.PoolSummary(
+                  identity(presentation),
+                  owners.season(pool.key().seasonId()).orElseThrow(),
+                  classification(pool.classification()),
+                  null,
+                  null);
+            });
   }
 
   /**
@@ -271,7 +262,18 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
    */
   private ConsultationViews.Classification classification(SportingClassification value) {
     if (value == null) return new ConsultationViews.Classification(null, null, null);
-    DivisionDetail division = facts.divisionDetail(value.divisionId()).orElseThrow();
+    return classification(value, facts.divisionDetail(value.divisionId()).orElseThrow());
+  }
+
+  /**
+   * Combines accepted classification with already selected F02 division metadata.
+   *
+   * @param value accepted sporting classification
+   * @param division current owner presentation from the same read transaction
+   * @return public classification without an additional persistence lookup
+   */
+  private ConsultationViews.Classification classification(
+      SportingClassification value, DivisionDetail division) {
     return new ConsultationViews.Classification(
         new ConsultationViews.Division(
             division.id(),

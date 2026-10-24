@@ -24,9 +24,12 @@ import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.sporting.support.SportingIngestionFixture.Scope;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
+import jakarta.persistence.EntityManagerFactory;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,6 +51,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class SportingResourcesIntegrationTest {
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
   @Autowired private JdbcTemplate sql;
+  @Autowired private EntityManagerFactory entityManagerFactory;
   @Autowired private ReadSportingResources resources;
   @Autowired private SportingReadService owners;
   @Autowired private SportingIdentityService identities;
@@ -189,6 +193,71 @@ class SportingResourcesIntegrationTest {
         .extracting(value -> value.team().id())
         .containsExactly(match.homeTeamId(), second.homeTeamId());
     assertThat(result.items().getFirst().team().name()).isEqualTo("Aardvark");
+  }
+
+  @Test
+  @DisplayName("Reading another team in the same club season adds no per-team SQL reads")
+  void avoidsPerTeamLookups() {
+    // Given
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      resources.clubTeams(new ClubSeasonRequest(club, scope.season()));
+      long singleReads = statistics.getPrepareStatementCount() - before;
+      identities.identifyMatch(
+          scope.pool(),
+          "SECOND",
+          new TeamCandidate(null, "Alpha", "00203", "Club"),
+          new TeamCandidate(null, "Away", "00204", "Other"));
+
+      // When
+      before = statistics.getPrepareStatementCount();
+      ConsultationViews.ClubTeams result =
+          resources.clubTeams(new ClubSeasonRequest(club, scope.season()));
+      long multipleReads = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(result.items()).hasSize(2);
+      assertThat(multipleReads).isEqualTo(singleReads);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
+  }
+
+  @Test
+  @DisplayName("Club season discovery does not hydrate more team search inputs as history grows")
+  void selectsSeasonsWithoutTeamHydration() {
+    // Given
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean enabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      long before = statistics.getPrepareStatementCount();
+      resources.club(club);
+      long singleReads = statistics.getPrepareStatementCount() - before;
+      UUID future = seasons.getOrCreate(2027).id();
+      UUID futurePool = pool(future, CollectionProviderEnum.FFVB, "FUTURE");
+      identities.identifyMatch(
+          futurePool,
+          "FUTURE",
+          new TeamCandidate(null, "Future", "00203", "Club"),
+          new TeamCandidate(null, "Away", "00204", "Other"));
+
+      // When
+      before = statistics.getPrepareStatementCount();
+      ConsultationViews.ClubDetail result = resources.club(club);
+      long multipleReads = statistics.getPrepareStatementCount() - before;
+
+      // Then
+      assertThat(result.seasons())
+          .extracting(value -> value.id())
+          .containsExactly(future, scope.season());
+      assertThat(multipleReads).isEqualTo(singleReads);
+    } finally {
+      statistics.setStatisticsEnabled(enabled);
+    }
   }
 
   @Test

@@ -52,6 +52,37 @@ public class SportingReadService {
   }
 
   /**
+   * Reads current club seasons directly from eligible sporting teams, independently of search.
+   *
+   * @param clubId exact organization
+   * @return distinct canonical seasons newest first, including viewable closed seasons
+   */
+  public List<SeasonView> publicClubSeasons(UUID clubId) {
+    return publicReads.viewableClubSeasons(clubId);
+  }
+
+  /**
+   * Reads all eligible teams in an exact club season without the search hydration batch limit.
+   *
+   * @param clubId exact organization already admitted by the caller
+   * @param seasonId explicit canonical season
+   * @return current team identities and fetched owner context within the caller's read transaction
+   */
+  public List<TeamView> publicClubTeams(UUID clubId, UUID seasonId) {
+    return publicReads.viewableClubTeams(clubId, seasonId);
+  }
+
+  /**
+   * Reads current viewable participation identities independently of search presentation.
+   *
+   * @param teamId exact seasonal team already admitted by the caller
+   * @return currently visible pool identities in stable UUID order
+   */
+  public List<UUID> publicTeamPoolIds(UUID teamId) {
+    return publicReads.viewableTeamPoolIds(teamId);
+  }
+
+  /**
    * Hydrates bounded current authorized public values; hidden identities are omitted.
    *
    * @param kind club, team or pool

@@ -5,6 +5,8 @@ import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingPublicInput.Alias;
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Reason;
@@ -34,6 +36,7 @@ public class JpaSportingReadStore implements SportingReadStore {
           + POOL_VISIBLE
           + ")";
   private final EntityManager entities;
+  private final SportingIdentityMapper mapper;
 
   /** {@inheritDoc} */
   @Override
@@ -141,6 +144,48 @@ public class JpaSportingReadStore implements SportingReadStore {
                 UUID.class)
             .setParameter("poolId", poolId)
             .getResultList());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<SeasonView> viewableClubSeasons(UUID clubId) {
+    return entities
+        .createQuery(
+            "SELECT DISTINCT s FROM TeamEntity t JOIN t.season s WHERE t.club.id = :clubId AND "
+                + TEAM_VISIBLE
+                + " ORDER BY s.startYear DESC, s.id",
+            SeasonEntity.class)
+        .setParameter("clubId", clubId)
+        .getResultList()
+        .stream()
+        .map(mapper::toView)
+        .toList();
+  }
+
+  /**
+   * {@inheritDoc} The native fetch plan keeps subsequent F02 presentation reads in the same
+   * persistence context.
+   */
+  @Override
+  public List<TeamView> viewableClubTeams(UUID clubId, UUID seasonId) {
+    return entities
+        .createQuery(
+            "SELECT t FROM TeamEntity t JOIN FETCH t.season LEFT JOIN FETCH t.club WHERE t.club.id = :clubId AND t.season.id = :seasonId AND "
+                + TEAM_VISIBLE
+                + " ORDER BY t.id",
+            TeamEntity.class)
+        .setParameter("clubId", clubId)
+        .setParameter("seasonId", seasonId)
+        .getResultList()
+        .stream()
+        .map(mapper::toView)
+        .toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<UUID> viewableTeamPoolIds(UUID teamId) {
+    return List.copyOf(visiblePoolIds(Set.of(teamId)).getOrDefault(teamId, List.of()));
   }
 
   /** {@inheritDoc} */
