@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.infrastructure;
 
+import com.blockout.collector.acquisition.application.AcquisitionScheduler;
 import com.blockout.collector.acquisition.application.CollectorLifecycle;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
@@ -11,10 +12,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CollectorStartup implements ApplicationRunner {
   private final CollectorLifecycle lifecycle;
+  private final AcquisitionScheduler scheduler;
 
   /** {@inheritDoc} */
   @Override
   public void run(ApplicationArguments arguments) {
     lifecycle.start();
+    scheduler.start();
   }
 }

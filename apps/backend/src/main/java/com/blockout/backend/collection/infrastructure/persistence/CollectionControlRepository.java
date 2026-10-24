@@ -51,6 +51,14 @@ interface CollectionControlRepository extends JpaRepository<CollectionControlEnt
   List<CollectionControlEntity> findAllByOrderById();
 
   /**
+   * Selects a season before loading its control configuration.
+   *
+   * @param seasonId selected season, or null to select seasonless controls
+   * @return only that scope, in stable identity order
+   */
+  List<CollectionControlEntity> findBySeasonIdOrderById(UUID seasonId);
+
+  /**
    * Advances actual freshness without changing an operator's editing revision.
    *
    * @param id admitted control

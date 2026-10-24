@@ -21,6 +21,12 @@ public class CollectionBackendClient implements CollectionBackend {
 
   /** {@inheritDoc} */
   @Override
+  public Work work(UUID incarnationId) {
+    return BackendExchange.once(() -> mapper.toView(api.getCollectionWork(incarnationId)));
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public void observeSource(SourceProposal proposal) {
     BackendExchange.once(() -> sources.observeCollectionSeasonSource(mapper.toRequest(proposal)));
   }

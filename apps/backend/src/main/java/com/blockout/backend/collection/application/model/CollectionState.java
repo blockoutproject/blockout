@@ -133,6 +133,9 @@ public final class CollectionState {
     }
   }
 
+  /** Operator projection keeps desired activity and confirmed execution independent. */
+  public record ControlView(Control control, Cycle cycle) {}
+
   /** Read-only work projection; its construction never claims work. */
   public record Work(List<ControlWork> controls, List<Candidate> validations) {
     /** Detaches the complete, configuration-bounded lists. */
