@@ -48,6 +48,8 @@ class OpenSearchClientIntegrationTest {
 
   /**
    * Creates private native security configuration and starts only this suite's ephemeral engine.
+   * Uses OpenSearch's five-minute Testcontainers startup bound for cold or busy CI hosts; readiness
+   * still requires a CA-verified HTTPS 401 response.
    */
   @BeforeAll
   static void startEngine() throws Exception {
