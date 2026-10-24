@@ -57,14 +57,15 @@ public class CollectionTargetSelector {
           && control.family() != CollectionFamilyEnum.GEOCODING) throw invalid();
       UUID afterClub = null;
       while (true) {
-        List<Target> references =
+        ClubAcquisitionService.TargetBatch references =
             clubs.targets(
+                control.id(),
                 control.family() == CollectionFamilyEnum.GEOCODING,
                 cycle.mode() != CollectionModeEnum.PERIODIC,
                 afterClub);
-        if (references.isEmpty()) break;
-        retainDue(cycle, control, references);
-        afterClub = references.getLast().clubId();
+        if (references.lastClubId() == null) break;
+        retainDue(cycle, control, references.items());
+        afterClub = references.lastClubId();
       }
       return;
     }

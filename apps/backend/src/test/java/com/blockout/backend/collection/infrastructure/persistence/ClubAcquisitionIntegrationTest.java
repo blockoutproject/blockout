@@ -16,6 +16,7 @@ import com.blockout.backend.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.generated.mobile.model.ContactModeEnum;
 import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactEdit;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
@@ -40,6 +41,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -124,6 +126,82 @@ class ClubAcquisitionIntegrationTest {
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?,'sporting-presentation.manage')",
         account);
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = GeocodingOutcomeEnum.class,
+      names = {"EMPTY", "AMBIGUOUS"})
+  @DisplayName("A failed manual retry of an old normal no-result becomes ordinarily eligible")
+  void retriesTechnicalFailureAfterNormalResult(GeocodingOutcomeEnum outcome) {
+    // Given
+    correct(Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.MANUAL, "Paris")));
+    CollectionState.Cycle first = admit(GEOCODING, false);
+    localities.accept(
+        CLUB,
+        new SportingPresentation.LocalityObservation(
+            context(first), targets(first).getFirst().localityRevision(), outcome, null, null));
+    record(first, CollectionStageEnum.GEOCODING, CollectionOutcomeEnum.SUCCESS);
+    results.complete(first.id(), now);
+    now = START.plus(Duration.ofMinutes(10));
+    CollectionState.Cycle manual = admit(GEOCODING, true);
+    record(manual, CollectionStageEnum.GEOCODING, CollectionOutcomeEnum.FAILED);
+    results.complete(manual.id(), now);
+
+    // A whole earlier page of suppressed normal results must not hide the later failed club.
+    for (int index = 1; index <= 200; index++) {
+      sql.update(
+          "INSERT INTO sporting_club(id,provider,reference,municipality,locality_revision,geocoded_revision) VALUES (?,'FFVB',?,'Paris',1,1)",
+          new UUID(0, index),
+          "SUPPRESSED-" + index);
+    }
+
+    // When
+    now = now.plus(Duration.ofHours(1));
+    CollectionState.Cycle retry = admit(GEOCODING, false);
+
+    // Then
+    assertThat(targets(retry)).extracting(item -> item.target().clubId()).containsExactly(CLUB);
+    String revision = targets(retry).getFirst().localityRevision();
+    localities.accept(
+        CLUB,
+        new SportingPresentation.LocalityObservation(
+            context(retry), revision, GeocodingOutcomeEnum.EMPTY, null, null));
+    record(retry, CollectionStageEnum.GEOCODING, CollectionOutcomeEnum.SUCCESS);
+    results.complete(retry.id(), now);
+    now = now.plus(Duration.ofDays(1));
+    assertThat(targets(admit(GEOCODING, false))).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "Invalid secondary source fields emit a safe diagnostic while retaining usable state")
+  void reportsInvalidSecondaryField() {
+    // Given
+    CollectionState.Cycle sheets = admit(SHEETS, false);
+    details.accept(
+        CLUB,
+        new SportingPresentation.ClubObservation(
+            context(sheets),
+            null,
+            Map.of(ContactField.EMAIL, JsonNullable.of("valid@example.invalid"))));
+
+    // When
+    ObservationOutcome outcome =
+        details.accept(
+            CLUB,
+            new SportingPresentation.ClubObservation(
+                new MatchObservation.Context(
+                    sheets.id(), 2, OffsetDateTime.ofInstant(now, ZoneOffset.UTC), null),
+                "Updated synthetic name",
+                Map.of(ContactField.EMAIL, JsonNullable.of("invalid-email"))));
+
+    // Then
+    assertThat(outcome.outcome()).isEqualTo(ObservationOutcomeEnum.ACCEPTED);
+    assertThat(outcome.reasonType()).hasToString("urn:blockout:problem:unprocessable-content");
+    assertThat(details.get(account, CLUB).fields().get(ContactField.EMAIL).sourceValue())
+        .isEqualTo("valid@example.invalid");
+    assertThat(reads.club(CLUB).orElseThrow().sourceName()).isEqualTo("Updated synthetic name");
   }
 
   @Test

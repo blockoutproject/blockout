@@ -220,7 +220,8 @@ public class CollectPassage {
   }
 
   /**
-   * Reports independent F02 acceptance once; a lost response never replays its mutation.
+   * Reports independent F02 acceptance once, preserving secondary-field refusals as partial
+   * integration; a lost response never replays its mutation.
    *
    * @param context admitted capability
    * @param target acquired club or current locality
@@ -240,7 +241,11 @@ public class CollectPassage {
           target,
           ordinal,
           CollectionPhaseEnum.INTEGRATION,
-          accepted(outcome) ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
+          accepted(outcome)
+              ? (outcome.reasonType() == null
+                  ? CollectionOutcomeEnum.SUCCESS
+                  : CollectionOutcomeEnum.PARTIAL)
+              : CollectionOutcomeEnum.FAILED,
           null,
           null,
           clock.instant(),

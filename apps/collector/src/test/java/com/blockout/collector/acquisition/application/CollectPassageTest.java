@@ -86,6 +86,51 @@ class CollectPassageTest {
           Clock.fixed(NOW, ZoneOffset.UTC));
 
   @Test
+  @DisplayName(
+      "F02's secondary-field refusal remains partial integration without a personal diagnostic")
+  void reportsInvalidSecondaryClubFields() {
+    // Given
+    CollectorLifecycle.AdmittedCycle admitted = admit(false);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .scopeId(POOL)
+            .clubId(POOL)
+            .kind(CollectionTargetKindEnum.CLUB_SHEET)
+            .clubReference("000042")
+            .build();
+    SportingObservation.Club sheet =
+        SportingObservation.Club.builder()
+            .sourceName("Synthetic club")
+            .email(JsonNullable.of("invalid-email"))
+            .build();
+    when(backend.targets(admitted.getCycle().id(), 0))
+        .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+    when(clubs.read("000042")).thenReturn(sheet);
+    when(sporting.club(eq(POOL), any(), eq(sheet)))
+        .thenReturn(
+            new SportingObservation.Outcome(
+                "000042",
+                ObservationOutcomeEnum.ACCEPTED,
+                POOL,
+                URI.create("urn:blockout:problem:unprocessable-content"),
+                null,
+                null));
+    when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+
+    // When
+    passage.execute(admitted);
+
+    // Then
+    ArgumentCaptor<CollectionBackend.Result> result =
+        ArgumentCaptor.forClass(CollectionBackend.Result.class);
+    verify(backend, times(2)).record(eq(admitted.getCycle().id()), result.capture());
+    assertThat(result.getAllValues().getFirst().outcome()).isEqualTo(CollectionOutcomeEnum.SUCCESS);
+    assertThat(result.getAllValues().getLast().outcome()).isEqualTo(CollectionOutcomeEnum.PARTIAL);
+    assertThat(result.getAllValues().getLast().reason())
+        .isEqualTo("urn:blockout:problem:unprocessable-content");
+  }
+
+  @Test
   @DisplayName("A null current municipality skips the provider without inventing attempt evidence")
   void skipsRestrictedMunicipality() {
     // Given
