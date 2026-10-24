@@ -1,0 +1,24 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="media">
+<path d="M0 18C0 8.05887 8.05888 0 18 0H102C111.941 0 120 8.05888 120 18V102C120 111.941 111.941 120 102 120H18C8.05887 120 0 111.941 0 102V18Z" fill="#202124" fill-opacity="0.0588235"/>
+<path d="M18 0.5H102C111.665 0.5 119.5 8.33502 119.5 18V102C119.5 111.665 111.665 119.5 102 119.5H18C8.33502 119.5 0.5 111.665 0.5 102V18C0.5 8.33502 8.33502 0.5 18 0.5Z" stroke="#202124" stroke-opacity="0.141176"/>
+<g id="Ground shadow" opacity="0.24" filter="url(#filter0_f_0_1067)">
+<ellipse cx="43" cy="66.5" rx="16" ry="3.5" fill="#1C1C1E"/>
+</g>
+<g id="Volleyball">
+<path id="Ball shell" d="M43 54.125C54.1147 54.125 63.125 45.1147 63.125 34C63.125 22.8853 54.1147 13.875 43 13.875C31.8853 13.875 22.875 22.8853 22.875 34C22.875 45.1147 31.8853 54.125 43 54.125Z" fill="white" stroke-width="1.75" stroke="#262626"/>
+<path id="Panel seams" d="M27.25 25.25C29.8394 24.3869 32.4288 23.9968 34.9248 24.0485M34.9248 24.0485C40.02 24.1542 44.7263 26.1013 48.25 29.625M34.9248 24.0485C35.9701 21.021 37.9906 18.0094 41.25 14.75M34.9248 24.0485C34.0058 26.7103 33.8406 29.3844 34.25 32.25M25.5 37.5C30.8887 34.5063 37.5066 33.5611 43.9518 34.3841M43.9518 34.3841C46.9255 34.7638 49.8625 35.52 52.625 36.625M43.9518 34.3841C48.7778 31.816 52.7853 28.4294 55.25 23.5M43.9518 34.3841C43.6379 34.5511 43.3206 34.7147 43 34.875" stroke-width="1.4875" stroke-linecap="round" stroke="#737373"/>
+<path id="Left eye" d="M38.625 38.9C39.3982 38.9 40.025 38.2732 40.025 37.5C40.025 36.7268 39.3982 36.1 38.625 36.1C37.8518 36.1 37.225 36.7268 37.225 37.5C37.225 38.2732 37.8518 38.9 38.625 38.9Z" fill="#262626"/>
+<path id="Right eye" d="M48.25 38.9C49.0232 38.9 49.65 38.2732 49.65 37.5C49.65 36.7268 49.0232 36.1 48.25 36.1C47.4768 36.1 46.85 36.7268 46.85 37.5C46.85 38.2732 47.4768 38.9 48.25 38.9Z" fill="#262626"/>
+<path id="Smile" d="M40.375 43.625C42.5625 45.8125 46.0625 45.8125 48.25 43.625" stroke-width="1.575" stroke-linecap="round" stroke="#262626"/>
+</g>
+<path id="Spark" d="M72 7L73.0607 11.9393L78 13L73.0607 14.0607L72 19L70.9393 14.0607L66 13L70.9393 11.9393L72 7Z" fill="#171717"/>
+</g>
+<defs>
+<filter id="filter0_f_0_1067" x="25" y="61" width="36" height="11" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="1" result="effect1_foregroundBlur_0_1067"/>
+</filter>
+</defs>
+</svg>

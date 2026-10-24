@@ -82,7 +82,7 @@ export function AdministrationScreen({
           </Link>
         )}
         {permissions?.manageCollection === true && (
-          <Link href="/administration/collections" style={linkStyle}>
+          <Link href="/collection" style={linkStyle}>
             Collectes
           </Link>
         )}

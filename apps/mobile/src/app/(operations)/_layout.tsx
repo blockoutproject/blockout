@@ -13,6 +13,9 @@ export default function OperationsLayout() {
       <Stack.Protected guard={permissions?.manageApplicationVersions === true}>
         <Stack.Screen name="administration/application-versions" />
       </Stack.Protected>
+      <Stack.Protected guard={permissions?.manageCollection === true}>
+        <Stack.Screen name="collection" />
+      </Stack.Protected>
     </Stack>
   );
 }
