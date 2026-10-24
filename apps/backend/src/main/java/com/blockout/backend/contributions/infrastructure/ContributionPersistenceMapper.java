@@ -1,21 +1,15 @@
 package com.blockout.backend.contributions.infrastructure;
 
+import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.ContributionVersion.Decision;
 import com.blockout.backend.contributions.domain.StreamAddress;
-import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.NullValueCheckStrategy;
-import org.mapstruct.ReportingPolicy;
 
 /** Detaches persistent facts without exposing entities through the application port. */
-@Mapper(
-    componentModel = "spring",
-    injectionStrategy = InjectionStrategy.CONSTRUCTOR,
-    nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS,
-    unmappedTargetPolicy = ReportingPolicy.ERROR)
+@Mapper(config = MappingConfiguration.class)
 public interface ContributionPersistenceMapper {
   /**
    * Maps an existing state; the store supplies the initial value for an absent row.
