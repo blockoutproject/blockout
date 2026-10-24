@@ -15,6 +15,7 @@ import RootLayout from "../../../app/_layout";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
 import { PresentationEntry } from "../entry";
+import { useCurrentAccount } from "../../accounts/current-account";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { applicationAccessResponse as mockAccess } from "../../../shared/api/test-support/application-access";
@@ -594,11 +595,9 @@ it("ignores a held native selection after the session is invalidated", async () 
   );
 });
 
-it("enters the real protected route with only the presentation grant and confirms dirty departure", async () => {
-  // Given
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
-  const user = userEvent.setup();
-  await renderRouter(
+/** Mounts the real root/protected route; other destinations are explicit unrelated route probes. */
+async function openRoutes() {
+  return renderRouter(
     {
       _layout: () => <RootLayout />,
       access: () => <Text>Access route</Text>,
@@ -606,7 +605,10 @@ it("enters the real protected route with only the presentation grant and confirm
         <Stack screenOptions={{ headerShown: false }} />
       ),
       "(ordinary)/index": () => (
-        <PresentationEntry target={{ kind: "team", id: resourceId }} />
+        <>
+          <PresentationEntry target={{ kind: "team", id: resourceId }} />
+          <PermissionRefresh />
+        </>
       ),
       "(operations)/_layout": OperationsLayout,
       "(operations)/administration/index": () => (
@@ -623,6 +625,26 @@ it("enters the real protected route with only the presentation grant and confirm
     },
     { initialUrl: "/" },
   );
+}
+/** Starts an ordinary current-account refresh through its real owner. */
+function PermissionRefresh() {
+  const account = useCurrentAccount();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Relire les permissions"
+      onPress={() => void account.refetch()}
+    >
+      <Text>Relire les permissions</Text>
+    </Pressable>
+  );
+}
+
+it("enters the real protected route with only the presentation grant and confirms dirty departure", async () => {
+  // Given
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const user = userEvent.setup();
+  await openRoutes();
 
   // When
   await user.press(await screen.findByText("Modifier la présentation"));
@@ -658,6 +680,134 @@ it("enters the real protected route with only the presentation grant and confirm
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
+});
+
+it("retains the draft and uncertain outcome when a failed permission refresh removes the actual route", async () => {
+  // Given
+  const user = userEvent.setup();
+  await openRoutes();
+  await screen.findByText("Modifier la présentation");
+  const permissionRead = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) => {
+    if (String(url).endsWith("/accounts/me")) return permissionRead.promise;
+    if (options?.method === "PATCH")
+      return Promise.reject(new TypeError("Lost response"));
+    return Promise.resolve(json(initial));
+  });
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
+  );
+  await user.press(screen.getByText("Modifier la présentation"));
+  await screen.findByDisplayValue("Current name");
+  await edit("Nom complet personnalisé", "Retained draft");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await screen.findByRole("button", { name: "Relire la présentation" });
+
+  // When
+  await act(async () =>
+    permissionRead.resolve(
+      json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        503,
+      ),
+    ),
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByLabelText("Nom complet personnalisé"),
+    ).not.toBeOnTheScreen(),
+  );
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : initial),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Relire les permissions" }),
+  );
+  await user.press(await screen.findByText("Modifier la présentation"));
+
+  // Then
+  expect(
+    await screen.findByLabelText("Nom complet personnalisé"),
+  ).toHaveDisplayValue("Retained draft");
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Relire la présentation" }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+
+it("keeps an outstanding save busy across protected-route removal and records its later uncertainty", async () => {
+  // Given
+  const user = userEvent.setup();
+  await openRoutes();
+  await screen.findByText("Modifier la présentation");
+  const permissionRead = Promise.withResolvers<Response>();
+  const saveResponse = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) => {
+    if (String(url).endsWith("/accounts/me")) return permissionRead.promise;
+    if (options?.method === "PATCH") return saveResponse.promise;
+    return Promise.resolve(json(initial));
+  });
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
+  );
+  await user.press(screen.getByText("Modifier la présentation"));
+  await screen.findByDisplayValue("Current name");
+  await edit("Nom complet personnalisé", "Pending draft");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1),
+  );
+
+  // When
+  await act(async () =>
+    permissionRead.resolve(
+      json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        503,
+      ),
+    ),
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByLabelText("Nom complet personnalisé"),
+    ).not.toBeOnTheScreen(),
+  );
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : initial),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Relire les permissions" }),
+  );
+  await user.press(await screen.findByText("Modifier la présentation"));
+
+  // Then
+  expect(
+    await screen.findByLabelText("Nom complet personnalisé"),
+  ).toHaveDisplayValue("Pending draft");
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+  // When
+  await act(async () => saveResponse.reject(new TypeError("Lost response")));
+
+  // Then
+  await screen.findByRole("button", { name: "Relire la présentation" });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
 });
 
 it("rejects an invalid generated response before it replaces the accepted cache or dirty draft", async () => {

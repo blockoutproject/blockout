@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
   getClubPresentation,
@@ -63,6 +68,8 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
           ? getGetPoolPresentationQueryKey(target.id)
           : getGetDivisionQueryKey(target.id);
   const queryKey = getSessionQueryKey(session.generation, generatedKey);
+  const mutationKey = [...queryKey, "save"];
+  const saving = useIsMutating({ mutationKey, exact: true }) > 0;
 
   /** Rechecks current F05/F12 authority after credentials; the server still owns resource authorization. */
   async function request(signal?: AbortSignal) {
@@ -117,6 +124,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     },
   });
   const save = useMutation({
+    mutationKey,
     gcTime: 0,
     mutationFn: async ({
       revision,
@@ -218,7 +226,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
       return accepted;
     },
   });
-  return { query, save };
+  return { query, save, saving };
 }
 
 /** Loads backend-controlled binary artwork using #203's generated operations, without direct URL image requests. */

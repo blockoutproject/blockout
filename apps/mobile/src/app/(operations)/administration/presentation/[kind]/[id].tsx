@@ -6,6 +6,8 @@ import { useOperationalAdmission } from "../../../../../features/access/queries/
 import { PresentationScreen } from "../../../../../features/sporting-administration/screens/presentation-screen";
 import type { PresentationTarget } from "../../../../../features/sporting-administration/api/presentation";
 import { RequestError } from "../../../../../shared/components/request-feedback";
+import { useAccountSession } from "../../../../../features/accounts/current-account";
+import { discardPresentationEditor } from "../../../../../features/sporting-administration/forms/presentation-editor";
 
 const targetSchema = z.object({
   kind: z.enum(["club", "team", "pool", "division"]),
@@ -31,6 +33,7 @@ export default function PresentationRoute() {
 /** Uses the installed router's native removal guard; identity invalidation remains owned by F05/F12. */
 function AdmittedPresentation({ target }: { target: PresentationTarget }) {
   const [dirty, setDirty] = useState(false);
+  const session = useAccountSession();
   usePreventRemove(dirty, ({ repeat }) => {
     Alert.alert(
       "Abandonner les modifications ?",
@@ -41,6 +44,7 @@ function AdmittedPresentation({ target }: { target: PresentationTarget }) {
           text: "Abandonner",
           style: "destructive",
           onPress: () => {
+            discardPresentationEditor(session.generation, target);
             setDirty(false);
             repeat();
           },

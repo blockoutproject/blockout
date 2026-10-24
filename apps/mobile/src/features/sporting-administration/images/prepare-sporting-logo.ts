@@ -7,13 +7,13 @@ import {
 } from "expo-image-manipulator";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 
-/** Aspect-preserving PNG prepared for this draft; no profile crop or public storage is involved. */
+/** An original admissible PNG/JPEG or one aspect-preserving prepared PNG; no profile crop or public storage. */
 export interface PreparedSportingLogo {
   uri: string;
   file: File;
 }
 
-/** One documented native render, bounded by F02's pixel and byte ceilings; failures preserve the prior draft. */
+/** Preserves admissible originals; other inputs get one bounded native render, without compression/retry loops. */
 export async function prepareSportingLogo(
   asset: ImagePickerAsset,
   session: NonNullable<ApiFetchOptions["session"]>,
@@ -26,6 +26,16 @@ export async function prepareSportingLogo(
     asset.height < 1
   )
     throw new Error("Invalid dimensions");
+  const original = new File(asset.uri);
+  const mediaType = asset.mimeType ?? original.type;
+  if (
+    (mediaType === "image/png" || mediaType === "image/jpeg") &&
+    asset.width * asset.height <= 4_194_304 &&
+    original.size > 0 &&
+    original.size <= 5_242_880
+  )
+    return { uri: asset.uri, file: original };
+  // Picker MIME/dimensions guide preparation only; the backend still validates actual submitted content.
   const context = ImageManipulator.manipulate(asset.uri);
   let rendered: ImageRef | undefined;
   try {

@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import {
@@ -29,6 +29,7 @@ import {
   presentationValues,
   type PresentationValues,
 } from "./presentation-values";
+import { presentationEditor } from "./presentation-editor";
 
 /** One original resource and session; background reads never replace this form's editable snapshot. */
 export interface PresentationFormProps {
@@ -50,9 +51,11 @@ export function PresentationForm({
   const session = useAccountSession();
   const { colors } = useTheme();
   const mounted = useRef(false);
-  const [baseline, setBaseline] = useState(presentation);
-  const [needsRead, setNeedsRead] = useState(false);
-  const [feedback, setFeedback] = useState<string>();
+  const [editor] = useState(() =>
+    presentationEditor(session, target, presentation),
+  );
+  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const { baseline, needsRead, feedback } = state;
   const [preparing, setPreparing] = useState(false);
   const {
     control,
@@ -63,7 +66,7 @@ export function PresentationForm({
     formState: { errors, isSubmitting, isDirty, dirtyFields },
   } = useForm<PresentationValues>({
     resolver: zodResolver(presentationSchema),
-    defaultValues: presentationValues(presentation),
+    formControl: editor.form.formControl,
   });
   const draft = useWatch({ control, name: "logo" });
   // Subscribing to dirty fields is required by RHF's native keepDirtyValues reset option.
@@ -71,7 +74,11 @@ export function PresentationForm({
   const changed = presentation.data.revision !== baseline.data.revision;
   const rereadRequired = needsRead || changed;
   const busy =
-    disabled || preparing || isSubmitting || editing.query.isFetching;
+    disabled ||
+    preparing ||
+    isSubmitting ||
+    editing.saving ||
+    editing.query.isFetching;
   const currentLogo = baseline.kind !== "pool" ? baseline.data.logo : undefined;
   const selection = draft.action === "automatic" ? "automatic" : "effective";
   const hasLogo =
@@ -115,32 +122,38 @@ export function PresentationForm({
   async function submit(values: PresentationValues) {
     if (busy || rereadRequired || !session.isCurrent(session.generation))
       return;
-    setFeedback(undefined);
+    editor.update({ ...state, feedback: undefined });
     try {
       const accepted = await editing.save.mutateAsync({
         revision: baseline.data.revision,
         values,
       });
-      if (!mounted.current || !session.isCurrent(session.generation)) return;
-      setBaseline(accepted);
+      if (!session.isCurrent(session.generation)) return;
+      editor.update({
+        baseline: accepted,
+        needsRead: false,
+        feedback: "Présentation enregistrée.",
+      });
       reset(presentationValues(accepted));
-      setNeedsRead(false);
-      setFeedback("Présentation enregistrée.");
     } catch (error) {
-      if (!mounted.current || !session.isCurrent(session.generation)) return;
+      if (!session.isCurrent(session.generation)) return;
       if (
         isUncertainMutationFailure(error) ||
         (error instanceof ApiError &&
           error.problem?.type === "urn:blockout:problem:stale-revision")
       ) {
-        setNeedsRead(true);
-        setFeedback(
-          "Le résultat doit être vérifié. Relisez la présentation avant de réessayer.",
-        );
+        editor.update({
+          ...editor.getSnapshot(),
+          needsRead: true,
+          feedback:
+            "Le résultat doit être vérifié. Relisez la présentation avant de réessayer.",
+        });
       } else {
-        setFeedback(
-          "L’enregistrement a été refusé. Votre brouillon est conservé.",
-        );
+        editor.update({
+          ...editor.getSnapshot(),
+          feedback:
+            "L’enregistrement a été refusé. Votre brouillon est conservé.",
+        });
         if (
           error instanceof ApiError &&
           (error.problem?.type === "urn:blockout:problem:invalid-image" ||
@@ -164,16 +177,20 @@ export function PresentationForm({
     const result = await editing.query.refetch();
     if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (result.isError || !result.data) {
-      setNeedsRead(true);
-      setFeedback("La relecture a échoué. Votre brouillon est conservé.");
+      editor.update({
+        ...state,
+        needsRead: true,
+        feedback: "La relecture a échoué. Votre brouillon est conservé.",
+      });
       return;
     }
-    setBaseline(result.data);
+    editor.update({
+      baseline: result.data,
+      needsRead: false,
+      feedback:
+        "Présentation relue. Vérifiez votre brouillon avant de l’enregistrer à nouveau.",
+    });
     reset(presentationValues(result.data), { keepDirtyValues: true });
-    setNeedsRead(false);
-    setFeedback(
-      "Présentation relue. Vérifiez votre brouillon avant de l’enregistrer à nouveau.",
-    );
   }
   /** Restoring is draft intent; source/LNV/club fallback is resolved by the existing binary read. */
   function restoreLogo() {
