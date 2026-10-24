@@ -6,7 +6,7 @@ OwnCollection:
   get:
     operationId: listOwnStreamContributions
     tags:
-      - StreamContributions
+      - StreamSubmission
     summary: Read my match contributions
     description:
       Only the original usable account may access its own versions on a currently viewable match.
@@ -37,7 +37,7 @@ OwnCollection:
   post:
     operationId: createStreamContribution
     tags:
-      - StreamContributions
+      - StreamSubmission
     summary: Submit a stream address
     description:
       Requires the original usable owner account and a currently viewable match.
@@ -102,7 +102,7 @@ OwnMember:
   get:
     operationId: getOwnStreamContribution
     tags:
-      - StreamContributions
+      - StreamSubmission
     summary: Read my contribution version
     description:
       Only the original usable account may access its own versions on a currently viewable match.
@@ -342,7 +342,7 @@ AdministrationCollection:
   post:
     operationId: createModeratedStreamContribution
     tags:
-      - StreamContributions
+      - StreamSubmission
     summary: Publish a stream address directly
     description:
       Requires current stream-link moderation permission. Publication never bypasses sporting visibility

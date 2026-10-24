@@ -17,3 +17,7 @@ Read lists in pages of twenty with optional nextPage; preserve filters and reset
 Completed creation returns 201 and a resource Location; existing current repetitions return 200. A report Location identifies the account/version report subresource; a reactivation Location identifies the new administrative contribution member, not a new job. Reports do not transfer to another version. Current reads after uncertainty may still precede delayed completion; no automatic write retry or exact historical receipt.
 
 F13 owns [dialect, generators and validation](../../003-shared-quality/contracts/README.md). Keep Java server interfaces/DTOs and Orval types/query functions/Zod schemas generated from the same root. Added response fields are compatible with tolerant readers; new operations are additive. Finite enums are named components and new values require deliberate compatibility review. No generated output, runtime, external provider API, generic bulk operation or hypermedia framework is introduced by this dossier.
+
+The delivered submission/member-read operations use the `StreamSubmission` generation tag,
+separating their executable Java interface from later lifecycle/moderation operations. Routes,
+operation IDs, request/response schemas and mobile consumer names remain unchanged.

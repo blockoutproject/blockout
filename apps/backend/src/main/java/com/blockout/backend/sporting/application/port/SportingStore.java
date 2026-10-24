@@ -541,6 +541,14 @@ public interface SportingStore {
   MatchSchedule lockMatchSchedule(UUID matchId);
 
   /**
+   * Reads schedule facts without taking a sporting write lock.
+   *
+   * @param matchId existing encounter
+   * @return current detached schedule, including unknown time
+   */
+  MatchSchedule matchSchedule(UUID matchId);
+
+  /**
    * Stores application-decided schedule/reference state within the current match transaction.
    *
    * @param schedule immutable accepted state; identity and participants are unchanged

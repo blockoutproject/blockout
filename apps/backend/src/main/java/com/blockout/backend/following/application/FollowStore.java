@@ -30,7 +30,9 @@ public interface FollowStore {
   void remove(FollowContext context);
 
   /**
-   * Reads confirmed relations for the supplied sporting origins, without display-season filtering.
+   * Reads confirmed relations for the supplied sporting origins from one statement snapshot,
+   * without display-season filtering. Split origin reads must not invent an empty audience during a
+   * committed team/pool turnover.
    *
    * @param targets the actual consumer's team/pool origins, possibly empty
    * @return detached identities of currently present relations

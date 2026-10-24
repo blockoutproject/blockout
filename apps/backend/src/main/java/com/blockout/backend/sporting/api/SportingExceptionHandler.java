@@ -53,6 +53,20 @@ public class SportingExceptionHandler {
         .body(problem);
   }
 
+  /**
+   * Refuses a changed audience atomically; a later ordinary collection may accept the observation.
+   *
+   * @return canonical private conflict without announcing an unprocessed result
+   */
+  @ExceptionHandler(
+      com.blockout.backend.notifications.application.AnnouncementAudienceChangedException.class)
+  ResponseEntity<ProblemResponse> audienceChanged() {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+        .cacheControl(CacheControl.noStore())
+        .body(new ProblemResponse(URI.create("urn:blockout:problem:conflict"), "Conflict", 409));
+  }
+
   /** Does not disclose submitted references in the missing-resource response. */
   @ExceptionHandler(SportingResourceNotFoundException.class)
   ResponseEntity<ProblemResponse> notFound() {

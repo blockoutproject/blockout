@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.blockout.backend.config.HttpConfiguration;
-import com.blockout.backend.generated.mobile.api.StreamContributionsApi;
+import com.blockout.backend.generated.mobile.api.StreamSubmissionApi;
 import com.blockout.backend.generated.mobile.model.CreateModeratedStreamContributionRequest;
 import com.blockout.backend.generated.mobile.model.CreateStreamContributionRequest;
 import com.blockout.backend.generated.mobile.model.CreateStreamReactivationRequest;
@@ -331,9 +331,9 @@ class ContributionContractTest {
   @DisplayName("Applies the generated twenty-item offset bound to page inputs")
   void validatesNativePage(long page) throws Exception {
     // Given: the generated interface owns these constraints; no copied annotation or endpoint.
-    StreamContributionsApi consumer = org.mockito.Mockito.mock(StreamContributionsApi.class);
+    StreamSubmissionApi consumer = org.mockito.Mockito.mock(StreamSubmissionApi.class);
     Method operation =
-        StreamContributionsApi.class.getMethod(
+        StreamSubmissionApi.class.getMethod(
             "listOwnStreamContributions", UUID.class, UUID.class, Boolean.class, Long.class);
 
     // When

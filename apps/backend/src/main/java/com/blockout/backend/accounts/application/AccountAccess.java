@@ -37,4 +37,43 @@ public class AccountAccess {
   public boolean lock(UUID id) {
     return accounts.lockById(id).isPresent();
   }
+
+  /**
+   * Supplies retained reliable age evidence locally; performs no provider request.
+   *
+   * @param id original account, already checked by the caller when writing
+   * @return provider creation instant, or null when evidence is unknown
+   */
+  @Transactional(readOnly = true)
+  public java.time.Instant principalCreatedAt(UUID id) {
+    return accounts
+        .findById(id)
+        .map(com.blockout.backend.accounts.domain.Account::principalCreatedAt)
+        .orElse(null);
+  }
+
+  /**
+   * Supplies current permitted attribution for one contribution response.
+   *
+   * @param id original lifecycle
+   * @return current name, or null after erasure
+   */
+  @Transactional(readOnly = true)
+  public String displayName(UUID id) {
+    return accounts
+        .findById(id)
+        .map(com.blockout.backend.accounts.domain.Account::username)
+        .orElse(null);
+  }
+
+  /**
+   * Checks only original lifecycle presence; never establishes or resolves a replacement account.
+   *
+   * @param id original UUID
+   * @return whether this lifecycle still exists
+   */
+  @Transactional(readOnly = true)
+  public boolean exists(UUID id) {
+    return accounts.findById(id).isPresent();
+  }
 }

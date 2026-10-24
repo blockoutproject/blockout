@@ -18,7 +18,9 @@ The #223 foundation uses the existing pinned F13 stack, generators and ignored o
 
 `ContributionAccessTest` composes real signature/environment checks, F05 identity resolution and F12 admission/grants against controlled account/settings/transaction adapters. `contribution-context.test.ts` uses the real session owner, generated calls and Query to qualify keys, native infinite-query page parameters and late reads/writes across A → guest/B → A even without effective cancellation. Strict unknown-command rejection is proved at MVC; Orval's request schemas check known fields, while generated Fetch validates consumed responses once. These are contract/context proofs, not business endpoints, SQL locking/erasure, device, design or provider qualification. Later mutations must recheck identity/grants under their ordered locks.
 
-Automated foundation qualification on 2026-10-24 passed 45 Java and 52 mobile cases. Full README verification passed formatting, contract lint/bundling/generation, backend/collector verification, mobile lint/types/tests and iOS/Android JavaScript exports (922 backend, 211 collector and 555 mobile tests passed; six existing opt-in skips). CI's Alloy validation and deterministic regeneration of 306 ignored files passed. The full command remains failed because Expo Doctor passed 19/20: its live recommendations require newer patches for Expo, dev-client, file-system, font, image and router than the unchanged baseline pins. No dependency upgrade or check suppression is included; this external version-check failure remains visible for delivery review.
+Run the full README verification for current generator, application and Expo Doctor results;
+revision-specific execution results belong to the delivery PR. Foundation evidence alone does not
+qualify the command, SQL or native boundaries below.
 
 ## Versions, quotas and concurrency
 
@@ -37,7 +39,42 @@ With JUnit/Spring MVC/Testcontainers PostgreSQL and the real mappings/schema:
 
 `ContributionPersistenceIntegrationTest` applies the complete master changelog to isolated PostgreSQL 18.6 using the existing role setup, then validates actual JPA mappings, conditional active/pending uniqueness, same-match lineage/hold, nullable ownership/decision attribution, preserved publication/later decisions and replacement flush ordering. One Hibernate filtered-aggregate query returns lifetime participating versions and distinct daily matches from one SQL statement snapshot, using successive Paris-midnight boundaries. Cases include empty usage, both DST changes, yesterday's match, same-day continuation and later state/grant changes. Pending ownerless versions coexist; report schema/deduplication remains T029.
 
-The scoped 2026-10-24 qualification passes 82 pure policy cases and 21 PostgreSQL cases. These establish the local model and policies only. Production store/command orchestration, ordered lock races, actual account erasure, HTTP/mobile journeys and required F02/F07 atomicity remain with T008/T012–T017 and their owning later tasks; no production no-op participant or publication endpoint is supplied by this lot.
+These suites establish the local model and policies. The following qualification covers the
+implemented store, submission/read endpoints, ordered locks and required F02/F07 atomicity;
+actual account erasure, remaining lifecycle commands and mobile journeys retain their owning tasks.
+
+### Submission and atomic announcements — #252
+
+T006/T008/T012–T014/T054 bind real F02 sporting roots, F05 original-account locks,
+F06 confirmed relation unions and F07 inbox/allowance persistence. `SubmitContribution`
+gathers current version-attribution accounts together with the actor/audience before sorted locking, rereads current grants,
+age, ownership and quotas, and publishes only accepted active transitions. The same JPA store
+supplies native twenty-item `Slice` reads in a short repeatable-read application transaction.
+The generated submission interface supplies owner POST/GET and direct moderator POST without
+exposing later lifecycle commands. [HTTP cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/api/ContributionSubmissionWebMvcTest.java)
+cover completed creation/current repetition, exact Locations, private reads, strict requests,
+original owner/actor, current privileges and safe refusal/outage responses.
+
+[Submission cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/infrastructure/ContributionSubmissionIntegrationTest.java),
+[private reads](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ReadOwnContributionsIntegrationTest.java),
+[attribution-lock races](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAttributionIntegrationTest.java)
+and [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
+use the actual migrated PostgreSQL 18.6 mappings and separately proxied production services.
+They qualify replacement flush ordering, immutable quota participation, third/fourth limits,
+same-day continuation, stale no-ops, current private visibility, both concurrent result/publication
+orders, complete sorted account locking, concurrent same/different-match submissions, actor-row
+removal, grant withdrawal and rollback on real required inbox constraint failure. Shared persisted
+quota/DST qualifications remain in the preceding T007/T010/T011 evidence.
+
+The cross-owner fixture controls time and the after-commit external observer; no provider request
+occurs. Commit proofs run outside an enclosing test transaction, with PostgreSQL-observed lock
+exclusion and an independent transaction checking committed entry visibility.
+
+The [F07 qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification--252)
+owns announcement timing, handoff and allowance evidence. Controlled hiding/new exempt-version
+and personal-row deletion fixtures are not real moderation-command or scheduled-purge
+qualification; those remain F07 T046/#277 and T052/#267. Actual F05 erasure and native/mobile
+journeys remain with their existing tasks. F08 T016/F03 public projection is not implemented here.
 
 ## Reads and mobile
 
