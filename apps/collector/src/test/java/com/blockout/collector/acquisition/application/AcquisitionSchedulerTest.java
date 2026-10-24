@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -217,6 +218,165 @@ class AcquisitionSchedulerTest {
     verify(backend).cycle(any());
     verify(backend).register(0, lifecycle.getIncarnationId());
     verifyNoInteractions(passages, qualification, discovery);
+  }
+
+  @Test
+  @DisplayName(
+      "A lost completion response and failed confirmation block later automatic admission of that control")
+  void retainsUnconfirmedTerminalScope() {
+    // Given
+    AcquisitionScheduler scheduler =
+        new AcquisitionScheduler(
+            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+    scheduler.start();
+    CollectionBackend.ControlWork before =
+        new CollectionBackend.ControlWork(
+            CONTROL,
+            CollectionFamilyEnum.FFVB,
+            SEASON,
+            0,
+            true,
+            CollectionSeasonStateEnum.ACTIVE,
+            null,
+            null,
+            null);
+    CollectionBackend.ControlWork completed =
+        new CollectionBackend.ControlWork(
+            CONTROL,
+            CollectionFamilyEnum.FFVB,
+            SEASON,
+            1,
+            true,
+            CollectionSeasonStateEnum.ACTIVE,
+            null,
+            null,
+            null);
+    when(backend.work(lifecycle.getIncarnationId()))
+        .thenReturn(
+            new CollectionBackend.Work(List.of(before), List.of()),
+            new CollectionBackend.Work(List.of(completed), List.of()));
+    AtomicBoolean acceptedCompletion = new AtomicBoolean();
+    when(backend.complete(any(), any()))
+        .thenAnswer(
+            call -> {
+              acceptedCompletion.set(true);
+              throw new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null);
+            });
+    when(backend.cycle(any()))
+        .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null));
+    when(passages.execute(any()))
+        .thenAnswer(
+            call -> lifecycle.complete(call.getArgument(0), Instant.parse("2026-10-24T10:00:00Z")));
+
+    // When
+    tasks.get(1).run();
+    assertThat(acceptedCompletion).isTrue();
+    tasks.get(1).run();
+
+    // Then: no new admission can discard the original retained cycle after the peer recovers.
+    verify(backend).admit(any());
+    verify(backend).complete(any(), any());
+    verify(backend).cycle(any());
+    verify(passages).execute(any());
+    assertThat(lifecycle.isActive()).isTrue();
+  }
+
+  @Test
+  @DisplayName("Unconfirmed control ownership leaves other controls eligible on later ticks")
+  void isolatesUnconfirmedScope() {
+    // Given
+    UUID other = UUID.fromString("00000000-0000-4000-8000-000000000187");
+    AcquisitionScheduler scheduler =
+        new AcquisitionScheduler(
+            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+    scheduler.start();
+    when(backend.work(lifecycle.getIncarnationId()))
+        .thenReturn(
+            new CollectionBackend.Work(
+                List.of(
+                    new CollectionBackend.ControlWork(
+                        CONTROL,
+                        CollectionFamilyEnum.FFVB,
+                        SEASON,
+                        0,
+                        true,
+                        CollectionSeasonStateEnum.ACTIVE,
+                        null,
+                        null,
+                        null),
+                    new CollectionBackend.ControlWork(
+                        other,
+                        CollectionFamilyEnum.LNV,
+                        SEASON,
+                        0,
+                        true,
+                        CollectionSeasonStateEnum.ACTIVE,
+                        null,
+                        null,
+                        null)),
+                List.of()));
+    when(passages.execute(any()))
+        .thenAnswer(
+            call -> {
+              CollectorLifecycle.AdmittedCycle context = call.getArgument(0);
+              return other.equals(context.getCycle().controlId());
+            });
+
+    // When
+    tasks.get(1).run();
+    tasks.get(1).run();
+
+    // Then
+    verify(backend)
+        .admit(
+            org.mockito.ArgumentMatchers.argThat(command -> CONTROL.equals(command.controlId())));
+    verify(backend, times(2))
+        .admit(org.mockito.ArgumentMatchers.argThat(command -> other.equals(command.controlId())));
+  }
+
+  @Test
+  @DisplayName(
+      "Local ownership covers an in-progress confirmation and releases after confirmed completion")
+  void holdsUntilConfirmed() {
+    // Given
+    AcquisitionScheduler scheduler =
+        new AcquisitionScheduler(
+            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+    scheduler.start();
+    when(backend.work(lifecycle.getIncarnationId()))
+        .thenReturn(
+            new CollectionBackend.Work(
+                List.of(
+                    new CollectionBackend.ControlWork(
+                        CONTROL,
+                        CollectionFamilyEnum.FFVB,
+                        SEASON,
+                        0,
+                        true,
+                        CollectionSeasonStateEnum.ACTIVE,
+                        null,
+                        null,
+                        null)),
+                List.of()));
+    AtomicBoolean nestedTick = new AtomicBoolean();
+    when(passages.execute(any()))
+        .thenAnswer(
+            call -> {
+              // Simulate the backend already projecting COMPLETED while its response is being
+              // confirmed.
+              if (nestedTick.compareAndSet(false, true)) tasks.get(1).run();
+              return true;
+            });
+
+    // When
+    tasks.get(1).run();
+
+    // Then: the overlapping opportunity cannot admit a second cycle.
+    verify(backend).admit(any());
+
+    // When a later ordinary tick follows confirmed completion, it is eligible again.
+    tasks.get(1).run();
+    verify(backend, times(2)).admit(any());
   }
 
   @Test

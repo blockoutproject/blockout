@@ -2,6 +2,9 @@ package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionSeasonStateEnum;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
@@ -21,6 +24,8 @@ public class AcquisitionScheduler {
   private final DiscoverSeasonSources discovery;
   private final CollectPassage passages;
   private final QualifySource qualification;
+  // Local execution/acknowledgement ownership, which backend completion cannot establish.
+  private final Set<UUID> heldControls = ConcurrentHashMap.newKeySet();
 
   /**
    * Wires managed native scheduling and bounded execution, without starting provider work.
@@ -91,26 +96,46 @@ public class AcquisitionScheduler {
                       && control.seasonState() != CollectionSeasonStateEnum.ACTIVE)))) continue;
       boolean minuteWork = control.requestId() != null || control.seasonId() == null;
       if (minuteWork != requests) continue;
-      submit(
-          () ->
-              passages.execute(
-                  lifecycle.admit(control.id(), null, control.revision(), control.requestId())));
+      if (!heldControls.add(control.id())) continue;
+      if (!submit(() -> executeControl(control))) heldControls.remove(control.id());
     }
+  }
+
+  /**
+   * Retains local ownership until terminal confirmation, including while its read is in progress. A
+   * backend COMPLETED projection cannot prove that this process confirmed the lost response.
+   * Unconfirmed or failed admitted work holds this scope until explicit process restart; other
+   * controls remain eligible. Admission rejection releases the local claim without provider work.
+   *
+   * @param control fresh intent whose local execution slot has already been claimed
+   */
+  private void executeControl(CollectionBackend.ControlWork control) {
+    CollectorLifecycle.AdmittedCycle context;
+    try {
+      context = lifecycle.admit(control.id(), null, control.revision(), control.requestId());
+    } catch (RuntimeException failure) {
+      heldControls.remove(control.id());
+      throw failure;
+    }
+    if (passages.execute(context)) heldControls.remove(control.id());
   }
 
   /**
    * Rejects saturated work before admission; the next ordinary tick reads current intent again.
    *
    * @param work one admission and passage, never retained in a queue on saturation
+   * @return whether the native executor accepted the opportunity
    */
-  private void submit(Runnable work) {
+  private boolean submit(Runnable work) {
     try {
       executor.execute(() -> safely(work));
+      return true;
     } catch (TaskRejectedException saturated) {
       log.atWarn()
           .addKeyValue("operation", "collection_schedule")
           .addKeyValue("outcome", "saturated")
           .log("Acquisition capacity is full; this opportunity was skipped");
+      return false;
     }
   }
 
