@@ -1,5 +1,4 @@
 import { queryOptions, type QueryKey } from "@tanstack/react-query";
-import { randomUUID } from "expo-crypto";
 import {
   getClub,
   getTeam,
@@ -36,51 +35,30 @@ type ConsultationAdmission = Pick<
   Partial<Pick<ReturnType<typeof useOrdinaryRequest>, "bypass">>;
 
 /**
- * Creates typed native Query options for one captured session/bypass context. React consumers use
- * useConsultationQueries to keep bypass identity stable across renders. Imperative consumers retain
- * this factory for their capture and recreate it on a new session generation or F12 bypass intent.
+ * Creates typed native Query options for one captured session/bypass context. Consumers of the same
+ * F12 intent share its owner identity and native Query cache; a new intent gets a separate context.
  * Ordinary reads start without credentials, profile or Pro. Explicit bypass obtains credentials
  * for each execution, then F12 rechecks current intent/grants before preparing the request.
  * Resource/season/category/zone keys isolate selections; F13 transport rejects obsolete session
  * or cancelled bypass results even when native cancellation loses the response-body race.
  * This foundation chooses no screen refresh, infinite-pagination or retention policy.
- * @param bypassContextId Stable key token for one exact F12 intent; omission captures a new
- * imperative context. The React hook supplies the token and no token grants permission.
  */
 export function createConsultationQueries(
   session: ConsultationSession,
   admission: ConsultationAdmission,
   getCredentials: () => Promise<{ accessToken: string } | undefined>,
-  bypassContextId?: string,
 ) {
   const intent = admission.bypass;
-  // Native Query keys must serialize context identity; an AbortSignal hashes as an empty object.
-  const intentId = intent ? (bypassContextId ?? randomUUID()) : undefined;
 
   /** Prepares each request immediately after credentials; captured options are never reused. */
   async function request(signal: AbortSignal): Promise<ApiFetchOptions> {
-    assertCurrent();
     let headers: Record<string, string> | undefined;
     if (intent) {
       const credentials = await getCredentials();
-      assertCurrent();
       if (!credentials?.accessToken) throw new ApiError("http", 401);
       headers = { Authorization: `Bearer ${credentials.accessToken}` };
     }
     return admission.request({ session, signal, headers });
-  }
-
-  /** Rejects obsolete captures before credentials or HTTP; authorization itself remains F12-owned. */
-  function assertCurrent() {
-    if (
-      !session.isCurrent(session.generation) ||
-      (intent &&
-        (intent.signal.aborted ||
-          intent.generation !== session.generation ||
-          intent.accountId !== session.accountId ||
-          !session.accountId))
-    )
-      throw new ApiError("cancelled");
   }
 
   /** Shares only feature request preparation; the generated transport owns decoding and errors. */
@@ -93,7 +71,7 @@ export function createConsultationQueries(
         ? getSessionQueryKey(session.generation, [
             "consultation-bypass",
             intent.accountId,
-            intentId,
+            intent.intentId,
             ...key,
           ])
         : ["consultation", session.generation, ...key],

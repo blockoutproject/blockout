@@ -41,17 +41,17 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.json.JsonTest;
+import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Real generated DTO/mapping and configured JSON boundary; story endpoints remain uninstalled. */
-@WebMvcTest(controllers = ConsultationContractTest.Probe.class)
-@AutoConfigureMockMvc(addFilters = false)
-@Import({HttpConfiguration.class, ConsultationContractTest.Probe.class})
+/** Real generated DTO/mapping and configured JSON boundary; no HTTP endpoint is exercised here. */
+@JsonTest
+@Import(HttpConfiguration.class)
+@ImportAutoConfiguration(ValidationAutoConfiguration.class)
 @DisplayName("Consultation generated mapping boundary")
 class ConsultationContractTest {
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
@@ -316,8 +316,4 @@ class ConsultationContractTest {
         null,
         List.of());
   }
-
-  /** Empty test-only MVC slice; no public endpoint is provided by this foundation. */
-  @RestController
-  static class Probe {}
 }

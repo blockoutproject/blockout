@@ -204,6 +204,50 @@ it("obtains credentials only for captured explicit bypass and lets F12 prepare e
   }
 });
 
+it("shares one in-flight read across consumers of the same F12 bypass intent", async () => {
+  // Given: separate consumers capture the same owner intent, rather than inventing new scopes.
+  const session = createSessionGeneration();
+  session.setAccount(session.getSnapshot().generation, sportingId);
+  const bypass = createMaintenanceBypass();
+  bypass.request(session.getSnapshot(), true);
+  const intent = bypass.getSnapshot();
+  const admission = {
+    bypass: intent,
+    request: (options: ApiFetchOptions) => ({
+      ...options,
+      signal: intent?.signal,
+      headers: { ...options.headers, "Blockout-Maintenance-Bypass": "true" },
+    }),
+  };
+  const captured = { ...session.getSnapshot(), isCurrent: session.isCurrent };
+  const credentials = async () => ({ accessToken: "synthetic-token" });
+  const first = createConsultationQueries(captured, admission, credentials);
+  const second = createConsultationQueries(captured, admission, credentials);
+  const ready = Promise.withResolvers<void>();
+  mockFetch.mockImplementation(async () => {
+    await ready.promise;
+    return Response.json(clubDetail());
+  });
+  const client = createQueryClient();
+  try {
+    // When
+    const results = [
+      client.fetchQuery(first.club(sportingId)),
+      client.fetchQuery(second.club(sportingId)),
+    ];
+    ready.resolve();
+    await Promise.all(results);
+
+    // Then
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(first.club(sportingId).queryKey).toEqual(
+      second.club(sportingId).queryKey,
+    );
+  } finally {
+    client.clear();
+  }
+});
+
 it("rejects revoked bypass while credentials are pending", async () => {
   // Given
   const session = createSessionGeneration();
