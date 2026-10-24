@@ -17,9 +17,11 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -45,6 +47,14 @@ class JpaCollectionStore implements CollectionStore {
   @Override
   public boolean containsTarget(UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind) {
     return targets.existsByCycleIdAndScopeIdAndKind(cycleId, scopeId, kind);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean containsAnyTarget(
+      UUID cycleId, List<UUID> scopeIds, CollectionTargetKindEnum kind) {
+    return !scopeIds.isEmpty()
+        && targets.existsByCycleIdAndScopeIdInAndKind(cycleId, scopeIds, kind);
   }
 
   /** {@inheritDoc} */
@@ -86,7 +96,8 @@ class JpaCollectionStore implements CollectionStore {
   @Override
   public void complete(CollectionState.Cycle cycle, Instant completedAt) {
     cycles.findById(cycle.id()).orElseThrow().setCompletedAt(completedAt);
-    if (cycle.controlId() != null && results.successful(cycle.id(), cycle.cycleOrder()))
+    if (cycle.controlId() != null
+        && results.successful(cycle.controlId(), cycle.id(), cycle.cycleOrder()))
       controls.recordSuccess(cycle.controlId(), completedAt);
   }
 
@@ -242,6 +253,15 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  public Optional<CollectionState.Source> source(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference) {
+    return sources
+        .findBySeasonIdAndProviderAndOrganizerReference(seasonId, provider, organizerReference)
+        .map(mapper::toView);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public CollectionState.Source lockSource(UUID id) {
     return mapper.toView(sources.lockById(id).orElseThrow(CollectionNotFoundException::new));
   }
@@ -265,6 +285,17 @@ class JpaCollectionStore implements CollectionStore {
   public Optional<CollectionState.Cycle> cycle(UUID id) {
     UUID current = runtime().incarnationId();
     return cycles.findById(id).map(cycle -> mapper.toView(cycle, current));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Map<UUID, CollectionState.Cycle> cycles(List<UUID> ids) {
+    if (ids.isEmpty()) return Map.of();
+    UUID current = runtime().incarnationId();
+    return cycles.findByIdIn(ids).stream()
+        .collect(
+            Collectors.toUnmodifiableMap(
+                CollectionCycleEntity::getId, cycle -> mapper.toView(cycle, current)));
   }
 
   /** {@inheritDoc} */
@@ -310,15 +341,12 @@ class JpaCollectionStore implements CollectionStore {
   /** {@inheritDoc} */
   @Override
   public void addTargets(UUID cycleId, List<CollectionState.Target> values) {
-    targets.saveAll(
-        values.stream()
-            .map(
-                value -> {
-                  CollectionTargetEntity row = mapper.toEntity(value);
-                  row.setCycleId(cycleId);
-                  return row;
-                })
-            .toList());
+    for (CollectionState.Target value : values) {
+      CollectionTargetEntity row = mapper.toEntity(value);
+      row.setCycleId(cycleId);
+      // Admission creates new snapshot keys; merge would read each assigned key unnecessarily.
+      entityManager.persist(row);
+    }
   }
 
   /** {@inheritDoc} */

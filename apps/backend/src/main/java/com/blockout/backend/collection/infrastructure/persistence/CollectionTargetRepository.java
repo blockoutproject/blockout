@@ -1,6 +1,7 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -28,4 +29,15 @@ interface CollectionTargetRepository
    */
   boolean existsByCycleIdAndScopeIdAndKind(
       UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind);
+
+  /**
+   * Checks all candidate parent identities in one existence query.
+   *
+   * @param cycleId current admitted context
+   * @param scopeIds nonempty retained parent identities
+   * @param kind expected acquisition role
+   * @return whether any candidate has exact snapshot membership
+   */
+  boolean existsByCycleIdAndScopeIdInAndKind(
+      UUID cycleId, List<UUID> scopeIds, CollectionTargetKindEnum kind);
 }

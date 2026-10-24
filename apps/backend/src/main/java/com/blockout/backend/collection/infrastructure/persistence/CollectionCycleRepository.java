@@ -2,6 +2,7 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.collection.application.model.CollectionState;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -49,6 +50,14 @@ interface CollectionCycleRepository extends JpaRepository<CollectionCycleEntity,
    * @return retained current context
    */
   Optional<CollectionCycleEntity> findById(UUID id);
+
+  /**
+   * Reads retained contexts for a configuration list in one query.
+   *
+   * @param ids externally stable cycle UUIDs
+   * @return existing contexts only; callers restore their configuration order by identity
+   */
+  List<CollectionCycleEntity> findByIdIn(List<UUID> ids);
 
   /**
    * Deletes superseded context by its external UUID.

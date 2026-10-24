@@ -129,18 +129,15 @@ public class CollectionResultService {
    */
   private boolean contains(UUID cycleId, UUID scopeId, CollectionStageEnum stage) {
     if (stage == CollectionStageEnum.LOGO) {
-      return sporting.teamPools(scopeId).stream()
-          .anyMatch(pool -> store.containsTarget(cycleId, pool, CollectionTargetKindEnum.CALENDAR));
+      return store.containsAnyTarget(
+          cycleId, sporting.teamPools(scopeId), CollectionTargetKindEnum.CALENDAR);
     }
     if (store.containsTarget(
         cycleId, scopeId, CollectionTargetKindEnum.fromValue(stage.getValue()))) return true;
     return stage == CollectionStageEnum.DETAILS
         && sporting
-            .match(scopeId)
-            .map(
-                match ->
-                    store.containsTarget(
-                        cycleId, match.poolId(), CollectionTargetKindEnum.CALENDAR))
+            .matchPoolId(scopeId)
+            .map(pool -> store.containsTarget(cycleId, pool, CollectionTargetKindEnum.CALENDAR))
             .orElse(false);
   }
 

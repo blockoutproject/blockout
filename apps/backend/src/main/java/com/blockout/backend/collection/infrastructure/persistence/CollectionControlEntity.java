@@ -22,8 +22,14 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
-/** Current collection control persistence; application services own changes and transactions. */
+/**
+ * Current collection control persistence; application services own changes and transactions. Lists
+ * fetch each pending-selection set together, without joining the two sets or issuing a separate
+ * query for every control.
+ */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
@@ -52,6 +58,7 @@ class CollectionControlEntity {
   @Setter private Instant lastSuccessAt;
 
   @ElementCollection
+  @Fetch(FetchMode.SUBSELECT)
   @CollectionTable(
       name = "collection_request_source",
       joinColumns = @JoinColumn(name = "control_id"))
@@ -59,6 +66,7 @@ class CollectionControlEntity {
   private Set<UUID> sourceBindingIds = new HashSet<>();
 
   @ElementCollection
+  @Fetch(FetchMode.SUBSELECT)
   @CollectionTable(
       name = "collection_request_scope",
       joinColumns = @JoinColumn(name = "control_id"))

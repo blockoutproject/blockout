@@ -10,6 +10,7 @@ import com.blockout.backend.sporting.application.model.SportingViews.CollectionS
 import com.blockout.backend.sporting.application.service.SeasonService;
 import java.net.URI;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -52,11 +53,9 @@ public class CollectionSourceService {
         seasons.lockCollectionState(seasons.getOrCreate(proposal.startYear()).id());
     if (season.collectionState() == CollectionSeasonStateEnum.CLOSED)
       throw new CollectionConflictException("conflict");
-    for (Source source : store.sources(season.id())) {
-      if (source.provider() == proposal.provider()
-          && source.organizerReference().equals(proposal.organizerReference()))
-        return new Resolved(season.id(), source.id());
-    }
+    Optional<Source> existing =
+        store.source(season.id(), proposal.provider(), proposal.organizerReference());
+    if (existing.isPresent()) return new Resolved(season.id(), existing.orElseThrow().id());
     CollectorRuntimeService.requireAdvance(season.collectionRevision());
     Source created =
         store.createSource(

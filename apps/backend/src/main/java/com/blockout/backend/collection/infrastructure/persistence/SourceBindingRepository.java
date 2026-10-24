@@ -1,6 +1,7 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +12,17 @@ import org.springframework.data.jpa.repository.Query;
 
 /** Current supported bindings; their immutable season identity is owned by F02. */
 interface SourceBindingRepository extends JpaRepository<SourceBindingEntity, UUID> {
+  /**
+   * Selects one root through its native unique key.
+   *
+   * @param seasonId canonical season
+   * @param provider designated authority
+   * @param organizerReference exact organizer or championship reference
+   * @return only the matching source, if already prepared
+   */
+  Optional<SourceBindingEntity> findBySeasonIdAndProviderAndOrganizerReference(
+      UUID seasonId, CollectionProviderEnum provider, String organizerReference);
+
   /**
    * Resolves the canonical season without loading mutable state.
    *
