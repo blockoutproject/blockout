@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
 import { SourcePreparationScreen } from "../../../../../../features/collection/screens/source-preparation-screen";
 import { usePreparationDiscard } from "../../../../../../features/collection/forms/use-preparation-discard";
+import { discardSourcePreparationEditor } from "../../../../../../features/collection/forms/preparation-editors";
 
 /** Source editing stays on an ordinary route; its draft is discarded only by native explicit confirmation. */
 export default function SourcePreparationRoute() {
@@ -8,7 +9,7 @@ export default function SourcePreparationRoute() {
     seasonId: string;
     sourceId: string;
   }>();
-  const onDirtyChange = usePreparationDiscard();
+  const onDirtyChange = usePreparationDiscard(discardSourcePreparationEditor);
   return (
     <SourcePreparationScreen
       seasonId={seasonId}

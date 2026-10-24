@@ -74,7 +74,11 @@ export function SourceChildrenScreen({
             query.isError ? (
               <RequestError
                 message="Les groupes sont indisponibles."
-                onRetry={() => void query.refetch()}
+                onRetry={() =>
+                  void (query.isFetchNextPageError
+                    ? query.fetchNextPage()
+                    : query.refetch())
+                }
                 retrying={query.isFetching}
               />
             ) : query.hasNextPage ? (

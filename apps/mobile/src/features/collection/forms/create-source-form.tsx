@@ -1,18 +1,18 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type UseFormProps } from "react-hook-form";
 import { View } from "react-native";
-import { z } from "zod";
 import { Button } from "../../../shared/components/button";
 import { TextField } from "../../../shared/components/text-field";
 import { preparationStyles } from "../components/preparation-layout";
-import { createSourceSchema } from "../schemas/source-candidate";
-
-/** Editable scope/reference values differ from transport: the owning provider and season are route context. */
-export type CreateSourceValues = z.infer<typeof createSourceSchema>;
+import {
+  createSourceSchema,
+  type CreateSourceValues,
+} from "../schemas/source-candidate";
 
 /** A manual supported candidate; its owner returns true only after confirmed creation. */
 export interface CreateSourceFormProps {
+  formControl: UseFormProps<CreateSourceValues>["formControl"];
   disabled: boolean;
   saving: boolean;
   onSubmit: (values: CreateSourceValues) => Promise<boolean>;
@@ -21,6 +21,7 @@ export interface CreateSourceFormProps {
 
 /** Keeps the original expected scope and URL after refusal, conflict or uncertain acknowledgement. */
 export function CreateSourceForm({
+  formControl,
   disabled,
   saving,
   onSubmit,
@@ -32,8 +33,8 @@ export function CreateSourceForm({
     reset,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<CreateSourceValues>({
+    formControl,
     resolver: zodResolver(createSourceSchema),
-    defaultValues: { organizerReference: "", candidateUrl: "" },
   });
   useEffect(() => {
     onDirtyChange?.(isDirty);

@@ -2,7 +2,7 @@ import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { Stack, router, usePathname } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
-import { Text } from "react-native";
+import { Alert, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import AdministrationRoute from "../../../app/(operations)/administration";
@@ -58,9 +58,13 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 jest.mock("expo/fetch", () => ({
-  fetch: (url: RequestInfo | URL) => mockFetch(url),
+  fetch: (url: RequestInfo | URL, options?: RequestInit) =>
+    mockFetch(url, options),
 }));
-const mockFetch = jest.fn<Promise<Response>, [RequestInfo | URL]>();
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
 const environment = { ...process.env };
 const seasonId = "00000000-0000-4000-8000-000000000179";
 const season = {
@@ -69,6 +73,25 @@ const season = {
   startYear: 2026,
   revision: 5,
   state: "active",
+};
+const sourceId = "00000000-0000-4000-8000-000000000180";
+const candidateUrl =
+  "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=137";
+const source = {
+  id: sourceId,
+  seasonId,
+  provider: "lnv",
+  organizerReference: "137",
+  label: "D1 masculine",
+  revision: 2,
+  candidateUrl,
+  acceptedUrl: null,
+  locked: false,
+  validation: "qualified",
+  validatedAt: null,
+  seasonEvidence: "2026/2027",
+  reason: null,
+  launched: false,
 };
 
 beforeEach(() => {
@@ -85,6 +108,7 @@ beforeEach(() => {
   mockAuth0.clearCredentials.mockReset().mockResolvedValue();
   mockAuth0.webAuth.mockReset();
   mockFetch.mockReset();
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
 });
 afterEach(() => {
   process.env = { ...environment };
@@ -150,7 +174,7 @@ function responses(
     storeUrl:
       "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
   };
-  mockFetch.mockImplementation(async (url) => {
+  const serve = async (url: RequestInfo | URL) => {
     const path = new URL(String(url)).pathname;
     if (path.endsWith("/application-access")) return Response.json(access);
     if (path.endsWith("/accounts/me"))
@@ -163,13 +187,117 @@ function responses(
         permissions,
       });
     if (path.endsWith("/source-bindings")) return Response.json({ items: [] });
+    if (path.endsWith(`/source-bindings/${sourceId}`))
+      return Response.json(source);
     if (path.endsWith(`/collection-seasons/${seasonId}`))
       return Response.json(season);
     if (path.endsWith("/collection-seasons"))
       return Response.json({ items: [season] });
     throw new Error(`Unexpected controlled request ${path}`);
-  });
+  };
+  mockFetch.mockImplementation(serve);
+  return serve;
 }
+
+it.each(["candidate", "addition"])(
+  "retains the same-session %s draft and required reread when a permission failure interrupts recovery",
+  async (kind) => {
+    // Given
+    const serve = responses({ manageCollection: true });
+    const user = userEvent.setup();
+    await openRoute("/access");
+    await screen.findByRole("link", { name: "Accès administrateur" });
+    const pending = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, options) =>
+      options?.method === "PUT" || options?.method === "POST"
+        ? Promise.resolve(
+            Response.json(
+              {
+                type: "urn:blockout:problem:stale-revision",
+                title: "Conflict",
+                status: 409,
+              },
+              { status: 409 },
+            ),
+          )
+        : String(url).endsWith("/accounts/me")
+          ? pending.promise
+          : serve(url),
+    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    const path =
+      kind === "candidate"
+        ? `/collection/${seasonId}/sources/${sourceId}`
+        : `/collection/${seasonId}/lnv`;
+    await act(async () => router.push(path));
+    if (kind === "candidate") {
+      await user.press(
+        await screen.findByRole("button", { name: "Modifier le lien" }),
+      );
+      await user.clear(screen.getByLabelText("URL officielle"));
+    } else {
+      await user.press(
+        await screen.findByRole("button", { name: "Ajouter une source" }),
+      );
+      await user.type(
+        screen.getByLabelText("Référence de l’organisateur ou du championnat"),
+        "137",
+      );
+    }
+    const draft = `${candidateUrl}&PID=192`;
+    await user.type(screen.getByLabelText("URL officielle"), draft);
+    const save =
+      kind === "candidate" ? "Enregistrer le lien" : "Enregistrer la source";
+    await user.press(screen.getByRole("button", { name: save }));
+    await screen.findByText(
+      "Le résultat doit être vérifié avant une nouvelle action.",
+    );
+    const pendingRead = Promise.withResolvers<Response>();
+    const resource =
+      kind === "candidate"
+        ? `/source-bindings/${sourceId}`
+        : "/source-bindings";
+    mockFetch.mockImplementation((url) =>
+      String(url).endsWith("/accounts/me")
+        ? pending.promise
+        : String(url).endsWith(resource)
+          ? pendingRead.promise
+          : serve(url),
+    );
+    await user.press(screen.getByRole("button", { name: "Relire l’état" }));
+    await screen.findByRole("button", { name: "Relire l’état", busy: true });
+
+    // When
+    await act(async () =>
+      pending.resolve(
+        Response.json(
+          {
+            type: "urn:blockout:problem:unavailable",
+            title: "Unavailable",
+            status: 503,
+          },
+          { status: 503 },
+        ),
+      ),
+    );
+    await screen.findByRole("header", { name: "Blockout est en maintenance" });
+    await act(async () =>
+      pendingRead.resolve(
+        Response.json(kind === "candidate" ? source : { items: [] }),
+      ),
+    );
+    mockFetch.mockImplementation(serve);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await screen.findByRole("link", { name: "Accès administrateur" });
+    await act(async () => router.push(path));
+
+    // Then
+    expect(await screen.findByLabelText("URL officielle")).toHaveDisplayValue(
+      draft,
+    );
+    expect(screen.getByRole("button", { name: save })).toBeDisabled();
+  },
+);
 
 it("opens preparation from the administration entry during maintenance with collection permission alone", async () => {
   // Given
@@ -191,6 +319,198 @@ it("opens preparation from the administration entry during maintenance with coll
     "/collection",
   );
   expect(screen.queryByText("Ordinary home")).not.toBeOnTheScreen();
+});
+
+it("keeps a resumed candidate locked while its original save remains pending", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  const permissions = Promise.withResolvers<Response>();
+  const save = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT"
+      ? save.promise
+      : String(url).endsWith("/accounts/me")
+        ? permissions.promise
+        : serve(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  const path = `/collection/${seasonId}/sources/${sourceId}`;
+  await act(async () => router.push(path));
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  const draft = `${candidateUrl}&PID=192`;
+  await user.type(screen.getByLabelText("URL officielle"), draft);
+  await user.press(screen.getByRole("button", { name: "Enregistrer le lien" }));
+  await screen.findByRole("button", {
+    name: "Enregistrer le lien",
+    busy: true,
+  });
+  await act(async () =>
+    permissions.resolve(
+      Response.json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        { status: 503 },
+      ),
+    ),
+  );
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT" ? save.promise : serve(url),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () => router.push(path));
+
+  // Then
+  expect(await screen.findByLabelText("URL officielle")).toHaveDisplayValue(
+    draft,
+  );
+  expect(
+    screen.getByRole("button", { name: "Enregistrer le lien", busy: true }),
+  ).toBeDisabled();
+
+  // When
+  await act(async () =>
+    save.resolve(
+      Response.json({
+        ...source,
+        revision: 3,
+        candidateUrl: draft,
+        validation: "unvalidated",
+        seasonEvidence: null,
+      }),
+    ),
+  );
+
+  // Then
+  expect(
+    await screen.findByText(
+      "Lien enregistré. La source doit être validée à nouveau.",
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
+});
+
+it("retains the exact failed launch selection when admission removes and later restores its provider route", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  const permissions = Promise.withResolvers<Response>();
+  let expanded = false;
+  let writes = 0;
+  const peer = async (url: RequestInfo | URL, options?: RequestInit) => {
+    const path = new URL(String(url)).pathname;
+    if (options?.method === "POST") {
+      writes++;
+      return writes === 1
+        ? Response.json(
+            {
+              type: "urn:blockout:problem:stale-revision",
+              title: "Conflict",
+              status: 409,
+            },
+            { status: 409 },
+          )
+        : Response.json({ ...season, revision: 7 });
+    }
+    if (path.endsWith("/source-bindings"))
+      return Response.json({
+        items: expanded
+          ? [
+              source,
+              {
+                ...source,
+                id: "00000000-0000-4000-8000-000000000183",
+                label: "D2 masculine",
+              },
+            ]
+          : [source],
+      });
+    if (expanded && path.endsWith(`/collection-seasons/${seasonId}`))
+      return Response.json({ ...season, revision: 6 });
+    return serve(url);
+  };
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/accounts/me")
+      ? permissions.promise
+      : peer(url, options),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  const path = `/collection/${seasonId}/lnv`;
+  await act(async () => router.push(path));
+  await user.press(
+    await screen.findByRole("button", { name: "Lancer les sources prêtes" }),
+  );
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.lastCall?.[2]?.find((choice) => choice.text === "Lancer")
+      ?.onPress?.(),
+  );
+  await screen.findByText(
+    "Le résultat doit être vérifié avant une nouvelle action.",
+  );
+
+  // When
+  await act(async () =>
+    permissions.resolve(
+      Response.json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        { status: 503 },
+      ),
+    ),
+  );
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  expanded = true;
+  mockFetch.mockImplementation(peer);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () => router.push(path));
+  await user.press(
+    await screen.findByRole("button", { name: "Relire l’état" }),
+  );
+  await screen.findByText(
+    "État relu. Vérifiez votre saisie avant une nouvelle action.",
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Lancer les sources prêtes" }),
+  );
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.lastCall?.[2]?.find((choice) => choice.text === "Lancer")
+      ?.onPress?.(),
+  );
+
+  // Then
+  await screen.findByText("Sources sélectionnées lancées.");
+  const calls = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "POST",
+  );
+  expect(calls).toHaveLength(2);
+  expect(JSON.parse(String(calls[1][1]?.body))).toEqual({
+    revision: 6,
+    sourceBindingIds: [sourceId],
+  });
 });
 
 it("navigates through canonical season/provider preparation without a dashboard", async () => {

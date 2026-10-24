@@ -1,5 +1,6 @@
 import {
   useInfiniteQuery,
+  useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
@@ -22,6 +23,11 @@ import {
   listCollectionSourceChildren,
   requestCollectionSourceValidation,
   setCollectionSourceCandidate,
+  getCreateCollectionSourceMutationKey,
+  getLaunchCollectionSourcesMutationKey,
+  getSetCollectionSourceCandidateMutationKey,
+  getRequestCollectionSourceValidationMutationKey,
+  getConfirmCollectionSourceSeasonMutationKey,
 } from "../../../../.generated/mobile";
 import type {
   AccountResponse,
@@ -120,6 +126,11 @@ export function useSeasonPreparation(seasonId: string) {
   const authority = useCollectionAuthority();
   const client = useQueryClient();
   const season = useSeason(seasonId, authority);
+  const mutationScope = getSessionQueryKey(
+    authority.session.generation,
+    getGetCollectionSeasonQueryKey(seasonId),
+  );
+  const saving = useIsMutating({ mutationKey: mutationScope }) > 0;
   const sourcesKey = getSessionQueryKey(
     authority.session.generation,
     getListCollectionSourcesQueryKey(seasonId),
@@ -148,6 +159,7 @@ export function useSeasonPreparation(seasonId: string) {
     });
   }
   const create = useMutation({
+    mutationKey: [...mutationScope, ...getCreateCollectionSourceMutationKey()],
     gcTime: 0,
     mutationFn: async (body: CreateSourceBindingRequest) => {
       const accepted = await createCollectionSource(
@@ -160,6 +172,7 @@ export function useSeasonPreparation(seasonId: string) {
     },
   });
   const launch = useMutation({
+    mutationKey: [...mutationScope, ...getLaunchCollectionSourcesMutationKey()],
     gcTime: 0,
     mutationFn: async (body: LaunchCollectionSourcesRequest) => {
       const accepted = await launchCollectionSources(
@@ -196,7 +209,7 @@ export function useSeasonPreparation(seasonId: string) {
       return accepted;
     },
   });
-  return { authority, season, sources, create, launch };
+  return { authority, season, sources, create, launch, saving };
 }
 
 /** Candidate commands use canonical generated decoders, with explicit status reads and no polling. */
@@ -208,6 +221,7 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
     authority.session.generation,
     getGetCollectionSourceQueryKey(sourceId),
   );
+  const saving = useIsMutating({ mutationKey: queryKey }) > 0;
   const source = useQuery({
     queryKey,
     enabled: authority.enabled,
@@ -238,6 +252,7 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
     return value;
   }
   const candidate = useMutation({
+    mutationKey: [...queryKey, ...getSetCollectionSourceCandidateMutationKey()],
     gcTime: 0,
     mutationFn: async (body: SetSourceCandidateRequest) =>
       accept(
@@ -249,6 +264,10 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
       ),
   });
   const validation = useMutation({
+    mutationKey: [
+      ...queryKey,
+      ...getRequestCollectionSourceValidationMutationKey(),
+    ],
     gcTime: 0,
     mutationFn: async (body: RequestSourceValidationRequest) =>
       accept(
@@ -260,6 +279,10 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
       ),
   });
   const confirmation = useMutation({
+    mutationKey: [
+      ...queryKey,
+      ...getConfirmCollectionSourceSeasonMutationKey(),
+    ],
     gcTime: 0,
     mutationFn: async (body: ConfirmSourceSeasonRequest) =>
       accept(
@@ -270,7 +293,15 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
         ),
       ),
   });
-  return { authority, season, source, candidate, validation, confirmation };
+  return {
+    authority,
+    season,
+    source,
+    candidate,
+    validation,
+    confirmation,
+    saving,
+  };
 }
 
 /** Paginates discovered direct children without importing classification, totals or provider data. */

@@ -884,6 +884,49 @@ it("reads bounded direct children and their next page without exposing mapping o
   expect(screen.queryByText(/mapping|classification/i)).not.toBeOnTheScreen();
 });
 
+it("retries the failed next child page instead of only refreshing already loaded children", async () => {
+  // Given
+  const user = userEvent.setup();
+  let fails = true;
+  mockFetch.mockImplementation(async (url) => {
+    const parsed = new URL(String(url));
+    if (!parsed.pathname.endsWith("/children")) return reads(url);
+    const page = Number(parsed.searchParams.get("page"));
+    if (page === 1 && fails) return refused(503);
+    return json({
+      items: [
+        {
+          id: `00000000-0000-4000-8000-00000000018${page + 2}`,
+          label: page === 0 ? "Phase régulière" : "Phase finale",
+          kind: "pool",
+        },
+      ],
+      page,
+      hasNext: page === 0,
+    });
+  });
+  await renderPreparation(
+    <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
+  );
+  await screen.findByText("Phase régulière");
+  await user.press(screen.getByRole("button", { name: "Afficher la suite" }));
+  await screen.findByText("Les groupes sont indisponibles.");
+  fails = false;
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Phase finale")).toBeOnTheScreen();
+  expect(screen.getByText("Phase régulière")).toBeOnTheScreen();
+  const pages = mockFetch.mock.calls.filter(([url]) =>
+    String(url).includes("/children"),
+  );
+  expect(
+    pages.map(([url]) => new URL(String(url)).searchParams.get("page")),
+  ).toEqual(["0", "1", "1"]);
+});
+
 it("retains the manual supported-source draft after a duplicate conflict", async () => {
   // Given
   sources = [];

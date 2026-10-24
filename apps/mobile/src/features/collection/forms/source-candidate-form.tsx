@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   Alert,
@@ -11,7 +11,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { z } from "zod";
 import type {
   CollectionSeasonResponse,
   SourceBindingResponse,
@@ -31,10 +30,12 @@ import {
   SourceBadge,
   preparationStyles,
 } from "../components/preparation-layout";
-import { candidateUrlSchema } from "../schemas/source-candidate";
-
-const schema = z.object({ candidateUrl: candidateUrlSchema });
-type CandidateValues = z.infer<typeof schema>;
+import {
+  candidateUrlSchema,
+  sourceCandidateSchema,
+  type SourceCandidateValues,
+} from "../schemas/source-candidate";
+import { sourcePreparationEditor } from "./preparation-editors";
 
 /** One source editor snapshot; failures and current-state reads preserve its dirty URL until explicit submission. */
 export interface SourceCandidateFormProps {
@@ -55,18 +56,18 @@ export function SourceCandidateForm({
   const { session } = authority;
   const { colors } = useTheme();
   const router = useRouter();
-  const [baseline, setBaseline] = useState(source);
-  const [editingUrl, setEditingUrl] = useState(false);
-  const [needsRead, setNeedsRead] = useState(false);
-  const [feedback, setFeedback] = useState<string>();
+  const mounted = useRef(false);
+  const [editor] = useState(() => sourcePreparationEditor(session, source));
+  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const { baseline, editingUrl, needsRead, feedback } = state;
   const {
     control,
     handleSubmit,
     reset,
     formState: { isDirty, isSubmitting, errors, dirtyFields },
-  } = useForm<CandidateValues>({
-    resolver: zodResolver(schema),
-    defaultValues: { candidateUrl: source.candidateUrl ?? "" },
+  } = useForm<SourceCandidateValues>({
+    resolver: zodResolver(sourceCandidateSchema),
+    formControl: editor.form.formControl,
   });
   // Subscribe to RHF's dirty fields so keepDirtyValues retains the editable snapshot on reread.
   void dirtyFields;
@@ -80,6 +81,7 @@ export function SourceCandidateForm({
   const readOnly = closed || current.locked || current.launched;
   const busy =
     !authority.enabled ||
+    editing.saving ||
     isSubmitting ||
     editing.candidate.isPending ||
     editing.validation.isPending ||
@@ -91,17 +93,30 @@ export function SourceCandidateForm({
     onDirtyChange?.(isDirty);
     return () => onDirtyChange?.(false);
   }, [isDirty, onDirtyChange]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   /** A refusal retains input; ambiguous acknowledgements additionally prevent any new command until reread. */
   function failed(error: unknown) {
     if (!session.isCurrent(session.generation)) return;
     if (requiresPreparationReread(error)) {
-      setNeedsRead(true);
-      setFeedback("Le résultat doit être vérifié avant une nouvelle action.");
-    } else setFeedback("L’action a été refusée. Votre saisie est conservée.");
+      editor.update({
+        ...editor.getSnapshot(),
+        needsRead: true,
+        feedback: "Le résultat doit être vérifié avant une nouvelle action.",
+      });
+    } else
+      editor.update({
+        ...editor.getSnapshot(),
+        feedback: "L’action a été refusée. Votre saisie est conservée.",
+      });
   }
   /** Replaces only the candidate against its editing revision; a successful response invalidates old evidence. */
-  async function save(values: CandidateValues) {
+  async function save(values: SourceCandidateValues) {
     if (busy || readOnly || rereadRequired) return;
     try {
       const accepted = await editing.candidate.mutateAsync({
@@ -109,10 +124,13 @@ export function SourceCandidateForm({
         candidateUrl: values.candidateUrl,
       });
       if (!session.isCurrent(session.generation)) return;
-      setBaseline(accepted);
       reset({ candidateUrl: accepted.candidateUrl ?? "" });
-      setEditingUrl(false);
-      setFeedback("Lien enregistré. La source doit être validée à nouveau.");
+      editor.update({
+        baseline: accepted,
+        editingUrl: false,
+        needsRead: false,
+        feedback: "Lien enregistré. La source doit être validée à nouveau.",
+      });
     } catch (error) {
       failed(error);
     }
@@ -125,8 +143,11 @@ export function SourceCandidateForm({
         revision: baseline.revision,
       });
       if (!session.isCurrent(session.generation)) return;
-      setBaseline(accepted);
-      setFeedback(undefined);
+      editor.update({
+        ...editor.getSnapshot(),
+        baseline: accepted,
+        feedback: undefined,
+      });
     } catch (error) {
       failed(error);
     }
@@ -146,7 +167,12 @@ export function SourceCandidateForm({
       "Confirmez uniquement si cette page correspond bien à la saison préparée.",
       [
         { text: "Annuler", style: "cancel" },
-        { text: "Confirmer la saison", onPress: () => void acceptSeason() },
+        {
+          text: "Confirmer la saison",
+          onPress: () => {
+            if (mounted.current) void acceptSeason();
+          },
+        },
       ],
     );
   }
@@ -166,8 +192,11 @@ export function SourceCandidateForm({
         seasonLabel: season.label,
       });
       if (!session.isCurrent(session.generation)) return;
-      setBaseline(accepted);
-      setFeedback(undefined);
+      editor.update({
+        ...editor.getSnapshot(),
+        baseline: accepted,
+        feedback: undefined,
+      });
     } catch (error) {
       failed(error);
     }
@@ -178,7 +207,7 @@ export function SourceCandidateForm({
       editing.source.refetch(),
       editing.season.refetch(),
     ]);
-    if (!session.isCurrent(session.generation)) return;
+    if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (
       sourceResult.isError ||
       seasonResult.isError ||
@@ -186,17 +215,23 @@ export function SourceCandidateForm({
       !seasonResult.data ||
       sourceResult.data.revision < baseline.revision
     ) {
-      setNeedsRead(true);
-      setFeedback("La relecture a échoué. Votre saisie est conservée.");
+      editor.update({
+        ...editor.getSnapshot(),
+        needsRead: true,
+        feedback: "La relecture a échoué. Votre saisie est conservée.",
+      });
       return;
     }
-    setBaseline(sourceResult.data);
     reset(
       { candidateUrl: sourceResult.data.candidateUrl ?? "" },
       { keepDirtyValues: true },
     );
-    setNeedsRead(false);
-    setFeedback("État relu. Vérifiez votre saisie avant une nouvelle action.");
+    editor.update({
+      ...editor.getSnapshot(),
+      baseline: sourceResult.data,
+      needsRead: false,
+      feedback: "État relu. Vérifiez votre saisie avant une nouvelle action.",
+    });
   }
   /** Opens only the saved candidate/accepted URL; native linking failure leaves all preparation controls usable. */
   async function openOfficialSource() {
@@ -206,7 +241,10 @@ export function SourceCandidateForm({
       await Linking.openURL(url);
     } catch {
       if (session.isCurrent(session.generation))
-        setFeedback("Le lien ne peut pas être ouvert.");
+        editor.update({
+          ...editor.getSnapshot(),
+          feedback: "Le lien ne peut pas être ouvert.",
+        });
     }
   }
   return (
@@ -316,7 +354,7 @@ export function SourceCandidateForm({
                   fullWidth
                   onPress={() => void handleSubmit(save)()}
                   disabled={busy || readOnly || rereadRequired}
-                  loading={editing.candidate.isPending}
+                  loading={editing.saving}
                 />
               </>
             ) : (
@@ -324,7 +362,7 @@ export function SourceCandidateForm({
                 label="Modifier le lien"
                 fullWidth
                 variant="secondary"
-                onPress={() => setEditingUrl(true)}
+                onPress={() => editor.update({ ...state, editingUrl: true })}
                 disabled={busy}
               />
             )}

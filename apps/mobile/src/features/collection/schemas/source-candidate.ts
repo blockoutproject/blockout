@@ -25,3 +25,12 @@ export const createSourceSchema = z.object({
     .min(1, "Saisissez la référence officielle."),
   candidateUrl: candidateUrlSchema,
 });
+
+/** The inline editor owns only the candidate URL; qualification remains a server projection. */
+export const sourceCandidateSchema = z.object({
+  candidateUrl: candidateUrlSchema,
+});
+/** RHF values for an existing source candidate. */
+export type SourceCandidateValues = z.infer<typeof sourceCandidateSchema>;
+/** RHF values for a manually prepared expected scope and candidate. */
+export type CreateSourceValues = z.infer<typeof createSourceSchema>;
