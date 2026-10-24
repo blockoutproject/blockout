@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   matchRow: { minHeight: 56, padding: tokens.spacing.sm },
   matchScore: { minHeight: 40, minWidth: 40 },
   row: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
-  logo: { width: 32, height: 32 },
+  logo: { width: 32, height: 32, borderRadius: tokens.radius.full },
   secondary: { ...tokens.typography.metadata },
   exampleTitle: { ...tokens.typography.navigation },
   flag: {

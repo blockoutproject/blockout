@@ -119,12 +119,14 @@ export function DiscoveryScreen() {
           </Text>
         </View>
         {!discovery.loading && discovery.error !== "read" && step < 4 && (
-          <Button
-            label="Passer"
-            variant="secondary"
-            onPress={() => void discovery.finish()}
-            loading={discovery.saving}
-          />
+          <View style={styles.trailingAction}>
+            <Button
+              label="Passer"
+              variant="secondary"
+              onPress={() => void discovery.finish()}
+              loading={discovery.saving}
+            />
+          </View>
         )}
       </View>
       <ScrollView
@@ -219,16 +221,18 @@ export function DiscoveryScreen() {
               />
             ))}
           </View>
-          <Button
-            label={step === 4 ? "Commencer" : "Suivant"}
-            trailingIcon={ArrowRight}
-            onPress={() =>
-              step === 4
-                ? void discovery.finish()
-                : setStep((value) => value + 1)
-            }
-            loading={discovery.saving}
-          />
+          <View style={styles.trailingAction}>
+            <Button
+              label={step === 4 ? "Commencer" : "Suivant"}
+              trailingIcon={ArrowRight}
+              onPress={() =>
+                step === 4
+                  ? void discovery.finish()
+                  : setStep((value) => value + 1)
+              }
+              loading={discovery.saving}
+            />
+          </View>
         </View>
       )}
     </SafeAreaView>
@@ -239,6 +243,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: tokens.spacing.section },
   header: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.md,
     alignItems: "center",
     justifyContent: "space-between",
     minHeight: 69,
@@ -267,6 +273,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: tokens.spacing.md,
     alignItems: "center",
     paddingVertical: tokens.spacing.lg,
@@ -276,10 +283,11 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.control,
   },
   progress: {
-    flex: 1,
+    flexGrow: 1,
     flexDirection: "row",
     justifyContent: "center",
     gap: tokens.spacing.label,
   },
   dot: { height: 5, borderRadius: tokens.radius.full },
+  trailingAction: { marginLeft: "auto", maxWidth: "100%" },
 });
