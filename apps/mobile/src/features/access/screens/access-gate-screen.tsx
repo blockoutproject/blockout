@@ -42,7 +42,7 @@ function GateView({
   const title = maintenance
     ? "Blockout est en maintenance"
     : update
-      ? "Mets Blockout à jour."
+      ? "Mets Blockout\nà jour."
       : "Accès indisponible.";
   const message = maintenance
     ? snapshot.maintenance?.message
@@ -133,6 +133,7 @@ function GateView({
               )}
               <Text
                 accessibilityRole="header"
+                accessibilityLabel={title.replace("\n", " ")}
                 style={[
                   styles.heading,
                   update && styles.updateHeading,

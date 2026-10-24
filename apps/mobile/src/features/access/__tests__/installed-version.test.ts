@@ -7,6 +7,8 @@ import {
   parsePublishedVersion,
 } from "../native/installed-version";
 
+afterEach(() => jest.restoreAllMocks());
+
 it.each([
   ["2.9.0", "2.10.0", "outdated"],
   ["2.10.0", "2.9.0", "satisfied"],
@@ -86,6 +88,5 @@ it.each(["ios", "android"] as const)(
       full.versions[platform].storeUrl,
     );
     expect(presentation.ordinary).toBe(platform === "android");
-    jest.restoreAllMocks();
   },
 );

@@ -31,20 +31,44 @@ export interface AccessTransportDependencies {
   getCredentials(): Promise<{ accessToken: string } | null | undefined>;
 }
 
-/** Mirrors only the documented exact identification/configuration/operational exceptions. */
+/** Exact server exceptions; F05 account operations still need bypass through their own admission binding. */
+const independentlyAdmittedPaths: Partial<Record<string, RegExp[]>> = {
+  GET: [
+    /^\/(application-access|accounts\/me|health|legals\/(imprint|privacy|terms)|api\/v1\/mobile\/public\/config\/app-status)$/,
+    /^\/administration\/(maintenance|application-versions)$/,
+    /^\/administration\/collection-seasons(\/[^/]+(\/source-bindings)?)?$/,
+    /^\/administration\/source-bindings\/[^/]+(\/children)?$/,
+    /^\/administration\/collection-controls(\/[^/]+(\/results)?)?$/,
+    /^\/administration\/clubs\/[^/]+\/(presentation|contacts)$/,
+    /^\/administration\/teams\/[^/]+\/presentation$/,
+    /^\/administration\/pools\/[^/]+\/(presentation|classification)$/,
+    /^\/administration\/packs\/[^/]+\/classification$/,
+    /^\/administration\/divisions(\/[^/]+)?$/,
+  ],
+  PATCH: [
+    /^\/administration\/(maintenance|application-versions)$/,
+    /^\/administration\/clubs\/[^/]+\/(presentation|contacts)$/,
+    /^\/administration\/(teams|divisions)\/[^/]+\/presentation$/,
+  ],
+  PUT: [
+    /^\/administration\/maintenance\/activation$/,
+    /^\/administration\/source-bindings\/[^/]+\/(candidate|season-confirmation)$/,
+    /^\/administration\/(collection-controls|divisions)\/[^/]+\/activity$/,
+    /^\/administration\/pools\/[^/]+\/(presentation|classification)$/,
+    /^\/administration\/packs\/[^/]+\/classification$/,
+  ],
+  POST: [
+    /^\/administration\/collection-seasons\/[^/]+\/(closure|source-launches|source-bindings)$/,
+    /^\/administration\/source-bindings\/[^/]+\/validations$/,
+    /^\/administration\/collection-controls\/[^/]+\/requests$/,
+    /^\/administration\/divisions$/,
+  ],
+};
+
+/** Unknown routes and methods, including F08 moderation, retain ordinary admission. */
 function ordinary(path: string, method = "GET") {
-  return (
-    !(path === "/application-access" && method === "GET") &&
-    !(path === "/accounts/me" && method === "GET") &&
-    !(
-      path === "/administration/maintenance" &&
-      ["GET", "PATCH"].includes(method)
-    ) &&
-    !(path === "/administration/maintenance/activation" && method === "PUT") &&
-    !(
-      path === "/administration/application-versions" &&
-      ["GET", "PATCH"].includes(method)
-    )
+  return !independentlyAdmittedPaths[method]?.some((pattern) =>
+    pattern.test(path),
   );
 }
 

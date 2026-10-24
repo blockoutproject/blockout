@@ -248,6 +248,51 @@ it("supplies silently renewed credentials for a bypassed otherwise public backen
   expect(headers.get("Blockout-Maintenance-Bypass")).toBe("true");
 });
 
+it.each([
+  ["GET", "/legals/privacy"],
+  ["GET", "/health"],
+  ["GET", "/api/v1/mobile/public/config/app-status"],
+  ["GET", "/administration/collection-seasons/current/source-bindings"],
+  ["POST", "/administration/collection-controls/current/requests"],
+  ["PUT", "/administration/source-bindings/current/candidate"],
+  ["PATCH", "/administration/clubs/current/contacts"],
+])(
+  "leaves independently admitted %s %s free of bypass credentials",
+  async (method, path) => {
+    // Given
+    const { session, bypass } = setup();
+    bypass.request(session.getSnapshot(), true);
+    mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
+
+    // When
+    await apiFetch(path, { method });
+
+    // Then
+    const headers = new Headers(mockFetch.mock.lastCall?.[1]?.headers);
+    expect(headers.has("Authorization")).toBe(false);
+    expect(headers.has("Blockout-Maintenance-Bypass")).toBe(false);
+  },
+);
+
+it.each([
+  ["POST", "/legals/privacy"],
+  ["DELETE", "/administration/clubs/current/contacts"],
+  ["GET", "/administration/stream-moderation"],
+  ["GET", "/administration/unknown"],
+])("preserves ordinary admission for %s %s", async (method, path) => {
+  // Given
+  const { session, bypass } = setup();
+  bypass.request(session.getSnapshot(), true);
+  mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
+
+  // When
+  await apiFetch(path, { method });
+
+  // Then
+  const headers = new Headers(mockFetch.mock.lastCall?.[1]?.headers);
+  expect(headers.get("Blockout-Maintenance-Bypass")).toBe("true");
+});
+
 it("never lends a bypass to an unsatisfied native minimum", async () => {
   // Given
   const { session, bypass, observations, full } = setup();
