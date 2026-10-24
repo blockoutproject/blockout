@@ -25,7 +25,7 @@ interface GateViewProps {
   onAdministration?: () => void;
 }
 
-/** Shared approved gate composition, with optional media failure isolated from its text and actions. */
+/** Full-width stage centers its content and decorative rails together; only foreground controls own side margins. */
 function GateView({
   snapshot,
   presentation,
@@ -212,8 +212,9 @@ export function AccessGateScreen() {
   );
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: tokens.spacing.section },
+  screen: { flex: 1 },
   header: {
+    marginHorizontal: tokens.spacing.section,
     minHeight: 53,
     paddingBottom: tokens.spacing.section,
     borderBottomWidth: tokens.borderWidth,
@@ -240,6 +241,7 @@ const styles = StyleSheet.create({
   stage: {
     flex: 1,
     justifyContent: "center",
+    paddingHorizontal: tokens.spacing.section,
     paddingVertical: tokens.spacing.xl,
   },
   card: {
@@ -279,7 +281,11 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.xl,
     paddingTop: tokens.spacing.md,
   },
-  actions: { paddingBottom: tokens.spacing.sm, gap: tokens.spacing.compact },
+  actions: {
+    paddingHorizontal: tokens.spacing.section,
+    paddingBottom: tokens.spacing.sm,
+    gap: tokens.spacing.compact,
+  },
   operator: {
     minHeight: tokens.size.control,
     alignItems: "center",
