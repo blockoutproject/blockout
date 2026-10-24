@@ -77,11 +77,12 @@ export function createInterstitialLifecycle({
   /**
    * Starts a still-current destination before SDK destruction. Opening failures stay with the
    * caller and never enter the ad failure channel. Async openings remain pending for deduplication.
+   * Already-started work cannot be cancelled here; abandoning an obsolete result frees its slot,
+   * and its eventual completion cannot clear a newer destination.
    */
   function releaseDestination() {
     const destination = pending;
-    if (!destination || destination.released) return;
-    destination.released = true;
+    if (!destination) return;
     if (
       !sameSession(destination.session, getInput().account.getSnapshot()) ||
       !destination.action.isCurrent()
@@ -89,6 +90,8 @@ export function createInterstitialLifecycle({
       complete(destination, { status: "abandoned" });
       return;
     }
+    if (destination.released) return;
+    destination.released = true;
     void openTransitionDestination(destination.action.open).then((result) =>
       complete(destination, result),
     );

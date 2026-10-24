@@ -402,3 +402,51 @@ it("deduplicates the accepted action while its asynchronous destination is openi
   opening.resolve();
   expect(await first).toEqual({ status: "opened" });
 });
+
+it("abandons an obsolete asynchronous opening without blocking or clearing the new session's destination", async () => {
+  // Given
+  const { input, session } = advertisingContext();
+  let current = input;
+  const lifecycle = createInterstitialLifecycle({
+    adUnitId: "test-unit",
+    getInput: () => current,
+  });
+  const oldOpening = Promise.withResolvers<void>();
+  const oldDestination = {
+    ...action(),
+    open: jest.fn(() => oldOpening.promise),
+  };
+  const previous = openSportingAdTransition(lifecycle, oldDestination);
+
+  // When
+  session.invalidate();
+  current = {
+    ...input,
+    choices: {
+      session: session.getSnapshot(),
+      canRequestAds: true,
+      authorizedMode: "limited",
+    },
+  };
+  lifecycle.invalidate();
+  const newOpening = Promise.withResolvers<void>();
+  const newDestination = {
+    ...action(),
+    open: jest.fn(() => newOpening.promise),
+  };
+  const next = openSportingAdTransition(lifecycle, newDestination);
+
+  // Then
+  expect(newDestination.open).toHaveBeenCalledTimes(1);
+  expect(await previous).toEqual({ status: "abandoned" });
+  expect(lifecycle.count).toBe(2);
+  oldOpening.resolve();
+  await oldOpening.promise;
+  await Promise.resolve();
+  expect(openSportingAdTransition(lifecycle, newDestination)).toBe(next);
+  expect(lifecycle.count).toBe(2);
+  newOpening.resolve();
+  expect(await next).toEqual({ status: "opened" });
+  expect(oldDestination.open).toHaveBeenCalledTimes(1);
+  expect(newDestination.open).toHaveBeenCalledTimes(1);
+});
