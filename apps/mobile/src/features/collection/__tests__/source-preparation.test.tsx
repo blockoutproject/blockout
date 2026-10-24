@@ -28,6 +28,8 @@ import { CollectionSeasonsScreen } from "../screens/collection-seasons-screen";
 import { ProviderSourcesScreen } from "../screens/provider-sources-screen";
 import { SourcePreparationScreen } from "../screens/source-preparation-screen";
 import { SourceChildrenScreen } from "../screens/source-children-screen";
+import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
@@ -125,6 +127,8 @@ function refused(status: number) {
 /** Default read-only local peer; each mutation scenario installs its own explicit response. */
 async function reads(url: RequestInfo | URL): Promise<Response> {
   const path = new URL(String(url)).pathname;
+  if (path.endsWith("/application-access"))
+    return json(applicationAccessResponse());
   if (path.endsWith("/accounts/me")) return json({ ...account, permissions });
   if (path.endsWith("/collection-seasons")) return json({ items: [season] });
   if (path.endsWith(`/collection-seasons/${seasonId}`)) return json(season);
@@ -175,7 +179,9 @@ async function renderPreparation(
     wrapper: ({ children }) => (
       <QueryClientProvider client={client}>
         <ThemeProvider>
-          <AccountSessionProvider>{children}</AccountSessionProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>{children}</AccountSessionProvider>
+          </ApplicationAccessProvider>
         </ThemeProvider>
       </QueryClientProvider>
     ),
@@ -334,6 +340,41 @@ it("saves an inline candidate and clears old qualification before another explic
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(0);
 });
+
+it.each(["unchanged", "trimmed"])(
+  "preserves qualified feedback when saving an %s candidate",
+  async (change) => {
+    // Given
+    source = binding({ validation: "qualified", seasonEvidence: "2026/2027" });
+    await renderPreparation();
+    const user = userEvent.setup();
+    await user.press(
+      await screen.findByRole("button", { name: "Modifier le lien" }),
+    );
+    if (change === "trimmed") {
+      await user.clear(screen.getByLabelText("URL officielle"));
+      await user.type(
+        screen.getByLabelText("URL officielle"),
+        `  ${candidateUrl}  `,
+      );
+    }
+    mockFetch.mockImplementation(async (url, options) =>
+      options?.method === "PUT" ? json(source) : reads(url),
+    );
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Enregistrer le lien" }),
+    );
+
+    // Then
+    expect(await screen.findByText("Lien enregistré.")).toBeOnTheScreen();
+    expect(screen.getByText("Prête")).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Valider la source" }),
+    ).not.toBeOnTheScreen();
+  },
+);
 
 it("preserves dirty input through a background refetch and requires an explicit reread", async () => {
   // Given

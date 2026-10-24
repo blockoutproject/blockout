@@ -586,3 +586,69 @@ it("keeps collection operations closed to an outdated client even with the colle
     ),
   ).toBe(false);
 });
+
+it("does not send a prepared command when a newer minimum blocks the client during credential retrieval", async () => {
+  // Given
+  const serve = responses({ manageCollection: true });
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  const check = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/application-access")
+      ? check.promise
+      : options?.method === "PUT"
+        ? Promise.resolve(Response.json(source))
+        : serve(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await act(async () =>
+    router.push(`/collection/${seasonId}/sources/${sourceId}`),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  await user.type(
+    screen.getByLabelText("URL officielle"),
+    `${candidateUrl}&PID=192`,
+  );
+  const credentials =
+    Promise.withResolvers<ReturnType<typeof credentialsFor>>();
+  mockAuth0.getCredentials.mockImplementationOnce(() => credentials.promise);
+  await user.press(screen.getByRole("button", { name: "Enregistrer le lien" }));
+  await screen.findByRole("button", {
+    name: "Enregistrer le lien",
+    busy: true,
+  });
+  const access = applicationAccessResponse();
+  access.maintenance = {
+    revision: 2,
+    active: true,
+    message: "Maintenance demo",
+    imageUrl: null,
+  };
+  access.versions.revision = 1;
+  access.versions.ios = {
+    minimumVersion: "3.0.0",
+    storeUrl: "https://apps.apple.com/fr/app/blockout/id123456789",
+  };
+  access.versions.android = {
+    minimumVersion: "3.0.0",
+    storeUrl:
+      "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
+  };
+
+  // When
+  await act(async () => check.resolve(Response.json(access)));
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  await act(async () =>
+    credentials.resolve(credentialsFor("auth0|operator179")),
+  );
+
+  // Then
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
+  expect(screen.queryByLabelText("URL officielle")).not.toBeOnTheScreen();
+});

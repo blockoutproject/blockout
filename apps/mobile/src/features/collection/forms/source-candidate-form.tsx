@@ -129,7 +129,10 @@ export function SourceCandidateForm({
         baseline: accepted,
         editingUrl: false,
         needsRead: false,
-        feedback: "Lien enregistré. La source doit être validée à nouveau.",
+        feedback:
+          accepted.validation === "unvalidated"
+            ? "Lien enregistré. La source doit être validée à nouveau."
+            : "Lien enregistré.",
       });
     } catch (error) {
       failed(error);

@@ -45,6 +45,7 @@ import {
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
+import { useOperationalVersionAdmission } from "../../access/operational-version-admission";
 
 /** Conflicts and ambiguous acknowledgements require current reads, never an automatic mutation replay. */
 export function requiresPreparationReread(error: unknown) {
@@ -58,12 +59,15 @@ export function requiresPreparationReread(error: unknown) {
 export function useCollectionAuthority() {
   const session = useAccountSession();
   const capabilities = useAdministrationCapabilities();
+  const version = useOperationalVersionAdmission();
   const auth = useAuth0();
   const client = useQueryClient();
-  const enabled = capabilities.permissions?.manageCollection === true;
+  const enabled =
+    capabilities.permissions?.manageCollection === true && version.satisfied;
   /** Rechecks the live account cache, including held native confirmations and delayed credential retrieval. */
   function assertAuthority() {
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
+    version.assertCurrent();
     const account = client.getQueryState<AccountResponse>(
       getSessionQueryKey(session.generation, getGetMyAccountQueryKey()),
     );
