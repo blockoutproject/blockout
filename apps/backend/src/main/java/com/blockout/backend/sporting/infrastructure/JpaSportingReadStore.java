@@ -90,6 +90,19 @@ public class JpaSportingReadStore implements SportingReadStore {
 
   /** {@inheritDoc} */
   @Override
+  public Set<UUID> viewablePoolTeamIds(UUID poolId) {
+    return Set.copyOf(
+        entities
+            .createQuery(
+                "SELECT t.id FROM ParticipationEntity r JOIN r.pool p JOIN r.team t WHERE p.id = :poolId AND r.current = TRUE AND t.division.active = TRUE AND "
+                    + POOL_VISIBLE,
+                UUID.class)
+            .setParameter("poolId", poolId)
+            .getResultList());
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public List<SportingPublicInput> projectionInputs(Kind kind, int page, int size) {
     List<UUID> ids =
         entities

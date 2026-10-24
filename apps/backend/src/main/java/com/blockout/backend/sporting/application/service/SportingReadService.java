@@ -18,7 +18,6 @@ import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.port.SportingReadStore;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -104,33 +103,27 @@ public class SportingReadService {
   public Optional<StandingsView> publicStandings(UUID poolId) {
     if (visibility(Kind.POOL, poolId).filter(SportingVisibility::viewable).isEmpty())
       return Optional.empty();
-    Set<UUID> eligible = new HashSet<>();
-    List<TeamView> participants = store.currentPoolTeams(poolId);
-    for (int from = 0; from < participants.size(); from += 200) {
-      Set<UUID> ids =
-          Set.copyOf(
-              participants.subList(from, Math.min(from + 200, participants.size())).stream()
-                  .map(TeamView::id)
-                  .toList());
-      publicInputs(Kind.TEAM, ids).forEach(input -> eligible.add(input.id()));
-    }
     return store
         .standings(poolId)
         .map(
-            table ->
-                table.toBuilder()
-                    .rows(
-                        table.rows().stream()
-                            .map(
-                                row ->
-                                    new StandingsView.Row(
-                                        row.sourceName(),
-                                        row.nativeTeamReference(),
-                                        row.position(),
-                                        row.statistics(),
-                                        eligible.contains(row.teamId()) ? row.teamId() : null))
-                            .toList())
-                    .build());
+            table -> {
+              Set<UUID> eligible = publicReads.viewablePoolTeamIds(poolId);
+              return table.toBuilder()
+                  .rows(
+                      table.rows().stream()
+                          .map(
+                              row ->
+                                  new StandingsView.Row(
+                                      row.sourceName(),
+                                      row.nativeTeamReference(),
+                                      row.position(),
+                                      row.statistics(),
+                                      row.teamId() != null && eligible.contains(row.teamId())
+                                          ? row.teamId()
+                                          : null))
+                          .toList())
+                  .build();
+            });
   }
 
   /**

@@ -440,22 +440,35 @@ class SportingVisibilityIntegrationTest {
       "A retained official row loses only its team link when calendar participation disappears")
   void removesStaleStandingLink() {
     // Given
-    calendars.accept(
-        pool, calendar(1, List.of(candidate("M1", "Home", null), candidate("M2", "Other", null))));
+    ObservationOutcome.Calendar initial =
+        calendars.accept(
+            pool,
+            calendar(1, List.of(candidate("M1", "Home", null), candidate("M2", "Other", null))));
     standings.accept(
         pool,
         new StandingsObservation(
             context(2),
             StandingsPublicationStateEnum.PUBLISHED,
             List.of("points"),
-            List.of(new StandingsObservation.Row("Home", null, 1, Map.of("points", "9")))));
+            List.of(
+                new StandingsObservation.Row("Home", null, 1, Map.of("points", "9")),
+                new StandingsObservation.Row("Other", null, 2, Map.of("points", "7")),
+                new StandingsObservation.Row(
+                    "Unlinked official label", null, 3, Map.of("points", "3")))));
     assertThat(reads.publicStandings(pool).orElseThrow().rows().getFirst().teamId()).isNotNull();
 
     // When
     calendars.accept(pool, calendar(3, List.of(candidate("M2", "Other", null))));
 
     // Then
-    StandingsView.Row row = reads.publicStandings(pool).orElseThrow().rows().getFirst();
+    List<StandingsView.Row> rows = reads.publicStandings(pool).orElseThrow().rows();
+    StandingsView.Row row = rows.getFirst();
+    assertThat(rows)
+        .extracting(StandingsView.Row::sourceName)
+        .containsExactly("Home", "Other", "Unlinked official label");
+    assertThat(rows).extracting(StandingsView.Row::position).containsExactly(1, 2, 3);
+    assertThat(rows.get(1).teamId()).isEqualTo(initial.outcomes().get(1).homeTeamId());
+    assertThat(rows.get(2).teamId()).isNull();
     assertThat(row.sourceName()).isEqualTo("Home");
     assertThat(row.position()).isEqualTo(1);
     assertThat(row.statistics()).containsEntry("points", "9");

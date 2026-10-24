@@ -21,6 +21,14 @@ public interface SportingReadStore {
   Optional<SportingVisibility> visibility(Kind kind, UUID id);
 
   /**
+   * Resolves current public team links within one pool without hydrating search presentation.
+   *
+   * @param poolId retained official-table scope
+   * @return visible current participant identities, empty for an unknown or hidden pool
+   */
+  Set<UUID> viewablePoolTeamIds(UUID poolId);
+
+  /**
    * Hydrates only currently eligible club/team/pool inputs from canonical data.
    *
    * @param kind requested indexable kind; MATCH has no search inputs
