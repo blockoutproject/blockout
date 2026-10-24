@@ -5,7 +5,6 @@ import {
   getMaintenanceSettings,
   setMaintenanceActivation,
   getGetMaintenanceSettingsQueryKey,
-  getGetApplicationAccessQueryKey,
 } from "../../../../.generated/mobile";
 import type {
   ChangeMaintenanceRequest,
@@ -18,6 +17,7 @@ import {
 } from "../../../shared/api/api-fetch";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useAccountSession } from "../../accounts/current-account";
+import { useApplicationAccess } from "../queries/use-application-access";
 
 /** A conflict or possibly committed write requires an explicit current-state read before resubmission. */
 export function requiresSettingsReread(error: unknown) {
@@ -32,11 +32,12 @@ export function useMaintenanceSettings(enabled: boolean) {
   const session = useAccountSession();
   const auth = useAuth0();
   const client = useQueryClient();
+  const { observations } = useApplicationAccess();
   const queryKey = getSessionQueryKey(
     session.generation,
     getGetMaintenanceSettingsQueryKey(),
   );
-  /** Rechecks the observer's current grant before preparing a request for its original generation. */
+  /** Requires this observer's enabled state and current generation; the server rechecks the actual grant. */
   async function request() {
     if (!enabled) throw new ApiError("http", 403);
     try {
@@ -62,10 +63,17 @@ export function useMaintenanceSettings(enabled: boolean) {
     if (current && value.revision < current.revision)
       throw new ApiError("schema");
     client.setQueryData(queryKey, value);
-    await client.invalidateQueries({
-      queryKey: getGetApplicationAccessQueryKey(),
-      exact: true,
-      refetchType: "none",
+    observe(value);
+    return value;
+  }
+  /** Retains the typed partial group as a restriction; only a complete check can admit ordinary access. */
+  function observe(value: MaintenanceSettingsResponse, signal?: AbortSignal) {
+    if (!session.isCurrent(session.generation) || signal?.aborted)
+      throw new ApiError("cancelled");
+    observations.maintenance({
+      ...value,
+      message: value.active ? value.message : null,
+      imageUrl: value.active ? value.imageUrl : null,
     });
     return value;
   }
@@ -74,7 +82,10 @@ export function useMaintenanceSettings(enabled: boolean) {
     gcTime: 0,
     enabled: enabled && session.status === "authenticated",
     queryFn: async ({ signal }) =>
-      getMaintenanceSettings({ ...(await request()), signal }),
+      observe(
+        await getMaintenanceSettings({ ...(await request()), signal }),
+        signal,
+      ),
   });
   const content = useMutation({
     gcTime: 0,

@@ -15,12 +15,10 @@ export function accessPresentation(
   const maintenance = snapshot.maintenance?.active === true && !bypassing;
   const ordinary =
     snapshot.complete !== undefined && version === "satisfied" && !maintenance;
-  const gate = maintenance
-    ? "maintenance"
-    : version === "outdated"
-      ? "update"
-      : snapshot.checking
-        ? "checking"
-        : "unavailable";
+  let gate: "maintenance" | "update" | "checking" | "unavailable" =
+    "unavailable";
+  if (maintenance) gate = "maintenance";
+  else if (version === "outdated") gate = "update";
+  else if (snapshot.checking) gate = "checking";
   return { versions, version, ordinary, gate } as const;
 }

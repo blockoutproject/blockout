@@ -9,6 +9,7 @@ import {
 import { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
+import { useOrdinaryRequest } from "../../access/ordinary-request";
 import {
   useAccountSession,
   type AccountSession,
@@ -53,6 +54,7 @@ export function useCurrentAccount() {
  * For an existing cached lifecycle, only provider evidence changes; concurrent profile edits survive.
  */
 export function useEstablishAccount() {
+  const { request } = useOrdinaryRequest();
   const auth = useAuth0();
   const client = useQueryClient();
   return useMutation({
@@ -61,11 +63,13 @@ export function useEstablishAccount() {
       try {
         const credentials = await auth.getCredentials();
         if (!credentials) throw new ApiError("http", 401);
-        const account = await establishAccount({
-          session,
-          schema: AccountResponse,
-          headers: { Authorization: `Bearer ${credentials.accessToken}` },
-        });
+        const account = await establishAccount(
+          request({
+            session,
+            schema: AccountResponse,
+            headers: { Authorization: `Bearer ${credentials.accessToken}` },
+          }),
+        );
         const queryKey = getSessionQueryKey(
           session.generation,
           getGetMyAccountQueryKey(),

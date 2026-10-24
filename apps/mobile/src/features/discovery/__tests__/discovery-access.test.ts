@@ -41,7 +41,10 @@ it.each([401, 403, 503])(
       "club",
       {},
       {
-        token: "synthetic-token",
+        headers: {
+          Authorization: "Bearer synthetic-token",
+          "Blockout-Maintenance-Bypass": "true",
+        },
         session: { ...session.getSnapshot(), isCurrent: session.isCurrent },
         signal: new AbortController().signal,
       },
@@ -89,7 +92,10 @@ it("rejects an old-session bypass completion before cache admission", async () =
     "club",
     {},
     {
-      token: "synthetic-token",
+      headers: {
+        Authorization: "Bearer synthetic-token",
+        "Blockout-Maintenance-Bypass": "true",
+      },
       session: { ...session.getSnapshot(), isCurrent: session.isCurrent },
       signal: new AbortController().signal,
     },
@@ -119,7 +125,10 @@ it("rejects a late completion after the owner cancels bypass intent", async () =
     "club",
     {},
     {
-      token: "synthetic-token",
+      headers: {
+        Authorization: "Bearer synthetic-token",
+        "Blockout-Maintenance-Bypass": "true",
+      },
       session: { ...session.getSnapshot(), isCurrent: session.isCurrent },
       signal: intent.signal,
     },
@@ -153,7 +162,10 @@ it("rejects cancelled bypass intent after the response body has completed", asyn
     "club",
     {},
     {
-      token: "synthetic-token",
+      headers: {
+        Authorization: "Bearer synthetic-token",
+        "Blockout-Maintenance-Bypass": "true",
+      },
       session: { ...session.getSnapshot(), isCurrent: session.isCurrent },
       signal: intent.signal,
     },

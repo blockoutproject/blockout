@@ -14,10 +14,12 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
+import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useAccountSession } from "../session/account-session-provider";
 
 /** Owns one original-target save and explicit reconciliation through the generated clients and private cache. */
 export function useProfileEditing(accountId: string) {
+  const { request } = useOrdinaryRequest();
   const session = useAccountSession();
   const auth = useAuth0();
   const client = useQueryClient();
@@ -71,11 +73,14 @@ export function useProfileEditing(accountId: string) {
       const credentials = await auth.getCredentials();
       if (!credentials) throw new ApiError("http", 401);
       return accept(
-        await getAccount(accountId, {
-          signal,
-          session,
-          headers: { Authorization: `Bearer ${credentials.accessToken}` },
-        }),
+        await getAccount(
+          accountId,
+          request({
+            signal,
+            session,
+            headers: { Authorization: `Bearer ${credentials.accessToken}` },
+          }),
+        ),
       );
     },
   });
@@ -85,10 +90,14 @@ export function useProfileEditing(accountId: string) {
       const credentials = await auth.getCredentials();
       if (!credentials) throw new ApiError("http", 401);
       return accept(
-        await changeAccountProfile(accountId, body, {
-          session,
-          headers: { Authorization: `Bearer ${credentials.accessToken}` },
-        }),
+        await changeAccountProfile(
+          accountId,
+          body,
+          request({
+            session,
+            headers: { Authorization: `Bearer ${credentials.accessToken}` },
+          }),
+        ),
         true,
       );
     },
@@ -98,6 +107,7 @@ export function useProfileEditing(accountId: string) {
 
 /** Loads an owner-only binary photo into an ephemeral native preview, outside JSON response validation. */
 export function useProfilePhoto(accountId: string, hasPhoto: boolean) {
+  const { request } = useOrdinaryRequest();
   const session = useAccountSession();
   const auth = useAuth0();
   return useQuery({
@@ -110,11 +120,14 @@ export function useProfilePhoto(accountId: string, hasPhoto: boolean) {
     queryFn: async ({ signal }) => {
       const credentials = await auth.getCredentials();
       if (!credentials) throw new ApiError("http", 401);
-      const blob = await getAccountPhoto(accountId, {
-        signal,
-        session,
-        headers: { Authorization: `Bearer ${credentials.accessToken}` },
-      });
+      const blob = await getAccountPhoto(
+        accountId,
+        request({
+          signal,
+          session,
+          headers: { Authorization: `Bearer ${credentials.accessToken}` },
+        }),
+      );
       const uri = await photoPreview(blob);
       if (!session.isCurrent(session.generation))
         throw new ApiError("cancelled");

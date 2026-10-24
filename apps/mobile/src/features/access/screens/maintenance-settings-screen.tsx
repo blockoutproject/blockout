@@ -47,15 +47,20 @@ function MaintenanceContent({ onDirtyChange }: MaintenanceSettingsScreenProps) {
   const router = useRouter();
   const settings =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
-  const accessError = account.isError ? (
-    <RequestError
-      message="Les permissions du compte sont indisponibles."
-      onRetry={() => void account.refetch()}
-      retrying={account.isFetching}
-    />
-  ) : !canManage ? (
-    <RequestError message="Cette action nécessite une permission dédiée." />
-  ) : null;
+  let accessError = null;
+  if (account.isError) {
+    accessError = (
+      <RequestError
+        message="Les permissions du compte sont indisponibles."
+        onRetry={() => void account.refetch()}
+        retrying={account.isFetching}
+      />
+    );
+  } else if (!canManage) {
+    accessError = (
+      <RequestError message="Cette action nécessite une permission dédiée." />
+    );
+  }
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <View style={styles.header}>

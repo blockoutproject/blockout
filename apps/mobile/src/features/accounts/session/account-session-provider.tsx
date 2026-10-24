@@ -149,20 +149,14 @@ function SessionScope({
     if (reauthenticationRequired) session.invalidate();
   }, [session, reauthenticationRequired]);
 
-  const status: AuthenticationStatus =
-    initialization.status === "initialization-error"
-      ? "initialization-error"
-      : operation !== "idle"
-        ? operation
-        : auth.isLoading
-          ? "restoring"
-          : reauthenticationRequired
-            ? "reauthentication-required"
-            : auth.user
-              ? "authenticated"
-              : auth.error
-                ? "authentication-error"
-                : "guest";
+  let status: AuthenticationStatus = "guest";
+  if (initialization.status === "initialization-error")
+    status = "initialization-error";
+  else if (operation !== "idle") status = operation;
+  else if (auth.isLoading) status = "restoring";
+  else if (reauthenticationRequired) status = "reauthentication-required";
+  else if (auth.user) status = "authenticated";
+  else if (auth.error) status = "authentication-error";
   const value: AccountSession = {
     ...session,
     ...snapshot,

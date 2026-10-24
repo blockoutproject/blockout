@@ -32,6 +32,8 @@ The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions
 
 **Rationale and limit:** This preserves explicit personal choice without persistent preference synchronization. It cannot bypass a minimum version, confer a business action or restore another account's rights. Without another interaction, the app need not learn that maintenance was disabled and enabled again; no maintenance-episode registry is added.
 
+**Request ownership:** Use Orval's request options and native abort signals to carry a caller-owned ordinary-access context. Capture its cache scope before awaiting credentials, revalidate it before sending, and abort it when intent is cleared. Partial settings observations belong to their typed hooks; the shared Fetch boundary only reports current errors through a request-local callback. This removes the global binding, mobile route-policy mirror and schema-identity dispatch without weakening backend authorization or F05 session isolation. A subscription limited to successful current-account query updates preserves observed grant loss even when React batches loss and restoration. A generic SDK facade or second operation registry would recreate the removed coordination.
+
 ## Settings and concurrent edits
 
 **Decision:** Two singleton settings aggregates, maintenance and application versions, each with its own JPA version. Use body revisions and 409 conflicts consistently with F02. Separate content PATCH from activation-state PUT. PATCH is atomic; absent means unchanged, nullable fields can be explicitly removed. Reread after uncertain results, with no automatic retry or merging.

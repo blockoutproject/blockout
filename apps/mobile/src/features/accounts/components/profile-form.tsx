@@ -75,18 +75,14 @@ export function ProfileForm({ account }: ProfileFormProps) {
   const uncertain = isUncertainMutationFailure(save.error);
   const needsRead = uncertain && !original.isSuccess;
   const busy = preparing || isSubmitting || original.isFetching;
+  let photoUri: string | undefined;
+  if (draft.action === "replace") photoUri = draft.prepared.uri;
+  else if (draft.action === "keep" && account.hasPhoto && photo.data)
+    photoUri = photo.data;
   const images =
-    draft.action === "replace"
-      ? [
-          {
-            id: "profile-photo",
-            uri: draft.prepared.uri,
-            label: "Photo de profil",
-          },
-        ]
-      : draft.action === "keep" && account.hasPhoto && photo.data
-        ? [{ id: "profile-photo", uri: photo.data, label: "Photo de profil" }]
-        : [];
+    photoUri === undefined
+      ? []
+      : [{ id: "profile-photo", uri: photoUri, label: "Photo de profil" }];
 
   useEffect(() => {
     active.current = true;

@@ -5,11 +5,12 @@ import {
   useSyncExternalStore,
   type PropsWithChildren,
 } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useAuth0 } from "react-native-auth0";
+import { hashKey, useQueryClient } from "@tanstack/react-query";
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
+import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
+import { getSessionQueryKey } from "../../../shared/query/query-client";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
-import { bindAccessTransport } from "../api/bind-access-transport";
 import { accessPresentation } from "../state/access-presentation";
 import { useApplicationAccess } from "./use-application-access";
 
@@ -22,28 +23,36 @@ function useAdmission() {
   const access = useApplicationAccess();
   const { permissions, hasCommands, account } = useAdministrationCapabilities();
   const session = useAccountSession();
-  const auth = useAuth0();
-  const { getSnapshot, subscribe, isCurrent } = session;
+  const { getSnapshot, subscribe } = session;
   const client = useQueryClient();
-  useLayoutEffect(
-    () =>
-      bindAccessTransport({
-        client,
-        session: { getSnapshot, subscribe, isCurrent },
-        observations: access.observations,
-        bypass: access.bypass,
-        getCredentials: auth.getCredentials,
-      }),
-    [
-      client,
-      getSnapshot,
-      subscribe,
-      isCurrent,
-      access.observations,
-      access.bypass,
-      auth.getCredentials,
-    ],
-  );
+  useLayoutEffect(() => {
+    /** Invalidates personal intent synchronously at a session boundary, including a return to the same account. */
+    function reconcileSession() {
+      if (!access.bypass.active(getSnapshot())) access.bypass.clear();
+    }
+    reconcileSession();
+    const stopSession = subscribe(reconcileSession);
+    // Observe only successful current-account changes: failed refreshes suspend use without erasing intent.
+    const stopAccount = client.getQueryCache().subscribe((event) => {
+      if (event.type !== "updated" || event.action.type !== "success") return;
+      const current = getSnapshot();
+      const queryKey = getSessionQueryKey(
+        current.generation,
+        getGetMyAccountQueryKey(),
+      );
+      if (event.query.queryHash !== hashKey(queryKey)) return;
+      const value = client.getQueryData<AccountResponse>(queryKey);
+      if (
+        value?.accountId === current.accountId &&
+        value.permissions.bypassMaintenance !== true
+      )
+        access.bypass.clear();
+    });
+    return () => {
+      stopSession();
+      stopAccount();
+    };
+  }, [client, getSnapshot, subscribe, access.bypass]);
   useSyncExternalStore(access.bypass.subscribe, access.bypass.getSnapshot);
   const { snapshot } = access;
   const { version } = accessPresentation(snapshot);

@@ -92,11 +92,9 @@ export function ImageField({
   const message = error ?? selectionError;
   const unavailable = disabled || busy;
   const compact = size === "compact";
-  const selectionLabel = busy
-    ? "Chargement…"
-    : message
-      ? retryLabel
-      : chooseLabel;
+  let selectionLabel = chooseLabel;
+  if (busy) selectionLabel = "Chargement…";
+  else if (message) selectionLabel = retryLabel;
 
   useEffect(() => {
     active.current = true;

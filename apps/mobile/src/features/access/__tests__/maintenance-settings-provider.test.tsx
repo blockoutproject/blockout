@@ -1,5 +1,9 @@
-import { Alert, type AlertButton } from "react-native";
-import { QueryClientProvider, QueryObserver } from "@tanstack/react-query";
+import {
+  ApplicationAccessProvider,
+  useApplicationAccess,
+} from "../queries/use-application-access";
+import { Alert, Text, type AlertButton } from "react-native";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, userEvent } from "@testing-library/react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -303,18 +307,13 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
       "First editor draft",
     );
   });
-  it("retains a committed lost-response draft and invalidates without refetching public admission", async () => {
+  it("retains a committed lost-response draft and closes admission without a public refetch", async () => {
     // Given
     const publicKey = getGetApplicationAccessQueryKey();
-    const full = await getApplicationAccess();
-    client.setQueryData(publicKey, full);
-    const observer = new QueryObserver(client, {
-      queryKey: publicKey,
-      queryFn: () => getApplicationAccess(),
-      staleTime: Infinity,
-    });
-    const stopObserving = observer.subscribe(() => {});
     await renderEditor();
+    await screen.findByText("Admission verified");
+    const full = client.getQueryData(publicKey);
+    const publicReads = mockPublicReads;
     const user = await draft("Committed despite lost response");
     mockLoseNextResponse = true;
 
@@ -353,10 +352,11 @@ suite("real PostgreSQL/provider/generated consumer integration", () => {
 
     // Then
     await screen.findByText("Contenu enregistré.");
-    expect(client.getQueryState(publicKey)?.isInvalidated).toBe(true);
+    expect(
+      await screen.findByText("Admission requires retry"),
+    ).toBeOnTheScreen();
     expect(client.getQueryData(publicKey)).toEqual(full);
-    expect(mockPublicReads).toBe(1);
-    stopObserving();
+    expect(mockPublicReads).toBe(publicReads);
   });
 });
 /** Finds a named choice in the displayed native alert without accepting it during setup. */
@@ -369,15 +369,23 @@ function nativeAction(label: string): AlertButton {
 }
 /** Mounts the actual form component with its real F05/Query owners, outside production route admission. */
 async function renderEditor() {
-  await render(<MaintenanceSettingsScreen />, {
-    wrapper: ({ children }) => (
-      <QueryClientProvider client={client}>
-        <ThemeProvider>
-          <AccountSessionProvider>{children}</AccountSessionProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    ),
-  });
+  await render(
+    <>
+      <MaintenanceSettingsScreen />
+      <AccessObservation />
+    </>,
+    {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>
+          <ThemeProvider>
+            <ApplicationAccessProvider>
+              <AccountSessionProvider>{children}</AccountSessionProvider>
+            </ApplicationAccessProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      ),
+    },
+  );
   await screen.findByLabelText("Message de maintenance");
 }
 /** Edits the real RHF-controlled native input; the server receives only the generated mutation. */
@@ -386,4 +394,14 @@ async function draft(message: string) {
   await user.clear(screen.getByLabelText("Message de maintenance"));
   await user.type(screen.getByLabelText("Message de maintenance"), message);
   return user;
+}
+
+/** Renders actual process admission evidence independently of the retained public query cache. */
+function AccessObservation() {
+  const { snapshot } = useApplicationAccess();
+  return (
+    <Text>
+      {snapshot.complete ? "Admission verified" : "Admission requires retry"}
+    </Text>
+  );
 }
