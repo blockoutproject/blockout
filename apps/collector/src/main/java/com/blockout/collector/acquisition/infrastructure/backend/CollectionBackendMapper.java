@@ -21,6 +21,32 @@ import org.mapstruct.Mapping;
 @Mapper(config = MappingConfiguration.class)
 public interface CollectionBackendMapper {
   /**
+   * Maps current intent only, with no admission or retained fallback.
+   *
+   * @param source generated current-work response
+   * @return immutable application intent
+   */
+  CollectionBackend.Work toView(
+      com.blockout.collector.generated.ingestion.model.CollectionWorkInternalResponse source);
+
+  /**
+   * Keeps current eligibility and backend-owned pending mode at the scheduler boundary.
+   *
+   * @param source generated independent control
+   * @return application scheduling context
+   */
+  CollectionBackend.ControlWork toWork(
+      com.blockout.collector.generated.ingestion.model.CollectionControlInternalResponse source);
+
+  /**
+   * Keeps only the identity and revision needed to admit an exact pending candidate.
+   *
+   * @param source generated current candidate work
+   * @return exact admission identity and revision
+   */
+  CollectionBackend.ValidationWork toWork(SourceValidationWorkInternalResponse source);
+
+  /**
    * Maps qualified discovery without inventing lifecycle or classification.
    *
    * @param source source-entry evidence

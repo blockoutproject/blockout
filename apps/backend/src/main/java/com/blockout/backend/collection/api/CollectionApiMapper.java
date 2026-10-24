@@ -42,6 +42,39 @@ import org.openapitools.jackson.nullable.JsonNullable;
 @Mapper(config = MappingConfiguration.class)
 public interface CollectionApiMapper {
   /**
+   * Projects intent and confirmed execution without inventing freshness.
+   *
+   * @param source application control projection
+   * @return generated operator response with required absent evidence represented by null
+   */
+  @Mapping(target = ".", source = "control")
+  @Mapping(
+      target = "pendingRequestId",
+      source = "control.requestId",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(
+      target = "lastAttemptAt",
+      source = "control.lastAttemptAt",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(
+      target = "lastSuccessAt",
+      source = "control.lastSuccessAt",
+      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
+  @Mapping(target = "additionalProperties", ignore = true)
+  com.blockout.backend.generated.mobile.model.CollectionControlResponse toDto(
+      CollectionState.ControlView source);
+
+  /**
+   * Projects one retained control cycle, including interrupted work after replacement.
+   *
+   * @param source retained current cycle
+   * @return summary; completion is absent until confirmed
+   */
+  @Mapping(target = "additionalProperties", ignore = true)
+  com.blockout.backend.generated.mobile.model.CollectionCycleSummaryResponse toSummary(
+      CollectionState.Cycle source);
+
+  /**
    * Carries qualified source-entry evidence to its application owner.
    *
    * @param source strict generated discovery proposal

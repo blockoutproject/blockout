@@ -63,6 +63,17 @@ public class SeasonService {
   }
 
   /**
+   * Persists terminal acquisition closure inside the already authorized caller transaction.
+   *
+   * @param id canonical open season held exclusively by the caller
+   * @return terminal lifecycle with its native editing revision
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public SportingViews.CollectionSeasonView closeCollectionSeason(UUID id) {
+    return store.closeCollectionSeason(id);
+  }
+
+  /**
    * Reuses an explicitly qualified sporting year; concurrent creation is protected by uniqueness.
    *
    * @param startYear qualified year within the source contract's safe-integer range

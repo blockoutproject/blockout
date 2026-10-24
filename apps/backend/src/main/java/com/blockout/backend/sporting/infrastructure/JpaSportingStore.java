@@ -275,6 +275,15 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  public SportingViews.CollectionSeasonView closeCollectionSeason(UUID id) {
+    SeasonEntity season = seasons.findById(id).orElseThrow(SportingResourceNotFoundException::new);
+    season.setCollectionState(CollectionSeasonStateEnum.CLOSED);
+    seasons.flush();
+    return mapper.toCollectionView(season);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public Optional<SeasonView> seasonByYear(long year) {
     return seasons.findByStartYear(year).map(mapper::toView);
   }

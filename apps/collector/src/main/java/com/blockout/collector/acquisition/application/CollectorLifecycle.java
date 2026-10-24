@@ -23,7 +23,7 @@ public class CollectorLifecycle {
   private final CollectionBackend backend;
   @Getter private final UUID incarnationId = UUID.randomUUID();
   private boolean registrationAttempted;
-  private volatile boolean active;
+  @Getter private volatile boolean active;
 
   /**
    * Reads then conditionally registers once; an uncertain acknowledgement is confirmed by a read. A

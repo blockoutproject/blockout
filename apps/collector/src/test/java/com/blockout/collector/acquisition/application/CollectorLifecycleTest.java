@@ -2,6 +2,8 @@ package com.blockout.collector.acquisition.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.blockout.collector.acquisition.infrastructure.CollectorStartup;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
@@ -42,6 +44,7 @@ class CollectorLifecycleTest {
   private boolean contradictoryPurpose;
   private boolean refuseCycleRead;
   private CollectorLifecycle lifecycle;
+  private CollectionBackendClient backend;
 
   /** Starts a native local HTTP peer and a generated client with automatic retries disabled. */
   @BeforeEach
@@ -56,7 +59,16 @@ class CollectorLifecycleTest {
           calls.add(method + " " + path);
           int status = 200;
           String body;
-          if (path.endsWith("collector-runtime")) {
+          if (path.endsWith("collection-work")) {
+            body =
+                """
+                {"controls":[{"id":"00000000-0000-4000-8000-000000000183","family":"ffvb",
+                "seasonId":"00000000-0000-4000-8000-000000000184","revision":7,"enabled":true,
+                "seasonState":"active","requestId":"00000000-0000-4000-8000-000000000185","requestedMode":"manual"}],
+                "validations":[{"sourceBindingId":"00000000-0000-4000-8000-000000000186","revision":3,
+                "candidateUrl":"https://www.ffvbbeach.org/source","seasonLabel":"2026/2027","provider":"ffvb","organizerReference":"ABCCS"}]}
+                """;
+          } else if (path.endsWith("collector-runtime")) {
             if (method.equals("PUT"))
               registered =
                   UUID.fromString(
@@ -117,12 +129,12 @@ class CollectorLifecycleTest {
     ApiClient api =
         new ApiClient(ApiClient.buildRestClientBuilder().requestFactory(requests).build());
     api.setBasePath("http://127.0.0.1:" + server.getAddress().getPort());
-    lifecycle =
-        new CollectorLifecycle(
-            new CollectionBackendClient(
-                new CollectorOperationsApi(api),
-                new CollectionApi(api),
-                new CollectionBackendMapperImpl()));
+    backend =
+        new CollectionBackendClient(
+            new CollectorOperationsApi(api),
+            new CollectionApi(api),
+            new CollectionBackendMapperImpl());
+    lifecycle = new CollectorLifecycle(backend);
   }
 
   /** Releases the listener and the HTTP pool owned by this scenario. */
@@ -133,11 +145,50 @@ class CollectorLifecycleTest {
   }
 
   @Test
+  @DisplayName(
+      "Current-work polling maps generated conditional intent without admitting or reading providers")
+  void readsGeneratedWork() {
+    // Given
+    lifecycle.start();
+
+    // When
+    CollectionBackend.Work work = backend.work(lifecycle.getIncarnationId());
+
+    // Then
+    assertThat(work.controls())
+        .singleElement()
+        .satisfies(
+            control -> {
+              assertThat(control.revision()).isEqualTo(7);
+              assertThat(control.requestedMode())
+                  .isEqualTo(
+                      com.blockout.collector.generated.ingestion.model.CollectionModeEnum.MANUAL);
+              assertThat(control.requestId())
+                  .isEqualTo(UUID.fromString("00000000-0000-4000-8000-000000000185"));
+            });
+    assertThat(work.validations())
+        .singleElement()
+        .satisfies(
+            candidate -> {
+              assertThat(candidate.revision()).isEqualTo(3);
+              assertThat(candidate.sourceBindingId())
+                  .isEqualTo(UUID.fromString("00000000-0000-4000-8000-000000000186"));
+            });
+    assertThat(calls)
+        .containsExactly(
+            "GET /ingestion/collector-runtime",
+            "PUT /ingestion/collector-runtime",
+            "GET /ingestion/collection-work");
+  }
+
+  @Test
   @DisplayName("Reads then registers the startup UUID once before accepting work")
   void registersOneStartup() throws Exception {
 
     // When
-    new CollectorStartup(lifecycle).run(new DefaultApplicationArguments());
+    AcquisitionScheduler scheduler = mock(AcquisitionScheduler.class);
+    new CollectorStartup(lifecycle, scheduler).run(new DefaultApplicationArguments());
+    verify(scheduler).start();
 
     // Then
     assertThat(calls)

@@ -207,6 +207,23 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
+  public CollectionState.Control setControlIntent(
+      UUID id, boolean enabled, UUID requestId, CollectionModeEnum mode) {
+    CollectionControlEntity entity =
+        controls.findById(id).orElseThrow(CollectionNotFoundException::new);
+    entity.setEnabled(enabled);
+    entity.setRequestId(requestId);
+    entity.setRequestedMode(mode);
+    if (requestId == null) {
+      entity.getSourceBindingIds().clear();
+      entity.getScopeIds().clear();
+    }
+    controls.flush();
+    return mapper.toView(entity);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public List<CollectionState.Control> controls() {
     return controls.findAllByOrderById().stream().map(mapper::toView).toList();
   }
