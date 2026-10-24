@@ -44,6 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -244,6 +245,22 @@ class NotificationsWebMvcTest {
     mvc.perform(get(COLLECTION).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"))
+        .andExpect(jsonPath("$.detail").doesNotExist())
+        .andExpect(header().string("Cache-Control", "no-store"));
+  }
+
+  @Test
+  @DisplayName("Unexpected SQL faults retain the shared HTTP failure outcome")
+  void preservesUnexpectedFailure() throws Exception {
+    // Given
+    when(account.id()).thenReturn(ACCOUNT);
+    when(reads.page(any(), isNull()))
+        .thenThrow(new InvalidDataAccessResourceUsageException("private SQL diagnostic"));
+
+    // When / Then
+    mvc.perform(get(COLLECTION).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
+        .andExpect(status().isInternalServerError())
+        .andExpect(jsonPath("$.type").value("about:blank"))
         .andExpect(jsonPath("$.detail").doesNotExist())
         .andExpect(header().string("Cache-Control", "no-store"));
   }
