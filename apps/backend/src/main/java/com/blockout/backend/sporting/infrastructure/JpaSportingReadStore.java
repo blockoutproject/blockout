@@ -41,50 +41,92 @@ public class JpaSportingReadStore implements SportingReadStore {
     Set<Reason> reasons = EnumSet.noneOf(Reason.class);
     switch (kind) {
       case CLUB -> {
-        if (entities.find(ClubEntity.class, id) == null) return Optional.empty();
+        if (entities
+            .createQuery("SELECT c.id FROM ClubEntity c WHERE c.id = :id", UUID.class)
+            .setParameter("id", id)
+            .getResultList()
+            .isEmpty()) return Optional.empty();
       }
       case POOL -> {
-        PoolEntity pool = entities.find(PoolEntity.class, id);
+        PoolVisibilityRow pool =
+            entities
+                .createQuery(
+                    """
+            SELECT NEW com.blockout.backend.sporting.infrastructure.PoolVisibilityRow(
+              p.catalogEligible, p.calendarEmpty, d.id, d.active)
+            FROM PoolEntity p LEFT JOIN p.division d WHERE p.id = :id
+            """,
+                    PoolVisibilityRow.class)
+                .setParameter("id", id)
+                .getSingleResultOrNull();
         if (pool == null) return Optional.empty();
-        reasons.addAll(poolReasons(pool));
+        reasons.addAll(
+            poolReasons(
+                pool.catalogEligible(),
+                pool.calendarEmpty(),
+                pool.divisionId(),
+                pool.divisionActive()));
       }
       case TEAM -> {
-        TeamEntity team = entities.find(TeamEntity.class, id);
-        if (team == null) return Optional.empty();
-        if (!team.getDivision().isActive()) reasons.add(Reason.DIVISION_INACTIVE);
+        Boolean active =
+            entities
+                .createQuery(
+                    "SELECT t.division.active FROM TeamEntity t WHERE t.id = :id", Boolean.class)
+                .setParameter("id", id)
+                .getSingleResultOrNull();
+        if (active == null) return Optional.empty();
+        if (!active) reasons.add(Reason.DIVISION_INACTIVE);
         if (visiblePoolIds(Set.of(id)).isEmpty()) reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
       }
       case MATCH -> {
-        MatchEntity match = entities.find(MatchEntity.class, id);
+        MatchVisibilityRow match =
+            entities
+                .createQuery(
+                    """
+            SELECT NEW com.blockout.backend.sporting.infrastructure.MatchVisibilityRow(
+              p.id, p.catalogEligible, p.calendarEmpty, d.id, d.active,
+              m.present, m.localDate, m.homeTeam.id, m.awayTeam.id)
+            FROM MatchEntity m JOIN m.pool p LEFT JOIN p.division d WHERE m.id = :id
+            """,
+                    MatchVisibilityRow.class)
+                .setParameter("id", id)
+                .getSingleResultOrNull();
         if (match == null) return Optional.empty();
-        reasons.addAll(poolReasons(match.getPool()));
-        if (!match.isPresent()) reasons.add(Reason.ITEM_ABSENT);
-        if (match.getLocalDate() == null) reasons.add(Reason.DATE_UNKNOWN);
+        reasons.addAll(
+            poolReasons(
+                match.catalogEligible(),
+                match.calendarEmpty(),
+                match.divisionId(),
+                match.divisionActive()));
+        if (!match.present()) reasons.add(Reason.ITEM_ABSENT);
+        if (match.localDate() == null) reasons.add(Reason.DATE_UNKNOWN);
         Map<UUID, List<UUID>> memberships =
-            visiblePoolIds(Set.of(match.getHomeTeam().getId(), match.getAwayTeam().getId()));
-        if (!memberships
-                .getOrDefault(match.getHomeTeam().getId(), List.of())
-                .contains(match.getPool().getId())
-            || !memberships
-                .getOrDefault(match.getAwayTeam().getId(), List.of())
-                .contains(match.getPool().getId())) reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
+            visiblePoolIds(Set.of(match.homeTeamId(), match.awayTeamId()));
+        if (!memberships.getOrDefault(match.homeTeamId(), List.of()).contains(match.poolId())
+            || !memberships.getOrDefault(match.awayTeamId(), List.of()).contains(match.poolId()))
+          reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
       }
     }
     return Optional.of(new SportingVisibility(id, kind, reasons));
   }
 
   /**
-   * Computes independent pool restrictions without treating season closure as hiding.
+   * Computes independent pool restrictions from scalar facts without loading division images.
+   * Season closure never hides retained sporting data.
    *
-   * @param pool current retained pool
+   * @param catalogEligible current catalog presence
+   * @param calendarEmpty whether the last qualified current calendar was empty
+   * @param divisionId accepted classification, or null before classification
+   * @param divisionActive current division activity, or null without a classification
    * @return every current catalog, calendar and division restriction
    */
-  private Set<Reason> poolReasons(PoolEntity pool) {
+  private Set<Reason> poolReasons(
+      boolean catalogEligible, boolean calendarEmpty, UUID divisionId, Boolean divisionActive) {
     Set<Reason> reasons = EnumSet.noneOf(Reason.class);
-    if (!pool.isCatalogEligible()) reasons.add(Reason.CATALOG_ABSENT);
-    if (pool.isCalendarEmpty()) reasons.add(Reason.CALENDAR_EMPTY);
-    if (pool.getDivision() == null) reasons.add(Reason.UNCLASSIFIED);
-    else if (!pool.getDivision().isActive()) reasons.add(Reason.DIVISION_INACTIVE);
+    if (!catalogEligible) reasons.add(Reason.CATALOG_ABSENT);
+    if (calendarEmpty) reasons.add(Reason.CALENDAR_EMPTY);
+    if (divisionId == null) reasons.add(Reason.UNCLASSIFIED);
+    else if (!divisionActive) reasons.add(Reason.DIVISION_INACTIVE);
     return reasons;
   }
 

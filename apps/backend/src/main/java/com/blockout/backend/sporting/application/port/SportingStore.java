@@ -117,6 +117,14 @@ public interface SportingStore {
   List<SportingViews.CollectionSeasonView> collectionSeasons();
 
   /**
+   * Reads only canonical seasons needed by the current collection configuration.
+   *
+   * @param ids requested season identities; empty selects nothing
+   * @return existing acquisition states keyed by canonical identity
+   */
+  Map<UUID, SportingViews.CollectionSeasonView> collectionSeasons(Set<UUID> ids);
+
+  /**
    * Advances preparation revision after a source change, optionally activating first launch.
    *
    * @param id canonical season already exclusively locked by the caller
@@ -386,6 +394,14 @@ public interface SportingStore {
   List<ParticipationView> participations(List<UUID> teamIds);
 
   /**
+   * Resolves retained team memberships without loading participant or classification state.
+   *
+   * @param teamId stable sporting team
+   * @return pool identities, including retained absent memberships; empty for an unknown team
+   */
+  List<UUID> teamPoolIds(UUID teamId);
+
+  /**
    * Replaces a complete pack default and flushes its managed editing revision.
    *
    * @param id locked pack
@@ -415,9 +431,9 @@ public interface SportingStore {
    * Locks a division after season roots and before account roots.
    *
    * @param id existing target division
-   * @return activity held stable through caller commit, or empty
+   * @return editing state and activity held stable through caller commit, or empty
    */
-  Optional<DivisionView> lockDivision(UUID id);
+  Optional<DivisionDetail> lockDivision(UUID id);
 
   /**
    * Reads complete division editing state.

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doAnswer;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
@@ -12,6 +13,7 @@ import com.blockout.backend.sporting.application.exception.UnresolvedSportingIde
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
@@ -51,6 +53,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -100,6 +103,33 @@ class SportingIdentityIntegrationTest {
     sql.update(
         "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'Synthetic division', TRUE, '#112233')",
         DIVISION);
+  }
+
+  @Test
+  @DisplayName("Season identity resolution cannot retain lifecycle from before its write lock")
+  void locksCurrentSeasonAfterIdentityLookup() {
+    // Given
+    SeasonView season = seasons.getOrCreate(2026L);
+    TransactionTemplate original = new TransactionTemplate(transactions);
+    TransactionTemplate concurrent = new TransactionTemplate(transactions);
+    concurrent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+
+    // When
+    CollectionSeasonView locked =
+        original.execute(
+            status -> {
+              SeasonView resolved = seasons.getOrCreate(2026L);
+              concurrent.executeWithoutResult(
+                  other -> {
+                    seasons.lockCollectionState(season.id());
+                    seasons.closeCollectionSeason(season.id());
+                  });
+              return seasons.lockCollectionState(resolved.id());
+            });
+
+    // Then
+    assertThat(locked.collectionState()).isEqualTo(CollectionSeasonStateEnum.CLOSED);
+    assertThat(locked.collectionRevision()).isEqualTo(1);
   }
 
   @Test

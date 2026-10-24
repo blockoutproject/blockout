@@ -268,6 +268,14 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  public Map<UUID, SportingViews.CollectionSeasonView> collectionSeasons(Set<UUID> ids) {
+    if (ids.isEmpty()) return Map.of();
+    return seasons.findAllById(ids).stream()
+        .collect(Collectors.toUnmodifiableMap(SeasonEntity::getId, mapper::toCollectionView));
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public SportingViews.CollectionSeasonView updatePreparation(UUID id, boolean activate) {
     SeasonEntity season = seasons.findById(id).orElseThrow(SportingResourceNotFoundException::new);
     long revision = season.getCollectionRevision();
@@ -290,7 +298,7 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   public Optional<SeasonView> seasonByYear(long year) {
-    return seasons.findByStartYear(year).map(mapper::toView);
+    return seasons.findByStartYear(year);
   }
 
   /** {@inheritDoc} */
@@ -551,6 +559,12 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  public List<UUID> teamPoolIds(UUID teamId) {
+    return participations.findPoolIdsByTeamId(teamId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public void setPackClassification(UUID id, SportingClassification setting) {
     packs.findById(id).orElseThrow().setSetting(mapper.toSetting(setting));
     packs.flush();
@@ -584,14 +598,14 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<DivisionView> lockDivision(UUID id) {
-    return divisions.lockById(id).map(mapper::toView);
+  public Optional<DivisionDetail> lockDivision(UUID id) {
+    return divisions.lockById(id).map(mapper::toDetail);
   }
 
   /** {@inheritDoc} */
   @Override
   public Optional<DivisionDetail> divisionDetail(UUID id) {
-    return divisions.findById(id).map(mapper::toDetail);
+    return divisions.findSummaryById(id).map(mapper::toDetail);
   }
 
   /** {@inheritDoc} */
@@ -805,10 +819,14 @@ public class JpaSportingStore implements SportingStore {
     if (created) entity = new StandingsEntity(value.poolId());
     mapper.updateStandings(value, entity);
     if (value.publicationState() == StandingsPublicationStateEnum.PUBLISHED) {
-      entity.getColumns().clear();
-      entity.getColumns().addAll(value.columns());
-      entity.getRows().clear();
-      entity.getRows().addAll(mapper.toRows(value.rows()));
+      if (!entity.getColumns().equals(value.columns())) {
+        entity.getColumns().clear();
+        entity.getColumns().addAll(value.columns());
+      }
+      if (!mapper.toRowViews(entity.getRows()).equals(value.rows())) {
+        entity.getRows().clear();
+        entity.getRows().addAll(mapper.toRows(value.rows()));
+      }
     }
     if (created) standings.save(entity);
   }

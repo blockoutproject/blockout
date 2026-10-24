@@ -98,7 +98,7 @@ interface SportingIdentityMapper {
   DivisionDetail toDetail(DivisionEntity source);
 
   /**
-   * Maps list metadata and the database-computed image presence without materializing an entity.
+   * Maps editor metadata and database-computed image presence without materializing an entity.
    *
    * @param source projected division metadata
    * @return detached editor state
@@ -343,6 +343,14 @@ interface SportingIdentityMapper {
    * @return publication evidence and usable table
    */
   StandingsView toView(StandingsEntity source);
+
+  /**
+   * Detaches ordered table rows for reads and content comparison before replacing owned rows.
+   *
+   * @param source current source-ordered persistent rows with their statistics
+   * @return immutable row values preserving order, missing links and statistics
+   */
+  List<StandingsView.Row> toRowViews(List<StandingRowEntity> source);
 
   /**
    * Replaces only table-owned values; the pool identity remains immutable.

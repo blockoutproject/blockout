@@ -104,9 +104,9 @@ public class DivisionService {
   @Transactional
   public DivisionDetail setActive(UUID accountId, UUID id, String revision, boolean active) {
     requireLifecycle(accountId);
-    store.lockDivision(id).orElseThrow(SportingResourceNotFoundException::new);
+    DivisionDetail current =
+        store.lockDivision(id).orElseThrow(SportingResourceNotFoundException::new);
     authorization.require(accountId, Permission.MANAGE_DIVISION_LIFECYCLE);
-    DivisionDetail current = store.divisionDetail(id).orElseThrow();
     if (!Long.toString(current.revision()).equals(revision))
       throw new SportingConflictException("stale-revision", List.of());
     return current.active() == active ? current : store.setDivisionActive(id, active);

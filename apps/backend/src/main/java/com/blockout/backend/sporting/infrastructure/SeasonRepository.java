@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.infrastructure;
 
+import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -18,12 +19,12 @@ interface SeasonRepository extends JpaRepository<SeasonEntity, UUID> {
   List<SeasonEntity> findAllByOrderByStartYearDescIdAsc();
 
   /**
-   * Finds the canonical season by its explicitly qualified year.
+   * Projects immutable season identity without caching lifecycle before a later write lock.
    *
    * @param year explicit qualified year
-   * @return existing canonical season
+   * @return existing canonical season identity
    */
-  Optional<SeasonEntity> findByStartYear(long year);
+  Optional<SeasonView> findByStartYear(long year);
 
   /**
    * Acquires the native pessimistic season row lock.

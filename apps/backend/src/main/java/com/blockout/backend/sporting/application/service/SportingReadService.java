@@ -154,9 +154,7 @@ public class SportingReadService {
    * @return owning pool identities without exporting persistence entities
    */
   public List<UUID> teamPools(UUID teamId) {
-    return store.participations(List.of(teamId)).stream()
-        .map(participation -> participation.poolId())
-        .toList();
+    return store.teamPoolIds(teamId);
   }
 
   /**
@@ -272,5 +270,15 @@ public class SportingReadService {
    */
   public Optional<MatchView> match(UUID id) {
     return store.match(id);
+  }
+
+  /**
+   * Resolves an encounter's retained pool for acquisition scope checks.
+   *
+   * @param id stable encounter
+   * @return owning pool identity, or empty when the encounter is unknown
+   */
+  public Optional<UUID> matchPoolId(UUID id) {
+    return store.matchPoolId(id);
   }
 }
