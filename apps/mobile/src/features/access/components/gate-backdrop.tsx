@@ -79,7 +79,7 @@ function GateStrip({
   );
 }
 
-/** Decorative diagonal community rails; native reduced motion keeps them still, including live changes. */
+/** Compact diagonal rails share the foreground's center; native reduced motion keeps them still, including live changes. */
 export function GateBackdrop() {
   const [area, setArea] = useState({ width: 0, height: 0 });
   const [reducedMotion, setReducedMotion] = useState(true);
@@ -150,11 +150,15 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFill,
     alignItems: "center",
+    justifyContent: "center",
     overflow: "hidden",
     opacity: 0.12,
   },
-  rails: { height: "100%", transform: [{ rotate: `${tiltDegrees}deg` }] },
-  rail: { flex: 1, justifyContent: "center", alignItems: "center" },
+  rails: {
+    gap: tokens.spacing.lg,
+    transform: [{ rotate: `${tiltDegrees}deg` }],
+  },
+  rail: { alignItems: "center" },
   strip: { flexDirection: "row", flexShrink: 0 },
   cycle: {
     flexDirection: "row",
