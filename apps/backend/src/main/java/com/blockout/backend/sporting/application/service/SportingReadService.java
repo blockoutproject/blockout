@@ -1,9 +1,11 @@
 package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
@@ -18,6 +20,8 @@ import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.port.SportingReadStore;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -282,5 +286,67 @@ public class SportingReadService {
    */
   public Optional<UUID> matchPoolId(UUID id) {
     return store.matchPoolId(id);
+  }
+
+  /**
+   * Reads current names and effective artwork only while the addressed sporting owner is viewable.
+   *
+   * @param kind club, team or pool
+   * @param id stable owner
+   * @return current detached presentation, or empty for a hidden/unknown owner
+   */
+  public Optional<SportingPresentation.View> publicPresentation(Kind kind, UUID id) {
+    return visibility(kind, id)
+        .filter(SportingVisibility::viewable)
+        .flatMap(
+            ignored -> store.presentation(SportingProjectionChanges.Kind.valueOf(kind.name()), id));
+  }
+
+  /**
+   * Supplies effective permitted contacts to public consumers without source/manual metadata.
+   *
+   * @param clubId stable organization
+   * @return immutable current field values; restricted and deliberately absent values are null
+   */
+  public Map<SportingPresentation.ContactField, String> publicClubContacts(UUID clubId) {
+    if (visibility(Kind.CLUB, clubId).filter(SportingVisibility::viewable).isEmpty())
+      return Map.of();
+    Map<SportingPresentation.ContactField, String> result =
+        new EnumMap<>(SportingPresentation.ContactField.class);
+    store
+        .clubContacts(clubId)
+        .fields()
+        .forEach((field, value) -> result.put(field, value.effectiveValue()));
+    return Collections.unmodifiableMap(result);
+  }
+
+  /**
+   * Supplies the current permitted municipality point; no provider attempt is made here.
+   *
+   * @param clubId stable organization
+   * @return current context and point, or empty for an unknown club
+   */
+  public Optional<SportingPresentation.Locality> publicLocality(UUID clubId) {
+    return visibility(Kind.CLUB, clubId)
+        .filter(SportingVisibility::viewable)
+        .map(ignored -> store.locality(clubId));
+  }
+
+  /**
+   * Resolves immutable effective image content under current resource eligibility.
+   *
+   * @param kind club, team or division
+   * @param id stable owner
+   * @return actual current bytes, or empty for an unavailable owner or missing image
+   */
+  public Optional<SportingPresentation.Image> publicLogo(
+      SportingProjectionChanges.Kind kind, UUID id) {
+    boolean visible =
+        kind == SportingProjectionChanges.Kind.DIVISION
+            ? store.division(id).filter(DivisionView::active).isPresent()
+            : visibility(Kind.valueOf(kind.name()), id)
+                .filter(SportingVisibility::viewable)
+                .isPresent();
+    return visible ? store.effectiveLogo(kind, id) : Optional.empty();
   }
 }

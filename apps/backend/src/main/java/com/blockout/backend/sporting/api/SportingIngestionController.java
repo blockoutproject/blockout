@@ -10,10 +10,18 @@ import com.blockout.backend.generated.ingestion.model.ClubLocalityObservationInt
 import com.blockout.backend.generated.ingestion.model.MatchDetailObservationInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeInternalResponse;
 import com.blockout.backend.generated.ingestion.model.StandingsObservationInternalRequest;
+import com.blockout.backend.sporting.application.exception.SportingValidationException;
+import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
 import com.blockout.backend.sporting.application.service.CatalogAcceptanceService;
+import com.blockout.backend.sporting.application.service.ClubDetailsService;
+import com.blockout.backend.sporting.application.service.ClubLocalityService;
 import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
+import com.blockout.backend.sporting.application.service.SportingImageService;
 import com.blockout.backend.sporting.application.service.StandingsService;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +32,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Generated ingestion routes; owning application acceptance is wired by this increment. */
+/** Generated ingestion routes delegating to fenced owner acceptance transactions. */
 @RestController
 @RequiredArgsConstructor
 public class SportingIngestionController implements SportingApi {
@@ -34,19 +42,27 @@ public class SportingIngestionController implements SportingApi {
   private final StandingsService standings;
   private final SportingObservationMapper mapper;
   private final SportingObservationValidator validator;
+  private final ClubDetailsService clubs;
+  private final ClubLocalityService localities;
+  private final SportingImageService images;
+  private final SportingPresentationMapper presentationMapper;
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<ObservationOutcomeInternalResponse> observeClubDetails(
-      UUID clubId, ClubDetailsInternalRequest clubDetailsInternalRequest) {
-    throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+      UUID clubId, ClubDetailsInternalRequest request) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(clubs.accept(clubId, presentationMapper.toObservation(request))));
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<ObservationOutcomeInternalResponse> observeClubLocality(
-      UUID clubId, ClubLocalityObservationInternalRequest clubLocalityObservationInternalRequest) {
-    throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+      UUID clubId, ClubLocalityObservationInternalRequest request) {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(localities.accept(clubId, presentationMapper.toObservation(request))));
   }
 
   /** {@inheritDoc} */
@@ -87,7 +103,21 @@ public class SportingIngestionController implements SportingApi {
       OffsetDateTime observedAt,
       Resource body,
       OffsetDateTime providerPublishedAt) {
-    throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED);
+    MatchObservation.Context context =
+        new MatchObservation.Context(cycleId, readOrdinal, observedAt, providerPublishedAt);
+    images.requireSource(teamId, context);
+    Image validated;
+    try (InputStream content = body.getInputStream()) {
+      byte[] bytes = content.readNBytes(SportingImageService.MAX_BYTES + 1);
+      if (bytes.length > SportingImageService.MAX_BYTES)
+        throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
+      validated = SportingImageService.validate(bytes);
+    } catch (IOException invalid) {
+      throw new SportingValidationException();
+    }
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(mapper.toDto(images.acceptSource(teamId, context, validated)));
   }
 
   /** {@inheritDoc} */

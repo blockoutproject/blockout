@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.application.port;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
@@ -13,6 +14,7 @@ import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
@@ -620,4 +622,106 @@ public interface SportingStore {
    * @return existing current participants; no identity or presence mutation
    */
   List<TeamView> currentPoolTeams(UUID poolId);
+
+  /**
+   * Locks the presentation root, taking the season first for teams and pools.
+   *
+   * @param kind club, team or pool
+   * @param id established owner
+   */
+  void lockPresentation(Kind kind, UUID id);
+
+  /**
+   * Reads current independent names and dynamically inherited artwork without copying it.
+   *
+   * @param kind club, team or pool
+   * @param id stable owner
+   * @return current editor values, or empty for an unknown owner
+   */
+  Optional<SportingPresentation.View> presentation(Kind kind, UUID id);
+
+  /**
+   * Saves complete decided manual names and artwork under the caller's root/account locks.
+   *
+   * @param kind club, team or pool
+   * @param id locked owner
+   * @param edit validated complete desired state
+   * @return current state, preserving revision on a no-op
+   */
+  SportingPresentation.View savePresentation(Kind kind, UUID id, SportingPresentation.Edit edit);
+
+  /**
+   * Saves division presentation without changing its activity.
+   *
+   * @param id locked division
+   * @param edit complete validated presentation
+   * @return current division editor state after a uniqueness-checked flush
+   */
+  DivisionDetail saveDivisionPresentation(UUID id, SportingPresentation.DivisionEdit edit);
+
+  /**
+   * Reads current contact modes, restrictions and source order.
+   *
+   * @param id known club
+   * @return immutable permitted current state
+   */
+  SportingPresentation.Contacts clubContacts(UUID id);
+
+  /**
+   * Replaces decided contacts and optional source name, reconciling effective locality immediately.
+   *
+   * @param contacts complete current permitted state under the club lock
+   * @param sourceName usable new attributable name, or null to preserve it
+   */
+  void saveClubContacts(SportingPresentation.Contacts contacts, String sourceName);
+
+  /**
+   * Reads current effective municipality and point without a provider call.
+   *
+   * @param id established club
+   * @return current locality context, point and accepted response order
+   */
+  SportingPresentation.Locality locality(UUID id);
+
+  /**
+   * Replaces a revision-qualified point or records qualified unresolved state.
+   *
+   * @param id locked club
+   * @param observation validated current response
+   * @param order admitted logical order held through commit
+   */
+  void saveLocality(
+      UUID id, SportingPresentation.LocalityObservation observation, ObservationOrder order);
+
+  /**
+   * Reads last accepted source-image order after the team season is fenced.
+   *
+   * @param id known professional team
+   * @return latest accepted token, or null
+   */
+  ObservationOrder sourceLogoOrder(UUID id);
+
+  /**
+   * Commits valid source bytes, association and metadata together without changing manual artwork.
+   *
+   * @param id established team under its season lock
+   * @param image validated actual PNG/JPEG content
+   * @param order current admitted logical token
+   * @param context independent freshness and source publication time
+   * @return whether accepted source content changed
+   */
+  boolean saveSourceLogo(
+      UUID id,
+      SportingPresentation.Image image,
+      ObservationOrder order,
+      MatchObservation.Context context);
+
+  /**
+   * Resolves current original bytes through resource-specific inheritance.
+   *
+   * @param kind club, team or division
+   * @param id stable owner; caller enforces current public eligibility when needed
+   * @return detached effective artwork, or empty when absent
+   */
+  Optional<SportingPresentation.Image> effectiveLogo(Kind kind, UUID id);
 }

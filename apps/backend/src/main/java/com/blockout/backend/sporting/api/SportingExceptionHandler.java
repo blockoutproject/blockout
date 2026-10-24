@@ -3,6 +3,7 @@ package com.blockout.backend.sporting.api;
 import com.blockout.backend.generated.mobile.model.ProblemResponse;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import com.blockout.backend.sporting.application.exception.SportingValidationException;
 import java.net.URI;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.CacheControl;
@@ -18,6 +19,21 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice(basePackageClasses = SportingClassificationController.class)
 @Order(0)
 public class SportingExceptionHandler {
+  /**
+   * @return a safe non-cacheable whole-command validation refusal without submitted values
+   */
+  @ExceptionHandler(SportingValidationException.class)
+  ResponseEntity<ProblemResponse> invalidChange() {
+    return ResponseEntity.unprocessableContent()
+        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+        .cacheControl(CacheControl.noStore())
+        .body(
+            new ProblemResponse(
+                URI.create("urn:blockout:problem:unprocessable-content"),
+                "Unprocessable Content",
+                422));
+  }
+
   /**
    * Returns only canonical conflict reasons and authorized sporting scope IDs.
    *

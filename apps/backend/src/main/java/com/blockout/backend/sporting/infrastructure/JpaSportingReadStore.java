@@ -179,14 +179,14 @@ public class JpaSportingReadStore implements SportingReadStore {
           case CLUB ->
               """
           SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
-            c.id, NULL, c.sourceName, NULL, NULL, NULL, NULL, NULL, NULL,
-            CASE WHEN c.municipalityRestricted = TRUE THEN NULL ELSE c.municipality END)
+            c.id, NULL, c.sourceName, COALESCE(c.manualName, c.sourceName), NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+            CASE WHEN c.city.restricted = TRUE OR c.city.mode = ContactModeEnum.HIDDEN THEN NULL WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue ELSE c.city.sourceValue END)
           FROM ClubEntity c WHERE c.id IN :ids ORDER BY c.id
           """;
           case POOL ->
               """
           SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
-            p.id, p.season.id, p.sourceName, p.division.id, p.division.name, p.format, p.gender,
+            p.id, p.season.id, p.sourceName, COALESCE(p.manualName, p.sourceName), COALESCE(p.manualShortName, p.sourceName), p.division.id, p.division.name, p.format, p.gender,
             NULL, NULL, NULL)
           FROM PoolEntity p WHERE p.id IN :ids AND
           """
@@ -195,9 +195,9 @@ public class JpaSportingReadStore implements SportingReadStore {
           case TEAM ->
               """
           SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
-            t.id, t.season.id, t.sourceName, t.division.id, t.division.name, t.format, t.gender,
-            c.id, c.sourceName,
-            CASE WHEN c.municipalityRestricted = TRUE THEN NULL ELSE c.municipality END)
+            t.id, t.season.id, t.sourceName, COALESCE(t.manualName, t.sourceName), COALESCE(t.manualShortName, t.sourceName), t.division.id, t.division.name, t.format, t.gender,
+            c.id, COALESCE(c.manualName, c.sourceName),
+            CASE WHEN c.city.restricted = TRUE OR c.city.mode = ContactModeEnum.HIDDEN THEN NULL WHEN c.city.mode = ContactModeEnum.MANUAL THEN c.city.manualValue ELSE c.city.sourceValue END)
           FROM TeamEntity t LEFT JOIN t.club c WHERE t.id IN :ids AND
           """
                   + TEAM_VISIBLE
@@ -220,7 +220,8 @@ public class JpaSportingReadStore implements SportingReadStore {
                     kind,
                     row.seasonId(),
                     row.sourceName(),
-                    row.sourceName(),
+                    row.effectiveName(),
+                    row.effectiveShortName(),
                     aliases.getOrDefault(row.id(), Set.of()),
                     row.divisionId() == null
                         ? null

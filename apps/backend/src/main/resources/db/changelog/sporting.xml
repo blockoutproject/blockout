@@ -22,6 +22,7 @@
       <column name="gradient_end" type="VARCHAR(7)"/>
       <column name="logo" type="BYTEA"/>
       <column name="logo_media_type" type="VARCHAR(255)"/>
+      <column name="logo_size" type="INTEGER"></column>
     </createTable>
     <createTable tableName="sporting_club">
       <column name="municipality" type="TEXT"></column>
@@ -34,6 +35,42 @@
       <column name="provider" type="VARCHAR(255)"><constraints nullable="false"/></column>
       <column name="reference" type="TEXT"><constraints nullable="false"/></column>
       <column name="source_name" type="TEXT"><constraints nullable="true"/></column>
+      <column name="manual_name" type="TEXT"></column>
+      <column name="presentation_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="logo" type="BYTEA"></column>
+      <column name="logo_media_type" type="VARCHAR(255)"></column>
+      <column name="logo_size" type="INTEGER"></column>
+      <column name="contacts_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="logo_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="latitude" type="DOUBLE PRECISION"></column>
+      <column name="longitude" type="DOUBLE PRECISION"></column>
+      <column name="detail_cycle_order" type="BIGINT"></column>
+      <column name="detail_read_ordinal" type="BIGINT"></column>
+      <column name="locality_cycle_order" type="BIGINT"></column>
+      <column name="locality_read_ordinal" type="BIGINT"></column>
+      <column name="detail_observed_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="detail_published_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="address" type="TEXT"></column>
+      <column name="address_manual" type="TEXT"></column>
+      <column name="address_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="address_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="municipality_manual" type="TEXT"></column>
+      <column name="municipality_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="postal_code_manual" type="TEXT"></column>
+      <column name="postal_code_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="postal_code_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="email" type="TEXT"></column>
+      <column name="email_manual" type="TEXT"></column>
+      <column name="email_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="email_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="phone" type="TEXT"></column>
+      <column name="phone_manual" type="TEXT"></column>
+      <column name="phone_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="phone_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="website" type="TEXT"></column>
+      <column name="website_manual" type="TEXT"></column>
+      <column name="website_mode" type="VARCHAR(255)" defaultValue="SOURCE"><constraints nullable="false"/></column>
+      <column name="website_restricted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
     </createTable>
     <createTable tableName="sporting_pack">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
@@ -68,6 +105,9 @@
       <column name="setting_division_id" type="UUID"/>
       <column name="setting_format" type="VARCHAR(255)"/>
       <column name="setting_gender" type="VARCHAR(255)"/>
+      <column name="manual_name" type="TEXT"></column>
+      <column name="presentation_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="manual_short_name" type="TEXT"></column>
     </createTable>
     <addForeignKeyConstraint baseTableName="sporting_pack" baseColumnNames="setting_division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_pack_setting_division"/>
     <addForeignKeyConstraint baseTableName="sporting_pool" baseColumnNames="setting_division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_pool_setting_division"/>
@@ -84,6 +124,19 @@
       <column name="division_id" type="UUID"><constraints nullable="false"/></column>
       <column name="format" type="VARCHAR(255)"><constraints nullable="false"/></column>
       <column name="gender" type="VARCHAR(255)"><constraints nullable="false"/></column>
+      <column name="manual_name" type="TEXT"></column>
+      <column name="presentation_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="manual_short_name" type="TEXT"></column>
+      <column name="logo" type="BYTEA"></column>
+      <column name="logo_media_type" type="VARCHAR(255)"></column>
+      <column name="logo_size" type="INTEGER"></column>
+      <column name="source_logo" type="BYTEA"></column>
+      <column name="source_logo_media_type" type="VARCHAR(255)"></column>
+      <column name="source_logo_size" type="INTEGER"></column>
+      <column name="logo_cycle_order" type="BIGINT"></column>
+      <column name="logo_read_ordinal" type="BIGINT"></column>
+      <column name="logo_observed_at" type="TIMESTAMP WITH TIME ZONE"></column>
+      <column name="logo_published_at" type="TIMESTAMP WITH TIME ZONE"></column>
     </createTable>
     <createTable tableName="sporting_participation">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>

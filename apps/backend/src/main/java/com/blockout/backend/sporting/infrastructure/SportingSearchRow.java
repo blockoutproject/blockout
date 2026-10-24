@@ -12,6 +12,8 @@ record SportingSearchRow(
     UUID id,
     UUID seasonId,
     String sourceName,
+    String effectiveName,
+    String effectiveShortName,
     UUID divisionId,
     String divisionName,
     SportFormatEnum format,
