@@ -1,6 +1,12 @@
 # F11 validation guide
 
-The mobile dependency/configuration foundation is executable. Advertising initialization, consent, age forms, serving and the scenarios below remain separate implementation/qualification work.
+The mobile dependency/configuration foundation and current-context eligibility are executable. Advertising initialization, consent, age forms, serving and the scenarios below remain separate implementation/qualification work.
+
+## Controlled eligibility boundary (T003/T004)
+
+Run `npm run test --workspace=@blockout/mobile -- --runInBand src/features/advertising/__tests__/advertising-eligibility.test.ts` after the README's installation and mobile generation steps. The suite uses real F05 generations and F09's exported `getProState` projection, with synthetic native entitlement evidence, controlled F12 ordinary admission and explicit native-choice inputs. It covers guests without entitlement retrieval, active paid/gifted Pro, unknown signed-in rights, inactive rights, authorized modes, blocked admission, A → B and A → guest → A, including obsolete choices and first account establishment within one generation.
+
+`getAdvertisingEligibility` in `apps/mobile/src/features/advertising/advertising-eligibility.ts` derives permissions without retaining state. Callers must supply current admission, F09 evidence and applicable native choices, and reevaluate before loading or presenting. Choice preparation can proceed with unknown entitlements; requests and display cannot. Known active Pro avoids new prompts. This boundary neither grants sporting access nor implements the counter, native choices, SDK calls or live provider binding; T009/T018/T019 and device/provider qualification remain pending.
 
 ## Native setup boundary (T001/T002)
 
