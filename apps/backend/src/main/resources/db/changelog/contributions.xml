@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+  <!-- Mutable F08 baseline under the existing disposable-environment posture; no reset. -->
+  <changeSet id="contribution-state-versions" author="blockout">
+    <createTable tableName="contribution_state">
+      <column name="match_id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+      <column name="report_hold_version_id" type="UUID"/>
+    </createTable>
+    <createTable tableName="contribution_version">
+      <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
+      <column name="match_id" type="UUID"><constraints nullable="false"/></column>
+      <column name="address" type="TEXT"><constraints nullable="false"/></column>
+      <column name="platform" type="VARCHAR(32)"><constraints nullable="false"/></column>
+      <column name="owner_id" type="UUID"/>
+      <column name="state" type="VARCHAR(32)"><constraints nullable="false"/></column>
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE"><constraints nullable="false"/></column>
+      <column name="quota_participating" type="BOOLEAN"><constraints nullable="false"/></column>
+      <column name="source_version_id" type="UUID"/>
+      <column name="replaced_by_version_id" type="UUID"/>
+      <column name="publication_kind" type="VARCHAR(32)"/>
+      <column name="publication_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="publication_actor_id" type="UUID"/>
+      <column name="decision_kind" type="VARCHAR(32)"/>
+      <column name="decision_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="decision_actor_id" type="UUID"/>
+    </createTable>
+    <addForeignKeyConstraint baseTableName="contribution_state" baseColumnNames="match_id" referencedTableName="sporting_match" referencedColumnNames="id" constraintName="fk_contribution_state_match"/>
+    <addForeignKeyConstraint baseTableName="contribution_version" baseColumnNames="match_id" referencedTableName="sporting_match" referencedColumnNames="id" constraintName="fk_contribution_version_match"/>
+    <addForeignKeyConstraint baseTableName="contribution_version" baseColumnNames="owner_id" referencedTableName="account" referencedColumnNames="id" constraintName="fk_contribution_owner" onDelete="SET NULL"/>
+    <addForeignKeyConstraint baseTableName="contribution_version" baseColumnNames="publication_actor_id" referencedTableName="account" referencedColumnNames="id" constraintName="fk_contribution_publication_actor" onDelete="SET NULL"/>
+    <addForeignKeyConstraint baseTableName="contribution_version" baseColumnNames="decision_actor_id" referencedTableName="account" referencedColumnNames="id" constraintName="fk_contribution_decision_actor" onDelete="SET NULL"/>
+    <addUniqueConstraint tableName="contribution_version" columnNames="match_id, id" constraintName="uk_contribution_match_version"/>
+    <addForeignKeyConstraint baseTableName="contribution_version" baseColumnNames="match_id, source_version_id" referencedTableName="contribution_version" referencedColumnNames="match_id, id" constraintName="fk_contribution_source_match"/>
+    <addForeignKeyConstraint baseTableName="contribution_version" baseColumnNames="match_id, replaced_by_version_id" referencedTableName="contribution_version" referencedColumnNames="match_id, id" constraintName="fk_contribution_replacement_match"/>
+    <addForeignKeyConstraint baseTableName="contribution_state" baseColumnNames="match_id, report_hold_version_id" referencedTableName="contribution_version" referencedColumnNames="match_id, id" constraintName="fk_contribution_hold_match"/>
+    <createIndex tableName="contribution_version" indexName="ix_contribution_owner_created">
+      <column name="owner_id"/><column name="created_at"/>
+    </createIndex>
+    <!-- Community Liquibase has no native partial unique index or CHECK changes.
+         Anonymous pending proposals deliberately remain distinct; report constraints belong to T029. -->
+    <sql dbms="postgresql"><![CDATA[
+      CREATE UNIQUE INDEX uk_contribution_active ON contribution_version (match_id) WHERE state = 'ACTIVE';
+      CREATE UNIQUE INDEX uk_contribution_pending_owner ON contribution_version (match_id, owner_id)
+        WHERE state = 'PENDING' AND owner_id IS NOT NULL;
+      ALTER TABLE contribution_state ADD CONSTRAINT ck_contribution_revision CHECK (revision >= 0);
+      ALTER TABLE contribution_version ADD CONSTRAINT ck_contribution_publication_fact CHECK (
+        (publication_kind IS NULL AND publication_at IS NULL AND publication_actor_id IS NULL)
+        OR (publication_kind IS NOT NULL AND publication_at IS NOT NULL));
+      ALTER TABLE contribution_version ADD CONSTRAINT ck_contribution_decision_fact CHECK (
+        (decision_kind IS NULL AND decision_at IS NULL AND decision_actor_id IS NULL)
+        OR (decision_kind IS NOT NULL AND decision_at IS NOT NULL));
+    ]]></sql>
+  </changeSet>
+</databaseChangeLog>
