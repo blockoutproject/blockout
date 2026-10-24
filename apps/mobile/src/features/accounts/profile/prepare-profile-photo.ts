@@ -15,7 +15,8 @@ export interface PreparedProfilePhoto {
 
 /**
  * Adapts one ImageField native square crop to bounded PNG without modifying the library original.
- * A large source is allowed: size/type checks apply to the single prepared output. Native failures
+ * A large source is allowed: the byte limit applies to the single prepared output. ImageManipulator
+ * owns aspect-preserving resize and PNG encoding; the server validates actual content. Native failures
  * reject without returning a draft value; obsolete generations reject as cancellations.
  */
 export async function prepareProfilePhoto(
@@ -37,18 +38,8 @@ export async function prepareProfilePhoto(
     rendered = await context.renderAsync();
     const output = await rendered.saveAsync({ format: SaveFormat.PNG });
     if (!session.isCurrent(session.generation)) throw new ApiError("cancelled");
-    if (
-      output.width !== output.height ||
-      output.width < 1 ||
-      output.width > dimension
-    )
-      throw new Error("La préparation de la photo a échoué.");
     const file = new File(output.uri);
-    if (
-      file.size < 1 ||
-      file.size > 5 * 1024 * 1024 ||
-      file.type !== "image/png"
-    )
+    if (file.size < 1 || file.size > 5 * 1024 * 1024)
       throw new Error("La photo préparée doit être un PNG de 5 Mio maximum.");
     return { uri: output.uri, file };
   } finally {

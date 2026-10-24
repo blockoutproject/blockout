@@ -41,6 +41,10 @@ it.each([
   [PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR, "uncertain"],
   [PURCHASES_ERROR_CODE.NETWORK_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR, "failed"],
+  [PURCHASES_ERROR_CODE.PRODUCT_REQUEST_TIMED_OUT_ERROR, "failed"],
+  [PURCHASES_ERROR_CODE.INVALID_PROMOTIONAL_OFFER_ERROR, "failed"],
+  [PURCHASES_ERROR_CODE.UNSUPPORTED_ERROR, "failed"],
+  [PURCHASES_ERROR_CODE.TEST_STORE_SIMULATED_PURCHASE_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR, "uncertain"],
   [PURCHASES_ERROR_CODE.UNKNOWN_ERROR, "uncertain"],
 ])(
@@ -80,8 +84,11 @@ it("refuses duplicate starts and keeps a lost response uncertain after closure a
 it.each([
   PURCHASES_ERROR_CODE.NETWORK_ERROR,
   PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR,
+  PURCHASES_ERROR_CODE.PRODUCT_REQUEST_TIMED_OUT_ERROR,
+  PURCHASES_ERROR_CODE.INVALID_PROMOTIONAL_OFFER_ERROR,
+  PURCHASES_ERROR_CODE.TEST_STORE_SIMULATED_PURCHASE_ERROR,
 ])(
-  "allows an explicit new purchase after SDK network error %s",
+  "allows an explicit new purchase after documented SDK failure %s",
   async (code) => {
     // Given
     const owner = createProSession();

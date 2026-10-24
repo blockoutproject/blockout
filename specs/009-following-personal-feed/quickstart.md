@@ -1,12 +1,22 @@
 # Quickstart: qualify following and the personal feed
 
-This repository currently contains plans and contracts, not the application runtime. The scenarios below are future implementation qualifications, not executed tests. Use the [README verification commands](../../README.md#verification) now; do not invent Maven, Nx or Expo targets before the workspace exists.
+The executable workspace and T001–T005 following contract/context foundation are available. The relationship, calendar and native scenarios below remain future qualifications. Use the actual [README verification commands](../../README.md#verification) and the owning task scope; passing foundation checks does not complete the later journeys.
 
 ## Prerequisites
 
 Use F13's selected backend/mobile environment and the authored [contracts](contracts/README.md). Prepare two disposable accounts, two viewable sporting seasons, teams/pools with overlapping matches and at least 21 follows in one list. Include a hidden target, homonymous names and matches in both F03 categories. Use controlled API failure/delay doubles, not provider changes or private production data.
 
 ## Contracts and access
+
+The foundation is exercised by `FollowingContractTest`, `FollowAccessTest` and the mobile
+`following-contract.test.ts` / `following-context.test.ts` suites through the actual generated
+Java interfaces/DTOs and Orval consumers. Java MVC uses a test-only following adapter; F05 identity
+and F12 admission run with controlled account/settings/transaction collaborators. Mobile uses the
+real F05 generation, Query cleanup and F13 transport with controlled HTTP. These checks establish
+binding, original-owner rejection and late-response isolation, including returning to the same
+account; they establish no production following endpoint, persisted relation, account-erasure race,
+native networking, screen or provider behavior. Generated response Bean Validation in the Java
+suite is explicit qualification of the DTO bounds, not automatic outbound MVC validation.
 
 Validate/bundle the mobile root with F13's Redocly configuration, then generate and compile the Java interface/DTOs and Orval client/Zod boundary in the implemented workspace. Verify boolean state, optional season/default/continuations, reused summaries/calendar and shared errors. Validate business JSON once before caching; reject unknown request properties and tolerate additive response properties.
 

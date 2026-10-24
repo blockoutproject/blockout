@@ -112,14 +112,15 @@ class LnvDocumentsAndImagesTest {
     }
   }
 
-  @Test
+  @ParameterizedTest
+  @ValueSource(strings = {"MatchStatistics.aspx?mID=990&ID=901", "?mID=990&ID=901", ""})
   @DisplayName("The actual tab order and hidden state determine the document form request")
-  void resolvesPublishedDocumentForm() {
+  void resolvesPublishedDocumentForm(String action) {
     // Given
     URI page = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
     String html =
         """
-        <form method=post action="MatchStatistics.aspx?mID=990&ID=901">
+        <form method=post action="%s">
         <input type=hidden name=__VIEWSTATE value=synthetic-state>
         <input type=hidden name=__EVENTVALIDATION value=synthetic-validation>
         <div id=NativeTabs><ul><li class=rtsLI>Scoresheet</li><li class=rtsLI>Statistics</li><li class=rtsLI>DataVolley</li></ul></div>
@@ -127,7 +128,8 @@ class LnvDocumentsAndImagesTest {
         </form><script>
         $create(Telerik.Web.UI.RadTabStrip, {"_postBackReference":"__doPostBack('actual$Control','arguments')","clientStateFieldID":"NativeTabs_State","tabData":[{"value":"sheet"},{"value":"stats"},{"value":"volley"}]}, null, null, $get("NativeTabs"));
         </script>
-        """;
+        """
+            .formatted(action);
 
     // When
     LnvDocumentReferences.Form form =

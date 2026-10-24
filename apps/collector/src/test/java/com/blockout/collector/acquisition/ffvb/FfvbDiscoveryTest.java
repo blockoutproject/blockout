@@ -52,6 +52,72 @@ class FfvbDiscoveryTest {
           "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=LIRA&saison=2026/2027");
 
   @Test
+  @DisplayName("Published catalog links use the HTML document base")
+  void resolvesCatalogDocumentBase() {
+    // Given
+    String html =
+        """
+        <base href="https://www.ffvbbeach.org/ffvbapp/resu/">
+        <ul id=menu><li><a>Compétitions</a><ul><li><a>REGIONAL</a><ul>
+        <li><a href="vbspo_calendrier.php?saison=2026/2027&codent=LIRA&poule=AA">Pool A</a></li>
+        </ul></li></ul></li></ul>
+        """;
+
+    // When
+    SportingObservation.Catalog catalog =
+        parse(html, URI.create("https://www.ffvbbeach.org/navigation/menu.html"), "LIRA");
+
+    // Then
+    assertThat(catalog.pools())
+        .singleElement()
+        .satisfies(
+            pool ->
+                assertThat(pool.calendarUrl())
+                    .isEqualTo(
+                        URI.create(
+                            "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?saison=2026%2F2027&codent=LIRA&poule=AA&calend=COMPLET")));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "<frameset><frame src='vbspo_home.php?codent=LIRA&saison=2026/2027'></frameset>",
+        "<iframe src='vbspo_home.php?codent=LIRA&saison=2026/2027'></iframe>",
+        "<a href='vbspo_home.php?codent=LIRA&saison=2026/2027'>Menu</a>",
+        "<select><option value='vbspo_home.php?codent=LIRA&saison=2026/2027'>Menu</option></select>"
+      })
+  @DisplayName("Native navigation attributes use the HTML document base")
+  void resolvesNavigationDocumentBase(String navigation) {
+    // Given
+    String html = "<base href='https://www.ffvbbeach.org/ffvbapp/resu/'>" + navigation;
+
+    // When
+    List<URI> links =
+        new FfvbDiscovery()
+            .navigation(
+                html.getBytes(Charset.forName("windows-1252")),
+                URI.create("https://www.ffvb.org/competitions"));
+
+    // Then
+    assertThat(links).containsExactly(ROOT);
+  }
+
+  @Test
+  @DisplayName("A foreign document base cannot add an allowed navigation target")
+  void rejectsForeignDocumentBase() {
+    // Given
+    String html =
+        "<base href='https://foreign.example/ffvbapp/resu/'><a href='vbspo_home.php'>Menu</a>";
+
+    // When
+    List<URI> links =
+        new FfvbDiscovery().navigation(html.getBytes(Charset.forName("windows-1252")), ROOT);
+
+    // Then
+    assertThat(links).isEmpty();
+  }
+
+  @Test
   @DisplayName("Shared-round context uses submitted controls instead of disabled input values")
   void readsSubmittedRoundContext() {
     // Given
