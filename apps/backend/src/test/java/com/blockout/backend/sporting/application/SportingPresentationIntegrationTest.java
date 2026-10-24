@@ -18,8 +18,10 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.generated.mobile.model.ClubContactsResponse;
+import com.blockout.backend.generated.mobile.model.ContactFieldRequest;
 import com.blockout.backend.generated.mobile.model.ContactModeEnum;
 import com.blockout.backend.generated.mobile.model.LogoActionEnum;
+import com.blockout.backend.generated.mobile.model.SetClubContactsRequest;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
@@ -75,6 +77,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.event.ApplicationEvents;
@@ -174,14 +177,7 @@ class SportingPresentationIntegrationTest {
     // When
     mvc.perform(
             put("/administration/pools/{id}/presentation", pool)
-                .with(
-                    jwt()
-                        .jwt(
-                            token ->
-                                token
-                                    .issuer("https://identity.example.invalid/")
-                                    .subject("auth0|presentation")
-                                    .claim("azp", "mobile-test")))
+                .with(operator())
                 .contentType("application/json")
                 .content(
                     "{\"revision\":\"0\",\"manualName\":\"Manual pool\",\"manualShortName\":null}"))
@@ -518,43 +514,24 @@ class SportingPresentationIntegrationTest {
     // Given
     String revision = Long.toString(details.get(account, club).revision());
     details.restrict(club, Set.of(ContactField.EMAIL));
-    String value = mode == ContactModeEnum.MANUAL ? ",\"value\":\"private@example.invalid\"" : "";
+    SetClubContactsRequest request =
+        new SetClubContactsRequest(revision)
+            .email(
+                new ContactFieldRequest(mode)
+                    .value(mode == ContactModeEnum.MANUAL ? "private@example.invalid" : null));
 
     // When
     mvc.perform(
             patch("/administration/clubs/{id}/contacts", club)
-                .with(
-                    jwt()
-                        .jwt(
-                            token ->
-                                token
-                                    .issuer("https://identity.example.invalid/")
-                                    .subject("auth0|presentation")
-                                    .claim("azp", "mobile-test")))
+                .with(operator())
                 .contentType("application/json")
-                .content(
-                    "{\"revision\":\""
-                        + revision
-                        + "\",\"email\":{\"mode\":\""
-                        + mode.getValue()
-                        + "\""
-                        + value
-                        + "}}"))
+                .content(json.writeValueAsString(request)))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:stale-revision"));
 
     // Then
     String body =
-        mvc.perform(
-                get("/administration/clubs/{id}/contacts", club)
-                    .with(
-                        jwt()
-                            .jwt(
-                                token ->
-                                    token
-                                        .issuer("https://identity.example.invalid/")
-                                        .subject("auth0|presentation")
-                                        .claim("azp", "mobile-test"))))
+        mvc.perform(get("/administration/clubs/{id}/contacts", club).with(operator()))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -611,14 +588,7 @@ class SportingPresentationIntegrationTest {
     // When
     mvc.perform(
             patch("/administration/clubs/{id}/contacts", club)
-                .with(
-                    jwt()
-                        .jwt(
-                            token ->
-                                token
-                                    .issuer("https://identity.example.invalid/")
-                                    .subject("auth0|presentation")
-                                    .claim("azp", "mobile-test")))
+                .with(operator())
                 .contentType("application/json")
                 .content(
                     """
@@ -1426,6 +1396,21 @@ class SportingPresentationIntegrationTest {
     // Then
     assertThatThrownBy(rename).isInstanceOf(SportingConflictException.class);
     assertThat(divisions.get(account, division)).isEqualTo(before);
+  }
+
+  /**
+   * Authenticates the fixture operator while authorization still reads its persisted grants.
+   *
+   * @return Spring Security's native JWT request postprocessor for the established operator
+   */
+  private JwtRequestPostProcessor operator() {
+    return jwt()
+        .jwt(
+            token ->
+                token
+                    .issuer("https://identity.example.invalid/")
+                    .subject("auth0|presentation")
+                    .claim("azp", "mobile-test"));
   }
 
   /**
