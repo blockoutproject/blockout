@@ -10,6 +10,9 @@ export default function OperationsLayout() {
       <Stack.Protected guard={permissions?.manageMaintenance === true}>
         <Stack.Screen name="administration/maintenance" />
       </Stack.Protected>
+      <Stack.Protected guard={permissions?.manageApplicationVersions === true}>
+        <Stack.Screen name="administration/application-versions" />
+      </Stack.Protected>
     </Stack>
   );
 }
