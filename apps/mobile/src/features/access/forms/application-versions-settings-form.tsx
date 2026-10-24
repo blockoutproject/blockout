@@ -7,7 +7,15 @@ import { applicationUpdateMessage } from "../application-update-message";
 import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import type {
   ApplicationVersionsResponse,
   ChangeApplicationVersionsRequest,
@@ -157,7 +165,8 @@ export function ApplicationVersionsSettingsForm({
   /** Reads the actual outcome and keeps dirty fields, without submitting or merging conflicting input. */
   async function reread() {
     const result = await editing.query.refetch();
-    if (!session.isCurrent(session.generation)) return;
+    // Query may restore its old success when route removal cancels this read.
+    if (!mounted.current || !session.isCurrent(session.generation)) return;
     if (
       !result.data ||
       result.isError ||
@@ -177,88 +186,93 @@ export function ApplicationVersionsSettingsForm({
   }
   return (
     <View style={styles.form}>
-      {(["ios", "android"] as const).map((platform) => {
-        const ios = platform === "ios";
-        const name = ios ? "iOS" : "Android";
-        const open = expanded[platform];
-        const Chevron = open ? ChevronDown : ChevronRight;
-        return (
-          <View
-            key={platform}
-            style={[
-              styles.card,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={name}
-              accessibilityState={{ expanded: open }}
-              onPress={() => setExpanded({ ...expanded, [platform]: !open })}
-              style={styles.disclosure}
-            >
-              <Text style={[styles.platform, { color: colors.text }]}>
-                {name}
-              </Text>
-              <Text style={[styles.minimum, { color: colors.secondaryText }]}>
-                {current[platform].minimumVersion || "Aucun minimum"}
-              </Text>
-              <Chevron
-                accessible={false}
-                size={tokens.size.controlIcon}
-                color={colors.icon}
-              />
-            </Pressable>
+      <View style={styles.platforms}>
+        {(["ios", "android"] as const).map((platform) => {
+          const ios = platform === "ios";
+          const name = ios ? "iOS" : "Android";
+          const open = expanded[platform];
+          const Chevron = open ? ChevronDown : ChevronRight;
+          return (
             <View
-              style={!open && styles.hidden}
-              accessibilityElementsHidden={!open}
-              importantForAccessibility={open ? "auto" : "no-hide-descendants"}
+              key={platform}
+              style={[
+                styles.platformCard,
+                (expanded.ios || expanded.android) && styles.expandedCard,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
             >
-              <View style={styles.form}>
-                <Controller
-                  control={control}
-                  name={`${platform}.minimumVersion`}
-                  render={({ field: { onChange, onBlur, value, ref } }) => (
-                    <TextField
-                      ref={ref}
-                      label={`Version minimale ${name}`}
-                      value={value}
-                      onChangeText={onChange}
-                      onBlur={onBlur}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      editable={!busy}
-                      error={errors[platform]?.minimumVersion?.message}
-                      helper="Facultatif. Trois nombres, par exemple 2.10.0. Videz le champ pour retirer le minimum."
-                    />
-                  )}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={name}
+                accessibilityState={{ expanded: open }}
+                onPress={() => setExpanded({ ...expanded, [platform]: !open })}
+                style={styles.disclosure}
+              >
+                <Text style={[styles.platform, { color: colors.text }]}>
+                  {name}
+                </Text>
+                <Text style={[styles.minimum, { color: colors.secondaryText }]}>
+                  {current[platform].minimumVersion || "Aucun minimum"}
+                </Text>
+                <Chevron
+                  accessible={false}
+                  size={tokens.size.controlIcon}
+                  color={colors.icon}
                 />
-                <Controller
-                  control={control}
-                  name={`${platform}.storeUrl`}
-                  render={({ field: { onChange, onBlur, value, ref } }) => (
-                    <TextField
-                      ref={ref}
-                      label={
-                        ios ? "URL App Store iOS" : "URL Google Play Android"
-                      }
-                      value={value}
-                      onChangeText={onChange}
-                      onBlur={onBlur}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      inputMode="url"
-                      editable={!busy}
-                      error={errors[platform]?.storeUrl?.message}
-                      helper="Lien requis si une version minimale est imposée."
-                    />
-                  )}
-                />
+              </Pressable>
+              <View
+                style={[styles.fields, !open && styles.hidden]}
+                accessibilityElementsHidden={!open}
+                importantForAccessibility={
+                  open ? "auto" : "no-hide-descendants"
+                }
+              >
+                <View style={styles.form}>
+                  <Controller
+                    control={control}
+                    name={`${platform}.minimumVersion`}
+                    render={({ field: { onChange, onBlur, value, ref } }) => (
+                      <TextField
+                        ref={ref}
+                        label={`Version minimale ${name}`}
+                        value={value}
+                        onChangeText={onChange}
+                        onBlur={onBlur}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!busy}
+                        error={errors[platform]?.minimumVersion?.message}
+                        helper="Facultatif. Trois nombres, par exemple 2.10.0. Videz le champ pour retirer le minimum."
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name={`${platform}.storeUrl`}
+                    render={({ field: { onChange, onBlur, value, ref } }) => (
+                      <TextField
+                        ref={ref}
+                        label={
+                          ios ? "URL App Store iOS" : "URL Google Play Android"
+                        }
+                        value={value}
+                        onChangeText={onChange}
+                        onBlur={onBlur}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        inputMode="url"
+                        editable={!busy}
+                        error={errors[platform]?.storeUrl?.message}
+                        helper="Lien requis si une version minimale est imposée."
+                      />
+                    )}
+                  />
+                </View>
               </View>
             </View>
-          </View>
-        );
-      })}
+          );
+        })}
+      </View>
       <View
         style={[
           styles.card,
@@ -333,27 +347,35 @@ export function ApplicationVersionsSettingsForm({
             Modifications non enregistrées
           </Text>
         )}
-        <Button
-          fullWidth
-          variant="secondary"
-          label="Aperçu"
-          onPress={() => setPreview(true)}
-          disabled={busy}
-        />
-        <Button
-          fullWidth
-          label="Appliquer les modifications"
-          disabled={busy || rereadRequired || !isDirty || (raised && !checked)}
-          loading={isSubmitting || editing.saving}
-          onPress={() =>
-            void handleSubmit(confirm, (errors) =>
-              setExpanded({
-                ios: !!errors.ios || expanded.ios,
-                android: !!errors.android || expanded.android,
-              }),
-            )()
-          }
-        />
+        <View style={styles.actions}>
+          <View style={styles.action}>
+            <Button
+              fullWidth
+              variant="secondary"
+              label="Aperçu"
+              onPress={() => setPreview(true)}
+              disabled={busy}
+            />
+          </View>
+          <View style={styles.action}>
+            <Button
+              fullWidth
+              label="Appliquer les modifications"
+              disabled={
+                busy || rereadRequired || !isDirty || (raised && !checked)
+              }
+              loading={isSubmitting || editing.saving}
+              onPress={() =>
+                void handleSubmit(confirm, (errors) =>
+                  setExpanded({
+                    ios: !!errors.ios || expanded.ios,
+                    android: !!errors.android || expanded.android,
+                  }),
+                )()
+              }
+            />
+          </View>
+        </View>
       </View>
       {feedback && (
         <Text
@@ -378,6 +400,12 @@ export function ApplicationVersionsSettingsForm({
       >
         <ApplicationVersionsPreview
           message={current.message.trim() || null}
+          storeUrl={
+            applicationVersionsSchema.safeParse(current).success
+              ? current[Platform.OS === "ios" ? "ios" : "android"].storeUrl ||
+                null
+              : null
+          }
           onClose={() => setPreview(false)}
         />
       </Modal>
@@ -386,6 +414,20 @@ export function ApplicationVersionsSettingsForm({
 }
 const styles = StyleSheet.create({
   form: { gap: tokens.spacing.lg },
+  platforms: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
+  platformCard: {
+    flexBasis: 160,
+    flexGrow: 1,
+    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.borderWidth,
+  },
+  expandedCard: { flexBasis: "100%" },
+  fields: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingBottom: tokens.spacing.lg,
+  },
+  actions: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
+  action: { flexBasis: 128, flexGrow: 1 },
   card: {
     padding: tokens.spacing.lg,
     gap: tokens.spacing.lg,
@@ -393,6 +435,7 @@ const styles = StyleSheet.create({
     borderWidth: tokens.borderWidth,
   },
   disclosure: {
+    padding: tokens.spacing.lg,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,

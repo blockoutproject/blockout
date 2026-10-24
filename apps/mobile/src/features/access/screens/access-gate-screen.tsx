@@ -161,15 +161,15 @@ function GateView({
           )}
         </View>
         <View style={styles.actions}>
-          {onClose ? (
+          {update && versions?.storeUrl ? (
+            <StoreAction key={versions.storeUrl} url={versions.storeUrl} />
+          ) : onClose ? (
             <Button
               fullWidth
               label="Mettre à jour l’application"
               onPress={() => {}}
               disabled
             />
-          ) : update && versions?.storeUrl ? (
-            <StoreAction key={versions.storeUrl} url={versions.storeUrl} />
           ) : (
             <Button
               fullWidth
@@ -197,12 +197,14 @@ function GateView({
   );
 }
 
-/** Presents only the unsaved shared update copy; no store handoff, publication or admission occurs. */
+/** Previews unsaved copy and the validated current-platform store action without publishing or changing admission. */
 export function ApplicationVersionsPreview({
   message,
+  storeUrl,
   onClose,
 }: {
   message: string | null;
+  storeUrl: string | null;
   onClose(): void;
 }) {
   return (
@@ -220,7 +222,7 @@ export function ApplicationVersionsPreview({
         gate: "update",
         ordinary: false,
         version: "outdated",
-        versions: undefined,
+        versions: { minimumVersion: null, storeUrl },
       }}
       checking={false}
       onRetry={() => {}}

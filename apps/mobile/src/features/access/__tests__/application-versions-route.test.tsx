@@ -460,3 +460,92 @@ it("invalidates a native confirmation when its protected route is removed", asyn
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
 });
+
+it("keeps explicit reread required when route removal cancels a recovery read", async () => {
+  // Given
+  const serve = responses({ manageApplicationVersions: true });
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  const user = userEvent.setup();
+  const permissions = Promise.withResolvers<Response>();
+  const reread = Promise.withResolvers<Response>();
+  let holdRead = false;
+  let readSignal: AbortSignal | null | undefined;
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PATCH")
+      return Promise.reject(new TypeError("Lost save response"));
+    if (String(url).endsWith("/accounts/me")) return permissions.promise;
+    if (
+      String(url).endsWith("/administration/application-versions") &&
+      holdRead
+    ) {
+      readSignal = options?.signal;
+      return reread.promise;
+    }
+    return serve(url);
+  });
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(
+    await screen.findByRole("link", { name: "Accès administrateur" }),
+  );
+  await user.press(await screen.findByText("Versions minimales"));
+  await user.type(
+    await screen.findByLabelText("Message commun"),
+    "Retained uncertain draft",
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Appliquer les modifications" }),
+  );
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.lastCall?.[2]?.find((a) => a.text === "Appliquer")
+      ?.onPress?.(),
+  );
+  await screen.findByRole("button", { name: "Relire les réglages" });
+  holdRead = true;
+  await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
+
+  try {
+    // When
+    await act(async () =>
+      permissions.resolve(
+        Response.json(
+          {
+            type: "urn:blockout:problem:unavailable",
+            title: "Unavailable",
+            status: 503,
+          },
+          {
+            status: 503,
+            headers: { "Content-Type": "application/problem+json" },
+          },
+        ),
+      ),
+    );
+    await screen.findByRole("header", { name: "Blockout est en maintenance" });
+    expect(readSignal?.aborted).toBe(true);
+    mockFetch.mockImplementation(serve);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await user.press(
+      await screen.findByRole("link", { name: "Accès administrateur" }),
+    );
+    await user.press(await screen.findByText("Versions minimales"));
+
+    // Then
+    await screen.findByRole("button", { name: "Relire les réglages" });
+    expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
+      "Retained uncertain draft",
+    );
+    expect(
+      screen.getByRole("button", { name: "Appliquer les modifications" }),
+    ).toBeDisabled();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1);
+  } finally {
+    await act(async () =>
+      reread.resolve(Response.json(applicationAccessResponse().versions)),
+    );
+  }
+});

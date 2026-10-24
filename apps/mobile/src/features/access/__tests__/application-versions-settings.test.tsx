@@ -1,3 +1,4 @@
+import * as Linking from "expo-linking";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import {
   ApplicationAccessProvider,
@@ -674,6 +675,11 @@ it("rejects invalid or older rereads without replacing the accepted cache or dir
 });
 it("previews absent optional copy with the same fallback and preserves the draft on close", async () => {
   // Given
+  stored = {
+    ...initial,
+    ios: { minimumVersion: null, storeUrl: null },
+    android: { minimumVersion: null, storeUrl: null },
+  };
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
   const user = await editField("Message commun", "");
@@ -702,4 +708,24 @@ it("previews absent optional copy with the same fallback and preserves the draft
   expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PATCH")).toBe(
     false,
   );
+});
+
+it("hands the validated current-platform preview link to the existing native store action without saving", async () => {
+  // Given
+  const open = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  const user = userEvent.setup();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Aperçu" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Mettre à jour l’application" }),
+  );
+
+  // Then
+  expect(open).toHaveBeenCalledWith(initial.ios.storeUrl);
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
 });
