@@ -8,37 +8,49 @@ interface CommandState {
   needsRead: boolean;
   feedback?: string;
 }
-/** One selected control's reconciliation requirement, bounded to the current F05 session. */
+/** A control's reconciliation requirement survives navigation to another control in the same session. */
 interface CommandContext {
-  generation: string;
-  controlId: string;
   /** Returns stable metadata for React's native external-store subscription. */
   getSnapshot(): CommandState;
   /** Observes command feedback without copying the remote control. */
   subscribe(listener: () => void): () => void;
   /** Records an attempted command or an explicit current-state reread. */
   update(state: CommandState): void;
-  /** Detaches the owning session observer. */
+}
+/** At most one metadata entry per visited control; F05 invalidation releases the complete session. */
+interface CommandSession {
+  generation: string;
+  controls: Map<string, CommandContext>;
+  /** Detaches the single session lifetime observer. */
   release(): void;
 }
-let current: CommandContext | undefined;
+let current: CommandSession | undefined;
 
-/** Retains only the selected scope's command reconciliation, with no replay, persistence or execution history. */
+/** Retains per-control reconciliation until explicit reread, with no remote values, replay or execution history. */
 export function collectionCommandContext(
   session: SessionSnapshot & Pick<SessionGeneration, "isCurrent" | "subscribe">,
   controlId: string,
 ): CommandContext {
-  if (
-    current?.generation === session.generation &&
-    current.controlId === controlId
-  )
-    return current;
-  current?.release();
+  if (current?.generation !== session.generation) {
+    current?.release();
+    const owner: CommandSession = {
+      generation: session.generation,
+      controls: new Map(),
+      release: session.subscribe(() => {
+        if (!session.isCurrent(owner.generation)) {
+          owner.release();
+          owner.controls.clear();
+          if (current === owner) current = undefined;
+        }
+      }),
+    };
+    current = owner;
+  }
+  const existing = current.controls.get(controlId);
+  if (existing) return existing;
   let state: CommandState = { needsRead: false };
   const listeners = new Set<() => void>();
   const context: CommandContext = {
-    generation: session.generation,
-    controlId,
     getSnapshot: () => state,
     subscribe(listener) {
       listeners.add(listener);
@@ -50,13 +62,7 @@ export function collectionCommandContext(
       state = next;
       listeners.forEach((listener) => listener());
     },
-    release: session.subscribe(() => {
-      if (!session.isCurrent(context.generation)) {
-        context.release();
-        if (current === context) current = undefined;
-      }
-    }),
   };
-  current = context;
+  current.controls.set(controlId, context);
   return context;
 }

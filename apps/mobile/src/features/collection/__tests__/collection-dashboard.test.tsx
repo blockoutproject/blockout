@@ -594,3 +594,61 @@ it("invalidates a held native confirmation when its screen is removed", async ()
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(0);
 });
+
+it.each(["settled", "in-flight"])(
+  "retains an uncertain %s command through A → B → A navigation",
+  async (timing) => {
+    // Given
+    peer.controls = [
+      control(),
+      control({
+        id: "00000000-0000-4000-8000-000000000195",
+        family: "geocoding",
+        seasonId: undefined,
+      }),
+    ];
+    const pending = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, options) =>
+      options?.method === "POST"
+        ? timing === "settled"
+          ? Promise.resolve(refused(409))
+          : pending.promise
+        : peer.reads(url, options),
+    );
+    const view = await renderCollection(
+      <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+      peer.client,
+    );
+
+    // When
+    await pressAction("Relancer");
+    await confirm("Relancer");
+    if (timing === "settled")
+      await screen.findByText(
+        "Le résultat doit être vérifié avant une nouvelle action.",
+      );
+    await view.rerender(<CollectionControlScreen family="geocoding" />);
+    await screen.findByRole("header", { name: "Géocodage" });
+    if (timing === "in-flight") {
+      await act(async () => pending.resolve(refused(409)));
+      await waitFor(() => expect(peer.client.isMutating()).toBe(0));
+    }
+    await view.rerender(
+      <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    );
+
+    // Then
+    expect(
+      await screen.findByText(
+        "Le résultat doit être vérifié avant une nouvelle action.",
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Relire l’état" }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(1);
+  },
+);
