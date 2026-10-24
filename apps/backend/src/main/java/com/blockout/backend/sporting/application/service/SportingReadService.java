@@ -231,15 +231,13 @@ public class SportingReadService {
   /**
    * Reads seasonless acquisition identities without personal locality.
    *
-   * @param geocoding selects municipal needs rather than club sheets
-   * @param manual explicit family rerun may revisit ordinary no-result localities
+   * @param geocoding selects unresolved municipal candidates rather than club sheets
    * @param afterId exclusive last visited club identity, or null for the first batch
    * @return nonpersonal identities and normal-result metadata; permitted locality is read at target
    *     service
    */
-  public List<ClubAcquisitionReference> acquisitionClubs(
-      boolean geocoding, boolean manual, UUID afterId) {
-    return store.acquisitionClubs(geocoding, manual, afterId);
+  public List<ClubAcquisitionReference> acquisitionClubs(boolean geocoding, UUID afterId) {
+    return store.acquisitionClubs(geocoding, afterId);
   }
 
   /**

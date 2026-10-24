@@ -21,6 +21,7 @@ import com.blockout.backend.sporting.application.exception.SportingConflictExcep
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
 import com.blockout.backend.sporting.application.model.ClubAcquisitionReference;
 import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
@@ -524,13 +525,14 @@ class SportingPresentationIntegrationTest {
     assertThat(changed.latitude()).isNull();
     assertThat(late.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
     assertThat(reads.publicLocality(club).orElseThrow().latitude()).isNull();
-    assertThat(reads.acquisitionClubs(true, false, null))
-        .extracting(ClubAcquisitionReference::clubId)
-        .contains(club);
+    assertThat(reads.acquisitionClubs(true, null))
+        .filteredOn(reference -> reference.clubId().equals(club))
+        .singleElement()
+        .satisfies(reference -> assertThat(reference.normalLocalityResult()).isFalse());
   }
 
   @Test
-  @DisplayName("A current municipal point needs no further automatic or manual geocoding")
+  @DisplayName("A current municipal point creates no further geocoding candidate")
   void excludesLocatedClubFromGeocoding() {
     // Given
     details.correct(
@@ -548,10 +550,7 @@ class SportingPresentationIntegrationTest {
             context(geocoding, 1), revision, GeocodingOutcomeEnum.LOCATED, 48.86, 2.34));
 
     // Then
-    assertThat(reads.acquisitionClubs(true, false, null))
-        .extracting(ClubAcquisitionReference::clubId)
-        .doesNotContain(club);
-    assertThat(reads.acquisitionClubs(true, true, null))
+    assertThat(reads.acquisitionClubs(true, null))
         .extracting(ClubAcquisitionReference::clubId)
         .doesNotContain(club);
   }
@@ -560,9 +559,8 @@ class SportingPresentationIntegrationTest {
   @EnumSource(
       value = GeocodingOutcomeEnum.class,
       names = {"EMPTY", "AMBIGUOUS"})
-  @DisplayName(
-      "Keeps empty/ambiguous locality unresolved until context change or explicit F01 relaunch")
-  void suppressesUnchangedUnresolvedLocality(GeocodingOutcomeEnum outcome) {
+  @DisplayName("Reports accepted unresolved locality metadata for F01 scheduling")
+  void reportsCurrentUnresolvedResult(GeocodingOutcomeEnum outcome) {
     // Given
     details.correct(
         account,
@@ -582,12 +580,15 @@ class SportingPresentationIntegrationTest {
 
     // Then
     assertThat(reads.publicLocality(club).orElseThrow().latitude()).isNull();
-    assertThat(reads.acquisitionClubs(true, false, null))
-        .extracting(ClubAcquisitionReference::clubId)
-        .doesNotContain(club);
-    assertThat(reads.acquisitionClubs(true, true, null))
-        .extracting(ClubAcquisitionReference::clubId)
-        .contains(club);
+    assertThat(reads.acquisitionClubs(true, null))
+        .filteredOn(reference -> reference.clubId().equals(club))
+        .singleElement()
+        .satisfies(
+            reference -> {
+              assertThat(reference.normalLocalityResult()).isTrue();
+              assertThat(reference.localityOrder())
+                  .isEqualTo(new ObservationOrder(geocoding.cycleOrder(), 1));
+            });
   }
 
   @Test

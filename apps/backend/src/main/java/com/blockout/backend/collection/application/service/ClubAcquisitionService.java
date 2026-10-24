@@ -39,8 +39,7 @@ public class ClubAcquisitionService {
    * @return filtered nonpersonal identities and the last scanned identity; caller applies cadence
    */
   public TargetBatch targets(UUID controlId, boolean geocoding, boolean manual, UUID afterId) {
-    List<ClubAcquisitionReference> references =
-        sporting.acquisitionClubs(geocoding, manual || geocoding, afterId);
+    List<ClubAcquisitionReference> references = sporting.acquisitionClubs(geocoding, afterId);
     if (references.isEmpty()) return new TargetBatch(List.of(), null);
     Map<UUID, CollectionAttempt> attempts =
         geocoding && !manual

@@ -182,9 +182,8 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public List<ClubAcquisitionReference> acquisitionClubs(
-      boolean geocoding, boolean manual, UUID afterId) {
-    return clubs.acquisitionClubs(geocoding, manual, afterId, PageRequest.of(0, 200)).stream()
+  public List<ClubAcquisitionReference> acquisitionClubs(boolean geocoding, UUID afterId) {
+    return clubs.acquisitionClubs(geocoding, afterId, PageRequest.of(0, 200)).stream()
         .map(
             club ->
                 new ClubAcquisitionReference(

@@ -90,12 +90,12 @@ public interface SportingStore {
   /**
    * Reads seasonless identities without personal locality.
    *
-   * @param geocoding select current geocoding needs rather than club-sheet references
-   * @param manual whether to revisit ordinary no-result localities
+   * @param geocoding select current unresolved municipal candidates rather than club-sheet
+   *     references
    * @param afterId exclusive last visited club identity, or null for the first batch
    * @return stable club references and current normal-result metadata without personal values
    */
-  List<ClubAcquisitionReference> acquisitionClubs(boolean geocoding, boolean manual, UUID afterId);
+  List<ClubAcquisitionReference> acquisitionClubs(boolean geocoding, UUID afterId);
 
   /**
    * Resolves currently permitted localities in one batch.
