@@ -1,12 +1,22 @@
 # F11 validation guide
 
-The mobile dependency/configuration foundation and current-context eligibility are executable. Advertising initialization, consent, age forms, serving and the scenarios below remain separate implementation/qualification work.
+The mobile dependency/configuration foundation, current-context eligibility and isolated interstitial lifecycle are executable. Advertising initialization, consent, age forms, integrated sporting entries and native serving remain separate implementation/qualification work.
 
 ## Controlled eligibility boundary (T003/T004)
 
 Run `npm run test --workspace=@blockout/mobile -- --runInBand src/features/advertising/__tests__/advertising-eligibility.test.ts` after the README's installation and mobile generation steps. The suite uses real F05 generations and F09's exported `getProState` projection, with synthetic native entitlement evidence, controlled F12 ordinary admission and explicit native-choice inputs. It covers guests without entitlement retrieval, active paid/gifted Pro, unknown signed-in rights, inactive rights, authorized modes, blocked admission, A → B and A → guest → A, including obsolete choices and first account establishment within one generation.
 
 `getAdvertisingEligibility` in `apps/mobile/src/features/advertising/advertising-eligibility.ts` derives permissions without retaining state. Callers must supply current admission, F09 evidence and applicable native choices, and reevaluate before loading or presenting. Choice preparation can proceed with unknown entitlements; requests and display cannot. Known active Pro avoids new prompts. This boundary neither grants sporting access nor implements the counter, native choices, SDK calls or live provider binding; T009/T018/T019 and device/provider qualification remain pending.
+
+## Controlled interstitial boundary (T005/T006/T008)
+
+Run `npm run test --workspace=@blockout/mobile -- --runInBand src/features/advertising/__tests__/sporting-ad-transitions.test.ts src/features/advertising/__tests__/interstitial-lifecycle.test.ts` after mobile generation. The real lifecycle consumes current F05/F09/F12 eligibility inputs; only native advertising I/O is replaced. These suites cover the shared capped count, excluded journeys, repeated pending actions, destination errors, SDK terminal events and both show-failure channels, one-hour freshness, invalidation and obsolete callbacks. The callback-free hang remains pending without a watchdog; a fresh owner models process loss without replay.
+
+`createInterstitialLifecycle` creates an inert process-local owner; T009 must compose it once. `preload()` requests at most one currently authorized instance. `openSportingAdTransition()` accepts voluntary club/team/pool/match/live intents with a transient key reused while pending, a caller-owned validity check and an opening callback. A repeated pending key shares its result; another concurrent intent receives `busy` without acceptance or counting. Destination failure is returned separately from SDK failure. Other journeys execute without contributing an opportunity. Free actions still count when native choices prevent requests; current active Pro or unknown signed-in rights accrue no debt.
+
+Before privacy reconfiguration, call `invalidate()` to settle a valid pending destination or abandon its obsolete session before destroying preparation. Same-mode treatment changes require this explicit invalidation. Current session, authorized mode and eligibility are also checked before SDK requests/presentation and when processing native events. Invalidation preserves the counter. `dispose()` settles a still-valid destination before teardown; actual process loss retains nothing. Failure/no-fill waits for the next eligible sporting action, while dismissal permits one new preload.
+
+This proves isolated JavaScript behavior only. T007/T009 retain real entry/provider composition, T018/T019 retain native-choice readiness, and T010/T020 retain physical-device, serving and mediation qualification. No root layout binding, SDK initialization or real ad activation is supplied here.
 
 ## Native setup boundary (T001/T002)
 
