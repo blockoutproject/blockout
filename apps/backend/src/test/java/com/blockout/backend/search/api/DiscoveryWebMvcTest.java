@@ -73,6 +73,46 @@ class DiscoveryWebMvcTest {
         .andExpect(jsonPath("$.nextCursor").doesNotExist());
   }
 
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"teams", "pools"})
+  @DisplayName("Serializes current sporting summaries through each generated collection")
+  void returnsSportingSummary(String resource) throws Exception {
+    // Given
+    UUID id = UUID.fromString("00000000-0000-4000-8000-000000000002");
+    ConsultationViews.Identity identity =
+        new ConsultationViews.Identity(id, "Current Eagles", "Eagles", "/current/logo");
+    com.blockout.backend.sporting.application.model.SportingViews.SeasonView season =
+        new com.blockout.backend.sporting.application.model.SportingViews.SeasonView(
+            UUID.fromString("00000000-0000-4000-8000-000000000003"), 2040L, "2040/2041");
+    ConsultationViews.Classification classification =
+        new ConsultationViews.Classification(null, null, null);
+    SearchPage.Summary summary =
+        resource.equals("teams")
+            ? new SearchPage.Summary(
+                null,
+                new ConsultationViews.TeamSummary(identity, season, classification, null, true),
+                null)
+            : new SearchPage.Summary(
+                null,
+                null,
+                new ConsultationViews.PoolSummary(identity, season, classification, null, null));
+    when(reads.read(any(), any())).thenReturn(new SearchPage(List.of(summary), null));
+    String identityField = resource.equals("teams") ? "team" : "pool";
+
+    // When
+    ResultActions response = mvc.perform(get("/" + resource).param("q", "source"));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$." + resource + "[0]." + identityField + ".id").value(id.toString()))
+        .andExpect(
+            jsonPath("$." + resource + "[0]." + identityField + ".name").value("Current Eagles"))
+        .andExpect(jsonPath("$." + resource + "[0].season.startYear").value(2040))
+        .andExpect(jsonPath("$.nextCursor").doesNotExist());
+  }
+
   @Test
   @DisplayName("Returns the shared retryable unavailable profile for an incomplete read")
   void exposesUnavailable() throws Exception {

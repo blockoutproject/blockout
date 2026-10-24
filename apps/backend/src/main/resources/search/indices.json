@@ -22,28 +22,18 @@
         "whole_words": {
           "type": "custom",
           "tokenizer": "bounded_standard",
-          "filter": [
-            "lowercase",
-            "asciifolding"
-          ]
+          "filter": ["lowercase", "asciifolding"]
         },
         "word_prefixes": {
           "type": "custom",
           "tokenizer": "bounded_standard",
-          "filter": [
-            "lowercase",
-            "asciifolding",
-            "prefixes"
-          ]
+          "filter": ["lowercase", "asciifolding", "prefixes"]
         }
       },
       "normalizer": {
         "folded": {
           "type": "custom",
-          "filter": [
-            "lowercase",
-            "asciifolding"
-          ]
+          "filter": ["lowercase", "asciifolding"]
         }
       }
     }
@@ -69,10 +59,7 @@
       "names": {
         "type": "text",
         "analyzer": "whole_words",
-        "copy_to": [
-          "words",
-          "prefixes"
-        ],
+        "copy_to": ["words", "prefixes"],
         "fields": {
           "exact": {
             "type": "keyword",
@@ -83,18 +70,12 @@
       "context": {
         "type": "text",
         "analyzer": "whole_words",
-        "copy_to": [
-          "words",
-          "prefixes"
-        ]
+        "copy_to": ["words", "prefixes"]
       },
       "city": {
         "type": "text",
         "analyzer": "whole_words",
-        "copy_to": [
-          "words",
-          "prefixes"
-        ]
+        "copy_to": ["words", "prefixes"]
       },
       "words": {
         "type": "text",

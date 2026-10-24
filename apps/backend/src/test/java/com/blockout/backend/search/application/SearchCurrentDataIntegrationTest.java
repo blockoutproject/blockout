@@ -58,7 +58,7 @@ class SearchCurrentDataIntegrationTest {
     // Given
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
     sql.update(
-        "INSERT INTO sporting_club(id, provider, organizer_reference, reference, source_name, municipality) VALUES (?, 'FFVB', 'synthetic', ?, 'Eagles', 'Lyon')",
+        "INSERT INTO sporting_club(id, provider, reference, source_name, municipality) VALUES (?, 'FFVB', ?, 'Eagles', 'Lyon')",
         id,
         id.toString());
     switch (change) {
@@ -89,7 +89,7 @@ class SearchCurrentDataIntegrationTest {
     // Given
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000001");
     sql.update(
-        "INSERT INTO sporting_club(id, provider, organizer_reference, reference, source_name, manual_name, municipality, logo, logo_media_type) VALUES (?, 'FFVB', 'synthetic', ?, 'Old source', 'Current Eagles', 'Lyon', ?, 'image/png')",
+        "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, municipality, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Old source', 'Current Eagles', 'Lyon', ?, 'image/png')",
         id,
         id.toString(),
         new byte[] {1});
@@ -199,7 +199,7 @@ class SearchCurrentDataIntegrationTest {
     Fixture fixture = professionalTeam(2026);
     UUID club = UUID.fromString("00000000-0000-4000-8000-000000000060");
     sql.update(
-        "INSERT INTO sporting_club(id, provider, organizer_reference, reference, source_name, municipality) VALUES (?, 'FFVB', 'synthetic', ?, 'Club Eagles', 'Lyon')",
+        "INSERT INTO sporting_club(id, provider, reference, source_name, municipality) VALUES (?, 'FFVB', ?, 'Club Eagles', 'Lyon')",
         club,
         club.toString());
     sql.update("UPDATE sporting_team SET club_id = ? WHERE id = ?", club, fixture.team());
@@ -243,6 +243,28 @@ class SearchCurrentDataIntegrationTest {
 
     // Then
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  @DisplayName("Preserves unknown current pool classification when no exact filter is requested")
+  void hydratesUnknownClassification() {
+    // Given
+    Fixture fixture = professionalTeam(2026);
+    sql.update(
+        "UPDATE sporting_pool SET format = NULL, gender = NULL WHERE id = ?", fixture.pool());
+    SearchContext context =
+        new SearchContext(SearchContext.Resource.POOL, "synthetic", null, null, null, null, false);
+
+    // When
+    SearchPage.Summary result =
+        hydration
+            .current(context, List.of(new Candidate(new Position(1.0, fixture.pool()), null)))
+            .get(fixture.pool());
+
+    // Then
+    assertThat(result.pool().pool().id()).isEqualTo(fixture.pool());
+    assertThat(result.pool().classification().format()).isNull();
+    assertThat(result.pool().classification().gender()).isNull();
   }
 
   /**

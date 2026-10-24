@@ -268,7 +268,7 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
   /**
    * Combines accepted classification with already selected F02 division metadata.
    *
-   * @param value accepted sporting classification
+   * @param value accepted classification, possibly without format or gender
    * @param division current owner presentation from the same read transaction
    * @return public classification without an additional persistence lookup
    */
@@ -281,8 +281,8 @@ public class JpaConsultationReadAdapter implements ConsultationReadPort {
             division.hasLogo() ? "/divisions/" + division.id() + "/logo" : null,
             division.color(),
             division.gradient()),
-        SportFormatEnum.fromValue(value.format().getValue()),
-        SportGenderEnum.fromValue(value.gender().getValue()));
+        value.format() == null ? null : SportFormatEnum.fromValue(value.format().getValue()),
+        value.gender() == null ? null : SportGenderEnum.fromValue(value.gender().getValue()));
   }
 
   /**

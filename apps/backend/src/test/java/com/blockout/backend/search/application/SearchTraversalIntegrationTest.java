@@ -73,7 +73,7 @@ class SearchTraversalIntegrationTest {
     // Given
     String term = count == 47 ? "smallset" : "largeset";
     sql.update(
-        "INSERT INTO sporting_club(id, provider, organizer_reference, reference, source_name, municipality) SELECT md5(? || n::TEXT)::UUID, 'FFVB', 'synthetic', ? || n::TEXT, ?, 'Lyon' FROM generate_series(1, ?) n",
+        "INSERT INTO sporting_club(id, provider, reference, source_name, municipality) SELECT md5(? || n::TEXT)::UUID, 'FFVB', ? || n::TEXT, ?, 'Lyon' FROM generate_series(1, ?) n",
         term,
         term,
         term,
@@ -141,7 +141,7 @@ class SearchTraversalIntegrationTest {
     UUID second = UUID.fromString("00000000-0000-4000-8000-000000000092");
     for (UUID id : List.of(first, second))
       sql.update(
-          "INSERT INTO sporting_club(id, provider, organizer_reference, reference, source_name, municipality) VALUES (?, 'FFVB', 'synthetic', ?, ?, 'Lyon')",
+          "INSERT INTO sporting_club(id, provider, reference, source_name, municipality) VALUES (?, 'FFVB', ?, ?, 'Lyon')",
           id,
           id.toString(),
           term);
@@ -205,7 +205,7 @@ class SearchTraversalIntegrationTest {
     // Given
     String term = "boundcase";
     sql.update(
-        "INSERT INTO sporting_club(id, provider, organizer_reference, reference, source_name, municipality) SELECT md5(? || n::TEXT)::UUID, 'FFVB', 'synthetic', ? || n::TEXT, ?, 'Lyon' FROM generate_series(1, 2001) n",
+        "INSERT INTO sporting_club(id, provider, reference, source_name, municipality) SELECT md5(? || n::TEXT)::UUID, 'FFVB', ? || n::TEXT, ?, 'Lyon' FROM generate_series(1, 2001) n",
         term,
         term,
         term);

@@ -12,6 +12,7 @@ import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.transport.OpenSearchTransport;
@@ -204,28 +205,22 @@ public final class SearchTestEngine {
   public static void createIndex(String index) throws Exception {
     org.opensearch.client.json.JsonpMapper mapper = client._transport().jsonpMapper();
     try (InputStream input = SearchTestEngine.class.getResourceAsStream("/search/indices.json");
-        jakarta.json.JsonReader reader = mapper.jsonProvider().createReader(input)) {
-      jakarta.json.JsonObject definition = reader.readObject();
-      org.opensearch.client.opensearch.indices.IndexSettings settings;
-      org.opensearch.client.opensearch._types.mapping.TypeMapping mapping;
-      try (jakarta.json.stream.JsonParser parser =
-          mapper
-              .jsonProvider()
-              .createParser(
-                  new java.io.StringReader(definition.getJsonObject("settings").toString()))) {
-        settings =
-            org.opensearch.client.opensearch.indices.IndexSettings._DESERIALIZER.deserialize(
-                parser, mapper);
-      }
-      try (jakarta.json.stream.JsonParser parser =
-          mapper
-              .jsonProvider()
-              .createParser(
-                  new java.io.StringReader(definition.getJsonObject("mappings").toString()))) {
-        mapping =
-            org.opensearch.client.opensearch._types.mapping.TypeMapping._DESERIALIZER.deserialize(
-                parser, mapper);
-      }
+        jakarta.json.stream.JsonParser parser = mapper.jsonProvider().createParser(input)) {
+      Map<String, org.opensearch.client.json.JsonData> definition =
+          org.opensearch.client.json.JsonpDeserializer.stringMapDeserializer(
+                  org.opensearch.client.json.JsonData._DESERIALIZER)
+              .deserialize(parser, mapper);
+      org.opensearch.client.opensearch.indices.IndexSettings settings =
+          definition
+              .get("settings")
+              .deserialize(
+                  org.opensearch.client.opensearch.indices.IndexSettings._DESERIALIZER, mapper);
+      org.opensearch.client.opensearch._types.mapping.TypeMapping mapping =
+          definition
+              .get("mappings")
+              .deserialize(
+                  org.opensearch.client.opensearch._types.mapping.TypeMapping._DESERIALIZER,
+                  mapper);
       client.indices().create(request -> request.index(index).settings(settings).mappings(mapping));
     }
   }
