@@ -109,7 +109,23 @@ npm run test --workspace=@blockout/mobile -- \
   --runTestsByPath src/features/access/__tests__/maintenance-problem.test.ts
 ```
 
-No native screen, Auth0/RevenueCat/store operation or real source collection was exercised by this lot. Native gate implementation is recorded below; T031/T039, actual F07 handoff/inbox/purge and the existing iOS 17/text-scaling qualifications remain open with their owners. The in-process reader is available for F07; no final notification consumer or provider stop/recall guarantee is claimed.
+No native screen, Auth0/RevenueCat/store operation or real source collection was exercised by this lot. Native gate implementation is recorded below; T031/T039, actual F07 handoff/inbox/purge and the existing iOS 17/text-scaling qualifications remain open with their owners. The F07 policy proof is recorded below; actual sender binding and provider qualification remain separate, without a provider stop/recall guarantee.
+
+## Sporting push maintenance policy — T032/T033
+
+On 2026-10-24, `SportingPushAdmission.allowsHandoff()` consumes the actual F12 `MaintenanceAdmission.currentMaintenance()` read on every decision. It accepts no recipient privilege or bypass input. The sender must check it immediately before each new provider handoff, discard a skipped attempt and keep recipient eligibility, inbox creation and purge under F07 ownership. Unavailable current state propagates F12's existing exception and diagnostic without granting admission. A previously admitted handoff may finish after activation.
+
+`MaintenancePushAdmissionTest` passes eight cases after seven behavioral failures against an initially permissive policy. Direct construction uses the real F12 reader and authorization, with controlled settings storage, transactions and handoff callbacks. It covers inactive admission, ordinary refusal, refusal for an operator with an admitted current bypass, activation between handoffs, completion of a prior admission, read-only settings access without privilege lookup, reopening for a new event without replaying a skipped callback, and unavailable state after an earlier admission. It introduces no notification storage, provider adapter or deferred-work mechanism.
+
+After dependency installation and contract bundling, run:
+
+```sh
+./mvnw -B -ntp -pl apps/backend test -Dtest=MaintenancePushAdmissionTest
+```
+
+The backend module run passes 834 unit/MVC cases and 328 integration cases, with the existing settings/mobile consumer suite skipped unless explicitly enabled. The first full run also encountered a PostgreSQL connection timeout while initializing the existing 18-case collection-control suite; an isolated rerun passes all 18 without test or timeout changes. Checkstyle, Spotless, Java compilation, packaging, all three canonical contract bundles and repository formatting pass.
+
+These controlled cases prove only the policy boundary. The existing F12 PostgreSQL tests own SQL freshness, including activation inside a longer caller transaction. F07 T035 (#266) still owns actual sender binding; T034 (#272) retains real inbox/purge/handoff continuity and provider qualification. No actual Expo send, native delivery, replay/recall guarantee across systems or final US4 acceptance is claimed.
 
 ## Native access composition — T022–T024/T027–T029/T035/T038
 
