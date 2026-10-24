@@ -527,6 +527,19 @@ class ContributionPersistenceIntegrationTest {
         .isEqualTo(4L);
   }
 
+  @Test
+  @DisplayName("Returns zero usage before the first participating submission")
+  void readsUnusedQuota() {
+    // Given
+    ContributionQuota.Day day = ContributionQuota.dayAt(NOW);
+
+    // When
+    ContributionQuota.Usage usage = versions.usage(OWNER, MATCH, day);
+
+    // Then
+    assertThat(usage).isEqualTo(new ContributionQuota.Usage(0, 0, false));
+  }
+
   @ParameterizedTest
   @CsvSource({"2026-03-29T10:00:00Z", "2026-10-25T10:00:00Z"})
   @DisplayName(
