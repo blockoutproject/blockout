@@ -181,14 +181,13 @@ class CollectorSportingBoundaryIntegrationTest {
     when(provider.read(any()))
         .thenAnswer(
             call -> {
-              assertThat(backend.cycle(context.getCycle().id()).state())
-                  .isEqualTo(CollectionCycleStateEnum.RUNNING);
+              assertThat(context.getCycle().state()).isEqualTo(CollectionCycleStateEnum.RUNNING);
               assertThat(context.getCycle().cycleOrder()).isPositive();
               assertThat(
                       count(
                           HttpMethod.GET,
                           "/ingestion/collection-cycles/" + context.getCycle().id()))
-                  .isGreaterThanOrEqualTo(1);
+                  .isEqualTo(1);
               // Discovery consumed 1; this probe returns 3 only if calendar allocation preceded
               // read.
               assertThat(context.nextReadOrdinal()).isEqualTo(3);
