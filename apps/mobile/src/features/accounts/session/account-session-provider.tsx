@@ -6,6 +6,7 @@ import {
   useState,
   useSyncExternalStore,
   type PropsWithChildren,
+  type ReactNode,
 } from "react";
 import Auth0, { Auth0Provider, useAuth0 } from "react-native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -59,8 +60,12 @@ const AccountSessionContext = createContext<AccountSession | null>(null);
 /**
  * Finishes local F14 initialization before mounting the standard SDK/application tree.
  * Failure leaves guest navigation available; ordinary identity changes never remount it.
+ * An optional public fallback remains independent while first-install credentials are initialized.
  */
-export function AccountSessionProvider({ children }: PropsWithChildren) {
+export function AccountSessionProvider({
+  children,
+  fallback = null,
+}: PropsWithChildren<{ fallback?: ReactNode }>) {
   const [initialization, setInitialization] = useState<Initialization>({
     status: "initializing",
   });
@@ -94,7 +99,7 @@ export function AccountSessionProvider({ children }: PropsWithChildren) {
     };
   }, [initializationAttempt]);
 
-  if (initialization.status === "initializing") return null;
+  if (initialization.status === "initializing") return fallback;
 
   const content = (
     <SessionScope

@@ -3,11 +3,17 @@ import * as Sentry from "@sentry/react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useLayoutEffect, useState } from "react";
-import { useCurrentAccount } from "../features/accounts/api/use-current-account";
 import {
   AccountSessionProvider,
   useAccountSession,
 } from "../features/accounts/session/account-session-provider";
+import { AccountAdmissionProvider } from "../features/accounts/components/account-admission";
+import { ApplicationAccessProvider } from "../features/access/queries/use-application-access";
+import {
+  AccessAdmissionProvider,
+  useAccessAdmission,
+} from "../features/access/queries/use-access-admission";
+import { StartupAccessGate } from "../features/access/screens/access-gate-screen";
 import {
   bindSessionQueries,
   createQueryClient,
@@ -15,47 +21,38 @@ import {
 import { initializeSentry } from "../shared/observability/sentry";
 import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
 import { ProProvider, usePro } from "../features/pro";
-import { sheetScreenOptions } from "../shared/components/sheet";
 
 initializeSentry();
 
-/** Binds private cache cleanup to the session owner and renders navigation in the current system theme. */
+/** Binds private cache cleanup and separates protected ordinary/operational navigation. */
 function Navigation() {
   const theme = useTheme();
   const client = useQueryClient();
   const { subscribe, isCurrent } = useAccountSession();
+  const access = useAccessAdmission();
   useLayoutEffect(
     () => bindSessionQueries(client, subscribe, isCurrent),
     [client, subscribe, isCurrent],
   );
   return (
-    <>
+    <AccountAdmissionProvider admitted={access.ordinary}>
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen
-          name="pro"
-          options={{ presentation: "fullScreenModal", headerShown: false }}
-        />
-        <Stack.Screen
-          name="sign-in-invitation"
-          options={{
-            ...sheetScreenOptions,
-            sheetAllowedDetents: "fitToContents",
-            contentStyle: { backgroundColor: theme.colors.surface },
-          }}
-        />
+        <Stack.Protected guard={!access.ordinary}>
+          <Stack.Screen name="access" />
+        </Stack.Protected>
+        <Stack.Protected guard={access.ordinary}>
+          <Stack.Screen name="(ordinary)" />
+        </Stack.Protected>
+        <Stack.Protected guard={access.operations}>
+          <Stack.Screen name="(operations)" />
+        </Stack.Protected>
       </Stack>
-    </>
+    </AccountAdmissionProvider>
   );
 }
 
-/** Restores only the existing local account; neither absence nor restoration triggers POST. */
-function CurrentAccountObserver() {
-  useCurrentAccount();
-  return null;
-}
-
-/** Projects only current SDK-active membership into the sole theme owner without remounting routes. */
+/** Projects SDK-active membership into the sole system theme owner without remounting routes. */
 function ThemedNavigation() {
   const { state } = usePro();
   return (
@@ -65,21 +62,28 @@ function ThemedNavigation() {
   );
 }
 
-/** Composes session, cache and live appearance around navigation with native route presentation. */
+/** Starts public checking above F14/Auth0; all session restoration and returns preserve that process owner. */
 function RootLayout() {
   const [queryClient] = useState(createQueryClient);
   useEffect(() => () => queryClient.clear(), [queryClient]);
-
   return (
     <QueryClientProvider client={queryClient}>
-      <AccountSessionProvider>
-        <CurrentAccountObserver />
-        <ProProvider>
-          <ThemedNavigation />
-        </ProProvider>
-      </AccountSessionProvider>
+      <ApplicationAccessProvider>
+        <AccountSessionProvider
+          fallback={
+            <ThemeProvider>
+              <StartupAccessGate />
+            </ThemeProvider>
+          }
+        >
+          <AccessAdmissionProvider>
+            <ProProvider>
+              <ThemedNavigation />
+            </ProProvider>
+          </AccessAdmissionProvider>
+        </AccountSessionProvider>
+      </ApplicationAccessProvider>
     </QueryClientProvider>
   );
 }
-
 export default Sentry.wrap(RootLayout);

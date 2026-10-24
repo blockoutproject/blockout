@@ -18,6 +18,23 @@ export interface ApiFetchOptions extends RequestInit {
   responseType?: "blob";
 }
 
+/** Root-owned admission adapter; called only for validated Blockout destinations and current results. */
+export interface ApiAdmission {
+  prepare(path: string, options: ApiFetchOptions): Promise<ApiFetchOptions>;
+  accept(path: string, data: unknown, schema: ZodType | undefined): void;
+  refuse(path: string, error: ApiError, options: ApiFetchOptions): void;
+}
+
+let admission: ApiAdmission | undefined;
+
+/** Binds the active process policy without making shared transport depend on a feature. */
+export function bindApiAdmission(value: ApiAdmission): () => void {
+  admission = value;
+  return () => {
+    if (admission === value) admission = undefined;
+  };
+}
+
 /** A safe transport failure; the server problem type retains its canonical meaning. */
 export class ApiError<
   TProblem = ProblemResponse | AccessProblemResponse,
@@ -63,15 +80,6 @@ export async function apiFetch(
   url: string,
   options: ApiFetchOptions = {},
 ): Promise<unknown> {
-  const {
-    schema,
-    timeoutMs = 15_000,
-    responseType,
-    signal,
-    session,
-    ...request
-  } = options;
-  assertCurrentSession(session);
   let destination: URL;
   try {
     const base = new URL(process.env.EXPO_PUBLIC_API_URL ?? "");
@@ -82,10 +90,27 @@ export async function apiFetch(
       base.username ||
       base.password ||
       destination.username ||
-      destination.password ||
-      !Number.isSafeInteger(timeoutMs) ||
-      timeoutMs <= 0
+      destination.password
     ) {
+      throw new Error("Invalid backend destination");
+    }
+  } catch {
+    throw new ApiError("configuration");
+  }
+  const policy = admission;
+  assertCurrentSession(options.session);
+  if (policy) options = await policy.prepare(destination.pathname, options);
+  const {
+    schema,
+    timeoutMs = 15_000,
+    responseType,
+    signal,
+    session,
+    ...request
+  } = options;
+  assertCurrentSession(session);
+  try {
+    if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
       throw new Error("Invalid backend destination");
     }
   } catch {
@@ -136,12 +161,16 @@ export async function apiFetch(
     }
     requestSignal.throwIfAborted();
     assertCurrentSession(session);
+    policy?.accept(destination.pathname, data, schema);
     return data;
   } catch (error) {
     assertCurrentSession(session);
     if (signal?.aborted) throw new ApiError("cancelled");
     if (deadline.aborted) throw new ApiError("timeout");
-    if (error instanceof ApiError) throw error;
+    if (error instanceof ApiError) {
+      policy?.refuse(destination.pathname, error, options);
+      throw error;
+    }
     throw new ApiError("network");
   }
 }
