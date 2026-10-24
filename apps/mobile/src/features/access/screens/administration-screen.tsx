@@ -8,19 +8,25 @@ import {
 } from "../../../shared/components/request-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 
 /** Admission is supplied by the route owner, independently of command visibility. */
 export interface AdministrationScreenProps {
   admitted: boolean;
+  /** Explicit personal choice supplied only by the current root admission owner. */
+  onBypass?: () => void;
 }
 
 /**
  * Presents each technical destination under its own literal grant, without executing an operation.
  * Settings screens and operational route admission remain with their owning F12 tasks.
  */
-export function AdministrationScreen({ admitted }: AdministrationScreenProps) {
+export function AdministrationScreen({
+  admitted,
+  onBypass,
+}: AdministrationScreenProps) {
   const { permissions, hasCommands, account, sessionStatus } =
     useAdministrationCapabilities();
   const { colors } = useTheme();
@@ -62,10 +68,17 @@ export function AdministrationScreen({ admitted }: AdministrationScreenProps) {
             onRetry={() => void account.refetch()}
             retrying={account.isFetching}
           />
-        ) : !hasCommands ? (
+        ) : !hasCommands && !onBypass ? (
           <RequestError message="Cette action nécessite une permission dédiée." />
         ) : (
           <>
+            {onBypass && (
+              <Button
+                label="Accéder à l’application pendant la maintenance"
+                onPress={onBypass}
+                fullWidth
+              />
+            )}
             {permissions?.manageMaintenance === true && (
               <Link href="/administration/maintenance" style={linkStyle}>
                 Maintenance

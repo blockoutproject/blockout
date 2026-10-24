@@ -43,7 +43,7 @@ const config: ExpoConfig = {
   ...(!release ? { scheme: "blockout-local" } : {}),
   platforms: ["ios", "android"],
   plugins: [
-    "expo-router",
+    ["expo-router", { sitemap: false }],
     "expo-image",
     "expo-status-bar",
     "expo-web-browser",

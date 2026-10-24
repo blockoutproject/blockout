@@ -22,7 +22,7 @@ import {
 } from "../../accounts/test-support/native-auth0";
 import { AdministrationEntry } from "../components/administration-entry";
 import { AdministrationScreen } from "../screens/administration-screen";
-import AdministrationRoute from "../../../app/administration";
+import AdministrationRoute from "../../../app/(operations)/administration";
 
 // The installed library controls native keyboard I/O; profile and admission behavior remain real.
 jest.mock("react-native-keyboard-controller", () =>
