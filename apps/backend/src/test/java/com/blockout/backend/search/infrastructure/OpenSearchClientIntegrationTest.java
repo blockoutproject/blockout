@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -50,6 +51,8 @@ class OpenSearchClientIntegrationTest {
 
   /**
    * Creates private native security configuration and starts only this suite's ephemeral engine.
+   * Uses OpenSearch's five-minute Testcontainers startup bound for cold or busy CI hosts; readiness
+   * still requires a CA-verified HTTPS 401 response.
    */
   @BeforeAll
   static void startEngine() throws Exception {
@@ -104,7 +107,8 @@ class OpenSearchClientIntegrationTest {
                     }
                   }
                 }.withCommand(
-                    "curl --silent --cacert config/tls/ca.pem -o /dev/null -w '%{http_code}' https://localhost:9200 | grep -q 401"));
+                    "curl --silent --cacert config/tls/ca.pem -o /dev/null -w '%{http_code}' https://localhost:9200 | grep -q 401"))
+            .withStartupTimeout(Duration.ofMinutes(5));
     for (String file : List.of("ca.pem", "node.pem", "node-key.pem")) {
       engine.withCopyFileToContainer(
           MountableFile.forHostPath(tls.resolve(file), 0644),
