@@ -163,14 +163,14 @@ public class JpaSportingReadStore implements SportingReadStore {
   }
 
   /**
-   * {@inheritDoc} The native fetch plan keeps subsequent F02 presentation reads in the same
-   * persistence context.
+   * {@inheritDoc} The caller has already loaded the club and season in this persistence context;
+   * selecting only teams avoids repeating parent columns and club image bytes for every row.
    */
   @Override
   public List<TeamView> viewableClubTeams(UUID clubId, UUID seasonId) {
     return entities
         .createQuery(
-            "SELECT t FROM TeamEntity t JOIN FETCH t.season LEFT JOIN FETCH t.club WHERE t.club.id = :clubId AND t.season.id = :seasonId AND "
+            "SELECT t FROM TeamEntity t WHERE t.club.id = :clubId AND t.season.id = :seasonId AND "
                 + TEAM_VISIBLE
                 + " ORDER BY t.id",
             TeamEntity.class)

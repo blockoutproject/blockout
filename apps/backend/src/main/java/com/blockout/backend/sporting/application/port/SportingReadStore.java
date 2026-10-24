@@ -39,8 +39,8 @@ public interface SportingReadStore {
   List<SeasonView> viewableClubSeasons(UUID clubId);
 
   /**
-   * Selects every currently viewable team in an exact club season, fetching its season and club
-   * context.
+   * Selects every currently viewable team in an exact club season. The caller retains the admitted
+   * club and season in the same read transaction for subsequent presentation mapping.
    *
    * @param clubId exact retained organization
    * @param seasonId exact canonical season without fallback

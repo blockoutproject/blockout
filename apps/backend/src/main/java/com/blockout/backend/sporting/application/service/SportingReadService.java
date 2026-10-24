@@ -66,7 +66,7 @@ public class SportingReadService {
    *
    * @param clubId exact organization already admitted by the caller
    * @param seasonId explicit canonical season
-   * @return current team identities and fetched owner context within the caller's read transaction
+   * @return current team identities within the caller's existing club/season read transaction
    */
   public List<TeamView> publicClubTeams(UUID clubId, UUID seasonId) {
     return publicReads.viewableClubTeams(clubId, seasonId);
