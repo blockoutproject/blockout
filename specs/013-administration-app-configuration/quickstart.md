@@ -109,7 +109,7 @@ npm run test --workspace=@blockout/mobile -- \
   --runTestsByPath src/features/access/__tests__/maintenance-problem.test.ts
 ```
 
-No native screen, Auth0/RevenueCat/store operation or real source collection was exercised by this lot. T022–T024/T027–T031, actual F07 handoff/inbox/purge and the existing iOS 17/text-scaling qualifications remain open with their owners. The in-process reader is available for F07; no final notification consumer or provider stop/recall guarantee is claimed.
+No native screen, Auth0/RevenueCat/store operation or real source collection was exercised by this lot. Native gate implementation is recorded below; T031/T039, actual F07 handoff/inbox/purge and the existing iOS 17/text-scaling qualifications remain open with their owners. The in-process reader is available for F07; no final notification consumer or provider stop/recall guarantee is claimed.
 
 ## Native access composition — T022–T024/T027–T029/T035/T038
 
