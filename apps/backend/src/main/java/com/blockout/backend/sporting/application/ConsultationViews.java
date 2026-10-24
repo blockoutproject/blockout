@@ -53,7 +53,10 @@ public final class ConsultationViews {
   /** Reliable municipality point, independent of a match venue or official standings. */
   public record Location(double latitude, double longitude, String label) {}
 
-  /** Common club page facts; available seasons are already ordered by the read owner. */
+  /**
+   * Seasons come from viewable teams, newest first. No source fallback for a deliberate absence or
+   * restriction.
+   */
   public record ClubDetail(
       Identity club, Contacts contacts, Location location, List<SeasonView> seasons) {
     /**
@@ -77,7 +80,7 @@ public final class ConsultationViews {
       String competitionName,
       String phaseName) {}
 
-  /** Public seasonal team; professional teams may have no club or municipality. */
+  /** Stable identity; a professional team needs no club or assumed municipality. */
   public record TeamSummary(
       Identity team,
       SeasonView season,
@@ -111,7 +114,7 @@ public final class ConsultationViews {
     }
   }
 
-  /** Common pool information; standings and map participants are independent reads. */
+  /** Missing classification is not inferred from another pool. */
   public record PoolDetail(PoolSummary pool) {}
 
   /** Official row order is supplied by its containing list; no position/statistic is inferred. */
@@ -273,7 +276,8 @@ public final class ConsultationViews {
   }
 
   /**
-   * Permitted public match detail and actions, without source locators or private moderation state.
+   * A missing usable date or current restriction hides the resource; no invented instant, score or
+   * winner. Public documents and stream actions are supplied by their owning later story.
    */
   public record MatchDetail(
       MatchSummary match,
