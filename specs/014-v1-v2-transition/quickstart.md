@@ -59,6 +59,12 @@ Use both supported installed V1 store builds and the actual first V2 release for
 
 Record platform, installed version/build, tested backend revision, configured threshold and safe outcomes with T043. Store availability, effective retirement and production activation remain their later tasks; serialization tests alone do not complete them.
 
+## Common discovery construction — T006–T010
+
+The common five-step journey uses the approved Figma references in [the plan](plan.md#design-reconciliation). Its separate `blockout:v2-discovery-complete` AsyncStorage flag is written only after explicit skip or finish; failed persistence retains the current journey and an explicit retry. Root routing waits for the installation read, preserves current F12 blocking and operational admission, then hands completed discovery to the ordinary F05 sign-in/guest journey. Initialization, account state, Pro and advertising choices remain independent.
+
+Controlled Jest cases cover interruption, V1/initialization flags, finish/skip, read/write failures, restart, foreground, sign-out, later app versions, pending-read deep links, current gates and cancelled/failed/profile-unavailable F05 entry with guest/help availability. HTTP and native SDK I/O are controlled; this is not actual provider or store qualification. Actual-owner integration T011, signed upgrade/reinstall/backup T012 and complete native/accessibility qualification T013–T014 remain pending.
+
 ## Current repository checks
 
 Run the [README verification commands](../../README.md#verification), including the legacy OpenAPI root and backend tests. They cover generation, binding, serialization, HTTP admission and missing configuration. Actual old-binary compatibility and F12 maintenance integration remain separate qualification boundaries.

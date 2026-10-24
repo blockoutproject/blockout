@@ -1,0 +1,285 @@
+import { ArrowRight, ChevronLeft } from "lucide-react-native";
+import { useEffect, useRef, useState, type ComponentRef } from "react";
+import {
+  AccessibilityInfo,
+  BackHandler,
+  findNodeHandle,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Defs, Image as SvgImage, Mask, Rect } from "react-native-svg";
+import { Button } from "../../../shared/components/button";
+import { IconButton } from "../../../shared/components/icon-button";
+import {
+  RequestError,
+  RequestLoading,
+} from "../../../shared/components/request-feedback";
+import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "../../../shared/theme/tokens";
+import {
+  DiscoveryBackdrop,
+  DiscoveryExample,
+} from "../components/discovery-artwork";
+import { useDiscovery } from "../discovery-provider";
+
+const steps = [
+  {
+    label: "LA COMMUNAUTÉ VOLLEY",
+    title: "Tout le volley.\nDans ta poche.",
+    paragraphs: [
+      "Calendriers, résultats disponibles et classements : suis tes équipes et tes poules pour retrouver leurs rencontres.",
+    ],
+  },
+  {
+    label: "RESTE DANS LE MATCH",
+    title: "Le résultat arrive,\ntu le retrouves.",
+    paragraphs: [
+      "Retrouve les résultats et les liens de diffusion dans Notifications. Les notifications du téléphone restent facultatives.",
+    ],
+  },
+  {
+    label: "MIEUX, ENSEMBLE",
+    title: "Un score à\nfiabiliser ?",
+    paragraphs: [
+      "Les données viennent des sources officielles FFVB et LNV selon les compétitions couvertes. Sur la fiche d’un match, touche le drapeau entouré pour signaler un souci.",
+    ],
+  },
+  {
+    label: "TRANSPARENCE",
+    title: "Une appli faite\npour les passionnés.",
+    paragraphs: [
+      "Blockout est une application indépendante. Explore les compétitions nationales, régionales et départementales couvertes. Les données manquantes restent indiquées.",
+    ],
+  },
+  {
+    label: "C’EST PARTI",
+    title: "Trouve ton prochain match.",
+    paragraphs: [
+      "Commence sans compte, ou connecte-toi pour suivre tes équipes et tes poules.",
+      "Déjà sur Blockout ? Reconnecte-toi. Tes anciens suivis, notifications, contributions et personnalisations de profil ne sont pas repris.",
+      "Tes droits Pro sont conservés. Si besoin, utilise « Restaurer mes achats » dans l’espace Pro après connexion.",
+    ],
+  },
+];
+
+/** Common skippable discovery; only explicit finish/skip persists completion, with ordinary sign-in following it. */
+export function DiscoveryScreen() {
+  const { colors } = useTheme();
+  const discovery = useDiscovery();
+  const [step, setStep] = useState(0);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const heading = useRef<ComponentRef<typeof Text>>(null);
+  const content = steps[step];
+
+  useEffect(() => {
+    scroll.current?.scrollTo({ y: 0, animated: false });
+    const node = findNodeHandle(heading.current);
+    if (node) AccessibilityInfo.setAccessibilityFocus(node);
+  }, [step, discovery.loading]);
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        if (step > 0 && !discovery.saving) {
+          setStep((value) => value - 1);
+          return true;
+        }
+        return false;
+      },
+    );
+    return () => subscription.remove();
+  }, [step, discovery.saving]);
+
+  return (
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.canvas }]}>
+      <View style={[styles.header, { borderColor: colors.border }]}>
+        <View style={styles.brand} accessible accessibilityLabel="Blockout">
+          <Svg width={28} height={28} viewBox="0 0 28 28" accessible={false}>
+            <Defs>
+              <Mask id="discovery-brand" maskType="luminance">
+                <SvgImage
+                  href={require("../../../../assets/access/brand-mark.png")}
+                  width={28}
+                  height={28}
+                />
+              </Mask>
+            </Defs>
+            <Rect
+              width={28}
+              height={28}
+              fill={colors.text}
+              mask="url(#discovery-brand)"
+            />
+          </Svg>
+          <Text style={[tokens.typography.navigation, { color: colors.text }]}>
+            BLOCKOUT
+          </Text>
+        </View>
+        {!discovery.loading && discovery.error !== "read" && step < 4 && (
+          <Button
+            label="Passer"
+            variant="secondary"
+            onPress={() => void discovery.finish()}
+            loading={discovery.saving}
+          />
+        )}
+      </View>
+      <ScrollView
+        ref={scroll}
+        style={styles.scroll}
+        contentContainerStyle={styles.stage}
+      >
+        {discovery.loading ? (
+          <RequestLoading />
+        ) : discovery.error === "read" ? (
+          <RequestError
+            message="La découverte n’a pas pu être chargée."
+            onRetry={discovery.retryRead}
+          />
+        ) : (
+          <>
+            <DiscoveryBackdrop />
+            <View style={styles.stack}>
+              <DiscoveryExample step={step} />
+              <View
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[tokens.typography.metadata, { color: colors.text }]}
+                >
+                  {content.label}
+                </Text>
+                <Text
+                  ref={heading}
+                  accessibilityRole="header"
+                  style={[styles.title, { color: colors.text }]}
+                >
+                  {content.title}
+                </Text>
+                {content.paragraphs.map((paragraph) => (
+                  <Text
+                    key={paragraph}
+                    style={[
+                      tokens.typography.body,
+                      { color: colors.secondaryText },
+                    ]}
+                  >
+                    {paragraph}
+                  </Text>
+                ))}
+              </View>
+              {discovery.error === "write" && (
+                <RequestError message="La fin de la découverte n’a pas pu être enregistrée. Réessayez avec Passer ou Commencer." />
+              )}
+            </View>
+          </>
+        )}
+      </ScrollView>
+      {!discovery.loading && discovery.error !== "read" && (
+        <View style={styles.footer}>
+          <View
+            style={[
+              styles.previous,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <IconButton
+              label="Étape précédente"
+              onPress={() => setStep((value) => value - 1)}
+              disabled={step === 0 || discovery.saving}
+            >
+              <ChevronLeft size={24} color={colors.icon} />
+            </IconButton>
+          </View>
+          <View
+            accessible
+            accessibilityLabel={`Étape ${step + 1} sur 5`}
+            style={styles.progress}
+          >
+            {steps.map((item, index) => (
+              <View
+                key={item.label}
+                style={[
+                  styles.dot,
+                  {
+                    width: index === step ? 19 : 5,
+                    backgroundColor:
+                      index === step ? colors.text : colors.secondaryText,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <Button
+            label={step === 4 ? "Commencer" : "Suivant"}
+            trailingIcon={ArrowRight}
+            onPress={() =>
+              step === 4
+                ? void discovery.finish()
+                : setStep((value) => value + 1)
+            }
+            loading={discovery.saving}
+          />
+        </View>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, paddingHorizontal: tokens.spacing.section },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 69,
+    paddingBottom: tokens.spacing.lg,
+    borderBottomWidth: tokens.borderWidth,
+  },
+  brand: { flexDirection: "row", gap: 9, alignItems: "center" },
+  scroll: { flex: 1, marginHorizontal: -tokens.spacing.section },
+  stage: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: tokens.spacing.section,
+  },
+  stack: { gap: tokens.spacing.lg },
+  card: {
+    padding: tokens.spacing.lg,
+    borderRadius: tokens.radius.sheet,
+    borderWidth: tokens.borderWidth,
+    gap: tokens.spacing.md,
+  },
+  title: {
+    ...tokens.typography.heading,
+    fontSize: 32,
+    lineHeight: 38,
+    letterSpacing: -0.32,
+  },
+  footer: {
+    flexDirection: "row",
+    gap: tokens.spacing.md,
+    alignItems: "center",
+    paddingVertical: tokens.spacing.lg,
+  },
+  previous: {
+    borderWidth: tokens.borderWidth,
+    borderRadius: tokens.radius.control,
+  },
+  progress: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: tokens.spacing.label,
+  },
+  dot: { height: 5, borderRadius: tokens.radius.full },
+});

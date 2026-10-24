@@ -21,6 +21,10 @@ import {
 import { initializeSentry } from "../shared/observability/sentry";
 import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
 import { ProProvider, usePro } from "../features/pro";
+import {
+  DiscoveryProvider,
+  useDiscovery,
+} from "../features/onboarding/discovery-provider";
 
 initializeSentry();
 
@@ -30,6 +34,7 @@ function Navigation() {
   const client = useQueryClient();
   const { subscribe, isCurrent } = useAccountSession();
   const access = useAccessAdmission();
+  const discovery = useDiscovery();
   useLayoutEffect(
     () => bindSessionQueries(client, subscribe, isCurrent),
     [client, subscribe, isCurrent],
@@ -37,17 +42,27 @@ function Navigation() {
   return (
     <AccountAdmissionProvider admitted={access.ordinary}>
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!access.ordinary}>
-          <Stack.Screen name="access" />
-        </Stack.Protected>
-        <Stack.Protected guard={access.ordinary}>
-          <Stack.Screen name="(ordinary)" />
-        </Stack.Protected>
-        <Stack.Protected guard={access.operations}>
-          <Stack.Screen name="(operations)" />
-        </Stack.Protected>
-      </Stack>
+      {discovery.loading ? (
+        <StartupAccessGate />
+      ) : (
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Protected guard={!access.ordinary}>
+            <Stack.Screen name="access" />
+          </Stack.Protected>
+          <Stack.Protected
+            guard={access.ordinary && !discovery.complete}
+            redirectTo={access.ordinary ? "/sign-in" : "/access"}
+          >
+            <Stack.Screen name="onboarding" />
+          </Stack.Protected>
+          <Stack.Protected guard={access.ordinary && discovery.complete}>
+            <Stack.Screen name="(ordinary)" />
+          </Stack.Protected>
+          <Stack.Protected guard={access.operations}>
+            <Stack.Screen name="(operations)" />
+          </Stack.Protected>
+        </Stack>
+      )}
     </AccountAdmissionProvider>
   );
 }
@@ -57,7 +72,9 @@ function ThemedNavigation() {
   const { state } = usePro();
   return (
     <ThemeProvider proAccent={state.status === "active"}>
-      <Navigation />
+      <DiscoveryProvider>
+        <Navigation />
+      </DiscoveryProvider>
     </ThemeProvider>
   );
 }

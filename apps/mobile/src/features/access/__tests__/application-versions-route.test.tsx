@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, screen, waitFor, userEvent } from "@testing-library/react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
@@ -66,6 +67,16 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const environment = { ...process.env };
+
+// These route scenarios start after common discovery has been explicitly completed.
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+beforeEach(async () => {
+  await AsyncStorage.setItem("blockout:v2-discovery-complete", "true");
+});
 
 beforeEach(() => {
   Object.assign(process.env, {
