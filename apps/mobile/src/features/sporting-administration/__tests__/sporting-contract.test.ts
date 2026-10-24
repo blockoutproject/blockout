@@ -1,6 +1,7 @@
 import {
   getDivision,
   getPoolPresentation,
+  getTeamLogo,
   getGetPoolStandingsQueryOptions,
   setPoolPresentation,
 } from "../../../../.generated/mobile";
@@ -267,4 +268,24 @@ it("preserves a safe sporting refusal without caching a successful table", async
   } finally {
     client.clear();
   }
+});
+
+it("selects automatic team artwork independently through the generated binary client", async () => {
+  // Given
+  const teamId = "00000000-0000-4000-8000-000000000193";
+  mockFetch.mockResolvedValue(
+    new Response("synthetic-image", {
+      headers: { "Content-Type": "image/png" },
+    }),
+  );
+
+  // When
+  const image = await getTeamLogo(teamId, { selection: "automatic" });
+
+  // Then
+  expect(String(mockFetch.mock.calls[0][0])).toBe(
+    `https://api.example.invalid/teams/${teamId}/logo?selection=automatic`,
+  );
+  expect(image).toBeInstanceOf(Blob);
+  expect(await image.text()).toBe("synthetic-image");
 });

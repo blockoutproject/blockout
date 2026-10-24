@@ -6,6 +6,14 @@ SportingResourceKindEnum:
   enum:
     - club
     - team
+TeamLogoSelectionEnum:
+  title: TeamLogoSelectionEnum
+  type: string
+  description: Select the current effective team artwork or its automatic fallback independently of manual customization.
+  default: effective
+  enum:
+    - effective
+    - automatic
 ContactModeEnum:
   title: ContactModeEnum
   type: string

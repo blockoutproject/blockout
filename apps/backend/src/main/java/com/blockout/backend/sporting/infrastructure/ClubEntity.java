@@ -1,9 +1,14 @@
 package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
+import com.blockout.backend.sporting.application.model.SportingPresentation.ContactValue;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -12,7 +17,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -26,12 +33,8 @@ import lombok.Setter;
 @Entity
 @Table(name = "sporting_club")
 public class ClubEntity {
-  @Setter private String municipality;
-  @Setter private String postalCode;
   @Setter private long localityRevision;
   @Setter private Long geocodedRevision;
-  @Setter private boolean municipalityRestricted;
-  @Setter private boolean hasCoordinates;
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -44,7 +47,124 @@ public class ClubEntity {
   @Column(nullable = false)
   private String reference;
 
-  private String sourceName;
+  @Setter private String sourceName;
+  @Setter private String manualName;
+  @Setter private long presentationRevision;
+  @Setter private long contactsRevision;
+  @Setter private long logoRevision;
+  @Setter private byte[] logo;
+  @Setter private String logoMediaType;
+  @Setter private Long detailCycleOrder;
+  @Setter private Long detailReadOrdinal;
+  @Setter private Instant detailObservedAt;
+  @Setter private Instant detailPublishedAt;
+  @Setter private Double latitude;
+  @Setter private Double longitude;
+  @Setter private Long localityCycleOrder;
+  @Setter private Long localityReadOrdinal;
+
+  @Embedded
+  @AttributeOverrides({
+    @AttributeOverride(name = "sourceValue", column = @Column(name = "address")),
+    @AttributeOverride(name = "manualValue", column = @Column(name = "address_manual")),
+    @AttributeOverride(name = "mode", column = @Column(name = "address_mode", nullable = false)),
+    @AttributeOverride(
+        name = "restricted",
+        column = @Column(name = "address_restricted", nullable = false))
+  })
+  private ClubContactValue address = new ClubContactValue();
+
+  @Embedded
+  @AttributeOverrides({
+    @AttributeOverride(name = "sourceValue", column = @Column(name = "municipality")),
+    @AttributeOverride(name = "manualValue", column = @Column(name = "municipality_manual")),
+    @AttributeOverride(
+        name = "mode",
+        column = @Column(name = "municipality_mode", nullable = false)),
+    @AttributeOverride(
+        name = "restricted",
+        column = @Column(name = "municipality_restricted", nullable = false))
+  })
+  private ClubContactValue city = new ClubContactValue();
+
+  @Embedded
+  @AttributeOverrides({
+    @AttributeOverride(name = "sourceValue", column = @Column(name = "postal_code")),
+    @AttributeOverride(name = "manualValue", column = @Column(name = "postal_code_manual")),
+    @AttributeOverride(
+        name = "mode",
+        column = @Column(name = "postal_code_mode", nullable = false)),
+    @AttributeOverride(
+        name = "restricted",
+        column = @Column(name = "postal_code_restricted", nullable = false))
+  })
+  private ClubContactValue postalCode = new ClubContactValue();
+
+  @Embedded
+  @AttributeOverrides({
+    @AttributeOverride(name = "sourceValue", column = @Column(name = "email")),
+    @AttributeOverride(name = "manualValue", column = @Column(name = "email_manual")),
+    @AttributeOverride(name = "mode", column = @Column(name = "email_mode", nullable = false)),
+    @AttributeOverride(
+        name = "restricted",
+        column = @Column(name = "email_restricted", nullable = false))
+  })
+  private ClubContactValue email = new ClubContactValue();
+
+  @Embedded
+  @AttributeOverrides({
+    @AttributeOverride(name = "sourceValue", column = @Column(name = "phone")),
+    @AttributeOverride(name = "manualValue", column = @Column(name = "phone_manual")),
+    @AttributeOverride(name = "mode", column = @Column(name = "phone_mode", nullable = false)),
+    @AttributeOverride(
+        name = "restricted",
+        column = @Column(name = "phone_restricted", nullable = false))
+  })
+  private ClubContactValue phone = new ClubContactValue();
+
+  @Embedded
+  @AttributeOverrides({
+    @AttributeOverride(name = "sourceValue", column = @Column(name = "website")),
+    @AttributeOverride(name = "manualValue", column = @Column(name = "website_manual")),
+    @AttributeOverride(name = "mode", column = @Column(name = "website_mode", nullable = false)),
+    @AttributeOverride(
+        name = "restricted",
+        column = @Column(name = "website_restricted", nullable = false))
+  })
+  private ClubContactValue website = new ClubContactValue();
+
+  /**
+   * @return all six current contact fields, with restricted values already suppressed
+   */
+  Map<ContactField, ContactValue> contactValues() {
+    return Map.of(
+        ContactField.ADDRESS,
+        address.toValue(),
+        ContactField.CITY,
+        city.toValue(),
+        ContactField.POSTAL_CODE,
+        postalCode.toValue(),
+        ContactField.EMAIL,
+        email.toValue(),
+        ContactField.PHONE,
+        phone.toValue(),
+        ContactField.WEBSITE,
+        website.toValue());
+  }
+
+  /**
+   * Replaces the complete decided current contact state inside the locked club transaction.
+   *
+   * @param values all six independently decided fields
+   */
+  void replaceContacts(Map<ContactField, ContactValue> values) {
+    address = new ClubContactValue(values.get(ContactField.ADDRESS));
+    city = new ClubContactValue(values.get(ContactField.CITY));
+    postalCode = new ClubContactValue(values.get(ContactField.POSTAL_CODE));
+    email = new ClubContactValue(values.get(ContactField.EMAIL));
+    phone = new ClubContactValue(values.get(ContactField.PHONE));
+    website = new ClubContactValue(values.get(ContactField.WEBSITE));
+  }
 
   @ElementCollection
   @CollectionTable(name = "sporting_club_alias", joinColumns = @JoinColumn(name = "club_id"))

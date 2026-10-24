@@ -485,9 +485,12 @@ TeamLogo:
     operationId: getTeamLogo
     tags:
       - Sporting
-    summary: Read the effective team logo
+    summary: Read current team artwork
     description:
-      Returns the current effective image for this visible resource; missing images are not found. Ordinary
+      Returns the selected current image for this visible team; missing images are not found. The default
+      effective selection includes the manual override. The automatic selection ignores that override
+      and resolves accepted LNV artwork for professional teams, then the optional club fallback; other
+      teams use their club fallback. Ordinary
       access is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility
       restrictions always apply.
     security:
@@ -502,6 +505,12 @@ TeamLogo:
           type: string
           description: Stable team identity.
           format: uuid
+      - name: selection
+        in: query
+        required: false
+        description: Current artwork selection; automatic ignores the team's manual image without changing it.
+        schema:
+          $ref: ../sporting/schemas.yaml#/TeamLogoSelectionEnum
       - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":

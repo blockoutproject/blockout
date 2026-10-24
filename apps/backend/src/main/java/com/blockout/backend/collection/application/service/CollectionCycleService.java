@@ -362,4 +362,24 @@ public class CollectionCycleService {
         .or(() -> store.target(id, poolId, CollectionTargetKindEnum.CALENDAR))
         .orElseThrow(this::invalidContext);
   }
+
+  /**
+   * Authorizes source artwork only through an existing admitted calendar membership. The sporting
+   * owner supplies retained pool identities; this method acquires the runtime/season/cycle fence
+   * before any sporting root or account lock, and holds it through the caller's commit.
+   *
+   * @param id current cycle
+   * @param poolIds memberships read by the sporting owner, never supplied by the HTTP caller
+   * @return exact admitted calendar capability
+   * @throws CollectionConflictException when none of these memberships is admitted
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public CollectionState.Target requireTeamLogo(UUID id, List<UUID> poolIds) {
+    requireRunningControl(id);
+    return poolIds.stream()
+        .map(poolId -> store.target(id, poolId, CollectionTargetKindEnum.CALENDAR))
+        .flatMap(Optional::stream)
+        .findFirst()
+        .orElseThrow(this::invalidContext);
+  }
 }

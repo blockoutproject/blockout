@@ -23,6 +23,8 @@ tags:
     description: Sporting identities, presentation, classification and authorized corrections.
   - name: Discovery
     description: Public club, team and pool discovery and sporting search options.
+  - name: SportingPresentation
+    description: Atomic sporting presentation and private contact correction.
   - name: SportingClassification
     description: Atomic pack and pool acquisition classification corrections.
   - name: DivisionAdministration

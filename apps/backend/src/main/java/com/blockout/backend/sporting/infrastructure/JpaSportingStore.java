@@ -4,6 +4,8 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
+import com.blockout.backend.generated.mobile.model.LogoActionEnum;
+import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
@@ -19,6 +21,7 @@ import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
+import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
@@ -54,7 +57,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Repository;
 
-/** Native JPA identity adapter; caller-owned transactions retain locks through commit. */
+/**
+ * Native JPA sporting persistence adapter; caller-owned transactions retain locks through commit.
+ */
 @Repository
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class JpaSportingStore implements SportingStore {
@@ -210,8 +215,10 @@ public class JpaSportingStore implements SportingStore {
                 club ->
                     new ClubLocalityView(
                         Long.toString(club.getLocalityRevision()),
-                        club.isMunicipalityRestricted() ? null : club.getMunicipality(),
-                        club.isMunicipalityRestricted() ? null : club.getPostalCode())));
+                        club.getCity().toValue().effectiveValue(),
+                        club.getCity().toValue().effectiveValue() == null
+                            ? null
+                            : club.getPostalCode().toValue().effectiveValue())));
   }
 
   /**
@@ -468,6 +475,7 @@ public class JpaSportingStore implements SportingStore {
     TeamEntity team = teams.findById(id).orElseThrow();
     if (!Objects.equals(team.getSourceName(), sourceName)) {
       team.setSourceName(sourceName);
+      team.setPresentationRevision(team.getPresentationRevision() + 1);
       changes.submit(Kind.TEAM, id);
     }
   }
@@ -746,6 +754,8 @@ public class JpaSportingStore implements SportingStore {
       throw new SportingConflictException("identity-conflict", List.of());
     boolean changed =
         !pool.isCatalogEligible() || !Objects.equals(pool.getSourceName(), candidate.sourceName());
+    if (!Objects.equals(pool.getSourceName(), candidate.sourceName()))
+      pool.setPresentationRevision(pool.getPresentationRevision() + 1);
     pool.setSourceName(candidate.sourceName());
     pool.setCatalogEligible(true);
     if (changed) changes.submit(Kind.POOL, pool.getId());
@@ -836,5 +846,395 @@ public class JpaSportingStore implements SportingStore {
   @Override
   public List<TeamView> currentPoolTeams(UUID poolId) {
     return teams.findCurrentIn(poolId).stream().map(mapper::toView).toList();
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void lockPresentation(Kind kind, UUID id) {
+    switch (kind) {
+      case CLUB -> clubs.lockById(id).orElseThrow(SportingResourceNotFoundException::new);
+      case POOL -> lockPoolSeason(id);
+      case TEAM -> {
+        UUID season =
+            entityManager
+                .createQuery("SELECT t.season.id FROM TeamEntity t WHERE t.id = :id", UUID.class)
+                .setParameter("id", id)
+                .getSingleResultOrNull();
+        if (season == null) throw new SportingResourceNotFoundException();
+        lockSeason(season);
+        TeamEntity team = teams.findById(id).orElseThrow();
+        if (team.getClub() != null) clubs.lockById(team.getClub().getId()).orElseThrow();
+      }
+      default -> throw new IllegalArgumentException("Unsupported presentation kind");
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<SportingPresentation.View> presentation(Kind kind, UUID id) {
+    return switch (kind) {
+      case CLUB ->
+          clubs
+              .findById(id)
+              .map(
+                  club -> {
+                    String manual = club.getLogo() == null ? null : "/clubs/" + id + "/logo";
+                    return new SportingPresentation.View(
+                        id,
+                        kind,
+                        Long.toString(club.getPresentationRevision()),
+                        names(club.getSourceName(), club.getManualName(), null, false),
+                        new SportingPresentation.Logo(manual, manual, null));
+                  });
+      case TEAM ->
+          teams
+              .findById(id)
+              .map(
+                  team -> {
+                    ClubEntity club = team.getClub();
+                    String manual = team.getLogo() == null ? null : "/teams/" + id + "/logo";
+                    String automatic =
+                        team.getProvider() == CollectionProviderEnum.LNV
+                                && team.getSourceLogo() != null
+                            ? "/teams/"
+                                + id
+                                + "/logo?selection="
+                                + TeamLogoSelectionEnum.AUTOMATIC.getValue()
+                            : club != null && club.getLogo() != null
+                                ? "/clubs/" + club.getId() + "/logo"
+                                : null;
+                    String revision =
+                        team.getPresentationRevision()
+                            + "."
+                            + (club == null ? 0 : club.getLogoRevision());
+                    return new SportingPresentation.View(
+                        id,
+                        kind,
+                        revision,
+                        names(
+                            team.getSourceName(),
+                            team.getManualName(),
+                            team.getManualShortName(),
+                            true),
+                        new SportingPresentation.Logo(
+                            manual == null ? automatic : manual, manual, automatic));
+                  });
+      case POOL ->
+          pools
+              .findById(id)
+              .map(
+                  pool ->
+                      new SportingPresentation.View(
+                          id,
+                          kind,
+                          Long.toString(pool.getPresentationRevision()),
+                          names(
+                              pool.getSourceName(),
+                              pool.getManualName(),
+                              pool.getManualShortName(),
+                              true),
+                          null));
+      default -> throw new IllegalArgumentException("Unsupported presentation kind");
+    };
+  }
+
+  /**
+   * Resolves independent manual names without altering the original identity/comparison labels.
+   *
+   * @param source current attributable name, possibly unknown for a club
+   * @param manual independent full-name override
+   * @param shortName independent short override
+   * @param hasShortName whether this owner exposes a short name
+   * @return detached current names
+   */
+  private SportingPresentation.Names names(
+      String source, String manual, String shortName, boolean hasShortName) {
+    return new SportingPresentation.Names(
+        source,
+        manual == null ? source == null ? "" : source : manual,
+        manual,
+        hasShortName ? shortName == null ? source : shortName : null,
+        shortName);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SportingPresentation.View savePresentation(
+      Kind kind, UUID id, SportingPresentation.Edit edit) {
+    SportingPresentation.View before =
+        presentation(kind, id).orElseThrow(SportingResourceNotFoundException::new);
+    boolean nameChanged =
+        !Objects.equals(before.names().manualName(), edit.manualName())
+            || !Objects.equals(before.names().manualShortName(), edit.manualShortName());
+    switch (kind) {
+      case CLUB -> {
+        ClubEntity club = clubs.findById(id).orElseThrow();
+        boolean logoChanged =
+            changesManualImage(
+                edit.logoAction(), edit.image(), club.getLogo(), club.getLogoMediaType());
+        if (nameChanged || logoChanged) {
+          club.setManualName(edit.manualName());
+          if (logoChanged) {
+            SportingPresentation.Image next =
+                edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
+            club.setLogo(next == null ? null : next.bytes());
+            club.setLogoMediaType(next == null ? null : next.mediaType());
+            club.setLogoRevision(club.getLogoRevision() + 1);
+          }
+          club.setPresentationRevision(club.getPresentationRevision() + 1);
+          changes.submit(kind, id);
+        }
+      }
+      case TEAM -> {
+        TeamEntity team = teams.findById(id).orElseThrow();
+        boolean logoChanged =
+            changesManualImage(
+                edit.logoAction(), edit.image(), team.getLogo(), team.getLogoMediaType());
+        if (nameChanged || logoChanged) {
+          team.setManualName(edit.manualName());
+          team.setManualShortName(edit.manualShortName());
+          if (logoChanged) {
+            SportingPresentation.Image next =
+                edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
+            team.setLogo(next == null ? null : next.bytes());
+            team.setLogoMediaType(next == null ? null : next.mediaType());
+          }
+          team.setPresentationRevision(team.getPresentationRevision() + 1);
+          changes.submit(kind, id);
+        }
+      }
+      case POOL -> {
+        if (nameChanged) {
+          PoolEntity pool = pools.findById(id).orElseThrow();
+          pool.setManualName(edit.manualName());
+          pool.setManualShortName(edit.manualShortName());
+          pool.setPresentationRevision(pool.getPresentationRevision() + 1);
+          changes.submit(kind, id);
+        }
+      }
+      default -> throw new IllegalArgumentException("Unsupported presentation kind");
+    }
+    return presentation(kind, id).orElseThrow();
+  }
+
+  /**
+   * Detects a manual-image change without copying the current stored payload.
+   *
+   * @param action validated explicit image instruction
+   * @param replacement validated replacement, present only for REPLACE
+   * @param previous current manual bytes, possibly absent
+   * @param mediaType stored actual content type
+   * @return whether the instruction changes the current manual association
+   */
+  private boolean changesManualImage(
+      LogoActionEnum action,
+      SportingPresentation.Image replacement,
+      byte[] previous,
+      String mediaType) {
+    return switch (action) {
+      case KEEP -> false;
+      case AUTOMATIC -> previous != null;
+      case REPLACE -> !replacement.sameContent(previous, mediaType);
+    };
+  }
+
+  /**
+   * Detaches stored bytes only when an association exists.
+   *
+   * @param bytes current bytes, or null
+   * @param type stored actual content type
+   * @return immutable original content, or null
+   */
+  private SportingPresentation.Image image(byte[] bytes, String type) {
+    return bytes == null ? null : new SportingPresentation.Image(bytes, type);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public DivisionDetail saveDivisionPresentation(UUID id, SportingPresentation.DivisionEdit edit) {
+    DivisionEntity division = divisions.findById(id).orElseThrow();
+    boolean logoChanged =
+        changesManualImage(
+            edit.logoAction(), edit.image(), division.getLogo(), division.getLogoMediaType());
+    boolean changed =
+        !Objects.equals(division.getName(), edit.name())
+            || !Objects.equals(division.getColor(), edit.color())
+            || !Objects.equals(
+                mapper.toGradient(
+                    division.getGradientStart(),
+                    division.getGradientMiddle(),
+                    division.getGradientEnd()),
+                edit.gradient())
+            || logoChanged;
+    if (changed) {
+      division.setName(edit.name());
+      division.setColor(edit.color());
+      division.setGradientStart(edit.gradient() == null ? null : edit.gradient().get(0));
+      division.setGradientMiddle(edit.gradient() == null ? null : edit.gradient().get(1));
+      division.setGradientEnd(edit.gradient() == null ? null : edit.gradient().get(2));
+      if (logoChanged) {
+        SportingPresentation.Image next =
+            edit.logoAction() == LogoActionEnum.REPLACE ? edit.image() : null;
+        division.setLogo(next == null ? null : next.bytes());
+        division.setLogoMediaType(next == null ? null : next.mediaType());
+      }
+      changes.submit(Kind.DIVISION, id);
+      try {
+        divisions.flush();
+      } catch (DataIntegrityViolationException failure) {
+        if (failure.getCause() instanceof ConstraintViolationException constraint
+            && "uk_division_name".equals(constraint.getConstraintName()))
+          throw new SportingConflictException("conflict", List.of());
+        throw failure;
+      }
+    }
+    return mapper.toDetail(division);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SportingPresentation.Contacts clubContacts(UUID id) {
+    ClubEntity club = clubs.findById(id).orElseThrow(SportingResourceNotFoundException::new);
+    return new SportingPresentation.Contacts(
+        id,
+        club.getContactsRevision(),
+        club.contactValues(),
+        club.getDetailCycleOrder() == null
+            ? null
+            : new ObservationOrder(club.getDetailCycleOrder(), club.getDetailReadOrdinal()),
+        club.getDetailObservedAt(),
+        club.getDetailPublishedAt());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void saveClubContacts(SportingPresentation.Contacts contacts, String sourceName) {
+    ClubEntity club = clubs.findById(contacts.clubId()).orElseThrow();
+    Map<SportingPresentation.ContactField, SportingPresentation.ContactValue> before =
+        club.contactValues();
+    boolean contactChanged = !before.equals(contacts.fields());
+    String cityBefore = before.get(SportingPresentation.ContactField.CITY).effectiveValue();
+    String postalBefore =
+        before.get(SportingPresentation.ContactField.POSTAL_CODE).effectiveValue();
+    club.replaceContacts(contacts.fields());
+    boolean nameChanged = sourceName != null && !Objects.equals(sourceName, club.getSourceName());
+    if (nameChanged) {
+      club.setSourceName(sourceName);
+      club.setPresentationRevision(club.getPresentationRevision() + 1);
+    }
+    if (contactChanged) club.setContactsRevision(club.getContactsRevision() + 1);
+    if (!Objects.equals(
+            cityBefore,
+            contacts.fields().get(SportingPresentation.ContactField.CITY).effectiveValue())
+        || !Objects.equals(
+            postalBefore,
+            contacts
+                .fields()
+                .get(SportingPresentation.ContactField.POSTAL_CODE)
+                .effectiveValue())) {
+      club.setLocalityRevision(club.getLocalityRevision() + 1);
+      club.setLatitude(null);
+      club.setLongitude(null);
+      club.setGeocodedRevision(null);
+    }
+    if (contactChanged || nameChanged) changes.submit(Kind.CLUB, club.getId());
+    club.setDetailCycleOrder(contacts.order() == null ? null : contacts.order().cycleOrder());
+    club.setDetailReadOrdinal(contacts.order() == null ? null : contacts.order().readOrdinal());
+    club.setDetailObservedAt(contacts.observedAt());
+    club.setDetailPublishedAt(contacts.providerPublishedAt());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SportingPresentation.Locality locality(UUID id) {
+    ClubEntity club = clubs.findById(id).orElseThrow(SportingResourceNotFoundException::new);
+    return new SportingPresentation.Locality(
+        Long.toString(club.getLocalityRevision()),
+        club.getCity().toValue().effectiveValue(),
+        club.getPostalCode().toValue().effectiveValue(),
+        club.getCity().toValue().effectiveValue() == null ? null : club.getLatitude(),
+        club.getCity().toValue().effectiveValue() == null ? null : club.getLongitude(),
+        club.getLocalityCycleOrder() == null
+            ? null
+            : new ObservationOrder(club.getLocalityCycleOrder(), club.getLocalityReadOrdinal()));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void saveLocality(
+      UUID id, SportingPresentation.LocalityObservation observation, ObservationOrder order) {
+    ClubEntity club = clubs.findById(id).orElseThrow();
+    boolean changed =
+        !Objects.equals(club.getLatitude(), observation.latitude())
+            || !Objects.equals(club.getLongitude(), observation.longitude());
+    club.setLatitude(observation.latitude());
+    club.setLongitude(observation.longitude());
+    club.setGeocodedRevision(club.getLocalityRevision());
+    club.setLocalityCycleOrder(order.cycleOrder());
+    club.setLocalityReadOrdinal(order.readOrdinal());
+    if (changed) changes.submit(Kind.CLUB, id);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ObservationOrder sourceLogoOrder(UUID id) {
+    TeamEntity team = teams.findById(id).orElseThrow(SportingResourceNotFoundException::new);
+    return team.getLogoCycleOrder() == null
+        ? null
+        : new ObservationOrder(team.getLogoCycleOrder(), team.getLogoReadOrdinal());
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean saveSourceLogo(
+      UUID id,
+      SportingPresentation.Image image,
+      ObservationOrder order,
+      MatchObservation.Context context) {
+    TeamEntity team = teams.findById(id).orElseThrow();
+    boolean changed = !image.sameContent(team.getSourceLogo(), team.getSourceLogoMediaType());
+    if (changed) {
+      team.setSourceLogo(image.bytes());
+      team.setSourceLogoMediaType(image.mediaType());
+      team.setPresentationRevision(team.getPresentationRevision() + 1);
+      changes.submit(Kind.TEAM, id);
+    }
+    team.setLogoCycleOrder(order.cycleOrder());
+    team.setLogoReadOrdinal(order.readOrdinal());
+    team.setLogoObservedAt(context.observedAt().toInstant());
+    team.setLogoPublishedAt(
+        context.providerPublishedAt() == null ? null : context.providerPublishedAt().toInstant());
+    return changed;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<SportingPresentation.Image> effectiveLogo(Kind kind, UUID id) {
+    return switch (kind) {
+      case CLUB -> clubs.findById(id).map(club -> image(club.getLogo(), club.getLogoMediaType()));
+      case DIVISION ->
+          divisions
+              .findById(id)
+              .map(division -> image(division.getLogo(), division.getLogoMediaType()));
+      case TEAM -> teamLogo(id, TeamLogoSelectionEnum.EFFECTIVE);
+      default -> Optional.empty();
+    };
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<SportingPresentation.Image> teamLogo(UUID id, TeamLogoSelectionEnum selection) {
+    return teams
+        .findById(id)
+        .flatMap(
+            team -> {
+              if (selection == TeamLogoSelectionEnum.EFFECTIVE && team.getLogo() != null)
+                return Optional.of(image(team.getLogo(), team.getLogoMediaType()));
+              if (team.getProvider() == CollectionProviderEnum.LNV && team.getSourceLogo() != null)
+                return Optional.of(image(team.getSourceLogo(), team.getSourceLogoMediaType()));
+              return team.getClub() == null
+                  ? Optional.empty()
+                  : effectiveLogo(Kind.CLUB, team.getClub().getId());
+            });
   }
 }
