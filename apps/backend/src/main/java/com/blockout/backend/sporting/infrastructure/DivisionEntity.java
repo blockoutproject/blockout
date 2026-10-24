@@ -30,6 +30,7 @@ public class DivisionEntity {
   private UUID id;
 
   @Column(nullable = false)
+  @Setter
   private String name;
 
   @Column(nullable = false)
@@ -39,13 +40,14 @@ public class DivisionEntity {
   @Version private long revision;
 
   @Column(nullable = false)
+  @Setter
   private String color;
 
-  private String gradientStart;
-  private String gradientMiddle;
-  private String gradientEnd;
-  private byte[] logo;
-  private String logoMediaType;
+  @Setter private String gradientStart;
+  @Setter private String gradientMiddle;
+  @Setter private String gradientEnd;
+  @Setter private byte[] logo;
+  @Setter private String logoMediaType;
 
   @ElementCollection
   @CollectionTable(name = "sporting_division_term", joinColumns = @JoinColumn(name = "division_id"))

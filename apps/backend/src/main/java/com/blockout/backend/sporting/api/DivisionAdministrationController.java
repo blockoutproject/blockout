@@ -5,13 +5,10 @@ import com.blockout.backend.generated.mobile.api.DivisionAdministrationApi;
 import com.blockout.backend.generated.mobile.model.CreateDivisionRequest;
 import com.blockout.backend.generated.mobile.model.DivisionListResponse;
 import com.blockout.backend.generated.mobile.model.DivisionResponse;
-import com.blockout.backend.generated.mobile.model.LogoActionEnum;
 import com.blockout.backend.generated.mobile.model.SetDivisionActivityRequest;
-import com.blockout.backend.shared.image.ImageValidator;
-import com.blockout.backend.shared.image.ImageValidator.ValidatedImage;
+import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.service.DivisionService;
-import java.io.IOException;
 import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +55,7 @@ public class DivisionAdministrationController implements DivisionAdministrationA
     divisions.requireLifecycle(accountId);
     if (metadata.getName().isBlank())
       throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT);
-    ValidatedImage validated = validateLogo(metadata.getLogoAction(), image);
+    Image validated = SportingPresentationValidator.validateImage(metadata.getLogoAction(), image);
     DivisionDetail created =
         divisions.create(
             accountId,
@@ -82,28 +79,5 @@ public class DivisionAdministrationController implements DivisionAdministrationA
             mapper.toResponse(
                 divisions.setActive(
                     account.id(), divisionId, request.getRevision(), request.getActive())));
-  }
-
-  /**
-   * Checks the logo instruction and validates bounded replacement content after permission
-   * preflight and before opening a write transaction.
-   *
-   * @param action desired logo handling from validated metadata
-   * @param image optional multipart bytes, independent from claimed content type
-   * @return validated original bytes and detected type, or null
-   * @throws ResponseStatusException for inconsistent parts or unsupported content
-   */
-  private ValidatedImage validateLogo(LogoActionEnum action, MultipartFile image) {
-    if (action != LogoActionEnum.REPLACE) {
-      if (image != null) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT);
-      return null;
-    }
-    if (image == null || image.isEmpty())
-      throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT);
-    try {
-      return ImageValidator.validate(image.getBytes());
-    } catch (IOException invalid) {
-      throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT);
-    }
   }
 }

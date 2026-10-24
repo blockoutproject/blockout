@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -89,6 +90,7 @@ class SportingReadServiceTest {
             null,
             "Source",
             "Effective",
+            "Short",
             aliases,
             null,
             null,
@@ -117,11 +119,13 @@ class SportingReadServiceTest {
     SportingReadStore current = mock(SportingReadStore.class);
     SportingReadService reads = new SportingReadService(store, current);
 
-    // When / Then
-    assertThatThrownBy(() -> reads.projectionInputs(Kind.TEAM, -1, 20))
-        .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> reads.projectionInputs(Kind.TEAM, 0, 201))
-        .isInstanceOf(IllegalArgumentException.class);
+    // When
+    ThrowingCallable invalidPage = () -> reads.projectionInputs(Kind.TEAM, -1, 20);
+    ThrowingCallable invalidSize = () -> reads.projectionInputs(Kind.TEAM, 0, 201);
+
+    // Then
+    assertThatThrownBy(invalidPage).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(invalidSize).isInstanceOf(IllegalArgumentException.class);
     verifyNoInteractions(store, current);
   }
 }

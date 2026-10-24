@@ -6,9 +6,9 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Current public search inputs for one eligible identity. Presentation fields reflect implemented
- * owner state; source names are currently effective, and no short-name override exists yet. No
- * contact details, provider URL or saved index document crosses this boundary.
+ * Current public search inputs for one eligible identity. Presentation fields reflect current
+ * independent source/manual names and permitted effective locality. No contact details, provider
+ * URL or saved index document crosses this boundary.
  */
 public record SportingPublicInput(
     UUID id,
@@ -16,6 +16,7 @@ public record SportingPublicInput(
     UUID seasonId,
     String sourceName,
     String effectiveName,
+    String effectiveShortName,
     Set<Alias> aliases,
     SportingClassification classification,
     String divisionName,
@@ -36,6 +37,7 @@ public record SportingPublicInput(
    * @param seasonId canonical season, absent for clubs
    * @param sourceName current authorized source label, possibly unknown
    * @param effectiveName current effective full name
+   * @param effectiveShortName independent effective team/pool short name, absent for clubs
    * @param aliases qualified current aliases
    * @param classification accepted classification, absent for clubs
    * @param divisionName current division label

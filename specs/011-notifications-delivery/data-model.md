@@ -8,7 +8,7 @@ One F07-owned record keyed by the F02 match UUID holds processed live, result an
 - Plain result consumes result and fixes plain composition.
 - Enriched result consumes result and post-result-link together and fixes enriched composition.
 - A later qualifying publication consumes post-result-link if still available.
-- Initial discovery/reconstruction is distinguished by trusted F02 context; it must not turn existing historic facts into a new announcement on a later unchanged observation.
+- Initial discovery/reconstruction is distinguished by trusted F02 context; silent final processing consumes result without emitting a result composition or consuming an otherwise unused post-result allowance. Existing link availability is no new publication; a genuinely later accepted F08 publication may use that allowance. An unchanged observation cannot become a new announcement.
 - Every processed category is recorded even with no recipients. Corrections, hiding/restoration, contribution replacement/reactivation and personal purge cannot clear it.
 
 The shared match lock protects composition and transitions. Hiding does not delete facts. They may leave with actual match erasure under its owner, never with personal account erasure. If a restore lost facts, the accepted exceptional duplicate limit applies; it does not waive erasure/expiry obligations.

@@ -2,7 +2,7 @@ ClubPresentation:
   get:
     operationId: getClubPresentation
     tags:
-      - Sporting
+      - SportingPresentation
     summary: Read club presentation
     description: >-
       Returns the club's effective names, manual customizations and logo values, and current editing
@@ -42,7 +42,7 @@ ClubPresentation:
   patch:
     operationId: setClubPresentation
     tags:
-      - Sporting
+      - SportingPresentation
     summary: Set club names and logo
     description: >-
       Requires global sporting-presentation permission; resource conditions still apply. Saves the manual display name and
@@ -125,7 +125,7 @@ TeamPresentation:
   get:
     operationId: getTeamPresentation
     tags:
-      - Sporting
+      - SportingPresentation
     summary: Read team presentation
     description: >-
       Returns the team's effective names, manual customizations and logo values, and current editing
@@ -165,7 +165,7 @@ TeamPresentation:
   patch:
     operationId: setTeamPresentation
     tags:
-      - Sporting
+      - SportingPresentation
     summary: Set team names and logo
     description: >-
       Requires global sporting-presentation permission; resource conditions still apply. Saves the manual independent full
@@ -250,7 +250,7 @@ PoolPresentation:
   get:
     operationId: getPoolPresentation
     tags:
-      - Sporting
+      - SportingPresentation
     summary: Read pool presentation
     description: >-
       Returns the pool's effective names, manual customizations, and current editing revision.
@@ -288,7 +288,7 @@ PoolPresentation:
   put:
     operationId: setPoolPresentation
     tags:
-      - Sporting
+      - SportingPresentation
     summary: Set pool display names
     description: >-
       Requires global sporting-presentation permission; resource conditions still apply. Sets independent full and short name
@@ -528,7 +528,7 @@ ClubContacts:
   get:
     operationId: getClubContacts
     tags:
-      - Sporting
+      - SportingPresentation
     summary: Read editable club contacts
     description: >-
       Returns current contact values, independent management modes and the editing revision.
@@ -569,7 +569,7 @@ ClubContacts:
   patch:
     operationId: setClubContacts
     tags:
-      - Sporting
+      - SportingPresentation
     summary: Correct selected club contact fields
     description: >-
       Requires global sporting-presentation permission for contact correction. Applies supplied field modes atomically
@@ -773,7 +773,7 @@ DivisionPresentation:
   patch:
     operationId: setDivisionPresentation
     tags:
-      - Sporting
+      - SportingPresentation
     summary: Edit division presentation
     description: >-
       Requires sporting-presentation permission. Saves the name, colors and logo action together

@@ -3,6 +3,7 @@ package com.blockout.backend.shared.http;
 import com.blockout.backend.collection.api.CollectionSourcesController;
 import com.blockout.backend.collection.api.CollectorOperationsController;
 import com.blockout.backend.sporting.api.SportingIngestionController;
+import com.blockout.backend.sporting.application.service.SportingImageService;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,21 +18,21 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdviceAdapter;
 
-/** Enforces the contract's JSON byte bound before deserialization or any domain transaction. */
+/** Bounds acquisition JSON and source-image bodies before native conversion or domain effects. */
 @ControllerAdvice(
     assignableTypes = {
       SportingIngestionController.class,
       CollectionSourcesController.class,
       CollectorOperationsController.class
     })
-public class JsonBodyLimitAdvice extends RequestBodyAdviceAdapter {
-  private static final int MAX_BYTES = 8 * 1024 * 1024;
+public class IngestionBodyLimitAdvice extends RequestBodyAdviceAdapter {
+  private static final int MAX_JSON_BYTES = 8 * 1024 * 1024;
 
   /** {@inheritDoc} */
   @Override
   public boolean supports(
       MethodParameter parameter, Type type, Class<? extends HttpMessageConverter<?>> converter) {
-    return !Resource.class.isAssignableFrom(parameter.getParameterType());
+    return true;
   }
 
   /** {@inheritDoc} */
@@ -42,10 +43,14 @@ public class JsonBodyLimitAdvice extends RequestBodyAdviceAdapter {
       Type type,
       Class<? extends HttpMessageConverter<?>> converter)
       throws IOException {
-    if (input.getHeaders().getContentLength() > MAX_BYTES)
+    int limit =
+        Resource.class.isAssignableFrom(parameter.getParameterType())
+            ? SportingImageService.MAX_BYTES
+            : MAX_JSON_BYTES;
+    if (input.getHeaders().getContentLength() > limit)
       throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
-    byte[] bytes = input.getBody().readNBytes(MAX_BYTES + 1);
-    if (bytes.length > MAX_BYTES) throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
+    byte[] bytes = input.getBody().readNBytes(limit + 1);
+    if (bytes.length > limit) throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
     return new HttpInputMessage() {
       /** {@inheritDoc} */
       @Override

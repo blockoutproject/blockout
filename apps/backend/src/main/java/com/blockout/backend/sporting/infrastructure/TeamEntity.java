@@ -16,6 +16,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -55,8 +56,21 @@ public class TeamEntity {
   @Column(nullable = false)
   private String sourceName;
 
+  @Setter private String manualName;
+  @Setter private String manualShortName;
+  @Setter private long presentationRevision;
+
   @Column(nullable = false)
   private String comparisonName;
+
+  @Setter private byte[] logo;
+  @Setter private String logoMediaType;
+  @Setter private byte[] sourceLogo;
+  @Setter private String sourceLogoMediaType;
+  @Setter private Long logoCycleOrder;
+  @Setter private Long logoReadOrdinal;
+  @Setter private Instant logoObservedAt;
+  @Setter private Instant logoPublishedAt;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "club_id")
