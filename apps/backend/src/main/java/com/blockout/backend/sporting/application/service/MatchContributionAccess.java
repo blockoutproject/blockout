@@ -23,7 +23,7 @@ public class MatchContributionAccess {
   private final SportingReadService reads;
 
   /**
-   * Locks the immutable parent season before the match, before any account lock.
+   * Locks season, current division and match in owner order before any account lock.
    *
    * @param matchId retained match identity
    * @return current facts under retained roots
@@ -32,8 +32,26 @@ public class MatchContributionAccess {
   public Facts lock(UUID matchId) {
     UUID poolId = store.matchPoolId(matchId).orElseThrow(SportingResourceNotFoundException::new);
     store.lockPoolSeason(poolId);
+    lockDivisionForPool(poolId);
     MatchSchedule schedule = store.lockMatchSchedule(matchId);
     return facts(matchId, schedule);
+  }
+
+  /**
+   * Stabilizes current division activity after its season lock and before any match/account lock.
+   * Published classification is held by the caller's season lock; no copied visibility flag is
+   * used.
+   *
+   * @param poolId pool in the already locked season
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void lockDivisionForPool(UUID poolId) {
+    com.blockout.backend.sporting.application.model.SportingViews.PoolView pool =
+        store.pool(poolId).orElseThrow(SportingResourceNotFoundException::new);
+    if (pool.classification() != null)
+      store
+          .lockDivision(pool.classification().divisionId())
+          .orElseThrow(SportingResourceNotFoundException::new);
   }
 
   /**

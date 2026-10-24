@@ -50,7 +50,12 @@ class ResultAnnouncementIntegrationTest {
   private SportingIngestionFixture.Scope scope;
   private UUID matchId;
 
-  /** Migrates this disposable database before Hibernate validation. */
+  /**
+   * Migrates this disposable database before Hibernate validation.
+   *
+   * @param properties isolated native datasource settings
+   * @throws Exception if explicit migration fails
+   */
   @DynamicPropertySource
   static void database(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
@@ -101,7 +106,12 @@ class ResultAnnouncementIntegrationTest {
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isZero();
   }
 
-  /** Supplies ordered synthetic source attribution without provider access. */
+  /**
+   * Supplies ordered synthetic source attribution without provider access.
+   *
+   * @param ordinal explicit read order within the admitted cycle
+   * @return original attributable context
+   */
   private MatchObservation.Context context(long ordinal) {
     return new MatchObservation.Context(
         scope.cycle().id(), ordinal, OffsetDateTime.parse("2026-10-24T12:00:00Z"), null);

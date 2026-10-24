@@ -32,6 +32,12 @@ public class ProcessDueLinkAnnouncements {
       for (UUID id : candidates) {
         try {
           transaction.process(id);
+        } catch (AnnouncementAudienceChangedException conflict) {
+          log.atWarn()
+              .addKeyValue("operation", "link_announcement_pass")
+              .addKeyValue("scope", id)
+              .addKeyValue("outcome", "conflict")
+              .log("Changed audience leaves the candidate for a later ordinary pass");
         } catch (RuntimeException failure) {
           log.atError()
               .addKeyValue("operation", "link_announcement_pass")

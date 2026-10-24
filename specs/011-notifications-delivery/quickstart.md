@@ -67,6 +67,18 @@ pass each minute. The shared PostgreSQL test fixture follows Testcontainers' doc
 reuses the existing role/migration setup, and is removed by Ryuk at JVM exit. All ports are dynamic
 and no task-owned backend/Compose service, device or provider was started.
 
+[Audience-turnover SQL](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/AnnouncementAudienceIntegrationTest.java)
+confirms that an arriving follower cannot be discarded after account-lock waiting. A newly
+required account aborts the transaction, preserving all allowances; the next ordinary minute
+pass/collection or a new explicit contribution intent selects the complete current audience.
+No automatic transaction replay is added. Contribution and detail-ingestion HTTP map this
+case to the existing safe 409 conflict. [Division races](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionSportingLocksIntegrationTest.java)
+qualify season → division → match → accounts for submission, due links and result acceptance,
+using the actual division lifecycle command. Deactivation cannot pass a producer waiting on
+its accounts. These five regression expectations failed before their associated fixes (four SQL
+cases plus the contribution HTTP conflict); the additional detail-ingestion conflict also failed
+before its translation was implemented.
+
 ## Essential scenarios
 
 | Boundary        | Exercise                                                                                                                                                                                                                     | Expected result                                                                                                                                                                                                                                                                                                                                       |

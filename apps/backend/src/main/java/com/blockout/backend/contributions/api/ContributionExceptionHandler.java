@@ -44,6 +44,17 @@ public class ContributionExceptionHandler {
   }
 
   /**
+   * Refuses a changed audience without acquiring accounts out of order or replaying publication.
+   *
+   * @return canonical conflict requiring a fresh read and a new explicit intent
+   */
+  @ExceptionHandler(
+      com.blockout.backend.notifications.application.AnnouncementAudienceChangedException.class)
+  ResponseEntity<ProblemResponse> audienceChanged() {
+    return problem(HttpStatus.CONFLICT, "conflict");
+  }
+
+  /**
    * Translates known storage acquisition outages once without exposing submitted values.
    *
    * @param failure resource or transaction acquisition outage

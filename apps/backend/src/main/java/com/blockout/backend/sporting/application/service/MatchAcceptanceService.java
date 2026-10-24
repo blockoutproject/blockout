@@ -97,6 +97,7 @@ public class MatchAcceptanceService {
           List.of(poolId),
           List.of(),
           new SportingClassification(target.divisionId(), target.format(), target.gender()));
+    contributionContext.lockDivisionForPool(poolId);
     SportingViews.MatchView existing =
         store.match(poolId, candidate.nativeMatchReference()).orElse(null);
     boolean created = existing == null;
@@ -265,6 +266,7 @@ public class MatchAcceptanceService {
     if (!classifications.acceptsObservation(match.poolId(), target))
       return ObservationOutcome.refused(match.reference(), false);
     if (expected.equals(previous)) return success(match, false);
+    contributionContext.lockDivisionForPool(match.poolId());
     return success(
         match,
         acceptSchedule(

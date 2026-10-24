@@ -64,8 +64,8 @@ quota/DST qualifications remain in the preceding T007/T010/T011 evidence.
 
 The first real result-producer regression failed with no recorded announcement; seven timing
 cases and two real submission cases failed before their implementations. The completed targeted
-qualification passes 52 integration cases (including 14 readiness-context regressions) and the
-latest 38-case HTTP/transition/timing run. Test review used the Java-testing canonical examples:
+qualification passes 56 integration cases (including 14 readiness-context regressions) and the
+latest 39-case HTTP/transition/timing run. Test review used the Java-testing canonical examples:
 real immutable values, explicit scenario inputs, no enclosing test transaction for commit proof,
 and PostgreSQL-observed exclusion for races. Only time and the after-commit external observer
 are controlled in the cross-owner fixture; no provider request occurs.

@@ -713,7 +713,11 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     return sql.queryForList("SELECT family FROM notification", String.class);
   }
 
-  /** Creates an intentional unique-constraint collision to fail the real required inbox writer. */
+  /**
+   * Creates an intentional unique-constraint collision to fail the real required inbox writer.
+   *
+   * @param family fixed F07 family whose required insertion must fail
+   */
   private void duplicateFamily(String family) {
     sql.update(
         "INSERT INTO notification(id,account_id,match_id,family,variant,created_at,is_read) VALUES (?,?,?,?,'FIRST',?,FALSE)",
@@ -727,7 +731,13 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
   /** Test-only external handoff observer; not a production participant or provider. */
   @TestConfiguration(proxyBeanMethods = false)
   static class ProbeConfiguration {
-    /** Registers only the controlled post-commit observation boundary. */
+    /**
+     * Registers only the controlled post-commit observation boundary.
+     *
+     * @param sql actual disposable database access
+     * @param transactions independent transaction facility
+     * @return test-only external handoff observer
+     */
     @Bean
     Probe probe(JdbcTemplate sql, PlatformTransactionManager transactions) {
       return new Probe(sql, transactions);
@@ -745,7 +755,12 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     final PlatformTransactionManager transactions;
     boolean fail;
 
-    /** Supplies the actual database owner and independent transaction facility. */
+    /**
+     * Supplies the actual database owner and independent transaction facility.
+     *
+     * @param sql actual disposable database access
+     * @param transactions independent commit-visibility transaction facility
+     */
     Probe(JdbcTemplate sql, PlatformTransactionManager transactions) {
       this.sql = sql;
       this.transactions = transactions;
@@ -753,6 +768,8 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
 
     /**
      * Checks committed entry visibility, retaining no address, user payload or provider credential.
+     *
+     * @param ready actual committed notification allocations
      */
     @EventListener
     void ready(AfterCommitAnnouncements.Ready ready) {
