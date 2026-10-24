@@ -382,6 +382,36 @@ class ProviderHttpClientTest {
     }
   }
 
+  @ParameterizedTest
+  @ValueSource(ints = {32, 33})
+  @DisplayName("Retains only complete bounded HTTP 400 bodies for provider qualification")
+  void boundsBadRequestBodies(int bytes) throws Exception {
+    // Given
+    AtomicInteger requests = new AtomicInteger();
+    server.createContext(
+        "/source",
+        exchange -> {
+          requests.incrementAndGet();
+          exchange.sendResponseHeaders(400, bytes);
+          exchange.getResponseBody().write(new byte[bytes]);
+          exchange.close();
+        });
+    try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
+      // When / Then
+      if (bytes == 32) {
+        ProviderHttpClient.StatusResponse response =
+            client.getWithBadRequest(origin.resolve("/source")).get(5, TimeUnit.SECONDS);
+        assertThat(response.status()).isEqualTo(400);
+        assertThat(response.body()).hasSize(32);
+      } else {
+        assertThatThrownBy(
+                () -> client.getWithBadRequest(origin.resolve("/source")).get(5, TimeUnit.SECONDS))
+            .hasRootCauseMessage("Provider response exceeds the configured byte limit");
+      }
+      assertThat(requests).hasValue(1);
+    }
+  }
+
   /**
    * Builds a real native transport with one worker and one pending slot against the isolated peer.
    *

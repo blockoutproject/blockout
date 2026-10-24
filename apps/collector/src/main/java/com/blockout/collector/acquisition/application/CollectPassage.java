@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openapitools.jackson.nullable.JsonNullable;
@@ -34,6 +35,8 @@ public class CollectPassage {
   private final SportingBackend sporting;
   private final FfvbAcquisition ffvb;
   private final LnvAcquisition lnv;
+  private final ClubSheets clubs;
+  private final MunicipalGeocoder geocoder;
   private final DiscoverSeasonSources discovery;
   private final CollectorLifecycle lifecycle;
   private final Clock clock;
@@ -146,6 +149,10 @@ public class CollectPassage {
         if (target.provider() == CollectionProviderEnum.LNV
             && target.kind() == CollectionTargetKindEnum.DETAILS
             && readMatches.add(target.matchId())) detail(context, target, details);
+      for (CollectionBackend.Target target : selected) {
+        if (target.kind() == CollectionTargetKindEnum.CLUB_SHEET
+            || target.kind() == CollectionTargetKindEnum.GEOCODING) seasonless(context, target);
+      }
       details.flush();
       return lifecycle.complete(context, clock.instant());
     } catch (CollectionBackendFailure failure) {
@@ -158,6 +165,100 @@ public class CollectPassage {
           .addKeyValue("outcome", "refused")
           .log("Admitted context was refused; no further reads or completion were attempted");
       return false;
+    }
+  }
+
+  /**
+   * Acquires one seasonless target with its original current locality revision. A null permitted
+   * municipality means no provider call or attempt evidence; technical failures submit no F02
+   * withdrawal and independent clubs may still proceed.
+   *
+   * @param context admitted seasonless capability
+   * @param target exact club and currently permitted context from the target read
+   */
+  private void seasonless(
+      CollectorLifecycle.AdmittedCycle context, CollectionBackend.Target target) {
+    if (target.kind() == CollectionTargetKindEnum.GEOCODING && target.municipality() == null)
+      return;
+    lifecycle.requireActive();
+    long ordinal = context.nextReadOrdinal();
+    SportingObservation.Club sheet = null;
+    SportingObservation.Locality point = null;
+    try {
+      if (target.kind() == CollectionTargetKindEnum.CLUB_SHEET)
+        sheet = clubs.read(target.clubReference());
+      else
+        point =
+            geocoder.read(target.municipality(), target.postalCode(), target.localityRevision());
+    } catch (RuntimeException failure) {
+      acquisitionFailed(context, target, ordinal, failure);
+      return;
+    }
+    Instant observedAt = clock.instant();
+    record(
+        context,
+        target,
+        ordinal,
+        CollectionPhaseEnum.ACQUISITION,
+        CollectionOutcomeEnum.SUCCESS,
+        null,
+        null,
+        observedAt,
+        point == null ? null : "IGN municipality: " + point.outcome().getValue());
+    SportingObservation.Context evidence =
+        new SportingObservation.Context(context.getCycle().id(), ordinal, observedAt, null);
+    SportingObservation.Club acquiredSheet = sheet;
+    SportingObservation.Locality acquiredPoint = point;
+    integrateSeasonless(
+        context,
+        target,
+        ordinal,
+        () ->
+            acquiredPoint == null
+                ? sporting.club(target.clubId(), evidence, acquiredSheet)
+                : sporting.locality(target.clubId(), evidence, acquiredPoint));
+  }
+
+  /**
+   * Reports independent F02 acceptance once; a lost response never replays its mutation.
+   *
+   * @param context admitted capability
+   * @param target acquired club or current locality
+   * @param ordinal original pre-read order
+   * @param submit single F02 mutation, called exactly once
+   */
+  private void integrateSeasonless(
+      CollectorLifecycle.AdmittedCycle context,
+      CollectionBackend.Target target,
+      long ordinal,
+      Supplier<SportingObservation.Outcome> submit) {
+    lifecycle.requireActive();
+    try {
+      SportingObservation.Outcome outcome = submit.get();
+      record(
+          context,
+          target,
+          ordinal,
+          CollectionPhaseEnum.INTEGRATION,
+          accepted(outcome) ? CollectionOutcomeEnum.SUCCESS : CollectionOutcomeEnum.FAILED,
+          null,
+          null,
+          clock.instant(),
+          outcome.reasonType() == null
+              ? outcome.outcome().getValue()
+              : outcome.reasonType().toString());
+    } catch (CollectionBackendFailure failure) {
+      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+      record(
+          context,
+          target,
+          ordinal,
+          CollectionPhaseEnum.INTEGRATION,
+          failed(failure),
+          null,
+          null,
+          clock.instant(),
+          failureReason(failure));
     }
   }
 

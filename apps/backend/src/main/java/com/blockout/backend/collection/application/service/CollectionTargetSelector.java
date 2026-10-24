@@ -1,7 +1,6 @@
 package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
-import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
 import com.blockout.backend.collection.application.model.CollectionAttempt;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
@@ -17,7 +16,6 @@ import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
-import com.blockout.backend.sporting.application.model.ClubLocalityView;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.SeasonService;
@@ -42,6 +40,7 @@ public class CollectionTargetSelector {
   private final CollectionStore store;
   private final SportingReadService sporting;
   private final SeasonService seasons;
+  private final ClubAcquisitionService clubs;
 
   /**
    * Persists the due or explicitly requested scope inside the admission transaction. Mutable club
@@ -58,16 +57,13 @@ public class CollectionTargetSelector {
           && control.family() != CollectionFamilyEnum.GEOCODING) throw invalid();
       UUID afterClub = null;
       while (true) {
-        List<AcquisitionReference> references =
-            sporting.acquisitionClubs(
+        List<Target> references =
+            clubs.targets(
                 control.family() == CollectionFamilyEnum.GEOCODING,
                 cycle.mode() != CollectionModeEnum.PERIODIC,
                 afterClub);
         if (references.isEmpty()) break;
-        retainDue(
-            cycle,
-            control,
-            references.stream().map(reference -> target(reference, null, null)).toList());
+        retainDue(cycle, control, references);
         afterClub = references.getLast().clubId();
       }
       return;
@@ -161,26 +157,7 @@ public class CollectionTargetSelector {
    * @return current permitted locality for geocoding only; removal/restriction forbids a query
    */
   public List<ServedTarget> serve(List<Target> targets) {
-    List<UUID> clubIds =
-        targets.stream()
-            .filter(target -> target.kind() == CollectionTargetKindEnum.GEOCODING)
-            .map(Target::clubId)
-            .toList();
-    Map<UUID, ClubLocalityView> localities = sporting.clubLocalities(clubIds);
-    return targets.stream()
-        .map(
-            target -> {
-              if (target.kind() != CollectionTargetKindEnum.GEOCODING)
-                return new ServedTarget(target, null, null, null);
-              ClubLocalityView locality = localities.get(target.clubId());
-              if (locality == null) throw new CollectionNotFoundException();
-              return new ServedTarget(
-                  target,
-                  locality.localityRevision(),
-                  locality.municipality(),
-                  locality.postalCode());
-            })
-        .toList();
+    return clubs.serve(targets);
   }
 
   /**
