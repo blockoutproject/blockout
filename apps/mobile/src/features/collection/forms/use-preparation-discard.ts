@@ -1,10 +1,8 @@
 import { usePreventRemove } from "expo-router";
-import { useState } from "react";
 import { Alert } from "react-native";
 
-/** Both ordinary collection editors use native navigation prevention to discard only by explicit choice. */
-export function usePreparationDiscard(discard: () => void) {
-  const [dirty, setDirty] = useState(false);
+/** Confirms removal using the caller's dirty state; discard must clear that state before navigation repeats. */
+export function usePreparationDiscard(dirty: boolean, discard: () => void) {
   usePreventRemove(dirty, ({ repeat }) => {
     Alert.alert(
       "Abandonner les modifications ?",
@@ -16,12 +14,10 @@ export function usePreparationDiscard(discard: () => void) {
           style: "destructive",
           onPress: () => {
             discard();
-            setDirty(false);
             repeat();
           },
         },
       ],
     );
   });
-  return setDirty;
 }

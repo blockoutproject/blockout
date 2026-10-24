@@ -333,13 +333,9 @@ it("refuses a held confirmation after current permission withdrawal", async () =
 
 it("ignores an old-session command response without presenting a new success", async () => {
   // Given
-  let complete: ((response: Response) => void) | undefined;
+  const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
-    options?.method === "POST"
-      ? new Promise((resolve) => {
-          complete = resolve;
-        })
-      : peer.reads(url, options),
+    options?.method === "POST" ? pending.promise : peer.reads(url, options),
   );
   await renderCollection(
     <>
@@ -349,21 +345,19 @@ it("ignores an old-session command response without presenting a new success", a
     peer.client,
   );
   await pressAction("Relancer");
-  const action = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find((choice) => choice.text === "Relancer");
-  await act(async () => {
-    action?.onPress?.();
-  });
-  await waitFor(() => expect(complete).toBeDefined());
+  await confirm("Relancer");
+  await waitFor(() =>
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ method: "POST" }),
+    ),
+  );
 
   // When
   await pressAction("Déconnexion");
   await screen.findByText("Session : guest");
-  const completeResponse = complete;
-  if (!completeResponse) throw new Error("Missing in-flight response");
   await act(async () =>
-    completeResponse(
+    pending.resolve(
       json(
         control({ pendingRequestId: "00000000-0000-4000-8000-000000000192" }),
         202,

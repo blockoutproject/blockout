@@ -86,13 +86,13 @@ function ClosureForm({
   const {
     control,
     handleSubmit,
+    reset,
     formState: { isDirty, isSubmitting },
   } = useForm<CloseSeasonValues>({
     resolver: zodResolver(closureSchema),
     formControl: editor.form.formControl,
   });
   const confirmation = useWatch({ control, name: "confirmation" });
-  const setDirty = usePreparationDiscard(discardCloseSeasonEditor);
   const current = editing.season.data ?? season;
   const closed = current.state === "closed";
   const busy =
@@ -102,10 +102,10 @@ function ClosureForm({
     editing.season.isFetching;
   const needsRead =
     commandState.needsRead || current.revision !== baseline.revision;
-  useEffect(() => {
-    setDirty(isDirty && !closed);
-    return () => setDirty(false);
-  }, [isDirty, closed, setDirty]);
+  usePreparationDiscard(isDirty && !closed, () => {
+    reset({ confirmation: "" });
+    discardCloseSeasonEditor();
+  });
   useEffect(() => {
     mounted.current = true;
     return () => {

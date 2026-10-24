@@ -1,4 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { act, render, screen, userEvent } from "@testing-library/react-native";
 import type { ReactElement } from "react";
 import { Alert, Pressable, Text } from "react-native";
@@ -89,19 +89,33 @@ export function refused(status: number) {
   );
 }
 
+/** Scenario-owned HTTP projections; tests may replace fields directly without changing the real application owners. */
+interface CollectionPeer {
+  client: QueryClient;
+  season: CollectionSeasonResponse;
+  controls: CollectionControlResponse[];
+  results: CollectionResultResponse[];
+  permissions: object;
+  /** Serves only reads; each scenario installs its own explicit mutation response. */
+  reads(url: RequestInfo | URL, options?: RequestInit): Promise<Response>;
+}
+
 /** Mutable HTTP peer only; React, Query, forms, authority and session owners remain real. */
-export function collectionPeer() {
-  const client = createQueryClient();
-  let season: CollectionSeasonResponse = {
-    id: seasonId,
-    label: "2026/2027",
-    startYear: 2026,
-    revision: 5,
-    state: "active",
+export function collectionPeer(): CollectionPeer {
+  const peer: CollectionPeer = {
+    client: createQueryClient(),
+    season: {
+      id: seasonId,
+      label: "2026/2027",
+      startYear: 2026,
+      revision: 5,
+      state: "active",
+    },
+    controls: [control()],
+    results: [],
+    permissions: operator.permissions,
+    reads,
   };
-  let controls = [control()];
-  let results: CollectionResultResponse[] = [];
-  let permissions: object = operator.permissions;
   /** Strict default reads refuse accidental mutation requests. Tests install writes beside their decisive actions. */
   async function reads(
     url: RequestInfo | URL,
@@ -114,45 +128,22 @@ export function collectionPeer() {
     if (path.endsWith("/application-access"))
       return json(applicationAccessResponse());
     if (path.endsWith("/accounts/me"))
-      return json({ ...operator, permissions });
-    if (path.endsWith("/collection-seasons")) return json({ items: [season] });
-    if (path.endsWith(`/collection-seasons/${seasonId}`)) return json(season);
-    if (path.endsWith("/collection-controls")) return json({ items: controls });
-    if (
-      controls.some((value) =>
-        path.endsWith(`/collection-controls/${value.id}`),
-      )
-    )
-      return json(controls.find((value) => path.endsWith(value.id)));
+      return json({ ...operator, permissions: peer.permissions });
+    if (path.endsWith("/collection-seasons"))
+      return json({ items: [peer.season] });
+    if (path.endsWith(`/collection-seasons/${seasonId}`))
+      return json(peer.season);
+    if (path.endsWith("/collection-controls"))
+      return json({ items: peer.controls });
+    const selected = peer.controls.find((value) =>
+      path.endsWith(`/collection-controls/${value.id}`),
+    );
+    if (selected) return json(selected);
     if (path.endsWith("/results"))
-      return json({ items: results, page: 0, hasNext: false });
+      return json({ items: peer.results, page: 0, hasNext: false });
     throw new Error(`Unexpected controlled request ${path}`);
   }
-  return {
-    client,
-    reads,
-    get season() {
-      return season;
-    },
-    set season(value) {
-      season = value;
-    },
-    get controls() {
-      return controls;
-    },
-    set controls(value) {
-      controls = value;
-    },
-    get results() {
-      return results;
-    },
-    set results(value) {
-      results = value;
-    },
-    set permissions(value: object) {
-      permissions = value;
-    },
-  };
+  return peer;
 }
 
 /** Mounts the actual session/query/theme/access boundaries with only native identity and HTTP doubled by the suite. */
