@@ -4,7 +4,7 @@ import type {
   SessionGeneration,
   SessionSnapshot,
 } from "../../accounts/session/session-generation";
-import { type ApplicationVersionsValues } from "../schemas/application-versions-settings";
+import type { ApplicationVersionsValues } from "../schemas/application-versions-settings";
 
 /** Revision and recovery feedback belonging to the retained editing snapshot. */
 interface VersionsEditingState {
@@ -18,9 +18,13 @@ interface ApplicationVersionsEditor {
   generation: string;
   accountId: string | null;
   form: ReturnType<typeof createFormControl<ApplicationVersionsValues>>;
+  /** Returns immutable editing metadata; RHF exclusively owns field values. */
   getSnapshot(): VersionsEditingState;
+  /** Observes revision/recovery changes, including completion while the route is absent. */
   subscribe(listener: () => void): () => void;
+  /** Publishes an explicit accepted outcome or required recovery step. */
   update(state: VersionsEditingState): void;
+  /** Detaches the F05 lifetime observer when this editor is discarded. */
   release(): void;
 }
 let current: ApplicationVersionsEditor | undefined;
@@ -51,12 +55,14 @@ export function applicationVersionsEditor(
       defaultValues: applicationVersionsValues(settings),
     }),
     getSnapshot: () => state,
+    /** Registers a mounted form for recovery-metadata updates. */
     subscribe(listener) {
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
       };
     },
+    /** Replaces recovery metadata atomically; no field merging or submission occurs. */
     update(next) {
       state = next;
       listeners.forEach((listener) => listener());

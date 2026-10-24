@@ -1,9 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import {
   changeApplicationVersionSettings,
   getApplicationVersionSettings,
   getGetApplicationVersionSettingsQueryKey,
+  getChangeApplicationVersionSettingsMutationKey,
 } from "../../../../.generated/mobile";
 import type {
   ApplicationVersionsResponse,
@@ -24,6 +30,12 @@ export function useApplicationVersionsSettings(enabled: boolean) {
     session.generation,
     getGetApplicationVersionSettingsQueryKey(),
   );
+  const mutationKey = getSessionQueryKey(
+    session.generation,
+    getChangeApplicationVersionSettingsMutationKey(),
+  );
+  // Query's mutation cache retains pending work even when its original observer unmounts.
+  const saving = useIsMutating({ mutationKey, exact: true }) > 0;
   /** Rechecks current presentation authority before native credentials; the server owns actual authorization. */
   async function request() {
     if (!enabled) throw new ApiError("http", 403);
@@ -55,6 +67,7 @@ export function useApplicationVersionsSettings(enabled: boolean) {
       ),
   });
   const content = useMutation({
+    mutationKey,
     gcTime: 0,
     mutationFn: async (body: ChangeApplicationVersionsRequest) => {
       const accepted = await changeApplicationVersionSettings(
@@ -67,5 +80,5 @@ export function useApplicationVersionsSettings(enabled: boolean) {
       return accepted;
     },
   });
-  return { query, content };
+  return { query, content, saving };
 }

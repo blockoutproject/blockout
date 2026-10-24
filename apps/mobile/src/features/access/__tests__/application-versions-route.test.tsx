@@ -315,3 +315,148 @@ it("retains the same-session draft when a pending permission refresh removes the
     false,
   );
 });
+
+it("keeps a resumed draft locked until its earlier pending save settles", async () => {
+  // Given
+  const serve = responses({ manageApplicationVersions: true });
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  const user = userEvent.setup();
+  const permissions = Promise.withResolvers<Response>();
+  const save = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PATCH"
+      ? save.promise
+      : String(url).endsWith("/accounts/me")
+        ? permissions.promise
+        : serve(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(
+    await screen.findByRole("link", { name: "Accès administrateur" }),
+  );
+  await user.press(await screen.findByText("Versions minimales"));
+  await user.type(
+    await screen.findByLabelText("Message commun"),
+    "First draft",
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Appliquer les modifications" }),
+  );
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.lastCall?.[2]?.find((a) => a.text === "Appliquer")
+      ?.onPress?.(),
+  );
+  await screen.findByRole("button", {
+    name: "Appliquer les modifications",
+    busy: true,
+  });
+
+  // When
+  await act(async () =>
+    permissions.resolve(
+      Response.json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        {
+          status: 503,
+          headers: { "Content-Type": "application/problem+json" },
+        },
+      ),
+    ),
+  );
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PATCH" ? save.promise : serve(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(
+    await screen.findByRole("link", { name: "Accès administrateur" }),
+  );
+  await user.press(await screen.findByText("Versions minimales"));
+
+  try {
+    // Then
+    const message = await screen.findByLabelText("Message commun");
+    expect(message).toHaveDisplayValue("First draft");
+    expect(message).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Appliquer les modifications" }),
+    ).toBeDisabled();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1);
+  } finally {
+    // When
+    await act(async () =>
+      save.resolve(
+        Response.json({
+          ...applicationAccessResponse().versions,
+          revision: 4,
+          message: "First draft",
+        }),
+      ),
+    );
+  }
+
+  // Then
+  await screen.findByText("Réglages de versions enregistrés.");
+  expect(screen.getByLabelText("Message commun")).toBeEnabled();
+});
+
+it("invalidates a native confirmation when its protected route is removed", async () => {
+  // Given
+  const serve = responses({ manageApplicationVersions: true });
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  const user = userEvent.setup();
+  const permissions = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/accounts/me") ? permissions.promise : serve(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(
+    await screen.findByRole("link", { name: "Accès administrateur" }),
+  );
+  await user.press(await screen.findByText("Versions minimales"));
+  await user.type(
+    await screen.findByLabelText("Message commun"),
+    "Unconfirmed draft",
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Appliquer les modifications" }),
+  );
+  const confirm = jest
+    .mocked(Alert.alert)
+    .mock.lastCall?.[2]?.find((a) => a.text === "Appliquer")?.onPress;
+  if (!confirm) throw new Error("The native apply confirmation is missing");
+
+  // When
+  await act(async () =>
+    permissions.resolve(
+      Response.json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        {
+          status: 503,
+          headers: { "Content-Type": "application/problem+json" },
+        },
+      ),
+    ),
+  );
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  await act(async () => confirm());
+
+  // Then
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
+});

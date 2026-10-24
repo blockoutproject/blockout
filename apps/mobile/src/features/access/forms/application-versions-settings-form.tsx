@@ -5,7 +5,7 @@ import {
 } from "./application-versions-editor";
 import { applicationUpdateMessage } from "../application-update-message";
 import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import type {
@@ -43,6 +43,7 @@ export function ApplicationVersionsSettingsForm({
 }: ApplicationVersionsSettingsFormProps) {
   const session = useAccountSession();
   const { colors } = useTheme();
+  const mounted = useRef(false);
   const [editor] = useState(() => applicationVersionsEditor(session, settings));
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
   const { baseline, needsRead, feedback } = state;
@@ -78,15 +79,19 @@ export function ApplicationVersionsSettingsForm({
   const storeChoice = JSON.stringify([current.ios, current.android]);
   const checked = acknowledged === storeChoice;
   const busy =
-    disabled ||
-    isSubmitting ||
-    editing.content.isPending ||
-    editing.query.isFetching;
+    disabled || isSubmitting || editing.saving || editing.query.isFetching;
   const rereadRequired = needsRead || settings.revision > baseline.revision;
   useEffect(() => {
     onDirtyChange?.(isDirty);
     return () => onDirtyChange?.(false);
   }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   /** Native confirmation applies one reviewed draft; raising a minimum needs explicit store verification. */
   function confirm(draft: ApplicationVersionsValues) {
@@ -96,7 +101,12 @@ export function ApplicationVersionsSettingsForm({
       "Les réglages de maintenance restent inchangés.",
       [
         { text: "Annuler", style: "cancel" },
-        { text: "Appliquer", onPress: () => void submit(draft) },
+        {
+          text: "Appliquer",
+          onPress: () => {
+            if (mounted.current) void submit(draft);
+          },
+        },
       ],
     );
   }
@@ -334,7 +344,7 @@ export function ApplicationVersionsSettingsForm({
           fullWidth
           label="Appliquer les modifications"
           disabled={busy || rereadRequired || !isDirty || (raised && !checked)}
-          loading={isSubmitting || editing.content.isPending}
+          loading={isSubmitting || editing.saving}
           onPress={() =>
             void handleSubmit(confirm, (errors) =>
               setExpanded({
