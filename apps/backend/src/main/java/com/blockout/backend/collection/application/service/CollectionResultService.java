@@ -52,7 +52,14 @@ public class CollectionResultService {
         && (previous.cycleOrder() > cycle.cycleOrder()
             || (previous.cycleOrder() == cycle.cycleOrder()
                 && previous.readOrdinal() >= command.readOrdinal()))) return cycle;
-    boolean success = command.outcome() == CollectionOutcomeEnum.SUCCESS;
+    Instant lastSuccessAt = command.observedAt();
+    Instant firstFailureAt = null;
+    if (command.outcome() != CollectionOutcomeEnum.SUCCESS) {
+      lastSuccessAt = previous == null ? null : previous.lastSuccessAt();
+      firstFailureAt = command.observedAt();
+      if (previous != null && previous.firstFailureAt() != null)
+        firstFailureAt = previous.firstFailureAt();
+    }
     store.saveResult(
         cycle.controlId(),
         new CollectionResult(
@@ -63,12 +70,8 @@ public class CollectionResultService {
             command.readOrdinal(),
             command.observedAt(),
             command.outcome(),
-            success ? command.observedAt() : previous == null ? null : previous.lastSuccessAt(),
-            success
-                ? null
-                : previous != null && previous.firstFailureAt() != null
-                    ? previous.firstFailureAt()
-                    : command.observedAt(),
+            lastSuccessAt,
+            firstFailureAt,
             command.reasonType(),
             command.reason(),
             command.obtainedCount(),

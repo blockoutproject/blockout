@@ -35,6 +35,41 @@ import org.openapitools.jackson.nullable.JsonNullable;
  */
 @DisplayName("Passage-local LNV auxiliary index reads")
 class LnvObservationReaderTest {
+  @Test
+  @DisplayName("Calendar document qualification uses the admitted group's published title")
+  void usesQualifiedCalendarTitle() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    LnvObservationReader reader = documentReader(http);
+    URI page = URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
+    String html =
+        """
+        <div id=Content_Main_903>
+          <span id=group_lbl_title>Alterna VOLSTAR</span><p>Aucun match</p>
+        </div>
+        <div id=Content_Main_904><span id=other_lbl_title>Saforelle VOLSTAR</span></div>
+        """;
+    LnvAcquisition.Resource resource =
+        reader.fromPage(
+            new ProviderHttpClient.Response(html.getBytes(StandardCharsets.UTF_8), page, true),
+            Instant.EPOCH);
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .competitionReference("901")
+            .poolReference("902")
+            .groupReference("903")
+            .build();
+
+    // When
+    LnvAcquisition.Calendar calendar = resource.calendar(target);
+
+    // Then
+    assertThat(calendar.documentCompetition()).isEqualTo("LAM");
+    assertThat(calendar.observation().complete()).isTrue();
+    assertThat(calendar.observation().matches()).isEmpty();
+    verifyNoInteractions(http);
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"mID=991&ID=901", "mID=990&ID=999", "mID=990&ID=901&PID=999"})
   @DisplayName("A redirected detail context cannot submit a document form for the admitted match")

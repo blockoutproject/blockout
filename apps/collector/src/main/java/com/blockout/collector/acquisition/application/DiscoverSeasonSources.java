@@ -21,6 +21,7 @@ import java.util.function.LongSupplier;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.core5.net.URIBuilder;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -225,9 +226,9 @@ public class DiscoverSeasonSources {
         if (!target.organizerReference().equals(context.get("ID"))
             || !query(phase).get("PID").equals(context.get("PID")))
           throw new IllegalArgumentException("Contradictory phase");
-        List<Element> groups =
-            Jsoup.parse(new String(page.body(), StandardCharsets.UTF_8), page.url().toString())
-                .select("div.rmpView[id^=Content_Main_]");
+        Document document =
+            Jsoup.parse(new String(page.body(), StandardCharsets.UTF_8), page.url().toString());
+        List<Element> groups = document.select("div.rmpView[id^=Content_Main_]");
         if (groups.isEmpty()) throw new IllegalArgumentException("Missing groups");
         for (Element group : groups) {
           String id = group.id().substring("Content_Main_".length());
@@ -235,7 +236,7 @@ public class DiscoverSeasonSources {
           if (!id.matches("[0-9]+") || title == null)
             throw new IllegalArgumentException("Invalid group");
           URI standings = null;
-          for (Element link : group.ownerDocument().select("a[href*=CompetitionStandings.aspx]")) {
+          for (Element link : document.select("a[href*=CompetitionStandings.aspx]")) {
             URI proposed = URI.create(link.absUrl("href"));
             if (context.get("ID").equals(query(proposed).get("ID"))
                 && (!query(proposed).containsKey("PID")

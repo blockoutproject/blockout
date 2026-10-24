@@ -61,6 +61,7 @@ final class LnvPage {
    * @param rendered native visible date with an optional clock
    * @param dateFormat calendar/detail's independently selected date format
    * @return source-managed date/time proposals
+   * @throws LnvAcquisitionException when the published date or clock has unsupported syntax
    */
   static SportingObservation.Facts time(String rendered, DateTimeFormatter dateFormat) {
     if (rendered.isBlank())
@@ -68,7 +69,8 @@ final class LnvPage {
           .localDate(JsonNullable.of(null))
           .localTime(JsonNullable.of(null))
           .build();
-    String[] parts = rendered.strip().split("\\s+-\\s+", 2);
+    // Start only at a whitespace run's boundary, rather than retrying from each space in that run.
+    String[] parts = rendered.strip().split("(?<=\\S)\\s+-\\s+", 2);
     LocalDate date;
     try {
       date =

@@ -100,10 +100,11 @@ class FfvbObservationsTest {
     String incomplete =
         html.substring(0, html.indexOf("<table>"))
             + "<table><tr><td>Journée 01</td></tr></table></body></html>";
-    String header = fixture("calendar.csv").lines().findFirst().orElseThrow() + "\n";
+    byte[] header = bytes(fixture("calendar.csv").lines().findFirst().orElseThrow() + "\n");
+    FfvbPage context = page(incomplete);
 
     // When / Then
-    assertThatThrownBy(() -> calendars.parse(bytes(header), page(incomplete), SCOPE))
+    assertThatThrownBy(() -> calendars.parse(header, context, SCOPE))
         .isInstanceOf(FfvbAcquisitionException.class);
   }
 

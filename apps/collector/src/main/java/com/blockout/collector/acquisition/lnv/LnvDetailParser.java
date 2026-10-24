@@ -42,6 +42,7 @@ public class LnvDetailParser {
    * @param match expected match identity
    * @param competition expected championship identity
    * @return usable facts plus partial-acquisition evidence
+   * @throws LnvAcquisitionException when the response cannot establish the admitted match context
    */
   public Read inspect(byte[] bytes, URI url, String match, String competition) {
     Map<String, String> query = LnvPage.query(url);
@@ -86,6 +87,7 @@ public class LnvDetailParser {
       }
       if (!parsed.isEmpty()) sets = JsonNullable.of(List.copyOf(parsed));
     }
+    Element venue = page.getElementById("Content_Main_LB_Stadium");
     return new Read(
         SportingObservation.Facts.builder()
             .localDate(time.localDate())
@@ -93,10 +95,7 @@ public class LnvDetailParser {
             .timeZone(time.timeZone())
             .sets(sets)
             .result(result)
-            .venueName(
-                page.getElementById("Content_Main_LB_Stadium") == null
-                    ? null
-                    : JsonNullable.of(page.getElementById("Content_Main_LB_Stadium").text()))
+            .venueName(venue == null ? null : JsonNullable.of(venue.text()))
             .build(),
         complete);
   }
@@ -105,7 +104,7 @@ public class LnvDetailParser {
    * Reads published aggregate scores independently of optional set details.
    *
    * @param page native match detail
-   * @return absent for unplayed or malformed scores; F02 owns sporting compatibility
+   * @return omitted for an unpublished/unplayed result; F02 owns native notation interpretation
    */
   private JsonNullable<SportingObservation.Result> result(Document page) {
     Element home = page.getElementById("Content_Main_LBL_WonSetHome");
