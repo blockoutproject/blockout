@@ -303,7 +303,8 @@ class NotificationContractTest {
                     new SportingClassificationResponse()),
                 new SportingIdentityResponse(ID, "Home"),
                 new SportingIdentityResponse(ID, "Away"),
-                new MatchScheduleResponse(LocalDate.of(2026, 10, 24), "Europe/Paris", created),
+                new MatchScheduleResponse(LocalDate.of(2026, 10, 24), created)
+                    .timeZone("Europe/Paris"),
                 CalendarCategoryEnum.COMPLETED)
             .result(
                 new MatchResultResponse(ResultStateEnum.FINAL, created).specialLabel("Forfait"));

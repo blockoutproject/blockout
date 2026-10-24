@@ -372,14 +372,13 @@ MatchScheduleResponse:
       format: date-time
     timeZone:
       type: string
-      description: IANA source context, ordinarily Europe/Paris.
+      description: IANA source context, ordinarily Europe/Paris; omitted when the source zone is unknown.
     observedAt:
       type: string
       description: Observation time of the accepted schedule, not current read time.
       format: date-time
   required:
     - localDate
-    - timeZone
     - observedAt
 MatchResultResponse:
   title: MatchResultResponse

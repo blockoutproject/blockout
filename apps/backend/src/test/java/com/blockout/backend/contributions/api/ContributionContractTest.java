@@ -245,9 +245,9 @@ class ContributionContractTest {
         .getMatch()
         .setSchedule(
             new MatchScheduleResponse(
-                java.time.LocalDate.of(2026, 10, 24),
-                "Europe/Paris",
-                java.time.OffsetDateTime.parse("2026-10-24T12:00:00Z")));
+                    java.time.LocalDate.of(2026, 10, 24),
+                    java.time.OffsetDateTime.parse("2026-10-24T12:00:00Z"))
+                .timeZone("Europe/Paris"));
     response
         .getMatch()
         .setResult(

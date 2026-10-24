@@ -1,6 +1,12 @@
 import { queryOptions, type QueryKey } from "@tanstack/react-query";
 import {
   getClub,
+  getClubLogo,
+  getTeamLogo,
+  getDivisionLogo,
+  getGetClubLogoQueryKey,
+  getGetTeamLogoQueryKey,
+  getGetDivisionLogoQueryKey,
   getTeam,
   getPool,
   getPoolStandings,
@@ -17,6 +23,7 @@ import {
   getListMatchesQueryKey,
   getGetMatchQueryKey,
 } from "../../../../.generated/mobile";
+import type { TeamLogoSelectionEnum } from "../../../../.generated/schemas/index.zod";
 import { ListMatchesParams } from "../../../../.generated/schemas/index.zod";
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 import { getSessionQueryKey } from "../../../shared/query/query-client";
@@ -80,6 +87,26 @@ export function createConsultationQueries(
   }
 
   return {
+    /** Current club PNG/JPEG through the generated binary transport and the same admission. */
+    clubLogo: (clubId: string) =>
+      query(getGetClubLogoQueryKey(clubId), (options) =>
+        getClubLogo(clubId, options),
+      ),
+    /** Exact effective or automatic artwork selection; no manual/automatic cache collision. */
+    teamLogo: (
+      teamId: string,
+      selection: TeamLogoSelectionEnum = "effective",
+    ) => {
+      const params = Object.freeze({ selection });
+      return query(getGetTeamLogoQueryKey(teamId, params), (options) =>
+        getTeamLogo(teamId, params, options),
+      );
+    },
+    /** Current active division artwork, without credentials for an ordinary public read. */
+    divisionLogo: (divisionId: string) =>
+      query(getGetDivisionLogoQueryKey(divisionId), (options) =>
+        getDivisionLogo(divisionId, options),
+      ),
     /** Common public club facts, independent of selected team/calendar season. */
     club: (clubId: string) =>
       query(getGetClubQueryKey(clubId), (options) => getClub(clubId, options)),

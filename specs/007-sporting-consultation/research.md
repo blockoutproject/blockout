@@ -58,6 +58,8 @@
 
 ## Contracts, privacy and operations
 
+**Resource implementation boundary**: The canonical `Consultation` tag groups resource and logo operations into a generated Java interface independently of pending calendars, standings, participants and documents. HTTP paths, operation identities and response meanings stay unchanged. The application read port exposes only implemented resource projections; later stories extend it. The schedule source zone is optional because F02 accepts a sporting date without a known zone. Such a date remains unchanged; neither transport nor presentation supplies a fictional zone or instant.
+
 **Decision**: Retain F13's OpenAPI 3.0.4, Redocly, OpenAPI Generator and Orval pipeline and existing Problem Details responses. Public projections contain only effective authorized values. Account, follow and editing state remain separately owned. Binary PDF/image responses are intentionally not parsed as JSON; successful JSON is validated once before caching. Common access restrictions apply to public reads and document/image delivery.
 
 **Rationale and limits**: Resource summaries avoid repeated calls without exposing private administrative values or adding a universal aggregate. Ordinary logs identify operation, bounded outcome and safe diagnostics, never contacts, referee names, PDF contents or provider payloads. F11's durable suppression applies to club contacts; F03 adds no generic personal-data registry. There is no collection schedule, incident workflow, performance programme or recovery service specific to consultation.
