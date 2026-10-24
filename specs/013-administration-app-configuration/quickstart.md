@@ -123,7 +123,7 @@ After dependency installation and contract bundling, run:
 ./mvnw -B -ntp -pl apps/backend test -Dtest=MaintenancePushAdmissionTest
 ```
 
-The backend module run passes 834 unit/MVC cases and 328 integration cases, with the existing settings/mobile consumer suite skipped unless explicitly enabled. The first full run also encountered a PostgreSQL connection timeout while initializing the existing 18-case collection-control suite; an isolated rerun passes all 18 without test or timeout changes. Checkstyle, Spotless, Java compilation, packaging, all three canonical contract bundles and repository formatting pass.
+The final `backend:verify` run passes 834 unit/MVC cases and 346 integration cases, with the existing settings/mobile consumer suite skipped unless explicitly enabled. An earlier PostgreSQL connection timeout while initializing the existing 18-case collection-control suite is absent from both its isolated rerun and the final full run, without test or timeout changes. Checkstyle, Spotless, Java compilation, packaging, all three canonical contract bundles and repository formatting pass.
 
 These controlled cases prove only the policy boundary. The existing F12 PostgreSQL tests own SQL freshness, including activation inside a longer caller transaction. F07 T035 (#266) still owns actual sender binding; T034 (#272) retains real inbox/purge/handoff continuity and provider qualification. No actual Expo send, native delivery, replay/recall guarantee across systems or final US4 acceptance is claimed.
 
