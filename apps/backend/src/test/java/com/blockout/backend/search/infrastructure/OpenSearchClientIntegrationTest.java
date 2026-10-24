@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -91,7 +92,8 @@ class OpenSearchClientIntegrationTest {
                 "/usr/share/opensearch/config/opensearch-security")
             .waitingFor(
                 Wait.forSuccessfulCommand(
-                    "curl --silent --cacert config/tls/ca.pem -o /dev/null -w '%{http_code}' https://localhost:9200 | grep -q 401"));
+                    "curl --silent --cacert config/tls/ca.pem -o /dev/null -w '%{http_code}' https://localhost:9200 | grep -q 401"))
+            .withStartupTimeout(Duration.ofMinutes(5));
     for (String file : List.of("ca.pem", "node.pem", "node-key.pem")) {
       engine.withCopyFileToContainer(
           MountableFile.forHostPath(tls.resolve(file), 0644),

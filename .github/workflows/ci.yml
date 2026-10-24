@@ -50,6 +50,21 @@ jobs:
           NX_DAEMON: "false"
         run: npm run verify
 
+      - name: Inspect disposable runner resources for OpenSearch diagnosis
+        if: always()
+        run: |
+          nproc
+          free -m
+          df -h /
+          sysctl vm.max_map_count
+          cat /proc/sys/kernel/random/entropy_avail
+          uname -r
+          docker info --format 'CPUs={{.NCPU}} MemoryBytes={{.MemTotal}} Docker={{.ServerVersion}}'
+
+      - name: Diagnose isolated OpenSearch startup with native Testcontainers logging
+        if: always()
+        run: ./mvnw -B -ntp -pl apps/backend test-compile failsafe:integration-test failsafe:verify -Dit.test=OpenSearchClientIntegrationTest
+
       - name: Validate native telemetry configuration
         run: |
           telemetry_image=$(docker compose --env-file infra/observability/.env.example -f infra/observability/compose.yaml config --images)
