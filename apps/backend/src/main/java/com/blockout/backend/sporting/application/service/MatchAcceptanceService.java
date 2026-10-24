@@ -39,6 +39,12 @@ public class MatchAcceptanceService {
   private final CollectionCycleService cycles;
   private final SportingIdentityService identities;
   private final ClassificationService classifications;
+  private final MatchContributionAccess contributionContext;
+  private final com.blockout.backend.contributions.application.ReadPublicContribution publicLinks;
+  private final com.blockout.backend.notifications.application.ProcessResultAnnouncement
+      announcements;
+  private final com.blockout.backend.notifications.application.AfterCommitAnnouncements handoff;
+  private final java.time.Clock clock;
 
   /**
    * Qualifies the global envelope and advances its pool order before any item commit.
@@ -110,7 +116,8 @@ public class MatchAcceptanceService {
     if (created) schedule = store.lockMatchSchedule(match.id());
     boolean restored = store.restoreCalendarPresence(match.id());
     boolean changed =
-        acceptSchedule(schedule, expected, context, candidate.facts(), candidate.detailUrl());
+        acceptSchedule(
+            schedule, expected, context, candidate.facts(), candidate.detailUrl(), created);
     ObservationOutcome result = success(match, created || namesChanged || changed || restored);
     return new ObservationOutcome(
         result.sourceReference(),
@@ -186,6 +193,7 @@ public class MatchAcceptanceService {
    * @param order authoritative token
    * @param context actual source timestamps
    * @param facts independent submitted proposals
+   * @param firstObservation whether this transaction identified the encounter
    * @param detailUrl qualified reference, null preserves
    * @return whether sporting schedule/reference values changed
    */
@@ -194,7 +202,8 @@ public class MatchAcceptanceService {
       ObservationOrder order,
       MatchObservation.Context context,
       MatchObservation.Facts facts,
-      URI detailUrl) {
+      URI detailUrl,
+      boolean firstObservation) {
     MatchSchedule.MatchScheduleBuilder next =
         previous.toBuilder()
             .acceptedCycleOrder(order.cycleOrder())
@@ -227,7 +236,7 @@ public class MatchAcceptanceService {
           .referencePublishedAt(published);
     }
     store.saveMatchSchedule(next.build());
-    return acceptDetails(previous.id(), context, facts) || changed;
+    return acceptDetails(previous.id(), context, facts, firstObservation) || changed;
   }
 
   /**
@@ -263,7 +272,8 @@ public class MatchAcceptanceService {
             expected,
             observation.context(),
             observation.facts(),
-            null));
+            null,
+            false));
   }
 
   /**
@@ -272,11 +282,15 @@ public class MatchAcceptanceService {
    *
    * @param matchId match already locked by the enclosing transaction
    * @param context source attribution, never precedence
+   * @param firstObservation trusted encounter-discovery context
    * @param facts supplied proposals with native presence semantics
    * @return whether accepted values changed, independently of refreshed provenance
    */
   private boolean acceptDetails(
-      UUID matchId, MatchObservation.Context context, MatchObservation.Facts facts) {
+      UUID matchId,
+      MatchObservation.Context context,
+      MatchObservation.Facts facts,
+      boolean firstObservation) {
     MatchDetails previous = store.matchDetails(matchId);
     MatchDetails.MatchDetailsBuilder next = previous.toBuilder();
     Instant observed = context.observedAt().toInstant();
@@ -379,6 +393,18 @@ public class MatchAcceptanceService {
     }
     if (documents) next.documentsObservedAt(observed).documentsPublishedAt(published);
     store.saveMatchDetails(next.build());
+    MatchContributionAccess.Facts current = contributionContext.read(matchId);
+    handoff.submit(
+        announcements.process(
+            new com.blockout.backend.notifications.application.ProcessResultAnnouncement.Transition(
+                current.match(),
+                previous.result(),
+                result,
+                firstObservation,
+                cycles.get(context.cycleId()).mode() == CollectionModeEnum.INITIAL_IMPORT,
+                current.viewable(),
+                publicLinks.read(matchId).isPresent(),
+                clock.instant())));
     return changed;
   }
 

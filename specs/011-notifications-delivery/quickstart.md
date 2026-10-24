@@ -30,6 +30,43 @@ The persistence follow-up at `e657dd3` passes `CI=true NX_DAEMON=false NX_ISOLAT
 
 These controlled inputs do not qualify the actual F02/F08 producer binding or publication eligibility (T013–T014 / #252), the F05 erasure orchestrator or actual asynchronous sender (T040 / #291), inbox HTTP/mobile, scheduled purge, native devices, provider delivery or restoration. No production optional/no-op hook or transport call was added.
 
+## Atomic producer and link qualification — #252
+
+F02 result acceptance now calls the required F07 participant and reads the real F08 public
+contribution under the retained match lock. F08 accepted active publication joins the same
+transactional facts/inbox writer; pending, refused and unchanged submissions create no event.
+`ProcessLinkAnnouncement` consumes live at reliable H or later, and only a genuinely later
+accepted publication can consume an unused post-result allowance. The ordinary native Spring
+minute pass visits active-link identities in bounded keyset pages, skips consumed/not-yet-due
+matches and invokes separately proxied per-match transactions. It selects F06 follows at actual
+processing, rereading current relations after the complete account-lock set. It stores no timer,
+exact-H audience, delivery status or retry queue.
+
+[Cross-owner SQL cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
+and [minute-pass cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/LinkAnnouncementIntegrationTest.java)
+exercise both serialized publication/result orders, overlapping/current/late follows, zero
+recipients, a first finished discovery, trusted reconstruction, current result withdrawal,
+required inbox failure and independent-match continuation. A separate transaction observes
+committed notification rows before the controlled external handoff can fail. Handoff failures
+are logged safely and dropped after commit, preserving the business response and inbox.
+The context retains original relation identities for the later sender; actual association/send-time
+continuity remains F06 T044/#263 and F07 T040/#291.
+
+The current 13-case [timing policy suite](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/LinkAnnouncementTest.java)
+includes unknown time/availability, before/at/after H, Paris/New York instants across differing
+DST weeks and consumed categories. Controlled personal-row deletion, hiding/hold and new
+quota-exempt-version fixtures prove that allowances survive those state changes; they do not
+qualify actual moderation commands, report reset or scheduled purge (T046/#277 and T052/#267).
+No actual push/provider/device result is claimed. Provider handoff remains US4; the immutable
+`AfterCommitAnnouncements.Ready` event is its transient committed input.
+
+The selected Spring [disabled cron value](https://docs.spring.io/spring-framework/docs/7.0.x/javadoc-api/org/springframework/scheduling/annotation/Scheduled.html#CRON_DISABLED)
+is used only by isolated tests, which invoke the real pass explicitly. Production defaults to one
+pass each minute. The shared PostgreSQL test fixture follows Testcontainers' documented
+[singleton lifecycle](https://java.testcontainers.org/test_framework_integration/manual_lifecycle_control/#singleton-containers),
+reuses the existing role/migration setup, and is removed by Ryuk at JVM exit. All ports are dynamic
+and no task-owned backend/Compose service, device or provider was started.
+
 ## Essential scenarios
 
 | Boundary        | Exercise                                                                                                                                                                                                                     | Expected result                                                                                                                                                                                                                                                                                                                                       |

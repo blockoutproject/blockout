@@ -33,22 +33,55 @@ public class AnnouncementRecipients {
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public List<Recipient> select(MatchView match) {
+    return select(match, Set.of()).recipients();
+  }
+
+  /**
+   * Locks the complete producer/audience union, then rereads current follow incarnations.
+   *
+   * @param match locked sporting identity
+   * @param additionalAccounts producer participants, including the submitting actor
+   * @return current audience and all surviving locked identities
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Selection select(MatchView match, Set<UUID> additionalAccounts) {
     Set<Target> targets =
         new HashSet<>(
             List.of(
                 new Target(TargetType.TEAM, match.homeTeamId()),
                 new Target(TargetType.TEAM, match.awayTeamId()),
                 new Target(TargetType.POOL, match.poolId())));
-    List<UUID> candidates = follows.recipients(targets).keySet().stream().sorted().toList();
+    Set<UUID> candidates = new HashSet<>(follows.recipients(targets).keySet());
+    candidates.addAll(additionalAccounts);
     List<UUID> usable = new ArrayList<>();
-    for (UUID accountId : candidates) if (accounts.lock(accountId)) usable.add(accountId);
+    for (UUID accountId : candidates.stream().sorted().toList())
+      if (accounts.lock(accountId)) usable.add(accountId);
     Map<UUID, Set<Relation>> current = follows.recipients(targets);
     List<Recipient> recipients = new ArrayList<>();
     for (UUID accountId : usable) {
       Set<Relation> relations = current.getOrDefault(accountId, Set.of());
       if (!relations.isEmpty()) recipients.add(new Recipient(accountId, relations));
     }
-    return List.copyOf(recipients);
+    return new Selection(List.copyOf(recipients), Set.copyOf(usable));
+  }
+
+  /**
+   * Whole locked participant set and current audience; valid only in this transaction.
+   *
+   * @param recipients current eligible audience after account locking
+   * @param accounts all surviving locked identities, including producer participants
+   */
+  public record Selection(List<Recipient> recipients, Set<UUID> accounts) {
+    /**
+     * Detaches values from mutable query collections.
+     *
+     * @param recipients current audience
+     * @param accounts surviving locked identities
+     */
+    public Selection {
+      recipients = List.copyOf(recipients);
+      accounts = Set.copyOf(accounts);
+    }
   }
 
   /**

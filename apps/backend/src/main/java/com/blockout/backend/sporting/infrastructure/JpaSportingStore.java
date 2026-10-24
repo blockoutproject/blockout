@@ -729,6 +729,13 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
+  public MatchSchedule matchSchedule(UUID matchId) {
+    return mapper.toSchedule(
+        matches.findById(matchId).orElseThrow(SportingResourceNotFoundException::new));
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public void saveMatchSchedule(MatchSchedule schedule) {
     mapper.updateSchedule(schedule, matches.findById(schedule.id()).orElseThrow());
   }

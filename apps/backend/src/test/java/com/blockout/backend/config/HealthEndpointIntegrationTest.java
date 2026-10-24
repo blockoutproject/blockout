@@ -12,6 +12,7 @@ import com.blockout.backend.access.application.PermissionStore;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.collection.application.port.CollectionStore;
+import com.blockout.backend.contributions.application.ContributionStore;
 import com.blockout.backend.following.application.FollowStore;
 import com.blockout.backend.notifications.application.NotificationStore;
 import com.blockout.backend.sporting.application.port.SportingReadStore;
@@ -57,6 +58,7 @@ class HealthEndpointIntegrationTest {
   @MockitoBean private AccountStore accounts;
   @MockitoBean private FollowStore follows;
   @MockitoBean private NotificationStore notifications;
+  @MockitoBean private ContributionStore contributions;
   @MockitoBean private EstablishAccount establishment;
   @MockitoBean private PermissionStore permissions;
   @MockitoBean private AccessSettingsStore settings;

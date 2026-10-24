@@ -26,6 +26,17 @@ Race first final result with F08 publication. Expect the F07 composition matchin
 
 Carry supplied and omitted `providerPublishedAt` through the actual generated collector/backend boundary, including image metadata. Verify retained fact groups keep their own timestamps, newly accepted facts without a publication time remain unknown, and source publication time cannot overturn the logical token.
 
+### Result announcement transaction — #252
+
+T029/T033 bind `MatchAcceptanceService` to the real F08 current-public-link and F07 required
+announcement participant. [The result-producer regression](../../apps/backend/src/test/java/com/blockout/backend/sporting/application/ResultAnnouncementIntegrationTest.java)
+first failed with an accepted result and no consumed fact. The completed [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
+qualify both concurrent publication/result orders, real inbox-constraint rollback, zero recipients,
+initial finished discovery/trusted reconstruction, corrections, withdrawal/restoration and
+post-commit failure. [F07's qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification--252)
+owns the detailed allowance and delivery limits. These are synthetic SQL/producer proofs, not
+provider-content, native-push, real moderation or operational purge qualification.
+
 ## Contracts and fields
 
 Generate actual Spring interfaces/DTOs, RestClient and mobile consumers from the canonical roots; compile and exercise real request/response binding. Cover omitted/null/value, strict unknown request fields, tolerant response additions, unknown enums, dates, safe Problem Details and bounded partial outcomes. Regeneration must be deterministic without template patches or committed generated output.

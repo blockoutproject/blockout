@@ -19,7 +19,8 @@ public final class ContributionEligibility {
    * @param match current owner-provided sporting/visibility facts, never calendar classification
    * @param current bounded current active/own-pending versions and revision/hold
    * @param expectedRevision revision captured for this explicit intent
-   * @param proposed locally recognized literal address
+   * @param proposed locally recognized literal address, or null for a read-only eligibility
+   *     assessment
    * @param usage current persisted ordinary aggregate
    * @param now same action instant for age and sporting window
    * @return refusal, unchanged version or intended new-version state
@@ -66,10 +67,23 @@ public final class ContributionEligibility {
     if (limit == ContributionQuota.Limit.DAILY_MATCH_LIMIT)
       return new Decision(Status.DAILY_MATCH_LIMIT, null);
     return new Decision(
-        match.definitiveResult() || current.state().reportHoldVersionId() != null
+        requiresApproval(actor.moderator(), match.definitiveResult(), current.state())
             ? Status.PENDING
             : Status.ACTIVE,
         null);
+  }
+
+  /**
+   * Shares the approval rule between command decisions and current read eligibility.
+   *
+   * @param moderator exact current stream capability
+   * @param definitiveResult current explicit sporting finality
+   * @param state current unresolved report hold
+   * @return whether an otherwise permitted submission must await approval
+   */
+  public static boolean requiresApproval(
+      boolean moderator, boolean definitiveResult, ContributionState state) {
+    return !moderator && (definitiveResult || state.reportHoldVersionId() != null);
   }
 
   /**
@@ -112,6 +126,7 @@ public final class ContributionEligibility {
 
   /** Submission outcomes with distinct dependent-evidence and policy refusals. */
   public enum Status {
+    INVALID_ADDRESS,
     ACTIVE,
     PENDING,
     UNCHANGED,

@@ -9,6 +9,18 @@ import org.springframework.data.jpa.repository.Query;
 /** Native Hibernate quota aggregate over persisted creation facts, never a loaded history page. */
 interface ContributionVersionRepository extends JpaRepository<ContributionVersionEntity, UUID> {
   /**
+   * Reads a native Slice without a count query or cross-page snapshot promise.
+   *
+   * @param matchId current encounter
+   * @param ownerId original owner
+   * @param page bounded twenty-item page
+   * @return creation-descending, UUID-ascending personal history
+   */
+  org.springframework.data.domain.Slice<ContributionVersionEntity>
+      findByMatchIdAndOwnerIdOrderByCreatedAtDescIdAsc(
+          UUID matchId, UUID ownerId, org.springframework.data.domain.Pageable page);
+
+  /**
    * Reads all usage from one SQL statement snapshot, independent of lifecycle state or later
    * grants. Hibernate's filtered aggregates avoid separate queries and an extra isolation boundary.
    *

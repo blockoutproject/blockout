@@ -39,6 +39,42 @@ With JUnit/Spring MVC/Testcontainers PostgreSQL and the real mappings/schema:
 
 The scoped 2026-10-24 qualification passes 82 pure policy cases and 21 PostgreSQL cases. These establish the local model and policies only. Production store/command orchestration, ordered lock races, actual account erasure, HTTP/mobile journeys and required F02/F07 atomicity remain with T008/T012–T017 and their owning later tasks; no production no-op participant or publication endpoint is supplied by this lot.
 
+### Submission and atomic announcements — #252
+
+T006/T008/T012–T014/T054 bind real F02 sporting roots, F05 original-account locks,
+F06 confirmed relation unions and F07 inbox/allowance persistence. `SubmitContribution`
+gathers the complete actor/audience account set before sorted locking, rereads current grants,
+age, ownership and quotas, and publishes only accepted active transitions. The same JPA store
+supplies native twenty-item `Slice` reads in a short repeatable-read application transaction.
+The generated submission interface supplies owner POST/GET and direct moderator POST without
+exposing later lifecycle commands. [HTTP cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/api/ContributionSubmissionWebMvcTest.java)
+cover completed creation/current repetition, exact Locations, private reads, strict requests,
+original owner/actor, current privileges and safe refusal/outage responses.
+
+[Submission cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/infrastructure/ContributionSubmissionIntegrationTest.java),
+[private reads](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ReadOwnContributionsIntegrationTest.java)
+and [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
+use the actual migrated PostgreSQL 18.6 mappings and separately proxied production services.
+They qualify replacement flush ordering, immutable quota participation, third/fourth limits,
+same-day continuation, stale no-ops, current private visibility, both concurrent result/publication
+orders, complete sorted account locking, concurrent same/different-match submissions, actor-row
+removal, grant withdrawal and rollback on real required inbox constraint failure. Shared persisted
+quota/DST qualifications remain in the preceding T007/T010/T011 evidence.
+
+The first real result-producer regression failed with no recorded announcement; seven timing
+cases and two real submission cases failed before their implementations. The completed targeted
+qualification passes 50 integration cases (including 14 readiness-context regressions) and the
+latest 36-case HTTP/transition/timing run. Test review used the Java-testing canonical examples:
+real immutable values, explicit scenario inputs, no enclosing test transaction for commit proof,
+and PostgreSQL-observed exclusion for races. Only time and the after-commit external observer
+are controlled in the cross-owner fixture; no provider request occurs.
+
+The [F07 qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification--252)
+owns announcement timing, handoff and allowance evidence. Controlled hiding/new exempt-version
+and personal-row deletion fixtures are not real moderation-command or scheduled-purge
+qualification; those remain F07 T046/#277 and T052/#267. Actual F05 erasure and native/mobile
+journeys remain with their existing tasks. F08 T016/F03 public projection is not implemented here.
+
 ## Reads and mobile
 
 Use more than twenty versions/reports/matches where applicable, including identical timestamps, hidden matches and erased authors. Check deterministic tie-breaks, literal search, combined filters, current counts and clean offset bounds. Concurrent changes may move pages; refresh restarts at zero. “To review” retains reported active links until their situation changes, without a dismissal action. After resolving a hiding wait, old reports and masked versions leave the current badges but remain in version history; rejected-version totals remain correct beyond one page.
