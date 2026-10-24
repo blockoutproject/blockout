@@ -29,16 +29,13 @@ public class FollowingController implements FollowingApi {
   private final FollowService follows;
   private final FollowingRequest requests;
   private final HttpServletRequest request;
-  private final FollowingApiMapper mapper;
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<FollowStateResponse> getTeamFollowState(
       UUID accountId, UUID teamId, Boolean bypass) {
     requests.validateQuery(request, QueryShape.MEMBER);
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(follows.state(requests.member(accountId, TargetType.TEAM, teamId))));
+    return stateResponse(follows.state(requests.member(accountId, TargetType.TEAM, teamId)));
   }
 
   /** {@inheritDoc} */
@@ -46,12 +43,8 @@ public class FollowingController implements FollowingApi {
   public ResponseEntity<FollowStateResponse> replaceTeamFollowState(
       UUID accountId, UUID teamId, ReplaceFollowStateRequest body, Boolean bypass) {
     requests.validateQuery(request, QueryShape.MEMBER);
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                follows.replace(
-                    requests.member(accountId, TargetType.TEAM, teamId), body.getFollowing())));
+    return stateResponse(
+        follows.replace(requests.member(accountId, TargetType.TEAM, teamId), body.getFollowing()));
   }
 
   /** {@inheritDoc} */
@@ -59,9 +52,7 @@ public class FollowingController implements FollowingApi {
   public ResponseEntity<FollowStateResponse> getPoolFollowState(
       UUID accountId, UUID poolId, Boolean bypass) {
     requests.validateQuery(request, QueryShape.MEMBER);
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(mapper.toDto(follows.state(requests.member(accountId, TargetType.POOL, poolId))));
+    return stateResponse(follows.state(requests.member(accountId, TargetType.POOL, poolId)));
   }
 
   /** {@inheritDoc} */
@@ -69,12 +60,20 @@ public class FollowingController implements FollowingApi {
   public ResponseEntity<FollowStateResponse> replacePoolFollowState(
       UUID accountId, UUID poolId, ReplaceFollowStateRequest body, Boolean bypass) {
     requests.validateQuery(request, QueryShape.MEMBER);
+    return stateResponse(
+        follows.replace(requests.member(accountId, TargetType.POOL, poolId), body.getFollowing()));
+  }
+
+  /**
+   * Builds the canonical non-cacheable representation of confirmed member state.
+   *
+   * @param following application-confirmed state
+   * @return the complete generated boolean response with the member cache policy
+   */
+  private ResponseEntity<FollowStateResponse> stateResponse(boolean following) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                follows.replace(
-                    requests.member(accountId, TargetType.POOL, poolId), body.getFollowing())));
+        .body(new FollowStateResponse(following));
   }
 
   /** {@inheritDoc} */

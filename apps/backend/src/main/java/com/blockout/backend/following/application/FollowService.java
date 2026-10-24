@@ -32,21 +32,24 @@ public class FollowService {
   }
 
   /**
-   * Replaces state in a short local transaction; repeated true preserves the existing UUID.
+   * Replaces state in a short local transaction; repeated true preserves the existing UUID. The
+   * account lock excludes competing writers, and commit failures propagate before an API success.
    *
    * @param context already admitted original owner and exact target
    * @param following complete desired state; false removes only this relation
-   * @return confirmed persisted state after the write, ordered by server lock acquisition
+   * @return state established by this operation, ordered by server lock acquisition
    * @throws AccountNotFoundException when the original lifecycle has disappeared
    * @throws FollowUnavailableTargetException for an unknown or currently hidden target
    */
   @Transactional
   public boolean replace(FollowContext context, boolean following) {
     requireCurrent(context);
-    boolean present = store.find(context).isPresent();
-    if (following && !present) store.add(context);
-    else if (!following && present) store.remove(context);
-    return store.find(context).isPresent();
+    if (following) {
+      if (store.find(context).isEmpty()) store.add(context);
+    } else {
+      store.remove(context);
+    }
+    return following;
   }
 
   /**

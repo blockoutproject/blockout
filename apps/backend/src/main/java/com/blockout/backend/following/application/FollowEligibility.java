@@ -1,10 +1,9 @@
 package com.blockout.backend.following.application;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +22,11 @@ public class FollowEligibility {
    * @return deeply immutable account-to-relation union
    */
   public Map<UUID, Set<FollowStore.Relation>> recipients(Set<FollowContext.Target> targets) {
-    Map<UUID, Set<FollowStore.Relation>> recipients = new HashMap<>();
-    for (FollowStore.Relation relation : store.relations(targets)) {
-      recipients.computeIfAbsent(relation.accountId(), ignored -> new HashSet<>()).add(relation);
-    }
-    recipients.replaceAll((accountId, relations) -> Set.copyOf(relations));
-    return Map.copyOf(recipients);
+    return Map.copyOf(
+        store.relations(targets).stream()
+            .collect(
+                Collectors.groupingBy(
+                    FollowStore.Relation::accountId, Collectors.toUnmodifiableSet())));
   }
 
   /**
