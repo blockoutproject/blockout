@@ -9,4 +9,5 @@
   <include file="accounts.xml" relativeToChangelogFile="true"/>
   <include file="access.xml" relativeToChangelogFile="true"/>
   <include file="contributions.xml" relativeToChangelogFile="true"/>
+  <include file="following.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
