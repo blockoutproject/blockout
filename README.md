@@ -73,6 +73,34 @@ npm run generate
 
 Validate local links, anchors and source ownership against the final tree. [CI](.github/workflows/ci.yml) retains the `verify` gate and develop-only promotion to main; it starts no deployment or EAS build. These checks establish no provider, device, visual or production qualification. Personal skills are copied from their authoritative bank; official Spec Kit imports remain unchanged except for authorized constitution amendments through the official procedure. Publication follows [the Git delivery policy](AGENTS.md#git-delivery).
 
+### Collector-to-sporting qualification
+
+`CollectorSportingBoundaryIntegrationTest` is an opt-in Failsafe suite spanning the actual collector clients and a separately launched backend JAR. It requires an explicitly selected **disposable migrated PostgreSQL database**: its fixture truncates sporting/source data between cases. Use an isolated Compose project and free ports; never point it at a retained or shared database. The backend uses the restricted application role. The migration role is used only for fixture reset. The suite owns its backend process and ephemeral local signing-key endpoint, and closes both. Provider interpretation is synthetic; no provider or Auth0 request is made.
+
+For example, from the repository root, with ports 5484 and 8184 available:
+
+```sh
+POSTGRES_PORT=5484 docker compose -p blockout-collector-sporting up -d --wait postgres
+npm run bundle:contracts
+./mvnw -B -ntp -pl apps/backend package -DskipTests
+LIQUIBASE_URL=jdbc:postgresql://127.0.0.1:5484/blockout \
+LIQUIBASE_USERNAME=blockout_migration LIQUIBASE_PASSWORD=local-migration-only \
+./mvnw -B -ntp -pl apps/backend liquibase:update
+./mvnw -B -ntp -pl apps/collector verify \
+  -Dit.test=CollectorSportingBoundaryIntegrationTest \
+  -Dblockout.qualify-collector-sporting=true \
+  -Dqualification.backend-jar="$PWD/apps/backend/target/backend-0.0.0-SNAPSHOT.jar" \
+  -Dqualification.backend-port=8184 \
+  -Dqualification.database-url=jdbc:postgresql://127.0.0.1:5484/blockout \
+  -Dqualification.database-user=blockout_app \
+  -Dqualification.database-password=local-app-only \
+  -Dqualification.migration-user=blockout_migration \
+  -Dqualification.migration-password=local-migration-only
+docker compose -p blockout-collector-sporting stop postgres
+```
+
+Repackage the backend after every backend source change; the suite executes that supplied JAR. Its ignored backend log is `apps/collector/target/collector-sporting-backend.log`. Ordinary module/CI verification compiles the suite but skips execution unless explicitly enabled. [F02's quickstart](specs/002-sporting-data/quickstart.md#collector-to-sporting-boundary) records its evidence and limits.
+
 ## Local development
 
 The [manual delivery guide](infra/dokploy/README.md) owns source-built images, separate release Compose configuration and the manual preparation/promotion workflows. Merges run CI only. Actual Dokploy deployments, EAS builds and store release require their explicit manual steps and environment qualification.

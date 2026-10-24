@@ -26,6 +26,14 @@ Race first final result with F08 publication. Expect the F07 composition matchin
 
 Carry supplied and omitted `providerPublishedAt` through the actual generated collector/backend boundary, including image metadata. Verify retained fact groups keep their own timestamps, newly accepted facts without a publication time remain unknown, and source publication time cannot overturn the logical token.
 
+### Collector-to-sporting boundary
+
+T026 uses [CollectorSportingBoundaryIntegrationTest](../../apps/collector/src/test/java/com/blockout/collector/acquisition/application/CollectorSportingBoundaryIntegrationTest.java) with the [explicit disposable-runtime command](../../README.md#collector-to-sporting-qualification). The production collector lifecycle, passage, generated RestClient APIs and mappers call a separately packaged backend. Its real security filters validate locally signed synthetic collector credentials, and its real F01/F02 services commit against the Liquibase-migrated PostgreSQL 18.6 baseline under the restricted application role. Only supplier interpretation/discovery and response-loss injection are controlled.
+
+The suite covers confirmed admission before provider work, pre-read ordinal allocation, backend-owned initial-import suppression through the real announcement participant, stable match/team/participation identities through late reads and postponement, and acquisition success remaining distinct from uncertain sporting integration. Lost admission and completion acknowledgements use a read of the original cycle; an unavailable confirmation stays uncertain, with no mutation replay. A collected response submitted after incarnation replacement is refused without new identities or completion, while already committed data survives. PostgreSQL connection-level blocking evidence verifies replacement waiting for an in-flight match transaction; subsequent old-context writes are refused.
+
+This is synthetic cross-owner runtime evidence. The broader partial-success/absence qualification remains [F01 T032](../001-source-acquisition/tasks.md) under the separately owned [#194](https://github.com/blockoutproject/blockout/issues/194) scope; this suite does not qualify live supplier contents, club/geocoding acquisition, actual Auth0, mobile, push delivery or production operations. Ordinary CI compiles this opt-in suite and skips execution without its explicit runtime inputs.
+
 ### Result announcement transaction — #252
 
 T029/T033 bind `MatchAcceptanceService` to the real F08 current-public-link and F07 required
