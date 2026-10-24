@@ -10,23 +10,30 @@ The [model](data-model.md), [contracts](contracts/README.md) and owning specific
 
 ## Foundation evidence (#237)
 
-T001 reused the [shared stack](../003-shared-quality/plan.md). The official `expo install expo-notifications` command selected `58.1.6` (`~58.1.6` in the [manifest](../../apps/mobile/package.json)), without changing the SDK family or configuring a provider. The approved shared Expo 58 patch alignment from [#457](https://github.com/blockoutproject/blockout/pull/457) was integrated from `develop` at `26485b7` before final qualification. T002 inspected the XML master and the [disposable baseline/freeze policy](../../README.md#local-development); no schema was changed or external retained-data posture qualified.
+T001 reuses the [shared stack](../003-shared-quality/plan.md) and SDK-compatible `expo-notifications`
+(`~58.1.6` in the [manifest](../../apps/mobile/package.json)). Package compatibility does not qualify
+provider configuration. T002 retains the XML master and [disposable baseline/freeze policy](../../README.md#local-development);
+no external retained-data posture is qualified.
 
 The [Java contract cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/api/NotificationContractTest.java) exercise generated request binding and producer serialization through a test-only adapter. The [mobile contract cases](../../apps/mobile/src/features/notifications/__tests__/notification-contract.test.ts) exercise actual Orval consumers and one-time F13 response validation before cache admission. Request schema checks use Zod's native `.strict()`; generated Java does not enforce the boolean enum, so F07 explicitly requires true. Orval's multiple-success-status registration function needs the generated `PushSubscriptionResponse` supplied through the existing F13 `schema` request option, as for F05 establishment. Java server responses are serialization evidence, not a generated Java response-decoder qualification.
 
 The [owner cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/NotificationAccessWebMvcTest.java) use real F05 resolution, native security and an isolated signed-JWT/JWKS boundary; account storage and the F12 admission decision are controlled. The [mobile context cases](../../apps/mobile/src/features/notifications/__tests__/notification-context.test.ts) use the existing session owner, transport and one QueryClient, including native infinite-query `pageParam`, A → guest/B → A and late completion without cancellation. These checks qualify the foundation only: production inbox endpoints, notification SQL, account-erasure orchestration, native permissions/lifecycle, physical devices and provider delivery remain with their later tasks, including #245.
 
-Validation on 2026-10-24: the two focused Java suites pass 51 cases and the two mobile suites pass 59. `CI=true NX_DAEMON=false NX_ISOLATE_PLUGINS=false npm run verify -- --parallel=2` passed formatting, contract generation, JVM/database suites, mobile lint/types, 573 mobile tests, both platform JavaScript exports and Expo Doctor **20/20**. In total, 1,725 tests passed; five existing mobile opt-in cases and one backend opt-in case were skipped. The added notification package matches the installed SDK's dependency map. Local Java evidence uses Microsoft OpenJDK 25.0.4; committed CI selects Temurin 25.
+Run the README verification for current application, generator and Expo Doctor results;
+revision-specific execution results belong to the delivery PR.
 
 ## Announcement construction evidence (#245)
 
-T006–T012 implement the mandatory transactional F07 participant, nonpersonal consumed match facts, unread personal allocations, current F06 recipient unions under sorted F05 account locks, and three French variants for each of the four immutable families. The first failing run observed 17 policy/editorial failures; all eight initial PostgreSQL scenarios failed before the participant created its effects. The completed focused suites pass 43 cases (14 transition, 14 editorial, 15 PostgreSQL) through `./mvnw -B -ntp -pl apps/backend verify -Dtest='ResultAnnouncementTest,NotificationMessageTest' -Dit.test=AnnouncementTransactionIntegrationTest`.
+T006–T012 implement the mandatory transactional F07 participant, nonpersonal consumed match facts,
+unread personal allocations, current F06 recipient unions under sorted F05 account locks, and three
+French variants for each of the four immutable families. Run the focused construction suites with
+`./mvnw -B -ntp -pl apps/backend verify -Dtest='ResultAnnouncementTest,NotificationMessageTest' -Dit.test=AnnouncementTransactionIntegrationTest`.
 
 The PostgreSQL suite explicitly migrates this worktree's disposable PostgreSQL 18.6 through the actual Liquibase master, then validates the JPA mappings. It exercises real F07 storage, F06 relations and F05 account locks with controlled producer transitions/current-link availability. It checks both concurrent composition orders, overlap deduplication and exact original relation IDs, account-lock UUID order, removal while waiting, controlled account-row deletion before/after creation, empty-audience facts without later backfill, silent final discovery/reconstruction preserving an unused post-result allowance even with an existing link, uniqueness, rejection of an existing notification UUID without resetting its read state, immutable origin/read state and non-reallocation after personal purge. A required F07 uniqueness failure rolls back the controlled sporting update and all F07 effects for that match while an independent match remains committed. A test-scoped Spring after-commit failure preserves already committed effects.
 
-Validation on 2026-10-24 at `44a1b77`: `CI=true NX_DAEMON=false NX_ISOLATE_PLUGINS=false npm run verify -- --parallel=1` passed all five Nx tasks without cache: formatting, canonical contract checks/generation, backend (1,357 passed, one existing opt-in skipped), collector (259 passed), mobile lint/types (895 tests passed, five existing opt-in skipped), both platform JavaScript exports and Expo Doctor 20/20. The existing database-free health HTTP context now replaces `NotificationStore`, consistently with its other controlled business persistence ports; its 14 cases pass. Local Java is Microsoft OpenJDK 25.0.4. Generated outputs remain ignored; `git diff --check` passes.
-
-The persistence follow-up at `e657dd3` passes `CI=true NX_DAEMON=false NX_ISOLATE_PLUGINS=false npx nx run backend:verify --skipNxCache`: both backend and contract-bundle tasks succeed; 1,358 backend cases pass with the same one opt-in skipped. The new PostgreSQL regression first observed a retained read entry reverting to unread through `save`/`merge`; native JPA insertion now rejects the duplicate identity and preserves the committed entry. The focused F07 suites pass 43 cases, alongside the 14-case health HTTP suite. No schema, HTTP, collector or mobile source changed in this follow-up.
+The [persistence rationale](research.md#transactional-inbox-and-approximate-start-time-announcements)
+explains insert-only allocation and retained read-state protection. The database-free health HTTP
+context replaces `NotificationStore`, consistently with its other controlled business persistence ports.
 
 These controlled inputs do not qualify the actual F02/F08 producer binding or publication eligibility (T013–T014 / #252), the F05 erasure orchestrator or actual asynchronous sender (T040 / #291), inbox HTTP/mobile, scheduled purge, native devices, provider delivery or restoration. No production optional/no-op hook or transport call was added.
 
@@ -52,7 +59,7 @@ are logged safely and dropped after commit, preserving the business response and
 The context retains original relation identities for the later sender; actual association/send-time
 continuity remains F06 T044/#263 and F07 T040/#291.
 
-The current 13-case [timing policy suite](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/LinkAnnouncementTest.java)
+The [timing policy suite](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/LinkAnnouncementTest.java)
 includes unknown time/availability, before/at/after H, Paris/New York instants across differing
 DST weeks and consumed categories. Controlled personal-row deletion, hiding/hold and source-linked
 quota-exempt reactivation fixtures prove that allowances survive those state changes; they do not
@@ -64,8 +71,7 @@ The selected Spring [disabled cron value](https://docs.spring.io/spring-framewor
 is used only by isolated tests, which invoke the real pass explicitly. Production defaults to one
 pass each minute. The shared PostgreSQL test fixture follows Testcontainers' documented
 [singleton lifecycle](https://java.testcontainers.org/test_framework_integration/manual_lifecycle_control/#singleton-containers),
-reuses the existing role/migration setup, and is removed by Ryuk at JVM exit. All ports are dynamic
-and no task-owned backend/Compose service, device or provider was started.
+reuses the existing role/migration setup, and is removed by Ryuk at JVM exit. Database ports are dynamic.
 
 [Audience-turnover SQL](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/AnnouncementAudienceIntegrationTest.java)
 confirms that an arriving follower cannot be discarded after account-lock waiting. A newly
@@ -75,16 +81,13 @@ No automatic transaction replay is added. Contribution and detail-ingestion HTTP
 case to the existing safe 409 conflict. [Division races](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionSportingLocksIntegrationTest.java)
 qualify season → division → match → accounts for submission, due links and result acceptance,
 using the actual division lifecycle command. Deactivation cannot pass a producer waiting on
-its accounts. These five regression expectations failed before their associated fixes (four SQL
-cases plus the contribution HTTP conflict); the additional detail-ingestion conflict also failed
-before its translation was implemented.
+its accounts.
 
 [The origin-snapshot regression](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/RecipientSnapshotIntegrationTest.java)
 uses Hibernate's native statement inspector to rotate real committed follows between separate
-team/pool reads. It first produced zero entries despite a continuously nonempty audience. The
-F06 adapter now reads both origins with one HQL `UNION ALL`, preserving each relation's identity
-and target type in one PostgreSQL statement snapshot. This passed on the installed Hibernate
-7.4.5.Final/PostgreSQL 18.6 together with the existing 19-case F06 SQL suite. The test hook is local
+team/pool reads. The F06 adapter reads both origins with one HQL `UNION ALL`, preserving each
+relation's identity and target type in one PostgreSQL statement snapshot, qualified against Hibernate
+7.4.5.Final/PostgreSQL 18.6 and the existing F06 SQL suite. The test hook is local
 to that scenario; the production interface, transaction isolation and selected versions are unchanged.
 
 ## Essential scenarios

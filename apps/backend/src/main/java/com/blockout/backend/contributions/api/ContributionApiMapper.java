@@ -59,9 +59,7 @@ public interface ContributionApiMapper {
    * @param state owned lifecycle
    * @return exact canonical enum
    */
-  default StreamContributionStateEnum state(ContributionVersion.State state) {
-    return StreamContributionStateEnum.valueOf(state.name());
-  }
+  StreamContributionStateEnum state(ContributionVersion.State state);
 
   /**
    * Maps the recognized local platform to its canonical wire owner.
@@ -69,9 +67,7 @@ public interface ContributionApiMapper {
    * @param platform locally recognized platform
    * @return exact canonical enum
    */
-  default StreamPlatformEnum platform(StreamAddress.Platform platform) {
-    return StreamPlatformEnum.valueOf(platform.name());
-  }
+  StreamPlatformEnum platform(StreamAddress.Platform platform);
 
   /**
    * Preserves the UTC instant without choosing a user's display time zone.

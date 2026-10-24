@@ -30,7 +30,7 @@ Carry supplied and omitted `providerPublishedAt` through the actual generated co
 
 T029/T033 bind `MatchAcceptanceService` to the real F08 current-public-link and F07 required
 announcement participant. [The result-producer regression](../../apps/backend/src/test/java/com/blockout/backend/sporting/application/ResultAnnouncementIntegrationTest.java)
-first failed with an accepted result and no consumed fact. The completed [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
+and [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
 qualify both concurrent publication/result orders, real inbox-constraint rollback, zero recipients,
 initial finished discovery/trusted reconstruction, corrections, withdrawal/restoration and
 post-commit failure. [F07's qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification--252)

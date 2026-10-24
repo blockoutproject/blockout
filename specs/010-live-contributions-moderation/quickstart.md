@@ -18,7 +18,9 @@ The #223 foundation uses the existing pinned F13 stack, generators and ignored o
 
 `ContributionAccessTest` composes real signature/environment checks, F05 identity resolution and F12 admission/grants against controlled account/settings/transaction adapters. `contribution-context.test.ts` uses the real session owner, generated calls and Query to qualify keys, native infinite-query page parameters and late reads/writes across A → guest/B → A even without effective cancellation. Strict unknown-command rejection is proved at MVC; Orval's request schemas check known fields, while generated Fetch validates consumed responses once. These are contract/context proofs, not business endpoints, SQL locking/erasure, device, design or provider qualification. Later mutations must recheck identity/grants under their ordered locks.
 
-Automated foundation qualification on 2026-10-24 passed 45 Java and 52 mobile cases. Full README verification passed formatting, contract lint/bundling/generation, backend/collector verification, mobile lint/types/tests and iOS/Android JavaScript exports (922 backend, 211 collector and 555 mobile tests passed; six existing opt-in skips). CI's Alloy validation and deterministic regeneration of 306 ignored files passed. The full command remains failed because Expo Doctor passed 19/20: its live recommendations require newer patches for Expo, dev-client, file-system, font, image and router than the unchanged baseline pins. No dependency upgrade or check suppression is included; this external version-check failure remains visible for delivery review.
+Run the full README verification for current generator, application and Expo Doctor results;
+revision-specific execution results belong to the delivery PR. Foundation evidence alone does not
+qualify the command, SQL or native boundaries below.
 
 ## Versions, quotas and concurrency
 
@@ -37,7 +39,9 @@ With JUnit/Spring MVC/Testcontainers PostgreSQL and the real mappings/schema:
 
 `ContributionPersistenceIntegrationTest` applies the complete master changelog to isolated PostgreSQL 18.6 using the existing role setup, then validates actual JPA mappings, conditional active/pending uniqueness, same-match lineage/hold, nullable ownership/decision attribution, preserved publication/later decisions and replacement flush ordering. One Hibernate filtered-aggregate query returns lifetime participating versions and distinct daily matches from one SQL statement snapshot, using successive Paris-midnight boundaries. Cases include empty usage, both DST changes, yesterday's match, same-day continuation and later state/grant changes. Pending ownerless versions coexist; report schema/deduplication remains T029.
 
-The scoped 2026-10-24 qualification passes 82 pure policy cases and 21 PostgreSQL cases. These establish the local model and policies only. Production store/command orchestration, ordered lock races, actual account erasure, HTTP/mobile journeys and required F02/F07 atomicity remain with T008/T012–T017 and their owning later tasks; no production no-op participant or publication endpoint is supplied by this lot.
+These suites establish the local model and policies. The following qualification covers the
+implemented store, submission/read endpoints, ordered locks and required F02/F07 atomicity;
+actual account erasure, remaining lifecycle commands and mobile journeys retain their owning tasks.
 
 ### Submission and atomic announcements — #252
 
@@ -52,7 +56,7 @@ cover completed creation/current repetition, exact Locations, private reads, str
 original owner/actor, current privileges and safe refusal/outage responses.
 
 [Submission cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/infrastructure/ContributionSubmissionIntegrationTest.java),
-[private reads](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ReadOwnContributionsIntegrationTest.java)
+[private reads](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ReadOwnContributionsIntegrationTest.java),
 [attribution-lock races](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAttributionIntegrationTest.java)
 and [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
 use the actual migrated PostgreSQL 18.6 mappings and separately proxied production services.
@@ -62,13 +66,9 @@ orders, complete sorted account locking, concurrent same/different-match submiss
 removal, grant withdrawal and rollback on real required inbox constraint failure. Shared persisted
 quota/DST qualifications remain in the preceding T007/T010/T011 evidence.
 
-The first real result-producer regression failed with no recorded announcement; seven timing
-cases and two real submission cases failed before their implementations. The completed targeted
-qualification passes 57 integration cases (including 14 readiness-context regressions) and the
-latest 39-case HTTP/transition/timing run. Test review used the Java-testing canonical examples:
-real immutable values, explicit scenario inputs, no enclosing test transaction for commit proof,
-and PostgreSQL-observed exclusion for races. Only time and the after-commit external observer
-are controlled in the cross-owner fixture; no provider request occurs.
+The cross-owner fixture controls time and the after-commit external observer; no provider request
+occurs. Commit proofs run outside an enclosing test transaction, with PostgreSQL-observed lock
+exclusion and an independent transaction checking committed entry visibility.
 
 The [F07 qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification--252)
 owns announcement timing, handoff and allowance evidence. Controlled hiding/new exempt-version

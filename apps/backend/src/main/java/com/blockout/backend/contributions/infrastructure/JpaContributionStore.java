@@ -39,31 +39,14 @@ public class JpaContributionStore implements ContributionStore {
   /** {@inheritDoc} */
   @Override
   public Optional<ContributionVersion> active(UUID matchId) {
-    return entities
-        .createQuery(
-            "SELECT v FROM ContributionVersionEntity v WHERE v.matchId = :match AND v.state = :state",
-            ContributionVersionEntity.class)
-        .setParameter("match", matchId)
-        .setParameter("state", State.ACTIVE)
-        .getResultList()
-        .stream()
-        .findFirst()
-        .map(mapper::toVersion);
+    return versions.findByMatchIdAndState(matchId, State.ACTIVE).map(mapper::toVersion);
   }
 
   /** {@inheritDoc} */
   @Override
   public Optional<ContributionVersion> pending(UUID matchId, UUID ownerId) {
-    return entities
-        .createQuery(
-            "SELECT v FROM ContributionVersionEntity v WHERE v.matchId = :match AND v.ownerId = :owner AND v.state = :state",
-            ContributionVersionEntity.class)
-        .setParameter("match", matchId)
-        .setParameter("owner", ownerId)
-        .setParameter("state", State.PENDING)
-        .getResultList()
-        .stream()
-        .findFirst()
+    return versions
+        .findByMatchIdAndOwnerIdAndState(matchId, ownerId, State.PENDING)
         .map(mapper::toVersion);
   }
 
@@ -120,13 +103,7 @@ public class JpaContributionStore implements ContributionStore {
       boolean moderator,
       Instant now) {
     List<ContributionVersionEntity> current =
-        entities
-            .createQuery(
-                "SELECT v FROM ContributionVersionEntity v WHERE v.matchId = :match AND v.state IN :states",
-                ContributionVersionEntity.class)
-            .setParameter("match", matchId)
-            .setParameter("states", List.of(State.ACTIVE, State.PENDING))
-            .getResultList();
+        versions.findByMatchIdAndStateIn(matchId, List.of(State.ACTIVE, State.PENDING));
     List<ContributionVersionEntity> replaced = new ArrayList<>();
     for (ContributionVersionEntity old : current) {
       if (old.getState() == State.ACTIVE && active) {
