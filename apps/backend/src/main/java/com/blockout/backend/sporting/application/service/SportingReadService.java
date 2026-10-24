@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
@@ -348,5 +349,19 @@ public class SportingReadService {
                 .filter(SportingVisibility::viewable)
                 .isPresent();
     return visible ? store.effectiveLogo(kind, id) : Optional.empty();
+  }
+
+  /**
+   * Supplies selected current team artwork while enforcing the same current public visibility.
+   *
+   * @param teamId seasonal team
+   * @param selection effective or automatic fallback independent of the manual override
+   * @return immutable selected bytes, or empty for a hidden/unknown team or missing artwork
+   */
+  public Optional<SportingPresentation.Image> publicTeamLogo(
+      UUID teamId, TeamLogoSelectionEnum selection) {
+    return visibility(Kind.TEAM, teamId)
+        .filter(SportingVisibility::viewable)
+        .flatMap(ignored -> store.teamLogo(teamId, selection));
   }
 }

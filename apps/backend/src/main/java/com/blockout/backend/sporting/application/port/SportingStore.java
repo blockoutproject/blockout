@@ -1,6 +1,7 @@
 package com.blockout.backend.sporting.application.port;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
@@ -724,4 +725,13 @@ public interface SportingStore {
    * @return detached effective artwork, or empty when absent
    */
   Optional<SportingPresentation.Image> effectiveLogo(Kind kind, UUID id);
+
+  /**
+   * Resolves effective or automatic team artwork without copying its bytes into another owner.
+   *
+   * @param id stable seasonal team
+   * @param selection effective includes the manual override; automatic ignores it
+   * @return detached current selected bytes, or empty when absent
+   */
+  Optional<SportingPresentation.Image> teamLogo(UUID id, TeamLogoSelectionEnum selection);
 }

@@ -23,7 +23,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.generated.mobile.model.CollectionResourceKindEnum;
-import com.blockout.backend.shared.http.JsonBodyLimitAdvice;
+import com.blockout.backend.shared.http.IngestionBodyLimitAdvice;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResource;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
@@ -57,7 +57,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   CurrentAccount.class,
   CollectionApiMapperImpl.class,
   CollectionExceptionHandler.class,
-  JsonBodyLimitAdvice.class
+  IngestionBodyLimitAdvice.class
 })
 @DisplayName("Source preparation HTTP boundary")
 @MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)

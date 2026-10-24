@@ -16,6 +16,7 @@ import com.blockout.backend.generated.ingestion.model.GeocodingOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.generated.mobile.model.ContactModeEnum;
 import com.blockout.backend.generated.mobile.model.LogoActionEnum;
+import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
@@ -842,6 +843,18 @@ class SportingPresentationIntegrationTest {
         reads.publicLogo(SportingProjectionChanges.Kind.TEAM, professional.team()).orElseThrow();
     SportingPresentation.View current =
         presentation.get(account, SportingProjectionChanges.Kind.TEAM, professional.team());
+    assertThat(
+            reads
+                .publicTeamLogo(professional.team(), TeamLogoSelectionEnum.AUTOMATIC)
+                .orElseThrow()
+                .bytes())
+        .isEqualTo(lnvImage.bytes());
+    assertThat(
+            reads
+                .publicTeamLogo(professional.team(), TeamLogoSelectionEnum.EFFECTIVE)
+                .orElseThrow()
+                .bytes())
+        .isEqualTo(manualImage.bytes());
     SportingPresentation.View automatic =
         presentation.set(
             account,
@@ -851,6 +864,8 @@ class SportingPresentationIntegrationTest {
 
     // Then
     assertThat(stillManual.bytes()).isEqualTo(manualImage.bytes());
+    assertThat(current.logo().automaticUrl())
+        .isEqualTo("/teams/" + professional.team() + "/logo?selection=automatic");
     assertThat(automatic.logo().manualUrl()).isNull();
     assertThat(
             reads

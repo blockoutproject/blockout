@@ -21,16 +21,13 @@ import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
 import com.blockout.backend.sporting.application.service.SportingImageService;
 import com.blockout.backend.sporting.application.service.StandingsService;
 import java.io.IOException;
-import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 /** Generated ingestion routes delegating to fenced owner acceptance transactions. */
 @RestController
@@ -107,11 +104,8 @@ public class SportingIngestionController implements SportingApi {
         new MatchObservation.Context(cycleId, readOrdinal, observedAt, providerPublishedAt);
     images.requireSource(teamId, context);
     Image validated;
-    try (InputStream content = body.getInputStream()) {
-      byte[] bytes = content.readNBytes(SportingImageService.MAX_BYTES + 1);
-      if (bytes.length > SportingImageService.MAX_BYTES)
-        throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
-      validated = SportingImageService.validate(bytes);
+    try {
+      validated = SportingImageService.validate(body.getContentAsByteArray());
     } catch (IOException invalid) {
       throw new SportingValidationException();
     }

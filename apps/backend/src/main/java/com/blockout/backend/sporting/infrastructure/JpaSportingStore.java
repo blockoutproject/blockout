@@ -4,6 +4,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
+import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
@@ -894,7 +895,10 @@ public class JpaSportingStore implements SportingStore {
                     String automatic =
                         team.getProvider() == CollectionProviderEnum.LNV
                                 && team.getSourceLogo() != null
-                            ? "/teams/" + id + "/logo"
+                            ? "/teams/"
+                                + id
+                                + "/logo?selection="
+                                + TeamLogoSelectionEnum.AUTOMATIC.getValue()
                             : club != null && club.getLogo() != null
                                 ? "/clubs/" + club.getId() + "/logo"
                                 : null;
@@ -1213,22 +1217,25 @@ public class JpaSportingStore implements SportingStore {
           divisions
               .findById(id)
               .map(division -> image(division.getLogo(), division.getLogoMediaType()));
-      case TEAM ->
-          teams
-              .findById(id)
-              .flatMap(
-                  team -> {
-                    if (team.getLogo() != null)
-                      return Optional.of(image(team.getLogo(), team.getLogoMediaType()));
-                    if (team.getProvider() == CollectionProviderEnum.LNV
-                        && team.getSourceLogo() != null)
-                      return Optional.of(
-                          image(team.getSourceLogo(), team.getSourceLogoMediaType()));
-                    return team.getClub() == null
-                        ? Optional.empty()
-                        : effectiveLogo(Kind.CLUB, team.getClub().getId());
-                  });
+      case TEAM -> teamLogo(id, TeamLogoSelectionEnum.EFFECTIVE);
       default -> Optional.empty();
     };
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Optional<SportingPresentation.Image> teamLogo(UUID id, TeamLogoSelectionEnum selection) {
+    return teams
+        .findById(id)
+        .flatMap(
+            team -> {
+              if (selection == TeamLogoSelectionEnum.EFFECTIVE && team.getLogo() != null)
+                return Optional.of(image(team.getLogo(), team.getLogoMediaType()));
+              if (team.getProvider() == CollectionProviderEnum.LNV && team.getSourceLogo() != null)
+                return Optional.of(image(team.getSourceLogo(), team.getSourceLogoMediaType()));
+              return team.getClub() == null
+                  ? Optional.empty()
+                  : effectiveLogo(Kind.CLUB, team.getClub().getId());
+            });
   }
 }

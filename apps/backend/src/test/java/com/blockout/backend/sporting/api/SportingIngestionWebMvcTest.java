@@ -16,7 +16,7 @@ import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
-import com.blockout.backend.shared.http.JsonBodyLimitAdvice;
+import com.blockout.backend.shared.http.IngestionBodyLimitAdvice;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
@@ -61,7 +61,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   SportingObservationMapperImpl.class,
   SportingPresentationMapperImpl.class,
   SportingObservationValidator.class,
-  JsonBodyLimitAdvice.class
+  IngestionBodyLimitAdvice.class
 })
 @DisplayName("Sporting ingestion request limits")
 @MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
@@ -438,6 +438,29 @@ class SportingIngestionWebMvcTest {
 
     // Then
     response.andExpect(status().isUnsupportedMediaType());
+    verifyNoInteractions(images);
+  }
+
+  @Test
+  @DisplayName("Rejects oversized source-image bytes before invoking any image use case")
+  void boundsSourceImageBeforeConversion() throws Exception {
+    // Given
+    UUID team = UUID.fromString("00000000-0000-4000-8000-000000000193");
+    byte[] oversized = new byte[SportingImageService.MAX_BYTES + 1];
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post("/ingestion/teams/{id}/source-logo-observations", team)
+                .with(collector())
+                .queryParam("cycleId", "00000000-0000-4000-8000-000000000001")
+                .queryParam("readOrdinal", "1")
+                .queryParam("observedAt", "2026-10-24T12:00:00Z")
+                .contentType("image/png")
+                .content(oversized));
+
+    // Then
+    response.andExpect(status().isPayloadTooLarge());
     verifyNoInteractions(images);
   }
 
