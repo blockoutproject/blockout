@@ -513,7 +513,6 @@ it("keeps missing or unusable contacts inert", async () => {
     phone: "*123#",
     website: "https://private:password@example.invalid",
   };
-  const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText(club.club.name);
 
@@ -670,4 +669,59 @@ it("retains the club teams when returning to a visited tab without an implicit r
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/teams?")),
   ).toHaveLength(0);
+});
+
+it("shows the known match competition independently of a generic pool name", async () => {
+  // Given
+  match.match.pool.competitionName = "Championnat de démonstration";
+  await renderPage(<MatchScreen matchId={sportingId} />);
+
+  // When
+  await screen.findByRole("link", { name: "Pool" });
+
+  // Then
+  expect(screen.getByText("Championnat de démonstration")).toBeOnTheScreen();
+});
+
+it("rereads common club information on a fresh opening while retaining the same QueryClient", async () => {
+  // Given
+  const opened = await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByText(club.club.name);
+  await opened.rerender(<Text>Closed resource</Text>);
+  club = {
+    ...club,
+    club: { ...club.club, name: "Corrected public club" },
+    seasons: [olderSeason],
+  };
+  mockFetch.mockClear();
+
+  // When
+  await opened.rerender(<ClubScreen clubId={sportingId} />);
+
+  // Then
+  expect(await screen.findByText("Corrected public club")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      String(url).endsWith(`/clubs/${sportingId}`),
+    ),
+  ).toHaveLength(1);
+});
+
+it("retries a previous common read failure on a fresh resource opening", async () => {
+  // Given
+  mockFetch.mockImplementation((url: string) =>
+    url.endsWith(`/teams/${sportingId}`)
+      ? Promise.reject(new TypeError("offline"))
+      : reads(url),
+  );
+  const opened = await renderPage(<TeamScreen teamId={sportingId} />);
+  await screen.findByRole("alert");
+  await opened.rerender(<Text>Closed resource</Text>);
+  mockFetch.mockImplementation(reads);
+
+  // When
+  await opened.rerender(<TeamScreen teamId={sportingId} />);
+
+  // Then
+  expect(await screen.findByText(team.team.team.name)).toBeOnTheScreen();
 });

@@ -47,7 +47,11 @@ function TeamPage({
   renderStandings,
 }: TeamScreenProps) {
   const queries = useConsultationQueries();
-  const team = useQuery(queries.team(teamId));
+  const team = useQuery({
+    ...queries.team(teamId),
+    refetchOnMount: "always",
+    retryOnMount: true,
+  });
   const [selected, setSelected] = useState<string>();
   const data = resourceUnavailable(team.error) ? undefined : team.data;
   const tabs = [

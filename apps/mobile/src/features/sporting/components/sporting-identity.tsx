@@ -31,7 +31,12 @@ export function SportingLogo({ identity, kind, size = 40 }: SportingLogoProps) {
       : kind === "team"
         ? queries.teamLogo(identity.id)
         : queries.divisionLogo(identity.id);
-  const logo = useQuery({ ...options, enabled: !!identity.logoUrl });
+  const logo = useQuery({
+    ...options,
+    enabled: !!identity.logoUrl,
+    refetchOnMount: "always",
+    retryOnMount: true,
+  });
   const { colors } = useTheme();
   return (
     <View

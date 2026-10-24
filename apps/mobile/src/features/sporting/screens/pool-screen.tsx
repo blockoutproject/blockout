@@ -47,7 +47,11 @@ function PoolPage({
   renderMap,
 }: PoolScreenProps) {
   const queries = useConsultationQueries();
-  const pool = useQuery(queries.pool(poolId));
+  const pool = useQuery({
+    ...queries.pool(poolId),
+    refetchOnMount: "always",
+    retryOnMount: true,
+  });
   const [tab, setTab] = useState("standings");
   const data = resourceUnavailable(pool.error) ? undefined : pool.data;
   return (

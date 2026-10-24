@@ -28,6 +28,12 @@ export function MatchSummary({ match }: MatchSummaryProps) {
         </View>
       </View>
       <ResourceText>{match.pool.season.label}</ResourceText>
+      {match.pool.competitionName && (
+        <ResourceText>{match.pool.competitionName}</ResourceText>
+      )}
+      {match.pool.classification.division && (
+        <ResourceText>{match.pool.classification.division.name}</ResourceText>
+      )}
       <ResourceText>{match.pool.phaseName}</ResourceText>
       <ResourceText>
         {match.schedule.instant

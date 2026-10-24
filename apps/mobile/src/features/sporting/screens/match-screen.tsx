@@ -26,7 +26,11 @@ export interface MatchScreenProps {
 /** Presents independent accepted match facts; a missing secondary section never replaces another. */
 export function MatchScreen({ matchId }: MatchScreenProps) {
   const queries = useConsultationQueries();
-  const match = useQuery(queries.match(matchId));
+  const match = useQuery({
+    ...queries.match(matchId),
+    refetchOnMount: "always",
+    retryOnMount: true,
+  });
   const { colors } = useTheme();
   const data = resourceUnavailable(match.error) ? undefined : match.data;
   return (

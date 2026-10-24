@@ -45,7 +45,11 @@ export function ClubScreen(props: ClubScreenProps) {
 /** Retains a valid season across common reads; only successful disappearance derives the fallback. */
 function ClubPage({ clubId, renderCalendar }: ClubScreenProps) {
   const queries = useConsultationQueries();
-  const club = useQuery(queries.club(clubId));
+  const club = useQuery({
+    ...queries.club(clubId),
+    refetchOnMount: "always",
+    retryOnMount: true,
+  });
   const [tab, setTab] = useState("info");
   const [selectedSeason, setSelectedSeason] = useState<string>();
   const [choosingSeason, setChoosingSeason] = useState(false);
