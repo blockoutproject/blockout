@@ -65,7 +65,7 @@ public class ReadSearch {
       SearchEngine.Batch batch = engine.search(context, consumed, 200);
       int offset = 0;
       while (offset < batch.candidates().size()) {
-        int end = Math.min(batch.candidates().size(), offset + 21 - results.size());
+        int end = Math.min(batch.candidates().size(), offset + 21);
         List<SearchEngine.Candidate> slice = batch.candidates().subList(offset, end);
         Map<UUID, SearchPage.Summary> current = hydration.current(context, slice);
         for (SearchEngine.Candidate candidate : slice) {

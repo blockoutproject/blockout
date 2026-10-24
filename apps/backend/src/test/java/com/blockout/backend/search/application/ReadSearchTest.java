@@ -148,6 +148,40 @@ class ReadSearchTest {
     assertThatThrownBy(read).isInstanceOf(SearchUnavailableException.class);
   }
 
+  @Test
+  @DisplayName("Keeps current hydration batched while seeking lookahead after a full page")
+  void batchesLookaheadHydration() {
+    // Given
+    List<Integer> batchSizes = new java.util.ArrayList<>();
+    when(engine.search(eq(context), any(), eq(200)))
+        .thenAnswer(
+            invocation -> {
+              Position after = invocation.getArgument(1);
+              int start = after == null ? 1 : (int) after.id().getLeastSignificantBits() + 1;
+              return new Batch(
+                  IntStream.range(start, start + 200).mapToObj(this::candidate).toList(), false);
+            });
+    when(hydration.current(eq(context), any()))
+        .thenAnswer(
+            invocation -> {
+              List<Candidate> candidates = invocation.getArgument(1);
+              batchSizes.add(candidates.size());
+              return candidates.stream()
+                  .filter(c -> c.position().id().getLeastSignificantBits() <= 20)
+                  .collect(
+                      java.util.stream.Collectors.toMap(
+                          c -> c.position().id(), c -> summary(c.position().id())));
+            });
+
+    // When
+    SearchPage page = search.read(context, null);
+
+    // Then
+    assertThat(page.items()).hasSize(19);
+    assertThat(page.next()).isEqualTo(candidate(19).position());
+    assertThat(batchSizes.stream().filter(size -> size == 1).count()).isZero();
+  }
+
   /**
    * Builds one exact synthetic native boundary; score ties exercise UUID ordering.
    *
