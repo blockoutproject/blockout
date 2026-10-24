@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.application;
 
+import static com.blockout.backend.sporting.support.SportingIngestionFixture.DIVISION;
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.SOURCE;
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -7,16 +8,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleService;
 import com.blockout.backend.collection.application.service.CollectorRuntimeService;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
+import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
+import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Changed;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.CatalogObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
+import com.blockout.backend.sporting.application.model.PoolKey;
+import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
 import com.blockout.backend.sporting.application.model.SportingVisibility.Reason;
+import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.service.CalendarAcceptanceService;
 import com.blockout.backend.sporting.application.service.CatalogAcceptanceService;
 import com.blockout.backend.sporting.application.service.MatchAcceptanceService;
@@ -202,6 +209,10 @@ class SportingProjectionIntegrationTest {
     UUID club = reads.team(first.homeTeamId()).orElseThrow().clubId();
     sql.update("UPDATE sporting_club SET municipality='Synthetic city' WHERE id=?", club);
     sql.update(
+        "INSERT INTO sporting_division_term(division_id,term) VALUES (?,'N2'),(?,'National 2')",
+        DIVISION,
+        DIVISION);
+    sql.update(
         "INSERT INTO sporting_team_alias(team_id,season_id,organizer_reference,competition_reference,comparison_name) VALUES (?,?,'SYNTHETIC','COMP','home alias')",
         first.homeTeamId(),
         season);
@@ -216,6 +227,17 @@ class SportingProjectionIntegrationTest {
     // Then
     assertThat(previous.city()).isEqualTo("Synthetic city");
     assertThat(current.city()).isNull();
+    assertThat(current.id()).isEqualTo(first.homeTeamId());
+    assertThat(current.seasonId()).isEqualTo(season);
+    assertThat(current.sourceName()).isEqualTo("Home");
+    assertThat(current.effectiveName()).isEqualTo("Home");
+    assertThat(current.clubId()).isEqualTo(club);
+    assertThat(current.classification().divisionId()).isEqualTo(DIVISION);
+    assertThat(current.divisionName()).isEqualTo("Synthetic");
+    assertThat(current.divisionTerms()).containsExactlyInAnyOrder("N2", "National 2");
+    SportingPublicInput poolInput = reads.publicInputs(Kind.POOL, Set.of(pool)).getFirst();
+    assertThat(poolInput.classification()).isEqualTo(current.classification());
+    assertThat(poolInput.divisionTerms()).containsExactlyInAnyOrder("N2", "National 2");
     assertThat(current.aliases()).extracting(alias -> alias.name()).containsExactly("home alias");
     assertThat(
             reads.projectionDependents(
@@ -224,6 +246,39 @@ class SportingProjectionIntegrationTest {
             new Scope(SportingProjectionChanges.Kind.TEAM, first.homeTeamId()),
             new Scope(SportingProjectionChanges.Kind.POOL, pool));
     assertThat(reads.projectionInputs(Kind.TEAM, 0, 1)).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("Professional projection keeps absent club context null")
+  void projectsUnattachedProfessionalTeam() {
+    // Given
+    UUID professional =
+        identities
+            .establishPool(
+                new PoolKey(
+                    CollectionProviderEnum.LNV, season, "LNV", "CHAMP", null, null, "PHASE"),
+                "LNV_PACK",
+                "Professional phase",
+                new SportingClassification(DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE))
+            .id();
+    UUID team =
+        identities
+            .identifyMatch(
+                professional,
+                "NATIVE",
+                new TeamCandidate("HOME", "Professional home", null, null),
+                new TeamCandidate("AWAY", "Professional away", null, null))
+            .homeTeamId();
+
+    // When
+    SportingPublicInput input = reads.publicInputs(Kind.TEAM, Set.of(team)).getFirst();
+
+    // Then
+    assertThat(input.sourceName()).isEqualTo("Professional home");
+    assertThat(input.clubId()).isNull();
+    assertThat(input.clubName()).isNull();
+    assertThat(input.city()).isNull();
+    assertThat(input.poolIds()).containsExactly(professional);
   }
 
   /**

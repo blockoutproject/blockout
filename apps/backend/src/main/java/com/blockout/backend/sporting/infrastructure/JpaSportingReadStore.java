@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.infrastructure;
 
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
+import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingPublicInput.Alias;
 import com.blockout.backend.sporting.application.model.SportingVisibility;
@@ -33,7 +34,6 @@ public class JpaSportingReadStore implements SportingReadStore {
           + POOL_VISIBLE
           + ")";
   private final EntityManager entities;
-  private final SportingIdentityMapper mapper;
 
   /** {@inheritDoc} */
   @Override
@@ -119,100 +119,86 @@ public class JpaSportingReadStore implements SportingReadStore {
   @Override
   public List<SportingPublicInput> publicInputs(Kind kind, Set<UUID> ids) {
     if (ids.isEmpty()) return List.of();
-    Map<UUID, Set<Alias>> aliases = aliases(kind, ids);
-    return switch (kind) {
-      case CLUB ->
-          entities
-              .createQuery(
-                  "SELECT c FROM ClubEntity c WHERE c.id IN :ids ORDER BY c.id", ClubEntity.class)
-              .setParameter("ids", ids)
-              .getResultList()
-              .stream()
-              .map(
-                  club ->
-                      new SportingPublicInput(
-                          club.getId(),
-                          kind,
-                          null,
-                          club.getSourceName(),
-                          club.getSourceName(),
-                          aliases.getOrDefault(club.getId(), Set.of()),
-                          null,
-                          null,
-                          Set.of(),
-                          null,
-                          null,
-                          city(club),
-                          List.of()))
-              .toList();
-      case POOL ->
-          entities
-              .createQuery(
-                  "SELECT DISTINCT p FROM PoolEntity p JOIN FETCH p.season JOIN FETCH p.division d LEFT JOIN FETCH d.searchTerms WHERE p.id IN :ids AND "
-                      + POOL_VISIBLE
-                      + " ORDER BY p.id",
-                  PoolEntity.class)
-              .setParameter("ids", ids)
-              .getResultList()
-              .stream()
-              .map(
-                  pool ->
-                      new SportingPublicInput(
-                          pool.getId(),
-                          kind,
-                          pool.getSeason().getId(),
-                          pool.getSourceName(),
-                          pool.getSourceName(),
-                          aliases.getOrDefault(pool.getId(), Set.of()),
-                          mapper.toView(pool).classification(),
-                          pool.getDivision().getName(),
-                          pool.getDivision().getSearchTerms(),
-                          null,
-                          null,
-                          null,
-                          List.of()))
-              .toList();
-      case TEAM -> {
-        Map<UUID, List<UUID>> memberships = visiblePoolIds(ids);
-        yield entities
-            .createQuery(
-                "SELECT DISTINCT t FROM TeamEntity t JOIN FETCH t.season JOIN FETCH t.division d LEFT JOIN FETCH d.searchTerms LEFT JOIN FETCH t.club WHERE t.id IN :ids AND "
-                    + TEAM_VISIBLE
-                    + " ORDER BY t.id",
-                TeamEntity.class)
+    String query =
+        switch (kind) {
+          case CLUB ->
+              """
+          SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
+            c.id, NULL, c.sourceName, NULL, NULL, NULL, NULL, NULL, NULL,
+            CASE WHEN c.municipalityRestricted = TRUE THEN NULL ELSE c.municipality END)
+          FROM ClubEntity c WHERE c.id IN :ids ORDER BY c.id
+          """;
+          case POOL ->
+              """
+          SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
+            p.id, p.season.id, p.sourceName, p.division.id, p.division.name, p.format, p.gender,
+            NULL, NULL, NULL)
+          FROM PoolEntity p WHERE p.id IN :ids AND
+          """
+                  + POOL_VISIBLE
+                  + " ORDER BY p.id";
+          case TEAM ->
+              """
+          SELECT NEW com.blockout.backend.sporting.infrastructure.SportingSearchRow(
+            t.id, t.season.id, t.sourceName, t.division.id, t.division.name, t.format, t.gender,
+            c.id, c.sourceName,
+            CASE WHEN c.municipalityRestricted = TRUE THEN NULL ELSE c.municipality END)
+          FROM TeamEntity t LEFT JOIN t.club c WHERE t.id IN :ids AND
+          """
+                  + TEAM_VISIBLE
+                  + " ORDER BY t.id";
+          case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
+        };
+    List<SportingSearchRow> rows =
+        entities
+            .createQuery(query, SportingSearchRow.class)
             .setParameter("ids", ids)
-            .getResultList()
-            .stream()
-            .map(
-                team ->
-                    new SportingPublicInput(
-                        team.getId(),
-                        kind,
-                        team.getSeason().getId(),
-                        team.getSourceName(),
-                        team.getSourceName(),
-                        aliases.getOrDefault(team.getId(), Set.of()),
-                        mapper.toView(team).classification(),
-                        team.getDivision().getName(),
-                        team.getDivision().getSearchTerms(),
-                        team.getClub() == null ? null : team.getClub().getId(),
-                        team.getClub() == null ? null : team.getClub().getSourceName(),
-                        city(team.getClub()),
-                        memberships.getOrDefault(team.getId(), List.of())))
-            .toList();
-      }
-      case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
-    };
+            .getResultList();
+    Map<UUID, Set<Alias>> aliases = aliases(kind, ids);
+    Map<UUID, Set<String>> terms = divisionTerms(rows);
+    Map<UUID, List<UUID>> memberships = kind == Kind.TEAM ? visiblePoolIds(ids) : Map.of();
+    return rows.stream()
+        .map(
+            row ->
+                new SportingPublicInput(
+                    row.id(),
+                    kind,
+                    row.seasonId(),
+                    row.sourceName(),
+                    row.sourceName(),
+                    aliases.getOrDefault(row.id(), Set.of()),
+                    row.divisionId() == null
+                        ? null
+                        : new SportingClassification(row.divisionId(), row.format(), row.gender()),
+                    row.divisionName(),
+                    terms.getOrDefault(row.divisionId(), Set.of()),
+                    row.clubId(),
+                    row.clubName(),
+                    row.city(),
+                    memberships.getOrDefault(row.id(), List.of())))
+        .toList();
   }
 
   /**
-   * Reads only permitted current municipality; restriction flags dominate retained source values.
+   * Loads terms once per selected division without selecting binary division presentation.
    *
-   * @param club optional organization
-   * @return permitted municipality or null
+   * @param rows current scalar search inputs
+   * @return current term sets grouped by their owner
    */
-  private String city(ClubEntity club) {
-    return club == null || club.isMunicipalityRestricted() ? null : club.getMunicipality();
+  private Map<UUID, Set<String>> divisionTerms(List<SportingSearchRow> rows) {
+    Set<UUID> ids = new HashSet<>();
+    for (SportingSearchRow row : rows) if (row.divisionId() != null) ids.add(row.divisionId());
+    Map<UUID, Set<String>> result = new HashMap<>();
+    if (!ids.isEmpty())
+      for (Object[] row :
+          entities
+              .createQuery(
+                  "SELECT d.id, term FROM DivisionEntity d JOIN d.searchTerms term WHERE d.id IN :ids",
+                  Object[].class)
+              .setParameter("ids", ids)
+              .getResultList())
+        result.computeIfAbsent((UUID) row[0], ignored -> new HashSet<>()).add((String) row[1]);
+    return result;
   }
 
   /**
