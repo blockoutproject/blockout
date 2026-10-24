@@ -1,3 +1,4 @@
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   applicationVersionsEditor,
@@ -398,16 +399,18 @@ export function ApplicationVersionsSettingsForm({
         animationType="slide"
         onRequestClose={() => setPreview(false)}
       >
-        <ApplicationVersionsPreview
-          message={current.message.trim() || null}
-          storeUrl={
-            applicationVersionsSchema.safeParse(current).success
-              ? current[Platform.OS === "ios" ? "ios" : "android"].storeUrl ||
-                null
-              : null
-          }
-          onClose={() => setPreview(false)}
-        />
+        <SafeAreaProvider>
+          <ApplicationVersionsPreview
+            message={current.message.trim() || null}
+            storeUrl={
+              applicationVersionsSchema.safeParse(current).success
+                ? current[Platform.OS === "ios" ? "ios" : "android"].storeUrl ||
+                  null
+                : null
+            }
+            onClose={() => setPreview(false)}
+          />
+        </SafeAreaProvider>
       </Modal>
     </View>
   );

@@ -6,7 +6,13 @@ import {
 } from "../queries/use-application-access";
 import { Alert, Text, type AlertButton } from "react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
@@ -19,6 +25,12 @@ import { getGetApplicationVersionSettingsQueryKey } from "../../../../.generated
 import { ApplicationVersionsSettingsScreen } from "../screens/application-versions-settings-screen";
 import ApplicationVersionsRoute from "../../../app/(operations)/administration/application-versions";
 
+// The upstream native-insets double gives the modal its own real React contexts in Jest.
+jest.mock(
+  "react-native-safe-area-context",
+  () =>
+    jest.requireActual("react-native-safe-area-context/src/jest/mock").default,
+);
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
@@ -159,9 +171,16 @@ it("shows loading without publishing defaults, then retries a failed initial rea
   await renderSettings();
 
   // Then
-  expect(
-    await screen.findByRole("progressbar", { name: "Chargement en cours" }),
-  ).toBeOnTheScreen();
+  await waitFor(() => {
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        String(url).endsWith("/administration/application-versions"),
+      ),
+    ).toBe(true);
+    expect(
+      screen.getByRole("progressbar", { name: "Chargement en cours" }),
+    ).toBeOnTheScreen();
+  });
   expect(
     screen.queryByRole("button", { name: "Appliquer les modifications" }),
   ).not.toBeOnTheScreen();
