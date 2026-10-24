@@ -31,6 +31,20 @@ public class JpaContributionStore implements ContributionStore {
 
   /** {@inheritDoc} */
   @Override
+  public Set<UUID> activeMatchIds(Set<UUID> matchIds) {
+    if (matchIds.isEmpty()) return Set.of();
+    return Set.copyOf(
+        entities
+            .createQuery(
+                "SELECT v.matchId FROM ContributionVersionEntity v WHERE v.matchId IN :ids AND v.state = :active",
+                UUID.class)
+            .setParameter("ids", matchIds)
+            .setParameter("active", State.ACTIVE)
+            .getResultList());
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public ContributionState state(UUID matchId) {
     MatchContributionStateEntity state = entities.find(MatchContributionStateEntity.class, matchId);
     return state == null ? ContributionState.initial(matchId) : mapper.toState(state);
