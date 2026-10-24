@@ -31,6 +31,8 @@ class SearchCurrentDataIntegrationTest {
 
   /**
    * Applies the actual baseline before Hibernate validation with the restricted application role.
+   *
+   * @param properties native registry for this suite's disposable database settings
    */
   @DynamicPropertySource
   static void database(DynamicPropertyRegistry properties) throws Exception {
@@ -270,6 +272,9 @@ class SearchCurrentDataIntegrationTest {
   /**
    * Creates one viewable professional team and pool under explicit sporting year and
    * classification.
+   *
+   * @param year canonical sporting start year used by this scenario
+   * @return stable identities of the current synthetic participation graph
    */
   private Fixture professionalTeam(int year) {
     UUID season = UUID.fromString("00000000-0000-4000-8000-000000000010");

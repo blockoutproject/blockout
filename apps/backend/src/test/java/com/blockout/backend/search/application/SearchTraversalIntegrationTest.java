@@ -53,7 +53,11 @@ class SearchTraversalIntegrationTest {
   @Autowired JdbcTemplate sql;
   @Autowired SportingReadService owners;
 
-  /** Migrates the real owner schema before restricted-role startup. */
+  /**
+   * Migrates the real owner schema before restricted-role startup.
+   *
+   * @param properties native registry for this suite's disposable database settings
+   */
   @DynamicPropertySource
   static void database(DynamicPropertyRegistry properties) throws Exception {
     PostgresTestDatabase.migrate(DATABASE);
