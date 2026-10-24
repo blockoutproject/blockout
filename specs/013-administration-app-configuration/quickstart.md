@@ -149,12 +149,19 @@ The approved inputs read on 2026-10-24 are [pristine light 1563:16268](https://w
 
 The focused JavaScript suites use real Query, session, generated HTTP validation, RHF/Zod, controls and production route composition. Only HTTP/native credential inputs are controlled. Initial cases observed 18 behavioral failures before construction. Cases exercise atomic platform edits, omitted/null fields, invalid resulting state, optional fallback/preview, dirty refetch, failed loading/rereading, refusals, 409, lost or malformed responses, explicit resubmission, permission loss and held confirmations, current-manager admission without bypass, outdated-client refusal, partial observations and explicit draft discard. They establish no Auth0 operator, SQL, store or physical-device qualification.
 
+The final affected check passes generation, ESLint, TypeScript, 61 suites/929 tests, both native-platform JavaScript exports and Expo Doctor 20/20. The 34 editor/route/lifecycle cases pass. The existing five Spring-driven settings-provider cases remain skipped by standalone Jest and retain T020's separate HTTP/PostgreSQL evidence. Repository formatting and `git diff --check` pass.
+
 ```sh
 npm run test --workspace=@blockout/mobile -- --runTestsByPath \
   src/features/access/__tests__/application-versions-settings.test.tsx \
-  src/features/access/__tests__/application-versions-route.test.tsx
+  src/features/access/__tests__/application-versions-route.test.tsx \
+  src/features/access/__tests__/application-versions-editor.test.ts
 NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false NX_ISOLATE_PLUGINS=false \
   npx nx run mobile:verify --output-style=static
 ```
 
-Native runtime captures and final verification results remain to be recorded for this increment. T039/T041, #189/#190 and the existing iOS #433/#449 limits remain separate qualifications; no threshold increase, store publication, provider change or production operation is authorized by these checks.
+On 2026-10-24, native component checks reuse the compatible development clients on iOS 27.1 (iPhone Duo, closed display, 466×678 px at 1×) and Android API 37 (Pixel_9, 1080×2424 px). The temporary ignored host mounts the production form, controls, theme, session provider and generated HTTP consumer against canonical demonstration responses on loopback. It supplies the editing props without a real authenticated operator; production route admission and guard-removal behavior are covered by the JavaScript suites. The host was removed after capture and task-owned devices/services were stopped.
+
+iOS checks cover first-field validation, actual last-field input, scrolling to and activating the final action with the software keyboard open, refused save with retained input, light/dark rendering and full-screen preview close/return. Android checks cover both themes, real Gboard, the final action at native font scale 1.75, controlled 409 with retained draft and required reread, explicit reread/resubmission followed by success, preview close/return and initial-load failure followed by explicit retry. Enlarged text stacks cards/actions; the native Modal owns its safe-area provider. These observations qualify component behavior with controlled HTTP, not the full authenticated route, backend SQL, store download, physical device or screen-reader journey. Representative captures remain outside Git and accompany the delivery PR.
+
+T039/T041, #189/#190 and the existing iOS #433/#449 limits remain separate qualifications; no threshold increase, store publication, provider change or production operation is authorized by these checks.
