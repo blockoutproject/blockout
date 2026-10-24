@@ -1,3 +1,4 @@
+import { discardApplicationVersionsEditor } from "../../../features/access/forms/application-versions-editor";
 import { useState } from "react";
 import { Alert } from "react-native";
 import { usePreventRemove } from "expo-router";
@@ -26,6 +27,7 @@ function AdmittedApplicationVersions() {
           text: "Abandonner",
           style: "destructive",
           onPress: () => {
+            discardApplicationVersionsEditor();
             setDirty(false);
             repeat();
           },

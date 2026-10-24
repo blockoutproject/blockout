@@ -131,7 +131,7 @@ function responses(permissions: Record<string, boolean>, outdated = false) {
     storeUrl:
       "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
   };
-  mockFetch.mockImplementation(async (url) =>
+  const serve = async (url: RequestInfo | URL) =>
     Response.json(
       String(url).endsWith("/application-access")
         ? access
@@ -145,8 +145,9 @@ function responses(permissions: Record<string, boolean>, outdated = false) {
               permissions,
             }
           : access.versions,
-    ),
-  );
+    );
+  mockFetch.mockImplementation(serve);
+  return serve;
 }
 it("admits the current versions manager during maintenance without personal bypass or maintenance rights", async () => {
   // Given
@@ -248,6 +249,68 @@ it("preserves a dirty draft when departure is cancelled, and leaves only after e
 
   // Then
   expect(await screen.findByText("Versions minimales")).toBeOnTheScreen();
+  expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PATCH")).toBe(
+    false,
+  );
+});
+
+it("retains the same-session draft when a pending permission refresh removes the operational route", async () => {
+  // Given
+  const serve = responses({ manageApplicationVersions: true });
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  const user = userEvent.setup();
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/accounts/me") ? pending.promise : serve(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(
+    await screen.findByRole("link", { name: "Accès administrateur" }),
+  );
+  await user.press(await screen.findByText("Versions minimales"));
+  await user.type(
+    await screen.findByLabelText("Message commun"),
+    "Mon brouillon",
+  );
+
+  // When
+  await act(async () =>
+    pending.resolve(
+      Response.json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        {
+          status: 503,
+          headers: { "Content-Type": "application/problem+json" },
+        },
+      ),
+    ),
+  );
+
+  // Then
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
+
+  // When
+  mockFetch.mockImplementation(serve);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(
+    await screen.findByRole("link", { name: "Accès administrateur" }),
+  );
+  await user.press(await screen.findByText("Versions minimales"));
+
+  // Then
+  expect(await screen.findByLabelText("Message commun")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Appliquer les modifications" }),
+  ).toBeEnabled();
   expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PATCH")).toBe(
     false,
   );

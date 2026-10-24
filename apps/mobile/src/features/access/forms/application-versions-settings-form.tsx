@@ -1,7 +1,11 @@
-import { applicationUpdateMessage } from "../application-update-message";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  applicationVersionsEditor,
+  applicationVersionsValues as values,
+} from "./application-versions-editor";
+import { applicationUpdateMessage } from "../application-update-message";
 import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import type {
@@ -39,9 +43,9 @@ export function ApplicationVersionsSettingsForm({
 }: ApplicationVersionsSettingsFormProps) {
   const session = useAccountSession();
   const { colors } = useTheme();
-  const [baseline, setBaseline] = useState(settings);
-  const [needsRead, setNeedsRead] = useState(false);
-  const [feedback, setFeedback] = useState<string>();
+  const [editor] = useState(() => applicationVersionsEditor(session, settings));
+  const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot);
+  const { baseline, needsRead, feedback } = state;
   const [expanded, setExpanded] = useState({ ios: false, android: false });
   const [preview, setPreview] = useState(false);
   const [acknowledged, setAcknowledged] = useState<string>();
@@ -51,8 +55,8 @@ export function ApplicationVersionsSettingsForm({
     reset,
     formState: { errors, isSubmitting, isDirty, dirtyFields },
   } = useForm<ApplicationVersionsValues>({
+    formControl: editor.form.formControl,
     resolver: zodResolver(applicationVersionsSchema),
-    defaultValues: values(settings),
   });
   const [iosMinimum, iosStore, androidMinimum, androidStore, message] =
     useWatch({
@@ -116,21 +120,28 @@ export function ApplicationVersionsSettingsForm({
     try {
       const accepted = await editing.content.mutateAsync(body);
       if (!session.isCurrent(session.generation)) return;
-      setBaseline(accepted);
+      editor.update({
+        baseline: accepted,
+        needsRead: false,
+        feedback: "Réglages de versions enregistrés.",
+      });
       reset(values(accepted));
       setAcknowledged(undefined);
-      setFeedback("Réglages de versions enregistrés.");
     } catch (error) {
       if (!session.isCurrent(session.generation)) return;
       if (requiresSettingsReread(error)) {
-        setNeedsRead(true);
-        setFeedback(
-          "Le résultat doit être vérifié. Relisez les réglages avant une nouvelle soumission.",
-        );
+        editor.update({
+          ...state,
+          needsRead: true,
+          feedback:
+            "Le résultat doit être vérifié. Relisez les réglages avant une nouvelle soumission.",
+        });
       } else
-        setFeedback(
-          "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
-        );
+        editor.update({
+          ...state,
+          feedback:
+            "L’enregistrement a été refusé. Vérifiez les valeurs et vos permissions.",
+        });
     }
   }
   /** Reads the actual outcome and keeps dirty fields, without submitting or merging conflicting input. */
@@ -142,17 +153,17 @@ export function ApplicationVersionsSettingsForm({
       result.isError ||
       result.data.revision < baseline.revision
     ) {
-      setNeedsRead(true);
-      setFeedback(undefined);
+      editor.update({ ...state, needsRead: true, feedback: undefined });
       return;
     }
-    setBaseline(result.data);
+    editor.update({
+      baseline: result.data,
+      needsRead: false,
+      feedback:
+        "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
+    });
     reset(values(result.data), { keepDirtyValues: true });
     setAcknowledged(undefined);
-    setNeedsRead(false);
-    setFeedback(
-      "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
-    );
   }
   return (
     <View style={styles.form}>
@@ -362,22 +373,6 @@ export function ApplicationVersionsSettingsForm({
       </Modal>
     </View>
   );
-}
-/** Turns optional transport values into RHF editing strings without creating publishable defaults. */
-function values(
-  settings: ApplicationVersionsResponse,
-): ApplicationVersionsValues {
-  return {
-    ios: {
-      minimumVersion: settings.ios.minimumVersion ?? "",
-      storeUrl: settings.ios.storeUrl ?? "",
-    },
-    android: {
-      minimumVersion: settings.android.minimumVersion ?? "",
-      storeUrl: settings.android.storeUrl ?? "",
-    },
-    message: settings.message ?? "",
-  };
 }
 const styles = StyleSheet.create({
   form: { gap: tokens.spacing.lg },
