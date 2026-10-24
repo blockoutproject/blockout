@@ -2,6 +2,7 @@ package com.blockout.backend.collection.api;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
+import com.blockout.backend.collection.application.exception.InvalidSeasonConfirmationException;
 import com.blockout.backend.collection.application.exception.InvalidSourceException;
 import com.blockout.backend.generated.ingestion.model.ProblemResponse;
 import com.blockout.backend.sporting.api.SportingIngestionController;
@@ -36,11 +37,12 @@ public class CollectionExceptionHandler {
   }
 
   /**
-   * Refuses readable but unusable source input without echoing URLs or diagnostics.
+   * Refuses readable but unusable source input or an inexact closure confirmation without echoing
+   * URLs or diagnostics.
    *
    * @return canonical non-cacheable business-input refusal
    */
-  @ExceptionHandler(InvalidSourceException.class)
+  @ExceptionHandler({InvalidSourceException.class, InvalidSeasonConfirmationException.class})
   ResponseEntity<ProblemResponse> invalidSource() {
     return ResponseEntity.status(422)
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)

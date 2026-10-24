@@ -23,7 +23,7 @@ public class CollectorLifecycle {
   private final CollectionBackend backend;
   @Getter private final UUID incarnationId = UUID.randomUUID();
   private boolean registrationAttempted;
-  private volatile boolean active;
+  @Getter private volatile boolean active;
 
   /**
    * Reads then conditionally registers once; an uncertain acknowledgement is confirmed by a read. A
@@ -47,6 +47,22 @@ public class CollectorLifecycle {
   }
 
   /**
+   * Reads fresh work for this startup, inspecting a conflicting runtime once without registration.
+   *
+   * @return current backend intent; no remembered configuration authorizes provider work
+   * @throws CollectionBackendFailure when the read is refused or unavailable
+   */
+  public CollectionBackend.Work work() {
+    requireActive();
+    try {
+      return backend.work(incarnationId);
+    } catch (CollectionBackendFailure failure) {
+      inspectConflict(failure);
+      throw failure;
+    }
+  }
+
+  /**
    * Allocates one cycle UUID, attempts admission once and reads that exact cycle after uncertainty.
    *
    * @param controlId selected control, absent for validation
@@ -66,12 +82,15 @@ public class CollectorLifecycle {
     try {
       cycle = backend.admit(command);
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
-        if (!incarnationId.equals(backend.current().incarnationId())) stop();
-        throw failure;
-      }
+      inspectConflict(failure);
       if (failure.getKind() != CollectionBackendFailure.Kind.UNCONFIRMED) throw failure;
-      cycle = backend.cycle(command.cycleId());
+      try {
+        cycle = backend.cycle(command.cycleId());
+      } catch (CollectionBackendFailure readFailure) {
+        unresolvedAdmission(command);
+        // A refused/missing read cannot turn an uncertain write into a definite admission refusal.
+        throw new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, readFailure);
+      }
     }
     if (!incarnationId.equals(cycle.incarnationId())
         || cycle.state() == CollectionCycleStateEnum.INTERRUPTED) stop();
@@ -82,9 +101,42 @@ public class CollectorLifecycle {
         || cycle.state() != CollectionCycleStateEnum.RUNNING
         || (controlId != null && (cycle.mode() == null || cycle.hasCandidate()))
         || (sourceBindingId != null && (cycle.mode() != null || !cycle.hasCandidate()))) {
+      unresolvedAdmission(command);
       throw new IllegalStateException("Backend did not confirm the requested runnable context");
     }
     return new AdmittedCycle(cycle);
+  }
+
+  /**
+   * Stops a superseded startup after one current-runtime read, preserving the original refusal.
+   *
+   * @param failure original work, admission or execution failure; only conflicts need inspection
+   */
+  public void inspectConflict(CollectionBackendFailure failure) {
+    if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) return;
+    try {
+      if (!incarnationId.equals(backend.current().incarnationId())) stop();
+    } catch (CollectionBackendFailure unavailable) {
+      log.atWarn()
+          .addKeyValue("operation", "collector_runtime")
+          .addKeyValue("outcome", "unconfirmed")
+          .log("Runtime could not be confirmed; the original refusal remains definitive");
+    }
+  }
+
+  /**
+   * Keeps the original attempted identity available for manual inspection without provider data.
+   *
+   * @param command single original admission; later polling must not allocate another identity
+   */
+  private void unresolvedAdmission(CollectionBackend.StartCycle command) {
+    log.atError()
+        .addKeyValue("operation", "collection_admission")
+        .addKeyValue("cycleId", command.cycleId())
+        .addKeyValue("controlId", command.controlId())
+        .addKeyValue("sourceBindingId", command.sourceBindingId())
+        .addKeyValue("outcome", "unconfirmed")
+        .log("Original admission requires manual inspection; no new UUID may be attempted");
   }
 
   /** Stops new reads/admission after supersession; no automatic re-registration is possible. */

@@ -111,11 +111,30 @@ public interface CollectionStore {
   Control lockControl(UUID id);
 
   /**
+   * Changes authorized activity and pending intent under the already locked control.
+   *
+   * @param id locked control
+   * @param enabled desired activity
+   * @param requestId single pending intent, or null to cancel it
+   * @param mode manual mode for new intent, or null when cancelled
+   * @return flushed current control; unchanged values do not advance the revision
+   */
+  Control setControlIntent(UUID id, boolean enabled, UUID requestId, CollectionModeEnum mode);
+
+  /**
    * Lists current control configuration.
    *
    * @return complete current configuration list in identity order
    */
   List<Control> controls();
+
+  /**
+   * Lists only controls belonging to the requested operator scope.
+   *
+   * @param seasonId selected season, or null for seasonless controls
+   * @return scoped configuration in identity order, also used for deterministic control locking
+   */
+  List<Control> controls(UUID seasonId);
 
   /**
    * Reads the current supported source.

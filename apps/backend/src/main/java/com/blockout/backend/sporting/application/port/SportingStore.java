@@ -126,6 +126,14 @@ public interface SportingStore {
   SportingViews.CollectionSeasonView updatePreparation(UUID id, boolean activate);
 
   /**
+   * Closes the canonical acquisition lifecycle under its caller's exclusive season lock.
+   *
+   * @param id authorized open season whose revision and exact label have been checked
+   * @return flushed terminal state; sporting data remain intact
+   */
+  SportingViews.CollectionSeasonView closeCollectionSeason(UUID id);
+
+  /**
    * Finds a canonical season by its qualified start year.
    *
    * @param year qualified start year

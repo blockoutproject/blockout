@@ -36,10 +36,43 @@ import org.apache.hc.core5.util.Timeout;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 /** Native, independent FFVB/LNV/IGN budgets shared across seasons and acquisition families. */
 @Configuration(proxyBeanMethods = false)
 public class AcquisitionConfiguration {
+  /**
+   * Schedules discovery, competition and current-work ticks independently with native shutdown.
+   *
+   * @param clock application clock, also used by source observation
+   * @return managed three-thread timer; each lenient trigger skips its own overruns
+   */
+  @Bean
+  ThreadPoolTaskScheduler acquisitionTimer(Clock clock) {
+    ThreadPoolTaskScheduler timer = new ThreadPoolTaskScheduler();
+    timer.setPoolSize(3);
+    timer.setClock(clock);
+    timer.setThreadNamePrefix("acquisition-tick-");
+    return timer;
+  }
+
+  /**
+   * Bounds passage admission independently from provider request pools, without a catch-up queue.
+   *
+   * @param properties existing conservative per-provider concurrency budget
+   * @return managed executor; saturation refuses work before backend admission
+   */
+  @Bean
+  ThreadPoolTaskExecutor acquisitionExecutor(AcquisitionProperties properties) {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    int capacity = properties.concurrencyPerProvider() * 3;
+    executor.setCorePoolSize(capacity);
+    executor.setMaxPoolSize(capacity);
+    executor.setQueueCapacity(0);
+    executor.setThreadNamePrefix("acquisition-passage-");
+    return executor;
+  }
+
   /**
    * Shares the native authenticated transport for qualified source proposals.
    *

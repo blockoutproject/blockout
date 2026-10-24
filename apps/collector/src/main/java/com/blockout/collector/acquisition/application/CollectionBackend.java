@@ -1,10 +1,12 @@
 package com.blockout.collector.acquisition.application;
 
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
@@ -18,6 +20,38 @@ import lombok.Builder;
 
 /** Backend admission boundary; only it can authorize provider work, never a remembered fallback. */
 public interface CollectionBackend {
+  /** Current read-only intent; polling never admits work or refreshes a remembered fallback. */
+  record Work(List<ControlWork> controls, List<ValidationWork> validations) {
+    /** Detaches the complete current configuration lists. */
+    public Work {
+      controls = List.copyOf(controls);
+      validations = List.copyOf(validations);
+    }
+  }
+
+  /** Backend-owned eligibility and single pending request for one independent scope. */
+  record ControlWork(
+      UUID id,
+      CollectionFamilyEnum family,
+      UUID seasonId,
+      long revision,
+      boolean enabled,
+      CollectionSeasonStateEnum seasonState,
+      UUID requestId,
+      CollectionModeEnum requestedMode,
+      UUID runningCycleId) {}
+
+  /** One current candidate awaiting admission; provider configuration is reread after admission. */
+  record ValidationWork(UUID sourceBindingId, long revision) {}
+
+  /**
+   * Reads current intent for this startup; a refused read authorizes no provider call.
+   *
+   * @param incarnationId startup confirmed once by registration
+   * @return current backend-selected control and validation work
+   */
+  Work work(UUID incarnationId);
+
   /** Current registration, including explicit absence before the first process starts. */
   record Runtime(long revision, UUID incarnationId) {}
 
