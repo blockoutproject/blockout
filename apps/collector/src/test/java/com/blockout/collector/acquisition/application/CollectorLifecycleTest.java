@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.blockout.collector.acquisition.infrastructure.CollectorStartup;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendClient;
 import com.blockout.collector.acquisition.infrastructure.backend.CollectionBackendMapperImpl;
@@ -22,6 +25,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import tools.jackson.databind.JsonNode;
@@ -43,6 +49,7 @@ class CollectorLifecycleTest {
   private boolean refuseAdmission;
   private boolean contradictoryPurpose;
   private boolean refuseCycleRead;
+  private int unavailableCycleStatus = 503;
   private CollectorLifecycle lifecycle;
   private CollectionBackendClient backend;
 
@@ -113,7 +120,7 @@ class CollectorLifecycleTest {
             }
             body = cycle;
           } else {
-            status = refuseCycleRead ? 503 : 200;
+            status = refuseCycleRead ? unavailableCycleStatus : 200;
             body = refuseCycleRead ? "{}" : cycle;
           }
           byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
@@ -219,18 +226,44 @@ class CollectorLifecycleTest {
     assertThat(context.nextReadOrdinal()).isEqualTo(2);
   }
 
-  @Test
-  @DisplayName("Exposes no provider context when the same-cycle read is still uncertain")
-  void refusesUnconfirmedAdmission() {
+  @ParameterizedTest
+  @ValueSource(ints = {404, 503})
+  @DisplayName(
+      "An unresolved original admission remains uncertain and logs its original UUID for inspection")
+  void refusesUnconfirmedAdmission(int readStatus) {
     // Given
     lifecycle.start();
     loseAdmission = true;
     refuseCycleRead = true;
-
-    // When / Then
-    assertThatThrownBy(() -> lifecycle.admit(UUID.randomUUID(), null, 0, null))
-        .isInstanceOf(CollectionBackendFailure.class);
-    assertThat(calls.stream().filter(call -> call.startsWith("POST"))).hasSize(1);
+    unavailableCycleStatus = readStatus;
+    Logger logger = (Logger) LoggerFactory.getLogger(CollectorLifecycle.class);
+    ListAppender<ILoggingEvent> events = new ListAppender<>();
+    events.start();
+    logger.addAppender(events);
+    try {
+      // When / Then
+      assertThatThrownBy(() -> lifecycle.admit(UUID.randomUUID(), null, 0, null))
+          .isInstanceOfSatisfying(
+              CollectionBackendFailure.class,
+              failure ->
+                  assertThat(failure.getKind())
+                      .isEqualTo(CollectionBackendFailure.Kind.UNCONFIRMED));
+      assertThat(calls.stream().filter(call -> call.startsWith("POST"))).hasSize(1);
+      assertThat(events.list)
+          .singleElement()
+          .satisfies(
+              event -> {
+                assertThat(event.getKeyValuePairs())
+                    .anySatisfy(
+                        pair -> {
+                          assertThat(pair.key).isEqualTo("cycleId");
+                          assertThat(pair.value).isEqualTo(admitted);
+                        });
+              });
+    } finally {
+      logger.detachAppender(events);
+      events.stop();
+    }
   }
 
   @Test

@@ -71,7 +71,13 @@ public class CollectorLifecycle {
         throw failure;
       }
       if (failure.getKind() != CollectionBackendFailure.Kind.UNCONFIRMED) throw failure;
-      cycle = backend.cycle(command.cycleId());
+      try {
+        cycle = backend.cycle(command.cycleId());
+      } catch (CollectionBackendFailure readFailure) {
+        unresolvedAdmission(command);
+        // A refused/missing read cannot turn an uncertain write into a definite admission refusal.
+        throw new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, readFailure);
+      }
     }
     if (!incarnationId.equals(cycle.incarnationId())
         || cycle.state() == CollectionCycleStateEnum.INTERRUPTED) stop();
@@ -82,9 +88,25 @@ public class CollectorLifecycle {
         || cycle.state() != CollectionCycleStateEnum.RUNNING
         || (controlId != null && (cycle.mode() == null || cycle.hasCandidate()))
         || (sourceBindingId != null && (cycle.mode() != null || !cycle.hasCandidate()))) {
+      unresolvedAdmission(command);
       throw new IllegalStateException("Backend did not confirm the requested runnable context");
     }
     return new AdmittedCycle(cycle);
+  }
+
+  /**
+   * Keeps the original attempted identity available for manual inspection without provider data.
+   *
+   * @param command single original admission; later polling must not allocate another identity
+   */
+  private void unresolvedAdmission(CollectionBackend.StartCycle command) {
+    log.atError()
+        .addKeyValue("operation", "collection_admission")
+        .addKeyValue("cycleId", command.cycleId())
+        .addKeyValue("controlId", command.controlId())
+        .addKeyValue("sourceBindingId", command.sourceBindingId())
+        .addKeyValue("outcome", "unconfirmed")
+        .log("Original admission requires manual inspection; no new UUID may be attempted");
   }
 
   /** Stops new reads/admission after supersession; no automatic re-registration is possible. */

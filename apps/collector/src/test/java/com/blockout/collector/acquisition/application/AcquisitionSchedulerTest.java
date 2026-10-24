@@ -27,6 +27,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.Trigger;
@@ -76,6 +78,48 @@ class AcquisitionSchedulerTest {
                   command.sourceBindingId() != null,
                   null);
             });
+  }
+
+  @ParameterizedTest
+  @CsvSource({"false,UNCONFIRMED", "true,UNCONFIRMED", "false,REJECTED", "true,REJECTED"})
+  @DisplayName(
+      "Uncertain control and candidate admissions retain their original identity across later ticks")
+  void retainsUnconfirmedAdmission(boolean validation, CollectionBackendFailure.Kind readFailure) {
+    // Given
+    AcquisitionScheduler scheduler =
+        new AcquisitionScheduler(
+            timer, new SyncTaskExecutor(), backend, lifecycle, discovery, passages, qualification);
+    scheduler.start();
+    CollectionBackend.Work work =
+        new CollectionBackend.Work(
+            validation
+                ? List.of()
+                : List.of(
+                    new CollectionBackend.ControlWork(
+                        CONTROL,
+                        CollectionFamilyEnum.FFVB,
+                        SEASON,
+                        0,
+                        true,
+                        CollectionSeasonStateEnum.ACTIVE,
+                        REQUEST,
+                        CollectionModeEnum.MANUAL,
+                        null)),
+            validation ? List.of(new CollectionBackend.ValidationWork(CONTROL, 0)) : List.of());
+    when(backend.work(lifecycle.getIncarnationId())).thenReturn(work);
+    doThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.UNCONFIRMED, null))
+        .when(backend)
+        .admit(any());
+    when(backend.cycle(any())).thenThrow(new CollectionBackendFailure(readFailure, null));
+
+    // When
+    tasks.get(2).run();
+    tasks.get(2).run();
+
+    // Then: neither an unavailable read nor a missing-cycle response authorizes a fresh UUID.
+    verify(backend).admit(any());
+    verify(backend).cycle(any());
+    verifyNoInteractions(passages, qualification);
   }
 
   @Test

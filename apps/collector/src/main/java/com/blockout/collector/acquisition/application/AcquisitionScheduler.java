@@ -24,8 +24,11 @@ public class AcquisitionScheduler {
   private final DiscoverSeasonSources discovery;
   private final CollectPassage passages;
   private final QualifySource qualification;
-  // Local execution/acknowledgement ownership, which backend completion cannot establish.
-  private final Set<UUID> heldControls = ConcurrentHashMap.newKeySet();
+  // Local admission/acknowledgement ownership, which backend projections cannot establish.
+  private final Set<Scope> heldScopes = ConcurrentHashMap.newKeySet();
+
+  /** One control or candidate identity, independent of a later revision or request. */
+  private record Scope(UUID controlId, UUID sourceBindingId) {}
 
   /**
    * Wires managed native scheduling and bounded execution, without starting provider work.
@@ -77,11 +80,7 @@ public class AcquisitionScheduler {
     CollectionBackend.Work work = backend.work(lifecycle.getIncarnationId());
     if (requests) {
       for (CollectionBackend.ValidationWork candidate : work.validations()) {
-        submit(
-            () ->
-                qualification.execute(
-                    lifecycle.admit(
-                        null, candidate.sourceBindingId(), candidate.revision(), null)));
+        schedule(new Scope(null, candidate.sourceBindingId()), candidate.revision(), null);
       }
     }
     for (CollectionBackend.ControlWork control : work.controls()) {
@@ -96,28 +95,45 @@ public class AcquisitionScheduler {
                       && control.seasonState() != CollectionSeasonStateEnum.ACTIVE)))) continue;
       boolean minuteWork = control.requestId() != null || control.seasonId() == null;
       if (minuteWork != requests) continue;
-      if (!heldControls.add(control.id())) continue;
-      if (!submit(() -> executeControl(control))) heldControls.remove(control.id());
+      schedule(new Scope(control.id(), null), control.revision(), control.requestId());
     }
   }
 
   /**
-   * Retains local ownership until terminal confirmation, including while its read is in progress. A
-   * backend COMPLETED projection cannot prove that this process confirmed the lost response.
-   * Unconfirmed or failed admitted work holds this scope until explicit process restart; other
-   * controls remain eligible. Admission rejection releases the local claim without provider work.
+   * Claims an opportunity before asynchronous admission; native saturation releases it immediately.
    *
-   * @param control fresh intent whose local execution slot has already been claimed
+   * @param scope exact independent control or candidate
+   * @param revision fresh configuration revision
+   * @param requestId pending control intent, absent for periodic work or validation
    */
-  private void executeControl(CollectionBackend.ControlWork control) {
+  private void schedule(Scope scope, long revision, UUID requestId) {
+    if (!heldScopes.add(scope)) return;
+    if (!submit(() -> execute(scope, revision, requestId))) heldScopes.remove(scope);
+  }
+
+  /**
+   * Retains ownership from admission through terminal confirmation, including uncertain admission.
+   * Only a definite admission refusal or confirmed terminal result releases it. Current-work and
+   * COMPLETED projections cannot prove receipt of the original acknowledgement. Other scopes remain
+   * eligible; unresolved scopes require inspection and explicit process restart.
+   *
+   * @param scope identity already claimed locally
+   * @param revision configuration revision used by this single admission attempt
+   * @param requestId exact pending control intent, otherwise absent
+   */
+  private void execute(Scope scope, long revision, UUID requestId) {
     CollectorLifecycle.AdmittedCycle context;
     try {
-      context = lifecycle.admit(control.id(), null, control.revision(), control.requestId());
-    } catch (RuntimeException failure) {
-      heldControls.remove(control.id());
+      context = lifecycle.admit(scope.controlId(), scope.sourceBindingId(), revision, requestId);
+    } catch (CollectionBackendFailure failure) {
+      if (failure.getKind() != CollectionBackendFailure.Kind.UNCONFIRMED) heldScopes.remove(scope);
       throw failure;
     }
-    if (passages.execute(context)) heldControls.remove(control.id());
+    boolean confirmed =
+        scope.sourceBindingId() == null
+            ? passages.execute(context)
+            : qualification.execute(context);
+    if (confirmed) heldScopes.remove(scope);
   }
 
   /**
