@@ -1,8 +1,10 @@
 package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
+import com.blockout.backend.sporting.application.SportingProjectionChanges.Scope;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.SportingPublicInput;
 import com.blockout.backend.sporting.application.model.SportingViews.ClubView;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionResourcePage;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionView;
@@ -10,22 +12,119 @@ import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
 import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
+import com.blockout.backend.sporting.application.model.SportingVisibility;
+import com.blockout.backend.sporting.application.model.SportingVisibility.Kind;
+import com.blockout.backend.sporting.application.model.StandingsView;
+import com.blockout.backend.sporting.application.port.SportingReadStore;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Immutable owner reads for F01/F03/F04/F06; current public eligibility is added by its story. */
+/** Immutable owner reads for F01 and current public inputs for F03/F04/F06. */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class SportingReadService {
   private final SportingStore store;
+  private final SportingReadStore publicReads;
+
+  /**
+   * Rechecks current eligibility independently of index documents, follows and old links.
+   *
+   * @param kind owning resource kind
+   * @param id stable identity
+   * @return all current restrictions, or empty for an unknown identity
+   */
+  public Optional<SportingVisibility> visibility(Kind kind, UUID id) {
+    return publicReads.visibility(kind, id);
+  }
+
+  /**
+   * Hydrates bounded current authorized public values; hidden identities are omitted.
+   *
+   * @param kind club, team or pool
+   * @param ids at most 200 stable identities
+   * @return immutable current inputs, never stale engine documents
+   */
+  public List<SportingPublicInput> publicInputs(Kind kind, Set<UUID> ids) {
+    if (ids.size() > 200) throw new IllegalArgumentException("At most 200 identities per read");
+    return publicReads.publicInputs(kind, ids);
+  }
+
+  /**
+   * Supplies bounded current inputs for a consumer-owned rebuild in stable UUID order.
+   *
+   * @param kind club, team or pool
+   * @param page zero-based page
+   * @param size from 1 through 200
+   * @return eligible current inputs; an empty page ends traversal
+   */
+  public List<SportingPublicInput> projectionInputs(Kind kind, int page, int size) {
+    if (page < 0 || size < 1 || size > 200)
+      throw new IllegalArgumentException("Invalid page bounds");
+    return publicReads.projectionInputs(kind, page, size);
+  }
+
+  /**
+   * Expands affected sporting identities without filtering hidden resources needing index removal.
+   *
+   * @param scopes changed owner identities/scopes from an after-commit request
+   * @return immutable dependent club/team/pool identities
+   */
+  public Set<Scope> projectionDependents(Set<Scope> scopes) {
+    return publicReads.projectionDependents(scopes);
+  }
+
+  /**
+   * Resolves an existing encounter only while its date, pool and participation permit consultation.
+   *
+   * @param id stable identity from a link or personal follow
+   * @return current eligible encounter, without replacement or identity transfer
+   */
+  public Optional<MatchView> publicMatch(UUID id) {
+    return visibility(Kind.MATCH, id)
+        .filter(SportingVisibility::viewable)
+        .flatMap(ignored -> store.match(id));
+  }
+
+  /**
+   * Keeps official row order and labels while removing links to currently unavailable participants.
+   *
+   * @param poolId current pool identity
+   * @return authorized retained official table, or empty for a hidden pool or unknown table
+   */
+  public Optional<StandingsView> publicStandings(UUID poolId) {
+    if (visibility(Kind.POOL, poolId).filter(SportingVisibility::viewable).isEmpty())
+      return Optional.empty();
+    return store
+        .standings(poolId)
+        .map(
+            table -> {
+              Set<UUID> eligible = publicReads.viewablePoolTeamIds(poolId);
+              return table.toBuilder()
+                  .rows(
+                      table.rows().stream()
+                          .map(
+                              row ->
+                                  new StandingsView.Row(
+                                      row.sourceName(),
+                                      row.nativeTeamReference(),
+                                      row.position(),
+                                      row.statistics(),
+                                      row.teamId() != null && eligible.contains(row.teamId())
+                                          ? row.teamId()
+                                          : null))
+                          .toList())
+                  .build();
+            });
+  }
 
   /**
    * Reads current source children through their sporting owner, without acquisition filtering.
@@ -146,7 +245,7 @@ public class SportingReadService {
   }
 
   /**
-   * Reads the established contextual pool.
+   * Reads a retained contextual pool for internal acquisition, including hidden identities.
    *
    * @param id contextual pool
    * @return current accepted identity/classification
@@ -156,7 +255,7 @@ public class SportingReadService {
   }
 
   /**
-   * Reads the seasonal team without exposing persistence.
+   * Reads a retained seasonal team for internal acquisition, including hidden identities.
    *
    * @param id seasonal team
    * @return current identity/classification
@@ -166,7 +265,7 @@ public class SportingReadService {
   }
 
   /**
-   * Reads the native encounter and its established participants.
+   * Reads a retained encounter for internal acquisition, including hidden or dateless identities.
    *
    * @param id stable encounter
    * @return its current participant identities

@@ -49,6 +49,7 @@
     <createTable tableName="sporting_pool">
       <column name="calendar_url" type="TEXT"></column>
       <column name="standings_url" type="TEXT"></column>
+      <column name="calendar_empty" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
       <column name="catalog_eligible" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
       <column name="season_id" type="UUID"><constraints nullable="false"/></column>
@@ -91,6 +92,7 @@
       <column name="current" type="BOOLEAN"><constraints nullable="false"/></column>
     </createTable>
     <createTable tableName="sporting_match">
+      <column name="present" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
       <column name="detail_url" type="TEXT"></column>
       <column name="reliable_start" type="TIMESTAMP WITH TIME ZONE"></column>
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>

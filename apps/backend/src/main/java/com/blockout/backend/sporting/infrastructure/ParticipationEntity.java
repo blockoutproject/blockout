@@ -13,8 +13,9 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-/** Retained unique team/pool relation; later visibility rules govern its current use. */
+/** Retained unique team/pool relation with independent current calendar presence. */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
@@ -33,6 +34,7 @@ public class ParticipationEntity {
   private PoolEntity pool;
 
   @Column(nullable = false)
+  @Setter
   private boolean current;
 
   /**
