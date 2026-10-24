@@ -132,6 +132,34 @@ class ClubAcquisitionIntegrationTest {
   @EnumSource(
       value = GeocodingOutcomeEnum.class,
       names = {"EMPTY", "AMBIGUOUS"})
+  @DisplayName("A newer accepted F02 no-result suppresses an older failed F01 attempt")
+  void suppressesOldFailureAfterUnrecordedNormalResult(GeocodingOutcomeEnum outcome) {
+    // Given
+    correct(Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.MANUAL, "Paris")));
+    CollectionState.Cycle failed = admit(GEOCODING, false);
+    record(failed, CollectionStageEnum.GEOCODING, CollectionOutcomeEnum.FAILED);
+    results.complete(failed.id(), now);
+    now = now.plus(Duration.ofHours(1));
+    CollectionState.Cycle normal = admit(GEOCODING, false);
+    localities.accept(
+        CLUB,
+        new SportingPresentation.LocalityObservation(
+            context(normal), targets(normal).getFirst().localityRevision(), outcome, null, null));
+    // No new F01 acquisition record: its request was lost before commit, while F02 accepted.
+    results.complete(normal.id(), now);
+
+    // When
+    now = now.plus(Duration.ofHours(1));
+    CollectionState.Cycle next = admit(GEOCODING, false);
+
+    // Then
+    assertThat(targets(next)).isEmpty();
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = GeocodingOutcomeEnum.class,
+      names = {"EMPTY", "AMBIGUOUS"})
   @DisplayName("A failed manual retry of an old normal no-result becomes ordinarily eligible")
   void retriesTechnicalFailureAfterNormalResult(GeocodingOutcomeEnum outcome) {
     // Given

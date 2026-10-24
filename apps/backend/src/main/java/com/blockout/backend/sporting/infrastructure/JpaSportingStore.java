@@ -218,7 +218,8 @@ public class JpaSportingStore implements SportingStore {
                         club.getCity().toValue().effectiveValue(),
                         club.getCity().toValue().effectiveValue() == null
                             ? null
-                            : club.getPostalCode().toValue().effectiveValue())));
+                            : club.getPostalCode().toValue().effectiveValue(),
+                        order(club.getLocalityCycleOrder(), club.getLocalityReadOrdinal()))));
   }
 
   /**

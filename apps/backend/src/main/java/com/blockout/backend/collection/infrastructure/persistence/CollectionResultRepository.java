@@ -18,10 +18,10 @@ interface CollectionResultRepository
    *
    * @param controlId independent family
    * @param scopeIds bounded batch of candidate identities
-   * @return current actual acquisition attempts, outcomes and usable observations
+   * @return current actual acquisition attempts, outcomes, logical tokens and usable observations
    */
   @Query(
-      "SELECT NEW com.blockout.backend.collection.application.model.CollectionAttempt(r.scopeId, r.stage, r.lastAttemptAt, r.lastSuccessAt, r.outcome) FROM CollectionResultEntity r WHERE r.controlId = :controlId AND r.scopeId IN :scopeIds AND r.phase = com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum.ACQUISITION")
+      "SELECT NEW com.blockout.backend.collection.application.model.CollectionAttempt(r.scopeId, r.stage, r.lastAttemptAt, r.lastSuccessAt, r.outcome, r.cycleOrder, r.readOrdinal) FROM CollectionResultEntity r WHERE r.controlId = :controlId AND r.scopeId IN :scopeIds AND r.phase = com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum.ACQUISITION")
   List<CollectionAttempt> attempts(UUID controlId, List<UUID> scopeIds);
 
   /**

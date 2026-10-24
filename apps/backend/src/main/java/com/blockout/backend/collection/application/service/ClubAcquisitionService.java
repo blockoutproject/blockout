@@ -10,6 +10,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.sporting.application.model.AcquisitionReference;
 import com.blockout.backend.sporting.application.model.ClubLocalityView;
+import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.service.SportingReadService;
 import java.util.List;
 import java.util.Map;
@@ -48,11 +49,26 @@ public class ClubAcquisitionService {
           sporting.acquisitionClubs(true, false, afterId).stream()
               .map(AcquisitionReference::clubId)
               .collect(Collectors.toSet());
-      for (CollectionAttempt attempt :
-          store.attempts(
-              controlId, references.stream().map(AcquisitionReference::clubId).toList())) {
-        if (attempt.stage() == CollectionStageEnum.GEOCODING
-            && attempt.outcome() == CollectionOutcomeEnum.FAILED) eligible.add(attempt.scopeId());
+      Set<UUID> ordinaryEligible = Set.copyOf(eligible);
+      List<CollectionAttempt> failures =
+          store
+              .attempts(controlId, references.stream().map(AcquisitionReference::clubId).toList())
+              .stream()
+              .filter(
+                  attempt ->
+                      attempt.stage() == CollectionStageEnum.GEOCODING
+                          && attempt.outcome() == CollectionOutcomeEnum.FAILED
+                          && !ordinaryEligible.contains(attempt.scopeId()))
+              .toList();
+      Map<UUID, ClubLocalityView> accepted =
+          sporting.clubLocalities(failures.stream().map(CollectionAttempt::scopeId).toList());
+      for (CollectionAttempt failure : failures) {
+        ClubLocalityView locality = accepted.get(failure.scopeId());
+        if (locality != null
+            && (locality.order() == null
+                || new ObservationOrder(failure.cycleOrder(), failure.readOrdinal())
+                        .compareTo(locality.order())
+                    > 0)) eligible.add(failure.scopeId());
       }
     }
     Set<UUID> selected = eligible;
